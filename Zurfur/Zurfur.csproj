@@ -71,6 +71,15 @@
     <Compile Include="Gui\FormViewText.Designer.cs">
       <DependentUpon>FormViewText.cs</DependentUpon>
     </Compile>
+    <Compile Include="Gui\MultiViewEditor.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Gui\MultiViewEditor.Designer.cs">
+      <DependentUpon>MultiViewEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Gui\TablessTabControl.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Gui\VerticalMarks.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -112,6 +121,9 @@
     <EmbeddedResource Include="Gui\FormViewText.resx">
       <DependentUpon>FormViewText.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Gui\MultiViewEditor.resx">
+      <DependentUpon>MultiViewEditor.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -137,9 +149,6 @@
     <Compile Include="App.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Example.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <EmbeddedResource Include="Gui\FormHtml.resx">
       <DependentUpon>FormHtml.cs</DependentUpon>
     </EmbeddedResource>
@@ -147,7 +156,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="ZurfurLib\Example.zurf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

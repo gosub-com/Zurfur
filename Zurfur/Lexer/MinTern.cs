@@ -10,9 +10,9 @@ namespace Gosub.Zurfur
     /// dictionary would build a big data structure.  This uses a small
     /// amount of memory to combine strings, and gets 98% of the repeats.
     /// </summary>
-    class MinTern
+    public class MinTern
     {
-        const int WIDTH = 179;	// Number of different hash values (should be prime)
+        const int WIDTH = 97;	// Number of different hash values (should be prime)
         const int DEPTH = 4;	// Number of symbols per has value
         string [][]mIntern;
 

@@ -14,7 +14,7 @@ namespace Gosub.Zurfur
         bool				mParseError;	// Flag is set whenever a parse error occurs
         Lexer				mLexer;			// Lexer to be paresed
         Lexer.Enumerator	mLexerEnum;		// Enumerator for the Lexer
-        string				mTokenName;
+        string				mTokenName="*"; // Skipped by first accept
         Token				mToken;
         Token               mPrevToken;
         List<string>        mComments = new List<string>();

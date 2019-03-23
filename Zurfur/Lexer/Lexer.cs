@@ -13,7 +13,6 @@ namespace Gosub.Zurfur
         // Strings and tokens buffer
         List<string> mLines = new List<string>();
         List<List<Token>> mTokens = new List<List<Token>>();
-        MinTern mMintern = new MinTern();
 
         /// <summary>
         /// Create an empty lexer
@@ -48,6 +47,8 @@ namespace Gosub.Zurfur
         {
             return Math.Max(Math.Min(v, max), min);
         }
+
+        public MinTern Mintern { get; set; } = new MinTern();
 
         /// <summary>
         /// Gets a section of text.
@@ -200,7 +201,7 @@ namespace Gosub.Zurfur
                 while (endIndex < line.Length && 
                         (char.IsLetterOrDigit(line, endIndex) || line[endIndex] == '_'))
                     endIndex++;
-                string token = mMintern[line.Substring(charIndex, endIndex - charIndex)];
+                string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
                 charIndex = endIndex; // Skip token
                 return new Token(token, 0, startIndex, eTokenType.Identifier);
             }
@@ -218,7 +219,7 @@ namespace Gosub.Zurfur
                             && (line[endIndex] == '+' || line[endIndex] == '-'))
                         endIndex++;
                 }
-                string token = mMintern[line.Substring(charIndex, endIndex - charIndex)];
+                string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
                 charIndex = endIndex;  // Skip token
                 return new Token(token, 0, startIndex, eTokenType.Number);
             }
@@ -238,7 +239,7 @@ namespace Gosub.Zurfur
                 }
                 if (endIndex != line.Length)
                     endIndex++; // Skip end quote
-                string token = mMintern[line.Substring(charIndex, endIndex - charIndex)];
+                string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
                 charIndex = endIndex;
                 return new Token(token, 0, startIndex, eTokenType.Quote);
             }
@@ -249,7 +250,7 @@ namespace Gosub.Zurfur
                 int endIndex = charIndex;
                 while (endIndex < line.Length  && (line[endIndex] != '\n' ||  line[endIndex] != '\r'))
                     endIndex++;
-                string token = mMintern[line.Substring(charIndex, endIndex - charIndex)];
+                string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
                 charIndex = endIndex;
                 return new Token(token, 0, startIndex, eTokenType.Comment);
             }
@@ -278,7 +279,7 @@ namespace Gosub.Zurfur
                 || ch1 == '=' && ch2 == '>')
             {
                 charIndex += 2;
-                return new Token(mMintern[line.Substring(startIndex, 2)], 0, startIndex);
+                return new Token(Mintern[line.Substring(startIndex, 2)], 0, startIndex);
             }
 
             // Three char tokens
@@ -288,11 +289,11 @@ namespace Gosub.Zurfur
                 || ch1 == '>' && ch2 == '>' && ch3 == '=')
             {
                 charIndex += 3;
-                return new Token(mMintern[line.Substring(startIndex, 3)], 0, startIndex);
+                return new Token(Mintern[line.Substring(startIndex, 3)], 0, startIndex);
             }
 
             // Single character
-            return new Token(mMintern[line[charIndex++].ToString()], 0, startIndex);
+            return new Token(Mintern[line[charIndex++].ToString()], 0, startIndex);
         }
 
         /// <summary>

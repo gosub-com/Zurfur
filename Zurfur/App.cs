@@ -7,6 +7,6 @@ namespace Gosub.Zurfur
     class App
     {
         public static readonly string Name = "Zurfur";
-        public static readonly string Version = "0.0.1";
+        public static readonly string Version = "0.0.2";
     }
 }

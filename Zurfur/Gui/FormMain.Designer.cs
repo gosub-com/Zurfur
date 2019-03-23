@@ -29,12 +29,13 @@
 		private void InitializeComponent()
 		{
             this.components = new System.ComponentModel.Container();
-            Gosub.Zurfur.Lexer lexer1 = new Gosub.Zurfur.Lexer();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
-            this.menuStrip1 = new System.Windows.Forms.MenuStrip();
+            this.mainMenu = new System.Windows.Forms.MenuStrip();
             this.menuFile = new System.Windows.Forms.ToolStripMenuItem();
             this.menuFileOpen = new System.Windows.Forms.ToolStripMenuItem();
             this.menuFileSave = new System.Windows.Forms.ToolStripMenuItem();
+            this.menuFileSaveAll = new System.Windows.Forms.ToolStripMenuItem();
+            this.menuFileSaveAs = new System.Windows.Forms.ToolStripMenuItem();
             this.menuEdit = new System.Windows.Forms.ToolStripMenuItem();
             this.menuEditFind = new System.Windows.Forms.ToolStripMenuItem();
             this.menuEditFindNext = new System.Windows.Forms.ToolStripMenuItem();
@@ -42,8 +43,10 @@
             this.menuHelp = new System.Windows.Forms.ToolStripMenuItem();
             this.menuHelpAbout = new System.Windows.Forms.ToolStripMenuItem();
             this.menuHelpLicense = new System.Windows.Forms.ToolStripMenuItem();
-            this.editor1 = new Gosub.Zurfur.Editor();
-            this.menuStrip1.SuspendLayout();
+            this.mvEditors = new Gosub.Zurfur.MultiViewEditor();
+            this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
+            this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
+            this.mainMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // timer1
@@ -52,40 +55,57 @@
             this.timer1.Interval = 20;
             this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
             // 
-            // menuStrip1
+            // mainMenu
             // 
-            this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.mainMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.menuFile,
             this.menuEdit,
             this.menuHelp});
-            this.menuStrip1.Location = new System.Drawing.Point(0, 0);
-            this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(942, 24);
-            this.menuStrip1.TabIndex = 16;
-            this.menuStrip1.Text = "menuStrip1";
+            this.mainMenu.Location = new System.Drawing.Point(0, 0);
+            this.mainMenu.Name = "mainMenu";
+            this.mainMenu.Size = new System.Drawing.Size(942, 24);
+            this.mainMenu.TabIndex = 16;
+            this.mainMenu.Text = "menuStrip1";
             // 
             // menuFile
             // 
             this.menuFile.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.menuFileOpen,
-            this.menuFileSave});
+            this.menuFileSave,
+            this.menuFileSaveAll,
+            this.menuFileSaveAs});
             this.menuFile.Name = "menuFile";
             this.menuFile.Size = new System.Drawing.Size(37, 20);
             this.menuFile.Text = "&File";
+            this.menuFile.DropDownOpening += new System.EventHandler(this.menuFile_DropDownOpening);
             // 
             // menuFileOpen
             // 
             this.menuFileOpen.Name = "menuFileOpen";
-            this.menuFileOpen.Size = new System.Drawing.Size(103, 22);
+            this.menuFileOpen.Size = new System.Drawing.Size(152, 22);
             this.menuFileOpen.Text = "Open";
             this.menuFileOpen.Click += new System.EventHandler(this.menuFileOpen_Click);
             // 
             // menuFileSave
             // 
             this.menuFileSave.Name = "menuFileSave";
-            this.menuFileSave.Size = new System.Drawing.Size(103, 22);
+            this.menuFileSave.Size = new System.Drawing.Size(152, 22);
             this.menuFileSave.Text = "Save";
             this.menuFileSave.Click += new System.EventHandler(this.menuFileSave_Click);
+            // 
+            // menuFileSaveAll
+            // 
+            this.menuFileSaveAll.Name = "menuFileSaveAll";
+            this.menuFileSaveAll.Size = new System.Drawing.Size(152, 22);
+            this.menuFileSaveAll.Text = "Save All";
+            this.menuFileSaveAll.Click += new System.EventHandler(this.menuFileSaveAll_Click);
+            // 
+            // menuFileSaveAs
+            // 
+            this.menuFileSaveAs.Name = "menuFileSaveAs";
+            this.menuFileSaveAs.Size = new System.Drawing.Size(152, 22);
+            this.menuFileSaveAs.Text = "Save As...";
+            this.menuFileSaveAs.Click += new System.EventHandler(this.menuFileSaveAs_Click);
             // 
             // menuEdit
             // 
@@ -96,6 +116,7 @@
             this.menuEdit.Name = "menuEdit";
             this.menuEdit.Size = new System.Drawing.Size(39, 20);
             this.menuEdit.Text = "&Edit";
+            this.menuEdit.DropDownOpening += new System.EventHandler(this.menuEdit_DropDownOpening);
             // 
             // menuEditFind
             // 
@@ -130,68 +151,62 @@
             // menuHelpAbout
             // 
             this.menuHelpAbout.Name = "menuHelpAbout";
-            this.menuHelpAbout.Size = new System.Drawing.Size(152, 22);
+            this.menuHelpAbout.Size = new System.Drawing.Size(122, 22);
             this.menuHelpAbout.Text = "About...";
             this.menuHelpAbout.Click += new System.EventHandler(this.menuHelpAbout_Click);
             // 
             // menuHelpLicense
             // 
             this.menuHelpLicense.Name = "menuHelpLicense";
-            this.menuHelpLicense.Size = new System.Drawing.Size(152, 22);
+            this.menuHelpLicense.Size = new System.Drawing.Size(122, 22);
             this.menuHelpLicense.Text = "License...";
             this.menuHelpLicense.Click += new System.EventHandler(this.menuHelpLicense_Click);
             // 
-            // editor1
+            // mvEditors
             // 
-            this.editor1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            this.mvEditors.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.editor1.BackColor = System.Drawing.SystemColors.Window;
-            this.editor1.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.editor1.Cursor = System.Windows.Forms.Cursors.IBeam;
-            this.editor1.Font = new System.Drawing.Font("Courier New", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.editor1.Lexer = lexer1;
-            this.editor1.Location = new System.Drawing.Point(8, 24);
-            this.editor1.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.editor1.Name = "editor1";
-            this.editor1.OverwriteMode = false;
-            this.editor1.ReadOnly = false;
-            this.editor1.Size = new System.Drawing.Size(928, 600);
-            this.editor1.TabIndex = 12;
-            this.editor1.TabSize = 4;
-            this.editor1.TokenColorOverrides = null;
-            this.editor1.MouseTokenChanged += new Gosub.Zurfur.Editor.EditorTokenDelegate(this.editor1_MouseTokenChanged);
-            this.editor1.BlockedByReadOnly += new System.EventHandler(this.editor1_BlockedByReadOnly);
-            this.editor1.TextChanged2 += new System.EventHandler(this.editor1_TextChanged2);
-            this.editor1.Load += new System.EventHandler(this.editor1_Load);
-            this.editor1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.editor1_MouseDown);
-            this.editor1.MouseMove += new System.Windows.Forms.MouseEventHandler(this.editor1_MouseMove);
+            this.mvEditors.EditorViewActive = null;
+            this.mvEditors.Location = new System.Drawing.Point(12, 27);
+            this.mvEditors.Name = "mvEditors";
+            this.mvEditors.Size = new System.Drawing.Size(918, 592);
+            this.mvEditors.TabIndex = 19;
+            this.mvEditors.EditorAdded += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorAdded);
+            this.mvEditors.EditorRemoved += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorRemoved);
+            this.mvEditors.EditorViewActiveChanged += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorViewChanged);
+            this.mvEditors.EditorCanClose += new Gosub.Zurfur.MultiViewEditor.EditorCanCloseDelegate(this.mvEditors_EditorCanClose);
+            // 
+            // openFileDialog1
+            // 
+            this.openFileDialog1.FileName = "openFileDialog1";
             // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(942, 631);
-            this.Controls.Add(this.editor1);
-            this.Controls.Add(this.menuStrip1);
+            this.Controls.Add(this.mvEditors);
+            this.Controls.Add(this.mainMenu);
             this.KeyPreview = true;
-            this.MainMenuStrip = this.menuStrip1;
+            this.MainMenuStrip = this.mainMenu;
             this.Name = "FormMain";
             this.Text = "Zurfur";
-            this.Load += new System.EventHandler(this.FormBit_Load);
-            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FormBit_KeyDown);
-            this.menuStrip1.ResumeLayout(false);
-            this.menuStrip1.PerformLayout();
+            this.Activated += new System.EventHandler(this.FormMain_Activated);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormMain_FormClosing);
+            this.Load += new System.EventHandler(this.FormMain_Load);
+            this.Shown += new System.EventHandler(this.FormMain_Shown);
+            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FormMain_KeyDown);
+            this.mainMenu.ResumeLayout(false);
+            this.mainMenu.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
 		}
 
 		#endregion
-
-		private Editor editor1;
 		private System.Windows.Forms.Timer timer1;
-		private System.Windows.Forms.MenuStrip menuStrip1;
+		private System.Windows.Forms.MenuStrip mainMenu;
 		private System.Windows.Forms.ToolStripMenuItem menuFile;
 		private System.Windows.Forms.ToolStripMenuItem menuFileOpen;
 		private System.Windows.Forms.ToolStripMenuItem menuFileSave;
@@ -202,6 +217,11 @@
 		private System.Windows.Forms.ToolStripMenuItem menuEditFind;
 		private System.Windows.Forms.ToolStripMenuItem menuEditFindNext;
 		private System.Windows.Forms.ToolStripMenuItem viewRTFToolStripMenuItem;
-	}
+        private MultiViewEditor mvEditors;
+        private System.Windows.Forms.ToolStripMenuItem menuFileSaveAll;
+        private System.Windows.Forms.SaveFileDialog saveFileDialog1;
+        private System.Windows.Forms.OpenFileDialog openFileDialog1;
+        private System.Windows.Forms.ToolStripMenuItem menuFileSaveAs;
+    }
 }
 

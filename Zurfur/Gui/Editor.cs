@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Data;
 using System.Text;
 using System.Windows.Forms;
+using System.IO;
 
 namespace Gosub.Zurfur
 {
@@ -18,9 +19,12 @@ namespace Gosub.Zurfur
         List<UndoOp>		mUndo = new List<UndoOp>();
         List<UndoOp>		mRedo = new List<UndoOp>();
         bool				mReadOnly;
+        int                 mModifySaved;
+        int                 mModifyCount;
+        int                 mModifyTotal;
 
         // Tabs and character
-        StringFormat		mTabFormat = new StringFormat();
+        StringFormat mTabFormat = new StringFormat();
         float				[]mTabSpacing = new float[32];
         int					mTabStartColumnPrevious = -1;
         string				[]mInsertOneChar = new string[] { "" };
@@ -65,11 +69,8 @@ namespace Gosub.Zurfur
         int LineCount { get { return mLexer.LineCount; } }
         string GetLine(int line) { return mLexer.GetLine(line); }
 
-
-
         // Delegate types
-        public delegate void EditorTokenDelegate(Token previousToken, Token newToken);
-
+        public delegate void EditorTokenDelegate(Editor sender, Token previousToken, Token newToken);
 
         /// <summary>
         /// This event occurs when the mouse hover token changes.
@@ -92,6 +93,11 @@ namespace Gosub.Zurfur
         /// This event happens after the text has been changed.
         /// </summary>
         public event EventHandler				TextChanged2;
+
+        /// <summary>
+        /// Occurs when Modify changes
+        /// </summary>
+        public event EventHandler ModifiedChanged;
 
         public Editor()
         {
@@ -123,10 +129,20 @@ namespace Gosub.Zurfur
             SetStyle(ControlStyles.ContainerControl, true);
         }
 
-        public void SetMarks(VerticalMarkInfo []marks)
-        {
-            vMarksLeft.SetMarks(marks);
-        }
+        /// <summary>
+        /// This field is reserved for the user of this class
+        /// </summary>
+        public string FilePath { get; set; } = "";
+
+        /// <summary>
+        /// This field is reserved for the user of this class.
+        /// </summary>
+        public string FileTitle { get; set; } = "";
+
+        /// <summary>
+        /// This field is reserved for the user of this class
+        /// </summary>
+        public FileInfo FileInfo;
 
         /// <summary>
         /// Sets all text, returns only the first line of text
@@ -144,9 +160,23 @@ namespace Gosub.Zurfur
                 mLexer.ReplaceText(new string[] { value },
                     new TokenLoc(0, 0),
                     new TokenLoc(LineCount, GetLine(LineCount-1).Length));
-                if (TextChanged2 != null)
-                    TextChanged2(this, mEventArgs);
+                TextChanged2?.Invoke(this, mEventArgs);
                 Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// Set this to false when the file is saved
+        /// </summary>
+        public bool Modified
+        {
+            get { return mModifyCount != mModifySaved; }
+            set
+            {
+                if (value == Modified)
+                    return;
+                mModifySaved = value ? -1 : mModifyCount;
+                ModifiedChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -163,6 +193,11 @@ namespace Gosub.Zurfur
                 mReadOnly = value;
                 Invalidate();
             }
+        }
+
+        public void SetMarks(VerticalMarkInfo[] marks)
+        {
+            vMarksLeft.SetMarks(marks);
         }
 
         /// <summary>
@@ -709,6 +744,7 @@ namespace Gosub.Zurfur
             UndoOp undo = new UndoOp();
             undo.TopIndex = vScrollBar.Value;
             undo.LeftIndex = hScrollBar.Value;
+            undo.ModifyCount = mModifyCount;
             undo.SelStart = mSelStart;
             undo.SelEnd = mSelEnd;
             undo.Cursor = CursorLoc;
@@ -719,7 +755,7 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Replace some text.  This function consolidates all
         /// text changes (except undo/redo) so that the user 
-        /// delegate can be called and the undo bufffer maintained.
+        /// delegate can be called and the undo buffer maintained.
         /// RETURNS: The end of the replaced text
         /// </summary>
         TokenLoc ReplaceText(string[] replacementText,
@@ -738,8 +774,7 @@ namespace Gosub.Zurfur
             if (mReadOnly)
             {
                 // Call user delegate, exit if still in ReadOnly mode
-                if (BlockedByReadOnly != null)
-                    BlockedByReadOnly(this, mEventArgs);
+                BlockedByReadOnly?.Invoke(this, mEventArgs);
                 if (mReadOnly)
                     return end;
             }
@@ -752,6 +787,12 @@ namespace Gosub.Zurfur
             // Replace text
             end = mLexer.ReplaceText(replacementText, start, end);
             undo.TextEnd = end;
+
+            bool modified = Modified;
+            mModifyTotal++;
+            mModifyCount = mModifyTotal;
+            if (Modified != modified)
+                ModifiedChanged?.Invoke(this, EventArgs.Empty);
 
             // If inserting just one char, try to append this undo operation 
             // to the previous one (group them in to one user operation)
@@ -821,8 +862,7 @@ namespace Gosub.Zurfur
             mRedo.Clear();
 
             // Call user delegate
-            if (TextChanged2 != null)
-                TextChanged2(this, mEventArgs);
+            TextChanged2?.Invoke(this, mEventArgs);
             return end;
         }
 
@@ -840,8 +880,7 @@ namespace Gosub.Zurfur
             if (mReadOnly)
             {
                 // Call user delegate, exit if still in ReadOnly mode
-                if (BlockedByReadOnly != null)
-                    BlockedByReadOnly(this, mEventArgs);
+                BlockedByReadOnly?.Invoke(this, mEventArgs);
                 if (mReadOnly)
                     return;
             }
@@ -866,9 +905,14 @@ namespace Gosub.Zurfur
             vScrollBar.Value = Math.Max(0, Math.Min(vScrollBar.Maximum, undo.TopIndex));
             hScrollBar.Value = Math.Max(0, Math.Min(hScrollBar.Maximum, undo.LeftIndex));
 
+            var modified = Modified;
+            mModifyCount = undo.ModifyCount;
+            if (modified != Modified)
+                ModifiedChanged.Invoke(this, EventArgs.Empty);
+
             // Call user delegate
-            if (TextChanged2 != null)
-                TextChanged2(this, mEventArgs);
+            TextChanged2?.Invoke(this, mEventArgs);
+
         }
 
         /// <summary>
@@ -885,8 +929,7 @@ namespace Gosub.Zurfur
                 mUndo.Clear();
                 mRedo.Clear();
                 Invalidate();
-                if (TextChanged2 != null)
-                    TextChanged2(this, mEventArgs);
+                TextChanged2?.Invoke(this, mEventArgs);
             }
         }
 
@@ -1308,8 +1351,7 @@ namespace Gosub.Zurfur
             {
                 Token previousToken = mLastMouseHoverToken;
                 mLastMouseHoverToken = mTestToken;
-                if (MouseTokenChanged != null)
-                    MouseTokenChanged(previousToken, mLastMouseHoverToken);
+                MouseTokenChanged?.Invoke(this, previousToken, mLastMouseHoverToken);
                 Invalidate();
             }
 
@@ -1348,8 +1390,7 @@ namespace Gosub.Zurfur
             {
                 Token previousToken = mLastMouseHoverToken;
                 mLastMouseHoverToken = null;
-                if (MouseTokenChanged != null)
-                    MouseTokenChanged(previousToken, mLastMouseHoverToken);
+                MouseTokenChanged?.Invoke(this, previousToken, mLastMouseHoverToken);
                 Invalidate();
             }
             base.OnMouseLeave(e);
@@ -1530,20 +1571,21 @@ namespace Gosub.Zurfur
                 ensureCursorOnScreen = false;
             }
 
-            // CTRL-Z - undo
-            if (e.KeyCode == Keys.Z && e.Control)
+            // CTRL-Z: undo
+            if (e.KeyCode == Keys.Z && e.Control && ! e.Shift)
                 Undo(mUndo, mRedo);
 
-            // CTRL-Y - redo
-            if (e.KeyCode == Keys.Y && e.Control)
+            // CTRL-Y or SHIFT_CTRL-Z: redo
+            if (e.KeyCode == Keys.Y && e.Control
+                || e.KeyCode == Keys.Z && e.Control && e.Shift)
                 Undo(mRedo, mUndo);
 
-            // CTRL-X - cut
+            // CTRL-X: cut
             if (e.KeyCode == Keys.X && e.Control
                 || e.KeyCode == Keys.Delete && e.Shift)
                 Cut();
 
-            // CTRL-C - copy
+            // CTRL-C: copy
             if (e.KeyCode == Keys.C && e.Control
                 || e.KeyCode == Keys.Insert && e.Control)
             {
@@ -1682,7 +1724,6 @@ namespace Gosub.Zurfur
                     i++;
                 insert = mInsertCR;
                 mInsertCR[1] = line.Substring(0, i);
-
             }
             else
             {
@@ -1738,6 +1779,7 @@ namespace Gosub.Zurfur
             public string []Text;
             public int		TopIndex;
             public int		LeftIndex;
+            public int      ModifyCount;
             public TokenLoc	TextStart;
             public TokenLoc	TextEnd;
             public TokenLoc	Cursor;
