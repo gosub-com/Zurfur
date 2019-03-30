@@ -39,6 +39,9 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.12.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Deployment" />
@@ -47,6 +50,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Gui\ProjectTree.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Gui\ProjectTree.Designer.cs">
+      <DependentUpon>ProjectTree.cs</DependentUpon>
+    </Compile>
     <Compile Include="Gui\FormHoverMessage.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -102,7 +111,12 @@
     <Compile Include="Parser\WordMap.cs" />
     <Compile Include="Parser\WordSet.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="Project\ZurfProjectData.cs" />
+    <Compile Include="Project\ZurfProject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="Gui\ProjectTree.resx">
+      <DependentUpon>ProjectTree.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Gui\Editor.resx">
       <DependentUpon>Editor.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -135,6 +149,7 @@
       <DesignTime>True</DesignTime>
     </Compile>
     <None Include="app.config" />
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -157,7 +172,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="ZurfurLib\Example.zurf">
+    <None Include="ZurfurLib\ZurfurLib.zurfproj">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="ZurfurLib\ZurfurLib\Main.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

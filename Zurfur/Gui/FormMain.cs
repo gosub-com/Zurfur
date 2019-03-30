@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
 using System.IO;
-using System.Reflection;
+using System.Threading.Tasks;
 using Gosub.Zurfur;
 
 namespace Gosub.Zurfur
@@ -15,36 +12,33 @@ namespace Gosub.Zurfur
     {
         FormHoverMessage mHoverMessageForm;
         Token			mHoverToken;
-        DateTime		mLastMouseMoveTime;
         DateTime		mLastEditorChangedTime;
         Editor          mReparseEditor;
         bool            mInActivatedEvent;
 
-
+        static readonly string ZURFUR_PROJ_EXT = ".zurfproj";
+        static readonly string ZURFUR_SRC_MAIN = "Main.zurf";
         static readonly string EXE_DIR = Path.GetDirectoryName(Application.ExecutablePath);
         static readonly string LICENSE_FILE_NAME = Path.Combine(EXE_DIR, "License.txt");
-        static readonly string EXAMPLE_FILE = Path.Combine(EXE_DIR, "ZurfurLib\\Example.zurf");
+        static readonly string EXAMPLE_PROJECT = Path.Combine(EXE_DIR, "ZurfurLib\\ZurfurLib.zurfproj");
 
         public FormMain()
         {
             InitializeComponent();
         }
 
-        /// <summary>
-        /// Initialize this form
-        /// </summary>
         private void FormMain_Load(object sender, EventArgs e)
         {
             Text += " - " + "V" + App.Version;
             mHoverMessageForm = new FormHoverMessage();
         }
 
-        private async void FormMain_Shown(object sender, EventArgs e)
+        private void FormMain_Shown(object sender, EventArgs e)
         {
             try
             {
                 // This will be removed
-                await mvEditors.LoadFile(EXAMPLE_FILE);
+                LoadProject(EXAMPLE_PROJECT);
             }
             catch (Exception ex)
             {
@@ -54,14 +48,19 @@ namespace Gosub.Zurfur
 
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
         {
-            foreach (var editor in mvEditors.Editors)
+            if (!CanCloseAll())
+                e.Cancel = true;
+        }
+
+        bool CanCloseAll()
+        {
+            while (mvEditors.EditorViewActive != null)
             {
-                if (!CanClose(editor))
-                {
-                    e.Cancel = true;
-                    return;
-                }
+                if (!CanClose(mvEditors.EditorViewActive))
+                    return false;
+                mvEditors.CloseEditor(mvEditors.EditorViewActive);
             }
+            return true;
         }
 
         /// <summary>
@@ -72,6 +71,7 @@ namespace Gosub.Zurfur
             if (!editor.Modified)
                 return true;
             mvEditors.EditorViewActive = editor;
+            projectTree.OpenAndSelect(editor.FilePath);
             var dialogResult = MessageBox.Show(editor.FileTitle + " has unsaved changes.  \r\n\r\n"
                 + "Do you want to save this file?", App.Name, MessageBoxButtons.YesNoCancel);
             if (dialogResult == DialogResult.No)
@@ -106,7 +106,7 @@ namespace Gosub.Zurfur
             editor.MouseDown -= editor_MouseDown;
         }
 
-        private void mvEditors_EditorViewChanged(Editor editor)
+        private void mvEditors_EditorActiveViewChanged(Editor editor)
         {
             // Reparse old one if necessary
             if (mReparseEditor != null)
@@ -114,7 +114,14 @@ namespace Gosub.Zurfur
             mReparseEditor = null;
 
             if (editor != null)
+            {
                 editor_MouseTokenChanged(editor, null, null);
+                projectTree.Select(editor.FilePath);
+            }
+            else
+            {
+                projectTree.OpenAndSelect(""); // NoSelection
+            }
         }
 
         private void editor_TextChanged2(object sender, EventArgs e)
@@ -161,19 +168,135 @@ namespace Gosub.Zurfur
             mHoverMessageForm.Visible = false;
         }
 
-        async void menuFileOpen_Click(object sender, EventArgs e)
+        void menuFileOpenProject_Click(object sender, EventArgs e)
         {
+            openFileDialog1.FileName = "";
+            openFileDialog1.Title = "Load Project";
+            openFileDialog1.Multiselect = false;
+            openFileDialog1.Filter = "Zurfur Project|*" + ZURFUR_PROJ_EXT;
             var dialogResult = openFileDialog1.ShowDialog(this);
             if (dialogResult != DialogResult.OK || openFileDialog1.FileName == "")
                 return;
+            TryLoadFileOrProject(openFileDialog1.FileName);
+        }
 
+        void menuFileOpenFile_Click(object sender, EventArgs e)
+        {
+            openFileDialog1.FileName = "";
+            openFileDialog1.Title = "Load File";
+            openFileDialog1.Multiselect = false;
+            openFileDialog1.Filter = "All|*.*";
+            var dialogResult = openFileDialog1.ShowDialog(this);
+            if (dialogResult != DialogResult.OK || openFileDialog1.FileName == "")
+                return;
+            TryLoadFileOrProject(openFileDialog1.FileName);
+        }
+
+        /// <summary>
+        /// Show file dialog, then load file or project
+        /// </summary>
+        void TryLoadFileOrProject(string fileName)
+        {
+            var isProject = Path.GetExtension(fileName).ToLower() == ZURFUR_PROJ_EXT;
             try
             {
-                await mvEditors.LoadFile(openFileDialog1.FileName);
+                if (isProject)
+                    LoadProject(fileName);
+                else
+                    LoadFile(fileName);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, "Error loading file: " + ex.Message, App.Name);
+                var errorMessage = isProject ? "Error loading project: "
+                                             : "Error loading file: ";
+                MessageBox.Show(this, errorMessage + ex.Message, App.Name);
+            }
+        }
+
+        void LoadProject(string fileName)
+        {
+            if (!CanCloseAll())
+                return;
+
+            projectTree.RootDir = "";
+            var project = ZurfProject.Load(fileName);
+            projectTree.RootDir = project.ProjectDirectory;
+
+            // For the time being, we'll open the default file.
+            foreach (var file in projectTree)
+                if (file.FileName.ToLower() == ZURFUR_SRC_MAIN.ToLower())
+                {
+                    projectTree.OpenAndSelect(file.Path);
+                    LoadFile(file.Path);
+                    break;
+                }
+        }
+
+        async void LoadFile(string fileName)
+        {
+            try
+            {
+                await mvEditors.LoadFile(fileName);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error openign file: " + ex.Message);
+            }
+        }
+
+        private void menuFileNewFile_Click(object sender, EventArgs e)
+        {
+            mvEditors.NewFile();
+        }
+
+        private void menuFileNewProject_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                saveFileDialog1.DefaultExt = "";
+                saveFileDialog1.FileName = "";
+                saveFileDialog1.Title = "Create Zurfur Project";
+                saveFileDialog1.Filter = "All (*.*) |*.*";
+                saveFileDialog1.CheckFileExists = false;
+                saveFileDialog1.CheckPathExists = false;
+                var dialogResult = saveFileDialog1.ShowDialog(this);
+                var projectDir = saveFileDialog1.FileName;
+                if (dialogResult != DialogResult.OK || projectDir == "")
+                    return;
+
+                if (Path.GetFileName(projectDir).Contains("."))
+                {
+                    MessageBox.Show(this, "Do not include an extension in the file name", App.Name);
+                    return;
+                }
+                if (File.Exists(projectDir) || Directory.Exists(projectDir))
+                {
+                    MessageBox.Show(this, "Select a name that does not already exist", App.Name);
+                    return;
+                }
+                if (!CanCloseAll())
+                    return;
+
+                // Create empty project
+                var projectName = Path.GetFileName(projectDir);
+                var configPath = Path.Combine(projectDir, projectName + ZURFUR_PROJ_EXT);
+                var projectSubdir = Path.Combine(projectDir, projectName);
+                var zurfSourcePath = Path.Combine(projectSubdir, ZURFUR_SRC_MAIN);
+                Directory.CreateDirectory(projectDir);
+                Directory.CreateDirectory(projectSubdir);
+                new ZurfProject().Save(configPath);
+                File.WriteAllText(zurfSourcePath,
+                      "using Zurfur;\r\n"
+                    + "namespace " + projectName + ";\r\n"
+                    + "pub static func main(args[]string)\r\n"
+                    + "{\r\n}\r\n");
+
+                // Load the proejct
+                TryLoadFileOrProject(configPath);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Error creating project: " + ex.Message, App.Name);
             }
         }
 
@@ -205,6 +328,12 @@ namespace Gosub.Zurfur
             var filePath = editor.FilePath;
             if (filePath == "" || forceSaveAs)
             {
+                saveFileDialog1.DefaultExt = "";
+                saveFileDialog1.FileName = "";
+                saveFileDialog1.Title = "Create Zurfur Project";
+                saveFileDialog1.Filter = "All (*.*) |*.*";
+                saveFileDialog1.CheckFileExists = false;
+                saveFileDialog1.CheckPathExists = true;
                 var dialogResult = saveFileDialog1.ShowDialog(this);
                 if (dialogResult != DialogResult.OK || saveFileDialog1.FileName == "")
                     return false;
@@ -213,6 +342,7 @@ namespace Gosub.Zurfur
             try
             {
                 mvEditors.Save(editor, filePath);
+                projectTree.RefreshFiles();
                 return true;
             }
             catch (Exception ex)
@@ -244,11 +374,9 @@ namespace Gosub.Zurfur
             }
 
             // Display the hover message (after no mouse movement for 150 milliseconds)
-            const int DELAY_TIME_MS = 0;
             var activeEditor = mvEditors.EditorViewActive;
             if (mHoverToken != null && activeEditor != null
                     && mHoverToken.Type != eTokenType.Comment
-                    && (DateTime.Now - mLastMouseMoveTime).TotalMilliseconds > DELAY_TIME_MS
                     && mHoverToken.GetInfoString() != ""
                     && !mHoverMessageForm.Visible)
             {
@@ -411,5 +539,30 @@ namespace Gosub.Zurfur
             viewRTFToolStripMenuItem.Enabled = mvEditors.EditorViewActive != null;
         }
 
+
+        static readonly WordSet sOpenableExtensions = new WordSet(".zurf .txt .json .md");
+        private void projectTree_FileDoubleClicked(object sender, ProjectTree.FileInfo file)
+        {
+            if (file.IsDir)
+                return;
+
+            // For now just use extension to see if we can open it
+            var ext = Path.GetExtension(file.Path).ToLower();
+            if (!sOpenableExtensions.Contains(ext))
+            {
+                MessageBox.Show(this, "Can't open this file type", App.Name);
+                return;
+            }
+
+            try
+            {
+                LoadFile(file.Path);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Error opening file: " + ex.Message, App.Name);
+            }
+
+        }
     }
 }

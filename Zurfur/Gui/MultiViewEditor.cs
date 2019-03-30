@@ -29,7 +29,7 @@ namespace Gosub.Zurfur
         public delegate void EditorCanCloseDelegate(Editor editor, ref bool doNotClose);
         public event EditorDelegate EditorAdded;
         public event EditorDelegate EditorRemoved;
-        public event EditorDelegate EditorViewActiveChanged;
+        public event EditorDelegate EditorActiveViewChanged;
         public event EditorCanCloseDelegate EditorCanClose;
 
         public MultiViewEditor()
@@ -89,18 +89,18 @@ namespace Gosub.Zurfur
                 }
             }
 
-            Lexer lexer = null;
+            var newEditor = new Editor();
             FileInfo fileInfo = null;
             await Task.Run(() => 
-            {                
-                lexer = new Lexer(File.ReadAllLines(path));
+            {
+                newEditor.Lexer.ScanLines(File.ReadAllLines(path));
                 fileInfo = new FileInfo(path);
                 fileInfo.Refresh();
             });
 
             // Setup tab
             var oldTabPageCount = mainTabControl.TabPages.Count;
-            var tabPage = CreateEditorTab(lexer);
+            var tabPage = CreateEditorTab(newEditor);
             mainTabControl.ShowToolTips = true;
             tabPage.Editor.FileInfo = fileInfo;
             tabPage.Editor.FilePath = path;
@@ -114,10 +114,9 @@ namespace Gosub.Zurfur
             EditorAdded?.Invoke(tabPage.Editor);
         }
 
-        EditorTabPage CreateEditorTab(Lexer lexer)
+        EditorTabPage CreateEditorTab(Editor editor)
         {
             // Mostly copied from deisgner
-            var editor = new Editor();
             var tabPage = new EditorTabPage();
             tabPage.Editor = editor;
 
@@ -137,7 +136,6 @@ namespace Gosub.Zurfur
             editor.Cursor = Cursors.IBeam;
             editor.Dock = DockStyle.Fill;
             editor.Font = new Font("Courier New", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            editor.Lexer = lexer;
             editor.Location = new Point(3, 3);
             editor.OverwriteMode = false;
             editor.ReadOnly = false;
@@ -151,6 +149,14 @@ namespace Gosub.Zurfur
             tabPage.ResumeLayout();
             mainTabControl.ResumeLayout();
             return tabPage;
+        }
+
+        public void NewFile()
+        {
+            var tab = CreateEditorTab(new Editor());
+            tab.Editor.FileTitle = "(new file)";
+            EditorViewActive = tab.Editor;
+            TouchTitles();
         }
 
         public void Save(Editor editor, string filePath)
@@ -177,7 +183,7 @@ namespace Gosub.Zurfur
             {
                 ActiveControl = editTab.Editor;
                 mEditorViewActive = editTab.Editor;
-                EditorViewActiveChanged?.Invoke(editTab.Editor);
+                EditorActiveViewChanged?.Invoke(editTab.Editor);
             }
         }
 
@@ -208,15 +214,26 @@ namespace Gosub.Zurfur
                 var doNotClose = false;
                 EditorCanClose?.Invoke(editor, ref doNotClose);
                 if (!doNotClose)
+                    CloseEditor(editor);
+            }
+        }
+
+        /// <summary>
+        /// Close this editor, no questions asked
+        /// </summary>
+        public void CloseEditor(Editor editor)
+        {
+            foreach (var tab in mainTabControl.TabPages)
+            {
+                if (((EditorTabPage)tab).Editor == editor)
                 {
-                    // Close tab
-                    mainTabControl.TabPages.RemoveAt(mHoverTab);
+                    mainTabControl.TabPages.Remove((TabPage)tab);
                     EditorRemoved?.Invoke(editor);
                     if (mainTabControl.TabPages.Count == 0)
                     {
                         // SelectedTab does this for all other cases
                         mEditorViewActive = null;
-                        EditorViewActiveChanged?.Invoke(null);
+                        EditorActiveViewChanged?.Invoke(null);
                     }
                 }
             }
