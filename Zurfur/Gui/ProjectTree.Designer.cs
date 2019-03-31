@@ -28,26 +28,37 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.treeView = new System.Windows.Forms.TreeView();
+            this.timerRefreshTree = new System.Windows.Forms.Timer(this.components);
             this.SuspendLayout();
             // 
             // treeView
             // 
             this.treeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.treeView.HideSelection = false;
+            this.treeView.LabelEdit = true;
             this.treeView.Location = new System.Drawing.Point(0, 0);
             this.treeView.Name = "treeView";
             this.treeView.ShowNodeToolTips = true;
             this.treeView.Size = new System.Drawing.Size(274, 515);
             this.treeView.TabIndex = 0;
+            this.treeView.BeforeLabelEdit += new System.Windows.Forms.NodeLabelEditEventHandler(this.treeView_BeforeLabelEdit);
+            this.treeView.AfterLabelEdit += new System.Windows.Forms.NodeLabelEditEventHandler(this.treeView_AfterLabelEdit);
             this.treeView.NodeMouseDoubleClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.treeView_NodeMouseDoubleClick);
+            this.treeView.Validating += new System.ComponentModel.CancelEventHandler(this.treeView_Validating);
             // 
-            // DirTree
+            // timerRefreshTree
+            // 
+            this.timerRefreshTree.Interval = 1;
+            this.timerRefreshTree.Tick += new System.EventHandler(this.timerRefreshTree_Tick);
+            // 
+            // ProjectTree
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.treeView);
-            this.Name = "DirTree";
+            this.Name = "ProjectTree";
             this.Size = new System.Drawing.Size(274, 515);
             this.ResumeLayout(false);
 
@@ -56,5 +67,6 @@
         #endregion
 
         private System.Windows.Forms.TreeView treeView;
+        private System.Windows.Forms.Timer timerRefreshTree;
     }
 }

@@ -32,11 +32,11 @@
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.mainMenu = new System.Windows.Forms.MenuStrip();
             this.menuFile = new System.Windows.Forms.ToolStripMenuItem();
-            this.menuFileNewFile = new System.Windows.Forms.ToolStripMenuItem();
             this.menuFileNewProject = new System.Windows.Forms.ToolStripMenuItem();
+            this.menuFileNewFile = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripSeparator();
-            this.menuFileOpenFile = new System.Windows.Forms.ToolStripMenuItem();
             this.menuFileOpenProject = new System.Windows.Forms.ToolStripMenuItem();
+            this.menuFileOpenFile = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.menuFileSave = new System.Windows.Forms.ToolStripMenuItem();
             this.menuFileSaveAll = new System.Windows.Forms.ToolStripMenuItem();
@@ -82,11 +82,11 @@
             // menuFile
             // 
             this.menuFile.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.menuFileNewFile,
             this.menuFileNewProject,
+            this.menuFileNewFile,
             this.toolStripMenuItem2,
-            this.menuFileOpenFile,
             this.menuFileOpenProject,
+            this.menuFileOpenFile,
             this.toolStripMenuItem1,
             this.menuFileSave,
             this.menuFileSaveAll,
@@ -96,13 +96,6 @@
             this.menuFile.Text = "&File";
             this.menuFile.DropDownOpening += new System.EventHandler(this.menuFile_DropDownOpening);
             // 
-            // menuFileNewFile
-            // 
-            this.menuFileNewFile.Name = "menuFileNewFile";
-            this.menuFileNewFile.Size = new System.Drawing.Size(152, 22);
-            this.menuFileNewFile.Text = "New File";
-            this.menuFileNewFile.Click += new System.EventHandler(this.menuFileNewFile_Click);
-            // 
             // menuFileNewProject
             // 
             this.menuFileNewProject.Name = "menuFileNewProject";
@@ -110,17 +103,17 @@
             this.menuFileNewProject.Text = "New Project...";
             this.menuFileNewProject.Click += new System.EventHandler(this.menuFileNewProject_Click);
             // 
+            // menuFileNewFile
+            // 
+            this.menuFileNewFile.Name = "menuFileNewFile";
+            this.menuFileNewFile.Size = new System.Drawing.Size(152, 22);
+            this.menuFileNewFile.Text = "New File";
+            this.menuFileNewFile.Click += new System.EventHandler(this.menuFileNewFile_Click);
+            // 
             // toolStripMenuItem2
             // 
             this.toolStripMenuItem2.Name = "toolStripMenuItem2";
             this.toolStripMenuItem2.Size = new System.Drawing.Size(149, 6);
-            // 
-            // menuFileOpenFile
-            // 
-            this.menuFileOpenFile.Name = "menuFileOpenFile";
-            this.menuFileOpenFile.Size = new System.Drawing.Size(152, 22);
-            this.menuFileOpenFile.Text = "Open File...";
-            this.menuFileOpenFile.Click += new System.EventHandler(this.menuFileOpenFile_Click);
             // 
             // menuFileOpenProject
             // 
@@ -128,6 +121,13 @@
             this.menuFileOpenProject.Size = new System.Drawing.Size(152, 22);
             this.menuFileOpenProject.Text = "Open Project...";
             this.menuFileOpenProject.Click += new System.EventHandler(this.menuFileOpenProject_Click);
+            // 
+            // menuFileOpenFile
+            // 
+            this.menuFileOpenFile.Name = "menuFileOpenFile";
+            this.menuFileOpenFile.Size = new System.Drawing.Size(152, 22);
+            this.menuFileOpenFile.Text = "Open File...";
+            this.menuFileOpenFile.Click += new System.EventHandler(this.menuFileOpenFile_Click);
             // 
             // toolStripMenuItem1
             // 
@@ -240,6 +240,7 @@
             this.projectTree.Size = new System.Drawing.Size(242, 607);
             this.projectTree.TabIndex = 20;
             this.projectTree.FileDoubleClicked += new Gosub.Zurfur.ProjectTree.FileInfoDelegate(this.projectTree_FileDoubleClicked);
+            this.projectTree.FileMoved += new Gosub.Zurfur.ProjectTree.FileMovedDelegate(this.projectTree_FileMoved);
             // 
             // mvEditors
             // 

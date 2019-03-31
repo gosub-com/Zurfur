@@ -15,22 +15,24 @@ namespace Gosub.Zurfur
     {
         string mRootDir = "";
         DirInfo mDirInfo = new DirInfo();
-        Dictionary<string, FileInfoExtra> mFileInfo = new Dictionary<string, FileInfoExtra>();
+        Dictionary<string, FileExtra> mFileExtra = new Dictionary<string, FileExtra>();
 
         public delegate void FileInfoDelegate(object sender, FileInfo file);
-
         public event FileInfoDelegate FileDoubleClicked;
 
-        
-        class FileInfoExtra
+        public delegate void FileMovedDelegate(object sender, FileInfo oldFile, FileInfo newFile);
+        public event FileMovedDelegate FileMoved;
+
+
+
+        class FileExtra
         {
             public FileInfo Info;
-            public TreeNode Tree;
-
-            public FileInfoExtra(FileInfo info, TreeNode tree)
+            public TreeNode Node;
+            public FileExtra(FileInfo info, TreeNode tree) { Info = info; Node = tree; }
+            public override string ToString()
             {
-                Info = info;
-                Tree = tree;
+                return Info == null ? base.ToString() : Info.Path;
             }
         }
 
@@ -48,22 +50,27 @@ namespace Gosub.Zurfur
                 if (mRootDir == value)
                     return;
                 mRootDir = value;
-                treeView.Nodes.Clear();
-                mFileInfo.Clear();
-                mDirInfo = new DirInfo();
-                if (mRootDir != "")
-                {
-                    mDirInfo = LoadFiles(mRootDir);
-                    AddFileNodes(mDirInfo, treeView.Nodes);
-                }
+                RefreshFiles();
             }
         }
 
         public void RefreshFiles()
         {
-            var root = mRootDir;
-            RootDir = "";
-            RootDir = root;
+            var oldExtra = mFileExtra;
+            var oldTopNode = treeView.TopNode;
+            mFileExtra = new Dictionary<string, FileExtra>();
+            if (mRootDir == "")
+            {
+                treeView.Nodes.Clear();
+                mDirInfo = new DirInfo();
+                return;
+            }
+            treeView.BeginUpdate();
+            treeView.Nodes.Clear();
+            mDirInfo = LoadFiles(mRootDir);
+            AddFileNodes(mDirInfo, treeView.Nodes);
+            CopyOldNodeInfo(oldExtra, oldTopNode);
+            treeView.EndUpdate();
         }
 
         DirInfo LoadFiles(string dir)
@@ -81,8 +88,7 @@ namespace Gosub.Zurfur
         }
 
         /// <summary>
-        /// Add the nodes and build mFileInfo with lower cased paths.
-        /// Does not add the root dir.
+        /// Add nodes to the tree.  Does not add the root dir.
         /// </summary>
         void AddFileNodes(DirInfo dir, TreeNodeCollection nodes)
         {
@@ -90,25 +96,48 @@ namespace Gosub.Zurfur
             {
                 var node = nodes.Add(subdir.Path, subdir.FileName);
                 node.ToolTipText = subdir.Path;
-                mFileInfo[subdir.Path.ToLower()] = new FileInfoExtra(dir, node);
+                mFileExtra[subdir.Path.ToLower()] = new FileExtra(subdir, node);
                 AddFileNodes(subdir, node.Nodes);
             }
             foreach (var file in dir.Files)
             {
                 var node = nodes.Add(file.Path, file.FileName);
                 node.ToolTipText = file.Path;
-                mFileInfo[file.Path.ToLower()] = new FileInfoExtra(file, node);
+                mFileExtra[file.Path.ToLower()] = new FileExtra(file, node);
             }
+        }
+
+        private void CopyOldNodeInfo(Dictionary<string, FileExtra> oldExtraInfo, TreeNode oldTopNode)
+        {
+            TreeNode newSelectedNode = null;
+            TreeNode newTopNode = null;
+            foreach (var newExtra in mFileExtra)
+            {
+                if (!oldExtraInfo.TryGetValue(newExtra.Key, out var oldExtra))
+                    continue;
+                var oldNode = oldExtra.Node;
+                var newNode = newExtra.Value.Node;
+                if (oldNode.IsSelected)
+                    newSelectedNode = newNode;
+                if (oldNode == oldTopNode)
+                    newTopNode = newNode;
+                if (oldNode.IsExpanded)
+                    newNode.Expand();
+            }
+            if (newSelectedNode != null)
+                treeView.SelectedNode = newSelectedNode;
+            if (newTopNode != null)
+                treeView.TopNode = newTopNode;
         }
 
         public void OpenAndSelect(string fileName)
         {
-            if (!mFileInfo.TryGetValue(fileName.ToLower(), out var info))
+            if (!mFileExtra.TryGetValue(fileName.ToLower(), out var extra))
             {
                 treeView.SelectedNode = null;
                 return;
             }
-            var node = info.Tree;
+            var node = extra.Node;
             treeView.SelectedNode = node;
             node.Expand();
             while (node.Parent != null)
@@ -120,17 +149,17 @@ namespace Gosub.Zurfur
 
         public void Select(string fileName)
         {
-            if (!mFileInfo.TryGetValue(fileName.ToLower(), out var info))
+            if (!mFileExtra.TryGetValue(fileName.ToLower(), out var info))
             {
                 treeView.SelectedNode = null;
                 return;
             }
-            treeView.SelectedNode = info.Tree;
+            treeView.SelectedNode = info.Node;
         }
 
         public IEnumerator<FileInfo> GetEnumerator()
         {
-            foreach (var info in mFileInfo)
+            foreach (var info in mFileExtra)
                 if (!info.Value.Info.IsDir)
                     yield return info.Value.Info;
         }
@@ -159,9 +188,56 @@ namespace Gosub.Zurfur
 
         private void treeView_NodeMouseDoubleClick(object sender, TreeNodeMouseClickEventArgs e)
         {
-            if (!mFileInfo.TryGetValue(e.Node.Name.ToLower(), out var info))
+            if (!mFileExtra.TryGetValue(e.Node.Name.ToLower(), out var extra))
                 return;
-            FileDoubleClicked?.Invoke(this, info.Info);
+            FileDoubleClicked?.Invoke(this, extra.Info);
+        }
+
+        private void treeView_Validating(object sender, CancelEventArgs e)
+        {
+
+        }
+
+        private void treeView_BeforeLabelEdit(object sender, NodeLabelEditEventArgs e)
+        {
+            if (mFileExtra.TryGetValue(e.Node.Name.ToLower(), out var extra)
+                && extra.Info.IsDir)
+            {
+                MessageBox.Show(this, "Cannot rename a directory yet", App.Name);
+                e.CancelEdit = true;
+            }
+        }
+
+        private void treeView_AfterLabelEdit(object sender, NodeLabelEditEventArgs e)
+        {
+            if (e.Label == null)
+                return; // Canceled by user or initializing tree
+            if (!mFileExtra.TryGetValue(e.Node.Name.ToLower(), out var extra))
+                return;
+
+            try
+            {
+                var newName = Path.Combine(Path.GetDirectoryName(e.Node.Name), e.Label);
+                File.Move(e.Node.Name, newName);
+                mFileExtra[newName.ToLower()] = extra;  // Move old node info
+                FileMoved?.Invoke(this, extra.Info, new FileInfo(newName));
+
+                // This is a work around because refreshing the files here
+                // causes the tree to edit the node again
+                timerRefreshTree.Enabled = true;
+            }
+            catch (Exception ex)
+            {
+                e.CancelEdit = true;
+                MessageBox.Show(this, "Can't rename file: " + ex.Message, App.Name);
+            }
+
+        }
+
+        private void timerRefreshTree_Tick(object sender, EventArgs e)
+        {
+            timerRefreshTree.Enabled = false;
+            RefreshFiles();
         }
     }
 

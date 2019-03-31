@@ -48,6 +48,7 @@ namespace Gosub.Zurfur
             {
                 if (value == null)
                     return;
+                mEditorViewActive = value;
                 foreach (var tab in mainTabControl.TabPages)
                     if (((EditorTabPage)tab).Editor == value)
                     {
@@ -58,7 +59,6 @@ namespace Gosub.Zurfur
             }
         }
 
-
         /// <summary>
         /// This should be called if you change the FileTitle of the text editor control
         /// </summary>
@@ -68,9 +68,18 @@ namespace Gosub.Zurfur
             {
                 var edTabPage = (EditorTabPage)tabPage;
                 var editor = edTabPage.Editor;
-                edTabPage.Text = "" + editor.FileTitle + (editor.Modified ? "*" : " ") + "      ";
-                edTabPage.ToolTipText = editor.FilePath == "" ? editor.FileTitle : editor.FilePath;
+                edTabPage.Text = "" + editor.FileName + (editor.Modified ? "*" : " ") + "      ";
+                edTabPage.ToolTipText = editor.FilePath == "" ? editor.FileName : editor.FilePath;
             }
+        }
+
+        public void MoveFile(string oldFile, string newFile)
+        {
+            oldFile = oldFile.ToLower();
+            foreach (var editor in Editors)
+                if (editor.FilePath.ToLower() == oldFile)
+                    editor.FilePath = newFile;
+            TouchTitles();
         }
 
         /// <summary>
@@ -104,7 +113,6 @@ namespace Gosub.Zurfur
             mainTabControl.ShowToolTips = true;
             tabPage.Editor.FileInfo = fileInfo;
             tabPage.Editor.FilePath = path;
-            tabPage.Editor.FileTitle = Path.GetFileName(path);
             TouchTitles();
 
             // Select page
@@ -151,10 +159,9 @@ namespace Gosub.Zurfur
             return tabPage;
         }
 
-        public void NewFile()
+        public void NewEditor(Editor editor)
         {
-            var tab = CreateEditorTab(new Editor());
-            tab.Editor.FileTitle = "(new file)";
+            var tab = CreateEditorTab(editor);
             EditorViewActive = tab.Editor;
             TouchTitles();
         }
@@ -165,7 +172,6 @@ namespace Gosub.Zurfur
             File.WriteAllLines(filePath, editor.Lexer.GetText());
             editor.Modified = false;
             editor.FilePath = filePath;
-            editor.FileTitle = Path.GetFileName(filePath);
             editor.FileInfo = new FileInfo(filePath);
             editor.FileInfo.Refresh();
             TouchTitles();

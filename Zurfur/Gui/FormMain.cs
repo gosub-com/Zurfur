@@ -21,6 +21,7 @@ namespace Gosub.Zurfur
         static readonly string EXE_DIR = Path.GetDirectoryName(Application.ExecutablePath);
         static readonly string LICENSE_FILE_NAME = Path.Combine(EXE_DIR, "License.txt");
         static readonly string EXAMPLE_PROJECT = Path.Combine(EXE_DIR, "ZurfurLib\\ZurfurLib.zurfproj");
+        static readonly string DEFAULT_NEW_FILE_NAME = "(new file)";
 
         public FormMain()
         {
@@ -72,7 +73,7 @@ namespace Gosub.Zurfur
                 return true;
             mvEditors.EditorViewActive = editor;
             projectTree.OpenAndSelect(editor.FilePath);
-            var dialogResult = MessageBox.Show(editor.FileTitle + " has unsaved changes.  \r\n\r\n"
+            var dialogResult = MessageBox.Show(editor.FileName + " has unsaved changes.  \r\n\r\n"
                 + "Do you want to save this file?", App.Name, MessageBoxButtons.YesNoCancel);
             if (dialogResult == DialogResult.No)
                 return true;
@@ -246,7 +247,9 @@ namespace Gosub.Zurfur
 
         private void menuFileNewFile_Click(object sender, EventArgs e)
         {
-            mvEditors.NewFile();
+            var editor = new Editor();
+            editor.FilePath = DEFAULT_NEW_FILE_NAME;
+            mvEditors.NewEditor(editor);
         }
 
         private void menuFileNewProject_Click(object sender, EventArgs e)
@@ -326,7 +329,7 @@ namespace Gosub.Zurfur
         bool SaveFile(Editor editor, bool forceSaveAs)
         {
             var filePath = editor.FilePath;
-            if (filePath == "" || forceSaveAs)
+            if (filePath == "" || filePath == DEFAULT_NEW_FILE_NAME || forceSaveAs)
             {
                 saveFileDialog1.DefaultExt = "";
                 saveFileDialog1.FileName = "";
@@ -553,7 +556,6 @@ namespace Gosub.Zurfur
                 MessageBox.Show(this, "Can't open this file type", App.Name);
                 return;
             }
-
             try
             {
                 LoadFile(file.Path);
@@ -563,6 +565,11 @@ namespace Gosub.Zurfur
                 MessageBox.Show(this, "Error opening file: " + ex.Message, App.Name);
             }
 
+        }
+
+        private void projectTree_FileMoved(object sender, ProjectTree.FileInfo oldFile, ProjectTree.FileInfo newFile)
+        {
+            mvEditors.MoveFile(oldFile.Path, newFile.Path);
         }
     }
 }

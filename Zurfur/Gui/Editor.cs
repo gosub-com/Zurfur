@@ -137,7 +137,8 @@ namespace Gosub.Zurfur
         /// <summary>
         /// This field is reserved for the user of this class.
         /// </summary>
-        public string FileTitle { get; set; } = "";
+        public string FileName
+            => FilePath == "" ? "" : Path.GetFileName(FilePath);
 
         /// <summary>
         /// This field is reserved for the user of this class
