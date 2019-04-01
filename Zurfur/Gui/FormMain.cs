@@ -10,11 +10,11 @@ namespace Gosub.Zurfur
 {
     public partial class FormMain:Form
     {
-        FormHoverMessage mHoverMessageForm;
-        Token			mHoverToken;
-        DateTime		mLastEditorChangedTime;
-        Editor          mReparseEditor;
-        bool            mInActivatedEvent;
+        FormHoverMessage    mHoverMessageForm;
+        Token               mHoverToken;
+        DateTime            mLastEditorChangedTime;
+        TextEditor          mReparseEditor;
+        bool                mInActivatedEvent;
 
         static readonly string ZURFUR_PROJ_EXT = ".zurfproj";
         static readonly string ZURFUR_SRC_MAIN = "Main.zurf";
@@ -67,13 +67,13 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Can we close this editor?  Give user a chance to save first.
         /// </summary>
-        bool CanClose(Editor editor)
+        bool CanClose(IEditor editor)
         {
             if (!editor.Modified)
                 return true;
             mvEditors.EditorViewActive = editor;
             projectTree.OpenAndSelect(editor.FilePath);
-            var dialogResult = MessageBox.Show(editor.FileName + " has unsaved changes.  \r\n\r\n"
+            var dialogResult = MessageBox.Show(editor.FilePath + " has unsaved changes.  \r\n\r\n"
                 + "Do you want to save this file?", App.Name, MessageBoxButtons.YesNoCancel);
             if (dialogResult == DialogResult.No)
                 return true;
@@ -84,7 +84,7 @@ namespace Gosub.Zurfur
             return true;
         }
 
-        private void mvEditors_EditorCanClose(Editor editor, ref bool doNotClose)
+        private void mvEditors_EditorCanClose(IEditor editor, ref bool doNotClose)
         {
             if (!CanClose(editor))
             {
@@ -92,22 +92,30 @@ namespace Gosub.Zurfur
             }
         }
 
-        private void mvEditors_EditorAdded(Editor editor)
+        private void mvEditors_EditorAdded(IEditor editor)
         {
-            ParseText(editor);
-            editor.MouseTokenChanged += editor_MouseTokenChanged;
-            editor.TextChanged2 += editor_TextChanged2;
-            editor.MouseDown += editor_MouseDown;
+            var textEditor = editor as TextEditor;
+            if (textEditor == null)
+                return;
+
+            ParseText(textEditor);
+            textEditor.MouseTokenChanged += editor_MouseTokenChanged;
+            textEditor.TextChanged2 += editor_TextChanged2;
+            textEditor.MouseDown += editor_MouseDown;
         }
 
-        private void mvEditors_EditorRemoved(Editor editor)
+        private void mvEditors_EditorRemoved(IEditor editor)
         {
-            editor.MouseTokenChanged -= editor_MouseTokenChanged;
-            editor.TextChanged2 -= editor_TextChanged2;
-            editor.MouseDown -= editor_MouseDown;
+            var textEditor = editor as TextEditor;
+            if (textEditor == null)
+                return;
+
+            textEditor.MouseTokenChanged -= editor_MouseTokenChanged;
+            textEditor.TextChanged2 -= editor_TextChanged2;
+            textEditor.MouseDown -= editor_MouseDown;
         }
 
-        private void mvEditors_EditorActiveViewChanged(Editor editor)
+        private void mvEditors_EditorActiveViewChanged(IEditor editor)
         {
             // Reparse old one if necessary
             if (mReparseEditor != null)
@@ -116,7 +124,9 @@ namespace Gosub.Zurfur
 
             if (editor != null)
             {
-                editor_MouseTokenChanged(editor, null, null);
+                var textEditor = editor as TextEditor;
+                if (textEditor != null)
+                    editor_MouseTokenChanged(textEditor, null, null);
                 projectTree.Select(editor.FilePath);
             }
             else
@@ -129,14 +139,14 @@ namespace Gosub.Zurfur
         {
             // Setup to re-parse some time after the user stops typing
             mLastEditorChangedTime = DateTime.Now;
-            mReparseEditor = (Editor)sender;
+            mReparseEditor = sender as TextEditor;
         }
 
         /// <summary>
         /// Setup to display the message for the hover token.
         /// Immediately show connected tokens.
         /// </summary>
-        private void editor_MouseTokenChanged(Editor editor, Token previousToken, Token newToken)
+        private void editor_MouseTokenChanged(TextEditor editor, Token previousToken, Token newToken)
         {
             // Setup to display the hover token
             mHoverToken = newToken;
@@ -233,11 +243,43 @@ namespace Gosub.Zurfur
                 }
         }
 
-        async void LoadFile(string fileName)
+        static readonly WordSet sTextEditorExtensions = new WordSet(".zurf .txt .json .md");
+        static readonly WordSet sImageEditorExtensions = new WordSet(".jpg .jpeg .png .bmp");
+        void LoadFile(string path)
         {
             try
             {
-                await mvEditors.LoadFile(fileName);
+                // Check for aleady loaded file path
+                path = Path.GetFullPath(path);
+                foreach (var editor in mvEditors.Editors)
+                {
+                    if (editor.FilePath.ToLower() == path.ToLower())
+                    {
+                        mvEditors.EditorViewActive = editor;
+                        return;
+                    }
+                }
+
+                // For now just use extension to see if we can open it
+                var ext = Path.GetExtension(path).ToLower();
+                if (sTextEditorExtensions.Contains(ext))
+                {
+                    var newEditor = new TextEditor();
+                    newEditor.LoadFile(path);
+                    mvEditors.AddEditor(newEditor);
+                }
+                else if (sImageEditorExtensions.Contains(ext))
+                {
+                    var newEditor = new ImageEditor();
+                    newEditor.LoadFile(path);
+                    mvEditors.AddEditor(newEditor);
+                }
+                else
+                {
+                    MessageBox.Show(this, "Can't open this file type", App.Name);
+                    return;
+                }
+
             }
             catch (Exception ex)
             {
@@ -247,9 +289,9 @@ namespace Gosub.Zurfur
 
         private void menuFileNewFile_Click(object sender, EventArgs e)
         {
-            var editor = new Editor();
+            var editor = new TextEditor();
             editor.FilePath = DEFAULT_NEW_FILE_NAME;
-            mvEditors.NewEditor(editor);
+            mvEditors.AddEditor(editor);
         }
 
         private void menuFileNewProject_Click(object sender, EventArgs e)
@@ -326,7 +368,7 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Returns true if the file was saved
         /// </summary>
-        bool SaveFile(Editor editor, bool forceSaveAs)
+        bool SaveFile(IEditor editor, bool forceSaveAs)
         {
             var filePath = editor.FilePath;
             if (filePath == "" || filePath == DEFAULT_NEW_FILE_NAME || forceSaveAs)
@@ -344,7 +386,7 @@ namespace Gosub.Zurfur
             }
             try
             {
-                mvEditors.Save(editor, filePath);
+                editor.SaveFile(filePath);
                 projectTree.RefreshFiles();
                 return true;
             }
@@ -376,9 +418,10 @@ namespace Gosub.Zurfur
                 }
             }
 
-            // Display the hover message (after no mouse movement for 150 milliseconds)
-            var activeEditor = mvEditors.EditorViewActive;
-            if (mHoverToken != null && activeEditor != null
+            // Display the hover message
+            var activeEditor = mvEditors.EditorViewActive as TextEditor;
+            if (activeEditor != null
+                    && mHoverToken != null
                     && mHoverToken.Type != eTokenType.Comment
                     && mHoverToken.GetInfoString() != ""
                     && !mHoverMessageForm.Visible)
@@ -396,7 +439,7 @@ namespace Gosub.Zurfur
             }
         }
 
-        private void ParseText(Editor editor)
+        private void ParseText(TextEditor editor)
         {
             var parser = new Parser(editor.Lexer);
             var t1 = DateTime.Now;
@@ -426,19 +469,6 @@ namespace Gosub.Zurfur
             editor.Invalidate();
         }
 
-        private void FormMain_KeyDown(object sender, KeyEventArgs e)
-        {
-            var activeEditor = mvEditors.EditorViewActive;
-            if (activeEditor == null)
-                return;
-
-            // Display search form
-            if (e.Control && e.KeyCode == Keys.F)
-                FormSearch.Show(this, activeEditor );
-            if (e.KeyCode == Keys.F3)
-                FormSearch.FindNext(this, activeEditor);
-        }
-
         private void menuHelpAbout_Click(object sender, EventArgs e)
         {
             MessageBox.Show(this, App.Name + " version " + App.Version, App.Name);
@@ -461,25 +491,25 @@ namespace Gosub.Zurfur
 
         private void menuEditFind_Click(object sender, EventArgs e)
         {
-            var activeEditor = mvEditors.EditorViewActive;
-            if (activeEditor != null)
-                FormSearch.Show(this, activeEditor);
+            var activeTextEditor = mvEditors.EditorViewActive as TextEditor;
+            if (activeTextEditor != null)
+                FormSearch.Show(this, activeTextEditor);
         }
 
         private void menuEditFindNext_Click(object sender, EventArgs e)
         {
-            var activeEditor = mvEditors.EditorViewActive;
-            if (activeEditor != null)
-                FormSearch.FindNext(this, activeEditor);
+            var activeTextEditor = mvEditors.EditorViewActive as TextEditor;
+            if (activeTextEditor != null)
+                FormSearch.FindNext(this, activeTextEditor);
         }
 
         private void viewRTFToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var activeEditor = mvEditors.EditorViewActive;
-            if (activeEditor == null)
+            var activeTextEditor = mvEditors.EditorViewActive as TextEditor;
+            if (activeTextEditor == null)
                 return;
             FormHtml form = new FormHtml();
-            form.ShowLexer(activeEditor.Lexer);
+            form.ShowLexer(activeTextEditor.Lexer);
         }
 
         private void FormMain_Activated(object sender, EventArgs e)
@@ -511,11 +541,8 @@ namespace Gosub.Zurfur
                     if (MessageBox.Show(this, editor.FilePath + "\r\n\r\n" + message,
                         App.Name, MessageBoxButtons.YesNo) == DialogResult.Yes)
                     {
-                        editor.Lexer.ScanLines(File.ReadAllLines(editor.FilePath));
-                        editor.Modified = false;
+                        editor.LoadFile(editor.FilePath);
                     }
-                    editor.FileInfo = new FileInfo(editor.FilePath);
-                    editor.FileInfo.Refresh();
                 }
             }
             catch (Exception ex)
@@ -530,32 +557,29 @@ namespace Gosub.Zurfur
 
         private void menuFile_DropDownOpening(object sender, EventArgs e)
         {
-            menuFileSave.Enabled = mvEditors.EditorViewActive != null;
-            menuFileSaveAll.Enabled = mvEditors.EditorViewActive != null;
-            menuFileSaveAs.Enabled = mvEditors.EditorViewActive != null;
+            var activeEditor = mvEditors.EditorViewActive;
+            menuFileSave.Enabled = activeEditor != null && activeEditor.Modified;
+            menuFileSaveAs.Enabled = activeEditor != null;
+            menuFileSaveAll.Enabled = false;
+            foreach (var editor in mvEditors.Editors)
+                if (editor.Modified)
+                    menuFileSaveAll.Enabled = true;
         }
 
         private void menuEdit_DropDownOpening(object sender, EventArgs e)
         {
-            menuEditFind.Enabled = mvEditors.EditorViewActive != null;
-            menuEditFindNext.Enabled = mvEditors.EditorViewActive != null;
-            viewRTFToolStripMenuItem.Enabled = mvEditors.EditorViewActive != null;
+            var textEditor = mvEditors.EditorViewActive as TextEditor;
+            menuEditFind.Enabled = textEditor != null;
+            menuEditFindNext.Enabled = textEditor != null;
+            viewRTFToolStripMenuItem.Enabled = textEditor != null;
         }
 
 
-        static readonly WordSet sOpenableExtensions = new WordSet(".zurf .txt .json .md");
         private void projectTree_FileDoubleClicked(object sender, ProjectTree.FileInfo file)
         {
             if (file.IsDir)
                 return;
 
-            // For now just use extension to see if we can open it
-            var ext = Path.GetExtension(file.Path).ToLower();
-            if (!sOpenableExtensions.Contains(ext))
-            {
-                MessageBox.Show(this, "Can't open this file type", App.Name);
-                return;
-            }
             try
             {
                 LoadFile(file.Path);
@@ -569,7 +593,10 @@ namespace Gosub.Zurfur
 
         private void projectTree_FileMoved(object sender, ProjectTree.FileInfo oldFile, ProjectTree.FileInfo newFile)
         {
-            mvEditors.MoveFile(oldFile.Path, newFile.Path);
+            var oldFileStr = oldFile.Path.ToLower();
+            foreach (var editor in mvEditors.Editors)
+                if (editor.FilePath.ToLower() == oldFileStr)
+                    editor.FilePath = newFile.Path;
         }
     }
 }

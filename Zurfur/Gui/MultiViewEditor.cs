@@ -13,20 +13,20 @@ using System.Collections;
 namespace Gosub.Zurfur
 {
     /// <summary>
-    /// Manage a group of editors.
+    /// Manage a group of editors that implement IEditor interface.
     /// </summary>
     public partial class MultiViewEditor : UserControl
     {
         int mHoverTab;
-        Editor mEditorViewActive;
+        IEditor mEditorViewActive;
 
         class EditorTabPage : TabPage
         {
-            public Editor Editor { get; set; }
+            public IEditor Editor { get; set; }
         }
 
-        public delegate void EditorDelegate(Editor editor);
-        public delegate void EditorCanCloseDelegate(Editor editor, ref bool doNotClose);
+        public delegate void EditorDelegate(IEditor editor);
+        public delegate void EditorCanCloseDelegate(IEditor editor, ref bool doNotClose);
         public event EditorDelegate EditorAdded;
         public event EditorDelegate EditorRemoved;
         public event EditorDelegate EditorActiveViewChanged;
@@ -41,7 +41,7 @@ namespace Gosub.Zurfur
         /// When set, must be set to an editor that is being manged by this control.
         /// This property can be NULL, but setting it to NULL is ignored.
         /// </summary>
-        public Editor EditorViewActive
+        public IEditor EditorViewActive
         {
             get { return mEditorViewActive; }
             set
@@ -68,51 +68,31 @@ namespace Gosub.Zurfur
             {
                 var edTabPage = (EditorTabPage)tabPage;
                 var editor = edTabPage.Editor;
-                edTabPage.Text = "" + editor.FileName + (editor.Modified ? "*" : " ") + "      ";
-                edTabPage.ToolTipText = editor.FilePath == "" ? editor.FileName : editor.FilePath;
+                edTabPage.Text = Path.GetFileName(editor.FilePath) + (editor.Modified ? "*" : " ") + "      ";
+                edTabPage.ToolTipText = editor.FilePath;
             }
         }
 
-        public void MoveFile(string oldFile, string newFile)
-        {
-            oldFile = oldFile.ToLower();
-            foreach (var editor in Editors)
-                if (editor.FilePath.ToLower() == oldFile)
-                    editor.FilePath = newFile;
-            TouchTitles();
-        }
-
         /// <summary>
-        /// Load a file into a new tab.  
-        /// Sets the Editor's FilePath, FileTitle, and FileInfo
+        /// Load a file into a new tab.  NOTE: This does not check for duplicate file paths. 
         /// </summary>
-        public async Task LoadFile(string path)
+        public void AddEditor(IEditor newEditor)
         {
-            path = Path.GetFullPath(path);
+            // Check for aleady loaded editor control (not path)
             foreach (var editor in Editors)
             {
-                if (path.ToLower() == editor.FilePath.ToLower())
+                if (editor == newEditor)
                 {
                     EditorViewActive = editor;
                     return;
                 }
             }
 
-            var newEditor = new Editor();
-            FileInfo fileInfo = null;
-            await Task.Run(() => 
-            {
-                newEditor.Lexer.ScanLines(File.ReadAllLines(path));
-                fileInfo = new FileInfo(path);
-                fileInfo.Refresh();
-            });
-
             // Setup tab
             var oldTabPageCount = mainTabControl.TabPages.Count;
             var tabPage = CreateEditorTab(newEditor);
             mainTabControl.ShowToolTips = true;
-            tabPage.Editor.FileInfo = fileInfo;
-            tabPage.Editor.FilePath = path;
+            tabPage.Editor = newEditor;
             TouchTitles();
 
             // Select page
@@ -122,11 +102,12 @@ namespace Gosub.Zurfur
             EditorAdded?.Invoke(tabPage.Editor);
         }
 
-        EditorTabPage CreateEditorTab(Editor editor)
+        EditorTabPage CreateEditorTab(IEditor ieditor)
         {
             // Mostly copied from deisgner
             var tabPage = new EditorTabPage();
-            tabPage.Editor = editor;
+            tabPage.Editor = ieditor;
+            var editor = ieditor.GetControl();
 
             mainTabControl.SuspendLayout();
             tabPage.SuspendLayout();
@@ -145,13 +126,10 @@ namespace Gosub.Zurfur
             editor.Dock = DockStyle.Fill;
             editor.Font = new Font("Courier New", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             editor.Location = new Point(3, 3);
-            editor.OverwriteMode = false;
-            editor.ReadOnly = false;
             editor.Size = new Size(694, 379);
             editor.TabIndex = 0;
-            editor.TabSize = 4;
-            editor.TokenColorOverrides = null;
-            editor.ModifiedChanged += Editor_ModifiedChanged;
+            ieditor.ModifiedChanged += Editor_UpdateTitles;
+            ieditor.FilePathChanged += Editor_UpdateTitles;
 
             editor.ResumeLayout();
             tabPage.ResumeLayout();
@@ -159,25 +137,7 @@ namespace Gosub.Zurfur
             return tabPage;
         }
 
-        public void NewEditor(Editor editor)
-        {
-            var tab = CreateEditorTab(editor);
-            EditorViewActive = tab.Editor;
-            TouchTitles();
-        }
-
-        public void Save(Editor editor, string filePath)
-        {
-            filePath = Path.GetFullPath(filePath);
-            File.WriteAllLines(filePath, editor.Lexer.GetText());
-            editor.Modified = false;
-            editor.FilePath = filePath;
-            editor.FileInfo = new FileInfo(filePath);
-            editor.FileInfo.Refresh();
-            TouchTitles();
-        }
-
-        private void Editor_ModifiedChanged(object sender, EventArgs e)
+        private void Editor_UpdateTitles(object sender, EventArgs e)
         {
             TouchTitles();
         }
@@ -187,7 +147,7 @@ namespace Gosub.Zurfur
             var editTab = mainTabControl.SelectedTab as EditorTabPage;
             if (editTab != null)
             {
-                ActiveControl = editTab.Editor;
+                ActiveControl = editTab.Editor.GetControl();
                 mEditorViewActive = editTab.Editor;
                 EditorActiveViewChanged?.Invoke(editTab.Editor);
             }
@@ -227,7 +187,7 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Close this editor, no questions asked
         /// </summary>
-        public void CloseEditor(Editor editor)
+        public void CloseEditor(IEditor editor)
         {
             foreach (var tab in mainTabControl.TabPages)
             {
@@ -253,17 +213,17 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Enumerate the editors
         /// </summary>
-        public IEnumerable<Editor> Editors
+        public IEnumerable<IEditor> Editors
             => new EditorEnum(this);
 
-        public struct EditorEnum : IEnumerable<Editor>
+        public struct EditorEnum : IEnumerable<IEditor>
         {
             MultiViewEditor mMultiEditor;
             public EditorEnum(MultiViewEditor multiViewEditors)
             {
                 mMultiEditor = multiViewEditors;
             }
-            public IEnumerator<Editor> GetEnumerator()
+            public IEnumerator<IEditor> GetEnumerator()
             {
                 foreach (var tab in mMultiEditor.mainTabControl.TabPages)
                     yield return ((EditorTabPage)tab).Editor;

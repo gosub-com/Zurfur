@@ -12,7 +12,7 @@ namespace Gosub.Zurfur
     /// <summary>
     /// Class to display and edit tokens
     /// </summary>
-    public partial class Editor:UserControl
+    public partial class TextEditor : UserControl, IEditor
     {
         // Lexer and text
         Lexer				mLexer;
@@ -22,6 +22,8 @@ namespace Gosub.Zurfur
         int                 mModifySaved;
         int                 mModifyCount;
         int                 mModifyTotal;
+        string              mFilePath = "";
+
 
         // Tabs and character
         StringFormat mTabFormat = new StringFormat();
@@ -70,7 +72,7 @@ namespace Gosub.Zurfur
         string GetLine(int line) { return mLexer.GetLine(line); }
 
         // Delegate types
-        public delegate void EditorTokenDelegate(Editor sender, Token previousToken, Token newToken);
+        public delegate void EditorTokenDelegate(TextEditor sender, Token previousToken, Token newToken);
 
         /// <summary>
         /// This event occurs when the mouse hover token changes.
@@ -99,7 +101,12 @@ namespace Gosub.Zurfur
         /// </summary>
         public event EventHandler ModifiedChanged;
 
-        public Editor()
+        /// <summary>
+        /// Occurs when the file path is changed
+        /// </summary>
+        public event EventHandler FilePathChanged;
+
+        public TextEditor()
         {
             mLexer = new Lexer();
             InitializeComponent();
@@ -130,20 +137,59 @@ namespace Gosub.Zurfur
         }
 
         /// <summary>
-        /// This field is reserved for the user of this class
+        /// File info from when file was last loaded or saved (or null when not loaded)
         /// </summary>
-        public string FilePath { get; set; } = "";
+        public FileInfo FileInfo { get; set; }
+
+        public string FilePath
+        {
+            get { return mFilePath; }
+            set
+            {
+                if (mFilePath == value)
+                    return;
+                mFilePath = value;
+                FilePathChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
 
         /// <summary>
-        /// This field is reserved for the user of this class.
+        /// Set this to false when the file is saved
         /// </summary>
-        public string FileName
-            => FilePath == "" ? "" : Path.GetFileName(FilePath);
+        public bool Modified
+        {
+            get { return mModifyCount != mModifySaved; }
+            set
+            {
+                if (value == Modified)
+                    return;
+                mModifySaved = value ? -1 : mModifyCount;
+                ModifiedChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
 
-        /// <summary>
-        /// This field is reserved for the user of this class
-        /// </summary>
-        public FileInfo FileInfo;
+        public Control GetControl() { return this; }
+
+        public void LoadFile(string filePath)
+        {
+            mUndo.Clear(); // TBD: Should handle Undo
+            mRedo.Clear();
+            Lexer.ScanLines(File.ReadAllLines(filePath));
+            FileInfo = new FileInfo(filePath);
+            FileInfo.Refresh(); // This seems to be needed for some reason
+            Modified = false;
+            FilePath = filePath;
+        }
+
+        public void SaveFile(string filePath)
+        {
+            filePath = Path.GetFullPath(filePath);
+            File.WriteAllLines(filePath, Lexer.GetText());
+            FileInfo = new FileInfo(filePath);
+            FileInfo.Refresh();
+            Modified = false;
+            FilePath = filePath;
+        }
 
         /// <summary>
         /// Sets all text, returns only the first line of text
@@ -163,21 +209,6 @@ namespace Gosub.Zurfur
                     new TokenLoc(LineCount, GetLine(LineCount-1).Length));
                 TextChanged2?.Invoke(this, mEventArgs);
                 Invalidate();
-            }
-        }
-
-        /// <summary>
-        /// Set this to false when the file is saved
-        /// </summary>
-        public bool Modified
-        {
-            get { return mModifyCount != mModifySaved; }
-            set
-            {
-                if (value == Modified)
-                    return;
-                mModifySaved = value ? -1 : mModifyCount;
-                ModifiedChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -1436,6 +1467,12 @@ namespace Gosub.Zurfur
             if (e.Handled)
                 return;
             e.Handled = true;
+
+            // Display search form
+            if (e.Control && e.KeyCode == Keys.F)
+                FormSearch.Show(ParentForm, this);
+            if (e.KeyCode == Keys.F3)
+                FormSearch.FindNext(ParentForm, this);
 
             // Don't do anything for SHIFT, CTRL, or ALT keys
             if (e.KeyValue == 16 || e.KeyValue == 17 || e.KeyValue == 18)

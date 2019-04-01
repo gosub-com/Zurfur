@@ -50,6 +50,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Gui\IEditor.cs" />
+    <Compile Include="Gui\ImageEditor.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Gui\ImageEditor.Designer.cs">
+      <DependentUpon>ImageEditor.cs</DependentUpon>
+    </Compile>
     <Compile Include="Gui\ProjectTree.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -94,11 +101,11 @@
     </Compile>
     <Compile Include="Lexer\MinTern.cs" />
     <Compile Include="Parser\SyntaxExpr.cs" />
-    <Compile Include="Gui\Editor.cs">
+    <Compile Include="Gui\TextEditor.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Gui\Editor.Designer.cs">
-      <DependentUpon>Editor.cs</DependentUpon>
+    <Compile Include="Gui\TextEditor.Designer.cs">
+      <DependentUpon>TextEditor.cs</DependentUpon>
     </Compile>
     <Compile Include="Gui\FormMain.cs">
       <SubType>Form</SubType>
@@ -114,11 +121,14 @@
     <Compile Include="Project\ZurfProjectData.cs" />
     <Compile Include="Project\ZurfProject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="Gui\ImageEditor.resx">
+      <DependentUpon>ImageEditor.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Gui\ProjectTree.resx">
       <DependentUpon>ProjectTree.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Gui\Editor.resx">
-      <DependentUpon>Editor.cs</DependentUpon>
+    <EmbeddedResource Include="Gui\TextEditor.resx">
+      <DependentUpon>TextEditor.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Gui\FormMain.resx">

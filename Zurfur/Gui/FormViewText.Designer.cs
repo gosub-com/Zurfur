@@ -28,7 +28,7 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
-			this.editor1 = new Gosub.Zurfur.Editor();
+			this.editor1 = new Gosub.Zurfur.TextEditor();
 			this.SuspendLayout();
 			// 
 			// editor1
@@ -65,7 +65,7 @@
 
 		#endregion
 
-		private Editor editor1;
+		private TextEditor editor1;
 
 	}
 }

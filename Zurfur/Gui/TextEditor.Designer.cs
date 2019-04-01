@@ -1,6 +1,6 @@
 ﻿namespace Gosub.Zurfur
 {
-	partial class Editor
+	partial class TextEditor
 	{
 		/// <summary> 
 		/// Required designer variable.

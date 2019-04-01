@@ -22,7 +22,7 @@ namespace Gosub.Zurfur
         /// <summary>
         /// This must be set to the editor before showing the form
         /// </summary>
-        public Editor	mEditor;
+        public TextEditor	mEditor;
         TokenLoc		mStartSearchLoc;
         TokenLoc		mPreviousSearchLoc = new TokenLoc(-1, -1);
 
@@ -43,7 +43,7 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Call this function to show the search form
         /// </summary>
-        public static void Show(Form owner, Editor editor)
+        public static void Show(Form owner, TextEditor editor)
         {
             // Create the form
             if (mFormSearch == null || mFormSearch.IsDisposed)
@@ -74,7 +74,7 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Call this function to "FindNext"
         /// </summary>
-        public static void FindNext(Form owner, Editor editor)
+        public static void FindNext(Form owner, TextEditor editor)
         {
             if (mFormSearch == null || mFormSearch.SearchText.Trim() == "")
                 Show(owner, editor);
