@@ -45,6 +45,8 @@
             this.menuEditFind = new System.Windows.Forms.ToolStripMenuItem();
             this.menuEditFindNext = new System.Windows.Forms.ToolStripMenuItem();
             this.viewRTFToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.menuDebug = new System.Windows.Forms.ToolStripMenuItem();
+            this.menuDebugRun = new System.Windows.Forms.ToolStripMenuItem();
             this.menuHelp = new System.Windows.Forms.ToolStripMenuItem();
             this.menuHelpAbout = new System.Windows.Forms.ToolStripMenuItem();
             this.menuHelpLicense = new System.Windows.Forms.ToolStripMenuItem();
@@ -72,6 +74,7 @@
             this.mainMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.menuFile,
             this.menuEdit,
+            this.menuDebug,
             this.menuHelp});
             this.mainMenu.Location = new System.Drawing.Point(0, 0);
             this.mainMenu.Name = "mainMenu";
@@ -187,6 +190,22 @@
             this.viewRTFToolStripMenuItem.Text = "View HTML...";
             this.viewRTFToolStripMenuItem.Click += new System.EventHandler(this.viewRTFToolStripMenuItem_Click);
             // 
+            // menuDebug
+            // 
+            this.menuDebug.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.menuDebugRun});
+            this.menuDebug.Name = "menuDebug";
+            this.menuDebug.Size = new System.Drawing.Size(54, 20);
+            this.menuDebug.Text = "Debug";
+            this.menuDebug.DropDownOpening += new System.EventHandler(this.menuDebug_DropDownOpening);
+            // 
+            // menuDebugRun
+            // 
+            this.menuDebugRun.Name = "menuDebugRun";
+            this.menuDebugRun.Size = new System.Drawing.Size(152, 22);
+            this.menuDebugRun.Text = "Run (F5)";
+            this.menuDebugRun.Click += new System.EventHandler(this.menuDebugRun_Click);
+            // 
             // menuHelp
             // 
             this.menuHelp.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -270,6 +289,7 @@
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormMain_FormClosing);
             this.Load += new System.EventHandler(this.FormMain_Load);
             this.Shown += new System.EventHandler(this.FormMain_Shown);
+            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FormMain_KeyDown);
             this.mainMenu.ResumeLayout(false);
             this.mainMenu.PerformLayout();
             this.splitContainer1.Panel1.ResumeLayout(false);
@@ -307,6 +327,8 @@
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem2;
         private ProjectTree projectTree;
         private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog1;
+        private System.Windows.Forms.ToolStripMenuItem menuDebug;
+        private System.Windows.Forms.ToolStripMenuItem menuDebugRun;
     }
 }
 

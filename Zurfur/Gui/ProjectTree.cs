@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Data;
 using System.Linq;
 using System.Text;
@@ -23,7 +24,7 @@ namespace Gosub.Zurfur
         public delegate void FileMovedDelegate(object sender, FileInfo oldFile, FileInfo newFile);
         public event FileMovedDelegate FileMoved;
 
-
+        FormHoverMessage mHoverForm;
 
         class FileExtra
         {
@@ -65,6 +66,9 @@ namespace Gosub.Zurfur
                 mDirInfo = new DirInfo();
                 return;
             }
+            mRootDir = Path.GetFullPath(mRootDir);
+            while (mRootDir.EndsWith("\\") || mRootDir.EndsWith("/"))
+                mRootDir = mRootDir.Substring(0, mRootDir.Length - 1);
             treeView.BeginUpdate();
             treeView.Nodes.Clear();
             mDirInfo = LoadFiles(mRootDir);
@@ -238,6 +242,75 @@ namespace Gosub.Zurfur
         {
             timerRefreshTree.Enabled = false;
             RefreshFiles();
+        }
+
+        private void treeView_MouseMove(object sender, MouseEventArgs e)
+        {
+
+        }
+
+        static readonly WordSet sImageExtensions = new WordSet(".jpg .jpeg .bmp .png");
+        private async void treeView_NodeMouseHover(object sender, TreeNodeMouseHoverEventArgs e)
+        {
+            if (e.Node == null || !mFileExtra.TryGetValue(e.Node.Name.ToLower(), out var extra))
+            {
+                if (mHoverForm != null)
+                    mHoverForm.Visible = false;
+                return;
+            }
+            if (extra.Info.IsDir || !sImageExtensions.Contains(Path.GetExtension(extra.Info.Path).ToLower()))
+            {
+                if (mHoverForm != null)
+                    mHoverForm.Visible = false;
+                return;
+            }
+            if (mHoverForm == null)
+            {
+                mHoverForm = new FormHoverMessage();
+                mHoverForm.Message.Visible = false;
+                mHoverForm.Picture.Visible = true;
+                mHoverForm.Picture.Dock = DockStyle.Fill;
+            }
+
+            Bitmap bm = null;
+            await Task.Run(() => 
+            {
+                try
+                {
+                    using (var im = Image.FromFile(extra.Info.Path))
+                    {
+                        var scale = Math.Min(1, 256.0 / Math.Max(im.Width, im.Height));
+                        bm = new Bitmap((int)(im.Width*scale), (int)(im.Height*scale), PixelFormat.Format32bppArgb);
+                        using (var gr = Graphics.FromImage(bm))
+                            gr.DrawImage(im, 0, 0, bm.Width, bm.Height);
+                    }
+                }
+                catch
+                {
+                }
+            });
+            if (bm == null)
+            {
+                if (mHoverForm != null)
+                    mHoverForm.Visible = false;
+                return;
+            }
+
+            var oldIm = mHoverForm.Picture.Image;
+            mHoverForm.Location = new Point(MousePosition.X, MousePosition.Y + 25);
+            mHoverForm.Visible = true;
+            mHoverForm.BringToFront();
+            mHoverForm.Picture.Image = bm;
+            mHoverForm.Size = new Size(bm.Width, bm.Height);
+            mHoverForm.Picture.SizeMode = PictureBoxSizeMode.CenterImage;
+            if (oldIm != null)
+                oldIm.Dispose();
+        }
+
+        private void treeView_MouseLeave(object sender, EventArgs e)
+        {
+            if (mHoverForm != null)
+                mHoverForm.Visible = false;
         }
     }
 

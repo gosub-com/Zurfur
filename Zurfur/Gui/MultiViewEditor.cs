@@ -201,6 +201,7 @@ namespace Gosub.Zurfur
                         mEditorViewActive = null;
                         EditorActiveViewChanged?.Invoke(null);
                     }
+                    return;
                 }
             }
         }

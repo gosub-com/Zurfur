@@ -76,7 +76,7 @@ namespace Gosub.Zurfur
             Image im = Image.FromFile(filePath);
             mBitmap = new Bitmap(im.Width, im.Height, PixelFormat.Format32bppArgb);
             using (var gr = Graphics.FromImage(mBitmap))
-                gr.DrawImage(im, new Point(0, 0));
+                gr.DrawImage(im, 0, 0, im.Width, im.Height);
             im.Dispose();
 
             pictureBox1.Image = mBitmap;

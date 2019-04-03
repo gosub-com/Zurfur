@@ -243,7 +243,7 @@ namespace Gosub.Zurfur
                 }
         }
 
-        static readonly WordSet sTextEditorExtensions = new WordSet(".zurf .txt .json .md");
+        static readonly WordSet sTextEditorExtensions = new WordSet(".zurf .txt .json .md .htm .html .css");
         static readonly WordSet sImageEditorExtensions = new WordSet(".jpg .jpeg .png .bmp");
         void LoadFile(string path)
         {
@@ -271,6 +271,12 @@ namespace Gosub.Zurfur
                 else if (sImageEditorExtensions.Contains(ext))
                 {
                     var newEditor = new ImageEditor();
+                    newEditor.LoadFile(path);
+                    mvEditors.AddEditor(newEditor);
+                }
+                else if (ext == ".zurfproj")
+                {
+                    var newEditor = new ProjectEditor();
                     newEditor.LoadFile(path);
                     mvEditors.AddEditor(newEditor);
                 }
@@ -574,6 +580,12 @@ namespace Gosub.Zurfur
             viewRTFToolStripMenuItem.Enabled = textEditor != null;
         }
 
+        private void menuDebug_DropDownOpening(object sender, EventArgs e)
+        {
+            menuDebugRun.Enabled = projectTree.RootDir != "";
+        }
+
+
 
         private void projectTree_FileDoubleClicked(object sender, ProjectTree.FileInfo file)
         {
@@ -597,6 +609,26 @@ namespace Gosub.Zurfur
             foreach (var editor in mvEditors.Editors)
                 if (editor.FilePath.ToLower() == oldFileStr)
                     editor.FilePath = newFile.Path;
+        }
+
+        private void menuDebugRun_Click(object sender, EventArgs e)
+        {
+            // TBD: Load and store tatget from ZurfProject file.
+            // TBD: Need to copy all files into a \bin\debug folder
+            foreach (var file in projectTree)
+            {
+                if (file.Path.Contains("www") && Path.GetFileName(file.Path).ToLower() == "index.html")
+                {
+                    System.Diagnostics.Process.Start(file.Path);
+                    return;
+                }
+            }
+            MessageBox.Show(this, "'index.html' file not found in www directory", App.Name);
+        }
+
+        private void FormMain_KeyDown(object sender, KeyEventArgs e)
+        {
+            menuDebugRun_Click(null, null);
         }
     }
 }
