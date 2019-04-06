@@ -14,54 +14,62 @@ namespace Gosub.Zurfur
     /// </summary>
     public partial class TextEditor : UserControl, IEditor
     {
+        readonly float SHRUNK_SPACE_SCALE = 0.5f;
+        readonly float SHRUNK_FONT_SCALE = 0.6f;
+        readonly PointF SHRUNK_FONT_OFFSET = new PointF(0.2f, -0.12f); // Scaled by font size
+        static WordSet sShrinkTokens = new WordSet("[ ] { }");
+
         // Lexer and text
-        Lexer				mLexer;
-        List<UndoOp>		mUndo = new List<UndoOp>();
-        List<UndoOp>		mRedo = new List<UndoOp>();
-        bool				mReadOnly;
-        int                 mModifySaved;
-        int                 mModifyCount;
-        int                 mModifyTotal;
-        string              mFilePath = "";
+        Lexer           mLexer;
+        List<UndoOp>    mUndo = new List<UndoOp>();
+        List<UndoOp>    mRedo = new List<UndoOp>();
+        bool            mReadOnly;
+        bool            mShrinkLines = true;
+        int             mModifySaved;
+        int             mModifyCount;
+        int             mModifyTotal;
+        string          mFilePath = "";
 
 
         // Tabs and character
-        StringFormat mTabFormat = new StringFormat();
-        float				[]mTabSpacing = new float[32];
-        int					mTabStartColumnPrevious = -1;
-        string				[]mInsertOneChar = new string[] { "" };
-        string				[]mInsertCR = new string[] { "", "" };
-        int					mTabSize = 4;
+        StringFormat    mTabFormat = new StringFormat();
+        float[]         mTabSpacing = new float[32];
+        int             mTabStartColumnPrevious = -1;
+        string[]        mInsertOneChar = new string[] { "" };
+        string[]        mInsertCR = new string[] { "", "" };
+        int             mTabSize = 4;
 
         // Mouse and drawing info
-        Token				mLastMouseHoverToken;
-        Point				mOffset;
-        Point				mTestPoint;
-        Token				mTestToken;
-        SizeF				mFontSize;
-        bool				mDelayedInvalidate;
+        Token           mLastMouseHoverToken;
+        Point           mTopLeft;
+        Point           mTestPoint;
+        Token           mTestToken;
+        SizeF           mFontSize;
+        bool            mDelayedInvalidate;
+        int[]           mLineTops = Array.Empty<int>();
+        bool[]          mLineShrunk = Array.Empty<bool>();
 
         // Cursor info
-        TokenLoc			mCursorLoc;
-        int					mCursorUpDownColumn = -1;
-        DateTime			mCursorBaseTime;
-        Rectangle			mCursorRect;
-        bool				mCursorVisible;
-        bool				mOverwriteMode;
+        TokenLoc        mCursorLoc;
+        int             mCursorUpDownColumn = -1;
+        DateTime        mCursorBaseTime;
+        Rectangle       mCursorRect;
+        bool            mCursorVisible;
+        bool            mOverwriteMode;
 
         // Selection
-        TokenLoc			mSelStart;
-        TokenLoc			mSelEnd;
-        bool				mMouseDown;
-
+        TokenLoc        mSelStart;
+        TokenLoc        mSelEnd;
+        bool            mMouseDown;
 
         // Fonts, colors, and misc.
         Dictionary<eTokenType, FontInfo> mTokenFonts = new Dictionary<eTokenType, FontInfo>();
         Dictionary<eTokenType, FontInfo> mTokenFontsGrayed = new Dictionary<eTokenType, FontInfo>();
-        Brush mSelectColor = new SolidBrush(Color.FromArgb(160, 160, 255));
-        Brush				mSelectColorNoFocus = new SolidBrush(Color.FromArgb(208, 208, 208));
-        EventArgs			mEventArgs = new EventArgs();
-        Brush				mErrorColor = Brushes.Pink;
+        Font        mShrunkFont;
+        Brush       mSelectColor = new SolidBrush(Color.FromArgb(160, 160, 255));
+        Brush       mSelectColorNoFocus = new SolidBrush(Color.FromArgb(208, 208, 208));
+        EventArgs   mEventArgs = new EventArgs();
+        Brush       mErrorColor = Brushes.Pink;
         static Token sNormalToken = new Token();
 
         // User back color overrides
@@ -77,24 +85,24 @@ namespace Gosub.Zurfur
         /// <summary>
         /// This event occurs when the mouse hover token changes.
         /// </summary>
-        public event EditorTokenDelegate		MouseTokenChanged;
+        public event EditorTokenDelegate MouseTokenChanged;
 
         /// <summary>
         /// This event occurs when the cursor location changes
         /// </summary>
-        public event EventHandler				CursorLocChanged;
+        public event EventHandler CursorLocChanged;
 
         /// <summary>
         /// This event happens if a text change is blocked because
         /// the ReadOnly flag is set.  Resetting the ReadOnly flag
         /// inside this event allows the text to be changed.
         /// </summary>
-        public event EventHandler				BlockedByReadOnly;
+        public event EventHandler BlockedByReadOnly;
 
         /// <summary>
         /// This event happens after the text has been changed.
         /// </summary>
-        public event EventHandler				TextChanged2;
+        public event EventHandler TextChanged2;
 
         /// <summary>
         /// Occurs when Modify changes
@@ -179,6 +187,7 @@ namespace Gosub.Zurfur
             FileInfo.Refresh(); // This seems to be needed for some reason
             Modified = false;
             FilePath = filePath;
+            OnTextChangedInternal();
         }
 
         public void SaveFile(string filePath)
@@ -207,9 +216,18 @@ namespace Gosub.Zurfur
                 mLexer.ReplaceText(new string[] { value },
                     new TokenLoc(0, 0),
                     new TokenLoc(LineCount, GetLine(LineCount-1).Length));
-                TextChanged2?.Invoke(this, mEventArgs);
+                OnTextChangedInternal();
                 Invalidate();
             }
+        }
+
+        /// <summary>
+        /// Called whenever the text is changed.  Calls the user delegate TextChanged2
+        /// </summary>
+        void OnTextChangedInternal()
+        {
+            RecalcLineTops();
+            TextChanged2?.Invoke(this, mEventArgs);
         }
 
         /// <summary>
@@ -223,6 +241,19 @@ namespace Gosub.Zurfur
                 if (value == mReadOnly)
                     return;
                 mReadOnly = value;
+                Invalidate();
+            }
+        }
+
+        public bool ShrinkLines
+        {
+            get { return mShrinkLines; }
+            set
+            {
+                if (value == mShrinkLines)
+                    return;
+                mShrinkLines = value;
+                RecalcLineTops();
                 Invalidate();
             }
         }
@@ -304,7 +335,7 @@ namespace Gosub.Zurfur
         /// </summary>
         int LinesInWindow
         {
-            get { return Math.Max(0, (int)(ClientRectangle.Height / mFontSize.Height)-1); }
+            get { return Math.Max(1, (int)(ClientRectangle.Height / mFontSize.Height)-1); }
         }
 
         /// <summary>
@@ -315,31 +346,49 @@ namespace Gosub.Zurfur
             get { return Math.Max(0, (int)(ClientRectangle.Width / mFontSize.Width)-1); }
         }
 
-
-        const int TEXT_OFFSET_X = 3;  // Offset between text and rectangle
-
         /// <summary>
         /// Return X position in window, given the column number
         /// </summary>
-        float LocationX(int col)
+        float PointX(int col)
         {
-            return col*mFontSize.Width + mOffset.X + TEXT_OFFSET_X;
+            return col*mFontSize.Width - mTopLeft.X;
         }
 
         /// <summary>
         /// Return Y position in window, given the line number
         /// </summary>
-        float LocationY(int line)
+        float PointY(int line)
         {
-            return line*mFontSize.Height + mOffset.Y;
+            if (line < 0 || mLineTops.Length == 0)
+                return line*mFontSize.Height - mTopLeft.Y;
+            if (line < mLineTops.Length)
+                return mLineTops[line] - mTopLeft.Y;
+            return mLineTops[mLineTops.Length-1] + (line-mLineTops.Length+1)*mFontSize.Height - mTopLeft.Y;
         }
+
+        Point ScreenToText(int x, int y)
+        {
+            x += mTopLeft.X;
+            y += mTopLeft.Y;
+            var pointX = (int)(x / mFontSize.Width + 0.5f);
+            if (y < 0 || mLineTops.Length == 0)
+                return new Point(pointX, (int)(y / mFontSize.Height));
+
+            // This function isn't used often, so it's OK to be slow
+            for (int line = 1; line < mLineTops.Length; line++)
+                if (y < mLineTops[line])
+                    return new Point(pointX, line-1);              
+
+            return new Point(pointX, (int)(mLineTops.Length-1+y/mFontSize.Height));
+        }
+
 
         /// <summary>
         /// Returns the position of the text at the given token location
         /// </summary>
         public Point LocationToken(TokenLoc loc)
         {
-            return new Point((int)LocationX(IndexToCol(loc)), (int)LocationY(loc.Line));
+            return new Point((int)PointX(IndexToCol(loc)), (int)PointY(loc.Line));
         }
 
 
@@ -433,12 +482,13 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Returns the font used to draw the given token type
         /// </summary>
-        FontInfo GetFontInfo(Token token)
+        FontInfo GetFontInfo(Token token, int line)
         {
-            if (mTokenFonts.Count == 0)
+            if (mTokenFonts.Count == 0 || mShrunkFont == null)
             {
                 Font normalFont = new Font(Font, Font.Bold ? FontStyle.Bold : FontStyle.Regular);
                 Font boldFont = new Font(Font, FontStyle.Bold);
+                mShrunkFont = new Font(Font.Name, Font.Size*SHRUNK_FONT_SCALE, FontStyle.Bold);
 
                 mTokenFonts = new Dictionary<eTokenType, FontInfo>()
                 {
@@ -450,10 +500,18 @@ namespace Gosub.Zurfur
                     { eTokenType.Comment, new FontInfo(normalFont, Color.Green) },
                 };
                 foreach (var font in mTokenFonts)
-                    mTokenFontsGrayed[font.Key] = new FontInfo(font.Value.Font, 
+                {
+                    mTokenFontsGrayed[font.Key] = new FontInfo(font.Value.Font,
                                                     Lerp(font.Value.Color, Color.LightGray, 0.5f));
+                }
             }
-            var colorTable = token.Grayed ? mTokenFontsGrayed : mTokenFonts;
+            // Font info, normal, grayed, or shrunk
+            Dictionary<eTokenType, FontInfo> colorTable;
+            if (token.Grayed)
+                colorTable = mTokenFontsGrayed;
+            else
+                colorTable = mTokenFonts;
+
             if (!colorTable.TryGetValue(token.Type, out var fontInfo))
                 return colorTable[eTokenType.Normal];
             return fontInfo;
@@ -489,7 +547,7 @@ namespace Gosub.Zurfur
             // Vertical properties
             int linesInFile = LineCount;
             vScrollBar.Maximum = linesInFile;
-            vScrollBar.LargeChange = Math.Max(1, LinesInWindow);
+            vScrollBar.LargeChange = LinesInWindow;
             vScrollBar.Enabled = linesInFile > LinesInWindow;
             vScrollBar.Visible = linesInFile > LinesInWindow && linesInFile > 1;
             vScrollBar.SmallChange = 1;
@@ -527,6 +585,7 @@ namespace Gosub.Zurfur
         protected override void OnFontChanged(EventArgs e)
         {
             mFontSize = new SizeF(); // Flag to setup new font
+            mTokenFonts.Clear();
             mTabStartColumnPrevious = -1;
             var vScrollWidth = vScrollBar.Width; // Preserve vScrollBar width which gets changed when font is changed
             base.OnFontChanged(e);
@@ -572,12 +631,11 @@ namespace Gosub.Zurfur
             mCursorBaseTime = DateTime.Now;
             int column = IndexToCol(CursorLoc);
 
-            Rectangle cursorRect 
-                = new Rectangle((int)(mFontSize.Width*column) + mOffset.X 
-                                + 1 + (mOverwriteMode ? 2 : 0),
-                                (int)(mFontSize.Height*CursorLoc.Line) + mOffset.Y + 1,
-                                 mOverwriteMode && !HasSel() ? (int)mFontSize.Width : 2,
-                                (int)mFontSize.Height-2);
+            var x = (int)PointX(column);
+            var y = (int)PointY(CursorLoc.Line);
+            Rectangle cursorRect = new Rectangle(x + 1 + (mOverwriteMode ? 2 : 0), y + 1,
+                                                 mOverwriteMode && !HasSel() ? (int)mFontSize.Width : 2,
+                                                (int)(PointY(CursorLoc.Line+1)-y)-2);
 
             if (cursorRect != mCursorRect)
             {
@@ -894,7 +952,7 @@ namespace Gosub.Zurfur
             mRedo.Clear();
 
             // Call user delegate
-            TextChanged2?.Invoke(this, mEventArgs);
+            OnTextChangedInternal();
             return end;
         }
 
@@ -943,14 +1001,15 @@ namespace Gosub.Zurfur
                 ModifiedChanged.Invoke(this, EventArgs.Empty);
 
             // Call user delegate
-            TextChanged2?.Invoke(this, mEventArgs);
-
+            OnTextChangedInternal();
         }
 
         /// <summary>
         /// Setup tokens to be drawn.  Sets all tokens to
         /// default info (see static function GetDefaultTokenInfo)
         /// Deletes undo info.
+        /// WARNING: Do not change the text from the lexer, or else
+        ///          it gets out of sync with this control.  
         /// </summary>
         public Lexer Lexer
         {
@@ -961,7 +1020,7 @@ namespace Gosub.Zurfur
                 mUndo.Clear();
                 mRedo.Clear();
                 Invalidate();
-                TextChanged2?.Invoke(this, mEventArgs);
+                OnTextChangedInternal();
             }
         }
 
@@ -1064,7 +1123,7 @@ namespace Gosub.Zurfur
                  line++)
             {
                 // Skip lines not in window
-                float y = LocationY(line);
+                float y = PointY(line);
                 if (y < mMinY)
                     continue;
                 if (y > ClientRectangle.Height)
@@ -1080,15 +1139,17 @@ namespace Gosub.Zurfur
 
                 // Start/end lines
                 if (line == selStart.Line)
-                    x = LocationX(IndexToCol(selStart)) - TEXT_OFFSET_X;
+                    x = PointX(IndexToCol(selStart));
                 if (line == selEnd.Line)
-                    xEnd = LocationX(IndexToCol(selEnd)) - TEXT_OFFSET_X;
+                    xEnd = PointX(IndexToCol(selEnd));
 
                 gr.FillRectangle(Focused ? mSelectColor : mSelectColorNoFocus,
-                    new RectangleF(x, y, Math.Max(0, xEnd-x)+2, mFontSize.Height));
+                    new RectangleF(x+FILL_X_OFFSET, y, Math.Max(0, xEnd-x), (int)(PointY(line+1)-y)));
             }
         }
 
+
+        const int FILL_X_OFFSET = 3;
 
         /// <summary>
         /// Print a token (either the foreground or background)
@@ -1098,10 +1159,10 @@ namespace Gosub.Zurfur
         {
             // Find token position and bounds
             int col = IndexToCol(token.Location);
-            float x = LocationX(col);
-            float y = LocationY(token.Line);
-            float xEnd = x + (int)(token.Name.Length*mFontSize.Width);
-            float yEnd = y + (int)mFontSize.Height;
+            float x = PointX(col);
+            float y = PointY(token.Line);
+            float xEnd = PointX(col + token.Name.Length);
+            float yEnd = PointY(token.Line + 1);
 
             // If it's under the test point, return it
             if (mTestPoint.X >= x && mTestPoint.X < xEnd
@@ -1109,40 +1170,51 @@ namespace Gosub.Zurfur
             {
                 mTestToken = token;
             }
+            if (gr == null)
+                return;
 
             // Print the token
-            if (gr != null)
+            if (background)
             {
-                if (background)
+                // Find override
+                Brush backColor = null;
+                if (mTokenColorOverrides != null && mTokenColorOverrides.Length != 0)
+                    foreach (TokenColorOverride over in mTokenColorOverrides)
+                        if ((object)(over.Token) == (object)token)
+                        {
+                            backColor = over.BackColor;
+                            break;
+                        }
+                // Draw background color
+                x += FILL_X_OFFSET;
+                xEnd += FILL_X_OFFSET;
+                if (backColor != null)
+                    gr.FillRectangle(backColor, new RectangleF(x-1, y, xEnd-x+1, yEnd-y));
+                else if (token.Error)
+                    gr.FillRectangle(mErrorColor, new RectangleF(x-1, y, xEnd-x+1, yEnd-y));
+            }
+            else
+            {
+                // Adjust tabs
+                int tabStartColumn = (mTabSize - col % mTabSize);
+                if (tabStartColumn != mTabStartColumnPrevious && token.Name.IndexOf('\t') >= 0)
                 {
-                    // Find override
-                    Brush backColor = null;
-                    if (mTokenColorOverrides != null && mTokenColorOverrides.Length != 0)
-                        foreach (TokenColorOverride over in mTokenColorOverrides)
-                            if ((object)(over.Token) == (object)token)
-                            {
-                                backColor = over.BackColor;
-                                break;
-                            }
-                    // Draw background color
-                    if (backColor != null)
-                        gr.FillRectangle(backColor, new RectangleF(x-1, y, xEnd-x+1, yEnd-y));
-                    else if (token.Error)
-                        gr.FillRectangle(mErrorColor, new RectangleF(x-1, y, xEnd-x+1, yEnd-y));
+                    mTabStartColumnPrevious = tabStartColumn;
+                    mTabFormat.SetTabStops(tabStartColumn*mFontSize.Width, mTabSpacing);
+                }
+
+                if (token.Line >= 0 && token.Line < mLineShrunk.Length && mLineShrunk[token.Line])
+                {
+                    // Draw shrunk text
+                    x = (int)(x + mFontSize.Width * SHRUNK_FONT_OFFSET.X);
+                    y = (int)(y + mFontSize.Height * SHRUNK_FONT_OFFSET.Y);
+                    gr.DrawString(token.Name, mShrunkFont, Brushes.Black, x, y, mTabFormat);
                 }
                 else
                 {
-                    // Adjust tabs only when necessary
-                    int tabStartColumn = (mTabSize - col % mTabSize);
-                    if (tabStartColumn != mTabStartColumnPrevious && token.Name.IndexOf('\t') >= 0)
-                    {
-                        mTabStartColumnPrevious = tabStartColumn;
-                        mTabFormat.SetTabStops(tabStartColumn*mFontSize.Width, mTabSpacing);
-                    }
-
-                    // Draw the token
-                    FontInfo fontInfo = GetFontInfo(token);
-                    gr.DrawString(token.Name, fontInfo.Font, fontInfo.Brush, x-TEXT_OFFSET_X, y, mTabFormat);
+                    // Draw normal text
+                    FontInfo fontInfo = GetFontInfo(token, token.Line);
+                    gr.DrawString(token.Name, fontInfo.Font, fontInfo.Brush, x, y, mTabFormat);
                 }
             }
         }
@@ -1166,10 +1238,10 @@ namespace Gosub.Zurfur
 
             // Find first and last visible line
             int startLine = 0;
-            while (startLine < LineCount && LocationY(startLine) < mMinY)
+            while (startLine < LineCount && PointY(startLine) < mMinY)
                 startLine++;
             int endLine = startLine;
-            while (endLine <= LineCount && LocationY(endLine) < mMaxY)
+            while (endLine <= LineCount && PointY(endLine) < mMaxY)
                 endLine++;
 
             // Draw all tokens on the screen
@@ -1194,14 +1266,15 @@ namespace Gosub.Zurfur
             if (mFontSize == new SizeF())
             {
                 // Measure the font size
-                var normalFont = GetFontInfo(sNormalToken).Font;
+                var normalFont = GetFontInfo(sNormalToken, -1).Font;
                 SizeF size1 = e.Graphics.MeasureString("MM\r\nMM", normalFont);
                 SizeF size2 = e.Graphics.MeasureString("MMM\r\nMMM\r\nMMM", normalFont);
                 mFontSize.Width = size2.Width - size1.Width;
-                mFontSize.Height = (int)(size2.Height - size1.Height+1);
+                mFontSize.Height = (int)(size2.Height - size1.Height+1 + 0.5f);
                 for (int i = 0; i < mTabSpacing.Length; i++)
                     mTabSpacing[i] = mFontSize.Width*mTabSize;
                 mTabSpacing[0] = 0;
+                RecalcLineTops();
 
                 // Setup cursor
                 UpdateCursorBlinker();
@@ -1221,11 +1294,13 @@ namespace Gosub.Zurfur
 
                 // Find token position and bounds
                 int col = IndexToCol(token.Location);
-                int x = (int)(LocationX(col));
-                int y = (int)(LocationY(token.Line));
-                int xEnd = x + (int)(token.Name.Length*mFontSize.Width);
-                int yEnd = y + (int)mFontSize.Height;
+                int x = (int)(PointX(col));
+                int y = (int)(PointY(token.Line));
+                int xEnd = (int)PointX(col + token.Name.Length);
+                int yEnd = (int)PointY(token.Line + 1);
 
+                x += FILL_X_OFFSET;
+                xEnd += FILL_X_OFFSET;
                 e.Graphics.DrawRectangle(token.Error ? Pens.Red : Pens.Gray,
                                             new Rectangle(x-1, y, xEnd-x+1, yEnd-y));
             }
@@ -1242,11 +1317,11 @@ namespace Gosub.Zurfur
                         && CursorLoc.Char >= 0 
                         && CursorLoc.Char < GetLine(CursorLoc.Line).Length)
                 {
-                    float x = LocationX(IndexToCol(CursorLoc));
-                    float y = LocationY(CursorLoc.Line);
+                    float x = PointX(IndexToCol(CursorLoc));
+                    float y = PointY(CursorLoc.Line);
                     e.Graphics.DrawString(GetLine(CursorLoc.Line)[CursorLoc.Char].ToString(),
-                                            GetFontInfo(sNormalToken).Font, Brushes.White,
-                                            x - TEXT_OFFSET_X, y);
+                                            GetFontInfo(sNormalToken, CursorLoc.Line).Font, Brushes.White,
+                                            x, y);
                 }
             }
 
@@ -1256,6 +1331,52 @@ namespace Gosub.Zurfur
 
             base.OnPaint(e);
         }
+
+        /// <summary>
+        /// Caluclate locations of lines whenever the text or font changes
+        /// </summary>
+        void RecalcLineTops()
+        {
+            // Font is changing
+            if (mFontSize == new SizeF())
+                return;
+
+            if (!mShrinkLines)
+            {
+                mLineTops = Array.Empty<int>();
+                mLineShrunk = Array.Empty<bool>();
+                return;
+            }
+            // Resize array if necessary
+            if (mLineTops.Length != mLexer.LineCount + 1)
+            {
+                mLineTops = new int[mLexer.LineCount + 1];
+                mLineShrunk = new bool[mLexer.LineCount + 1];
+            }
+            // Measure lines
+            int top = 0;
+            int index = 0;
+            var e = mLexer.GetEnumerator();
+            while (e.MoveNextLine())
+            {
+                if (e.CurrentLineTokenCount == 0 
+                    || e.CurrentLineTokenCount == 1 && sShrinkTokens.Contains(e.Current.Name))
+                {
+                    mLineShrunk[index] = true;
+                    mLineTops[index++] = top;
+                    top += (int)(mFontSize.Height* SHRUNK_SPACE_SCALE);
+                }
+                else
+                {
+                    mLineShrunk[index] = false;
+                    mLineTops[index++] = top;
+                    top += (int)(mFontSize.Height);
+                }
+            }
+            mLineTops[index] = top;
+            mLineShrunk[index] = false;
+        }
+
 
         /// <summary>
         /// Scroll screen for mouse wheel event
@@ -1281,11 +1402,11 @@ namespace Gosub.Zurfur
 
             // Set cursor according to line
             TokenLoc cursor = CursorLoc;
-            cursor.Line = (int)((y - mOffset.Y)/mFontSize.Height);
+            Point text = ScreenToText(e.X, y);
+            cursor.Line = text.Y;
             cursor.Line = Math.Min(cursor.Line, LineCount-1);
             cursor.Line = Math.Max(cursor.Line, 0);
-            cursor.Char = ColToIndex(GetLine(cursor.Line),
-                                     (int)((e.X - mOffset.X)/mFontSize.Width+0.5f));
+            cursor.Char = ColToIndex(GetLine(cursor.Line), text.X);
             CursorLoc = cursor;
             UpdateCursorBlinker();
         }
@@ -1433,8 +1554,8 @@ namespace Gosub.Zurfur
         /// </summary>
         void ScrollBar_Changed()
         {
-            mOffset = new Point(-(int)(hScrollBar.Value*mFontSize.Width),
-                                -(int)(vScrollBar.Value*mFontSize.Height));
+            mTopLeft = new Point();
+            mTopLeft = new Point((int)PointX(hScrollBar.Value), (int)PointY(vScrollBar.Value));
             UpdateCursorBlinker();
             Invalidate();
         }
@@ -1568,14 +1689,14 @@ namespace Gosub.Zurfur
             // PAGE UP
             if (e.KeyCode == Keys.PageUp && !e.Control)
             {
-                int linesInWindow = Math.Max(1, LinesInWindow);
+                int linesInWindow = LinesInWindow;
                 vScrollBar.Value = Math.Max(0, vScrollBar.Value - linesInWindow);
                 MoveCursor(ArrowKeyDown(CursorLoc, -linesInWindow), true, e.Shift);
             }
             // PAGE DOWN
             if (e.KeyCode == Keys.PageDown && !e.Control)
             {
-                int linesInWindow = Math.Max(1, LinesInWindow);
+                int linesInWindow = LinesInWindow;
                 vScrollBar.Value = Math.Max(0, Math.Min(vScrollBar.Maximum - linesInWindow, vScrollBar.Value + linesInWindow));
                 MoveCursor(ArrowKeyDown(CursorLoc, linesInWindow), false, e.Shift);
             }
@@ -1792,9 +1913,9 @@ namespace Gosub.Zurfur
                 Invalidate(mCursorRect);
                 vMarksLeft.ShowCursor = mCursorVisible;
             }
-            int linesInWindow = Math.Max(1, LinesInWindow);
 
             // While selecting text, scroll the screen
+            int linesInWindow = LinesInWindow;
             if (mMouseDown && CursorLoc.Line - vScrollBar.Value > linesInWindow
                         && vScrollBar.Value < vScrollBar.Maximum -linesInWindow)
                 vScrollBar.Value++;

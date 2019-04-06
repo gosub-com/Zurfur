@@ -20,8 +20,7 @@ reference.
 A pinned reference is one that points to an object that cannot be moved
 by the GC.  They are used to lock an object in place while there
 could possibly be unmanaged pointers or interior references pointing
-to an object.  Unmanaged pointers into objects can be created using the
-`fixed` keyword.
+to an object.  Interior pointers can be created using the `fixed` keyword.
 
 Both kinds of references create problems for the GC.  Pinned references
 can fragment memory.  Tracking interior references complicates the design 
@@ -36,7 +35,7 @@ Finally, all references existing on the stack are pinned.
 
 These restrictions allow a faster, simpler garbage collector, and
 makes some optimizations easier.  For instance, once an object is
-recorded on the user stack, it can be passed on the execution stack
+recorded on the stack, it can be passed on the execution stack
 without shadowing it again.  Interior references to that object can
 be created, used, and passed on the execution stack without the need
 for the GC to track it.
@@ -202,19 +201,19 @@ The `owned` qualifier will help us do that:
         owned ManagedBits []int;
         owned UnmanagedBits UnmanagedMemory<int>;
 
-        // Illegal, `ManagedBits` should not be leaked
+        // Illegal, `ManagedBits` cannot not be leaked
         pub func GetManagedBits() []int
             => return ManagedBits
+        pub func ThisCouldDefeatOwned()
+            => IMustDoSomethingThatCaptures(ManagedBits)
 
         // This is Ok, these are ref returns
         pub func PixelAt(x int, y int) ref int
             => return ref ManagedBits[y*Width + x];
         pub func HorizontalSlice(x int, y int, length int) Span<int>
             => return ManagedBits.Slice(y*Width+x, length);
-
-        // Owned doesn't make it impossible to leak, it's just a helpful reminder
-        pub func ThisCanDefeatOwned()
-            => IMustDoSomethingThatCaptures(ManagedBits)
+        pub func ThisCannotDefeatOwned()
+            => IMustNotDoSomethingThatCaptures(ref ManagedBits)
 
         // These functions don't leak, they just manipulate data
         pub func Scale(scale float32) Bitmap {}
@@ -223,12 +222,7 @@ The `owned` qualifier will help us do that:
     }
 
 Fields with the `owned` attribute must be assigned only in the
-constructor and should not be leaked outside the class.  The
-`owned` qualifier can be defeated, so it is more of a reminder to
-both the compiler and author that this class is trying to be GC
-friendly.  The compiler helps by preventing obvious mistakes
-and providing extra warnings.
-
+constructor and cannot not be leaked outside the class.  
 With all this, `DrawBitmap` should deterministically collect
 `bigBm` and `bigOverlay`.  Even when allocated in `UnmanagedMemory`,
 the memory will be reclaimed immediately at the end of the function.
@@ -244,11 +238,8 @@ be also be sent.
 
 ## Heap Object Layout
 
-See Object Memory and Stack Frames
-
 The object can be scanned for references by following `ObjectRefLayout` and
-then iterating `length` times over `ElementRefLayout`.  The stack can also
-be scanned in a similar manner.  RefLayout is:
+then iterating `length` times over `ElementRefLayout`. RefLayout is:
 
 `struct RefLayout { Skip byte; TypeAndCount byte }`
 
@@ -271,11 +262,6 @@ six bits contain the reference count:
             }
         }
     }
-
-## Task stack frames
-
-Task stack frames could be optimized so async calls don't create as
-much garbage.  The GC will need to understand them as well.
 
 
 

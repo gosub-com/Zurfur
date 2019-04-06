@@ -1,72 +1,73 @@
 # Stack Frames
 
-The execution stack is not accessible by WebAssembly, so a shadow stack is
-maintained in linear memory.  All addressable objects, garbage collected
-references, and "try-finally" cleanup functions are placed on the stack.
+The execution stack is not accessible by WebAssembly, so two shadow stacks 
+are maintained in linear memory.  
 
-There are three ways stack memory can be laid out:  1) No stack,
-2) Just scratch memory, 3) STable that contains the stack
-length, optional GC reference info, and optional cleanup
-function.
+The first stack, `SCATCH_STACK`, is scratch memory for anything that can't
+live on the execution stack, such as `stackalloc` objects, interior references,
+or any addressable object requiring temporary linear memory.  This stack is
+not scanned for GC references.
 
-For #1, consider:
+The second stack, `GC_STACK`, is for GC object references, try-finally cleanup
+functions, stack trace information, and optional debug information.  This stack
+is scanned for GC references and may never hold an interior reference.  Once
+an object is on this stack, it is GC pinned and no longer needs to be tracked.
 
-    func a(b float64, c float64, d float64) float64 {
-        #myTemp = MyFunction(b,c);
-        return myTemp*d;
-    }
+Let's consider some examples.
 
-No linear memory stack is used, no exceptions need to be caught,
-and there are no grabage collected references.
-
-For #2, consider:
+This function uses no linear stack memory because no exceptions need to be caught,
+there are no garbage collected references, and all temprary variables can live on
+the execution stack.
 
     func a(b float64, c float64, d float64) float64 {
-        #myTemp = MyFunction(b,c, **ref** d);
-        return myTemp*d;
+        // There could be a lot of other temporary variables here.
+        // MyFunc1, MyFunc2, or MyFunc3 could throw an exception
+        #myTemp1 = MyFunc1(b,c);
+        #myTemp2 = MyFunc2(c,d);
+        return MyFunc3(myTemp1, myTemp2, b, c, d);
     }
 
-Addressable linear memory must be used, so a stack frame is setup that
-contains just scratch memory.  The stack setup looks like this:
+Likewise, this function uses no linear memory stack.  `b` must have already
+been placed on `GC_STACK` so it doesn't need to be stored again. Furthermore, 
+the `ref b[10]` is a reference to an object that was pinned by the calling
+function, so it is also does not need to live on `GC_STACK`.
 
-    STACKTOP -= size of scratch memory;
-    *STACKTOP = size of scratch memory (and a bit to say this is scenario #2)
+    func a(b []int) float64 {
+        return MyFunc1(b, ref b[10]);
+    }
 
-Now the stack can be traced by the garbage collector or un-wound by
-an exception handler.  MyFunction can throw an exception and everything
-works as expected.
+This function requires `SCRATCH_STACK` because `d` must be copied
+into memory and its address passed as a parameter.  
 
-For #3, consider either of the following:
+    func a(b float64) float64 {
+        return MyFunc1(ref b);
+    }
+
+This function requires `GC_STACK` because the reference needs to be
+stored so the GC doesn't collect it.  An optimizer coudl remove the
+need for `GC_STACK` by proving that no GC could happen in 
+`DoSomethingThatCouldTriggerGC`
 
     func a() string {
         #myTemp = MyStringFunction();
         DoSomethingThatCouldTriggerGC();
-        return myTemp + ": Done;
+        return myTemp;
     }
+
+This function uses `GC_STACK` to allow the `finally` clause to cleanup
+when the stack is unwound.  Note that this type of code is implicitly
+generated when `lock`, `use`, or `defer` is used.
+
     func b() string {
         try { return DoSomethingThatCouldThrow(a);  }
         finally  { DoSomething(); }
     }
 
-The first function needs to store a reference, and the second function needs
-to DoSometing when there is an exception.  Note that this type of code is
-implicitly generated when `lock`, `use`, or `defer` is used.
-The stack setup code looks like this:
-
-    STACKTOP -= size of scratch memory
-    *STACKTOP = STable (and a bit to say this is scenario #3)
-
-The STable is a compiler generated varible length struct that looks like this:
-
-    struct STable {
-        lengthOfStackFrame int // Plus several bits for optional fields
-        objectRefLayout *RefLayout  // Null if stack frame doesn't hold references
-        cleanup func(); // Null if the function doesn't need cleanup (i.e. `finally`)
-        ... Other compiler generated info
-    }
-
-Scenario #3a: There is one last scenario, which is that the exception is caught, 
-dealt with, and execution continues. 
+This function requires execution to continue after an exception is caught.
+In this case, the execution stack must not be unwound. Instead, the `try` clause
+invokes JavaScript code that can handle the exception and return control back to the 
+calling function.  Using `try` and `finally` are not expensive, but catching an
+exception and swallowing it is.
 
     func b() string {
         try { return DoSomethingThatCouldThrow(a);  }
@@ -74,17 +75,9 @@ dealt with, and execution continues.
     }
 
 
-In that case, the execution stack must not be unwound. Instead, the `try` clause
-invokes JavaScript code that can handle the exception and return control back to the 
-calling function.  Using `try` and `finally` are not expensive, but catching an
-exception and swallowing it is.
-
-## Stack Frame Layout
-
-TBD: Complete description of how stack frames are laid out, how the GC walks it
-to track references, and how exception finally clauses are stored
-
 ## Task Stack Frame Layout
 
 Task stack frames are used to limit the amount of garbage created during async
-calls.  TBD: describe them here.
+calls.  The also speed up async function execution.
+
+TBD: describe them.

@@ -35,6 +35,7 @@ namespace Gosub.Zurfur
         public MultiViewEditor()
         {
             InitializeComponent();
+            editorTabControl.Dock = DockStyle.Fill;
         }
 
         /// <summary>
@@ -49,10 +50,10 @@ namespace Gosub.Zurfur
                 if (value == null)
                     return;
                 mEditorViewActive = value;
-                foreach (var tab in mainTabControl.TabPages)
+                foreach (var tab in editorTabControl.TabPages)
                     if (((EditorTabPage)tab).Editor == value)
                     {
-                        mainTabControl.SelectedTab = (TabPage)tab;
+                        editorTabControl.SelectedTab = (TabPage)tab;
                         return;
                     }
                 throw new IndexOutOfRangeException("EditorViewActive must be set to an editor that is managed by this control");
@@ -64,7 +65,7 @@ namespace Gosub.Zurfur
         /// </summary>
         public void TouchTitles()
         {
-            foreach (var tabPage in mainTabControl.TabPages)
+            foreach (var tabPage in editorTabControl.TabPages)
             {
                 var edTabPage = (EditorTabPage)tabPage;
                 var editor = edTabPage.Editor;
@@ -89,16 +90,16 @@ namespace Gosub.Zurfur
             }
 
             // Setup tab
-            var oldTabPageCount = mainTabControl.TabPages.Count;
+            var oldTabPageCount = editorTabControl.TabPages.Count;
             var tabPage = CreateEditorTab(newEditor);
-            mainTabControl.ShowToolTips = true;
+            editorTabControl.ShowToolTips = true;
             tabPage.Editor = newEditor;
             TouchTitles();
 
             // Select page
-            mainTabControl.SelectedTab = tabPage;
+            editorTabControl.SelectedTab = tabPage;
             if (oldTabPageCount == 0)
-                mainTabControl_Selected(null, null); // Need to show manually the first time
+                editorTabControl_Selected(null, null); // Need to show manually the first time
             EditorAdded?.Invoke(tabPage.Editor);
         }
 
@@ -109,10 +110,10 @@ namespace Gosub.Zurfur
             tabPage.Editor = ieditor;
             var editor = ieditor.GetControl();
 
-            mainTabControl.SuspendLayout();
+            editorTabControl.SuspendLayout();
             tabPage.SuspendLayout();
             editor.SuspendLayout();
-            mainTabControl.TabPages.Add(tabPage);
+            editorTabControl.TabPages.Add(tabPage);
 
             tabPage.Controls.Add(editor);
             tabPage.Location = new Point(4, 22);
@@ -133,7 +134,7 @@ namespace Gosub.Zurfur
 
             editor.ResumeLayout();
             tabPage.ResumeLayout();
-            mainTabControl.ResumeLayout();
+            editorTabControl.ResumeLayout();
             return tabPage;
         }
 
@@ -142,9 +143,9 @@ namespace Gosub.Zurfur
             TouchTitles();
         }
 
-        private void mainTabControl_Selected(object sender, TabControlEventArgs e)
+        private void editorTabControl_Selected(object sender, TabControlEventArgs e)
         {
-            var editTab = mainTabControl.SelectedTab as EditorTabPage;
+            var editTab = editorTabControl.SelectedTab as EditorTabPage;
             if (editTab != null)
             {
                 ActiveControl = editTab.Editor.GetControl();
@@ -155,33 +156,46 @@ namespace Gosub.Zurfur
 
         private void editorTabControl_MouseMove(object sender, MouseEventArgs e)
         {
-            for (int i = 0; i < mainTabControl.TabCount; i++)
+            // Show close button
+            for (int i = 0; i < editorTabControl.TabCount; i++)
             {
-                var rect = mainTabControl.GetTabRect(i);
+                var rect = editorTabControl.GetTabRect(i);
                 if (rect.Contains(e.X, e.Y))
                 {
                     mHoverTab = i;
-                    buttonClose.Location = new Point(rect.Right - buttonClose.Width, rect.Y + 1);
+                    var loc = new Point(rect.Right - buttonClose.Width - 2, rect.Y + 2);
+                    buttonClose.Location = loc;
                     buttonClose.Visible = true;
-                    buttonClose.BringToFront();
+                    timerCheckMouseLeave.Enabled = true; // Hide button later
                 }
             }
         }
 
-        private void editorTabControl_MouseUp(object sender, MouseEventArgs e)
+        /// <summary>
+        /// We need this to hide the button.  Can't do it in the tab's mouse
+        /// leave event because that gets triggered when the user hovers over the button.
+        /// </summary>
+        private void timerCheckMouseLeave_Tick(object sender, EventArgs e)
         {
-            // Close editor?
-            if (buttonClose.Visible && buttonClose.Bounds.Contains(e.X, e.Y)
-                && mHoverTab < mainTabControl.TabPages.Count)
+            bool inTab = editorTabControl.RectangleToScreen(editorTabControl.ClientRectangle).Contains(MousePosition);
+            bool inTabPage = editorTabControl.RectangleToScreen(editorTabControl.DisplayRectangle).Contains(MousePosition);
+            if (inTabPage || !inTab)
             {
-                // User wants to close this tab. 
-                // Allow control owner to intercept and change behavior
-                var editor = ((EditorTabPage)mainTabControl.TabPages[mHoverTab]).Editor;
-                var doNotClose = false;
-                EditorCanClose?.Invoke(editor, ref doNotClose);
-                if (!doNotClose)
-                    CloseEditor(editor);
+                timerCheckMouseLeave.Enabled = false;
+                buttonClose.Visible = false;
             }
+        }
+
+        private void buttonClose_Click(object sender, EventArgs e)
+        {
+            // User wants to close this tab. 
+            // Allow control owner to intercept and change behavior
+            buttonClose.Visible = false;
+            var editor = ((EditorTabPage)editorTabControl.TabPages[mHoverTab]).Editor;
+            var doNotClose = false;
+            EditorCanClose?.Invoke(editor, ref doNotClose);
+            if (!doNotClose)
+                CloseEditor(editor);
         }
 
         /// <summary>
@@ -189,13 +203,13 @@ namespace Gosub.Zurfur
         /// </summary>
         public void CloseEditor(IEditor editor)
         {
-            foreach (var tab in mainTabControl.TabPages)
+            foreach (var tab in editorTabControl.TabPages)
             {
                 if (((EditorTabPage)tab).Editor == editor)
                 {
-                    mainTabControl.TabPages.Remove((TabPage)tab);
+                    editorTabControl.TabPages.Remove((TabPage)tab);
                     EditorRemoved?.Invoke(editor);
-                    if (mainTabControl.TabPages.Count == 0)
+                    if (editorTabControl.TabPages.Count == 0)
                     {
                         // SelectedTab does this for all other cases
                         mEditorViewActive = null;
@@ -204,11 +218,6 @@ namespace Gosub.Zurfur
                     return;
                 }
             }
-        }
-
-        private void editorTabControl_MouseLeave(object sender, EventArgs e)
-        {
-            buttonClose.Visible = false;
         }
 
         /// <summary>
@@ -226,7 +235,7 @@ namespace Gosub.Zurfur
             }
             public IEnumerator<IEditor> GetEnumerator()
             {
-                foreach (var tab in mMultiEditor.mainTabControl.TabPages)
+                foreach (var tab in mMultiEditor.editorTabControl.TabPages)
                     yield return ((EditorTabPage)tab).Editor;
             }
             IEnumerator IEnumerable.GetEnumerator()

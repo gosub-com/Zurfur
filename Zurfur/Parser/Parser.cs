@@ -107,7 +107,7 @@ namespace Gosub.Zurfur
                     case "struct":
                     case "class":
                     case "enum":
-                        var synClass = ParseClass(qualifiers, comments, mTokenName);
+                        var synClass = ParseClass(qualifiers, comments);
                         if (unit.CurrentNamespace != null)
                             unit.CurrentNamespace.Classes.Add(synClass);
                         else
@@ -156,7 +156,7 @@ namespace Gosub.Zurfur
         }
 
         // Parse class, struct, interface, or enum
-        SyntaxClass ParseClass(Token []qualifiers, string []comments, string classKeyword)
+        SyntaxClass ParseClass(Token []qualifiers, string []comments)
         {
             var synClass = new SyntaxClass();
             synClass.Comments = comments;
@@ -186,19 +186,20 @@ namespace Gosub.Zurfur
 
             if (mTokenName == "{")
             {
-                ParseClassBody(synClass, classKeyword);
+                ParseClassBody(synClass);
             }
             return synClass;
         }
 
         // Parse class, struct, interface, or enum body
-        private void ParseClassBody(SyntaxClass synClass, string classKeyword)
+        private void ParseClassBody(SyntaxClass synClass)
         {
             // Read open token, '{'
             var openToken = Accept();
             if (openToken != "{")
                 throw new Exception("Compiler error: Expecting '{' while parsing class body");
 
+            var classKeyword = synClass.Keyword.Name;
             while (mTokenName != "" && mTokenName != "}")
             {
                 var comments = mComments.ToArray();
@@ -213,7 +214,7 @@ namespace Gosub.Zurfur
                     case "enum":
                         if (classKeyword == "interface" || classKeyword == "enum")
                             RejectToken(mToken, "Classes, structs, enums, and interfaces may not be nested inside an interface or enum");
-                        synClass.Classes.Add(ParseClass(qualifiers, comments, mTokenName));
+                        synClass.Classes.Add(ParseClass(qualifiers, comments));
                         break;
 
                     case "func":

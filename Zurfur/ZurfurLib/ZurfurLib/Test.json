@@ -1,0 +1,14 @@
+﻿{
+    "TestArray": [
+        {
+            "Field1": "A",
+            "Field2": "B",
+            "Field3": "C"
+        },
+        {
+            "Field1": "A",
+            "Field2": "B",
+            "Field3": "C"
+        }
+    ]
+}

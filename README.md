@@ -32,7 +32,7 @@ This isn't documentation, so much as thoughts about where to go:
 * [Class Objects](Doc/ClassObjects.md)
 * [Func and Func Pointers](Doc/FuncAndFuncPointers.md)
 * [Garbage Collector](Doc/GarbageCollector.md)
-* [Multithreding](Doc/Multithreding.md)
+* [MultiThreding](Doc/MultiThreading.md)
 * [Simple Intermediate Language (SIL)](Doc/Sil.md)
 * [Stack Frames](Doc/StackFrames.md)
 

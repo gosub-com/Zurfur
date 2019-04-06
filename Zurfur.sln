@@ -17,7 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Doc", "Doc", "{3089177A-1B8
 		Doc\ClassObjects.md = Doc\ClassObjects.md
 		Doc\FuncAndFuncPointers.md = Doc\FuncAndFuncPointers.md
 		Doc\GarbageCollector.md = Doc\GarbageCollector.md
-		Doc\Multithreading.md = Doc\Multithreading.md
+		Doc\MultiThreading.md = Doc\Multithreading.md
 		Doc\Sil.md = Doc\Sil.md
 		Doc\StackFrames.md = Doc\StackFrames.md
 	EndProjectSection

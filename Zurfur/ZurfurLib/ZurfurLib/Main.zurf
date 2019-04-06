@@ -637,17 +637,22 @@ class FinalizedNotifyQueue
 static func memcpy(to IntPtr, from IntPtr, length int)
 {
     if length <= 0
-        { return; }
+    {
+        return;
+    }
 
     // Align `to` on int32
     while to & 3 != 0 && length != 0
-    	{ *(*byte)to = *(*byte)from; to+=1; from+=1; length-=1; }
-
+   	{
+   		*(*byte)to = *(*byte)from; to+=1; from+=1; length-=1;
+   	}
+   	
     if (to|from) & 3 == 0
     {
         memcpya32(to, from, length);
         return;
     }
+    
     // Byte copy
     #end = to + length;
     while end-to >= 4
@@ -658,23 +663,30 @@ static func memcpy(to IntPtr, from IntPtr, length int)
         *(*byte)to = *(*byte)from; to+=1; from+=1;
     } 
     while to != end
-    	{ *(*byte)to = *(*byte)from; to+=1; from+=1; }
+    {
+    	*(*byte)to = *(*byte)from; to+=1; from+=1;
+    }
 }
 
 static func memcpya32(to IntPtr, from IntPtr, length int)
 {
     if length <= 0
-        { return }
+    {
+        return
+    }
     if (to|from) & 3 != 0
-        { throw new MisalignedMemoryAccessException(); }
+    {
+        throw new MisalignedMemoryAccessException();
+    }
 
     // Try 64 bit copy first
     #end = to + length;
     if (to^from) & 7 == 0 && length >= 8
     {
         if to & 7 != 0
-            { *(*int32)to = *(*int32)from; to+=4; from+=4; }
-
+        {
+            *(*int32)to = *(*int32)from; to+=4; from+=4;
+        }
         while end - to >= 32
         {
             *(*int64)to = *(*int64)from; to+=8; from+=8;
@@ -683,7 +695,9 @@ static func memcpya32(to IntPtr, from IntPtr, length int)
             *(*int64)to = *(*int64)from; to+=8; from+=8;
         }
         while end - to >= 8
-            { *(*int64)to = *(*int64)from; to+=8; from+=8;  } 
+        {
+            *(*int64)to = *(*int64)from; to+=8; from+=8;
+        }
     }
     while end-to >= 16
     {
@@ -693,9 +707,13 @@ static func memcpya32(to IntPtr, from IntPtr, length int)
         *(*int32)to = *(*int32)from; to+=4; from+=4;
     }
     while end-to >= 4
-        { *(*int32)to = *(*int32)from; to+=4; from+=4; } 
+    {
+        *(*int32)to = *(*int32)from; to+=4; from+=4;
+    }
     while to != end
-        { *(*byte)to = *(*byte)from; to+=1; from+=1; } 
+    {
+        *(*byte)to = *(*byte)from; to+=1; from+=1;
+    }
 }
 
  

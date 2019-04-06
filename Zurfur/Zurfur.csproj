@@ -181,6 +181,9 @@
     <Compile Include="Lexer\Token.cs" />
     <Compile Include="Lexer\Lexer.cs" />
     <Compile Include="App.cs" />
+    <None Include="ZurfurLib\ZurfurLib\Test.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Gui\FormHtml.resx">

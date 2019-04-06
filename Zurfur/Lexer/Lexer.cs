@@ -345,7 +345,7 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Iterator to return all tokens
         /// </summary>
-        public IEnumerator<Token> GetEnumerator()
+        public Enumerator GetEnumerator()
         {
             return new Enumerator(this);
         }
@@ -359,11 +359,12 @@ namespace Gosub.Zurfur
         }
 
         /// <summary>
-        /// Enumerate tokens in the lexer
+        /// Enumerate tokens in the lexer.  Call MoveNextLine to skip to next line
         /// </summary>
         public struct Enumerator:IEnumerator<Token>
         {
             static List<Token>	sEmpty = new List<Token>();
+            static Token sEmptyToken = new Token();
 
             Lexer		mLexer;
             int			mIndexLine;
@@ -397,7 +398,8 @@ namespace Gosub.Zurfur
 
             public IEnumerator<Token> GetEnumerator() { return this; }
             public void Dispose() { }
-            public Token Current { get { return mCurrent; } }			
+            public Token Current { get { return mCurrent; } }
+            public int CurrentLineTokenCount {  get { return mCurrentLine.Count;  } }
             object System.Collections.IEnumerator.Current { get { return mCurrent; } }
             
             public void Reset()
@@ -405,6 +407,25 @@ namespace Gosub.Zurfur
                 throw new NotSupportedException("Reset on lexer enumerator is not supported");
             }
 
+            /// <summary>
+            /// Move to next line, blank lines return empty token
+            /// </summary>
+            public bool MoveNextLine()
+            {
+                mIndexToken = 0;
+                if (mIndexLine < mLexer.mTokens.Count)
+                {
+                    mCurrentLine = mLexer.mTokens[mIndexLine++];
+                    mCurrent = mCurrentLine.Count == 0 ? sEmptyToken : mCurrentLine[mIndexToken++];
+                    return true;
+                }
+                mCurrent = null;
+                return false;
+            }
+
+            /// <summary>
+            /// Move to next token, skipping blank lines
+            /// </summary>
             public bool MoveNext()
             {
                 // More tokens on this line?

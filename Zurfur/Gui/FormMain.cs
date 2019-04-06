@@ -447,6 +447,12 @@ namespace Gosub.Zurfur
 
         private void ParseText(TextEditor editor)
         {
+            // For the time being, we'll use the extension to decide
+            // which parser to use.  TBD: Move this logic to its own class
+            var ext = Path.GetExtension(editor.FilePath).ToLower();
+            if (ext != ".zurf")
+                return;
+
             var parser = new Parser(editor.Lexer);
             var t1 = DateTime.Now;
             var program = parser.Parse();
@@ -628,7 +634,8 @@ namespace Gosub.Zurfur
 
         private void FormMain_KeyDown(object sender, KeyEventArgs e)
         {
-            menuDebugRun_Click(null, null);
+            if (e.KeyCode == Keys.F5)
+                menuDebugRun_Click(null, null);
         }
     }
 }
