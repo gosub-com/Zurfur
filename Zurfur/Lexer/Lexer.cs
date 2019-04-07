@@ -7,12 +7,18 @@ namespace Gosub.Zurfur
 {
     /// <summary>
     /// Lexical analyzer - scan and separate tokens in a file.
+    /// Tokens never cross line boundaries and are re-tokenized
+    /// on a line by line bases whenever text is changed.
     /// </summary>
     public class Lexer
     {
+        static HashSet<char> sStringEscapes = new HashSet<char> { '\"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u' };
+
         // Strings and tokens buffer
         List<string> mLines = new List<string>();
         List<List<Token>> mTokens = new List<List<Token>>();
+        Dictionary<long, bool> mSpecialSymbols = new Dictionary<long, bool>();
+        bool mSpecialSymbolsHas3Chars;
 
         /// <summary>
         /// Create an empty lexer
@@ -49,6 +55,34 @@ namespace Gosub.Zurfur
         }
 
         public MinTern Mintern { get; set; } = new MinTern();
+
+        /// <summary>
+        /// Set to true to process `//` style comments
+        /// </summary>
+        public bool TokenizeComments { get; set; }
+
+
+        /// <summary>
+        /// Set special symbols that should always be interpreted as a group (e.g. >=, etc.)
+        /// Separate each symbol with a space character.  Symbols must not start with a
+        /// number or letter.  They must not be longer than 3 characters.
+        /// </summary>
+        public void SetSpecialSymbols(string symbols)
+        {
+            mSpecialSymbols.Clear();
+            mSpecialSymbolsHas3Chars = false;
+            var sa = symbols.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var symbol in sa)
+            {
+                if (symbol.Length > 3)
+                    throw new Exception("SetSpecialSymbols: Symbols may not be more than 3 characters long");
+                mSpecialSymbolsHas3Chars = mSpecialSymbolsHas3Chars || symbol.Length == 3;
+                long code = 0;
+                foreach (var ch in symbol)
+                    code = code * 65536 + ch;
+                mSpecialSymbols[code] = true;
+            }
+        }
 
         /// <summary>
         /// Gets a section of text.
@@ -173,8 +207,6 @@ namespace Gosub.Zurfur
             return end;
         }
 
-        static HashSet<char> sEscaped = new HashSet<char> { '\\', '\"', '\'', 't', 'r', 'n' };
-
         /// <summary>
         /// Get the next token on the line.  
         /// Returns a "" token if there are none left.
@@ -196,104 +228,106 @@ namespace Gosub.Zurfur
             char ch1 = line[charIndex];
             if (char.IsLetter(ch1))
             {
-                // Hop over identifier
-                int endIndex = charIndex;
-                while (endIndex < line.Length && 
-                        (char.IsLetterOrDigit(line, endIndex) || line[endIndex] == '_'))
-                    endIndex++;
-                string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
-                charIndex = endIndex; // Skip token
-                return new Token(token, 0, startIndex, eTokenType.Identifier);
+                return SacanIdentifier(line, ref charIndex, startIndex);
             }
+
             // Number
             if (char.IsDigit(ch1) && ch1 <= '9')
             {
                 // Hop over number
-                int endIndex = charIndex;
-                while (endIndex < line.Length && (char.IsLetterOrDigit(line, endIndex) && line[endIndex] < '~'
-                                                    || line[endIndex] == '.'))
-                {
-                    var ch = line[endIndex];
-                    endIndex++;
-                    if ((ch == 'e' || ch == 'E') && endIndex < line.Length
-                            && (line[endIndex] == '+' || line[endIndex] == '-'))
-                        endIndex++;
-                }
-                string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
-                charIndex = endIndex;  // Skip token
-                return new Token(token, 0, startIndex, eTokenType.Number);
+                return ScanNumber(line, ref charIndex, startIndex);
             }
             // Quote
             if (ch1 == '\"')
             {
-                int endIndex = charIndex + 1;
-                while (endIndex < line.Length && line[endIndex] != '\"')
-                {
-                    if (line[endIndex] == '\\')
-                    {
-                        // TBD: Handle /x and /u
-                        if (endIndex + 1 < line.Length && sEscaped.Contains(line[endIndex + 1]))
-                            endIndex++;
-                    }
-                    endIndex++;
-                }
-                if (endIndex != line.Length)
-                    endIndex++; // Skip end quote
-                string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
-                charIndex = endIndex;
-                return new Token(token, 0, startIndex, eTokenType.Quote);
+                return ScanString(line, ref charIndex, startIndex);
             }
             // Comment
-            char ch2 = charIndex+1 < line.Length ? line[charIndex+1] : (char)0;
-            if (ch1 == '/' && ch2 == '/')
+            if (TokenizeComments && ch1 == '/')
             {
-                int endIndex = charIndex;
-                while (endIndex < line.Length  && (line[endIndex] != '\n' ||  line[endIndex] != '\r'))
-                    endIndex++;
-                string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
-                charIndex = endIndex;
-                return new Token(token, 0, startIndex, eTokenType.Comment);
+                if (charIndex + 1 < line.Length && line[charIndex+1] == '/')
+                    return ScanComment(line, ref charIndex, startIndex);
             }
-
-            // Two char tokens
-            if (   ch1 == ':' && ch2 == ':'
-                || ch1 == '+' && ch2 == '+'
-                || ch1 == '-' && ch2 == '-'
-                || ch1 == '*' && ch2 == '*'
-                || ch1 == '<' && ch2 == '<'
-                || ch1 == '>' && ch2 == '>'
-                || ch1 == '<' && ch2 == '='
-                || ch1 == '>' && ch2 == '='
-                || ch1 == '=' && ch2 == '='
-                || ch1 == '!' && ch2 == '='
-                || ch1 == '&' && ch2 == '&'
-                || ch1 == '|' && ch2 == '|'
-                || ch1 == '+' && ch2 == '='
-                || ch1 == '-' && ch2 == '='
-                || ch1 == '*' && ch2 == '='
-                || ch1 == '/' && ch2 == '='
-                || ch1 == '%' && ch2 == '='
-                || ch1 == '&' && ch2 == '='
-                || ch1 == '|' && ch2 == '='
-                || ch1 == '^' && ch2 == '='
-                || ch1 == '=' && ch2 == '>')
+            // Special symbols
+            if (mSpecialSymbols.Count != 0 && charIndex+1 < line.Length)
             {
-                charIndex += 2;
-                return new Token(Mintern[line.Substring(startIndex, 2)], 0, startIndex);
-            }
-
-            // Three char tokens
-            char ch3 = charIndex+2 < line.Length ? line[charIndex+2] : (char)0;
-            if (   ch1 == '=' && ch2 == '=' && ch3 == '='
-                || ch1 == '<' && ch2 == '<' && ch3 == '='
-                || ch1 == '>' && ch2 == '>' && ch3 == '=')
-            {
-                charIndex += 3;
-                return new Token(Mintern[line.Substring(startIndex, 3)], 0, startIndex);
+                long code = ch1 * 65536 + line[charIndex + 1];
+                if (mSpecialSymbolsHas3Chars
+                    && charIndex + 2 < line.Length
+                    && mSpecialSymbols.ContainsKey(code * 65536 + line[charIndex + 2]))
+                {
+                    charIndex += 3;
+                    return new Token(Mintern[line.Substring(startIndex, 3)], 0, startIndex);
+                }
+                if (mSpecialSymbols.ContainsKey(code))
+                {
+                    charIndex += 2;
+                    return new Token(Mintern[line.Substring(startIndex, 2)], 0, startIndex);
+                }
             }
 
             // Single character
             return new Token(Mintern[line[charIndex++].ToString()], 0, startIndex);
+        }
+
+        private Token ScanComment(string line, ref int charIndex, int startIndex)
+        {
+            int endIndex = charIndex;
+            while (endIndex < line.Length && (line[endIndex] != '\n' || line[endIndex] != '\r'))
+                endIndex++;
+            string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
+            charIndex = endIndex;
+            return new Token(token, 0, startIndex, eTokenType.Comment);
+        }
+
+        private Token ScanString(string line, ref int charIndex, int startIndex)
+        {
+            int endIndex = charIndex + 1;
+            while (endIndex < line.Length && line[endIndex] != '\"')
+            {
+                if (line[endIndex] == '\\')
+                {
+                    // TBD: Handle /u
+                    if (endIndex + 1 < line.Length && sStringEscapes.Contains(line[endIndex + 1]))
+                        endIndex++;
+                }
+                endIndex++;
+            }
+            if (endIndex != line.Length)
+                endIndex++; // Skip end quote
+            string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
+            charIndex = endIndex;
+            return new Token(token, 0, startIndex, eTokenType.Quote);
+        }
+
+        private Token ScanNumber(string line, ref int charIndex, int startIndex)
+        {
+            int endIndex = charIndex;
+            while (endIndex < line.Length 
+                && (char.IsLetterOrDigit(line[endIndex])  && line[endIndex] < '~'
+                        || line[endIndex] == '.'))
+            {
+                var ch = line[endIndex];
+                endIndex++;
+                if ((ch == 'e' || ch == 'E') && endIndex < line.Length
+                        && (line[endIndex] == '+' || line[endIndex] == '-'))
+                    endIndex++;
+            }
+            string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
+            charIndex = endIndex;  // Skip token
+            return new Token(token, 0, startIndex, eTokenType.Number);
+        }
+
+        private Token SacanIdentifier(string line, ref int charIndex, int startIndex)
+        {
+            // Hop over identifier
+            int endIndex = charIndex;
+            while (endIndex < line.Length &&
+                    (char.IsLetterOrDigit(line, endIndex) || line[endIndex] == '_'))
+                endIndex++;
+            string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
+            charIndex = endIndex; // Skip token
+            return new Token(token, 0, startIndex, eTokenType.Identifier);
         }
 
         /// <summary>

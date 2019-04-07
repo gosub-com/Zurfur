@@ -243,7 +243,7 @@ namespace Gosub.Zurfur
                 }
         }
 
-        static readonly WordSet sTextEditorExtensions = new WordSet(".zurf .txt .json .md .htm .html .css");
+        static readonly WordSet sTextEditorExtensions = new WordSet(".txt .json .md .htm .html .css");
         static readonly WordSet sImageEditorExtensions = new WordSet(".jpg .jpeg .png .bmp");
         void LoadFile(string path)
         {
@@ -262,9 +262,19 @@ namespace Gosub.Zurfur
 
                 // For now just use extension to see if we can open it
                 var ext = Path.GetExtension(path).ToLower();
-                if (sTextEditorExtensions.Contains(ext))
+                if (ext == ".zurf")
+                {
+                    // TBD: Move lexer/parser setup to it's own class
+                    var newEditor = new TextEditor();
+                    newEditor.Lexer.SetSpecialSymbols(ParseZurf.TokenSymbols);
+                    newEditor.Lexer.TokenizeComments = true;
+                    newEditor.LoadFile(path);
+                    mvEditors.AddEditor(newEditor);
+                }
+                else if (sTextEditorExtensions.Contains(ext))
                 {
                     var newEditor = new TextEditor();
+                    newEditor.Lexer.TokenizeComments = ext == ".json";
                     newEditor.LoadFile(path);
                     mvEditors.AddEditor(newEditor);
                 }
@@ -447,17 +457,28 @@ namespace Gosub.Zurfur
 
         private void ParseText(TextEditor editor)
         {
+
+            var t1 = DateTime.Now;
+
             // For the time being, we'll use the extension to decide
             // which parser to use.  TBD: Move this logic to its own class
             var ext = Path.GetExtension(editor.FilePath).ToLower();
-            if (ext != ".zurf")
+            if (ext == ".zurf")
+            {
+                var parser = new ParseZurf(editor.Lexer);
+                var program = parser.Parse();
+            }
+            else if (ext == ".json")
+            {
+                var parser = new ParseJson(editor.Lexer);
+                parser.Parse();
+            }
+            else
+            {
                 return;
+            }
 
-            var parser = new Parser(editor.Lexer);
-            var t1 = DateTime.Now;
-            var program = parser.Parse();
             var t2 = DateTime.Now;
-
             // TBD: Analyze, code generation, etc
             var t3 = DateTime.Now;
 

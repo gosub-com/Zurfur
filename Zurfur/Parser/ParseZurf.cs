@@ -7,7 +7,7 @@ namespace Gosub.Zurfur
     /// <summary>
     /// Base class for the parser
     /// </summary>
-    class Parser
+    class ParseZurf
     {
         const bool SHOW_PARSE_TREE = true;
 
@@ -18,6 +18,10 @@ namespace Gosub.Zurfur
         Token				mToken;
         Token               mPrevToken;
         List<string>        mComments = new List<string>();
+
+
+        // TBD: >> >= will be omitted and handled at parser level 
+        public const string TokenSymbols = "++ -- ** << >> <= >= == != && || += -= *= /= %= &= |= ^= => ===";
 
         static readonly string sReservedWordsList = "abstract as base break case catch class const "
             + "continue default delegate do else enum event explicit extern false "
@@ -55,7 +59,7 @@ namespace Gosub.Zurfur
         static WordSet sRejectAssign = new WordSet("} ; = += -= *= /= %= |= &= ^= <<= >>=", true);
 
 
-        static Parser()
+        static ParseZurf()
         {
             sReservedWords.AddWords(sReservedWordsList, eTokenType.Reserved);
             sReservedWords.AddWords(sReservedControlWords, eTokenType.ReservedControl);
@@ -64,7 +68,7 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Parse the given lexer
         /// </summary>
-        public Parser(Lexer tokens)
+        public ParseZurf(Lexer tokens)
         {
             mLexer = tokens;
             mLexerEnum = new Lexer.Enumerator(mLexer);

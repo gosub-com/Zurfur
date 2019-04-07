@@ -106,6 +106,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Lexer\MinTern.cs" />
+    <Compile Include="Parser\ParseJson.cs" />
     <Compile Include="Parser\SyntaxExpr.cs" />
     <Compile Include="Gui\TextEditor.cs">
       <SubType>UserControl</SubType>
@@ -119,7 +120,7 @@
     <Compile Include="Gui\FormMain.Designer.cs">
       <DependentUpon>FormMain.cs</DependentUpon>
     </Compile>
-    <Compile Include="Parser\Parser.cs" />
+    <Compile Include="Parser\ParseZurf.cs" />
     <Compile Include="Parser\Syntax.cs" />
     <Compile Include="Parser\WordMap.cs" />
     <Compile Include="Parser\WordSet.cs" />
