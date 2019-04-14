@@ -18,15 +18,15 @@ namespace Gosub.Zurfur
     {
         public string[] Comments;
         public Token Keyword;
-        public Token[] QualifiedIdentifiers;
+        public SyntaxExpr QualifiedIdentifiers;
         public List<SyntaxClass> Classes = new List<SyntaxClass>();
         public List<SyntaxFunc> Funcs = new List<SyntaxFunc>();
     }
 
-    public class SyntaxUsing
+    class SyntaxUsing
     {
         public Token Keyword;
-        public Token[] QualifiedIdentifiers;
+        public SyntaxExpr QualifiedIdentifiers;
     }
 
     class SyntaxClass // or struct or interface
@@ -34,14 +34,20 @@ namespace Gosub.Zurfur
         public string[] Comments;
         public Token[] Qualifiers;
         public Token Keyword;
-        public SyntaxTypeName BaseClass;
-        public SyntaxTypeName ClassName;
-        public SyntaxTypeName Alias;
+        public SyntaxExpr BaseClass;
+        public SyntaxExpr ClassName;
+        public SyntaxExpr Alias;
+        public SyntaxConstraint []Constraints;
         public List<SyntaxClass> Classes = new List<SyntaxClass>();
         public List<SyntaxFunc> Funcs = new List<SyntaxFunc>();
         public List<SyntaxField> Fields = new List<SyntaxField>();
+    }
 
-
+    class SyntaxConstraint
+    {
+        public Token Keyword;  // Where
+        public Token Typename;
+        public SyntaxExpr[] QualifiedIdentifiers;
     }
 
     class SyntaxField
@@ -59,9 +65,9 @@ namespace Gosub.Zurfur
         public Token Keyword;
         public SyntaxTypeName ClassName;
         public Token GetOrSetToken;
-        public SyntaxTypeName FuncName;
+        public SyntaxExpr FuncName;
         public SyntaxFuncParam[] Params;
-        public SyntaxTypeName Return;
+        public SyntaxExpr Return;
         public SyntaxExpr Statements;
     }
 
@@ -69,7 +75,7 @@ namespace Gosub.Zurfur
     {
         public Token[] Qualifiers;
         public Token Name;
-        public SyntaxTypeName TypeName;
+        public SyntaxExpr TypeName;
     }
 
     class SyntaxTypeName

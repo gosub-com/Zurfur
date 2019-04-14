@@ -14,8 +14,9 @@ namespace Gosub.Zurfur
     /// </summary>
     public partial class TextEditor : UserControl, IEditor
     {
-        readonly float SHRUNK_SPACE_SCALE = 0.5f;
-        readonly float SHRUNK_FONT_SCALE = 0.6f;
+        readonly float SHRUNK_EMPTY_LINE_SCALE = 0.75f;
+        readonly float SHRUNK_TEXT_LINE_SCALE = 0.5f;
+        readonly float SHRUNK_FONT_SCALE = 0.65f;
         readonly PointF SHRUNK_FONT_OFFSET = new PointF(0.2f, -0.12f); // Scaled by font size
         static WordSet sShrinkTokens = new WordSet("[ ] { }");
 
@@ -1359,15 +1360,23 @@ namespace Gosub.Zurfur
             var e = mLexer.GetEnumerator();
             while (e.MoveNextLine())
             {
-                if (e.CurrentLineTokenCount == 0 
-                    || e.CurrentLineTokenCount == 1 && sShrinkTokens.Contains(e.Current.Name))
+                if (e.CurrentLineTokenCount == 0)
                 {
+                    // Empty space
                     mLineShrunk[index] = true;
                     mLineTops[index++] = top;
-                    top += (int)(mFontSize.Height* SHRUNK_SPACE_SCALE);
+                    top += (int)(mFontSize.Height * SHRUNK_EMPTY_LINE_SCALE);
+                }
+                else if (e.CurrentLineTokenCount == 1 && sShrinkTokens.Contains(e.Current.Name))
+                {
+                    // Shrunk, curly brance
+                    mLineShrunk[index] = true;
+                    mLineTops[index++] = top;
+                    top += (int)(mFontSize.Height * SHRUNK_TEXT_LINE_SCALE);
                 }
                 else
                 {
+                    // Normal text
                     mLineShrunk[index] = false;
                     mLineTops[index++] = top;
                     top += (int)(mFontSize.Height);

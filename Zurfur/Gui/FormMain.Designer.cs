@@ -53,9 +53,9 @@
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.projectTree = new Gosub.Zurfur.ProjectTree();
             this.mvEditors = new Gosub.Zurfur.MultiViewEditor();
-            this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.mainMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
@@ -78,7 +78,7 @@
             this.menuHelp});
             this.mainMenu.Location = new System.Drawing.Point(0, 0);
             this.mainMenu.Name = "mainMenu";
-            this.mainMenu.Size = new System.Drawing.Size(942, 24);
+            this.mainMenu.Size = new System.Drawing.Size(979, 24);
             this.mainMenu.TabIndex = 16;
             this.mainMenu.Text = "menuStrip1";
             // 
@@ -202,7 +202,7 @@
             // menuDebugRun
             // 
             this.menuDebugRun.Name = "menuDebugRun";
-            this.menuDebugRun.Size = new System.Drawing.Size(152, 22);
+            this.menuDebugRun.Size = new System.Drawing.Size(118, 22);
             this.menuDebugRun.Text = "Run (F5)";
             this.menuDebugRun.Click += new System.EventHandler(this.menuDebugRun_Click);
             // 
@@ -246,8 +246,8 @@
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.mvEditors);
-            this.splitContainer1.Size = new System.Drawing.Size(942, 607);
-            this.splitContainer1.SplitterDistance = 242;
+            this.splitContainer1.Size = new System.Drawing.Size(979, 607);
+            this.splitContainer1.SplitterDistance = 152;
             this.splitContainer1.TabIndex = 20;
             // 
             // projectTree
@@ -256,7 +256,7 @@
             this.projectTree.Location = new System.Drawing.Point(0, 0);
             this.projectTree.Name = "projectTree";
             this.projectTree.RootDir = "";
-            this.projectTree.Size = new System.Drawing.Size(242, 607);
+            this.projectTree.Size = new System.Drawing.Size(152, 607);
             this.projectTree.TabIndex = 20;
             this.projectTree.FileDoubleClicked += new Gosub.Zurfur.ProjectTree.FileInfoDelegate(this.projectTree_FileDoubleClicked);
             this.projectTree.FileMoved += new Gosub.Zurfur.ProjectTree.FileMovedDelegate(this.projectTree_FileMoved);
@@ -267,7 +267,7 @@
             this.mvEditors.EditorViewActive = null;
             this.mvEditors.Location = new System.Drawing.Point(0, 0);
             this.mvEditors.Name = "mvEditors";
-            this.mvEditors.Size = new System.Drawing.Size(696, 607);
+            this.mvEditors.Size = new System.Drawing.Size(823, 607);
             this.mvEditors.TabIndex = 19;
             this.mvEditors.EditorAdded += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorAdded);
             this.mvEditors.EditorRemoved += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorRemoved);
@@ -278,7 +278,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(942, 631);
+            this.ClientSize = new System.Drawing.Size(979, 631);
             this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.mainMenu);
             this.KeyPreview = true;

@@ -38,8 +38,8 @@ This isn't documentation, so much as thoughts about where to go:
 
 ## Operator Precedence
 
-    Primary: . () [] #
-    Unary: + - ! ~ & * (T)x
+    Primary: . () [] # (T)x
+    Unary: + - ! ~ & *
     Exponentiation: **
     Multiplication and bits: * / % << >> & 
     Add and bits: + - | ^
@@ -53,7 +53,6 @@ This isn't documentation, so much as thoughts about where to go:
     Assignment Statement: = += -= *= /= %= &= |= ^= <<= >>= 
 
 The `#` operator is the same as using `var` in front of a variable in C#.
-I always thought they should have used the `#` for defining new variables.
 
 Operator `==` does not default to object comparison, and only works when it
 is defined for the given type.  Use `===` for object comparison.  Comparison
@@ -66,20 +65,36 @@ There is no `->` operator.  Using `.` dereferences a pointer.
 
 ## Basic types
 
-    int8, uint8, int16, uint16, int32, uint32, int64, uint64
-    float32, float64, decimal, string, intptr, Array, List, Map
+    int8, uint8, byte, int16, uint16, int32, int, uint32, uint, int64, uint64
+    float32, float64, xint, xuint, decimal, string, Array, List, Map
 
 `byte`, `int`, and `uint` are aliases for `uint8`, `int32`, and `uint32`.
-`string` is an immutable array of UTF8 encoded bytes.  `intptr` is
-a pointer which could be 32 or 64 bits depending on run-time architecture.
+`string` is an immutable array of UTF8 encoded bytes.  `xint` and `xuint` are
+pointer sized integers, which could be 32 or 64 bits depending on run-time architecture.
 
-`Array<type>` is identical an array.  Type definitions like `[]int` are
+`Array<type>` is identical to an array.  Type definitions like `[]int` are
 shorthand for `Array<int>`.
 
 `List<type>` works just like an array, but has a capacity and dynamic
 size.  It's similar to C#'s `List`, except that it indexes using a `ref`
 return.  It acts just like an array including the ability to modify a
 field of a struct.
+
+## Casting
+
+Casting is used much less than in C# because a cast is not used to covert
+struct types.  A cast such as `(int)myFloat` should be written as
+`int(myFloat)`.  Casts are only used to convert between class/interface
+types or for pointer conversions.
+
+The cast construct is determined at the parse level.  Whenever a closing
+parenthisis `)` is found, if the next symbol is an identifier or an open
+parenthisis `(`, it's a cast.  Otherwise, it is not.  For example,
+`(a)b`, `(a)(b)` are always casts regardless of what `a` or `b` is.
+`(a+b)c` is always an invalid cast.  `(a)*b` is never a cast.  If you
+need to cast a dereferenced pointer, an extra parenthisis is required
+as in `(a)(*b)`.
+
 
 
 

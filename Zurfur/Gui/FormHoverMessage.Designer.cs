@@ -42,6 +42,7 @@
             this.Message.Size = new System.Drawing.Size(69, 18);
             this.Message.TabIndex = 0;
             this.Message.Text = "Message";
+            this.Message.UseMnemonic = false;
             // 
             // Picture
             // 
