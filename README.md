@@ -17,7 +17,7 @@ Golang.  Here are some differences between Zurfur and C#:
 
 * Strings are UTF8 byte arrays
 * Type declaration syntax and operator precedence is from Golang
-* Built from the ground up using `ref` returns, so `List` acts exactly like `Array`
+* Built from the ground up using `ref` returns, so `list` acts exactly like `array`
 * Interfaces connect to any object with matching signature (just like Golang)
 * Lots of other differences, but if you're familiar with C# it'll all make sense
 
@@ -48,7 +48,7 @@ This isn't documentation, so much as thoughts about where to go:
     Conditional: &&
     Conditional: ||
     Ternary: a ? b : c
-    Lambda: =>
+    Lambda: ->
     Comma: ,
     Assignment Statement: = += -= *= /= %= &= |= ^= <<= >>= 
 
@@ -61,22 +61,23 @@ operators are not overloadable, however you can implement just one function,
 Or, if you only care about equality, implement `Equals` to get `==` and
 `!=` operators.
 
-There is no `->` operator.  Using `.` dereferences a pointer.
+The `->` operator is only for lambda and not used to dereference a pointer.
+Pointers are dereferenced by the `.` operator, just like a reference.
 
 ## Basic types
 
     int8, uint8, byte, int16, uint16, int32, int, uint32, uint, int64, uint64
-    float32, float64, xint, xuint, decimal, string, Array, List, Map
+    float32, float64, xint, xuint, decimal, string, array, list, map
 
 `byte`, `int`, and `uint` are aliases for `uint8`, `int32`, and `uint32`.
 `string` is an immutable array of UTF8 encoded bytes.  `xint` and `xuint` are
-pointer sized integers, which could be 32 or 64 bits depending on run-time architecture.
+extended integer types, which could be 32 or 64 bits depending on run-time architecture.
 
-`Array<type>` is identical to an array.  Type definitions like `[]int` are
-shorthand for `Array<int>`.
+`array<type>` is identical to an array.  Type definitions like `[]int` are
+shorthand for `array<int>`.
 
-`List<type>` works just like an array, but has a capacity and dynamic
-size.  It's similar to C#'s `List`, except that it indexes using a `ref`
+`list<type>` works just like an array, but has a capacity and dynamic
+size.  It's similar to C#'s `list`, except that it indexes using a `ref`
 return.  It acts just like an array including the ability to modify a
 field of a struct.
 

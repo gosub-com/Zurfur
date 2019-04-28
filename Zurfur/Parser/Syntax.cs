@@ -55,6 +55,7 @@ namespace Gosub.Zurfur
         public string[] Comments;
         public Token[] Qualifiers;
         public Token Name;
+        public Token Assign;  // Null if not assigned
         public SyntaxExpr Expr;
     }
 
@@ -63,7 +64,7 @@ namespace Gosub.Zurfur
         public string[] Comments;
         public Token[] Qualifiers;
         public Token Keyword;
-        public SyntaxTypeName ClassName;
+        public SyntaxExpr ClassName;
         public Token GetOrSetToken;
         public SyntaxExpr FuncName;
         public SyntaxFuncParam[] Params;
@@ -76,15 +77,6 @@ namespace Gosub.Zurfur
         public Token[] Qualifiers;
         public Token Name;
         public SyntaxExpr TypeName;
-    }
-
-    class SyntaxTypeName
-    {
-        static readonly SyntaxTypeName []sEmptyTypeName = new SyntaxTypeName[0];
-
-        public Token[] Qualifiers = Token.EmptyArray;
-        public Token Name;
-        public SyntaxTypeName[] TypeParameters = sEmptyTypeName;
     }
 
 }

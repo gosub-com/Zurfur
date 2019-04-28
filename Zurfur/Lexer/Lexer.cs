@@ -8,7 +8,7 @@ namespace Gosub.Zurfur
     /// <summary>
     /// Lexical analyzer - scan and separate tokens in a file.
     /// Tokens never cross line boundaries and are re-tokenized
-    /// on a line by line bases whenever text is changed.
+    /// on a line by line basis whenever text is changed.
     /// </summary>
     public class Lexer
     {
@@ -397,7 +397,7 @@ namespace Gosub.Zurfur
         /// </summary>
         public struct Enumerator:IEnumerator<Token>
         {
-            static List<Token>	sEmpty = new List<Token>();
+            static List<Token>	sEmptyList = new List<Token>();
             static Token sEmptyToken = new Token();
 
             Lexer		mLexer;
@@ -414,7 +414,7 @@ namespace Gosub.Zurfur
                 mLexer = lexer;
                 mIndexLine = 0;
                 mIndexToken = 0;
-                mCurrentLine = mLexer.mTokens.Count <= 0 ? sEmpty : mLexer.mTokens[0];
+                mCurrentLine = mLexer.mTokens.Count <= 0 ? sEmptyList : mLexer.mTokens[0];
                 mCurrent = null;
             }
 
@@ -426,7 +426,7 @@ namespace Gosub.Zurfur
                 mLexer = lexer;
                 mIndexLine = Math.Max(0, startLine);
                 mIndexToken = 0;
-                mCurrentLine = mLexer.mTokens.Count <= mIndexLine ? sEmpty : mLexer.mTokens[mIndexLine];
+                mCurrentLine = mLexer.mTokens.Count <= mIndexLine ? sEmptyList : mLexer.mTokens[mIndexLine];
                 mCurrent = null;
             }
 
@@ -435,26 +435,20 @@ namespace Gosub.Zurfur
             public Token Current { get { return mCurrent; } }
             public int CurrentLineTokenCount {  get { return mCurrentLine.Count;  } }
             object System.Collections.IEnumerator.Current { get { return mCurrent; } }
-            
+
+            /// <summary>
+            /// Returns the next token on the line, or "" if at end of line
+            /// </summary>
+            public Token PeekOnLine()
+            {
+                if (mIndexToken < mCurrentLine.Count)
+                    return mCurrentLine[mIndexToken];
+                return sEmptyToken;
+            }
+
             public void Reset()
             {
                 throw new NotSupportedException("Reset on lexer enumerator is not supported");
-            }
-
-            /// <summary>
-            /// Move to next line, blank lines return empty token
-            /// </summary>
-            public bool MoveNextLine()
-            {
-                mIndexToken = 0;
-                if (mIndexLine < mLexer.mTokens.Count)
-                {
-                    mCurrentLine = mLexer.mTokens[mIndexLine++];
-                    mCurrent = mCurrentLine.Count == 0 ? sEmptyToken : mCurrentLine[mIndexToken++];
-                    return true;
-                }
-                mCurrent = null;
-                return false;
             }
 
             /// <summary>
@@ -485,6 +479,23 @@ namespace Gosub.Zurfur
                 mCurrent = null;
                 return false;
             }
+
+            /// <summary>
+            /// Move to next line, blank lines return empty token
+            /// </summary>
+            public bool MoveNextLine()
+            {
+                mIndexToken = 0;
+                if (mIndexLine < mLexer.mTokens.Count)
+                {
+                    mCurrentLine = mLexer.mTokens[mIndexLine++];
+                    mCurrent = mCurrentLine.Count == 0 ? sEmptyToken : mCurrentLine[mIndexToken++];
+                    return true;
+                }
+                mCurrent = null;
+                return false;
+            }
+
         }
     }
 }

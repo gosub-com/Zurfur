@@ -7,6 +7,57 @@ namespace zurfur.example;
 // Test class
 class Example 
 { 
+	// Field types, initialized to zero, null, or "" for string
+	f1 int;
+	f2 float32;
+	f3 string;		// Defaults to "", not NULL
+	f4 array<int>;
+	f5 []int;       // Same as array<int>
+	f6 [][]int;     // Same as array<array<int>>
+	f7 pointer<int>;
+	f8 *int;        // Same as pointer<int>
+	f9 **int;		// Same as pointer<pointer<int>>
+	f10 map<string,list<int>>;	
+	
+	// Fields initialized to an expression (never null)
+	// Must be an expression starting with a constructor or cast
+	e1 = int();
+	e2 = int(FuncThatReturnsInt64() >> 4);
+	e3 = float32(FuncThatReturnsFloat64());
+	e4 = string("Hello");
+	e5 = array<int>(32);         // array, Length=32
+	e7 = list<int>(32);          // list, Length=0, Capacity=32
+	e8 = map<string,string>(); 	 // Empty map
+	e9 = array<array<int>>(32);	 
+	e10 = (pointer<int>)GetVoidPtr();
+	e11 = (*int)(GetVoidPtr());    // Same as (pointer<int>)GetVoidPtr();
+	
+	// Illegal at bind time
+	i1 = 0;				// Must start with type name
+	i2 = "HELLO";		// Must start with type name
+	i3 = MyFunc();		// Must start with type name (constructor or cast)
+	i4 = MyType;		// Must be initialized	
+	i5 = int;			// Must be initialized
+	i6 = *int(3);		// Dereference int
+	
+	// Illegal at parse time
+	//i7 int(1); 		//  Must not be initialized
+	//i8 = array<int>;	// Type name is not an expression
+	//i9 = array<byte>[0]; // Type can't be dereferenced
+	//i10 = int(list<in string>()); // Type argument can't have in/ref/out
+	//func i11(a map<in string,string>) { } // Type argument can't have in/ref/out	
+
+	func func1(a int) {}
+	func func2(a ref float32) {}
+	func func3(a ref string) {}
+	func func4(a array) {}
+	func func5(a [][]int) {} 
+	func func5(a array<array<int>>) {}
+	func func6(a ref **int) {}
+	func func7(a list<int>) { }
+	func func8(a ref list<list<int>>) { }
+	func func10(a map<string,list<int>>) { }
+
 	static func main(args array<string>)
 	{
 	}
@@ -15,7 +66,7 @@ class Example
 /// Implement IHashable on any object that can be stored in a Map.
 /// This is different than implementing just Equals
 /// in that NAN must compare to itself as true.
-interface IHashable<in T>
+interface IHashable<T in> // TBD: `in` before T like in C#?  Or like this, similar to parameter type?
 {
 	static func GetHashCode(a T) uint;
 	static func Equals(a T, b T) bool;
@@ -24,7 +75,7 @@ interface IHashable<in T>
 /// Implement ISortable on any object that can be sorted.
 /// This is different than implementing just Compare
 /// in that NAN must have a valid sort order.
-interface ISortable<in T>
+interface ISortable<T in>
 {
 	static func Compare(a T, b T) int;
 }
@@ -33,8 +84,8 @@ interface ISortable<in T>
 
 pub ro struct string
 {
-	pub static ro Empty = new Array<byte>[0];
-    ro str = Array<byte>;
+	pub static ro Empty = array<byte>(0);
+    ro str array<byte>;
 
     pub func new(s string) { todo() }
     pub func new(s Span<byte>) { todo() }
@@ -49,8 +100,8 @@ pub ro struct string
 
 pub ro ref struct Span<T>
 {
-    pub ro Data  = *T;
-    pub ro Length = int;
+    pub ro Data *T;
+    pub ro Length int;
     pub func get[index int] ref T { todo(); }
     pub func Slice(start int, length int) Span<T> { todo(); }
     // TBD: implicit conversion to RoSpan
@@ -59,8 +110,8 @@ pub ro ref struct Span<T>
 // TBD: Do we wanto to have "struct ro Span" so we don't need another definition for RoSpan?
 pub ro ref struct RoSpan<T>
 {
-    pub ro Data  = *T;
-    pub ro Length = int;
+    pub ro Data *T;
+    pub ro Length int;
     pub func get[index int] ro ref T { todo(); }
     pub func Slice(start int, length int) RoSpan<T> { todo(); }
 }
@@ -71,7 +122,7 @@ pub ro ref struct RoSpan<T>
 // The inheriting class must be sealed (that's what sealed1 means)
 pub sealed1 unsafe class  VariableSizedObject<T>
 {
-    pub ro Length = int;
+    pub ro Length int;
 
     // Must be called first thing from the constuctor, never called again
     protected unsafe static func AllocateObject(int length) { todo() }
@@ -83,25 +134,25 @@ pub sealed1 unsafe class  VariableSizedObject<T>
 
 
 // Array of constant size
-pub sealed class Array<T> : VariableSizedObject<T>
+pub sealed class array<T> : VariableSizedObject<T>
 {
     pub static ro MaxSize = int(int.MaxInt/2);
-    pub static ro Empty = new T[0];
+    pub static ro Empty = array<T>(0);
 
-    pub func new[length int] { todo }
+    pub func new(length int) { todo }
     pub func get[index int] ref T { todo }
     pub func Slice(start int, length int) Span<T> { todo }
     pub func RoSlice(start int, length int) Span<T> { todo }
 }
 
 // Note that the list class has a ref return indexer, just like Array
-pub sealed class List<T> : VariableSizedObject<T>
+pub sealed class list<T> : VariableSizedObject<T>
 {
 	pub func new(capacity int) { todo() }
 	pub func get[index int] ref T { todo() }
 }
 
-pub sealed class Map<TKey, TValue>
+pub sealed class map<TKey, TValue>
 {
 	pub func new(capacity int) { todo() }
 }
@@ -109,7 +160,7 @@ pub sealed class Map<TKey, TValue>
 // The matrix class is used to implement square 2d arrays
 pub sealed class Matrix2d<t> : VariableSizedObject<T>
 {
-	pub func new[len1 int, len2 int] { todo() }	
+	pub func new(len1 int, len2 int) { todo() }	
     pub func get[i1 int, i2 int] ref T { todo() }
 }
 
@@ -120,7 +171,7 @@ interface IGeneric<Q>
 
 class MyGeneric<QQ> : IGeneric<QQ>
 {
-    func IGeneric<QQ>.A<T>(QQ a) int { }
+    func IGeneric<QQ>::A<T>(QQ a) int { }
 }
 
 
@@ -134,9 +185,9 @@ interface IBlittableStruct { }
 // TBD: Should this whole class be unsafe?
 sealed class UnmanagedMemory<T> : UnmanagedHande where T : IBlittableStruct
 {
-    Memory =ipointer;
-    Length = int;
-    Allocscheme = AllocationScheme;
+    Memory ipointer;
+    Length int;
+    Allocscheme AllocationScheme;
 
     enum AllocationScheme
     {
@@ -147,36 +198,22 @@ sealed class UnmanagedMemory<T> : UnmanagedHande where T : IBlittableStruct
     // Create the buffer, the GC owns it and deletes it when there are no more
     // references to this object.  Be careful that unmanaged code doesn't
     // hold a reference to the memory beyond the lifetime of this object
-    pub func new[lenght int] { todo }
+    pub func new(lenght int) { todo }
 
     // Attach this object to a buffer allocated by unmanaged code.  Be sure that
     // unmanaged code doesn't delete the object while still in use.
     unsafe pub func new(length int, data ipointer, sizeofbufferinbytes int) { todo() }
 
     pub func CopyTo() { todo() }
-
-    // I have mixed feelings about Dispose.  On the one hand, shouldn't the
-    // GC just deal with all memory objects?  It's good enough for `new
-    // int[1000]`.  OTOH, it feels good to allow the user to free up the
-    // unused memory.  TBD: Do not implement this for now since we have
-    // escape analysis and `owned` to deal with the easy cases.
-    // pub func Dispose() { throw new NeverImplemet(); }
 }
 
-
-// An iptr is a pointer that allows arithmetic operations unsing
-// integers.  It is 32 bits or 64 bits depending on the implemnetation.
-// Currently, WebAssembly has only 1 implementation which is 32 bits.
-pub unsafe struct iptr
-{
-}
 
 // Pointers are not tracked by the GC.  If you have a pointer to an
 // object, make sure you also have a managed reference that lives
 // as long as the object. 
 pub unsafe struct pointer<T> where T : struct
 {
-    pub Pointer = ipointer;
+	// Implemented by compiler
 }
 
 // This is the base for all objects, struct and class alike.
@@ -259,7 +296,7 @@ static func memcpya32(to IntPtr, from IntPtr, length int)
     }
     if (to|from) & 3 != 0
     {
-        throw new MisalignedMemoryAccessException();
+        throw MisalignedMemoryAccessException();
     }
 
     // Try 64 bit copy first

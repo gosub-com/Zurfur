@@ -4,15 +4,16 @@
 /// byte, int, uint are aliases for uint8, int32, and uint32
 /// xint and xuint are pointer sized integers (32 or 64 bits)
 
-
-
 namespace Zurfur;
 
-
-/// Special rules apply to pointers
 struct void { }
+struct int = int32;
+struct uint = uint32;
+struct byte = uint8;
 
-
+// On a 64 bit platform, these would be int64 and uint64
+struct xint = int32; 
+struct xuint = uint32;
 
 /// bool (true or false)
 struct bool
@@ -48,8 +49,6 @@ struct int8
 	pub static extern func Compare(a int8, b int8) int;
 }
 
-/// byte (0..255) same as uint8
-struct byte = uint8;
 
 /// uint8 (0..255) same as byte
 struct uint8
@@ -115,9 +114,6 @@ struct uint16
 	pub static extern func Compare(a uint16, b uint16) int;
 }
 
-/// A 32 bit integer (same as int32)
-struct int = int32;
-
 /// A 32 bit integer (same as int)
 struct int32
 {
@@ -147,19 +143,16 @@ struct int32
     pub static extern func operator-(a int32, b int32);
     pub static extern func operator*(a int32, b int32);
     pub static extern func operator/(a int32, b int32);
-    pub static extern func operator%(a int32, b int32);
-
+    
     // Not overloadable, but these are supplied specially for this type
-    pub static extern func operator~(a int32);
-    pub static extern func operator|(a int32, b int32);
-    pub static extern func operator&(a int32, b int32);
-    pub static extern func operator^(a int32, b int32);
-    pub static extern func operator<<(a int32, b int32);
-    pub static extern func operator>>(a int32, b int32);    
+    //pub static extern func operator%(a int32, b int32);
+    //pub static extern func operator~(a int32);
+    //pub static extern func operator|(a int32, b int32);
+    //pub static extern func operator&(a int32, b int32);
+    //pub static extern func operator^(a int32, b int32);
+    //pub static extern func operator<<(a int32, b int32);
+    //pub static extern func operator>>(a int32, b int32);    
 }
-
-/// 32 bit unsigned integer (same as uint32)
-struct uint = uint32;
 
 /// 32 bit unsigned integer (same as uint)
 struct uint32
@@ -190,17 +183,16 @@ struct uint32
     pub static extern func operator-(a uint32, b uint32);
     pub static extern func operator*(a uint32, b uint32);
     pub static extern func operator/(a uint32, b uint32);
-    pub static extern func operator%(a uint32, b uint32);
 
     // Not overloadable, but these are supplied specially for this type
-    pub static extern func operator~(a uint32);
-    pub static extern func operator|(a uint32, b uint32);
-    pub static extern func operator&(a uint32, b uint32);
-    pub static extern func operator^(a uint32, b uint32);
-    pub static extern func operator<<(a uint32, b uint32);
-    pub static extern func operator>>(a uint32, b uint32);
+    //pub static extern func operator%(a uint32, b uint32);
+    //pub static extern func operator~(a uint32);
+    //pub static extern func operator|(a uint32, b uint32);
+    //pub static extern func operator&(a uint32, b uint32);
+    //pub static extern func operator^(a uint32, b uint32);
+    //pub static extern func operator<<(a uint32, b int32);
+    //pub static extern func operator>>(a uint32, b int32);
 }
-
 
 /// A 64 bit integer
 struct int64
@@ -231,15 +223,15 @@ struct int64
     pub static extern func operator-(a int64, b int64);
     pub static extern func operator*(a int64, b int64);
     pub static extern func operator/(a int64, b int64);
-    pub static extern func operator%(a int64, b int64);
 
     // Not overloadable, but these are supplied specially for this type
-    pub static extern func operator~(a int64);
-    pub static extern func operator|(a int64, b int64);
-    pub static extern func operator&(a int64, b int64);
-    pub static extern func operator^(a int64, b int64);
-    pub static extern func operator<<(a int64, b int64);
-    pub static extern func operator>>(a int64, b int64);    
+    //pub static extern func operator%(a int64, b int64);
+    //pub static extern func operator~(a int64);
+    //pub static extern func operator|(a int64, b int64);
+    //pub static extern func operator&(a int64, b int64);
+    //pub static extern func operator^(a int64, b int64);
+    //pub static extern func operator<<(a int64, b int32);
+    //pub static extern func operator>>(a int64, b int32);    
 }
 
 /// 64 bit unsigned integer
@@ -271,55 +263,15 @@ struct uint64
     pub static extern func operator-(a uint64, b uint64);
     pub static extern func operator*(a uint64, b uint64);
     pub static extern func operator/(a uint64, b uint64);
-    pub static extern func operator%(a uint64, b uint64);
 
     // Not overloadable, but these are supplied specially for this type
-    pub static extern func operator~(a uint64);
-    pub static extern func operator|(a uint64, b uint64);
-    pub static extern func operator&(a uint64, b uint64);
-    pub static extern func operator^(a uint64, b uint64);
-    pub static extern func operator<<(a uint64, b uint64);
-    pub static extern func operator>>(a uint64, b uint64);
-}
-
-/// 32 or 64 bit integer, same size as a pointer
-struct xint
-{
-    pub extern func new(from int8);
-    pub extern func new(from uint8);
-    pub extern func new(from int16);
-    pub extern func new(from uint16);
-    pub extern func new(from int32);
-    pub extern func new(from uint32);
-    pub extern func new(from int64);
-    pub extern func new(from float32);
-    pub extern func new(from float64);
-    pub extern func new(from decimal);
-
-	pub static ro MaxValue = uint64(0);	
-    pub static ro MinValue = uint64(18446744073709551615);
-
-    // Comparisons    
-	pub static extern func GetHashCode(a uint64) uint;
-	pub static extern func Equals(a uint64, b uint64) bool;
-	pub static extern func Compare(a uint64, b uint64) int;
-    
-    // Overloadable operators
-    pub static extern func operator+(a uint64);
-    pub static extern func operator-(a uint64);
-    pub static extern func operator+(a uint64, b uint64);
-    pub static extern func operator-(a uint64, b uint64);
-    pub static extern func operator*(a uint64, b uint64);
-    pub static extern func operator/(a uint64, b uint64);
-    pub static extern func operator%(a uint64, b uint64);
-
-    // Not overloadable, but these are supplied specially for this type
-    pub static extern func operator~(a uint64);
-    pub static extern func operator|(a uint64, b uint64);
-    pub static extern func operator&(a uint64, b uint64);
-    pub static extern func operator^(a uint64, b uint64);
-    pub static extern func operator<<(a uint64, b uint64);
-    pub static extern func operator>>(a uint64, b uint64);
+    //pub static extern func operator%(a uint64, b uint64);
+    //pub static extern func operator~(a uint64);
+    //pub static extern func operator|(a uint64, b uint64);
+    //pub static extern func operator&(a uint64, b uint64);
+    //pub static extern func operator^(a uint64, b uint64);
+    //pub static extern func operator<<(a uint64, b int32);
+    //pub static extern func operator>>(a uint64, b int32);
 }
 
 struct float32
@@ -335,7 +287,6 @@ struct float32
     pub extern func new(from float64);
     pub extern func new(from decimal);
 
-
 	// Normal float32 comparisons (NAN==NAN is false)
     // TBD: Maybe we don't need funny NAN comparisons since we're starting fresh?
 	pub static extern func Equals(a float32, b float32) bool;
@@ -343,8 +294,8 @@ struct float32
 	
 	// Comparisons for sorting (NAN>infinity and NAN==NAN are both true)
 	pub static extern func GetHashCode(a float32) uint;
-	pub static extern func IHashable<float32>.Equals(a float32, b float32) bool;
-	pub static extern func ISortable<float32>.Compare(a float32, b float32) int;
+	pub static extern func IHashable<float32>::Equals(a float32, b float32) bool;
+	pub static extern func ISortable<float32>::Compare(a float32, b float32) int;
 
     pub static ro MinValue = float32(-3.40282347E+38F);
     pub static ro MaxValue = float32(3.40282347E+38F);
@@ -365,8 +316,10 @@ struct float32
     pub static extern func operator-(a float32, b float32);
     pub static extern func operator*(a float32, b float32);
     pub static extern func operator/(a float32, b float32);
-    pub static extern func operator%(a float32, b float32);	
-    pub static extern func operator**(a float32, b float32);
+    
+    // Not overloadable, but these are supplied specially for this type
+    //pub static extern func operator%(a float32, b float32);	
+    //pub static extern func operator**(a float32, b float32);
 }
 
 struct float64
@@ -389,8 +342,8 @@ struct float64
 	
 	// Comparisons for sorting (NAN>infinity and NAN==NAN are both true)
 	pub static extern func GetHashCode(a float64) uint;
-	pub static extern func IHashable<float32>.Equals(a float64, b float64) bool;
-	pub static extern func ISortable<float32>.Compare(a float64, b float64) int;
+	pub static extern func IHashable<float32>::Equals(a float64, b float64) bool;
+	pub static extern func ISortable<float32>::Compare(a float64, b float64) int;
 
     pub static ro MinValue = float64(-1.7976931348623157E+308);
     pub static ro MaxValue = float64(1.7976931348623157E+308);
@@ -410,8 +363,10 @@ struct float64
     pub static extern func operator-(a float64, b float64);
     pub static extern func operator*(a float64, b float64);
     pub static extern func operator/(a float64, b float64);
-    pub static extern func operator%(a float64, b float64);	
-    pub static extern func operator**(a float64, b float64);
+    
+    // Not overloadable, but these are supplied specially for this type
+    //pub static extern func operator%(a float64, b float64);	
+    //pub static extern func operator**(a float64, b float64);
 }
 
 /// 128 bit decimal integer.  This will support NAN, infinity, and
@@ -451,13 +406,7 @@ struct decimal
     pub static extern func operator-(a decimal, b decimal);
     pub static extern func operator*(a decimal, b decimal);
     pub static extern func operator/(a decimal, b decimal);
-    pub static extern func operator%(a decimal, b decimal);
-
-    // Not overloadable, but these are supplied specially for this type
-    pub static extern func operator~(a decimal);
-    pub static extern func operator|(a decimal, b decimal);
-    pub static extern func operator&(a decimal, b decimal);
-    pub static extern func operator^(a decimal, b decimal);
-    pub static extern func operator<<(a decimal, b decimal);
-    pub static extern func operator>>(a decimal, b decimal);
+    
+    // Not overloadable, but these are supplied specially for this type    
+    //pub static extern func operator%(a decimal, b decimal);
 }
