@@ -42,8 +42,8 @@ struct int8
     pub extern func new(from float64);
     pub extern func new(from decimal);
 
-	pub static ro MaxValue = int8(127);	
-    pub static ro MinValue = int8(-128);
+	pub static ro MaxValue int8 = 127;	
+    pub static ro MinValue int8 = -128;
 	pub static extern func GetHashCode(a int8) uint;
 	pub static extern func Equals(a int8, b int8) bool;
 	pub static extern func Compare(a int8, b int8) int;
@@ -64,8 +64,8 @@ struct uint8
     pub extern func new(from float64);
     pub extern func new(from decimal);
     
-	pub static ro MaxValue = uint8(255);	
-    pub static ro MinValue = uint8(0);
+	pub static ro MaxValue uint8 = 255;	
+    pub static ro MinValue uint8 = 0;
 	pub static extern func GetHashCode(a uint8) uint;
 	pub static extern func Equals(a uint8, b uint8) bool;
 	pub static extern func Compare(a uint8, b uint8) int;
@@ -85,8 +85,8 @@ struct int16
     pub extern func new(from float64);
     pub extern func new(from decimal);
 
-	pub static ro MaxValue = int16(32767);	
-    pub static ro MinValue = int16(-32768);
+	pub static ro MaxValue int16 = 32767;
+    pub static ro MinValue int16 = -32768;
 	pub static extern func GetHashCode(a int16) uint;
 	pub static extern func Equals(a int16, b int16) bool;
 	pub static extern func Compare(a int16, b int16) int;
@@ -107,8 +107,8 @@ struct uint16
     pub extern func new(from float64);
     pub extern func new(from decimal);
 
-	pub static ro MaxValue = uint16(65535);	
-    pub static ro MinValue = uint16(0);
+	pub static ro MaxValue uint16 = 65535;	
+    pub static ro MinValue uint16 = 0;
 	pub static extern func GetHashCode(a uint16) uint;
 	pub static extern func Equals(a uint16, b uint16) bool;
 	pub static extern func Compare(a uint16, b uint16) int;
@@ -128,8 +128,8 @@ struct int32
     pub extern func new(from float64);
     pub extern func new(from decimal);
 
-	pub static ro MaxValue = int32(2147483647);	
-    pub static ro MinValue = int32(-2147483648);
+	pub static ro MaxValue int32 = 2147483647;	
+    pub static ro MinValue int32 = -2147483648;
 
     // Comparisons    
 	pub static extern func GetHashCode(a int32) uint;
@@ -168,8 +168,8 @@ struct uint32
     pub extern func new(from float64);
     pub extern func new(from decimal);
 
-	pub static ro MaxValue = uint32(0);	
-    pub static ro MinValue = uint32(4294967295);
+	pub static ro MaxValue uint32 = (0);	
+    pub static ro MinValue uint32 = 4294967295;
 
     // Comparisons    
 	pub static extern func GetHashCode(a uint32) uint;
@@ -208,8 +208,8 @@ struct int64
     pub extern func new(from float64);
     pub extern func new(from decimal);
 
-	pub static ro MaxValue = int64(9223372036854775807);	
-    pub static ro MinValue = int64(-9223372036854775808);
+	pub static ro MaxValue int64 = 9223372036854775807;	
+    pub static ro MinValue int64 = -9223372036854775808;
 
     // Comparisons    
 	pub static extern func GetHashCode(a int64) uint;
@@ -248,8 +248,8 @@ struct uint64
     pub extern func new(from float64);
     pub extern func new(from decimal);
 
-	pub static ro MaxValue = uint64(0);	
-    pub static ro MinValue = uint64(18446744073709551615);
+	pub static ro MaxValue uint64 = 0;	
+    pub static ro MinValue uint64 = 18446744073709551615;
 
     // Comparisons    
 	pub static extern func GetHashCode(a uint64) uint;
@@ -297,12 +297,12 @@ struct float32
 	pub static extern func IHashable<float32>::Equals(a float32, b float32) bool;
 	pub static extern func ISortable<float32>::Compare(a float32, b float32) int;
 
-    pub static ro MinValue = float32(-3.40282347E+38F);
-    pub static ro MaxValue = float32(3.40282347E+38F);
-    pub static ro Epsilon = float32(1.401298E-45F);
-    pub static ro PositiveInfinity = float32(1F/0F);
-    pub static ro NegativeInfinity = float32(-1F/0F);
-    pub static ro NaN = float32(0F/0F);
+    pub static ro MinValue float32 = -3.40282347E+38F;
+    pub static ro MaxValue float32 = 3.40282347E+38F;
+    pub static ro Epsilon float32 = 1.401298E-45F;
+    pub static ro PositiveInfinity float32 = 1F/0F;
+    pub static ro NegativeInfinity float32 = -1F/0F;
+    pub static ro NaN float32 = 0F/0F;
     pub extern func get IsInfinity() bool;
     pub extern func get IsNaN() bool;
     pub extern func get IsNegativeInfinity() bool;
@@ -345,12 +345,12 @@ struct float64
 	pub static extern func IHashable<float32>::Equals(a float64, b float64) bool;
 	pub static extern func ISortable<float32>::Compare(a float64, b float64) int;
 
-    pub static ro MinValue = float64(-1.7976931348623157E+308);
-    pub static ro MaxValue = float64(1.7976931348623157E+308);
-    pub static ro Epsilon = float64(4.94065645841247E-324);
-    pub static ro PositiveInfinity = float64(1.0/0.0);
-    pub static ro NegativeInfinity = float64(-1.0/0.0);
-    pub static ro NaN = float64(0.0/0.0);
+    pub static ro MinValue float64 = -1.7976931348623157E+308;
+    pub static ro MaxValue float64 = 1.7976931348623157E+308;
+    pub static ro Epsilon float64 = 4.94065645841247E-324;
+    pub static ro PositiveInfinity float64 = 1.0/0.0;
+    pub static ro NegativeInfinity float64 = -1.0/0.0;
+    pub static ro NaN float64 = 0.0/0.0;
     pub extern func get IsInfinity() bool;
     pub extern func get IsNaN() bool;
     pub extern func get IsNegativeInfinity() bool;
@@ -384,11 +384,11 @@ struct decimal
     pub extern func new(from float32);
     pub extern func new(from float64);
 
-	pub static ro MaxValue = decimal(1E+1000M);	
-    pub static ro MinValue = decimal(-1E+1000M);
-    pub static ro PositiveInfinity = decimal(1.0/0.0);
-    pub static ro NegativeInfinity = decimal(-1.0/0.0);
-    pub static ro NaN = decimal(0.0/0.0);
+	pub static ro MaxValue decimal = 1E+1000M;	
+    pub static ro MinValue decimal = -1E+1000M;
+    pub static ro PositiveInfinity decimal = 1.0/0.0;
+    pub static ro NegativeInfinity decimal = -1.0/0.0;
+    pub static ro NaN decimal = 0.0/0.0;
     pub extern func get IsInfinity() bool;
     pub extern func get IsNaN() bool;
     pub extern func get IsNegativeInfinity() bool;

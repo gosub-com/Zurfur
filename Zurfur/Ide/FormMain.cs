@@ -430,6 +430,7 @@ namespace Gosub.Zurfur
                 }
                 catch (Exception ex)
                 {
+                    mReparseEditor = null;
                     MessageBox.Show(this, "Error compiling: " + ex.Message);
                 }
             }

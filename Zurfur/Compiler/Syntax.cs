@@ -55,8 +55,8 @@ namespace Gosub.Zurfur
         public string[] Comments;
         public Token[] Qualifiers;
         public Token Name;
-        public Token Assign;  // Null if not assigned
-        public SyntaxExpr Expr;
+        public SyntaxExpr TypeName;
+        public SyntaxExpr InitExpr;
     }
 
     class SyntaxFunc

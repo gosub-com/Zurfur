@@ -21,25 +21,15 @@ class Example
 	
 	// Fields initialized to an expression (never null)
 	// Must be an expression starting with a constructor or cast
-	e1 = int();
-	e2 = int(FuncThatReturnsInt64() >> 4);
-	e3 = float32(FuncThatReturnsFloat64());
-	e4 = string("Hello");
-	e5 = array<int>(32);         // array, Length=32
-	e7 = list<int>(32);          // list, Length=0, Capacity=32
-	e8 = map<string,string>(); 	 // Empty map
-	e9 = array<array<int>>(32);	 
-	e10 = (pointer<int>)GetVoidPtr();
-	e11 = (*int)(GetVoidPtr());    // Same as (pointer<int>)GetVoidPtr();
-	
-	// Illegal at bind time
-	i1 = 0;				// Must start with type name
-	i2 = "HELLO";		// Must start with type name
-	i3 = MyFunc();		// Must start with type name (constructor or cast)
-	i4 = MyType;		// Must be initialized	
-	i5 = int;			// Must be initialized
-	i6 = *int(3);		// Dereference int
-	
+	e1 int = int();
+	e2 int = FuncThatReturnsInt >> 4;
+	e3 float32 = FuncThatReturnsFloat32orInt();
+	e4 string = "Hello";
+	e5 array<int> = new(32);        // array, Length=32
+	e7 list<int> = new(32);         // list, Length=0, Capacity=32
+	e8 map<string,string> = new(); 	// Empty map
+	e10 *int = GetIntPtr();			// Same as pointer<int> = `GetIntPtr()`
+		
 	// Illegal at parse time
 	//i7 int(1); 		//  Must not be initialized
 	//i8 = array<int>;	// Type name is not an expression
@@ -84,9 +74,9 @@ interface ISortable<T in>
 
 pub ro struct string
 {
-	pub static ro Empty = array<byte>(0);
     ro str array<byte>;
 
+    pub func new() { str = array<byte>.Empty }
     pub func new(s string) { todo() }
     pub func new(s Span<byte>) { todo() }
     pub func Slice(start int, length int) RoSpan<byte> { todo() }
@@ -136,8 +126,8 @@ pub sealed1 unsafe class  VariableSizedObject<T>
 // Array of constant size
 pub sealed class array<T> : VariableSizedObject<T>
 {
-    pub static ro MaxSize = int(int.MaxInt/2);
-    pub static ro Empty = array<T>(0);
+    pub static ro MaxSize int = int.MaxInt/2;
+    pub static ro Empty array<T> = new();
 
     pub func new(length int) { todo }
     pub func get[index int] ref T { todo }
@@ -235,7 +225,7 @@ pub class StructObject
 pub class ClassObject
 {
     // The only member
-    protected unsafe ro VT = iptr;
+    protected unsafe ro VT pointer<void>;
 
     pub override func GetType() { todo }
 }
