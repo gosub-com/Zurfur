@@ -26,12 +26,14 @@ namespace Gosub.Zurfur
         List<string>        mComments = new List<string>();
         WordSet             mIdentifierAllowedReservedWords = sEmptyWordSet;
 
+        SyntaxUnit mUnit;
+
         // NOTE: >> and >= are omitted and handled at parser level.
         //       TBD: Need to handle >>= as well
         public const string TokenSymbols = "<< <= == != && || += -= *= /= %= &= |= ^= <<= -> === ::";
 
         static readonly string sReservedWordsList = "abstract as base break case catch class const "
-            + "continue default delegate do else enum event explicit extern false "
+            + "continue default delegate do else enum event explicit extern false defer use "
             + "finally fixed for goto if implicit in interface internal is lock namespace "
             + "new null operator out override params private protected pub ro ref "
             + "return sealed sealed1 sizeof stackalloc static struct switch this throw true try "
@@ -40,9 +42,25 @@ namespace Gosub.Zurfur
         static readonly string sReservedControlWords = "using namespace class struct interface func construct if else switch case";
         static WordMap<eTokenType> sReservedWords = new WordMap<eTokenType>();
 
-        // TBD: Move `ro` and `ref` to after `struct` or `class`?
-        static WordSet sClassAndFuncQualifiers = new WordSet("pub public protected private internal "
-            + "static extern virtual override readonly volatile new async abstract unsafe sealed sealed1 ro ref");
+        // TBD: Verify these qualifiers for each kind of type
+        static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
+        static WordSet sClassQualifiers = new WordSet("pub public protected private internal unsafe sealed sealed1 abstract");
+        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static extern virtual override new async");
+        static WordSet sFieldQualifiers = new WordSet("pub public protected private internal unsafe static voatile");
+
+        static WordMap<int> sClassFuncFieldQualifiers = new WordMap<int>()
+        {
+            { "pub", 1 }, { "public", 1 }, { "protected", 1 }, { "private", 1 }, { "internal", 1 },
+            { "unsafe", 2 },
+            { "static", 3 }, { "extern", 3 }, { "volatile", 3 },
+            { "sealed", 4 }, { "sealed1", 4 }, { "abstract", 4 }, { "virtual", 4},  { "override", 4 }, { "new", 4 },
+            { "async", 5 }
+        };
+        static WordMap<int> sPostClassFieldQualifiers = new WordMap<int>()
+        {
+            { "ref", 0 }, { "readonly", 0 }, { "ro", 0 },
+        };
+
 
         static WordSet sTypeParameterQualifiers = new WordSet("out ref ro");
         static WordSet sFuncParameterQualifiers = new WordSet("out ref");
@@ -90,21 +108,25 @@ namespace Gosub.Zurfur
 
         public SyntaxUnit Parse()
         {
-            var unit = ParseCompilationUnit();
-            ShowTypes(unit);
-            return unit;
+            mUnit = new SyntaxUnit();
+            ParseCompilationUnit();
+            ShowTypes(mUnit);
+            return mUnit;
         }
 
         /// Temporary, remove this later
         void ShowTypes(SyntaxUnit unit)
         {
-            foreach (var nameSp in unit.Namespaces)
+            foreach (var class2 in mUnit.Classes)
+                ShowTypes(class2);
+            foreach (var func in mUnit.Funcs)
+                ShowTypes(func);
+            foreach (var field in mUnit.Fields)
             {
-                foreach (var func in nameSp.Funcs)
-                    ShowTypes(func);
-                foreach (var @class in nameSp.Classes)
-                    ShowTypes(@class);
+                ShowTypes(field.TypeName, true);
+                ShowTypes(field.InitExpr, false);
             }
+
         }
 
         /// Temporary, remove this later
@@ -113,15 +135,6 @@ namespace Gosub.Zurfur
             ShowTypes(class1.Alias, true);
             ShowTypes(class1.BaseClass, true);
             ShowTypes(class1.ClassName, true);
-            foreach (var class2 in class1.Classes)
-                ShowTypes(class2);
-            foreach (var func in class1.Funcs)
-                ShowTypes(func);
-            foreach (var field in class1.Fields)
-            {
-                ShowTypes(field.TypeName, true);
-                ShowTypes(field.InitExpr, false);
-            }
         }
 
         /// Temporary, remove this later
@@ -148,64 +161,101 @@ namespace Gosub.Zurfur
                 ShowTypes(e, isType);
         }
 
-        public SyntaxUnit ParseCompilationUnit()
+        /// <summary>
+        /// Parse the file
+        /// </summary>
+        public void ParseCompilationUnit()
         {
-            var unit = new SyntaxUnit();
-            
+            mUnit = new SyntaxUnit();
+            var qualifiers = new List<Token>();
+
+            ParseScope("");
+
+            if (mTokenName != "")
+                RejectToken(mToken, "Unexpected end of file");
+
             while (mTokenName != "")
             {
-                Token[] qualifiers = ParseQualifiers(sClassAndFuncQualifiers);
+                mToken.Grayed = true;
+                Accept();
+            }
+        }
 
-                var token = mToken;
-                var allowQualifiers = true;
+        /// <summary>
+        /// Parse namespace, class, struct, interface, or enum
+        /// </summary>
+        private void ParseScope(string outerKeyword)
+        {
+            var qualifiers = new List<Token>();
+            while (mTokenName != "" && mTokenName != "}")
+            {
+                // Read qualifiers
+                qualifiers.Clear();
+                ParseQualifiers(qualifiers, sClassFuncFieldQualifiers);
                 var comments = mComments.ToArray();
+                var keyword = mToken;
                 switch (mTokenName)
                 {
-                    case ";": SkipSemicolon();  break;
+                    case ";": SkipSemicolon(); break;
 
                     case "using":
-                        allowQualifiers = false;
-                        unit.Using.Add(ParseUsingStatement());
-                        if (unit.Namespaces.Count != 0)
-                            RejectToken(token, "Using statements must come before the namespace");
+                        mUnit.Using.Add(ParseUsingStatement());
+                        RejectTokens(qualifiers, "Qualifier may not come before '" + keyword.Name + "' statement");
+                        if (outerKeyword != "")
+                            RejectToken(keyword, "Using statements must not be inside a class body");
+                        else if (mUnit.Namespaces.Count != 0)
+                            RejectToken(keyword, "Using statements must come before the namespace");
                         break;
 
                     case "namespace":
-                        allowQualifiers = false;
-                        unit.Namespaces.Add(ParseNamespaceStatement(unit, comments));
+                        mUnit.Namespaces.Add(ParseNamespaceStatement(mUnit, comments));
+                        RejectTokens(qualifiers, "Qualifier may not come before '" + keyword.Name + "' statement");
+                        if (outerKeyword != "")
+                            RejectToken(keyword, "Namespace statements must not be inside a class body");
                         break;
 
                     case "interface":
                     case "struct":
                     case "class":
                     case "enum":
-                        var synClass = ParseClass(qualifiers, comments);
-                        if (unit.CurrentNamespace != null)
-                            unit.CurrentNamespace.Classes.Add(synClass);
-                        else
-                            RejectToken(token, "The namespace must be defined before '" + token.Name + "'");
+                        if (mUnit.CurrentNamespace == null)
+                            RejectToken(keyword, "The namespace must be defined before '" + keyword.Name + "'");
+                        if (outerKeyword == "interface" || outerKeyword == "enum")
+                            RejectToken(mToken, "Classes, structs, enums, and interfaces may not be nested inside an interface or enum");
+                        mUnit.Classes.Add(ParseClass(qualifiers, comments));
                         break;
 
                     case "func":
-                        var synFunc = ParseFuncDef(qualifiers, comments, false);
-                        RejectTokenIfNotQualified(synFunc.Keyword, qualifiers, "static", "Functions in a namespace must be static");
-                        if (unit.CurrentNamespace != null)
-                            unit.CurrentNamespace.Funcs.Add(synFunc);
-                        else
-                           RejectToken(token, "The namespace must be defined before a " + token.Name);
+                        if (mUnit.CurrentNamespace == null)
+                            RejectToken(keyword, "The namespace must be defined before '" + keyword.Name + "'");
+                        mUnit.Funcs.Add(ParseFuncDef(qualifiers, comments, outerKeyword == "interface"));
                         break;
 
                     default:
-                        Reject("Expecting keyword: 'using', 'namespace', 'class', 'struct', 'interface', or 'func'", sRejectUnitTokens);
-                        if (mTokenName == "{" || mTokenName == "}")
+                        ParseQualifiers(qualifiers, sPostClassFieldQualifiers);
+                        if (outerKeyword == "")
+                        {
+                            // Top level, fields not allowed
+                            Reject("Expecting keyword: 'using', 'namespace', 'class', 'struct', 'interface', or 'func'", sRejectUnitTokens);
+                            if (mTokenName == "{" || mTokenName == "}")
+                                Accept();
+                        }
+                        else if (ParseIdentifier("Expecting a variable name or keyword such as 'class', etc.", sRejectLine, out var fieldName))
+                        {
+                            // In a class
+                            if (outerKeyword == "interface")
+                                RejectToken(mToken, "Fields are not allowed inside an interface");
+                            mUnit.Fields.Add(ParseField(qualifiers, comments, fieldName, outerKeyword == "enum"));
+                            SkipSemicolon();
+                        }
+                        else
+                        {
+                            RejectToken(mToken, "Expecting a variable name or keyword such as 'class', etc.");
                             Accept();
+                        }
                         break;
                 }
-                // Reject qualifiers when not in front if class or struct
-                if (qualifiers.Length != 0 && !allowQualifiers)
-                    RejectTokens(qualifiers, "Qualifier may not come before '" + token.Name + "' statement");
             }
-            return unit;
         }
 
         SyntaxUsing ParseUsingStatement()
@@ -228,12 +278,13 @@ namespace Gosub.Zurfur
         }
 
         // Parse class, struct, interface, or enum
-        SyntaxClass ParseClass(Token []qualifiers, string []comments)
+        SyntaxClass ParseClass(List<Token> qualifiers, string []comments)
         {
             var synClass = new SyntaxClass();
             synClass.Comments = comments;
-            synClass.Qualifiers = qualifiers;
             synClass.Keyword = Accept();
+            ParseQualifiers(qualifiers, sPostClassFieldQualifiers);
+            synClass.Qualifiers = qualifiers.ToArray();
             synClass.ClassName = ParseTypeDef(sRejectLine);
             ShowParseTree(synClass.ClassName);
 
@@ -268,9 +319,25 @@ namespace Gosub.Zurfur
 
             if (mTokenName == "{")
             {
-                ParseClassBody(synClass);
+                ParseClassBody(synClass.Keyword.Name);
             }
             return synClass;
+        }
+
+        // Parse class, struct, interface, or enum body
+        private void ParseClassBody(string outerKeyword)
+        {
+            // Read open token, '{'
+            var openToken = Accept();
+            if (openToken != "{")
+                throw new Exception("Compiler error: Expecting '{' while parsing class body");
+
+            ParseScope(outerKeyword);
+
+            if (AcceptMatch("}"))
+                Connect(openToken, mPrevToken);
+            else
+                RejectToken(mToken, "Expecting '}'");
         }
 
         /// <summary>
@@ -328,62 +395,10 @@ namespace Gosub.Zurfur
             return constraint;                       
         }
 
-        // Parse class, struct, interface, or enum body
-        private void ParseClassBody(SyntaxClass synClass)
-        {
-            // Read open token, '{'
-            var openToken = Accept();
-            if (openToken != "{")
-                throw new Exception("Compiler error: Expecting '{' while parsing class body");
-
-            var classKeyword = synClass.Keyword.Name;
-            while (mTokenName != "" && mTokenName != "}")
-            {
-                var comments = mComments.ToArray();
-                var qualifiers = ParseQualifiers(sClassAndFuncQualifiers);
-                switch (mTokenName)
-                {
-                    case ";": SkipSemicolon(); break;
-
-                    case "interface":
-                    case "struct":
-                    case "class":
-                    case "enum":
-                        if (classKeyword == "interface" || classKeyword == "enum")
-                            RejectToken(mToken, "Classes, structs, enums, and interfaces may not be nested inside an interface or enum");
-                        synClass.Classes.Add(ParseClass(qualifiers, comments));
-                        break;
-
-                    case "func":
-                        synClass.Funcs.Add(ParseFuncDef(qualifiers, comments, classKeyword == "interface"));
-                        break;
-
-                    default:
-                        if (ParseIdentifier("Expecting a variable name or keyword such as 'class', etc.", sRejectLine, out var fieldName))
-                        {
-                            if (classKeyword == "interface")
-                                RejectToken(mToken, "Fields are not allowed inside an interface");
-                            synClass.Fields.Add(ParseField(qualifiers, comments, fieldName, classKeyword == "enum"));
-                            SkipSemicolon();
-                        }
-                        else
-                        {
-                            RejectToken(mToken, "Expecting a variable name or keyword such as 'class', etc.");
-                            Accept();
-                        }
-                        break;
-                }
-            }
-            if (AcceptMatch("}"))
-                Connect(openToken, mPrevToken);
-            else
-                RejectToken(mToken, "Expecting '}'");
-        }
-
-        SyntaxField ParseField(Token []qualifiers, string []comments, Token fieldName, bool isEnum)
+        SyntaxField ParseField(List<Token> qualifiers, string []comments, Token fieldName, bool isEnum)
         {
             var field = new SyntaxField();
-            field.Qualifiers = qualifiers;
+            field.Qualifiers = qualifiers.ToArray();
             field.Comments = comments;
             field.Name = fieldName;
 
@@ -423,12 +438,12 @@ namespace Gosub.Zurfur
             return expr;
         }
 
-        SyntaxFunc ParseFuncDef(Token []qualifiers, string []comments, bool isInterface)
+        SyntaxFunc ParseFuncDef(List<Token> qualifiers, string []comments, bool isInterface)
         {
             // Parse func keyword
             var synFunc = new SyntaxFunc();
             synFunc.Comments = comments;
-            synFunc.Qualifiers = qualifiers;
+            synFunc.Qualifiers = qualifiers.ToArray();
             synFunc.Keyword = Accept();
 
             // Optional class name (must be type name followed by "::")
@@ -1067,21 +1082,32 @@ namespace Gosub.Zurfur
             AcceptMatch(";");
         }
 
-        Token []ParseQualifiers(WordMap<bool> qualifiers)
+        void ParseQualifiers(List<Token> acceptedQualifiers, WordMap<int> qualifiers)
         {
-            List<Token> acceptedQualifiers = null;
-            while (qualifiers.Contains(mTokenName))
+            int sortOrder = 0;
+            while (qualifiers.TryGetValue(mTokenName, out var newSortOrder))
             {
-                if (acceptedQualifiers == null)
-                    acceptedQualifiers = new List<Token>();
-                acceptedQualifiers.Add(mToken);
                 if (mTokenName == "public")
+                {
                     RejectToken(mToken, "Use 'pub' instead");
-                if (mTokenName == "readonly")
+                }
+                else if (mTokenName == "readonly")
+                {
                     RejectToken(mToken, "Use 'ro' instead");
+                }
+                else
+                {
+                    foreach (var token in acceptedQualifiers)
+                        if (token == mTokenName)
+                            RejectToken(mToken, "Cannot have duplicate qualifiers");
+
+                    acceptedQualifiers.Add(mToken);
+                    if (newSortOrder < sortOrder)
+                        RejectToken(mToken, "This token '" + mToken + "' must come before '" + mPrevToken + "'");
+                }
+                sortOrder = newSortOrder;
                 Accept();
             }
-            return acceptedQualifiers == null ? Token.EmptyArray : acceptedQualifiers.ToArray();
         }
 
         /// <summary>
@@ -1234,7 +1260,7 @@ namespace Gosub.Zurfur
         }
       
         // Reject the token if it's not qualified
-        void RejectTokenIfNotQualified(Token token, Token []qualifiers, string expected, string errorMessage)
+        void RejectTokenIfNotQualified(Token token, IEnumerable<Token> qualifiers, string expected, string errorMessage)
         {
             foreach (var t in qualifiers)
                 if (t.Name == expected)

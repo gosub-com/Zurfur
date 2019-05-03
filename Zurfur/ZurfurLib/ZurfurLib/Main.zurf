@@ -72,7 +72,7 @@ interface ISortable<T in>
 
 
 
-pub ro struct string
+pub struct ro string
 {
     ro str array<byte>;
 
@@ -88,7 +88,7 @@ pub ro struct string
     // TBD: Implicit conversion to and from RoSpan
 }
 
-pub ro ref struct Span<T>
+pub struct ro ref Span<T>
 {
     pub ro Data *T;
     pub ro Length int;
@@ -98,7 +98,7 @@ pub ro ref struct Span<T>
 }
 
 // TBD: Do we wanto to have "struct ro Span" so we don't need another definition for RoSpan?
-pub ro ref struct RoSpan<T>
+pub struct ro ref RoSpan<T>
 {
     pub ro Data *T;
     pub ro Length int;
@@ -110,7 +110,7 @@ pub ro ref struct RoSpan<T>
 // must call AllocateObject first thing in the constructor.  For efficiency,
 // this class is unsafe and doesn't do any bounds checking.
 // The inheriting class must be sealed (that's what sealed1 means)
-pub sealed1 unsafe class  VariableSizedObject<T>
+pub unsafe sealed1 class  VariableSizedObject<T>
 {
     pub ro Length int;
 
@@ -192,7 +192,7 @@ sealed class UnmanagedMemory<T> : UnmanagedHande where T : IBlittableStruct
 
     // Attach this object to a buffer allocated by unmanaged code.  Be sure that
     // unmanaged code doesn't delete the object while still in use.
-    unsafe pub func new(length int, data ipointer, sizeofbufferinbytes int) { todo() }
+    pub unsafe func new(length int, data ipointer, sizeofbufferinbytes int) { todo() }
 
     pub func CopyTo() { todo() }
 }
