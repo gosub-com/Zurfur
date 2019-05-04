@@ -72,7 +72,7 @@ interface ISortable<T in>
 
 
 
-pub struct ro string
+pub ro struct string
 {
     ro str array<byte>;
 
@@ -88,7 +88,7 @@ pub struct ro string
     // TBD: Implicit conversion to and from RoSpan
 }
 
-pub struct ro ref Span<T>
+pub ref ro struct Span<T>
 {
     pub ro Data *T;
     pub ro Length int;
@@ -98,7 +98,7 @@ pub struct ro ref Span<T>
 }
 
 // TBD: Do we wanto to have "struct ro Span" so we don't need another definition for RoSpan?
-pub struct ro ref RoSpan<T>
+pub ref ro struct RoSpan<T>
 {
     pub ro Data *T;
     pub ro Length int;
