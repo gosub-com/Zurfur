@@ -7,151 +7,151 @@ namespace zurfur.example;
 // Test class
 class Example 
 { 
-	// Field types, initialized to zero, null, or "" for string
-	f1 int;
-	f2 float32;
-	f3 string;		// Defaults to "", not NULL
-	f4 array<int>;
-	f5 []int;       // Same as array<int>
-	f6 [][]int;     // Same as array<array<int>>
-	f7 pointer<int>;
-	f8 *int;        // Same as pointer<int>
-	f9 **int;		// Same as pointer<pointer<int>>
-	f10 map<string,list<int>>;	
-	
-	// Fields initialized to an expression (never null)
-	// Must be an expression starting with a constructor or cast
-	e1 int = int();
-	e2 int = FuncThatReturnsInt >> 4;
-	e3 float32 = FuncThatReturnsFloat32orInt();
-	e4 string = "Hello";
-	e5 array<int> = new(32);        // array, Length=32
-	e7 list<int> = new(32);         // list, Length=0, Capacity=32
-	e8 map<string,string> = new(); 	// Empty map
-	e10 *int = GetIntPtr();			// Same as pointer<int> = `GetIntPtr()`
-		
-	// Illegal at parse time
-	//i7 int(1); 		//  Must not be initialized
-	//i8 = array<int>;	// Type name is not an expression
-	//i9 = array<byte>[0]; // Type can't be dereferenced
-	//i10 = int(list<in string>()); // Type argument can't have in/ref/out
-	//func i11(a map<in string,string>) { } // Type argument can't have in/ref/out	
+    // Field types, initialized to zero, null, or "" for string
+    f1 int;
+    f2 float32;
+    f3 string;		// Defaults to "", not NULL
+    f4 array<int>;
+    f5 []int;       // Same as array<int>
+    f6 [][]int;     // Same as array<array<int>>
+    f7 pointer<int>;
+    f8 *int;        // Same as pointer<int>
+    f9 **int;		// Same as pointer<pointer<int>>
+    f10 map<string,list<int>>;	
+    
+    // Fields initialized to an expression (never null)
+    // Must be an expression starting with a constructor or cast
+    e1 int = int();
+    e2 int = FuncThatReturnsInt >> 4;
+    e3 float32 = FuncThatReturnsFloat32orInt();
+    e4 string = "Hello";
+    e5 array<int> = new(32);        // array, Length=32
+    e7 list<int> = new(32);         // list, Length=0, Capacity=32
+    e8 map<string,string> = new(); 	// Empty map
+    e10 *int = GetIntPtr();			// Same as pointer<int> = `GetIntPtr()`
+        
+    // Illegal at parse time
+    //i7 int(1); 		//  Must not be initialized
+    //i8 = array<int>;	// Type name is not an expression
+    //i9 = array<byte>[0]; // Type can't be dereferenced
+    //i10 = int(list<in string>()); // Type argument can't have in/ref/out
+    //func i11(a map<in string,string>) { } // Type argument can't have in/ref/out	
 
-	func func1(a int) {}
-	func func2(a ref float32) {}
-	func func3(a ref string) {}
-	func func4(a array) {}
-	func func5(a [][]int) {} 
-	func func5(a array<array<int>>) {}
-	func func6(a ref **int) {}
-	func func7(a list<int>) { }
-	func func8(a ref list<list<int>>) { }
-	func func10(a map<string,list<int>>) { }
+    func func1(a int) {}
+    func func2(a ref float32) {}
+    func func3(a ref string) {}
+    func func4(a array) {}
+    func func5(a [][]int) {} 
+    func func5(a array<array<int>>) {}
+    func func6(a ref **int) {}
+    func func7(a list<int>) { }
+    func func8(a ref list<list<int>>) { }
+    func func10(a map<string,list<int>>) { }
 
-	static func main(args array<string>)
-	{
-	}
+    static func main(args array<string>)
+    {
+    }
 }
 
 /// Implement IHashable on any object that can be stored in a Map.
 /// This is different than implementing just Equals
 /// in that NAN must compare to itself as true.
-interface IHashable<T in> // TBD: `in` before T like in C#?  Or like this, similar to parameter type?
+interface IHashable<in T>
 {
-	static func GetHashCode(a T) uint;
-	static func Equals(a T, b T) bool;
+    static func GetHashCode(a T) uint;
+    static func Equals(a T, b T) bool;
 }
 
 /// Implement ISortable on any object that can be sorted.
 /// This is different than implementing just Compare
 /// in that NAN must have a valid sort order.
-interface ISortable<T in>
+interface ISortable<in T>
 {
-	static func Compare(a T, b T) int;
+    static func Compare(a T, b T) int;
 }
 
 
 
-pub ro struct string
+public ro struct string
 {
     ro str array<byte>;
 
-    pub func new() { str = array<byte>.Empty }
-    pub func new(s string) { todo() }
-    pub func new(s Span<byte>) { todo() }
-    pub func Slice(start int, length int) RoSpan<byte> { todo() }
-    pub func Slice(start int) RoSpan<byte> { todo() }
+    func new() { str = array<byte>.Empty }
+    func new(s string) { todo() }
+    func new(s Span<byte>) { todo() }
+    func Slice(start int, length int) RoSpan<byte> { todo() }
+    func Slice(start int) RoSpan<byte> { todo() }
     
-    pub static extern func operator+(s1 string, s2 string);    
-    pub static extern func operator+(s1 RoSpan<byte>, s2 string);    
-    pub static extern func operator+(s1 string, s2 RoSpan<byte>);
+    static extern func operator+(s1 string, s2 string);    
+    static extern func operator+(s1 RoSpan<byte>, s2 string);    
+    static extern func operator+(s1 string, s2 RoSpan<byte>);
     // TBD: Implicit conversion to and from RoSpan
 }
 
-pub ref ro struct Span<T>
+ref ro struct Span<T>
 {
-    pub ro Data *T;
-    pub ro Length int;
-    pub func get[index int] ref T { todo(); }
-    pub func Slice(start int, length int) Span<T> { todo(); }
+    ro Data *T;
+    ro Length int;
+    func get[index int] ref T { todo(); }
+    func Slice(start int, length int) Span<T> { todo(); }
     // TBD: implicit conversion to RoSpan
 }
 
 // TBD: Do we wanto to have "struct ro Span" so we don't need another definition for RoSpan?
-pub ref ro struct RoSpan<T>
+ref ro struct RoSpan<T>
 {
-    pub ro Data *T;
-    pub ro Length int;
-    pub func get[index int] ro ref T { todo(); }
-    pub func Slice(start int, length int) RoSpan<T> { todo(); }
+    ro Data *T;
+    ro Length int;
+    func get[index int] ro ref T { todo(); }
+    func Slice(start int, length int) RoSpan<T> { todo(); }
 }
 
 // All variable sized objects must inherit from this class, must be sealed, and
 // must call AllocateObject first thing in the constructor.  For efficiency,
 // this class is unsafe and doesn't do any bounds checking.
 // The inheriting class must be sealed (that's what sealed1 means)
-pub unsafe sealed1 class  VariableSizedObject<T>
+unsafe sealed1 class VariableSizedObject<T>
 {
-    pub ro Length int;
+    ro Length int;
 
     // Must be called first thing from the constuctor, never called again
     protected unsafe static func AllocateObject(int length) { todo() }
 
     // Return a pointer to the array
-    // { return (T*)((iptr)this + sizeof(this))}
+    // { return (T*)((*void)this + sizeof(this))}
     protected unsafe func get DataPointer() *T {todo()}
 }
 
 
 // Array of constant size
-pub sealed class array<T> : VariableSizedObject<T>
+public sealed class array<T> : VariableSizedObject<T>
 {
-    pub static ro MaxSize int = int.MaxInt/2;
-    pub static ro Empty array<T> = new();
+    const MaxSize int = int.MaxInt/2;
+    static ro Empty array<T> = new();
 
-    pub func new(length int) { todo }
-    pub func get[index int] ref T { todo }
-    pub func Slice(start int, length int) Span<T> { todo }
-    pub func RoSlice(start int, length int) Span<T> { todo }
+    func new(length int) { todo }
+    func get[index int] ref T { todo }
+    func Slice(start int, length int) Span<T> { todo }
+    func RoSlice(start int, length int) RoSpan<T> { todo }
 }
 
 // Note that the list class has a ref return indexer, just like Array
-pub sealed class list<T> : VariableSizedObject<T>
+public class list<T>
 {
-	pub func new(capacity int) { todo() }
-	pub func get[index int] ref T { todo() }
+    func new(capacity int) { todo() }
+    func get[index int] ref T { todo() }
 }
 
-pub sealed class map<TKey, TValue>
+public class map<TKey, TValue>
 {
-	pub func new(capacity int) { todo() }
+    func new(capacity int) { todo() }
 }
 
 // The matrix class is used to implement square 2d arrays
-pub sealed class Matrix2d<t> : VariableSizedObject<T>
+sealed class Matrix2d<t> : VariableSizedObject<T>
 {
-	pub func new(len1 int, len2 int) { todo() }	
-    pub func get[i1 int, i2 int] ref T { todo() }
+    func new(len1 int, len2 int) { todo() }	
+    func get[i1 int, i2 int] ref T { todo() }
 }
 
 interface IGeneric<Q>
@@ -172,49 +172,40 @@ interface IBlittableStruct { }
 // Represents a buffer in un-managed memory.  This class can create and 
 // own the memory, or it can be attached to an already existing buffer.
 // The GC knows this class and deletes the memory when necessary.
-// TBD: Should this whole class be unsafe?
 sealed class UnmanagedMemory<T> : UnmanagedHande where T : IBlittableStruct
 {
-    Memory ipointer;
-    Length int;
-    Allocscheme AllocationScheme;
-
-    enum AllocationScheme
-    {
-        GcOwned = 0;
-        UnmanagedMemory = 1;
-    }
-
+    ro Memory *void;
+    ro Capacity int;
+    ro OwnedByGc bool;
+    length int;
+    
+    func get Length() { todo() }
+    func set Length() { todo() }
+    
     // Create the buffer, the GC owns it and deletes it when there are no more
     // references to this object.  Be careful that unmanaged code doesn't
     // hold a reference to the memory beyond the lifetime of this object
-    pub func new(lenght int) { todo }
+    func new(length int) { todo }
+    func new(length int, capacity int) { todo }
 
-    // Attach this object to a buffer allocated by unmanaged code.  Be sure that
-    // unmanaged code doesn't delete the object while still in use.
-    pub unsafe func new(length int, data ipointer, sizeofbufferinbytes int) { todo() }
+    // Attach this object to a buffer allocated by unmanaged code.  
+    // Lenght and Capacity are set automatically. Be sure that
+    // unmanaged code doesn't delete the object while still in use.  
+    unsafe func new(data *void, sizeOfBufferInBytes int) { todo() }
 
-    pub func CopyTo() { todo() }
+    func CopyTo() { todo() }
 }
 
-
-// Pointers are not tracked by the GC.  If you have a pointer to an
-// object, make sure you also have a managed reference that lives
-// as long as the object. 
-pub unsafe struct pointer<T> where T : struct
-{
-	// Implemented by compiler
-}
 
 // This is the base for all objects, struct and class alike.
-pub class object
+public class object
 {
-    pub virtual func GetType() { todo }
-    pub virtual func ToString() { todo }
+    virtual func GetType() { todo }
+    virtual func ToString() { todo }
 }
 
 // This is the base for all struct objects.
-pub class StructObject
+class StructObject
 {
 }
 
@@ -222,12 +213,12 @@ pub class StructObject
 // the vtable pointer, so there is minimal overhead.  All class
 // objects are allocated on the managed heap and are subject
 // to garbage collection.
-pub class ClassObject
+class ClassObject
 {
     // The only member
-    protected unsafe ro VT pointer<void>;
+    protected unsafe ro VT *void;
 
-    pub override func GetType() { todo }
+    override func GetType() { todo }
 }
 
 
@@ -244,7 +235,7 @@ class FinalizedNotifyQueue
     async func WaitQueueNotEmpty() { todo() }
 }
 
-static func memcpy(to IntPtr, from IntPtr, length int)
+static func memcpy(to *void, from *void, length xint)
 {
     if length <= 0
     {
@@ -253,10 +244,10 @@ static func memcpy(to IntPtr, from IntPtr, length int)
 
     // Align `to` on int32
     while to & 3 != 0 && length != 0
-   	{
-   		*(*byte)to = *(*byte)from; to+=1; from+=1; length-=1;
-   	}
-   	
+    {
+        *(*byte)to = *(*byte)from; to+=1; from+=1; length-=1;
+    }
+    
     if (to|from) & 3 == 0
     {
         memcpya32(to, from, length);
@@ -274,11 +265,11 @@ static func memcpy(to IntPtr, from IntPtr, length int)
     } 
     while to != end
     {
-    	*(*byte)to = *(*byte)from; to+=1; from+=1;
+        *(*byte)to = *(*byte)from; to+=1; from+=1;
     }
 }
 
-static func memcpya32(to IntPtr, from IntPtr, length int)
+static func memcpya32(to *void, from *void, length xint)
 {
     if length <= 0
     {

@@ -35,29 +35,29 @@ namespace Gosub.Zurfur
         static readonly string sReservedWordsList = "abstract as base break case catch class const "
             + "continue default delegate do else enum event explicit extern false defer use "
             + "finally fixed for goto if implicit in interface internal is lock namespace "
-            + "new null operator out override params private protected pub ro ref "
+            + "new null operator out override params public private protected readonly ro ref "
             + "return sealed sealed1 sizeof stackalloc static struct switch this throw true try "
             + "typeof unsafe using static virtual volatile while "
             + "async await astart get set yield global partial var where nameof func construct cast";
         static readonly string sReservedControlWords = "using namespace class struct interface func construct if else switch case";
         static WordMap<eTokenType> sReservedWords = new WordMap<eTokenType>();
 
-        static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal");
-        static WordSet sClassQualifiers = new WordSet("pub public protected private internal unsafe sealed sealed1 abstract");
-        static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe ref ro");
-        static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
-        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static extern virtual override new async");
-        static WordSet sFieldQualifiers = new WordSet("pub public protected private internal unsafe static voatile ro");
+        static WordSet sInterfaceQualifiers = new WordSet("public protected private internal");
+        static WordSet sClassQualifiers = new WordSet("public protected private internal unsafe sealed sealed1 abstract");
+        static WordSet sStructQualifiers = new WordSet("public protected private internal unsafe ref ro");
+        static WordSet sEnumQualifiers = new WordSet("public protected private internal");
+        static WordSet sFuncQualifiers = new WordSet("public protected private internal unsafe static extern abstract virtual override new async");
+        static WordSet sFieldQualifiers = new WordSet("public protected private internal unsafe static volatile ro const");
 
         static WordMap<int> sClassFuncFieldQualifiers = new WordMap<int>()
         {
-            { "pub", 1 }, { "public", 1 }, { "protected", 1 }, { "private", 1 }, { "internal", 1 },
-            { "unsafe", 2 }, { "static", 3 },  { "extern", 4 }, { "async", 5 },
-            { "sealed", 6 }, { "sealed1", 7 }, { "abstract", 8 }, { "virtual", 9},
-            { "override", 10 }, { "new", 11 }, { "volatile", 12 }, { "ref", 13 },
-            { "readonly", 14 }, { "ro", 15 },
+            { "public", 1 }, { "protected", 1 }, { "private", 1 }, { "internal", 1 },
+            { "unsafe", 2 }, { "static", 3 },  {"const", 3 }, { "extern", 4 },
+            { "sealed", 6 }, { "sealed1", 6 },
+            { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
+            { "async", 9 }, { "volatile", 12 },
+            { "ref", 13 }, { "readonly", 14 }, { "ro", 14 }
         };
-
 
         static WordSet sTypeParameterQualifiers = new WordSet("out ref ro");
         static WordSet sFuncParameterQualifiers = new WordSet("out ref");
@@ -195,19 +195,19 @@ namespace Gosub.Zurfur
                 switch (mTokenName)
                 {
                     case ";":
-                        RejectTokens(qualifiers, "Expecting a statement after qualifier");
+                        RejectQualifiers(qualifiers, "Expecting a statement after qualifier");
                         SkipSemicolon();
                         break;
 
                     case "{":
-                        RejectTokens(qualifiers, "Unexpected qualifiers");
+                        RejectQualifiers(qualifiers, "Unexpected qualifiers");
                         RejectToken(mToken, "Unexpected start of scope.  Expecting a keyword, such as 'class', 'func', etc. before the start of a new scope.");
                         Accept();
                         break;
 
                     case "using":
                         mUnit.Using.Add(ParseUsingStatement());
-                        RejectTokens(qualifiers, "Qualifiers are not allowed on the 'using' statement");
+                        RejectQualifiers(qualifiers, "Qualifiers are not allowed on the 'using' statement");
                         if (outerKeyword != "")
                             RejectToken(keyword, "Using statements must not be inside a class body");
                         else if (mUnit.Namespaces.Count != 0)
@@ -217,36 +217,42 @@ namespace Gosub.Zurfur
 
                     case "namespace":
                         mUnit.Namespaces.Add(ParseNamespaceStatement(mUnit, comments));
-                        RejectTokens(qualifiers, "Qualifiers are not allowed on the 'namespace' statement");
+                        RejectQualifiers(qualifiers, "Qualifiers are not allowed on the 'namespace' statement");
                         if (outerKeyword != "")
                             RejectToken(keyword, "Namespace statements must not be inside a class body");
                         SkipSemicolon();
                         break;
 
                     case "enum":
-                        RejectTokens(qualifiers, "This qualifier does not apply to enum statements", sEnumQualifiers);
+                        RejectQualifiers(qualifiers, "This qualifier does not apply to enum statements", sEnumQualifiers);
                         goto ParseClass;
                     case "interface":
-                        RejectTokens(qualifiers, "This qualifier does not apply to interface statements", sInterfaceQualifiers);
+                        RejectQualifiers(qualifiers, "This qualifier does not apply to interface statements", sInterfaceQualifiers);
                         goto ParseClass;
                     case "struct":
-                        RejectTokens(qualifiers, "This qualifier does not apply to struct statements", sStructQualifiers);
+                        RejectQualifiers(qualifiers, "This qualifier does not apply to struct statements", sStructQualifiers);
                         goto ParseClass;
                     case "class":
-                        RejectTokens(qualifiers, "This qualifier does not apply to class statements", sClassQualifiers);
+                        RejectQualifiers(qualifiers, "This qualifier does not apply to class statements", sClassQualifiers);
 ParseClass:
                         if (mUnit.CurrentNamespace == null)
                             RejectToken(keyword, "The namespace must be defined before " + keyword.Name + " statements");
                         if (outerKeyword == "interface" || outerKeyword == "enum")
                             RejectToken(mToken, "Classes, structs, enums, and interfaces may not be nested inside an interface or enum");
-                        mUnit.Classes.Add(ParseClass(qualifiers, comments));
+                        var classDef = ParseClass(qualifiers, comments);
+                        if (classDef.ClassName != null)
+                            CheckPublicQualifier(classDef.ClassName.Token, qualifiers);
+                        mUnit.Classes.Add(classDef);
                         break;
 
                     case "func":
-                        RejectTokens(qualifiers, "This qualifier does not apply to func statements", sFuncQualifiers);
+                        RejectQualifiers(qualifiers, "This qualifier does not apply to func statements", sFuncQualifiers);
                         if (mUnit.CurrentNamespace == null)
                             RejectToken(keyword, "The namespace must be defined before func statements");
-                        mUnit.Funcs.Add(ParseFuncDef(qualifiers, comments, outerKeyword == "interface"));
+                        var funcDef = ParseFuncDef(qualifiers, comments, outerKeyword == "interface");
+                        if (funcDef.FuncName != null)
+                            CheckPublicQualifier(funcDef.FuncName.Token, qualifiers);
+                        mUnit.Funcs.Add(funcDef);
                         break;
 
                     default:
@@ -265,8 +271,9 @@ ParseClass:
                         else
                         {
                             // Parse a field definition
-                            RejectTokens(qualifiers, "This qualifier does not apply to a field", sFieldQualifiers);
+                            RejectQualifiers(qualifiers, "This qualifier does not apply to a field", sFieldQualifiers);
                             ParseIdentifier("Expecting a variable name or keyword such as 'class', etc.", sRejectStatement, out var fieldName);
+                            CheckPublicQualifier(fieldName, qualifiers);
                             if (outerKeyword == "interface")
                                 RejectToken(mToken, "Fields are not allowed inside an interface");
                             mUnit.Fields.Add(ParseField(qualifiers, comments, fieldName, outerKeyword == "enum"));
@@ -276,6 +283,62 @@ ParseClass:
                 }
             }
         }
+
+        void ParseQualifiers(List<Token> acceptedQualifiers, WordMap<int> qualifiers)
+        {
+            int sortOrder = 0;
+            while (qualifiers.TryGetValue(mTokenName, out var newSortOrder))
+            {
+                // Verify no duplicates
+                foreach (var token in acceptedQualifiers)
+                    if (token == mTokenName)
+                        RejectToken(mToken, "Cannot have duplicate qualifiers");
+
+                // Verify sort order
+                acceptedQualifiers.Add(mToken);
+                if (newSortOrder == sortOrder)
+                    RejectToken(mToken, "The '" + mToken + "' qualifier cannot be combined with '" + mPrevToken + "'");
+                if (newSortOrder < sortOrder)
+                    RejectToken(mToken, "The '" + mToken + "' qualifier must come before '" + mPrevToken + "'");
+                sortOrder = newSortOrder;
+                Accept();
+            }
+        }
+
+        // Reject tokens with errorMessage.  Reject all of them if acceptSet is null.
+        void RejectQualifiers(List<Token> qualifiers, string errorMessage, WordSet acceptSet = null)
+        {
+            foreach (var token in qualifiers)
+            {
+                if (token == "readonly")
+                {
+                    RejectToken(token, "Use 'ro' instead");
+                    continue;
+                }
+                if (acceptSet == null || !acceptSet.Contains(token))
+                    RejectToken(token, errorMessage);
+            }
+        }
+
+        void CheckPublicQualifier(Token token, List<Token> qualifiers)
+        {
+            if (token == null || token.Name == "")
+                return;
+            foreach (var qualifier in qualifiers)
+            {
+                if (qualifier == "public" && char.IsUpper(token.Name[0]))
+                {
+                    qualifier.Grayed = true;
+                    qualifier.AddInfo("'public' is not needed because the name is upper case");
+                }
+                if (qualifier == "private" && char.IsLower(token.Name[0]))
+                {
+                    qualifier.Grayed = true;
+                    qualifier.AddInfo("'private' is not needed because the name is lower case");
+                }
+            }
+        }
+
 
         SyntaxUsing ParseUsingStatement()
         {
@@ -396,14 +459,18 @@ ParseClass:
             bool moreParams = true;
             while (moreParams)
             {
-                if (!ParseIdentifier("Expecting a type name", sRejectStatement, out var typeName2))
+                // Optional parameter can be 'in' or 'out'
+                Token qualifier = null;
+                if (sTypeDefParamQualifiers.Contains(mTokenName))
+                    qualifier = Accept();
+
+                if (!ParseIdentifier("Expecting a type name", sRejectStatement, out var typeParamName))
                     return null;
 
-                // Optional parameter can be 'in' or 'out'
-                if (sTypeDefParamQualifiers.Contains(mTokenName))
-                    typeParams.Add(new SyntaxExprUnary(typeName2, new SyntaxExprToken(Accept())));
+                if (qualifier == null)
+                    typeParams.Add(new SyntaxExprToken(typeParamName));
                 else
-                    typeParams.Add(new SyntaxExprToken(typeName2));
+                    typeParams.Add(new SyntaxExprUnary(typeParamName, new SyntaxExprToken(qualifier)));
 
                 moreParams = AcceptMatch(",");
             }
@@ -1145,34 +1212,6 @@ ParseClass:
             AcceptMatch(";");
         }
 
-        void ParseQualifiers(List<Token> acceptedQualifiers, WordMap<int> qualifiers)
-        {
-            int sortOrder = 0;
-            while (qualifiers.TryGetValue(mTokenName, out var newSortOrder))
-            {
-                if (mTokenName == "public")
-                {
-                    RejectToken(mToken, "Use 'pub' instead");
-                }
-                else if (mTokenName == "readonly")
-                {
-                    RejectToken(mToken, "Use 'ro' instead");
-                }
-                else
-                {
-                    foreach (var token in acceptedQualifiers)
-                        if (token == mTokenName)
-                            RejectToken(mToken, "Cannot have duplicate qualifiers");
-
-                    acceptedQualifiers.Add(mToken);
-                    if (newSortOrder < sortOrder)
-                        RejectToken(mToken, "This token '" + mToken + "' must come before '" + mPrevToken + "'");
-                }
-                sortOrder = newSortOrder;
-                Accept();
-            }
-        }
-
         /// <summary>
         /// Parse a qualified identifier.  
         /// Error causes reject until errorStop and returns null.
@@ -1340,17 +1379,6 @@ ParseClass:
             // If the error is after the end of file, put it on the last visible token
             if (token.Name == "")
                 mPrevToken.Reject(errorMessage);
-        }
-
-        // Reject tokens with errorMessage.  Reject all of them if acceptSet is null.
-        void RejectTokens(IEnumerable<Token> tokens, string errorMessage, WordSet acceptSet = null)
-        {
-            foreach (var token in tokens)
-            {
-                mParseError = true;
-                if (acceptSet == null || !acceptSet.Contains(token))
-                    token.Reject(errorMessage);
-            }
         }
 
         // Reject the current token, then advance until the first stopToken

@@ -81,6 +81,19 @@ size.  It's similar to C#'s `list`, except that it indexes using a `ref`
 return.  It acts just like an array including the ability to modify a
 field of a struct.
 
+## Public, private, and capitalization
+
+Capitalized variables are public by default, and lower cased variables
+are private by default.  Public things should be capitalized, and
+private things should not be.  This behavior can be changed by using
+the `public` and `private` qualifiers.
+
+For some reason, the most basic built in types like `int`, `string`,
+and `map` are lower case even though they are public.  Nobody knows why
+this is, but the convention appears to go back to the goes back to the
+1970's, perhaps even further.  PS.  Likewise, the math intrinsics like
+`sin`, `cos`, `min`, and `max`, might also be lower case.  What do you think?
+
 ## Casting
 
 Casting is used much less than in C# because a cast is not used to covert
