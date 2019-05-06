@@ -36,7 +36,7 @@ namespace Gosub.Zurfur
             + "continue default delegate do else enum event explicit extern false defer use "
             + "finally fixed for goto if implicit in interface internal is lock namespace "
             + "new null operator out override params public private protected readonly ro ref "
-            + "return sealed sealed1 sizeof stackalloc static struct switch this throw true try "
+            + "return sealed sealed1 sizeof stackalloc heapalloc static struct switch this throw true try "
             + "typeof unsafe using static virtual volatile while "
             + "async await astart get set yield global partial var where nameof func construct cast";
         static readonly string sReservedControlWords = "using namespace class struct interface func construct if else switch case";
@@ -44,7 +44,7 @@ namespace Gosub.Zurfur
 
         static WordSet sInterfaceQualifiers = new WordSet("public protected private internal");
         static WordSet sClassQualifiers = new WordSet("public protected private internal unsafe sealed sealed1 abstract");
-        static WordSet sStructQualifiers = new WordSet("public protected private internal unsafe ref ro");
+        static WordSet sStructQualifiers = new WordSet("public protected private internal unsafe");
         static WordSet sEnumQualifiers = new WordSet("public protected private internal");
         static WordSet sFuncQualifiers = new WordSet("public protected private internal unsafe static extern abstract virtual override new async");
         static WordSet sFieldQualifiers = new WordSet("public protected private internal unsafe static volatile ro const");
@@ -56,12 +56,15 @@ namespace Gosub.Zurfur
             { "sealed", 6 }, { "sealed1", 6 },
             { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
             { "async", 9 }, { "volatile", 12 },
-            { "ref", 13 }, { "readonly", 14 }, { "ro", 14 }
+            { "readonly", 14 }, { "ro", 14 }
         };
 
-        static WordSet sTypeParameterQualifiers = new WordSet("out ref ro");
-        static WordSet sFuncParameterQualifiers = new WordSet("out ref");
+        static WordSet sFieldDefTypeQualifiers = new WordSet("ref");
+        static WordSet sFuncDefReturnTypeQualifiers = new WordSet("ref ro");
+        static WordSet sFuncDefParamTypeQualifiers = new WordSet("out ref ro");
+        static WordSet sTypeDefQualifiers = new WordSet("ref ro");
         static WordSet sTypeDefParamQualifiers = new WordSet("in out");
+        static WordSet sFuncCallParamQualifiers = new WordSet("out ref");
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sNewKeyword = new WordSet("new");
 
@@ -392,7 +395,7 @@ ParseClass:
             synClass.Keyword = Accept();
             synClass.Qualifiers = qualifiers.ToArray();
             var classIdentifier = mToken;
-            synClass.ClassName = ParseTypeDef(sRejectStatement);
+            synClass.ClassName = ParseTypeDef(sTypeDefQualifiers, sRejectStatement);
             ShowParseTree(synClass.ClassName);
 
             // Parse base type
@@ -446,8 +449,13 @@ ParseClass:
         /// <summary>
         /// Returns NULL if it fails
         /// </summary>
-        SyntaxExpr ParseTypeDef(WordSet errorStop)
+        SyntaxExpr ParseTypeDef(WordSet qualifiers, WordSet errorStop)
         {
+            // TBD: Collect qualifiers, store in AST, but keep the
+            //      name identifier as the primary token
+            while (qualifiers.ContainsKey(mTokenName))
+                Accept();
+
             if (!ParseIdentifier("Expecting a type name", sRejectStatement, out var typeName))
                 return null;
 
@@ -517,7 +525,7 @@ ParseClass:
 
             // Parse type name
             if (mTokenName != "=")
-                field.TypeName = TryParseTypeName(sRejectStatement);
+                field.TypeName = TryParseTypeNameWithQualifiers(sFieldDefTypeQualifiers, sRejectStatement);
 
             if (AcceptMatch("="))
             {
@@ -593,7 +601,7 @@ ParseClass:
                 else
                 {
                     // Parse function name, possibly generic
-                    synFunc.FuncName = ParseTypeDef(sRejectFuncName);
+                    synFunc.FuncName = ParseTypeDef(sEmptyWordSet, sRejectFuncName);
                 }
             }
             ShowParseTree(synFunc.FuncName);
@@ -602,12 +610,12 @@ ParseClass:
             if (mToken != "(" && mToken != "[")
                 Reject("Expecting '(' or '['", sRejectFuncName);
             if (mToken == "(" || mToken == "[")
-                synFunc.Params = ParseFuncParams();
+                synFunc.Params = ParseFuncDefParams();
 
             // Parse return type
             if (mTokenName != "{" && mTokenName != ";")
             {
-                synFunc.Return = TryParseTypeNameWithQualifiers(sTypeParameterQualifiers, sRejectFuncParam);
+                synFunc.Return = TryParseTypeNameWithQualifiers(sFuncDefReturnTypeQualifiers, sRejectFuncParam);
                 ShowParseTree(synFunc.Return);
             }
 
@@ -630,7 +638,7 @@ ParseClass:
             return synFunc;
         }
 
-        SyntaxFuncParam []ParseFuncParams()
+        SyntaxFuncParam []ParseFuncDefParams()
         {
             // Read open token, '(' or '['
             var openToken = Accept();
@@ -641,11 +649,11 @@ ParseClass:
             var closeToken = openToken.Name == "(" ? ")" : "]";
             var parameters = new List<SyntaxFuncParam>();
             if (mTokenName != closeToken)
-                parameters.Add(ParseFuncParam());
+                parameters.Add(ParseFuncDefParam());
             while (AcceptMatch(","))
             {
                 Connect(openToken, mPrevToken);
-                parameters.Add(ParseFuncParam());
+                parameters.Add(ParseFuncDefParam());
             }
 
             if (mTokenName != closeToken)
@@ -655,12 +663,12 @@ ParseClass:
             return parameters.ToArray();
         }
 
-        SyntaxFuncParam ParseFuncParam()
+        SyntaxFuncParam ParseFuncDefParam()
         {
             var synParam = new SyntaxFuncParam();
             if (!ParseIdentifier("Expecting a variable name", sRejectFuncParam, out synParam.Name))
                 return synParam;
-            synParam.TypeName = TryParseTypeNameWithQualifiers(sTypeParameterQualifiers, sRejectFuncParam);
+            synParam.TypeName = TryParseTypeNameWithQualifiers(sFuncDefParamTypeQualifiers, sRejectFuncParam);
             ShowParseTree(synParam.TypeName, synParam.Name);
             return synParam;
         }
@@ -898,7 +906,7 @@ ParseClass:
                     accepted = true;
                     var openToken = mToken;
                     var parameters = new List<SyntaxExpr>() { result };
-                    ParseParameters(parameters);
+                    ParseFuncCallParameters(parameters);
                     result = new SyntaxExprMulti(openToken, parameters.ToArray());
                 }
                 else if (AcceptMatch("."))
@@ -1029,7 +1037,7 @@ ParseClass:
         /// <summary>
         /// Read the open '(' or '[' and then parse the parameters into parameters
         /// </summary>
-        void ParseParameters(List<SyntaxExpr> parameters)
+        void ParseFuncCallParameters(List<SyntaxExpr> parameters)
         {
             // Read open token, '(' or '['
             var openToken = Accept();
@@ -1047,9 +1055,9 @@ ParseClass:
 
             // Parse parameters
             var isFunc = openToken == "(";
-            parameters.Add(isFunc ? ParseFuncParameter() : ParseExpr());
+            parameters.Add(isFunc ? ParseFuncCallParameter() : ParseExpr());
             while (AcceptMatch(","))
-                parameters.Add(isFunc ? ParseFuncParameter() : ParseExpr());
+                parameters.Add(isFunc ? ParseFuncCallParameter() : ParseExpr());
 
             // If not ended properly, reject this expression
             if (mTokenName != expectedToken)
@@ -1060,11 +1068,11 @@ ParseClass:
                 Connect(openToken, mPrevToken);
         }
 
-        SyntaxExpr ParseFuncParameter()
+        SyntaxExpr ParseFuncCallParameter()
         {
             // Allow 'ref' or 'out' qualifier
             Token qualifier = null;
-            if (sFuncParameterQualifiers.Contains(mTokenName))
+            if (sFuncCallParamQualifiers.Contains(mTokenName))
                 qualifier = Accept();
 
             var expr = ParseExpr();
@@ -1080,7 +1088,7 @@ ParseClass:
                     RejectToken(qualifier, "Qualifier cannot come before a named parameter");
 
                 // Allow 'ref' or 'out' qualifier
-                if (sFuncParameterQualifiers.Contains(mTokenName))
+                if (sFuncCallParamQualifiers.Contains(mTokenName))
                     qualifier = Accept();
 
                 var exprRight = ParseExpr();

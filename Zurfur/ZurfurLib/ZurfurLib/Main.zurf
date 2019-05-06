@@ -70,9 +70,7 @@ interface ISortable<in T>
     static func Compare(a T, b T) int;
 }
 
-
-
-public ro struct string
+public struct ro string
 {
     ro str array<byte>;
 
@@ -88,22 +86,40 @@ public ro struct string
     // TBD: Implicit conversion to and from RoSpan
 }
 
-ref ro struct Span<T>
+struct ref ro Span<T>
 {
-    ro Data *T;
+    ro data ref T;
     ro Length int;
     func get[index int] ref T { todo(); }
     func Slice(start int, length int) Span<T> { todo(); }
     // TBD: implicit conversion to RoSpan
 }
 
-// TBD: Do we wanto to have "struct ro Span" so we don't need another definition for RoSpan?
-ref ro struct RoSpan<T>
+struct ref roRoSpan<T>
 {
-    ro Data *T;
+    ro data ref T;
     ro Length int;
     func get[index int] ro ref T { todo(); }
     func Slice(start int, length int) RoSpan<T> { todo(); }
+}
+
+struct ref ro Memory<T>
+{
+    ro data object;
+    ro offset xint;
+    ro Length int;
+    func get[index int] ref T { todo(); }
+    func Slice(start int, length int) Memory<T> { todo(); }
+    // TBD: implicit conversion to RoSpan
+}
+
+struct ref ro RoMemory<T>
+{
+    ro data object;
+    ro offset xint;
+    ro Length int;
+    func get[index int] ro ref T { todo(); }
+    func Slice(start int, length int) RoMemory<T> { todo(); }
 }
 
 // All variable sized objects must inherit from this class, must be sealed, and
