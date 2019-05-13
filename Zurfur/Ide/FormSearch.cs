@@ -17,7 +17,7 @@ namespace Gosub.Zurfur
     public partial class FormSearch:Form
     {
         // The form
-        static FormSearch		mFormSearch;
+        static FormSearch		sFormSearch;
     
         /// <summary>
         /// This must be set to the editor before showing the form
@@ -46,15 +46,15 @@ namespace Gosub.Zurfur
         public static void Show(Form owner, TextEditor editor)
         {
             // Create the form
-            if (mFormSearch == null || mFormSearch.IsDisposed)
-                mFormSearch = new FormSearch();
+            if (sFormSearch == null || sFormSearch.IsDisposed)
+                sFormSearch = new FormSearch();
 
             // Display the form (possibly with a new owner)
-            mFormSearch.mEditor = editor;
-            if (owner != mFormSearch.Owner)
-                mFormSearch.Visible = false;
-            if (!mFormSearch.Visible)
-                mFormSearch.Show(owner);
+            sFormSearch.mEditor = editor;
+            if (owner != sFormSearch.Owner)
+                sFormSearch.Visible = false;
+            if (!sFormSearch.Visible)
+                sFormSearch.Show(owner);
 
             // Take selected text for search box (if any)
             TokenLoc selStart = editor.SelStart;
@@ -63,12 +63,12 @@ namespace Gosub.Zurfur
             {
                 string []search = editor.Lexer.GetText(selStart, selEnd);
                 if (search.Length == 1)
-                    mFormSearch.textSearch.Text = search[0];
+                    sFormSearch.textSearch.Text = search[0];
             }
 
             // Set search box focus
-            mFormSearch.textSearch.Focus();
-            mFormSearch.textSearch.SelectAll();
+            sFormSearch.textSearch.Focus();
+            sFormSearch.textSearch.SelectAll();
         }
 
         /// <summary>
@@ -76,13 +76,17 @@ namespace Gosub.Zurfur
         /// </summary>
         public static void FindNext(Form owner, TextEditor editor)
         {
-            if (mFormSearch == null || mFormSearch.SearchText.Trim() == "")
+            if (sFormSearch == null || sFormSearch.SearchText.Trim() == "")
+            {
                 Show(owner, editor);
+                sFormSearch.mEditor = editor;
+            }
             else
             {
-                if (mFormSearch.Owner != owner)
+                if (sFormSearch.Owner != owner)
                     Show(owner, editor);
-                mFormSearch.FindNext(owner);
+                sFormSearch.mEditor = editor;
+                sFormSearch.FindNext(owner);
             }
         }
 

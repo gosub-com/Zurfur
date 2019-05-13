@@ -12,6 +12,8 @@ namespace Gosub.Zurfur
     {
         int mTabSize = 4;
         Lexer mLexer;
+        int mLineStart;
+        int mLineCount;
         string []mText;
 
         public FormHtml()
@@ -57,33 +59,39 @@ namespace Gosub.Zurfur
             if (mLexer != null)
             {
                 StringBuilder html = new StringBuilder();
+
+                // These should come from the text editor, which should eventually come from settings
                 html.Append(""
                     + "<style>"
                     + ".s0 { color:black }" // Normal
-                    + ".s1 { color:blue; font-weight: bold }" // Reserved word
-                    + ".s2 { color:blue }" // Reserved name
+                    + ".s1 { color:blue }" // Reserved
+                    + ".s2 { color:blue; font-weight: bold }" // Reserved Control
                     + ".s3 { color:black }" // Identifier
-                    + ".s4 { color:green }" // Comment
-                    + ".s5 { color:red }" // Unknown
-                    + ".s6 { color:red }" // Unknown
-                    + ".s7 { color:red }" // Unknown
+                    + ".s4 { color:black }" // Number
+                    + ".s5 { color:brown }" // Quote
+                    + ".s6 { color:green }" // Comment
+                    + ".s7 { color:#147DA0 }" // TypeName
                     + ".s8 { color:red }" // Unknown
                     + ".s9 { color:red }" // Unknown
                     + ".s10 { color:red }" // Unknown
                     + "</style>");
                 html.Append("<pre>");
 
-                int line = 0;
+                int line = mLineCount == 0 ? 0 : mLineStart;
+                int endLine = mLineCount == 0 ? int.MaxValue : mLineStart + mLineCount;
                 int column = 0;
                 eTokenType tokenType = eTokenType.Normal;
                 html.Append("<span class=s0>");
-                foreach (var token in mLexer)
+                foreach (var token in mLexer.GetEnumeratorStartAtLine(line))
                 {
+                    if (token.Line > endLine)
+                        break;
+
                     // Append new line when moving to next line
-                    if (token.Line != line)
+                    while (line < token.Line)
                     {
                         html.Append("\r\n");
-                        line = token.Line;
+                        line++;
                         column = 0;
                     }
                     // Prepend white space
@@ -115,9 +123,11 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Show the lexer (with syntax coloring)
         /// </summary>
-        public void ShowLexer(Lexer lexer)
+        public void ShowLexer(Lexer lexer, int lineStart, int lineCount)
         {
             mLexer = lexer;
+            mLineStart = lineStart;
+            mLineCount = lineCount;
             Show();
         }
 

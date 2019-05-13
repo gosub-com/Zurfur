@@ -88,11 +88,11 @@ are private by default.  Public things should be capitalized, and
 private things should not be.  This behavior can be changed by using
 the `public` and `private` qualifiers.
 
-For some reason, the most basic built in types like `int`, `string`,
-and `map` are lower case even though they are public.  Nobody knows why
-this is, but the convention appears to go back to the goes back to the
-1970's, perhaps even further.  PS.  Likewise, the math intrinsics like
-`sin`, `cos`, `min`, and `max`, might also be lower case.  What do you think?
+For some reason, the most basic built in types like `int` and `float32` are
+lower case even though they are public.  Nobody knows why this is, but the
+convention appears to go back to the goes back to the 1970's, perhaps even
+further.  PS.  Likewise, the math intrinsics like `sin`, `min`, and `max`,
+might also be lower case.  What do you think?
 
 ## Casting
 

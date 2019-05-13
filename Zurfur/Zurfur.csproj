@@ -182,6 +182,9 @@
     <Compile Include="Compiler\Token.cs" />
     <Compile Include="Compiler\Lexer.cs" />
     <Compile Include="App.cs" />
+    <None Include="ZurfurLib\ZurfurLib\Interfaces.zurf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="ZurfurLib\ZurfurLib\SimpleTypes.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

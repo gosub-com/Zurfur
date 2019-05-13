@@ -50,6 +50,7 @@ namespace Gosub.Zurfur
         public SyntaxExpr BaseClass;
         public SyntaxExpr ClassName;
         public SyntaxExpr Alias;
+        public SyntaxExpr[] Implements;
         public SyntaxConstraint []Constraints;
 
         public override string ToString()
@@ -61,8 +62,8 @@ namespace Gosub.Zurfur
     class SyntaxConstraint
     {
         public Token Keyword;  // Where
-        public Token Typename;
-        public SyntaxExpr[] QualifiedIdentifiers;
+        public Token GenericTypeName;
+        public SyntaxExpr []TypeNames;
     }
 
     class SyntaxField

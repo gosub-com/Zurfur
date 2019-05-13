@@ -18,7 +18,7 @@ namespace Gosub.Zurfur
         Number,
         Quote,
         Comment,
-        Type
+        TypeName
     }
 
     public enum eTokenBits : short

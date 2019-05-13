@@ -33,16 +33,16 @@ public struct bool
 /// int8 (-128..127)
 public struct int8
 {
-    extern func new(from uint8);
-    extern func new(from int16);
-    extern func new(from uint16);
-    extern func new(from int32);
-    extern func new(from uint32);
-    extern func new(from int64);
-    extern func new(from uint64);
-    extern func new(from float32);
-    extern func new(from float64);
-    extern func new(from decimal);
+    extern construct(from uint8);
+    extern construct(from int16);
+    extern construct(from uint16);
+    extern construct(from int32);
+    extern construct(from uint32);
+    extern construct(from int64);
+    extern construct(from uint64);
+    extern construct(from float32);
+    extern construct(from float64);
+    extern construct(from decimal);
 
     const MaxValue int8 = 127;	
     const MinValue int8 = -128;
@@ -55,16 +55,16 @@ public struct int8
 /// uint8 (0..255) same as byte
 public struct uint8
 {
-    extern func new(from int8);
-    extern func new(from int16);
-    extern func new(from uint16);
-    extern func new(from int32);
-    extern func new(from uint32);
-    extern func new(from int64);
-    extern func new(from uint64);
-    extern func new(from float32);
-    extern func new(from float64);
-    extern func new(from decimal);
+    extern construct(from int8);
+    extern construct(from int16);
+    extern construct(from uint16);
+    extern construct(from int32);
+    extern construct(from uint32);
+    extern construct(from int64);
+    extern construct(from uint64);
+    extern construct(from float32);
+    extern construct(from float64);
+    extern construct(from decimal);
     
     const MaxValue uint8 = 255;	
     const MinValue uint8 = 0;
@@ -76,16 +76,16 @@ public struct uint8
 /// int16 (-32768..32768)
 public struct int16
 {
-    extern func new(from int8);
-    extern func new(from uint8);
-    extern func new(from uint16);
-    extern func new(from int32);
-    extern func new(from uint32);
-    extern func new(from int64);
-    extern func new(from uint64);
-    extern func new(from float32);
-    extern func new(from float64);
-    extern func new(from decimal);
+    extern construct(from int8);
+    extern construct(from uint8);
+    extern construct(from uint16);
+    extern construct(from int32);
+    extern construct(from uint32);
+    extern construct(from int64);
+    extern construct(from uint64);
+    extern construct(from float32);
+    extern construct(from float64);
+    extern construct(from decimal);
 
     const MaxValue int16 = 32767;
     const MinValue int16 = -32768;
@@ -98,16 +98,16 @@ public struct int16
 /// uint16 (0..65535)
 public struct uint16
 {
-    extern func new(from int8);
-    extern func new(from uint8);
-    extern func new(from int16);
-    extern func new(from int32);
-    extern func new(from uint32);
-    extern func new(from int64);
-    extern func new(from uint64);
-    extern func new(from float32);
-    extern func new(from float64);
-    extern func new(from decimal);
+    extern construct(from int8);
+    extern construct(from uint8);
+    extern construct(from int16);
+    extern construct(from int32);
+    extern construct(from uint32);
+    extern construct(from int64);
+    extern construct(from uint64);
+    extern construct(from float32);
+    extern construct(from float64);
+    extern construct(from decimal);
 
     const MaxValue uint16 = 65535;	
     const MinValue uint16 = 0;
@@ -119,16 +119,16 @@ public struct uint16
 /// A 32 bit integer (same as int)
 public struct int32
 {
-    extern func new(from int8);
-    extern func new(from uint8);
-    extern func new(from int16);
-    extern func new(from uint16);
-    extern func new(from uint32);
-    extern func new(from int64);
-    extern func new(from uint64);
-    extern func new(from float32);
-    extern func new(from float64);
-    extern func new(from decimal);
+    extern construct(from int8);
+    extern construct(from uint8);
+    extern construct(from int16);
+    extern construct(from uint16);
+    extern construct(from uint32);
+    extern construct(from int64);
+    extern construct(from uint64);
+    extern construct(from float32);
+    extern construct(from float64);
+    extern construct(from decimal);
 
     const MaxValue int32 = 2147483647;	
     const MinValue int32 = -2147483648;
@@ -139,12 +139,12 @@ public struct int32
     static extern func Compare(a int32, b int32) int;
 
     // Overloadable operators
-    static extern func operator+(a int32);
-    static extern func operator-(a int32);
-    static extern func operator+(a int32, b int32);
-    static extern func operator-(a int32, b int32);
-    static extern func operator*(a int32, b int32);
-    static extern func operator/(a int32, b int32);
+    extern operator+(a int32) int32;
+    extern operator-(a int32) int32;
+    extern operator+(a int32, b int32) int32;
+    extern operator-(a int32, b int32) int32;
+    extern operator*(a int32, b int32) int32;
+    extern operator/(a int32, b int32) int32;
     
     // Not overloadable, but these are supplied specially for this type
     //static extern func operator%(a int32, b int32);
@@ -159,16 +159,16 @@ public struct int32
 /// 32 bit unsigned integer (same as uint)
 public struct uint32
 {
-    extern func new(from int8);
-    extern func new(from uint8);
-    extern func new(from int16);
-    extern func new(from uint16);
-    extern func new(from int32);
-    extern func new(from int64);
-    extern func new(from uint64);
-    extern func new(from float32);
-    extern func new(from float64);
-    extern func new(from decimal);
+    extern construct(from int8);
+    extern construct(from uint8);
+    extern construct(from int16);
+    extern construct(from uint16);
+    extern construct(from int32);
+    extern construct(from int64);
+    extern construct(from uint64);
+    extern construct(from float32);
+    extern construct(from float64);
+    extern construct(from decimal);
 
     const MaxValue uint32 = (0);	
     const MinValue uint32 = 4294967295;
@@ -179,12 +179,12 @@ public struct uint32
     static extern func Compare(a uint32, b uint32) int;
     
     // Overloadable operators
-    static extern func operator+(a uint32);
-    static extern func operator-(a uint32);
-    static extern func operator+(a uint32, b uint32);
-    static extern func operator-(a uint32, b uint32);
-    static extern func operator*(a uint32, b uint32);
-    static extern func operator/(a uint32, b uint32);
+    extern operator+(a uint32) uint32;
+    extern operator-(a uint32) uint32;
+    extern operator+(a uint32, b uint32) uint32;
+    extern operator-(a uint32, b uint32) uint32;
+    extern operator*(a uint32, b uint32) uint32;
+    extern operator/(a uint32, b uint32) uint32;
 
     // Not overloadable, but these are supplied specially for this type
     //static extern func operator%(a uint32, b uint32);
@@ -199,16 +199,16 @@ public struct uint32
 /// A 64 bit integer
 public struct int64
 {
-    extern func new(from int8);
-    extern func new(from uint8);
-    extern func new(from int16);
-    extern func new(from uint16);
-    extern func new(from int32);
-    extern func new(from uint32);
-    extern func new(from uint64);
-    extern func new(from float32);
-    extern func new(from float64);
-    extern func new(from decimal);
+    extern construct(from int8);
+    extern construct(from uint8);
+    extern construct(from int16);
+    extern construct(from uint16);
+    extern construct(from int32);
+    extern construct(from uint32);
+    extern construct(from uint64);
+    extern construct(from float32);
+    extern construct(from float64);
+    extern construct(from decimal);
 
     const MaxValue int64 = 9223372036854775807;	
     const MinValue int64 = -9223372036854775808;
@@ -219,12 +219,12 @@ public struct int64
     static extern func Compare(a int64, b int64) int;
 
     // Overloadable operators
-    static extern func operator+(a int64);
-    static extern func operator-(a int64);
-    static extern func operator+(a int64, b int64);
-    static extern func operator-(a int64, b int64);
-    static extern func operator*(a int64, b int64);
-    static extern func operator/(a int64, b int64);
+    extern operator+(a int64) int64;
+    extern operator-(a int64) int64;
+    extern operator+(a int64, b int64) int64;
+    extern operator-(a int64, b int64) int64;
+    extern operator*(a int64, b int64) int64;
+    extern operator/(a int64, b int64) int64;
 
     // Not overloadable, but these are supplied specially for this type
     //static extern func operator%(a int64, b int64);
@@ -239,16 +239,16 @@ public struct int64
 /// 64 bit unsigned integer
 public struct uint64
 {
-    extern func new(from int8);
-    extern func new(from uint8);
-    extern func new(from int16);
-    extern func new(from uint16);
-    extern func new(from int32);
-    extern func new(from uint32);
-    extern func new(from int64);
-    extern func new(from float32);
-    extern func new(from float64);
-    extern func new(from decimal);
+    extern construct(from int8);
+    extern construct(from uint8);
+    extern construct(from int16);
+    extern construct(from uint16);
+    extern construct(from int32);
+    extern construct(from uint32);
+    extern construct(from int64);
+    extern construct(from float32);
+    extern construct(from float64);
+    extern construct(from decimal);
 
     const MaxValue uint64 = 0;	
     const MinValue uint64 = 18446744073709551615;
@@ -259,12 +259,12 @@ public struct uint64
     static extern func Compare(a uint64, b uint64) int;
     
     // Overloadable operators
-    static extern func operator+(a uint64);
-    static extern func operator-(a uint64);
-    static extern func operator+(a uint64, b uint64);
-    static extern func operator-(a uint64, b uint64);
-    static extern func operator*(a uint64, b uint64);
-    static extern func operator/(a uint64, b uint64);
+    extern operator+(a uint64) uint64;
+    extern operator-(a uint64) uint64;
+    extern operator+(a uint64, b uint64) uint64;
+    extern operator-(a uint64, b uint64) uint64;
+    extern operator*(a uint64, b uint64) uint64;
+    extern operator/(a uint64, b uint64) uint64;
 
     // Not overloadable, but these are supplied specially for this type
     //static extern func operator%(a uint64, b uint64);
@@ -278,16 +278,16 @@ public struct uint64
 
 public struct float32
 {
-    extern func new(from int8);
-    extern func new(from uint8);
-    extern func new(from int16);
-    extern func new(from uint16);
-    extern func new(from int32);
-    extern func new(from uint32);
-    extern func new(from int64);
-    extern func new(from uint64);
-    extern func new(from float64);
-    extern func new(from decimal);
+    extern construct(from int8);
+    extern construct(from uint8);
+    extern construct(from int16);
+    extern construct(from uint16);
+    extern construct(from int32);
+    extern construct(from uint32);
+    extern construct(from int64);
+    extern construct(from uint64);
+    extern construct(from float64);
+    extern construct(from decimal);
 
     // Normal float32 comparisons (NAN==NAN is false)
     // TBD: Maybe we don't need funny NAN comparisons since we're starting fresh?
@@ -305,19 +305,19 @@ public struct float32
     const PositiveInfinity float32 = 1F/0F;
     const NegativeInfinity float32 = -1F/0F;
     const NaN float32 = 0F/0F;
-    extern func get IsInfinity() bool;
-    extern func get IsNaN() bool;
-    extern func get IsNegativeInfinity() bool;
-    extern func get IsPositiveInfinity() bool;
+    extern get IsInfinity bool;
+    extern get IsNaN bool;
+    extern get IsNegativeInfinity bool;
+    extern get IsPositiveInfinity bool;
 
     
     // Overloadable operators
-    static extern func operator+(a float32);
-    static extern func operator-(a float32);
-    static extern func operator+(a float32, b float32);
-    static extern func operator-(a float32, b float32);
-    static extern func operator*(a float32, b float32);
-    static extern func operator/(a float32, b float32);
+    extern operator+(a float32) float32;
+    extern operator-(a float32) float32;
+    extern operator+(a float32, b float32) float32;
+    extern operator-(a float32, b float32) float32;
+    extern operator*(a float32, b float32) float32;
+    extern operator/(a float32, b float32) float32;
     
     // Not overloadable, but these are supplied specially for this type
     //static extern func operator%(a float32, b float32);	
@@ -326,16 +326,16 @@ public struct float32
 
 public struct float64
 {
-    extern func new(from int8);
-    extern func new(from uint8);
-    extern func new(from int16);
-    extern func new(from uint16);
-    extern func new(from int32);
-    extern func new(from uint32);
-    extern func new(from int64);
-    extern func new(from uint64);
-    extern func new(from float32);
-    extern func new(from decimal);
+    extern construct(from int8);
+    extern construct(from uint8);
+    extern construct(from int16);
+    extern construct(from uint16);
+    extern construct(from int32);
+    extern construct(from uint32);
+    extern construct(from int64);
+    extern construct(from uint64);
+    extern construct(from float32);
+    extern construct(from decimal);
 
     // Normal float64 comparisons (NAN==NAN is false)
     // TBD: Maybe we don't need funny NAN comparisons since we're starting fresh?
@@ -353,18 +353,18 @@ public struct float64
     const PositiveInfinity float64 = 1.0/0.0;
     const NegativeInfinity float64 = -1.0/0.0;
     const NaN float64 = 0.0/0.0;
-    extern func get IsInfinity() bool;
-    extern func get IsNaN() bool;
-    extern func get IsNegativeInfinity() bool;
-    extern func get IsPositiveInfinity() bool;
+    extern get IsInfinity bool;
+    extern get IsNaN bool;
+    extern get IsNegativeInfinity bool;
+    extern get IsPositiveInfinity bool;
     
     // Overloadable operators
-    static extern func operator+(a float64);
-    static extern func operator-(a float64);
-    static extern func operator+(a float64, b float64);
-    static extern func operator-(a float64, b float64);
-    static extern func operator*(a float64, b float64);
-    static extern func operator/(a float64, b float64);
+    extern operator+(a float64) float64;
+    extern operator-(a float64) float64;
+    extern operator+(a float64, b float64) float64;
+    extern operator-(a float64, b float64) float64;
+    extern operator*(a float64, b float64) float64;
+    extern operator/(a float64, b float64) float64;
     
     // Not overloadable, but these are supplied specially for this type
     //static extern func operator%(a float64, b float64);	
@@ -375,26 +375,26 @@ public struct float64
 /// exponents covering the range of double.
 public struct decimal
 {
-    extern func new(from int8);
-    extern func new(from uint8);
-    extern func new(from int16);
-    extern func new(from uint16);
-    extern func new(from int32);
-    extern func new(from uint32);
-    extern func new(from int64);
-    extern func new(from uint64);
-    extern func new(from float32);
-    extern func new(from float64);
+    extern construct(from int8);
+    extern construct(from uint8);
+    extern construct(from int16);
+    extern construct(from uint16);
+    extern construct(from int32);
+    extern construct(from uint32);
+    extern construct(from int64);
+    extern construct(from uint64);
+    extern construct(from float32);
+    extern construct(from float64);
 
     const MaxValue decimal = 1E+1000M;	
     const MinValue decimal = -1E+1000M;
     const PositiveInfinity decimal = 1.0/0.0;
     const NegativeInfinity decimal = -1.0/0.0;
     const NaN decimal = 0.0/0.0;
-    extern func get IsInfinity() bool;
-    extern func get IsNaN() bool;
-    extern func get IsNegativeInfinity() bool;
-    extern func get IsPositiveInfinity() bool;
+    extern get IsInfinity bool;
+    extern get IsNaN bool;
+    extern get IsNegativeInfinity bool;
+    extern get IsPositiveInfinity bool;
 
     // Comparisons.  NOTE: NaN > infinity, and NaN==NaN is true
     static extern func GetHashCode(a decimal) uint;
@@ -402,12 +402,12 @@ public struct decimal
     static extern func Compare(a decimal, b decimal) int;
     
     // Overloadable operators
-    static extern func operator+(a decimal);
-    static extern func operator-(a decimal);
-    static extern func operator+(a decimal, b decimal);
-    static extern func operator-(a decimal, b decimal);
-    static extern func operator*(a decimal, b decimal);
-    static extern func operator/(a decimal, b decimal);
+    extern operator+(a decimal) decimal;
+    extern operator-(a decimal) decimal;
+    extern operator+(a decimal, b decimal) decimal;
+    extern operator-(a decimal, b decimal) decimal;
+    extern operator*(a decimal, b decimal) decimal;
+    extern operator/(a decimal, b decimal) decimal;
     
     // Not overloadable, but these are supplied specially for this type    
     //static extern func operator%(a decimal, b decimal);

@@ -24,7 +24,7 @@ namespace Gosub.Zurfur
         Token				mToken;
         Token               mPrevToken;
         List<string>        mComments = new List<string>();
-        WordSet             mIdentifierAllowedReservedWords = sEmptyWordSet;
+        WordSet             mIdentifierAllowedReservedWords;
 
         SyntaxUnit mUnit;
 
@@ -34,12 +34,12 @@ namespace Gosub.Zurfur
 
         static readonly string sReservedWordsList = "abstract as base break case catch class const "
             + "continue default delegate do else enum event explicit extern false defer use "
-            + "finally fixed for goto if implicit in interface internal is lock namespace "
+            + "finally fixed for goto if implicit in interface internal is extends lock namespace "
             + "new null operator out override params public private protected readonly ro ref "
             + "return sealed sealed1 sizeof stackalloc heapalloc static struct switch this throw true try "
-            + "typeof unsafe using static virtual volatile while "
-            + "async await astart get set yield global partial var where nameof func construct cast";
-        static readonly string sReservedControlWords = "using namespace class struct interface func construct if else switch case";
+            + "typeof unsafe using static virtual volatile while asm managed unmanaged implements "
+            + "async await astart get set yield global partial var where nameof func construct destruct cast";
+        static readonly string sReservedControlWords = "using namespace class struct interface func construct destruct if else switch case";
         static WordMap<eTokenType> sReservedWords = new WordMap<eTokenType>();
 
         static WordSet sInterfaceQualifiers = new WordSet("public protected private internal");
@@ -48,6 +48,7 @@ namespace Gosub.Zurfur
         static WordSet sEnumQualifiers = new WordSet("public protected private internal");
         static WordSet sFuncQualifiers = new WordSet("public protected private internal unsafe static extern abstract virtual override new async");
         static WordSet sFieldQualifiers = new WordSet("public protected private internal unsafe static volatile ro const");
+
 
         static WordMap<int> sClassFuncFieldQualifiers = new WordMap<int>()
         {
@@ -66,7 +67,11 @@ namespace Gosub.Zurfur
         static WordSet sTypeDefParamQualifiers = new WordSet("in out");
         static WordSet sFuncCallParamQualifiers = new WordSet("out ref");
         static WordSet sEmptyWordSet = new WordSet("");
-        static WordSet sNewKeyword = new WordSet("new");
+
+        static WordSet sAllowNewKeyword = new WordSet("new");
+        static WordSet sAllowThisKeyword = new WordSet("this");
+        static WordSet sAllowConstraintKeywords = new WordSet("class struct unmanaged");
+
 
         static WordSet sOverloadableOperators = new WordSet("+ - * /");
         static WordSet sComparisonOperators = new WordSet("== === != > < <="); // For '>=', use VIRTUAL_TOKEN_GE
@@ -127,7 +132,6 @@ namespace Gosub.Zurfur
                 ShowTypes(field.TypeName, true);
                 ShowTypes(field.InitExpr, false);
             }
-
         }
 
         /// Temporary, remove this later
@@ -136,6 +140,18 @@ namespace Gosub.Zurfur
             ShowTypes(class1.Alias, true);
             ShowTypes(class1.BaseClass, true);
             ShowTypes(class1.ClassName, true);
+            if (class1.Constraints != null)
+                foreach (var constraint in class1.Constraints)
+                {
+                    if (constraint.GenericTypeName != null)
+                        constraint.GenericTypeName.Type = eTokenType.TypeName;
+                    if (constraint.TypeNames != null)
+                        foreach (var typeName in constraint.TypeNames)
+                            ShowTypes(typeName, true);
+                }
+            if (class1.Implements != null)
+                foreach (var imp in class1.Implements)
+                    ShowTypes(imp, true);
         }
 
         /// Temporary, remove this later
@@ -155,7 +171,7 @@ namespace Gosub.Zurfur
             if (expr == null)
                 return;
             if (isType && expr.Token.Type == eTokenType.Identifier)
-                expr.Token.Type = eTokenType.Type;
+                expr.Token.Type = eTokenType.TypeName;
             if (expr.Token == VIRTUAL_TOKEN_TYPE_ARG_LIST)
                 isType = true;
             foreach (var e in expr)
@@ -248,11 +264,15 @@ ParseClass:
                         mUnit.Classes.Add(classDef);
                         break;
 
+                    case "operator":
+                    case "get":
+                    case "set":
+                    case "construct":
                     case "func":
                         RejectQualifiers(qualifiers, "This qualifier does not apply to func statements", sFuncQualifiers);
                         if (mUnit.CurrentNamespace == null)
                             RejectToken(keyword, "The namespace must be defined before func statements");
-                        var funcDef = ParseFuncDef(qualifiers, comments, outerKeyword == "interface");
+                        var funcDef = ParseMethodDef(qualifiers, comments, outerKeyword == "interface");
                         if (funcDef.FuncName != null)
                             CheckPublicQualifier(funcDef.FuncName.Token, qualifiers);
                         mUnit.Funcs.Add(funcDef);
@@ -342,7 +362,6 @@ ParseClass:
             }
         }
 
-
         SyntaxUsing ParseUsingStatement()
         {
             var synUsing = new SyntaxUsing();
@@ -399,18 +418,32 @@ ParseClass:
             ShowParseTree(synClass.ClassName);
 
             // Parse base type
-            if (AcceptMatch(":"))
+            if (AcceptMatch("extends"))
             {
-                synClass.BaseClass = TryParseTypeName(sRejectStatement);
+                TryParseTypeName(out synClass.BaseClass, sRejectStatement);
                 ShowParseTree(synClass.BaseClass);
             }
 
-            List<SyntaxConstraint> constraints = new List<SyntaxConstraint>();
-            while (mTokenName == "where")
+            // Parse implements
+            if (AcceptMatch("implements"))
             {
-                constraints.Add(ParseConstraint());
+                var imp = new List<SyntaxExpr>();
+                do
+                {
+                    if (TryParseTypeName(out var implementType, sRejectStatement))
+                        imp.Add(implementType);
+                } while (AcceptMatch(","));
+                synClass.Implements = imp.ToArray();
             }
 
+            // Parse constraints
+            if (mTokenName == "where")
+            {
+                List<SyntaxConstraint> constraints = new List<SyntaxConstraint>();
+                while (mTokenName == "where")
+                    constraints.Add(ParseConstraint());
+                synClass.Constraints = constraints.ToArray();
+            }
             if (mTokenName == ";")
             {
                 RejectToken(mToken, "Empty body not allowed");
@@ -419,7 +452,7 @@ ParseClass:
             }
             if (AcceptMatch("="))
             {
-                synClass.Alias = TryParseTypeName(sRejectStatement);
+                TryParseTypeName(out synClass.Alias, sRejectStatement);
                 ShowParseTree(synClass.Alias);
                 SkipSemicolon();
                 return synClass;
@@ -495,18 +528,26 @@ ParseClass:
         {
             var constraint = new SyntaxConstraint();
             constraint.Keyword = Accept();
-            if (!ParseIdentifier("Expecting a type name", sRejectStatement, out constraint.Typename))
+            if (!ParseIdentifier("Expecting a type name", sRejectStatement, out constraint.GenericTypeName))
                 return constraint;
-            if (!AcceptMatch(":"))
+            if (!AcceptMatch("is"))
             {
-                RejectToken(mToken, "Expecting ':'");
+                RejectToken(mToken, "Expecting 'is'");
                 return constraint;
             }
-            List<SyntaxExpr> identifiers = new List<SyntaxExpr>();
-            identifiers.Add(TryParseQualifiedIdentifier("Expecting qualified identifier", sRejectStatement, true));
-            while (AcceptMatch(","))
-                identifiers.Add(TryParseQualifiedIdentifier("Expecting a type name", sRejectStatement, true));
-            constraint.QualifiedIdentifiers = identifiers.ToArray();
+            var constraintTypeNames = new List<SyntaxExpr>();
+            do
+            {
+                if (sAllowConstraintKeywords.Contains(mToken))
+                {
+                    mToken.Type = eTokenType.Reserved;
+                    constraintTypeNames.Add(new SyntaxExprToken(Accept()));
+                    continue;
+                }
+                if (TryParseTypeName(out var typeName, sRejectStatement))
+                    constraintTypeNames.Add(typeName);
+            } while (AcceptMatch(","));
+            constraint.TypeNames = constraintTypeNames.ToArray();
             return constraint;                       
         }
 
@@ -525,16 +566,16 @@ ParseClass:
 
             // Parse type name
             if (mTokenName != "=")
-                field.TypeName = TryParseTypeNameWithQualifiers(sFieldDefTypeQualifiers, sRejectStatement);
+                TryParseTypeNameWithQualifiers(out field.TypeName, sFieldDefTypeQualifiers, sRejectStatement);
 
             if (AcceptMatch("="))
             {
                 // Parse initialization expression
-                mIdentifierAllowedReservedWords = isEnum ? sEmptyWordSet : sNewKeyword;
+                mIdentifierAllowedReservedWords = isEnum ? null : sAllowNewKeyword;
                 var eqToken = mPrevToken;
                 field.InitExpr = ParseExpr();
                 ShowParseTree(field.InitExpr, eqToken);
-                mIdentifierAllowedReservedWords = sEmptyWordSet;
+                mIdentifierAllowedReservedWords = null;
             }
             ShowParseTree(field.TypeName, field.Name);
             return field;
@@ -553,76 +594,37 @@ ParseClass:
             return expr;
         }
 
-        SyntaxFunc ParseFuncDef(List<Token> qualifiers, string []comments, bool isInterface)
+        /// <summary>
+        /// Func, construct, operator, get, set
+        /// </summary>
+        SyntaxFunc ParseMethodDef(List<Token> qualifiers, string []comments, bool isInterface)
         {
             // Parse func keyword
             var synFunc = new SyntaxFunc();
             synFunc.Comments = comments;
             synFunc.Qualifiers = qualifiers.ToArray();
             synFunc.Keyword = Accept();
+            string keyword = mPrevToken.Name;
+            mPrevToken.Type = eTokenType.ReservedControl;
 
-            // Optional class name (must be type name followed by "::")
-            var pp = SaveParsePoint();
-            var className = TryParseTypeName(null);
-            if (className != null && AcceptMatch("::"))
-                synFunc.ClassName = className;
-            else
-                RestoreParsePoint(pp);
+            switch (keyword)
+            {
+                case "func": ParseFuncDef(synFunc); break;
+                case "construct": ParseConstructDef(synFunc); break;
+                case "set": // TBD: No type params, require to be after "get"
+                case "get": ParseGetSetDef(synFunc); break;
+                case "operator": ParseOperatorDef(synFunc);  break;
+                default:
+                    throw new Exception("Error parsing function def");
+            }
 
-            // Parse function name
-            if (AcceptMatch("operator"))
-            {
-                // Function name is an operator
-                synFunc.FuncName = new SyntaxExprToken(mToken);
-                if (sOverloadableOperators.Contains(mTokenName))
-                    Accept();
-                else
-                    Reject("Expecting an overloadable operator", sRejectFuncName);
-            }
-            else if (AcceptMatch("new"))
-            {
-                // Function name is the constructor
-                mPrevToken.Type = eTokenType.ReservedControl;
-                synFunc.FuncName = new SyntaxExprToken(mToken);
-                if (mToken != "(")
-                    RejectToken(mToken, "Expecting '(' after 'new' token");
-            }
-            else
-            {
-                if (AcceptMatch("get") || AcceptMatch("set"))
-                {
-                    mPrevToken.Type = eTokenType.ReservedControl;
-                    synFunc.GetOrSetToken = mPrevToken;
-                }
-                if (mToken == "[")
-                {
-                    synFunc.FuncName = new SyntaxExprToken(mToken);
-                }
-                else
-                {
-                    // Parse function name, possibly generic
-                    synFunc.FuncName = ParseTypeDef(sEmptyWordSet, sRejectFuncName);
-                }
-            }
             ShowParseTree(synFunc.FuncName);
-
-            // Parse parameters
-            if (mToken != "(" && mToken != "[")
-                Reject("Expecting '(' or '['", sRejectFuncName);
-            if (mToken == "(" || mToken == "[")
-                synFunc.Params = ParseFuncDefParams();
-
-            // Parse return type
-            if (mTokenName != "{" && mTokenName != ";")
-            {
-                synFunc.Return = TryParseTypeNameWithQualifiers(sFuncDefReturnTypeQualifiers, sRejectFuncParam);
-                ShowParseTree(synFunc.Return);
-            }
+            ShowParseTree(synFunc.Return);
 
             if (mToken == ";")
             {
                 if (!isInterface)
-                    RejectTokenIfNotQualified(mToken, qualifiers, "extern", "This function must have 'extern' qualifier");
+                    RejectTokenIfNotQualified(mToken, qualifiers, "extern", "Expecting '{', or a function without a body must have the'extern' qualifier");
                 SkipSemicolon();
                 return synFunc;
             }
@@ -636,6 +638,82 @@ ParseClass:
                 synFunc.Statements = ParseFuncStatements();
             }
             return synFunc;
+        }
+
+        private void ParseFuncDef(SyntaxFunc synFunc)
+        {
+            // Try parsing a class name first (Optional, must be followed by "::")
+            var pp = SaveParsePoint();
+            if (TryParseTypeName(out var className, null) && AcceptMatch("::"))
+                synFunc.ClassName = className;
+            else
+                RestoreParsePoint(pp);
+
+            // Parse function name, possibly generic
+            synFunc.FuncName = ParseTypeDef(sEmptyWordSet, sRejectFuncName);
+
+            // Parse parameters
+            if (mToken != "(" && mToken != "[")
+                Reject("Expecting '(' or '['", sRejectFuncName);
+            if (mToken == "(" || mToken == "[")
+                synFunc.Params = ParseFuncDefParams();
+
+            // Parse return type
+            if (mTokenName != "{" && mTokenName != ";")
+                TryParseTypeNameWithQualifiers(out synFunc.Return, sFuncDefReturnTypeQualifiers, sRejectFuncParam);
+        }
+
+        private void ParseConstructDef(SyntaxFunc synFunc)
+        {
+            synFunc.FuncName = new SyntaxExprToken(mToken);
+            if (mToken != "(")
+                Reject("Expecting '(' after 'new' token", sRejectFuncName);
+
+            // Parse parameters
+            if (mToken == "(")
+                synFunc.Params = ParseFuncDefParams();
+        }
+
+        private void ParseGetSetDef(SyntaxFunc synFunc)
+        {
+            synFunc.GetOrSetToken = mPrevToken;
+
+            ParseIdentifier("Expecting property name", sRejectFuncName, out var propName, sAllowThisKeyword);
+            synFunc.FuncName = new SyntaxExprToken(propName);
+
+            // Require array parameters for indexer
+            if (propName == "this")
+            {
+                if (mToken != "[")
+                    Reject("Expecting '['", sRejectFuncName);
+                if (mToken == "[")
+                    synFunc.Params = ParseFuncDefParams();
+            }
+
+            // Parse property type
+            if (mTokenName == "{" || mTokenName == ";")
+                RejectToken(mToken, "Expecting type name");
+            TryParseTypeNameWithQualifiers(out synFunc.Return, sFuncDefReturnTypeQualifiers, sRejectFuncParam);
+        }
+
+        private void ParseOperatorDef(SyntaxFunc synFunc)
+        {
+            // Function name is an operator
+            synFunc.FuncName = new SyntaxExprToken(mToken);
+            if (sOverloadableOperators.Contains(mTokenName))
+                Accept();
+            else
+                Reject("Expecting an overloadable operator", sRejectFuncName);
+
+            // Parse parameters
+            if (mToken != "(" && mToken != "[")
+                Reject("Expecting '(' or '['", sRejectFuncName);
+            if (mToken == "(" || mToken == "[")
+                synFunc.Params = ParseFuncDefParams();
+
+            // Parse return type
+            if (mTokenName != "{" && mTokenName != ";")
+                TryParseTypeNameWithQualifiers(out synFunc.Return, sFuncDefReturnTypeQualifiers, sRejectFuncParam);
         }
 
         SyntaxFuncParam []ParseFuncDefParams()
@@ -668,7 +746,7 @@ ParseClass:
             var synParam = new SyntaxFuncParam();
             if (!ParseIdentifier("Expecting a variable name", sRejectFuncParam, out synParam.Name))
                 return synParam;
-            synParam.TypeName = TryParseTypeNameWithQualifiers(sFuncDefParamTypeQualifiers, sRejectFuncParam);
+            TryParseTypeNameWithQualifiers(out synParam.TypeName, sFuncDefParamTypeQualifiers, sRejectFuncParam);
             ShowParseTree(synParam.TypeName, synParam.Name);
             return synParam;
         }
@@ -920,8 +998,7 @@ ParseClass:
                 {
                     // Possibly a type argument list.  Let's try it and find out.
                     var p = SaveParsePoint();
-                    var typeArguments = TryParseTypeArgumentList(null);
-                    if (typeArguments != null && sTypeArgumentParameterSymbols.Contains(mTokenName))
+                    if (TryParseTypeArgumentList(out var typeArguments, null) && sTypeArgumentParameterSymbols.Contains(mTokenName))
                     {
                         // Type argument list
                         accepted = true;
@@ -966,9 +1043,9 @@ ParseClass:
                 // Parse a cast, closing ')' is followed by '(' or identifier
                 RestoreParsePoint(pp);
                 var castOpen = Accept();
-                var castExpr = TryParseTypeName(sRejectStatement);
-                if (castExpr == null)
+                if (!TryParseTypeName(out var castExpr, sRejectStatement))
                     return result; // Error, just use any expression
+
                 if (!AcceptMatch(")"))
                 {
                     Reject("End of cast, expecting ')' after type name", sRejectStatement);
@@ -1102,29 +1179,30 @@ ParseClass:
 
 
         /// <summary>
-        /// Error returns null
+        /// Error causes reject until errorStop unless errorStop is null.
         /// </summary>
-        SyntaxExpr TryParseTypeNameWithQualifiers(WordSet qualifiers, WordSet errorStop)
+        bool TryParseTypeNameWithQualifiers(out SyntaxExpr result, WordSet qualifiers, WordSet errorStop)
         {
+            result = null;
             if (qualifiers.Contains(mTokenName))
             {
                 var token = Accept();
-                var expr = TryParseTypeNameWithQualifiers(qualifiers, errorStop);
-                if (expr == null)
-                    return null;
-                return new SyntaxExprUnary(token, expr);
+                if (!TryParseTypeNameWithQualifiers(out var expr, qualifiers, errorStop))
+                    return false;
+                result = new SyntaxExprUnary(token, expr);
+                return true;
             }
-            return TryParseTypeName(errorStop);
+            return TryParseTypeName(out result, errorStop);
         }
 
         /// <summary>
-        /// Returns null if there is an error.
         /// Error causes reject until errorStop unless errorStop is null.
         /// </summary>
-        SyntaxExpr TryParseTypeName(WordSet errorStop)
+        bool TryParseTypeName(out SyntaxExpr result, WordSet errorStop)
         {
             // Unary operators '*' and '[]', short for Pointer<type> and Array<type>
             // Treat qualifiers `in`, `out`, `ref`, `ro` similar to unary operators
+            result = null;
             if (mToken == "*" || mToken == "[")
             {
                 var token = Accept();
@@ -1133,18 +1211,18 @@ ParseClass:
                     // Unaray array operator is always '[]', so swallow the ']'
                     if (errorStop != null)
                         Reject("Expecting ']'", errorStop);
-                    return null;
+                    return false;
                 }
-                var expr = TryParseTypeName(errorStop);
-                if (expr == null)
-                    return null;
-                return new SyntaxExprUnary(token, expr);
+                if (!TryParseTypeName(out var expr, errorStop))
+                    return false;
+                result = new SyntaxExprUnary(token, expr);
+                return true;
             }
 
             if (!ParseIdentifier("Expecting a type name", errorStop, out var typeName))
-                return null;
+                return false;
 
-            var result = (SyntaxExpr)new SyntaxExprToken(typeName);
+            result = new SyntaxExprToken(typeName);
 
             bool accepted;
             do
@@ -1155,7 +1233,7 @@ ParseClass:
                     accepted = true;
                     var dotToken = mPrevToken;
                     if (!ParseIdentifier("Expecting a type name", errorStop, out var dotTypeName))
-                        return null;
+                        return false;
                     result = new SyntaxExprBinary(dotToken, result, new SyntaxExprToken(dotTypeName));
                 }
 
@@ -1163,39 +1241,35 @@ ParseClass:
                 {
                     accepted = true;
                     var openToken = mToken;
-                    var expr = TryParseTypeArgumentList(errorStop);
-                    if (expr == null)
-                        return null;
+                    if (!TryParseTypeArgumentList(out var expr, errorStop))
+                        return false;
                     expr.Insert(0, result);
                     result = new SyntaxExprMulti(openToken, expr.ToArray());
                 }
             } while (accepted);
-
-            return result;
+            return true;
         }
 
         /// <summary>
-        /// Try parsing a type argument list.  Returns NULL on failure.
+        /// Try parsing a type argument list. 
         /// Error causes reject until errorStop unless errorStop is null.
-        List<SyntaxExpr> TryParseTypeArgumentList(WordSet errorStop)
+        bool TryParseTypeArgumentList(out List<SyntaxExpr> arguments, WordSet errorStop)
         {
             var openToken = Accept();
             if (openToken.Name != "<")
                 throw new Exception("Compiler error: Expecting '<' while parsing type argument list");
 
             // Parse the first parameter
-            var arguments = new List<SyntaxExpr>();
-            var p = TryParseTypeName(errorStop);
-            if (p == null)
-                return null;
+            arguments = new List<SyntaxExpr>();
+            if (!TryParseTypeName(out var p, errorStop))
+                return false;
             arguments.Add(p);
 
             // Parse the rest of the parameters
             while (AcceptMatch(","))
             {
-                p = TryParseTypeName(errorStop);
-                if (p == null)
-                    return null;
+                if (!TryParseTypeName(out p, errorStop))
+                    return false;
                 arguments.Add(p);
             }
 
@@ -1203,10 +1277,10 @@ ParseClass:
             {
                 if (errorStop != null)
                     Reject("Expecting '>' to end the type argument list", errorStop);
-                return null;
+                return false;
             }
             Connect(openToken, mPrevToken);
-            return arguments;
+            return true;
         }
         
         void SkipSemicolon()
@@ -1224,13 +1298,11 @@ ParseClass:
         /// Parse a qualified identifier.  
         /// Error causes reject until errorStop and returns null.
         /// </summary>
-        SyntaxExpr TryParseQualifiedIdentifier(string errorMessage, WordSet errorStop, bool allow1Reserved = false)
+        SyntaxExpr TryParseQualifiedIdentifier(string errorMessage, WordSet errorStop)
         {
             // Parse first identifier
-            if (!ParseIdentifier(errorMessage, errorStop, out var t1, allow1Reserved))
+            if (!ParseIdentifier(errorMessage, errorStop, out var t1))
                 return null;
-            if (t1.Type == eTokenType.ReservedControl)
-                t1.Type = eTokenType.Reserved; // Downgrade symbol
             var identifier = new SyntaxExprToken(t1);
             if (mTokenName != ".")
                 return identifier;
@@ -1261,12 +1333,12 @@ ParseClass:
         /// Parse an identifier.  Error returns false and causes
         /// reject until errorStop unless errorStop is null.
         /// </summary>
-        bool ParseIdentifier(string errorMessage, WordSet errorStop, out Token token, bool allowReserved = false)
+        bool ParseIdentifier(string errorMessage, WordSet errorStop, out Token token, WordSet allowedReserved = null)
         {
             token = mToken;
             if (mToken.Type == eTokenType.Identifier
-                || (allowReserved && (mToken.Type == eTokenType.Reserved || mToken.Type == eTokenType.ReservedControl))
-                || mIdentifierAllowedReservedWords.Contains(mToken))
+                || allowedReserved != null && allowedReserved.Contains(mToken)
+                || mIdentifierAllowedReservedWords != null && mIdentifierAllowedReservedWords.Contains(mToken))
             {
                 Accept();
                 return true;

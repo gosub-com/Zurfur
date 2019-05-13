@@ -539,11 +539,12 @@ namespace Gosub.Zurfur
 
         private void viewRTFToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var activeTextEditor = mvEditors.EditorViewActive as TextEditor;
-            if (activeTextEditor == null)
+            var ed = mvEditors.EditorViewActive as TextEditor;
+            if (ed == null)
                 return;
             FormHtml form = new FormHtml();
-            form.ShowLexer(activeTextEditor.Lexer);
+
+            form.ShowLexer(ed.Lexer, ed.SelStart.Line, ed.SelEnd.Line - ed.SelStart.Line);
         }
 
         private void FormMain_Activated(object sender, EventArgs e)
