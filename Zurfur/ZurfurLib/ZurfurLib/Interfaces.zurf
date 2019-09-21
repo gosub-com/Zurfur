@@ -1,20 +1,20 @@
 ﻿
-namespace Zurfur;
+namespace Zurfur.Collections;
 
 
-interface IEnumerator<out T>
+pub interface IEnumerator<out T>
 {
     // NOTE: Do not need to implement Reset() or Dispose()
     func MoveNext();
     get Current T;
 }
 
-interface IEnumerable<out T>
+pub interface IEnumerable<out T>
 {
     func GetEnumerator() IEnumerator<T>;
 }
 
-interface ICollection<T>
+pub interface ICollection<T>
     implements IEnumerable<T>
 {
     get Count int;
@@ -26,7 +26,7 @@ interface ICollection<T>
     func Remove(item T) bool;
 }
 
-interface IList<T>
+pub interface IList<T>
     implements ICollection<T>
 {
     get this[int index] T;
@@ -36,15 +36,15 @@ interface IList<T>
     func IndexOf(T item) int;
 }
 
-struct KeyValuePair<TKey, TValue>
+pub struct KeyValuePair<TKey, TValue>
 {
     construct(TKey key, TValue value) { todo() };
-    get Key TKey { todo() };
-    get Value TValue { todo() };
+    pub get Key TKey { todo() };
+    pub get Value TValue { todo() };
 }
 
 
-interface IDictionary<TKey, TValue> 
+pub interface IDictionary<TKey, TValue> 
     implements ICollection<KeyValuePair<TKey, TValue>>, 
                IEnumerable<KeyValuePair<TKey, TValue>>
 {
@@ -63,7 +63,7 @@ interface IDictionary<TKey, TValue>
 /// Implement IHashable on any object that can be stored in a Map.
 /// This is different than implementing just Equals
 /// in that NAN must compare to itself as true.
-interface IHashable<in T>
+pub interface IHashable<in T>
 {
     static func GetHashCode(a T) uint;
     static func Equals(a T, b T) bool;
@@ -72,22 +72,22 @@ interface IHashable<in T>
 /// Implement ISortable on any object that can be sorted.
 /// This is different than implementing just Compare
 /// in that NAN must have a valid sort order.
-interface ISortable<in T>
+pub interface ISortable<in T>
 {
     static func Compare(a T, b T) int;
 }
 
-interface IGeneric<Q>
+pub interface IGeneric<Q>
 {
     func A<T>(Q m) int;
 }
 
 // Test generic class
-class MyGeneric<QQ> extends IGeneric<QQ>
+pub class MyGeneric<QQ> extends IGeneric<QQ>
 {
-    func IGeneric<QQ>::A<T>(QQ a) int { }
+    pub func IGeneric<QQ>::A<T>(QQ a) int { }
 }
 
 /// Compiler implemented interface created for all structs that are blittable.
 /// A blittable struct does not contain references, but may contain pointers.
-interface IBlittableStruct { }
+pub interface IBlittableStruct { }

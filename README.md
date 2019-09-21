@@ -17,7 +17,7 @@ Golang.  Here are some differences between Zurfur and C#:
 
 * Strings are UTF8 byte arrays
 * Type declaration syntax and operator precedence is from Golang
-* Built from the ground up using `ref` returns, so `list` acts exactly like `array`
+* Built from the ground up using `ref` returns, so `List` acts exactly like `Array`
 * Interfaces connect to any object with matching signature (just like Golang)
 * Lots of other differences, but if you're familiar with C# it'll all make sense
 
@@ -67,32 +67,32 @@ Pointers are dereferenced by the `.` operator, just like a reference.
 ## Basic types
 
     int8, uint8, byte, int16, uint16, int32, int, uint32, uint, int64, uint64
-    float32, float64, xint, xuint, decimal, string, array, list, map
+    float32, float64, xint, xuint, decimal, string, Array, List, Map
 
 `byte`, `int`, and `uint` are aliases for `uint8`, `int32`, and `uint32`.
 `string` is an immutable array of UTF8 encoded bytes.  `xint` and `xuint` are
 extended integer types, which could be 32 or 64 bits depending on run-time architecture.
 
-`array<type>` is identical to an array.  Type definitions like `[]int` are
-shorthand for `array<int>`.
+`Array<type>` is identical to an array.  Type definitions like `[]int` are
+shorthand for `Array<int>`.
 
-`list<type>` works just like an array, but has a capacity and dynamic
-size.  It's similar to C#'s `list`, except that it indexes using a `ref`
+`List<type>` works just like an array, but has a capacity and dynamic
+size.  It's similar to C#'s `List`, except that it indexes using a `ref`
 return.  It acts just like an array including the ability to modify a
 field of a struct.
 
-## Public, private, and capitalization
+## Namespace/using
 
-Capitalized variables are public by default, and lower cased variables
-are private by default.  Public things should be capitalized, and
-private things should not be.  This behavior can be changed by using
-the `public` and `private` qualifiers.
+Unlike in C#, functions and variables may be at the namespace level, but
+they must be static or const.  Because of this, there is no need for
+a static class as a namespace will accomplish the same thing.
+TBD: Do we want to use the keyword module instead?  We'll use namespace
+for now since namespaces don't imply an opaque unit and can be
+stiched together from files located anywhere.
 
-For some reason, the most basic built in types like `int` and `float32` are
-lower case even though they are public.  Nobody knows why this is, but the
-convention appears to go back to the goes back to the 1970's, perhaps even
-further.  PS.  Likewise, the math intrinsics like `sin`, `min`, and `max`,
-might also be lower case.  What do you think?
+`using Zurur.Math` would dump the intrinsic math functions, `Cos`,
+`Sin`, etc. into the global symbol table.  If you want to froce them to be
+prefixed with `Math.`, it can be done with `using Math=Zurfur.Math`.
 
 ## Casting
 
@@ -108,6 +108,30 @@ parenthisis `(`, it's a cast.  Otherwise, it is not.  For example,
 `(a+b)c` is always an invalid cast.  `(a)*b` is never a cast.  If you
 need to cast a dereferenced pointer, an extra parenthisis is required
 as in `(a)(*b)`.
+
+## Open Questions
+
+Do we want lower case to be private by default and upper case to
+be public similar to Golang?  My personal preference is to have 
+`pub` be explicit even though it is a bit tedious.
+
+Should we switch to i32, i64, f32, f64, etc., like WebAssembly?
+
+Should `Array`, `Map`, and `List` be lower case since they are almost as
+basic as `string` and `decimal`?  If so, should `Span` and `RoSpan` be lower
+case?  My preference is leaning toward them lower case but leaving `Span` and
+`RoSpan` upper case.  What about `Sin`, `Cos`, etc.?
+
+Should we change the syntax for `get` and `set` to be closer to C#, but
+without an extra layer of braces: `a int { get: code;  set: coder}`.
+Same with indexers?
+
+Should NAN`s compare the way IEEE numbers are supposed to? Since this is a new
+language, my preference would be to have them compare so NAN != NAN and they
+sort so NAN > INF.  This way we don't have to worry about doing special
+things for Map or sorted collections.  OTOH, it could be confusing when
+porting code from other places.  OTOOH, I've had plenty of problems with
+the IEEE comparison behavior as it is.
 
 
 

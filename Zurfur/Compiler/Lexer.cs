@@ -90,32 +90,32 @@ namespace Gosub.Zurfur
         public string[] GetText(TokenLoc start, TokenLoc end)
         {
             // Bounds check parameters
-            start.Line = Bound(start.Line, 0, mLines.Count-1);
-            start.Char = Bound(start.Char, 0, mLines[start.Line].Length);
-            end.Line = Bound(end.Line, 0, mLines.Count-1);
-            end.Char = Bound(end.Char, 0, mLines[end.Line].Length);
-            if (end.Line < start.Line)
-                end.Line = start.Line;
-            if (start.Line == end.Line && end.Char < start.Char)
-                end.Char = start.Char;
+            start.Y = Bound(start.Y, 0, mLines.Count-1);
+            start.X = Bound(start.X, 0, mLines[start.Y].Length);
+            end.Y = Bound(end.Y, 0, mLines.Count-1);
+            end.X = Bound(end.X, 0, mLines[end.Y].Length);
+            if (end.Y < start.Y)
+                end.Y = start.Y;
+            if (start.Y == end.Y && end.X < start.X)
+                end.X = start.X;
 
-            int startIndex = start.Char;
-            int endIndex = end.Char;
+            int startIndex = start.X;
+            int endIndex = end.X;
 
-            if (start.Line == end.Line && startIndex >= endIndex)
+            if (start.Y == end.Y && startIndex >= endIndex)
                 return new string[0];
 
-            if (start.Line == end.Line)
+            if (start.Y == end.Y)
             {
-                return new string[] { mLines[start.Line].Substring(startIndex, endIndex-startIndex) };
+                return new string[] { mLines[start.Y].Substring(startIndex, endIndex-startIndex) };
             }
 
             // Break up the first and last line at the start position
-            string []lines = new string[end.Line-start.Line+1];
-            lines[0] = mLines[start.Line].Substring(startIndex);
+            string []lines = new string[end.Y-start.Y+1];
+            lines[0] = mLines[start.Y].Substring(startIndex);
             for (int i = 1; i < lines.Length-1; i++)
-                lines[i] = mLines[start.Line+i];
-            lines[end.Line-start.Line] = mLines[end.Line].Substring(0, endIndex);
+                lines[i] = mLines[start.Y+i];
+            lines[end.Y-start.Y] = mLines[end.Y].Substring(0, endIndex);
             return lines;
         }
 
@@ -138,72 +138,72 @@ namespace Gosub.Zurfur
                          TokenLoc start, TokenLoc end)
         {
             // Bounds check parameters
-            start.Line = Bound(start.Line, 0, mLines.Count-1);
-            start.Char = Bound(start.Char, 0, mLines[start.Line].Length);
-            end.Line = Bound(end.Line, 0, mLines.Count-1);
-            end.Char = Bound(end.Char, 0, mLines[end.Line].Length);
-            if (end.Line < start.Line)
-                end.Line = start.Line;
-            if (start.Line == end.Line && end.Char < start.Char)
-                end.Char = start.Char;
+            start.Y = Bound(start.Y, 0, mLines.Count-1);
+            start.X = Bound(start.X, 0, mLines[start.Y].Length);
+            end.Y = Bound(end.Y, 0, mLines.Count-1);
+            end.X = Bound(end.X, 0, mLines[end.Y].Length);
+            if (end.Y < start.Y)
+                end.Y = start.Y;
+            if (start.Y == end.Y && end.X < start.X)
+                end.X = start.X;
 
-            int startIndex = start.Char;
-            int endIndex = end.Char;
+            int startIndex = start.X;
+            int endIndex = end.X;
 
             // Adjust first line
-            if (start.Line != end.Line || startIndex != endIndex)
-                mLines[start.Line] = mLines[start.Line].Substring(0, startIndex)
-                                    + mLines[end.Line].Substring(endIndex);
+            if (start.Y != end.Y || startIndex != endIndex)
+                mLines[start.Y] = mLines[start.Y].Substring(0, startIndex)
+                                    + mLines[end.Y].Substring(endIndex);
 
             // Remove unused lines
-            if (start.Line != end.Line)
+            if (start.Y != end.Y)
             {
-                mLines.RemoveRange(start.Line+1, end.Line-start.Line);
-                mTokens.RemoveRange(start.Line+1, end.Line-start.Line);
+                mLines.RemoveRange(start.Y+1, end.Y-start.Y);
+                mTokens.RemoveRange(start.Y+1, end.Y-start.Y);
             }
 
             // Start and end are the same
-            end.Line = start.Line;
+            end.Y = start.Y;
             endIndex = startIndex;
 
             // Insert new text
             if (replacementText != null && replacementText.Length != 0)
             {
                 // Break up the first line at the start position
-                string startStr = mLines[start.Line].Substring(0, startIndex);
-                string endStr = mLines[start.Line].Substring(startIndex);
+                string startStr = mLines[start.Y].Substring(0, startIndex);
+                string endStr = mLines[start.Y].Substring(startIndex);
 
                 if (replacementText.Length <= 1)
                 {
-                    mLines[start.Line] = startStr + replacementText[0] + endStr;
+                    mLines[start.Y] = startStr + replacementText[0] + endStr;
                     endIndex = startStr.Length + replacementText[0].Length;
                 }
                 else
                 {
                     // Insert new lines
-                    mLines[start.Line] = startStr + replacementText[0];
+                    mLines[start.Y] = startStr + replacementText[0];
                     for (int i = 1; i < replacementText.Length; i++)
                     {
-                        mLines.Insert(start.Line+i, replacementText[i]);
-                        mTokens.Insert(start.Line+i, new List<Token>());
+                        mLines.Insert(start.Y+i, replacementText[i]);
+                        mTokens.Insert(start.Y+i, new List<Token>());
                     }
-                    end.Line = start.Line + replacementText.Length-1;
+                    end.Y = start.Y + replacementText.Length-1;
                     endIndex = replacementText[replacementText.Length-1].Length;
-                    mLines[end.Line] += endStr;
+                    mLines[end.Y] += endStr;
                 }
             }
 
             // Re-scan the updated text lines
-            for (int i = start.Line; i <= end.Line; i++)
+            for (int i = start.Y; i <= end.Y; i++)
                 mTokens[i] = ScanLine(mLines[i], i);
 
             // Re-adjust token line positions
-            for (int i = start.Line; i < mTokens.Count; i++)
+            for (int i = start.Y; i < mTokens.Count; i++)
                 foreach (Token token in mTokens[i])
-                    token.Line = i;
+                    token.Y = i;
 
             // Calculate end of inserted text
-            end.Char = endIndex;
+            end.X = endIndex;
             return end;
         }
 
@@ -226,7 +226,7 @@ namespace Gosub.Zurfur
 
             // Identifier
             char ch1 = line[charIndex];
-            if (char.IsLetter(ch1))
+            if (char.IsLetter(ch1) || ch1 == '_')
             {
                 return SacanIdentifier(line, ref charIndex, startIndex);
             }
@@ -343,7 +343,7 @@ namespace Gosub.Zurfur
             do
             {
                 token = ScanToken(line, ref charIndex);
-                token.Line = lineIndex;
+                token.Y = lineIndex;
 
                 // Add everything except LF to this line
                 if (token.Name.Length != 0)

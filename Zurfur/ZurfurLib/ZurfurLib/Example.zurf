@@ -1,117 +1,120 @@
 using a.b.c;
 using system.gosub.p;
 
-namespace zurfur.example;
+namespace Zurfur.Example;
 
 
 // Test class
-class Example 
+pub class Example 
 { 
-    // Field types, initialized to zero, null, or "" for String
+    // Field types, initialized to zero, null, or "" for string
     f1 int;
     f2 float32;
-    f3 String;		// Defaults to "", not NULL
+    f3 string;		// Defaults to "", not NULL
     f4 Array<int>;
     f5 []int;       // Same as Array<int>
     f6 [][]int;     // Same as Array<Array<int>>
     f7 Pointer<int>;
     f8 *int;        // Same as Pointer<int>
     f9 **int;		// Same as Pointer<Pointer<int>>
-    f10 Map<String,List<int>>;	
+    f10 Map<string,List<int>>;	
     
     // Fields initialized to an expression (never null)
     // Must be an expression starting with a constructor or cast
     e1 int = int();
     e2 int = FuncThatReturnsInt >> 4;
     e3 float32 = FuncThatReturnsFloat32orInt();
-    e4 String = "Hello";
+    e4 string = "Hello";
     e5 Array<int> = new(32);        // Array, Length=32
     e7 List<int> = new(32);         // List, Length=0, Capacity=32
-    e8 Map<String,String> = new(); 	// Empty map
+    e8 Map<string,string> = new(); 	// Empty map
     e10 *int = GetIntPtr();			// Same as Pointer<int> = `GetIntPtr()`
         
     // Illegal at parse time
     //i7 int(1); 		//  Must not be initialized
     //i8 = Array<int>;	// Type name is not an expression
     //i9 = Array<byte>[0]; // Type can't be dereferenced
-    //i10 = int(List<in String>()); // Type argument can't have in/ref/out
-    //func i11(a Map<in String,String>) { } // Type argument can't have in/ref/out	
+    //i10 = int(List<in string>()); // Type argument can't have in/ref/out
+    //func i11(a Map<in string,string>) { } // Type argument can't have in/ref/out	
 
     func func1(a int) {}
     func func2(a ref float32) {}
-    func func3(a ref String) {}
+    func func3(a ref string) {}
     func func4(a Array) {}
     func func5(a [][]int) {} 
     func func5(a Array<Array<int>>) {}
     func func6(a ref **int) {}
     func func7(a List<int>) { }
     func func8(a ref List<List<int>>) { }
-    func func10(a Map<String,List<int>>) { }
+    func func10(a Map<string,List<int>>) { }
 
-    static func main(args Array<String>)
+    pub static func Main(args Array<string>)
     {
     }
 }
 
-struct ro String
+pub struct ro string
 {
     ro str Array<byte>;
 
     construct() { str = Array<byte>.Empty }
-    construct(s String) { todo() }
+    construct(s string) { todo() }
     construct(s Span<byte>) { todo() }
-    func Slice(start int, length int) RoSpan<byte> { todo() }
-    func Slice(start int) RoSpan<byte> { todo() }
+    pub func Slice(start int, length int) RoSpan<byte> { todo() }
+    pub func Slice(start int) RoSpan<byte> { todo() }
     
-    static operator+(s1 String, s2 String) String { todo() }   
-    static operator+(s1 RoSpan<byte>, s2 String) String { todo() }
-    static operator+(s1 String, s2 RoSpan<byte>) String { todo() }
+    pub static operator+(s1 string, s2 string) string { todo() }   
+    pub static operator+(s1 RoSpan<byte>, s2 string) string { todo() }
+    pub static operator+(s1 string, s2 RoSpan<byte>) string { todo() }
     // TBD: Implicit conversion to and from RoSpan
 }
 
-struct ref ro Span<T>
+pub struct ref ro Span<T>
 {
     ro data ref T;
-    ro Length int;
-    get this[index int] ref T { todo(); }
-    func Slice(start int, length int) Span<T> { todo(); }
+    pub ro Length int;
+    pub get this[index int] ref T { todo(); }
+    pub func Slice(start int, length int) Span<T> { todo(); }
     // TBD: implicit conversion to RoSpan
 }
 
-struct ref ro RoSpan<T>
+pub struct ref ro RoSpan<T>
 {
     ro data ref T;
-    ro Length int;
-    get this[index int] ro ref T { todo(); }
-    func Slice(start int, length int) RoSpan<T> { todo(); }
+    
+    pub ro Length int;
+    pub get this[index int] ro ref T { todo(); }
+    pub func Slice(start int, length int) RoSpan<T> { todo(); }
 }
 
-struct ref ro Memory<T>
+pub struct ref ro Memory<T>
 {
     ro data object;
     ro offset xint;
-    ro Length int;
-    get this[index int] ref T { todo(); }
-    func Slice(start int, length int) Memory<T> { todo(); }
+    
+    pub ro Length int;
+    pub get this[index int] ref T { todo(); }
+    pub func Slice(start int, length int) Memory<T> { todo(); }
     // TBD: implicit conversion to RoSpan
 }
 
-struct ref ro RoMemory<T>
+pub struct ref ro RoMemory<T>
 {
     ro data object;
     ro offset xint;
-    ro Length int;
-    get this[index int] ro ref T { todo(); }
-    func Slice(start int, length int) RoMemory<T> { todo(); }
+    
+    pub ro Length int;
+    pub get this[index int] ro ref T { todo(); }
+    pub func Slice(start int, length int) RoMemory<T> { todo(); }
 }
 
 // All variable sized objects must inherit from this class, must be sealed, and
 // must call AllocateObject first thing in the constructor.  For efficiency,
 // this class is unsafe and doesn't do any bounds checking.
 // The inheriting class must be sealed (that's what sealed1 means)
-unsafe sealed1 class VariableSizedObject<T>
+pub unsafe sealed1 class VariableSizedObject<T>
 {
-    ro Length int;
+    pub ro Length int;
 
     // Must be called first thing from the constuctor, never called again
     protected unsafe static func AllocateObject(int length) { todo() }
@@ -123,48 +126,48 @@ unsafe sealed1 class VariableSizedObject<T>
 
 
 // Array of constant size
-sealed class Array<T> extends VariableSizedObject<T>
+pub sealed class Array<T> extends VariableSizedObject<T>
 {
     const MaxSize int = int.MaxInt/2;
-    static ro Empty Array<T> = new();
+    pub static ro Empty Array<T> = new();
 
     construct(length int) { todo }
-    get this[index int] ref T { todo }
-    func Slice(start int, length int) Span<T> { todo }
-    func RoSlice(start int, length int) RoSpan<T> { todo }
+    pub get this[index int] ref T { todo }
+    pub func Slice(start int, length int) Span<T> { todo }
+    pub func RoSlice(start int, length int) RoSpan<T> { todo }
 }
 
 // Note that the List class has a ref return indexer, just like Array
-class List<T>
+pub class List<T>
 {
     construct(capacity int) { todo() }
-    get this[index int] ref T { todo() }
+    pub get this[index int] ref T { todo() }
 }
 
-class Map<TKey, TValue>
+pub class Map<TKey, TValue>
 {
     construct(capacity int) { todo() }
 }
 
 // The matrix class is used to implement square 2d arrays
-sealed class Matrix2d<t> extends VariableSizedObject<T>
+pub sealed class Matrix2d<t> extends VariableSizedObject<T>
 {
     construct(len1 int, len2 int) { todo() }	
-    get this[i1 int, i2 int] ref T { todo() }
+    pub get this[i1 int, i2 int] ref T { todo() }
 }
 
 // Represents a buffer in un-managed memory.  This class can create and 
 // own the memory, or it can be attached to an already existing buffer.
 // The GC knows this class and deletes the memory when necessary.
-sealed class UnmanagedMemory<T> extends UnmanagedHande where T is IBlittableStruct
+pub sealed class UnmanagedMemory<T> extends UnmanagedHande where T is IBlittableStruct
 {
-    ro Memory *void;
-    ro Capacity int;
-    ro OwnedByGc bool;
+    pub ro Memory *void;
+    pub ro Capacity int;
+    pub ro OwnedByGc bool;
     length int;
     
-    get Length int { todo() }
-    set Length int { todo() }
+    pub get Length int { todo() }
+    pub set Length int { todo() }
     
     // Create the buffer, the GC owns it and deletes it when there are no more
     // references to this object.  Be careful that unmanaged code doesn't
@@ -177,19 +180,19 @@ sealed class UnmanagedMemory<T> extends UnmanagedHande where T is IBlittableStru
     // unmanaged code doesn't delete the object while still in use.  
     unsafe construct(data *void, sizeOfBufferInBytes int) { todo() }
 
-    func CopyTo() { todo() }
+    pub func CopyTo() { todo() }
 }
 
 
 // This is the base for all objects, struct and class alike.
-public class object
+pub class object
 {
-    virtual func GetType() { todo }
-    virtual func ToString() { todo }
+    pub virtual func GetType() { todo }
+    pub virtual func ToString() { todo }
 }
 
 // This is the base for all struct objects.
-class StructObject
+pub class StructObject
 {
 }
 
@@ -197,29 +200,29 @@ class StructObject
 // the vtable pointer, so there is minimal overhead.  All class
 // objects are allocated on the managed heap and are subject
 // to garbage collection.
-class ClassObject
+pub class ClassObject
 {
     // The only member
     protected unsafe ro VT *void;
 
-    override func GetType() { todo }
+    pub override func GetType() { todo }
 }
 
 // Base class for all things that need to notify when they are garbage collected
-class FinalizedNotify 
+pub class FinalizedNotify 
 {
     protected func SetFinalizeNotifier(notifierQueue FinalizedNotifyQueue, token IntPtr, memoryPressure int) { todo() }
     protected func ClearFinalizeNotifier() { todo() }
 }
 
-class FinalizedNotifyQueue 
+pub class FinalizedNotifyQueue 
 {
-    get Count int { todo() }
-    func Dequeue() IntPtr { todo() }
-    async func WaitQueueNotEmpty() { todo() }
+    pub get Count int { todo() }
+    pub func Dequeue() IntPtr { todo() }
+    pub async func WaitQueueNotEmpty() { todo() }
 }
 
-static func MemCopy(to *void, from *void, length xint)
+pub static func MemCopy(to *void, from *void, length xint)
 {
     if length <= 0
     {
@@ -234,7 +237,7 @@ static func MemCopy(to *void, from *void, length xint)
     
     if (to|from) & 3 == 0
     {
-        memcpya32(to, from, length);
+        MemCopyAlign32(to, from, length);
         return;
     }
     
@@ -253,7 +256,7 @@ static func MemCopy(to *void, from *void, length xint)
     }
 }
 
-static func MemCopyA32(to *void, from *void, length xint)
+pub static func MemCopyAlign32(to *void, from *void, length xint)
 {
     if length <= 0
     {

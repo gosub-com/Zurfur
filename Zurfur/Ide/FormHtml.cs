@@ -84,18 +84,18 @@ namespace Gosub.Zurfur
                 html.Append("<span class=s0>");
                 foreach (var token in mLexer.GetEnumeratorStartAtLine(line))
                 {
-                    if (token.Line > endLine)
+                    if (token.Y > endLine)
                         break;
 
                     // Append new line when moving to next line
-                    while (line < token.Line)
+                    while (line < token.Y)
                     {
                         html.Append("\r\n");
                         line++;
                         column = 0;
                     }
                     // Prepend white space
-                    int tokenColumn = IndexToCol(mLexer.GetLine(token.Line), token.Char);
+                    int tokenColumn = IndexToCol(mLexer.GetLine(token.Y), token.X);
                     while (column < tokenColumn)
                     {
                         html.Append(" ");

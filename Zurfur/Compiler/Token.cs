@@ -24,8 +24,9 @@ namespace Gosub.Zurfur
     public enum eTokenBits : short
     {
         Error = 1,
-        Grayed = 2,
-        Invisible = 4
+        Warn = 2,
+        Grayed = 4,
+        Invisible = 8
     }
 
 
@@ -49,6 +50,11 @@ namespace Gosub.Zurfur
         {
             get { return (mBits & eTokenBits.Error) != 0; }
             set { mBits = mBits & ~eTokenBits.Error | (value ? eTokenBits.Error : 0); }
+        }
+        public bool Warn
+        {
+            get { return (mBits & eTokenBits.Warn) != 0; }
+            set { mBits = mBits & ~eTokenBits.Warn | (value ? eTokenBits.Warn : 0); }
         }
         public bool Grayed
         {
@@ -147,33 +153,33 @@ namespace Gosub.Zurfur
             return sb.ToString();
         }
 
-        public int Line
+        public int Y
         {
-            get { return Location.Line; }
-            set { Location.Line = value; }
+            get { return Location.Y; }
+            set { Location.Y = value; }
         }
-        public int Char
+        public int X
         {
-            get { return Location.Char; }
-            set { Location.Char = value; }
+            get { return Location.X; }
+            set { Location.X = value; }
         }
 
         public Token()
         {
         }
 
-        public Token(string tokenName, int lineIndex, int charIndex)
+        public Token(string tokenName, int y, int x)
         {
             Name = tokenName;
-            Line = lineIndex;
-            Char = charIndex;
+            Y = y;
+            X = x;
         }
 
-        public Token(string tokenName, int lineIndex, int charIndex, eTokenType tokenType)
+        public Token(string tokenName, int y, int x, eTokenType tokenType)
         {
             Name = tokenName;
-            Line = lineIndex;
-            Char = charIndex;
+            Y = y;
+            X = x;
             Type = tokenType;
         }
 
@@ -191,7 +197,12 @@ namespace Gosub.Zurfur
             // Display error message
             Error = true;
             AddInfo(errorMessage);
+        }
 
+        public void AddWarning(string warnMessage)
+        {
+            Warn = true;
+            AddInfo(warnMessage);
         }
 
         /// <summary>
@@ -205,24 +216,24 @@ namespace Gosub.Zurfur
     }
 
     /// <summary>
-    /// Keep track of the token location (Line, Char)
+    /// Keep track of the token location (Y is line number, X is column)
     /// </summary>
     public struct TokenLoc
     {
         /// <summary>
         /// Line number of token
         /// </summary>
-        public int		Line;
+        public int Y;
 
         /// <summary>
         /// Column of token
         /// </summary>
-        public int		Char;
+        public int X;
 
-        public TokenLoc(int lineIndex, int charIndex)
+        public TokenLoc(int y, int x)
         {
-            Line = lineIndex;
-            Char = charIndex;
+            Y = y;
+            X = x;
         }
 
         /// <summary>
@@ -240,7 +251,7 @@ namespace Gosub.Zurfur
 
         public static bool operator==(TokenLoc a, TokenLoc b)
         {
-            return a.Line == b.Line && a.Char == b.Char;
+            return a.Y == b.Y && a.X == b.X;
         }
         public static bool operator!=(TokenLoc a, TokenLoc b)
         {
@@ -248,23 +259,23 @@ namespace Gosub.Zurfur
         }
         public static bool operator>(TokenLoc a, TokenLoc b)
         {
-            return a.Line > b.Line || a.Line == b.Line && a.Char > b.Char;
+            return a.Y > b.Y || a.Y == b.Y && a.X > b.X;
         }
         public static bool operator<(TokenLoc a, TokenLoc b)
         {
-            return a.Line < b.Line || a.Line == b.Line && a.Char < b.Char;
+            return a.Y < b.Y || a.Y == b.Y && a.X < b.X;
         }
         public static bool operator>=(TokenLoc a, TokenLoc b)
         {
-            return a.Line > b.Line || a.Line == b.Line && a.Char >= b.Char;
+            return a.Y > b.Y || a.Y == b.Y && a.X >= b.X;
         }
         public static bool operator<=(TokenLoc a, TokenLoc b)
         {
-            return a.Line < b.Line || a.Line == b.Line && a.Char <= b.Char;
+            return a.Y < b.Y || a.Y == b.Y && a.X <= b.X;
         }
         public override int GetHashCode()
         {
-            return (Line << 12) + Char;
+            return (Y << 12) + X;
         }
         public override bool Equals(object obj)
         {
@@ -276,7 +287,7 @@ namespace Gosub.Zurfur
         }
         public override string ToString()
         {
-            return "" + "Line: " + Line + ", Char: " + Char;
+            return "" + "Line: " + Y + ", Char: " + X;
         }
 
     }

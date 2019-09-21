@@ -71,6 +71,7 @@ namespace Gosub.Zurfur
         Brush       mSelectColorNoFocus = new SolidBrush(Color.FromArgb(208, 208, 208));
         EventArgs   mEventArgs = new EventArgs();
         Brush       mErrorColor = Brushes.Pink;
+        Brush       mWarnColor = Brushes.Yellow;
         static Token sNormalToken = new Token();
 
         // User back color overrides
@@ -306,10 +307,10 @@ namespace Gosub.Zurfur
         /// </summary>
         void FixCursorLocation(ref TokenLoc cursor)
         {
-            cursor.Line = Math.Min(cursor.Line, LineCount-1);
-            cursor.Line = Math.Max(cursor.Line, 0);
-            cursor.Char = Math.Min(cursor.Char, GetLine(cursor.Line).Length);
-            cursor.Char = Math.Max(cursor.Char, 0);
+            cursor.Y = Math.Min(cursor.Y, LineCount-1);
+            cursor.Y = Math.Max(cursor.Y, 0);
+            cursor.X = Math.Min(cursor.X, GetLine(cursor.Y).Length);
+            cursor.X = Math.Max(cursor.X, 0);
         }
 
 
@@ -389,7 +390,7 @@ namespace Gosub.Zurfur
         /// </summary>
         public Point LocationToken(TokenLoc loc)
         {
-            return new Point((int)PointX(IndexToCol(loc)), (int)PointY(loc.Line));
+            return new Point((int)PointX(IndexToCol(loc)), (int)PointY(loc.Y));
         }
 
 
@@ -398,9 +399,9 @@ namespace Gosub.Zurfur
         /// </summary>
         int IndexToCol(TokenLoc loc)
         {
-            if (loc.Line < 0 || loc.Line >= LineCount)
+            if (loc.Y < 0 || loc.Y >= LineCount)
                 return 0;
-            return IndexToCol(GetLine(loc.Line), loc.Char);
+            return IndexToCol(GetLine(loc.Y), loc.X);
         }
 
         /// <summary>
@@ -451,14 +452,14 @@ namespace Gosub.Zurfur
         /// </summary>
         public TokenLoc CharIndexInc(TokenLoc inc)
         {
-            if (inc.Char < GetLine(inc.Line).Length)
+            if (inc.X < GetLine(inc.Y).Length)
             {
-                inc.Char++;
+                inc.X++;
             }
-            else if (inc.Line < LineCount-1)
+            else if (inc.Y < LineCount-1)
             {
-                inc.Char = 0;
-                inc.Line++;
+                inc.X = 0;
+                inc.Y++;
             }
             return inc;
         }
@@ -468,14 +469,14 @@ namespace Gosub.Zurfur
         /// </summary>
         public TokenLoc CharIndexDec(TokenLoc dec)
         {
-            if (dec.Char > 0)
+            if (dec.X > 0)
             {
-                dec.Char--;
+                dec.X--;
             }
-            else if (dec.Line > 0)
+            else if (dec.Y > 0)
             {
-                dec.Line--;
-                dec.Char = GetLine(dec.Line).Length;
+                dec.Y--;
+                dec.X = GetLine(dec.Y).Length;
             }
             return dec;
         }
@@ -574,7 +575,7 @@ namespace Gosub.Zurfur
             vMarksLeft.ArrowHight = vScrollBar.Width;
             vMarksLeft.Location = new Point(vScrollBar.Left-vMarksLeft.Width+1, vScrollBar.Top);
             vMarksLeft.Height = vScrollBar.Height;
-            vMarksLeft.CursorMark = CursorLoc.Line;
+            vMarksLeft.CursorMark = CursorLoc.Y;
             vMarksLeft.Maximum = linesInFile-1;
         }
 
@@ -634,10 +635,10 @@ namespace Gosub.Zurfur
             int column = IndexToCol(CursorLoc);
 
             var x = (int)PointX(column);
-            var y = (int)PointY(CursorLoc.Line);
+            var y = (int)PointY(CursorLoc.Y);
             Rectangle cursorRect = new Rectangle(x + 1 + (mOverwriteMode ? 2 : 0), y + 1,
                                                  mOverwriteMode && !HasSel() ? (int)mFontSize.Width : 2,
-                                                (int)(PointY(CursorLoc.Line+1)-y)-2);
+                                                (int)(PointY(CursorLoc.Y+1)-y)-2);
 
             if (cursorRect != mCursorRect)
             {
@@ -690,12 +691,12 @@ namespace Gosub.Zurfur
         TokenLoc ArrowKeyDown(TokenLoc cursor, int lines)
         {
             // Calculate new cursor location
-            int oldCursorLine = cursor.Line;
-            cursor.Line += lines;
-            cursor.Line = Math.Min(LineCount-1, cursor.Line);
-            cursor.Line = Math.Max(0, cursor.Line);
+            int oldCursorLine = cursor.Y;
+            cursor.Y += lines;
+            cursor.Y = Math.Min(LineCount-1, cursor.Y);
+            cursor.Y = Math.Max(0, cursor.Y);
 
-            if (cursor.Line == oldCursorLine)
+            if (cursor.Y == oldCursorLine)
                 return cursor;
 
             // Set column index
@@ -704,9 +705,9 @@ namespace Gosub.Zurfur
                 mCursorUpDownColumn = IndexToCol(CursorLoc);
 
             if (oldArrowColumn >= 0)
-                cursor.Char = ColToIndex(GetLine(cursor.Line), oldArrowColumn);
+                cursor.X = ColToIndex(GetLine(cursor.Y), oldArrowColumn);
             else
-                cursor.Char = ColToIndex(GetLine(cursor.Line), mCursorUpDownColumn);
+                cursor.X = ColToIndex(GetLine(cursor.Y), mCursorUpDownColumn);
 
             FixCursorLocation(ref cursor);
             return cursor;
@@ -754,10 +755,10 @@ namespace Gosub.Zurfur
             int marginX = Math.Min(4, Math.Max(0, CharsAcrossWindow-5));
 
             // Ensure carret is on the screen when a key is pressed
-            if (CursorLoc.Line < vScrollBar.Value+marginY)
-                vScrollBar.Value = Math.Max(0, CursorLoc.Line-marginY);
-            if (CursorLoc.Line > vScrollBar.Value + LinesInWindow-marginY)
-                vScrollBar.Value = Math.Min(vScrollBar.Maximum, CursorLoc.Line-LinesInWindow+marginY);
+            if (CursorLoc.Y < vScrollBar.Value+marginY)
+                vScrollBar.Value = Math.Max(0, CursorLoc.Y-marginY);
+            if (CursorLoc.Y > vScrollBar.Value + LinesInWindow-marginY)
+                vScrollBar.Value = Math.Min(vScrollBar.Maximum, CursorLoc.Y-LinesInWindow+marginY);
 
             if (IndexToCol(CursorLoc) < hScrollBar.Value+marginX)
                 hScrollBar.Value = Math.Max(0, IndexToCol(CursorLoc)-marginX);
@@ -895,19 +896,19 @@ namespace Gosub.Zurfur
                 && replacementText.Length == 1
                 && replacementText[0].Length == 1
                 // This undo deletes exactly one char
-                && undo.TextStart.Line == undo.TextEnd.Line
-                && undo.TextStart.Char == undo.TextEnd.Char - 1
+                && undo.TextStart.Y == undo.TextEnd.Y
+                && undo.TextStart.X == undo.TextEnd.X - 1
                 // Previous undo is a delete on this line (max 12 chars)
                 && fundo != null
                 && (fundo.Text == null || fundo.Text.Length == 0)
-                && fundo.TextStart.Line == fundo.TextEnd.Line
-                && fundo.TextEnd.Char - fundo.TextStart.Char <= 12
+                && fundo.TextStart.Y == fundo.TextEnd.Y
+                && fundo.TextEnd.X - fundo.TextStart.X <= 12
                 // Previous undo and this one match up
-                && fundo.TextStart.Line == undo.TextStart.Line
-                && fundo.TextEnd.Char == undo.TextEnd.Char-1)
+                && fundo.TextStart.Y == undo.TextStart.Y
+                && fundo.TextEnd.X == undo.TextEnd.X-1)
             {
                 // If inserting multiple single characters, group them
-                fundo.TextEnd.Char++;
+                fundo.TextEnd.X++;
             }
             // If deleting just one char, try to append this undo operation 
             // to the previous one (group them in to one user operation)
@@ -915,8 +916,8 @@ namespace Gosub.Zurfur
                 // Replacement text is empty
                 && (replacementText == null || replacementText.Length == 0)
                 // This undo adds exactly one char
-                && undo.TextStart.Line == undo.TextEnd.Line
-                && undo.TextStart.Char == undo.TextEnd.Char
+                && undo.TextStart.Y == undo.TextEnd.Y
+                && undo.TextStart.X == undo.TextEnd.X
                 && undo.Text != null
                 && undo.Text.Length == 1
                 && undo.Text[0].Length == 1
@@ -925,15 +926,15 @@ namespace Gosub.Zurfur
                 && fundo.Text != null 
                 && fundo.Text.Length == 1
                 && fundo.Text[0].Length < 12
-                && fundo.TextStart.Line == fundo.TextEnd.Line
-                && fundo.TextEnd.Char == fundo.TextStart.Char
-                && fundo.TextStart.Line == undo.TextStart.Line
+                && fundo.TextStart.Y == fundo.TextEnd.Y
+                && fundo.TextEnd.X == fundo.TextStart.X
+                && fundo.TextStart.Y == undo.TextStart.Y
                 // Previous undo and this one match up
-                && fundo.TextStart.Line == undo.TextStart.Line
-                && (fundo.TextEnd.Char - undo.TextEnd.Char == 1
-                    || fundo.TextEnd.Char == undo.TextEnd.Char))
+                && fundo.TextStart.Y == undo.TextStart.Y
+                && (fundo.TextEnd.X - undo.TextEnd.X == 1
+                    || fundo.TextEnd.X == undo.TextEnd.X))
             {
-                if (fundo.TextEnd.Char == undo.TextEnd.Char)
+                if (fundo.TextEnd.X == undo.TextEnd.X)
                 {
                     // Delete key
                     fundo.Text[0] += undo.Text[0];
@@ -1120,8 +1121,8 @@ namespace Gosub.Zurfur
             TokenLoc.FixOrder(ref selStart, ref selEnd);
 
             float mMinY = -mFontSize.Height;
-            for (int line = Math.Max(0, selStart.Line);
-                 line <= selEnd.Line && line < LineCount;
+            for (int line = Math.Max(0, selStart.Y);
+                 line <= selEnd.Y && line < LineCount;
                  line++)
             {
                 // Skip lines not in window
@@ -1140,9 +1141,9 @@ namespace Gosub.Zurfur
                     xEnd = IndexToCol(GetLine(line), GetLine(line).Length)*mFontSize.Width;
 
                 // Start/end lines
-                if (line == selStart.Line)
+                if (line == selStart.Y)
                     x = PointX(IndexToCol(selStart));
-                if (line == selEnd.Line)
+                if (line == selEnd.Y)
                     xEnd = PointX(IndexToCol(selEnd));
 
                 gr.FillRectangle(Focused ? mSelectColor : mSelectColorNoFocus,
@@ -1162,9 +1163,9 @@ namespace Gosub.Zurfur
             // Find token position and bounds
             int col = IndexToCol(token.Location);
             float x = PointX(col);
-            float y = PointY(token.Line);
+            float y = PointY(token.Y);
             float xEnd = PointX(col + token.Name.Length);
-            float yEnd = PointY(token.Line + 1);
+            float yEnd = PointY(token.Y + 1);
 
             // If it's under the test point, return it
             if (mTestPoint.X >= x && mTestPoint.X < xEnd
@@ -1190,10 +1191,13 @@ namespace Gosub.Zurfur
                 // Draw background color
                 x += FILL_X_OFFSET;
                 xEnd += FILL_X_OFFSET;
+                var backRect = new RectangleF(x-1, y, xEnd-x+1, yEnd-y);
                 if (backColor != null)
-                    gr.FillRectangle(backColor, new RectangleF(x-1, y, xEnd-x+1, yEnd-y));
+                    gr.FillRectangle(backColor, backRect);
                 else if (token.Error)
-                    gr.FillRectangle(mErrorColor, new RectangleF(x-1, y, xEnd-x+1, yEnd-y));
+                    gr.FillRectangle(mErrorColor, backRect);
+                else if (token.Warn)
+                    gr.FillRectangle(mWarnColor, backRect);
             }
             else
             {
@@ -1205,7 +1209,7 @@ namespace Gosub.Zurfur
                     mTabFormat.SetTabStops(tabStartColumn*mFontSize.Width, mTabSpacing);
                 }
 
-                if (token.Line >= 0 && token.Line < mLineShrunk.Length && mLineShrunk[token.Line])
+                if (token.Y >= 0 && token.Y < mLineShrunk.Length && mLineShrunk[token.Y])
                 {
                     // Draw shrunk text
                     x = (int)(x + mFontSize.Width * SHRUNK_FONT_OFFSET.X);
@@ -1215,7 +1219,7 @@ namespace Gosub.Zurfur
                 else
                 {
                     // Draw normal text
-                    FontInfo fontInfo = GetFontInfo(token, token.Line);
+                    FontInfo fontInfo = GetFontInfo(token, token.Y);
                     gr.DrawString(token.Name, fontInfo.Font, fontInfo.Brush, x, y, mTabFormat);
                 }
             }
@@ -1250,7 +1254,7 @@ namespace Gosub.Zurfur
             foreach (Token token in mLexer.GetEnumeratorStartAtLine(startLine))
             {
                 // Quick exit when drawing below screen
-                if (token.Line >= endLine)
+                if (token.Y >= endLine)
                     break;
 
                 DrawToken(gr, token, background);
@@ -1297,9 +1301,9 @@ namespace Gosub.Zurfur
                 // Find token position and bounds
                 int col = IndexToCol(token.Location);
                 int x = (int)(PointX(col));
-                int y = (int)(PointY(token.Line));
+                int y = (int)(PointY(token.Y));
                 int xEnd = (int)PointX(col + token.Name.Length);
-                int yEnd = (int)PointY(token.Line + 1);
+                int yEnd = (int)PointY(token.Y + 1);
 
                 x += FILL_X_OFFSET;
                 xEnd += FILL_X_OFFSET;
@@ -1315,14 +1319,14 @@ namespace Gosub.Zurfur
 
                 // Draw text under cursor in over-write mode
                 if (mOverwriteMode && !HasSel()
-                        && CursorLoc.Line < LineCount 
-                        && CursorLoc.Char >= 0 
-                        && CursorLoc.Char < GetLine(CursorLoc.Line).Length)
+                        && CursorLoc.Y < LineCount 
+                        && CursorLoc.X >= 0 
+                        && CursorLoc.X < GetLine(CursorLoc.Y).Length)
                 {
                     float x = PointX(IndexToCol(CursorLoc));
-                    float y = PointY(CursorLoc.Line);
-                    e.Graphics.DrawString(GetLine(CursorLoc.Line)[CursorLoc.Char].ToString(),
-                                            GetFontInfo(sNormalToken, CursorLoc.Line).Font, Brushes.White,
+                    float y = PointY(CursorLoc.Y);
+                    e.Graphics.DrawString(GetLine(CursorLoc.Y)[CursorLoc.X].ToString(),
+                                            GetFontInfo(sNormalToken, CursorLoc.Y).Font, Brushes.White,
                                             x, y);
                 }
             }
@@ -1413,10 +1417,10 @@ namespace Gosub.Zurfur
             // Set cursor according to line
             TokenLoc cursor = CursorLoc;
             Point text = ScreenToText(e.X, y);
-            cursor.Line = text.Y;
-            cursor.Line = Math.Min(cursor.Line, LineCount-1);
-            cursor.Line = Math.Max(cursor.Line, 0);
-            cursor.Char = ColToIndex(GetLine(cursor.Line), text.X);
+            cursor.Y = text.Y;
+            cursor.Y = Math.Min(cursor.Y, LineCount-1);
+            cursor.Y = Math.Max(cursor.Y, 0);
+            cursor.X = ColToIndex(GetLine(cursor.Y), text.X);
             CursorLoc = cursor;
             UpdateCursorBlinker();
         }
@@ -1455,8 +1459,8 @@ namespace Gosub.Zurfur
             SetCursorByMouse(e);
 
             // Empty line?
-            string line = GetLine(CursorLoc.Line);
-            int startIndex = Math.Min(CursorLoc.Char, line.Length-1);
+            string line = GetLine(CursorLoc.Y);
+            int startIndex = Math.Min(CursorLoc.X, line.Length-1);
             if (startIndex < 0)
                 return;
 
@@ -1489,9 +1493,9 @@ namespace Gosub.Zurfur
             {
                 // Set selected text (and cursor)
                 mSelStart = mSelEnd = CursorLoc;
-                mSelStart.Char = startIndex;
-                mSelEnd.Char = endIndex;
-                CursorLoc = new TokenLoc(CursorLoc.Line, endIndex);
+                mSelStart.X = startIndex;
+                mSelEnd.X = endIndex;
+                CursorLoc = new TokenLoc(CursorLoc.Y, endIndex);
                 UpdateCursorBlinker();
             }
 
@@ -1635,11 +1639,11 @@ namespace Gosub.Zurfur
                 {
                     // Move word right (max 32 chars)
                     int i = 32;
-                    while (--i > 0 && cursor.Char < GetLine(cursor.Line).Length
-                            && char.IsWhiteSpace(GetLine(cursor.Line)[cursor.Char]))
+                    while (--i > 0 && cursor.X < GetLine(cursor.Y).Length
+                            && char.IsWhiteSpace(GetLine(cursor.Y)[cursor.X]))
                         cursor = CharIndexInc(cursor);
-                    while (--i > 0 && cursor.Char < GetLine(cursor.Line).Length
-                            && char.IsLetterOrDigit(GetLine(cursor.Line)[cursor.Char]))
+                    while (--i > 0 && cursor.X < GetLine(cursor.Y).Length
+                            && char.IsLetterOrDigit(GetLine(cursor.Y)[cursor.X]))
                         cursor = CharIndexInc(cursor);
                 }
                 MoveCursor(cursor, false, e.Shift);
@@ -1653,11 +1657,11 @@ namespace Gosub.Zurfur
                 {
                     // Move word left (max 32 chars)
                     int i = 32;
-                    while (--i > 0 && cursor.Char > 0
-                            && char.IsWhiteSpace(GetLine(cursor.Line)[cursor.Char-1]))
+                    while (--i > 0 && cursor.X > 0
+                            && char.IsWhiteSpace(GetLine(cursor.Y)[cursor.X-1]))
                         cursor = CharIndexDec(cursor);
-                    while (--i > 0 && cursor.Char > 0
-                            && char.IsLetterOrDigit(GetLine(cursor.Line)[cursor.Char-1]))
+                    while (--i > 0 && cursor.X > 0
+                            && char.IsLetterOrDigit(GetLine(cursor.Y)[cursor.X-1]))
                         cursor = CharIndexDec(cursor);
                 }
                 MoveCursor(cursor, true, e.Shift);
@@ -1667,18 +1671,18 @@ namespace Gosub.Zurfur
             if (e.KeyCode == Keys.Home)
             {
                 // Find first non-white space
-                string line = GetLine(CursorLoc.Line);
+                string line = GetLine(CursorLoc.Y);
                 int firstText = 0;
-                while (firstText < GetLine(CursorLoc.Line).Length
+                while (firstText < GetLine(CursorLoc.Y).Length
                             && char.IsWhiteSpace(line, firstText))
                     firstText++;
 
                 // Go home, or to beginning of text
                 TokenLoc newCursor = CursorLoc;
-                if (newCursor.Char > firstText || newCursor.Char == 0)
-                    newCursor.Char = firstText;
+                if (newCursor.X > firstText || newCursor.X == 0)
+                    newCursor.X = firstText;
                 else
-                    newCursor.Char = 0;
+                    newCursor.X = 0;
 
                 // CTRL-HOME goes to beginning
                 if (e.Control)
@@ -1689,10 +1693,10 @@ namespace Gosub.Zurfur
             // END
             if (e.KeyCode == Keys.End)
             {
-                TokenLoc newCursor = new TokenLoc(CursorLoc.Line, 0);
+                TokenLoc newCursor = new TokenLoc(CursorLoc.Y, 0);
                 if (e.Control)
                     newCursor = new TokenLoc(LineCount-1, 0);
-                newCursor.Char = GetLine(newCursor.Line).Length;
+                newCursor.X = GetLine(newCursor.Y).Length;
                 MoveCursor(newCursor, true, e.Shift);
                 mCursorUpDownColumn = -1;
             }
@@ -1791,14 +1795,14 @@ namespace Gosub.Zurfur
 
             // Get section of text to move
             List<string> lines = new List<string>();
-            for (int i = mSelStart.Line; i <= mSelEnd.Line; i++)
+            for (int i = mSelStart.Y; i <= mSelEnd.Y; i++)
                 lines.Add(GetLine(i));
 
             // Add or remove spaces
             for (int i = 0; i < lines.Count; i++)
             {
                 // If there is nothing on the last line, don't bother moving
-                if (i != 0 && i == lines.Count-1 && mSelEnd.Char == 0)
+                if (i != 0 && i == lines.Count-1 && mSelEnd.X == 0)
                     break;
 
                 int moveCh = 0;
@@ -1836,16 +1840,16 @@ namespace Gosub.Zurfur
                 lines[i] = line;
 
                 // Mover cursor and selection to match inserted/removed chars
-                if (CursorLoc.Line == mSelStart.Line + i)
-                    CursorLoc = new TokenLoc(CursorLoc.Line, Math.Max(0, CursorLoc.Char+moveCh));
-                if (mSelStart.Line == mSelStart.Line + i)
-                    mSelStart.Char = Math.Max(0, mSelStart.Char+moveCh);
-                if (mSelEnd.Line == mSelStart.Line + i)
-                    mSelEnd.Char = Math.Max(0, mSelEnd.Char+moveCh);
+                if (CursorLoc.Y == mSelStart.Y + i)
+                    CursorLoc = new TokenLoc(CursorLoc.Y, Math.Max(0, CursorLoc.X+moveCh));
+                if (mSelStart.Y == mSelStart.Y + i)
+                    mSelStart.X = Math.Max(0, mSelStart.X+moveCh);
+                if (mSelEnd.Y == mSelStart.Y + i)
+                    mSelEnd.X = Math.Max(0, mSelEnd.X+moveCh);
             }
 
-            ReplaceText(lines.ToArray(), new TokenLoc(mSelStart.Line, 0),
-                                         new TokenLoc(mSelEnd.Line, GetLine(mSelEnd.Line).Length));
+            ReplaceText(lines.ToArray(), new TokenLoc(mSelStart.Y, 0),
+                                         new TokenLoc(mSelEnd.Y, GetLine(mSelEnd.Y).Length));
 
         }
 
@@ -1873,7 +1877,7 @@ namespace Gosub.Zurfur
             TokenLoc end = CursorLoc;
 
             if (OverwriteMode && !HasSel() && e.KeyChar != '\r')
-                end.Char++;
+                end.X++;
 
             if (HasSel())
             {
@@ -1886,9 +1890,9 @@ namespace Gosub.Zurfur
             if (e.KeyChar == '\r')
             {
                 // Insert ENTER (and space before cursor)
-                string line = GetLine(CursorLoc.Line);
+                string line = GetLine(CursorLoc.Y);
                 int i = 0;
-                while (i < line.Length && i < CursorLoc.Char
+                while (i < line.Length && i < CursorLoc.X
                             && char.IsWhiteSpace(line, i))
                     i++;
                 insert = mInsertCR;
@@ -1926,10 +1930,10 @@ namespace Gosub.Zurfur
 
             // While selecting text, scroll the screen
             int linesInWindow = LinesInWindow;
-            if (mMouseDown && CursorLoc.Line - vScrollBar.Value > linesInWindow
+            if (mMouseDown && CursorLoc.Y - vScrollBar.Value > linesInWindow
                         && vScrollBar.Value < vScrollBar.Maximum -linesInWindow)
                 vScrollBar.Value++;
-            else if (mMouseDown && CursorLoc.Line < vScrollBar.Value
+            else if (mMouseDown && CursorLoc.Y < vScrollBar.Value
                         && vScrollBar.Value > 0)
                 vScrollBar.Value--;
 

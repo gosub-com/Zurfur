@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using System.IO;
-using System.Threading.Tasks;
-using Gosub.Zurfur;
 
 namespace Gosub.Zurfur
 {
@@ -17,7 +15,7 @@ namespace Gosub.Zurfur
         bool                mInActivatedEvent;
 
         static readonly string ZURFUR_PROJ_EXT = ".zurfproj";
-        static readonly string ZURFUR_SRC_MAIN = "Main.zurf";
+        static readonly string ZURFUR_SRC_MAIN = "Example.zurf";
         static readonly string EXE_DIR = Path.GetDirectoryName(Application.ExecutablePath);
         static readonly string LICENSE_FILE_NAME = Path.Combine(EXE_DIR, "License.txt");
         static readonly string EXAMPLE_PROJECT = Path.Combine(EXE_DIR, "ZurfurLib\\ZurfurLib.zurfproj");
@@ -468,6 +466,7 @@ namespace Gosub.Zurfur
             {
                 var parser = new ParseZurf(editor.Lexer);
                 var program = parser.Parse();
+                parser.ShowTypes(program);
             }
             else if (ext == ".json")
             {
@@ -493,9 +492,20 @@ namespace Gosub.Zurfur
             int lastMark = -1;
             foreach (var token in editor.Lexer)
             {
-                if (token.Error && token.Location.Line != lastMark)
+                // WARNINGS
+                if (token.Warn && token.Location.Y != lastMark)
                 {
-                    lastMark = token.Location.Line;
+                    lastMark = token.Location.Y;
+                    marks.Add(new VerticalMarkInfo { Color = Color.Gold, Length = 1, Start = lastMark });
+                }
+            }
+            lastMark = -1;
+            foreach (var token in editor.Lexer)
+            {
+                // ERRORS
+                if (token.Error && token.Location.Y != lastMark)
+                {
+                    lastMark = token.Location.Y;
                     marks.Add(new VerticalMarkInfo { Color = Color.Red, Length = 1, Start = lastMark });
                 }
             }
@@ -544,7 +554,7 @@ namespace Gosub.Zurfur
                 return;
             FormHtml form = new FormHtml();
 
-            form.ShowLexer(ed.Lexer, ed.SelStart.Line, ed.SelEnd.Line - ed.SelStart.Line);
+            form.ShowLexer(ed.Lexer, ed.SelStart.Y, ed.SelEnd.Y - ed.SelStart.Y);
         }
 
         private void FormMain_Activated(object sender, EventArgs e)

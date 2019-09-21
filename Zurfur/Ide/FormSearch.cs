@@ -59,7 +59,7 @@ namespace Gosub.Zurfur
             // Take selected text for search box (if any)
             TokenLoc selStart = editor.SelStart;
             TokenLoc selEnd = editor.SelEnd;
-            if (selStart != selEnd && selStart.Line == selEnd.Line)
+            if (selStart != selEnd && selStart.Y == selEnd.Y)
             {
                 string []search = editor.Lexer.GetText(selStart, selEnd);
                 if (search.Length == 1)
@@ -134,10 +134,10 @@ namespace Gosub.Zurfur
             // Verify we are at the start of a word (if requested)
             if (checkMatchWholeWord.Checked)
             {
-                text.Location.Char--;
+                text.Location.X--;
                 if (!IsWordSeparator(text.Peek()))
                     return false;
-                text.Location.Char++;
+                text.Location.X++;
             }
 
             // Scan until we find a match or find the end
@@ -300,12 +300,12 @@ namespace Gosub.Zurfur
             /// </summary>
             public char Peek()
             {
-                if (Location.Char < 0 
-                    || Location.Line < 0
-                    || Location.Line >= mLines.Length
-                    || Location.Char >= mLines[Location.Line].Length)
+                if (Location.X < 0 
+                    || Location.Y < 0
+                    || Location.Y >= mLines.Length
+                    || Location.X >= mLines[Location.Y].Length)
                     return ' ';
-                char ch = mLines[Location.Line][Location.Char];
+                char ch = mLines[Location.Y][Location.X];
                 if (ch <= ' ')
                     return ' ';
                 return ch;
@@ -316,13 +316,13 @@ namespace Gosub.Zurfur
             /// </summary>
             public bool AtEnd()
             {
-                if (Location.Char < 0)
+                if (Location.X < 0)
                     return false;
-                if (Location.Line >= mLines.Length)
+                if (Location.Y >= mLines.Length)
                     return true; // Past end of lines
-                if (Location.Line != mLines.Length-1)
+                if (Location.Y != mLines.Length-1)
                     return false; // Must be on last line
-                return Location.Char >= mLines[Location.Line].Length;
+                return Location.X >= mLines[Location.Y].Length;
             }
 
             /// <summary>
@@ -330,16 +330,16 @@ namespace Gosub.Zurfur
             /// </summary>
             public void Inc()
             {
-                if (Location.Line >= mLines.Length)
+                if (Location.Y >= mLines.Length)
                 {
                     Location = new TokenLoc();
                     return;
                 }
-                Location.Char++;
-                if (Location.Char > mLines[Location.Line].Length)
+                Location.X++;
+                if (Location.X > mLines[Location.Y].Length)
                 {
-                    Location.Char = 0;
-                    Location.Line++;
+                    Location.X = 0;
+                    Location.Y++;
                 }
             }
         }

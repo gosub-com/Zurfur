@@ -4,25 +4,25 @@
 /// byte, int, uint are aliases for uint8, int32, and uint32
 /// xint and xuint are pointer sized integers (32 or 64 bits)
 
-namespace Zurfur;
+namespace Zurfur.BaseTypes;
 
-public struct void { }
-public struct int = int32;
-public struct uint = uint32;
-public struct byte = uint8;
-
-/// 32 bit or 64 bit integer depending on the platform
-public struct xint = int32; 
+pub struct void { }
+pub struct int = int32;
+pub struct uint = uint32;
+pub struct byte = uint8;
 
 /// 32 bit or 64 bit integer depending on the platform
-public struct xuint = uint32;
+pub struct xint = int32; 
+
+/// 32 bit or 64 bit integer depending on the platform
+pub struct xuint = uint32;
 
 /// bool (true or false)
-public struct bool
+pub struct bool
 {
-    static extern func GetHashCode(a bool) uint;
-    static extern func Equals(a bool, b bool) bool;
-    static extern func Compare(a bool, b bool) int;
+    pub extern static func GetHashCode(a bool) uint;
+    pub extern static func Equals(a bool, b bool) bool;
+    pub extern static func Compare(a bool, b bool) int;
 
     // Not overloadable, but these are supplied specially for this type
     //static extern func operator!(a bool);
@@ -31,7 +31,7 @@ public struct bool
 }
 
 /// int8 (-128..127)
-public struct int8
+pub struct int8
 {
     extern construct(from uint8);
     extern construct(from int16);
@@ -46,14 +46,14 @@ public struct int8
 
     const MaxValue int8 = 127;	
     const MinValue int8 = -128;
-    static extern func GetHashCode(a int8) uint;
-    static extern func Equals(a int8, b int8) bool;
-    static extern func Compare(a int8, b int8) int;
+    pub extern static func GetHashCode(a int8) uint;
+    pub extern static func Equals(a int8, b int8) bool;
+    pub extern static func Compare(a int8, b int8) int;
 }
 
 
 /// uint8 (0..255) same as byte
-public struct uint8
+pub struct uint8
 {
     extern construct(from int8);
     extern construct(from int16);
@@ -68,13 +68,13 @@ public struct uint8
     
     const MaxValue uint8 = 255;	
     const MinValue uint8 = 0;
-    static extern func GetHashCode(a uint8) uint;
-    static extern func Equals(a uint8, b uint8) bool;
-    static extern func Compare(a uint8, b uint8) int;
+    pub extern static func GetHashCode(a uint8) uint;
+    pub extern static func Equals(a uint8, b uint8) bool;
+    pub extern static func Compare(a uint8, b uint8) int;
 }
 
 /// int16 (-32768..32768)
-public struct int16
+pub struct int16
 {
     extern construct(from int8);
     extern construct(from uint8);
@@ -89,14 +89,14 @@ public struct int16
 
     const MaxValue int16 = 32767;
     const MinValue int16 = -32768;
-    static extern func GetHashCode(a int16) uint;
-    static extern func Equals(a int16, b int16) bool;
-    static extern func Compare(a int16, b int16) int;
+    pub extern static func GetHashCode(a int16) uint;
+    pub extern static func Equals(a int16, b int16) bool;
+    pub extern static func Compare(a int16, b int16) int;
 }
 
 
 /// uint16 (0..65535)
-public struct uint16
+pub struct uint16
 {
     extern construct(from int8);
     extern construct(from uint8);
@@ -111,13 +111,13 @@ public struct uint16
 
     const MaxValue uint16 = 65535;	
     const MinValue uint16 = 0;
-    static extern func GetHashCode(a uint16) uint;
-    static extern func Equals(a uint16, b uint16) bool;
-    static extern func Compare(a uint16, b uint16) int;
+    pub extern static func GetHashCode(a uint16) uint;
+    pub extern static func Equals(a uint16, b uint16) bool;
+    pub extern static func Compare(a uint16, b uint16) int;
 }
 
 /// A 32 bit integer (same as int)
-public struct int32
+pub struct int32
 {
     extern construct(from int8);
     extern construct(from uint8);
@@ -134,17 +134,17 @@ public struct int32
     const MinValue int32 = -2147483648;
 
     // Comparisons    
-    static extern func GetHashCode(a int32) uint;
-    static extern func Equals(a int32, b int32) bool;
-    static extern func Compare(a int32, b int32) int;
+    pub extern static func GetHashCode(a int32) uint;
+    pub extern static func Equals(a int32, b int32) bool;
+    pub extern static func Compare(a int32, b int32) int;
 
     // Overloadable operators
-    extern operator+(a int32) int32;
-    extern operator-(a int32) int32;
-    extern operator+(a int32, b int32) int32;
-    extern operator-(a int32, b int32) int32;
-    extern operator*(a int32, b int32) int32;
-    extern operator/(a int32, b int32) int32;
+    pub extern operator+(a int32) int32;
+    pub extern operator-(a int32) int32;
+    pub extern operator+(a int32, b int32) int32;
+    pub extern operator-(a int32, b int32) int32;
+    pub extern operator*(a int32, b int32) int32;
+    pub extern operator/(a int32, b int32) int32;
     
     // Not overloadable, but these are supplied specially for this type
     //static extern func operator%(a int32, b int32);
@@ -157,7 +157,7 @@ public struct int32
 }
 
 /// 32 bit unsigned integer (same as uint)
-public struct uint32
+pub struct uint32
 {
     extern construct(from int8);
     extern construct(from uint8);
@@ -174,17 +174,17 @@ public struct uint32
     const MinValue uint32 = 4294967295;
 
     // Comparisons    
-    static extern func GetHashCode(a uint32) uint;
-    static extern func Equals(a uint32, b uint32) bool;
-    static extern func Compare(a uint32, b uint32) int;
+    pub extern static func GetHashCode(a uint32) uint;
+    pub extern static func Equals(a uint32, b uint32) bool;
+    pub extern static func Compare(a uint32, b uint32) int;
     
     // Overloadable operators
-    extern operator+(a uint32) uint32;
-    extern operator-(a uint32) uint32;
-    extern operator+(a uint32, b uint32) uint32;
-    extern operator-(a uint32, b uint32) uint32;
-    extern operator*(a uint32, b uint32) uint32;
-    extern operator/(a uint32, b uint32) uint32;
+    pub extern operator+(a uint32) uint32;
+    pub extern operator-(a uint32) uint32;
+    pub extern operator+(a uint32, b uint32) uint32;
+    pub extern operator-(a uint32, b uint32) uint32;
+    pub extern operator*(a uint32, b uint32) uint32;
+    pub extern operator/(a uint32, b uint32) uint32;
 
     // Not overloadable, but these are supplied specially for this type
     //static extern func operator%(a uint32, b uint32);
@@ -197,7 +197,7 @@ public struct uint32
 }
 
 /// A 64 bit integer
-public struct int64
+pub struct int64
 {
     extern construct(from int8);
     extern construct(from uint8);
@@ -214,17 +214,17 @@ public struct int64
     const MinValue int64 = -9223372036854775808;
 
     // Comparisons    
-    static extern func GetHashCode(a int64) uint;
-    static extern func Equals(a int64, b int64) bool;
-    static extern func Compare(a int64, b int64) int;
+    pub extern static func GetHashCode(a int64) uint;
+    pub extern static func Equals(a int64, b int64) bool;
+    pub extern static func Compare(a int64, b int64) int;
 
     // Overloadable operators
-    extern operator+(a int64) int64;
-    extern operator-(a int64) int64;
-    extern operator+(a int64, b int64) int64;
-    extern operator-(a int64, b int64) int64;
-    extern operator*(a int64, b int64) int64;
-    extern operator/(a int64, b int64) int64;
+    pub extern operator+(a int64) int64;
+    pub extern operator-(a int64) int64;
+    pub extern operator+(a int64, b int64) int64;
+    pub extern operator-(a int64, b int64) int64;
+    pub extern operator*(a int64, b int64) int64;
+    pub extern operator/(a int64, b int64) int64;
 
     // Not overloadable, but these are supplied specially for this type
     //static extern func operator%(a int64, b int64);
@@ -237,7 +237,7 @@ public struct int64
 }
 
 /// 64 bit unsigned integer
-public struct uint64
+pub struct uint64
 {
     extern construct(from int8);
     extern construct(from uint8);
@@ -254,17 +254,17 @@ public struct uint64
     const MinValue uint64 = 18446744073709551615;
 
     // Comparisons    
-    static extern func GetHashCode(a uint64) uint;
-    static extern func Equals(a uint64, b uint64) bool;
-    static extern func Compare(a uint64, b uint64) int;
+    pub extern static func GetHashCode(a uint64) uint;
+    pub extern static func Equals(a uint64, b uint64) bool;
+    pub extern static func Compare(a uint64, b uint64) int;
     
     // Overloadable operators
-    extern operator+(a uint64) uint64;
-    extern operator-(a uint64) uint64;
-    extern operator+(a uint64, b uint64) uint64;
-    extern operator-(a uint64, b uint64) uint64;
-    extern operator*(a uint64, b uint64) uint64;
-    extern operator/(a uint64, b uint64) uint64;
+    pub extern operator+(a uint64) uint64;
+    pub extern operator-(a uint64) uint64;
+    pub extern operator+(a uint64, b uint64) uint64;
+    pub extern operator-(a uint64, b uint64) uint64;
+    pub extern operator*(a uint64, b uint64) uint64;
+    pub extern operator/(a uint64, b uint64) uint64;
 
     // Not overloadable, but these are supplied specially for this type
     //static extern func operator%(a uint64, b uint64);
@@ -276,7 +276,7 @@ public struct uint64
     //static extern func operator>>(a uint64, b int32);
 }
 
-public struct float32
+pub struct float32
 {
     extern construct(from int8);
     extern construct(from uint8);
@@ -291,13 +291,13 @@ public struct float32
 
     // Normal float32 comparisons (NAN==NAN is false)
     // TBD: Maybe we don't need funny NAN comparisons since we're starting fresh?
-    static extern func Equals(a float32, b float32) bool;
-    static extern func Compare(a float32, b float32) int;
+    pub extern static func Equals(a float32, b float32) bool;
+    pub extern static func Compare(a float32, b float32) int;
     
     // Comparisons for sorting (NAN>infinity and NAN==NAN are both true)
-    static extern func GetHashCode(a float32) uint;
-    static extern func IHashable<float32>::Equals(a float32, b float32) bool;
-    static extern func ISortable<float32>::Compare(a float32, b float32) int;
+    pub extern static func GetHashCode(a float32) uint;
+    pub extern static func IHashable<float32>::Equals(a float32, b float32) bool;
+    pub extern static func ISortable<float32>::Compare(a float32, b float32) int;
 
     const MinValue float32 = -3.40282347E+38F;
     const MaxValue float32 = 3.40282347E+38F;
@@ -305,26 +305,26 @@ public struct float32
     const PositiveInfinity float32 = 1F/0F;
     const NegativeInfinity float32 = -1F/0F;
     const NaN float32 = 0F/0F;
-    extern get IsInfinity bool;
-    extern get IsNaN bool;
-    extern get IsNegativeInfinity bool;
-    extern get IsPositiveInfinity bool;
+    pub extern get IsInfinity bool;
+    pub extern get IsNaN bool;
+    pub extern get IsNegativeInfinity bool;
+    pub extern get IsPositiveInfinity bool;
 
     
     // Overloadable operators
-    extern operator+(a float32) float32;
-    extern operator-(a float32) float32;
-    extern operator+(a float32, b float32) float32;
-    extern operator-(a float32, b float32) float32;
-    extern operator*(a float32, b float32) float32;
-    extern operator/(a float32, b float32) float32;
+    pub extern operator+(a float32) float32;
+    pub extern operator-(a float32) float32;
+    pub extern operator+(a float32, b float32) float32;
+    pub extern operator-(a float32, b float32) float32;
+    pub extern operator*(a float32, b float32) float32;
+    pub extern operator/(a float32, b float32) float32;
     
     // Not overloadable, but these are supplied specially for this type
     //static extern func operator%(a float32, b float32);	
     //static extern func operator**(a float32, b float32);
 }
 
-public struct float64
+pub struct float64
 {
     extern construct(from int8);
     extern construct(from uint8);
@@ -339,13 +339,13 @@ public struct float64
 
     // Normal float64 comparisons (NAN==NAN is false)
     // TBD: Maybe we don't need funny NAN comparisons since we're starting fresh?
-    static extern func Equals(a float64, b float64) bool;
-    static extern func Compare(a float64, b float64) int;
+    pub extern static func Equals(a float64, b float64) bool;
+    pub extern static func Compare(a float64, b float64) int;
     
     // Comparisons for sorting (NAN>infinity and NAN==NAN are both true)
-    static extern func GetHashCode(a float64) uint;
-    static extern func IHashable<float32>::Equals(a float64, b float64) bool;
-    static extern func ISortable<float32>::Compare(a float64, b float64) int;
+    pub extern static func GetHashCode(a float64) uint;
+    pub extern static func IHashable<float32>::Equals(a float64, b float64) bool;
+    pub extern static func ISortable<float32>::Compare(a float64, b float64) int;
 
     const MinValue float64 = -1.7976931348623157E+308;
     const MaxValue float64 = 1.7976931348623157E+308;
@@ -353,18 +353,18 @@ public struct float64
     const PositiveInfinity float64 = 1.0/0.0;
     const NegativeInfinity float64 = -1.0/0.0;
     const NaN float64 = 0.0/0.0;
-    extern get IsInfinity bool;
-    extern get IsNaN bool;
-    extern get IsNegativeInfinity bool;
-    extern get IsPositiveInfinity bool;
+    pub extern get IsInfinity bool;
+    pub extern get IsNaN bool;
+    pub extern get IsNegativeInfinity bool;
+    pub extern get IsPositiveInfinity bool;
     
     // Overloadable operators
-    extern operator+(a float64) float64;
-    extern operator-(a float64) float64;
-    extern operator+(a float64, b float64) float64;
-    extern operator-(a float64, b float64) float64;
-    extern operator*(a float64, b float64) float64;
-    extern operator/(a float64, b float64) float64;
+    pub extern operator+(a float64) float64;
+    pub extern operator-(a float64) float64;
+    pub extern operator+(a float64, b float64) float64;
+    pub extern operator-(a float64, b float64) float64;
+    pub extern operator*(a float64, b float64) float64;
+    pub extern operator/(a float64, b float64) float64;
     
     // Not overloadable, but these are supplied specially for this type
     //static extern func operator%(a float64, b float64);	
@@ -373,7 +373,7 @@ public struct float64
 
 /// 128 bit decimal integer.  This will support NAN, infinity, and
 /// exponents covering the range of double.
-public struct decimal
+pub struct decimal
 {
     extern construct(from int8);
     extern construct(from uint8);
@@ -391,23 +391,23 @@ public struct decimal
     const PositiveInfinity decimal = 1.0/0.0;
     const NegativeInfinity decimal = -1.0/0.0;
     const NaN decimal = 0.0/0.0;
-    extern get IsInfinity bool;
-    extern get IsNaN bool;
-    extern get IsNegativeInfinity bool;
-    extern get IsPositiveInfinity bool;
+    pub extern get IsInfinity bool;
+    pub extern get IsNaN bool;
+    pub extern get IsNegativeInfinity bool;
+    pub extern get IsPositiveInfinity bool;
 
     // Comparisons.  NOTE: NaN > infinity, and NaN==NaN is true
-    static extern func GetHashCode(a decimal) uint;
-    static extern func Equals(a decimal, b decimal) bool;
-    static extern func Compare(a decimal, b decimal) int;
+    pub extern static func GetHashCode(a decimal) uint;
+    pub extern static func Equals(a decimal, b decimal) bool;
+    pub extern static func Compare(a decimal, b decimal) int;
     
     // Overloadable operators
-    extern operator+(a decimal) decimal;
-    extern operator-(a decimal) decimal;
-    extern operator+(a decimal, b decimal) decimal;
-    extern operator-(a decimal, b decimal) decimal;
-    extern operator*(a decimal, b decimal) decimal;
-    extern operator/(a decimal, b decimal) decimal;
+    pub extern operator+(a decimal) decimal;
+    pub extern operator-(a decimal) decimal;
+    pub extern operator+(a decimal, b decimal) decimal;
+    pub extern operator-(a decimal, b decimal) decimal;
+    pub extern operator*(a decimal, b decimal) decimal;
+    pub extern operator/(a decimal, b decimal) decimal;
     
     // Not overloadable, but these are supplied specially for this type    
     //static extern func operator%(a decimal, b decimal);

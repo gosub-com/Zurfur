@@ -34,39 +34,46 @@ namespace Gosub.Zurfur
 
         static readonly string sReservedWordsList = "abstract as base break case catch class const "
             + "continue default delegate do else enum event explicit extern false defer use "
-            + "finally fixed for goto if implicit in interface internal is extends lock namespace "
-            + "new null operator out override params public private protected readonly ro ref "
+            + "finally fixed for goto if implicit in interface internal is extends lock namespace module include "
+            + "new null operator out override params pub public private protected readonly ro ref "
             + "return sealed sealed1 sizeof stackalloc heapalloc static struct switch this throw true try "
             + "typeof unsafe using static virtual volatile while asm managed unmanaged implements "
             + "async await astart get set yield global partial var where nameof func construct destruct cast";
-        static readonly string sReservedControlWords = "using namespace class struct interface func construct destruct if else switch case";
+        static readonly string sReservedControlWords = "using namespace module include class struct interface func construct destruct if else switch case";
         static WordMap<eTokenType> sReservedWords = new WordMap<eTokenType>();
 
-        static WordSet sInterfaceQualifiers = new WordSet("public protected private internal");
-        static WordSet sClassQualifiers = new WordSet("public protected private internal unsafe sealed sealed1 abstract");
-        static WordSet sStructQualifiers = new WordSet("public protected private internal unsafe");
-        static WordSet sEnumQualifiers = new WordSet("public protected private internal");
-        static WordSet sFuncQualifiers = new WordSet("public protected private internal unsafe static extern abstract virtual override new async");
-        static WordSet sFieldQualifiers = new WordSet("public protected private internal unsafe static volatile ro const");
+        static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal");
+        static WordSet sClassQualifiers = new WordSet("pub public protected private internal unsafe sealed sealed1 abstract");
+        static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe");
+        static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
+        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static extern abstract virtual override new async");
+        static WordSet sFuncInInterfaceQualifiers = new WordSet("static");
+        static WordSet sFieldQualifiers = new WordSet("pub public protected private internal unsafe static volatile ro const");
+
+        // TBD: Still haven't decieded if `Map`, `Array`, and `List` should be lower case
+        static WordSet sNoPubWarningKeywords = new WordSet("this object string void bool byte xint xuint int uint int8 uint8 int16 uint16 int32 uint32 int64 uint64 float32 float64 decimal");
 
 
         static WordMap<int> sClassFuncFieldQualifiers = new WordMap<int>()
         {
-            { "public", 1 }, { "protected", 1 }, { "private", 1 }, { "internal", 1 },
-            { "unsafe", 2 }, { "static", 3 },  {"const", 3 }, { "extern", 4 },
+            { "pub", 1 }, { "public", 1 }, { "protected", 1 }, { "private", 1 }, { "internal", 1 },
+            { "unsafe", 2 }, { "extern", 3 }, { "static", 4 },  {"const", 4 },
             { "sealed", 6 }, { "sealed1", 6 },
             { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
             { "async", 9 }, { "volatile", 12 },
             { "readonly", 14 }, { "ro", 14 }
         };
 
+        static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sFieldDefTypeQualifiers = new WordSet("ref");
         static WordSet sFuncDefReturnTypeQualifiers = new WordSet("ref ro");
         static WordSet sFuncDefParamTypeQualifiers = new WordSet("out ref ro");
         static WordSet sTypeDefQualifiers = new WordSet("ref ro");
         static WordSet sTypeDefParamQualifiers = new WordSet("in out");
         static WordSet sFuncCallParamQualifiers = new WordSet("out ref");
-        static WordSet sEmptyWordSet = new WordSet("");
+        static WordSet sRequireGlobalFieldQualifiers = new WordSet("static const");
+        static WordSet sRequireGlobalFuncQualifiers = new WordSet("static");
+
 
         static WordSet sAllowNewKeyword = new WordSet("new");
         static WordSet sAllowThisKeyword = new WordSet("this");
@@ -86,8 +93,8 @@ namespace Gosub.Zurfur
         // For example `F<T1>()` to call a function or create a type, `F<T1>.Name` to access a static or member
         static WordSet sTypeArgumentParameterSymbols = new WordSet("( .");
 
-        static WordSet sStatementsDone = new WordSet("} func using namespace class struct interface enum", true);
-        static WordSet sRejectAnyStop = new WordSet("; { } using namespace class struct interface enum if else for while throw switch case func", true);
+        static WordSet sStatementsDone = new WordSet("} func using namespace module class struct interface enum", true);
+        static WordSet sRejectAnyStop = new WordSet("; { } using namespace module class struct interface enum if else for while throw switch case func", true);
         static WordSet sRejectStatement = new WordSet("");
         static WordSet sRejectFuncName = new WordSet("( [");
         static WordSet sRejectFuncParamsParen = new WordSet(")");
@@ -116,12 +123,11 @@ namespace Gosub.Zurfur
         {
             mUnit = new SyntaxUnit();
             ParseCompilationUnit();
-            ShowTypes(mUnit);
             return mUnit;
         }
 
         /// Temporary, remove this later
-        void ShowTypes(SyntaxUnit unit)
+        public void ShowTypes(SyntaxUnit unit)
         {
             foreach (var class2 in mUnit.Classes)
                 ShowTypes(class2);
@@ -181,7 +187,7 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Parse the file
         /// </summary>
-        public void ParseCompilationUnit()
+        void ParseCompilationUnit()
         {
             mUnit = new SyntaxUnit();
             var qualifiers = new List<Token>();
@@ -198,9 +204,10 @@ namespace Gosub.Zurfur
         }
 
         /// <summary>
+        /// Outer keyword is "" when not in a class or other containing structure
         /// Parse using, namespace, enum, interface, struct, class, func, or field
         /// </summary>
-        private void ParseScopeStatements(string outerKeyword)
+        void ParseScopeStatements(string outerKeyword)
         {
             var qualifiers = new List<Token>();
             while (mTokenName != "" && mTokenName != "}")
@@ -254,7 +261,7 @@ namespace Gosub.Zurfur
                     case "class":
                         RejectQualifiers(qualifiers, "This qualifier does not apply to class statements", sClassQualifiers);
 ParseClass:
-                        if (mUnit.CurrentNamespace == null)
+                        if (mUnit.CurrentNamespace == null && outerKeyword == "")
                             RejectToken(keyword, "The namespace must be defined before " + keyword.Name + " statements");
                         if (outerKeyword == "interface" || outerKeyword == "enum")
                             RejectToken(mToken, "Classes, structs, enums, and interfaces may not be nested inside an interface or enum");
@@ -270,29 +277,39 @@ ParseClass:
                     case "construct":
                     case "func":
                         RejectQualifiers(qualifiers, "This qualifier does not apply to func statements", sFuncQualifiers);
-                        if (mUnit.CurrentNamespace == null)
+                        if (mUnit.CurrentNamespace == null && outerKeyword == "")
                             RejectToken(keyword, "The namespace must be defined before func statements");
                         var funcDef = ParseMethodDef(qualifiers, comments, outerKeyword == "interface");
                         if (funcDef.FuncName != null)
-                            CheckPublicQualifier(funcDef.FuncName.Token, qualifiers);
+                        {
+                            if (outerKeyword == "interface")
+                            {
+                                RejectQualifiers(qualifiers, "This qualifier may not appear before a function defined inside an interface", sFuncInInterfaceQualifiers);
+                            }
+                            else
+                            {
+                                CheckPublicQualifier(funcDef.FuncName.Token, qualifiers);
+                            }
+                            if (outerKeyword == "" && !HasQualifier(qualifiers, sRequireGlobalFuncQualifiers))
+                                RejectToken(funcDef.FuncName.Token, "Functions at the namespace level must be static");
+
+                        }
                         mUnit.Funcs.Add(funcDef);
                         break;
 
                     default:
-                        if (outerKeyword == "")
-                        {
-                            // Top level, fields not allowed
-                            RejectToken(mToken, "Expecting keyword using, namespace, class, struct, interface, enum, or func.  " 
-                                + "Fields may not be defined the namesapce level, they must be contained in a class or struct.");
-                            Accept();
-                        }
-                        else if (mToken.Type != eTokenType.Identifier)
+                        if (mToken.Type != eTokenType.Identifier)
                         {
                             RejectToken(mToken, "Expecting keyword using, namespace, class, struct, interface, enum, func, or a field name identifier.");
                             Accept();
                         }
                         else
                         {
+                            if (outerKeyword == "" && !HasQualifier(qualifiers, sRequireGlobalFieldQualifiers))
+                            {
+                                // Top level fields must be static or constnot allowed
+                                RejectToken(mToken, "Fields at the namespace level must be static or const");
+                            }
                             // Parse a field definition
                             RejectQualifiers(qualifiers, "This qualifier does not apply to a field", sFieldQualifiers);
                             ParseIdentifier("Expecting a variable name or keyword such as 'class', etc.", sRejectStatement, out var fieldName);
@@ -343,22 +360,55 @@ ParseClass:
             }
         }
 
+        bool HasQualifier(List<Token> qualifiers, WordSet accept)
+        {
+            foreach (var q in qualifiers)
+                if (accept.Contains(q.Name))
+                    return true;
+            return false;
+        }
+
         void CheckPublicQualifier(Token token, List<Token> qualifiers)
         {
             if (token == null || token.Name == "")
                 return;
+            bool isConst = false;
+            bool isPublic = false;
             foreach (var qualifier in qualifiers)
             {
-                if (qualifier == "public" && char.IsUpper(token.Name[0]))
+                switch (qualifier.Name)
                 {
-                    qualifier.Grayed = true;
-                    qualifier.AddInfo("'public' is not needed because the name is upper case");
+                    case "public":
+                        RejectToken(qualifier, "Use 'pub' instead of public");
+                        return;
+                    case "pub":
+                        isPublic = true;
+                        break;
+                    case "protected":
+                    case "internal":
+                        return;
+                    case "private":
+                        break; // Private checked below
+                    case "const":
+                        isConst = true;
+                        break;
                 }
-                if (qualifier == "private" && char.IsLower(token.Name[0]))
-                {
-                    qualifier.Grayed = true;
-                    qualifier.AddInfo("'private' is not needed because the name is lower case");
-                }
+            }
+            if (isPublic)
+            {
+                // Public warning
+                if (char.IsLower(token.Name[0]) && !sNoPubWarningKeywords.Contains(token.Name))
+                    token.AddWarning("'pub' should not be used on lower case symboils");
+            }
+            else if (!isConst)
+            {
+                // Private warnings
+                if (char.IsUpper(token.Name[0]) && !sNoPubWarningKeywords.Contains(token.Name))
+                    token.AddWarning("Upper case symbols should not be private");
+                else if (sOverloadableOperators.Contains(token.Name))
+                    token.AddWarning("Operators should not be private");
+                else if (token.Name == "this")
+                    token.AddWarning("Indexer should not be private");
             }
         }
 
@@ -840,7 +890,7 @@ ParseClass:
         }
 
         ///  Parse expression (doesn't include ',' or '=' statements)
-        public SyntaxExpr ParseExpr()
+        SyntaxExpr ParseExpr()
         {
             return ParseLambda();
         }
@@ -944,12 +994,12 @@ ParseClass:
         bool InterceptAndReplaceToken(string match, string replace)
         {
             var peek = mLexerEnum.PeekOnLine();
-            if (peek.Name != match || peek.Char != mToken.Char + 1)
+            if (peek.Name != match || peek.X != mToken.X + 1)
                 return false;
 
             // Replace with a virtual token
             Accept();  // Skip first '>'
-            mToken = new Token(replace, mToken.Line, mToken.Char);
+            mToken = new Token(replace, mToken.Y, mToken.X);
             return true;
         }
 
@@ -1429,11 +1479,11 @@ ParseClass:
                 mToken.Type = eTokenType.Normal;
             else if (mTokenName[0] == '\"')
                 mToken.Type = eTokenType.Quote;
-            else if (sReservedWords.TryGetValue(mTokenName, out var tokenType))
-                mToken.Type = tokenType;
             else if (mTokenName[0] >= '0' && mTokenName[0] <= '9')
                 mToken.Type = eTokenType.Number;
-            else if (char.IsLetter(mTokenName[0]))
+            else if (sReservedWords.TryGetValue(mTokenName, out var tokenType))
+                mToken.Type = tokenType;
+            else if (char.IsLetter(mTokenName[0]) || mTokenName[0] == '_')
                 mToken.Type = eTokenType.Identifier;
             else
                 mToken.Type = eTokenType.Normal;

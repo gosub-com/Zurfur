@@ -9,7 +9,7 @@
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Gosub.Zurfur</RootNamespace>
-    <AssemblyName>Bit</AssemblyName>
+    <AssemblyName>Zurfur</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <FileUpgradeFlags>
@@ -50,6 +50,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Compiler\GenSilHeader.cs" />
+    <Compile Include="Compiler\GenSilDef.cs" />
+    <Compile Include="Compiler\Sil.cs" />
     <Compile Include="Ide\IEditor.cs" />
     <Compile Include="Ide\ImageEditor.cs">
       <SubType>UserControl</SubType>
@@ -185,7 +188,10 @@
     <None Include="ZurfurLib\ZurfurLib\Interfaces.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\SimpleTypes.zurf">
+    <None Include="ZurfurLib\ZurfurLib\BaseTypes.zurf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="ZurfurLib\ZurfurLib\Math.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="ZurfurLib\ZurfurLib\Test.json">
@@ -204,7 +210,7 @@
     <None Include="ZurfurLib\ZurfurLib.zurfproj">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Main.zurf">
+    <None Include="ZurfurLib\ZurfurLib\Example.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
