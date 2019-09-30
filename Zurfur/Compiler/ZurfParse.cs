@@ -7,7 +7,7 @@ namespace Gosub.Zurfur
     /// <summary>
     /// Base class for the parser
     /// </summary>
-    class ParseZurf
+    class ZurfParse
     {
         // Since '<' is ambiguous for type argument lists, this symbol
         // is used instead.  '<' is only for less than symbol.
@@ -103,7 +103,7 @@ namespace Gosub.Zurfur
         static WordSet sRejectParen = new WordSet(")");
         static WordSet sRejectBracket = new WordSet("]");
 
-        static ParseZurf()
+        static ZurfParse()
         {
             sReservedWords.AddWords(sReservedWordsList, eTokenType.Reserved);
             sReservedWords.AddWords(sReservedControlWords, eTokenType.ReservedControl);
@@ -112,7 +112,7 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Parse the given lexer
         /// </summary>
-        public ParseZurf(Lexer tokens)
+        public ZurfParse(Lexer tokens)
         {
             mLexer = tokens;
             mLexerEnum = new Lexer.Enumerator(mLexer);

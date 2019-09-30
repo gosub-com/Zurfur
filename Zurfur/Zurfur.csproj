@@ -50,8 +50,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Compiler\GenSilHeader.cs" />
-    <Compile Include="Compiler\GenSilDef.cs" />
     <Compile Include="Compiler\Sil.cs" />
     <Compile Include="Ide\IEditor.cs" />
     <Compile Include="Ide\ImageEditor.cs">
@@ -109,7 +107,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Compiler\MinTern.cs" />
-    <Compile Include="Compiler\ParseJson.cs" />
+    <Compile Include="Compiler\JsonParse.cs" />
     <Compile Include="Compiler\SyntaxExpr.cs" />
     <Compile Include="Ide\TextEditor.cs">
       <SubType>UserControl</SubType>
@@ -123,7 +121,7 @@
     <Compile Include="Ide\FormMain.Designer.cs">
       <DependentUpon>FormMain.cs</DependentUpon>
     </Compile>
-    <Compile Include="Compiler\ParseZurf.cs" />
+    <Compile Include="Compiler\ZurfParse.cs" />
     <Compile Include="Compiler\Syntax.cs" />
     <Compile Include="Compiler\WordMap.cs" />
     <Compile Include="Compiler\WordSet.cs" />

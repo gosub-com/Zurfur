@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Gosub.Zurfur
 {
-    class ParseJson
+    class JsonParse
     {
         const bool SHOW_PARSE_TREE = true;
 
@@ -26,7 +26,7 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Parse the given lexer
         /// </summary>
-        public ParseJson(Lexer tokens)
+        public JsonParse(Lexer tokens)
         {
             mLexer = tokens;
             mLexerEnum = new Lexer.Enumerator(mLexer);

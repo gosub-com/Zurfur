@@ -264,7 +264,7 @@ namespace Gosub.Zurfur
                 {
                     // TBD: Move lexer/parser setup to it's own class
                     var newEditor = new TextEditor();
-                    newEditor.Lexer.SetSpecialSymbols(ParseZurf.TokenSymbols);
+                    newEditor.Lexer.SetSpecialSymbols(ZurfParse.TokenSymbols);
                     newEditor.Lexer.TokenizeComments = true;
                     newEditor.LoadFile(path);
                     mvEditors.AddEditor(newEditor);
@@ -464,13 +464,13 @@ namespace Gosub.Zurfur
             var ext = Path.GetExtension(editor.FilePath).ToLower();
             if (ext == ".zurf")
             {
-                var parser = new ParseZurf(editor.Lexer);
+                var parser = new ZurfParse(editor.Lexer);
                 var program = parser.Parse();
                 parser.ShowTypes(program);
             }
             else if (ext == ".json")
             {
-                var parser = new ParseJson(editor.Lexer);
+                var parser = new JsonParse(editor.Lexer);
                 parser.Parse();
             }
             else
