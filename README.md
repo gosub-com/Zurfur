@@ -122,10 +122,6 @@ basic as `string` and `decimal`?  If so, should `Span` and `RoSpan` be lower
 case?  My preference is leaning toward them lower case but leaving `Span` and
 `RoSpan` upper case.  What about `Sin`, `Cos`, etc.?
 
-Should we change the syntax for `get` and `set` to be closer to C#, but
-without an extra layer of braces: `a int { get: code;  set: coder}`.
-Same with indexers?
-
 Should NAN`s compare the way IEEE numbers are supposed to? Since this is a new
 language, my preference would be to have them compare so NAN != NAN and they
 sort so NAN > INF.  This way we don't have to worry about doing special

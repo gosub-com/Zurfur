@@ -16,7 +16,6 @@ namespace Gosub.Zurfur
         public List<SyntaxClass> Classes = new List<SyntaxClass>();
         public List<SyntaxFunc> Funcs = new List<SyntaxFunc>();
         public List<SyntaxField> Fields = new List<SyntaxField>();
-
     }
 
     class SyntaxNamespace
@@ -42,20 +41,22 @@ namespace Gosub.Zurfur
         public SyntaxExpr QualifiedIdentifiers;
     }
 
-    class SyntaxClass // or struct or interface
+    class SyntaxClass // or struct, enum, or interface
     {
+        public SyntaxNamespace Namespace;
+        public SyntaxClass ParentClass;
         public string[] Comments;
         public Token[] Qualifiers;
-        public Token Keyword;
+        public Token Keyword; // class, struct, etc.
         public SyntaxExpr BaseClass;
-        public SyntaxExpr ClassName;
+        public SyntaxExpr Name;
         public SyntaxExpr Alias;
         public SyntaxExpr[] Implements;
         public SyntaxConstraint []Constraints;
 
         public override string ToString()
         {
-            return ClassName == null ? "(class)" : ClassName.ToString();
+            return Name == null ? "(class)" : Name.ToString();
         }
     }
 
@@ -68,10 +69,13 @@ namespace Gosub.Zurfur
 
     class SyntaxField
     {
+        public SyntaxNamespace Namespace;
+        public SyntaxClass ParentClass;
         public string[] Comments;
         public Token[] Qualifiers;
         public Token Name;
         public SyntaxExpr TypeName;
+        public Token InitToken;
         public SyntaxExpr InitExpr;
 
         public override string ToString()
@@ -82,20 +86,21 @@ namespace Gosub.Zurfur
 
     class SyntaxFunc
     {
+        public SyntaxNamespace Namespace;
+        public SyntaxClass ParentClass;
         public string[] Comments;
         public Token[] Qualifiers;
-        public Token Keyword;
+        public Token Keyword; // func, afunc, prop, this, construct, etc.
         public SyntaxExpr ClassName;
-        public Token GetOrSetToken;
-        public SyntaxExpr FuncName;
+        public SyntaxExpr Name;
         public SyntaxFuncParam[] Params;
-        public SyntaxExpr Return;
+        public SyntaxExpr ReturnType;
         public SyntaxExpr Statements;
 
         public override string ToString()
         {
             var sb = new StringBuilder();
-            sb.Append(FuncName == null ? "(func)" : FuncName.ToString());
+            sb.Append(Name == null ? "(func)" : Name.ToString());
             sb.Append("(");
             if (Params != null)
                 for (int i = 0; i < Params.Length; i++)

@@ -7,36 +7,49 @@ namespace Zurfur.Example;
 // Test class
 pub class Example 
 { 
-    // Field types, initialized to zero, null, or "" for string
-    f1 int;
-    f2 float32;
-    f3 string;		// Defaults to "", not NULL
-    f4 Array<int>;
-    f5 []int;       // Same as Array<int>
-    f6 [][]int;     // Same as Array<Array<int>>
-    f7 Pointer<int>;
-    f8 *int;        // Same as Pointer<int>
-    f9 **int;		// Same as Pointer<Pointer<int>>
-    f10 Map<string,List<int>>;	
+    // Fields initialized to zero, null, or "" for string
+    f1 int;			// Initialized to 0
+    f2 float32;		// Initialized to 0.0
+    f3 string;		// Initialized to "", not NULL
     
-    // Fields initialized to an expression (never null)
-    // Must be an expression starting with a constructor or cast
-    e1 int = int();
-    e2 int = FuncThatReturnsInt >> 4;
-    e3 float32 = FuncThatReturnsFloat32orInt();
-    e4 string = "Hello";
-    e5 Array<int> = new(32);        // Array, Length=32
-    e7 List<int> = new(32);         // List, Length=0, Capacity=32
-    e8 Map<string,string> = new(); 	// Empty map
-    e10 *int = GetIntPtr();			// Same as Pointer<int> = `GetIntPtr()`
-        
-    // Illegal at parse time
-    //i7 int(1); 		//  Must not be initialized
-    //i8 = Array<int>;	// Type name is not an expression
-    //i9 = Array<byte>[0]; // Type can't be dereferenced
-    //i10 = int(List<in string>()); // Type argument can't have in/ref/out
-    //func i11(a Map<in string,string>) { } // Type argument can't have in/ref/out	
-
+    // Fields initialized to null
+    f4 Array<int>;
+    f5 Array<Array<int>>; 
+    f6 []int;       // Same as Array<int>
+    f7 Map<string,List<int>>;	
+    f8 Pointer<int>;
+    f9 *int;        // Same as Pointer<int>
+    
+	// Fields initialized via constructor
+    f10 int(FuncReturnsInt());
+    f11 Array<int>();          // Array, Count=0
+    f12 Array<int>(32);        // Array, Count=32
+    f13 Array<int>({1,2,3});   // Array initialized with 1, 2, 3
+    f13 List<int>(32);         // Empty List, Capacity=32
+    f14 Map<string,string>();  // Empty map
+	
+    // Fields initialized via assignment
+    f15 int = 32;
+    f16 int = FuncReturnsInt() >> 4;
+    f17 float32 = FuncReturnsFloat32orInt();
+    f18 string = "Hello";
+    f19 *int = GetIntPtr();			// Same as Pointer<int> = `GetIntPtr()`
+    
+    // Properties
+    pub prop P1 int => 1;
+    pub prop P2 float =>  f1 + f2;
+    pub prop P3 int { get { return 3; } }
+    pub prop P4 int = 3 { get; set; } // Initialized to 3
+    pub prop P5 int(3) // Initializes p1 to 3
+    {
+    	get { return p1; }
+    	set { p1 = value;}
+    }
+    
+    pub this[index i] int => i;
+    
+    // Function
+    func fun1(a int) float => f1 + f2 + a;
     func func1(a int) {}
     func func2(a ref float32) {}
     func func3(a ref string) {}
@@ -63,9 +76,9 @@ pub struct ro string
     pub func Slice(start int, length int) RoSpan<byte> { todo() }
     pub func Slice(start int) RoSpan<byte> { todo() }
     
-    pub static operator+(s1 string, s2 string) string { todo() }   
-    pub static operator+(s1 RoSpan<byte>, s2 string) string { todo() }
-    pub static operator+(s1 string, s2 RoSpan<byte>) string { todo() }
+    pub operator+(s1 string, s2 string) string { todo() }   
+    pub operator+(s1 RoSpan<byte>, s2 string) string { todo() }
+    pub operator+(s1 string, s2 RoSpan<byte>) string { todo() }
     // TBD: Implicit conversion to and from RoSpan
 }
 
@@ -73,7 +86,7 @@ pub struct ref ro Span<T>
 {
     ro data ref T;
     pub ro Length int;
-    pub get this[index int] ref T { todo(); }
+    pub this[index int] ref T => todo();
     pub func Slice(start int, length int) Span<T> { todo(); }
     // TBD: implicit conversion to RoSpan
 }
@@ -83,7 +96,7 @@ pub struct ref ro RoSpan<T>
     ro data ref T;
     
     pub ro Length int;
-    pub get this[index int] ro ref T { todo(); }
+    pub this[index int] ro ref T => todo();
     pub func Slice(start int, length int) RoSpan<T> { todo(); }
 }
 
@@ -93,7 +106,7 @@ pub struct ref ro Memory<T>
     ro offset xint;
     
     pub ro Length int;
-    pub get this[index int] ref T { todo(); }
+    pub this[index int] ref T => todo();
     pub func Slice(start int, length int) Memory<T> { todo(); }
     // TBD: implicit conversion to RoSpan
 }
@@ -104,7 +117,7 @@ pub struct ref ro RoMemory<T>
     ro offset xint;
     
     pub ro Length int;
-    pub get this[index int] ro ref T { todo(); }
+    pub this[index int] ro ref T => todo();
     pub func Slice(start int, length int) RoMemory<T> { todo(); }
 }
 
@@ -121,7 +134,7 @@ pub unsafe sealed1 class VariableSizedObject<T>
 
     // Return a pointer to the Array
     // { return (T*)((*void)this + sizeof(this))}
-    protected unsafe get DataPointer *T {todo()}
+    protected unsafe prop DataPointer *T => todo();
 }
 
 
@@ -129,10 +142,10 @@ pub unsafe sealed1 class VariableSizedObject<T>
 pub sealed class Array<T> extends VariableSizedObject<T>
 {
     const MaxSize int = int.MaxInt/2;
-    pub static ro Empty Array<T> = new();
+    pub static ro Empty Array<T>();
 
     construct(length int) { todo }
-    pub get this[index int] ref T { todo }
+    pub this[index int] ref T => todo();
     pub func Slice(start int, length int) Span<T> { todo }
     pub func RoSlice(start int, length int) RoSpan<T> { todo }
 }
@@ -141,7 +154,7 @@ pub sealed class Array<T> extends VariableSizedObject<T>
 pub class List<T>
 {
     construct(capacity int) { todo() }
-    pub get this[index int] ref T { todo() }
+    pub this[index int] ref T => todo();
 }
 
 pub class Map<TKey, TValue>
@@ -153,7 +166,7 @@ pub class Map<TKey, TValue>
 pub sealed class Matrix2d<t> extends VariableSizedObject<T>
 {
     construct(len1 int, len2 int) { todo() }	
-    pub get this[i1 int, i2 int] ref T { todo() }
+    pub this[i1 int, i2 int] ref T => todo();
 }
 
 // Represents a buffer in un-managed memory.  This class can create and 
@@ -166,9 +179,12 @@ pub sealed class UnmanagedMemory<T> extends UnmanagedHande where T is IBlittable
     pub ro OwnedByGc bool;
     length int;
     
-    pub get Length int { todo() }
-    pub set Length int { todo() }
-    
+    pub prop Length int
+    {
+    	get { todo() }
+    	set { todo() }
+    }
+        
     // Create the buffer, the GC owns it and deletes it when there are no more
     // references to this object.  Be careful that unmanaged code doesn't
     // hold a reference to the memory beyond the lifetime of this object
@@ -217,9 +233,9 @@ pub class FinalizedNotify
 
 pub class FinalizedNotifyQueue 
 {
-    pub get Count int { todo() }
+    pub prop Count int => todo();
     pub func Dequeue() IntPtr { todo() }
-    pub async func WaitQueueNotEmpty() { todo() }
+    pub afunc WaitQueueNotEmpty() { todo() }
 }
 
 pub static func MemCopy(to *void, from *void, length xint)

@@ -305,10 +305,10 @@ pub struct float32
     const PositiveInfinity float32 = 1F/0F;
     const NegativeInfinity float32 = -1F/0F;
     const NaN float32 = 0F/0F;
-    pub extern get IsInfinity bool;
-    pub extern get IsNaN bool;
-    pub extern get IsNegativeInfinity bool;
-    pub extern get IsPositiveInfinity bool;
+    pub prop IsInfinity bool => todo();
+    pub prop IsNaN bool => todo();
+    pub prop IsNegativeInfinity bool => todo();
+    pub prop IsPositiveInfinity bool => todo();
 
     
     // Overloadable operators
@@ -353,10 +353,10 @@ pub struct float64
     const PositiveInfinity float64 = 1.0/0.0;
     const NegativeInfinity float64 = -1.0/0.0;
     const NaN float64 = 0.0/0.0;
-    pub extern get IsInfinity bool;
-    pub extern get IsNaN bool;
-    pub extern get IsNegativeInfinity bool;
-    pub extern get IsPositiveInfinity bool;
+    pub prop IsInfinity bool => todo();
+    pub prop IsNaN bool => todo();
+    pub prop IsNegativeInfinity bool => todo();
+    pub prop IsPositiveInfinity bool => todo();
     
     // Overloadable operators
     pub extern operator+(a float64) float64;
@@ -391,10 +391,10 @@ pub struct decimal
     const PositiveInfinity decimal = 1.0/0.0;
     const NegativeInfinity decimal = -1.0/0.0;
     const NaN decimal = 0.0/0.0;
-    pub extern get IsInfinity bool;
-    pub extern get IsNaN bool;
-    pub extern get IsNegativeInfinity bool;
-    pub extern get IsPositiveInfinity bool;
+    pub prop IsInfinity bool => todo();
+    pub prop IsNaN bool => todo();
+    pub prop IsNegativeInfinity bool => todo();
+    pub prop IsPositiveInfinity bool => todo();
 
     // Comparisons.  NOTE: NaN > infinity, and NaN==NaN is true
     pub extern static func GetHashCode(a decimal) uint;

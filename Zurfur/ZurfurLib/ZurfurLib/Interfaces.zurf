@@ -6,7 +6,7 @@ pub interface IEnumerator<out T>
 {
     // NOTE: Do not need to implement Reset() or Dispose()
     func MoveNext();
-    get Current T;
+    prop Current T { get; }
 }
 
 pub interface IEnumerable<out T>
@@ -17,8 +17,8 @@ pub interface IEnumerable<out T>
 pub interface ICollection<T>
     implements IEnumerable<T>
 {
-    get Count int;
-    get IsReadOnly bool;
+    prop Count int { get; }
+    prop IsReadOnly bool { set; }
     func Add(item T);
     func Clear();
     func Contains(item T) bool;
@@ -29,8 +29,7 @@ pub interface ICollection<T>
 pub interface IList<T>
     implements ICollection<T>
 {
-    get this[int index] T;
-    set this[int index] T;
+    this[int index] T { get; set; }
     func Insert(int index, T item);
     func RemoveAt(int index);
     func IndexOf(T item) int;
@@ -39,8 +38,8 @@ pub interface IList<T>
 pub struct KeyValuePair<TKey, TValue>
 {
     construct(TKey key, TValue value) { todo() };
-    pub get Key TKey { todo() };
-    pub get Value TValue { todo() };
+    pub prop Key TKey => todo();
+    pub prop Value TValue => todo();
 }
 
 
@@ -48,12 +47,11 @@ pub interface IDictionary<TKey, TValue>
     implements ICollection<KeyValuePair<TKey, TValue>>, 
                IEnumerable<KeyValuePair<TKey, TValue>>
 {
-    get this[key TKey] TValue;
-    set this[key TKey] TValue;
-    get this[key TKey, defaultValue TValue] TValue;
+    this[key TKey] TValue { get; set; }
+    this[key TKey, defaultValue TValue] TValue { get; }
     
-    get Keys ICollection<TKey>;
-    get Values ICollection<TValue>;
+    prop Keys ICollection<TKey> { get; }
+    prop Values ICollection<TValue> { get; }
     func Add(key TKey, value TValue);
     func ContainsKey(TKey key) bool;
     func Remove(TKey key) bool;

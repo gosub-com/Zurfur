@@ -456,7 +456,6 @@ namespace Gosub.Zurfur
 
         private void ParseText(TextEditor editor)
         {
-
             var t1 = DateTime.Now;
 
             // For the time being, we'll use the extension to decide
@@ -466,7 +465,6 @@ namespace Gosub.Zurfur
             {
                 var parser = new ZurfParse(editor.Lexer);
                 var program = parser.Parse();
-                parser.ShowTypes(program);
             }
             else if (ext == ".json")
             {
