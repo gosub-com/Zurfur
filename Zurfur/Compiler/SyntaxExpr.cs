@@ -12,15 +12,14 @@ namespace Gosub.Zurfur
     {
         public readonly Token Token;
         public readonly int Count;
+        public abstract SyntaxExpr this[int index] { get; }
+        public abstract IEnumerator<SyntaxExpr> GetEnumerator();
 
         public SyntaxExpr(Token token, int count)
         {
-            Token = token;
+            Token = token ?? throw new ArgumentNullException("Token must not be null");
             Count = count;
         }
-
-        public abstract SyntaxExpr this[int index] { get; }
-        public abstract IEnumerator<SyntaxExpr> GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator()
         {
@@ -63,7 +62,6 @@ namespace Gosub.Zurfur
             return sb.ToString();
         }
     }
-
 
     class SyntaxExprToken : SyntaxExpr
     {
@@ -145,10 +143,24 @@ namespace Gosub.Zurfur
     class SyntaxExprMulti : SyntaxExpr
     {
         SyntaxExpr[] mParameters;
+
         public SyntaxExprMulti(Token token, SyntaxExpr[] parameters)
             : base(token, parameters.Length)
         {
+            if (parameters == null)
+                throw new ArgumentNullException("parameters must not be null");
+            foreach (var p in parameters)
+                if (p == null)
+                    throw new ArgumentNullException("parameters must not contain a null expression");
             mParameters = parameters;
+        }
+
+        public SyntaxExprMulti(Token token, SyntaxExpr p0, SyntaxExpr p1, SyntaxExpr p2)
+            : base(token, 3)
+        {
+            if (p0 == null || p1 == null || p2 == null)
+                throw new ArgumentNullException("p0, p1, and p2 must not be null");
+            mParameters = new SyntaxExpr[] { p2, p1, p2 };
         }
 
         public override SyntaxExpr this[int index]

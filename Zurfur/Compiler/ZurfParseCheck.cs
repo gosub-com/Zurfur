@@ -12,6 +12,9 @@ namespace Gosub.Zurfur
     /// </summary>
     class ZurfParseCheck
     {
+        // Debug the parse tree
+        bool mShowParseTree = true;
+
         // TBD: Still haven't decieded if `Map`, `Array`, and `List` should be lower case
         static WordSet sNoPubWarningKeywords = new WordSet("this object string void bool byte xint xuint int uint int8 uint8 int16 uint16 int32 uint32 int64 uint64 float32 float64 decimal");
         static WordSet sIllegalInterfaceQualifiers = new WordSet("pub private internal protected");
@@ -40,13 +43,14 @@ namespace Gosub.Zurfur
         {
             CheckParseTree(unit);            
             ShowTypes(unit); // TBD: This is temporary until type analysis is complete
+            ShowParseTree(unit);
         }
 
         void CheckParseTree(SyntaxUnit unit)
         {
             foreach (var aClass in unit.Classes)
             {
-                CheckPublicQualifier(aClass.ParentClass, aClass.Name.Token, aClass.Qualifiers);
+                CheckPublicQualifier(aClass.ParentClass, aClass.Name, aClass.Qualifiers);
 
                 var keyword = aClass.Keyword;
                 var outerKeyword = aClass.ParentClass == null ? "" : aClass.ParentClass.Keyword;
@@ -74,7 +78,7 @@ namespace Gosub.Zurfur
 
             foreach (var func in unit.Funcs)
             {
-                CheckPublicQualifier(func.ParentClass, func.Name.Token, func.Qualifiers);
+                CheckPublicQualifier(func.ParentClass, func.Name, func.Qualifiers);
 
                 var keyword = func.Keyword;
                 var outerKeyword = func.ParentClass == null ? "" : func.ParentClass.Keyword;
@@ -210,8 +214,8 @@ namespace Gosub.Zurfur
 
         public void ShowTypes(SyntaxUnit unit)
         {
-            foreach (var class2 in unit.Classes)
-                ShowTypes(class2);
+            foreach (var aClass in unit.Classes)
+                ShowTypes(aClass);
             foreach (var func in unit.Funcs)
                 ShowTypes(func);
             foreach (var field in unit.Fields)
@@ -221,13 +225,14 @@ namespace Gosub.Zurfur
             }
         }
 
-        void ShowTypes(SyntaxClass class1)
+        void ShowTypes(SyntaxClass aClass)
         {
-            ShowTypes(class1.Alias, true);
-            ShowTypes(class1.BaseClass, true);
-            ShowTypes(class1.Name, true);
-            if (class1.Constraints != null)
-                foreach (var constraint in class1.Constraints)
+            ShowTypes(aClass.Alias, true);
+            ShowTypes(aClass.BaseClass, true);
+            aClass.Name.Type = eTokenType.TypeName;
+            ShowTypes(aClass.TypeParams);
+            if (aClass.Constraints != null)
+                foreach (var constraint in aClass.Constraints)
                 {
                     if (constraint.GenericTypeName != null)
                         constraint.GenericTypeName.Type = eTokenType.TypeName;
@@ -235,14 +240,15 @@ namespace Gosub.Zurfur
                         foreach (var typeName in constraint.TypeNames)
                             ShowTypes(typeName, true);
                 }
-            if (class1.Implements != null)
-                foreach (var imp in class1.Implements)
+            if (aClass.Implements != null)
+                foreach (var imp in aClass.Implements)
                     ShowTypes(imp, true);
         }
 
         void ShowTypes(SyntaxFunc func)
         {
             ShowTypes(func.ClassName, true);
+            ShowTypes(func.TypeParams);
             ShowTypes(func.ReturnType, true);
             ShowTypes(func.Statements, false);
             if (func.Params != null)
@@ -256,12 +262,67 @@ namespace Gosub.Zurfur
                 return;
             if (isType && expr.Token.Type == eTokenType.Identifier)
                 expr.Token.Type = eTokenType.TypeName;
+
+            // Cast
+            if (expr.Token == ")")
+            {
+                if (expr.Count != 0)
+                    ShowTypes(expr[0], true);
+                for (int i = 1; i < expr.Count; i++)
+                    ShowTypes(expr[i], isType);
+                return;
+            }
+
             if (expr.Token == ZurfParse.VIRTUAL_TOKEN_TYPE_ARG_LIST)
                 isType = true;
             foreach (var e in expr)
                 ShowTypes(e, isType);
         }
 
+        void ShowTypes(SyntaxTypeParam []param)
+        {
+            if (param != null)
+                foreach (var p in param)
+                    p.Name.Type = eTokenType.TypeName;
+        }
+
+        public void ShowParseTree(SyntaxUnit unit)
+        {
+            if (!mShowParseTree)
+                return;
+
+            foreach (var aClass in unit.Classes)
+            {
+                ShowParseTree(aClass.BaseClass);
+                ShowParseTree(aClass.Alias);
+            }
+            foreach (var func in unit.Funcs)
+            {
+                ShowParseTree(func.ReturnType);
+                if (func.Params != null)
+                    foreach (var param in func.Params)
+                        ShowParseTree(param.TypeName);
+                if (func.Statements != null)
+                    foreach (var statement in func.Statements)
+                        ShowParseTree(statement);
+            }
+            foreach (var field in unit.Fields)
+            {
+                ShowParseTree(field.InitExpr);
+                ShowParseTree(field.TypeName);
+            }
+        }
+
+
+        SyntaxExpr ShowParseTree(SyntaxExpr expr)
+        {
+            if (expr == null)
+                return expr;
+            expr.Token.AddInfo("Parse tree: " + expr.ToString());
+            foreach (var e in expr)
+                ShowParseTree(e); // Subtrees without info token
+            return expr;
+        }
 
 
     }

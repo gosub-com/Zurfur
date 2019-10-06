@@ -49,7 +49,8 @@ namespace Gosub.Zurfur
         public Token[] Qualifiers;
         public Token Keyword; // class, struct, etc.
         public SyntaxExpr BaseClass;
-        public SyntaxExpr Name;
+        public Token Name;
+        public SyntaxTypeParam []TypeParams = Array.Empty<SyntaxTypeParam>();
         public SyntaxExpr Alias;
         public SyntaxExpr[] Implements;
         public SyntaxConstraint []Constraints;
@@ -58,6 +59,13 @@ namespace Gosub.Zurfur
         {
             return Name == null ? "(class)" : Name.ToString();
         }
+    }
+
+    class SyntaxTypeParam
+    {
+        static readonly Token EmptyToken = new Token();
+        public Token Name = EmptyToken;
+        public Token Qualifier = EmptyToken;
     }
 
     class SyntaxConstraint
@@ -92,7 +100,8 @@ namespace Gosub.Zurfur
         public Token[] Qualifiers;
         public Token Keyword; // func, afunc, prop, this, construct, etc.
         public SyntaxExpr ClassName;
-        public SyntaxExpr Name;
+        public Token Name;
+        public SyntaxTypeParam[] TypeParams = Array.Empty<SyntaxTypeParam>();
         public SyntaxFuncParam[] Params;
         public SyntaxExpr ReturnType;
         public SyntaxExpr Statements;
@@ -112,7 +121,6 @@ namespace Gosub.Zurfur
 
     class SyntaxFuncParam
     {
-        public Token[] Qualifiers;
         public Token Name;
         public SyntaxExpr TypeName;
 

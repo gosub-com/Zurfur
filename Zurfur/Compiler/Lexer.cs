@@ -232,7 +232,7 @@ namespace Gosub.Zurfur
             }
 
             // Number
-            if (char.IsDigit(ch1) && ch1 <= '9')
+            if (IsAsciiDigit(ch1))
             {
                 // Hop over number
                 return ScanNumber(line, ref charIndex, startIndex);
@@ -300,22 +300,57 @@ namespace Gosub.Zurfur
             return new Token(token, 0, startIndex, eTokenType.Quote);
         }
 
+        bool IsAsciiDigit(char ch)
+        {
+            return ch >= '0' && ch <= '9';
+        }
+
         private Token ScanNumber(string line, ref int charIndex, int startIndex)
         {
+            // Integer digits
             int endIndex = charIndex;
-            while (endIndex < line.Length 
-                && (char.IsLetterOrDigit(line[endIndex])  && line[endIndex] < '~'
-                        || line[endIndex] == '.'))
-            {
-                var ch = line[endIndex];
+            while (endIndex < line.Length && IsAsciiDigit(line[endIndex]))
                 endIndex++;
-                if ((ch == 'e' || ch == 'E') && endIndex < line.Length
-                        && (line[endIndex] == '+' || line[endIndex] == '-'))
+
+            // Decimal point followed by a digit, then digits
+            if (endIndex < line.Length && line[endIndex] == '.'
+                && endIndex+1 < line.Length && IsAsciiDigit(line[endIndex+1]))
+            {
+                endIndex += 2;
+                while (endIndex < line.Length && IsAsciiDigit(line[endIndex]))
                     endIndex++;
             }
-            string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
+
+            // Exponent
+            if (endIndex < line.Length && (line[endIndex] == 'e' || line[endIndex] == 'E'))
+            {
+                // 'E' or 'e', then optional +/ -, then digits
+                endIndex++;
+                if (endIndex < line.Length && (line[endIndex] == '+' || line[endIndex] == '-'))
+                    endIndex++;
+                while (endIndex < line.Length && IsAsciiDigit(line[endIndex]))
+                    endIndex++;
+            }
+            // Parse suffix
+            if (endIndex < line.Length
+                &&  (line[endIndex] == 'u' || line[endIndex] == 'U'))
+            {
+                endIndex++;
+                if (endIndex < line.Length && (line[endIndex] == 'l' || line[endIndex] == 'L'))
+                    endIndex++;
+            }
+            else if (endIndex < line.Length
+                &&  (line[endIndex] == 'd' || line[endIndex] == 'D'
+                     || line[endIndex] == 'f' || line[endIndex] == 'F'
+                     || line[endIndex] == 'm' || line[endIndex] == 'M'
+                     || line[endIndex] == 'l' || line[endIndex] == 'L'))
+            {
+                endIndex++;
+            }
+
+            string number = Mintern[line.Substring(charIndex, endIndex - charIndex)];
             charIndex = endIndex;  // Skip token
-            return new Token(token, 0, startIndex, eTokenType.Number);
+            return new Token(number, 0, startIndex, eTokenType.Number);
         }
 
         private Token SacanIdentifier(string line, ref int charIndex, int startIndex)

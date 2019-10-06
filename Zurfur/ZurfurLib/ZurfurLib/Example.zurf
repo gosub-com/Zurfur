@@ -20,14 +20,14 @@ pub class Example
     f8 Pointer<int>;
     f9 *int;        // Same as Pointer<int>
     
-	// Fields initialized via constructor
+    // Fields initialized via constructor
     f10 int(FuncReturnsInt());
     f11 Array<int>();          // Array, Count=0
     f12 Array<int>(32);        // Array, Count=32
     f13 Array<int>({1,2,3});   // Array initialized with 1, 2, 3
     f13 List<int>(32);         // Empty List, Capacity=32
     f14 Map<string,string>();  // Empty map
-	
+    
     // Fields initialized via assignment
     f15 int = 32;
     f16 int = FuncReturnsInt() >> 4;
@@ -42,8 +42,8 @@ pub class Example
     pub prop P4 int = 3 { get; set; } // Initialized to 3
     pub prop P5 int(3) // Initializes p1 to 3
     {
-    	get { return p1; }
-    	set { p1 = value;}
+        get { return p1; }
+        set { p1 = value;}
     }
     
     pub this[index i] int => i;
@@ -60,11 +60,79 @@ pub class Example
     func func7(a List<int>) { }
     func func8(a ref List<List<int>>) { }
     func func10(a Map<string,List<int>>) { }
+    
+    pub func Sort<T>(greaterThan func(a T, b T) bool) { }
+    pub MyFieldFunc func(sender object, message string);
 
-    pub static func Main(args Array<string>)
+
+    pub func M<A,B>(a A, b B, c List<int>) List<int>
     {
     }
+    
+    func func8(a ref List<List<int>>) { }
+    func func8(a ref List<int,x,y,z>) { }
+    pub func Main(args Array<string>)
+    {
+        // Function calls vs parameter lists
+        #a1 = MyType<a,b,c>();
+        #a2 = MyType(a,b,c)();    	
+        #a3 = List<List<int>>();
+        #a4 = List(List(int))();
+        #a5 = M<string,int.x<T>.y>.Hello2<x.x>();
+        #a6 = M(string,int.x(T).y).Hello2(x.x)();        
+        #a7 = f(f<a>())(a+b);
+
+        // Casts
+        #c1 = (M<string,int.x<T>.y>.Hello2)A;
+        #c2 = (M<string,int.x<T>.y>.Hello2<x.x>)A;
+        #c3 = (List<int,y,z>)x;
+
+        // Static assigments
+        M<string>.Hello = 6;
+        M<string,int.x<T>.y>.Hello2 = f(1, 2, "Jeremy");
+        M<string,int>.Hello2 = f(1, 2, func() => a<b);
+
+        // Cast errors
+        //#ce1 = (M(string,int.x(T).y).Hello2(x.x))A;
+        //#ce2 = (List(int,y,z))x;
+        //#ce3 = (List<int,y.y+2,z>)x;
+        
+        // TBD: Fix these
+        #a = x>y;
+        if MyFieldFunc != null
+            { MyFieldFunc(this, "hello"); }
+
+        #l1 = func(a T) { return 23 };
+        #l2 = func(a T) => 23 ;
+        list.Sort(func(a T, b T) => a < b);
+        list.Sort(func(a T, b T) { return a < b });
+        
+    }
 }
+
+pub static func Sort<T>(s Span<T>, lessThan func(a T, b T) bool)
+{
+    // Simple selection sort
+    for #i in s.Length-1
+    {
+        #lowElem = s[i];
+        #lowIndex = i;
+        for #j in i+1..s.Length
+        {
+            if lessThan(s[j], lowElem)
+            {
+                lowElem = s[j];
+                lowIndex = j;
+            }
+        }
+        if lowIndex != i
+        {
+            s[lowIndex] = s[i];
+            s[i] = lowElem;
+        }
+    }
+}
+
 
 pub struct ro string
 {
@@ -181,8 +249,8 @@ pub sealed class UnmanagedMemory<T> extends UnmanagedHande where T is IBlittable
     
     pub prop Length int
     {
-    	get { todo() }
-    	set { todo() }
+        get { todo() }
+        set { todo() }
     }
         
     // Create the buffer, the GC owns it and deletes it when there are no more

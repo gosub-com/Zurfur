@@ -34,6 +34,12 @@ namespace Gosub.Zurfur
 
         private void FormMain_Shown(object sender, EventArgs e)
         {
+            if (System.Diagnostics.Debugger.IsAttached)
+            {
+                // This will be removed
+                LoadProject(EXAMPLE_PROJECT);
+                return;
+            }
             try
             {
                 // This will be removed
@@ -245,59 +251,51 @@ namespace Gosub.Zurfur
         static readonly WordSet sImageEditorExtensions = new WordSet(".jpg .jpeg .png .bmp");
         void LoadFile(string path)
         {
-            try
+            // Check for aleady loaded file path
+            path = Path.GetFullPath(path);
+            foreach (var editor in mvEditors.Editors)
             {
-                // Check for aleady loaded file path
-                path = Path.GetFullPath(path);
-                foreach (var editor in mvEditors.Editors)
+                if (editor.FilePath.ToLower() == path.ToLower())
                 {
-                    if (editor.FilePath.ToLower() == path.ToLower())
-                    {
-                        mvEditors.EditorViewActive = editor;
-                        return;
-                    }
-                }
-
-                // For now just use extension to see if we can open it
-                var ext = Path.GetExtension(path).ToLower();
-                if (ext == ".zurf")
-                {
-                    // TBD: Move lexer/parser setup to it's own class
-                    var newEditor = new TextEditor();
-                    newEditor.Lexer.SetSpecialSymbols(ZurfParse.TokenSymbols);
-                    newEditor.Lexer.TokenizeComments = true;
-                    newEditor.LoadFile(path);
-                    mvEditors.AddEditor(newEditor);
-                }
-                else if (sTextEditorExtensions.Contains(ext))
-                {
-                    var newEditor = new TextEditor();
-                    newEditor.Lexer.TokenizeComments = ext == ".json";
-                    newEditor.LoadFile(path);
-                    mvEditors.AddEditor(newEditor);
-                }
-                else if (sImageEditorExtensions.Contains(ext))
-                {
-                    var newEditor = new ImageEditor();
-                    newEditor.LoadFile(path);
-                    mvEditors.AddEditor(newEditor);
-                }
-                else if (ext == ".zurfproj")
-                {
-                    var newEditor = new ProjectEditor();
-                    newEditor.LoadFile(path);
-                    mvEditors.AddEditor(newEditor);
-                }
-                else
-                {
-                    MessageBox.Show(this, "Can't open this file type", App.Name);
+                    mvEditors.EditorViewActive = editor;
                     return;
                 }
-
             }
-            catch (Exception ex)
+
+            // For now just use extension to see if we can open it
+            var ext = Path.GetExtension(path).ToLower();
+            if (ext == ".zurf")
             {
-                MessageBox.Show("Error openign file: " + ex.Message);
+                // TBD: Move lexer/parser setup to it's own class
+                var newEditor = new TextEditor();
+                newEditor.Lexer.SetSpecialSymbols(ZurfParse.TokenSymbols);
+                newEditor.Lexer.TokenizeComments = true;
+                newEditor.LoadFile(path);
+                mvEditors.AddEditor(newEditor);
+            }
+            else if (sTextEditorExtensions.Contains(ext))
+            {
+                var newEditor = new TextEditor();
+                newEditor.Lexer.TokenizeComments = ext == ".json";
+                newEditor.LoadFile(path);
+                mvEditors.AddEditor(newEditor);
+            }
+            else if (sImageEditorExtensions.Contains(ext))
+            {
+                var newEditor = new ImageEditor();
+                newEditor.LoadFile(path);
+                mvEditors.AddEditor(newEditor);
+            }
+            else if (ext == ".zurfproj")
+            {
+                var newEditor = new ProjectEditor();
+                newEditor.LoadFile(path);
+                mvEditors.AddEditor(newEditor);
+            }
+            else
+            {
+                MessageBox.Show(this, "Can't open this file type", App.Name);
+                return;
             }
         }
 
@@ -420,16 +418,25 @@ namespace Gosub.Zurfur
             if (mReparseEditor != null
                 && (DateTime.Now - mLastEditorChangedTime).TotalMilliseconds > 250)
             {
-                try
+                if (System.Diagnostics.Debugger.IsAttached)
                 {
                     // Reset the lexer, re-parse, and compile
                     ParseText(mReparseEditor);
                     mReparseEditor = null;
                 }
-                catch (Exception ex)
+                else
                 {
-                    mReparseEditor = null;
-                    MessageBox.Show(this, "Error compiling: " + ex.Message);
+                    try
+                    {
+                        // Reset the lexer, re-parse, and compile
+                        ParseText(mReparseEditor);
+                        mReparseEditor = null;
+                    }
+                    catch (Exception ex)
+                    {
+                        mReparseEditor = null;
+                        MessageBox.Show(this, "Error compiling: " + ex.Message);
+                    }
                 }
             }
 

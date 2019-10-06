@@ -29,7 +29,6 @@ namespace Gosub.Zurfur
         Invisible = 8
     }
 
-
     /// <summary>
     /// Each lexical element is assigned a new token.  This class is
     /// also used by the parser and code generator to mark tokens with 
@@ -39,36 +38,81 @@ namespace Gosub.Zurfur
     {
         public static readonly Token []EmptyArray = new Token[0];
 
+        /// <summary>
+        /// The string is always "", but error codes and location are undefined
+        /// </summary>
+        public static readonly Token Empty = new Token();
+
         // Fields
         public readonly string Name = "";
         public TokenLoc Location;
         public eTokenType Type;
         eTokenBits mBits;
-        Object mInfo; // Null, object, or List<Object>
+        object mInfo; // Null, object, or List<Object>
+
+        public Token()
+        {
+        }
+
+        public Token(string name, int y, int x)
+        {
+            Name = name;
+            Y = y;
+            X = x;
+        }
+
+        public Token(string name, int y, int x, eTokenType tokenType)
+        {
+            Name = name;
+            Y = y;
+            X = x;
+            Type = tokenType;
+        }
+
+        public int Y
+        {
+            get { return Location.Y; }
+            set { Location.Y = value; }
+        }
+        public int X
+        {
+            get { return Location.X; }
+            set { Location.X = value; }
+        }
+
+        public override string ToString()
+        {
+            return Name;
+        }
 
         public bool Error
         {
-            get { return (mBits & eTokenBits.Error) != 0; }
+            get => (mBits & eTokenBits.Error) != 0;
             set { mBits = mBits & ~eTokenBits.Error | (value ? eTokenBits.Error : 0); }
         }
         public bool Warn
         {
-            get { return (mBits & eTokenBits.Warn) != 0; }
+            get => (mBits & eTokenBits.Warn) != 0;
             set { mBits = mBits & ~eTokenBits.Warn | (value ? eTokenBits.Warn : 0); }
         }
         public bool Grayed
         {
-            get { return (mBits & eTokenBits.Grayed) != 0; }
+            get => (mBits & eTokenBits.Grayed) != 0;
             set { mBits = mBits & ~eTokenBits.Grayed | (value ? eTokenBits.Grayed : 0); }
         }
         public bool Invisible
         {
-            get { return (mBits & eTokenBits.Invisible) != 0; }
+            get => (mBits & eTokenBits.Invisible) != 0;
             set { mBits = mBits & ~eTokenBits.Invisible | (value ? eTokenBits.Invisible : 0); }
         }
-        public void ClearBits()
+
+        /// <summary>
+        /// Clear info and bits, but not type or location
+        /// </summary>
+        public void Clear()
         {
             mBits = 0;
+            mInfo = null;
         }
 
         public void AddInfo(object info)
@@ -106,10 +150,6 @@ namespace Gosub.Zurfur
         {
             RemoveInfo<T>();
             AddInfo(info);
-        }
-        public void ClearInfo()
-        {
-            mInfo = null;
         }
 
         public bool HasInfo()
@@ -151,41 +191,6 @@ namespace Gosub.Zurfur
                 sb.Append("\r\n\r\n");
             }
             return sb.ToString();
-        }
-
-        public int Y
-        {
-            get { return Location.Y; }
-            set { Location.Y = value; }
-        }
-        public int X
-        {
-            get { return Location.X; }
-            set { Location.X = value; }
-        }
-
-        public Token()
-        {
-        }
-
-        public Token(string tokenName, int y, int x)
-        {
-            Name = tokenName;
-            Y = y;
-            X = x;
-        }
-
-        public Token(string tokenName, int y, int x, eTokenType tokenType)
-        {
-            Name = tokenName;
-            Y = y;
-            X = x;
-            Type = tokenType;
-        }
-
-        public override string ToString()
-        {
-            return Name;
         }
 
         /// <summary>

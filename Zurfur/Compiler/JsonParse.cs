@@ -166,8 +166,7 @@ namespace Gosub.Zurfur
 
             // Reset token info
             mTokenName = mToken.Name;
-            mToken.ClearInfo();
-            mToken.ClearBits();
+            mToken.Clear();
             if (mTokenName.Length == 0)
                 mToken.Type = eTokenType.Normal;
             else if (mTokenName[0] == '\"')
