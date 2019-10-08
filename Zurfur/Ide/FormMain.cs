@@ -162,16 +162,26 @@ namespace Gosub.Zurfur
             {
                 // Make a list of connecting tokens
                 List<TokenColorOverride> overrides = new List<TokenColorOverride>();
-                overrides.Add(new TokenColorOverride(newToken, Brushes.LightGray));
                 Token []connectors = newToken.GetInfo<Token[]>();
                 if (connectors != null)
+                {
                     foreach (Token s in connectors)
-                        overrides.Add(new TokenColorOverride(s, Brushes.LightGray));
+                    {
+                        if (BoldHighlightConnectors.Contains(s))
+                            overrides.Add(new TokenColorOverride(s, Pens.Gray, Brushes.LightGray));
+                        else
+                            overrides.Add(new TokenColorOverride(s, Pens.LightGray));
+                    }
+                }
+                // Highlight current location
+                overrides.Add(new TokenColorOverride(newToken, newToken.Error ? Pens.Red : Pens.LightBlue));
 
                 // Update editor to show them
                 editor.TokenColorOverrides = overrides.ToArray();
             }
         }
+
+        static WordSet BoldHighlightConnectors = new WordSet("( ) [ ] { } < >");
 
         /// <summary>
         /// When the user click the editor, hide the message box until a

@@ -160,7 +160,7 @@ namespace Gosub.Zurfur
         {
             if (p0 == null || p1 == null || p2 == null)
                 throw new ArgumentNullException("p0, p1, and p2 must not be null");
-            mParameters = new SyntaxExpr[] { p2, p1, p2 };
+            mParameters = new SyntaxExpr[] { p0, p1, p2 };
         }
 
         public override SyntaxExpr this[int index]

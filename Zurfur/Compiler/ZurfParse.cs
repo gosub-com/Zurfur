@@ -452,6 +452,8 @@ namespace Gosub.Zurfur
                 if (!ParseIdentifier("Expecting a type name", sRejectStatement, out param.Name))
                     break;
                 typeParams.Add(param);
+                if (mTokenName == ",")
+                    Connect(openToken, mToken);
             } while (AcceptMatch(","));
 
             if (AcceptMatch(">"))
@@ -854,14 +856,14 @@ namespace Gosub.Zurfur
             var result = ParseConditionalOr();
             if (mTokenName == "?")
             {
-                Token operatorToken = Accept();
+                var operatorToken = Accept();
                 var firstConditional = ParseConditionalOr();
                 if (mTokenName != ":")
                 {
-                    Connect(mToken, operatorToken);
                     Reject("Expecting a ':' to separate expression for the ternary '?' operator", sRejectStatement);
                     return result;
                 }
+                Connect(mToken, operatorToken);
                 Accept();
                 result = new SyntaxExprMulti(operatorToken, result, firstConditional, ParseConditionalOr());
             }
@@ -1075,10 +1077,13 @@ namespace Gosub.Zurfur
         void Grayout(SyntaxExpr expr)
         {
             expr.Token.Grayed = true;
+            var connectors = expr.Token.GetInfo<Token[]>();
+            if (connectors != null)
+                foreach (var t in connectors)
+                    t.Grayed = true;
             foreach (var e in expr)
                 Grayout(e);
         }
-
 
         /// <summary>
         /// Read the open '(' or '[' and parse the expression.
@@ -1144,7 +1149,10 @@ namespace Gosub.Zurfur
             var isFunc = openToken == "(";
             parameters.Add(isFunc ? ParseFuncCallParameter() : ParseExpr());
             while (AcceptMatch(","))
+            {
+                Connect(openToken, mPrevToken);
                 parameters.Add(isFunc ? ParseFuncCallParameter() : ParseExpr());
+            }
 
             // If not ended properly, reject this expression
             if (mTokenName != expectedToken)
@@ -1315,6 +1323,7 @@ namespace Gosub.Zurfur
             // Parse the rest of the parameters
             while (AcceptMatch(","))
             {
+                Connect(openToken, mPrevToken);
                 if (!ParseTypeName(out p, errorStop))
                     return false;
                 arguments.Add(p);
@@ -1521,17 +1530,17 @@ namespace Gosub.Zurfur
         void Connect(Token s1, Token s2)
         {
             // Find tokens that are already connected
-            List <Token> tokens = new List<Token>();
-            Token []s1Connectors = s1.GetInfo<Token[]>();
+            var tokens = new List<Token>();
+            var s1Connectors = s1.GetInfo<Token[]>();
             if (s1Connectors != null)
-                foreach (Token s in s1Connectors)
-                    tokens.Add(s);
-            Token []s2Connectors = s2.GetInfo<Token[]>();
+                tokens.AddRange(s1Connectors);
+            var s2Connectors = s2.GetInfo<Token[]>();
             if (s2Connectors != null)
-                foreach (Token s in s2Connectors)
-                    tokens.Add(s);
+                tokens.AddRange(s2Connectors);
 
             // Add these tokens to the list
+            tokens.Remove(s1);
+            tokens.Remove(s2);
             tokens.Add(s1);
             tokens.Add(s2);
 

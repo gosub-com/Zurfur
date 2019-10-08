@@ -1177,23 +1177,13 @@ namespace Gosub.Zurfur
                 return;
 
             // Print the token
+            var backRect = new Rectangle((int)(x - 1) + FILL_X_OFFSET, (int)y, (int)(xEnd - x + 1), (int)(yEnd - y));
             if (background)
             {
-                // Find override
-                Brush backColor = null;
-                if (mTokenColorOverrides != null && mTokenColorOverrides.Length != 0)
-                    foreach (TokenColorOverride over in mTokenColorOverrides)
-                        if ((object)(over.Token) == (object)token)
-                        {
-                            backColor = over.BackColor;
-                            break;
-                        }
                 // Draw background color
-                x += FILL_X_OFFSET;
-                xEnd += FILL_X_OFFSET;
-                var backRect = new RectangleF(x-1, y, xEnd-x+1, yEnd-y);
-                if (backColor != null)
-                    gr.FillRectangle(backColor, backRect);
+                var overrideColor = FindColorOverride(token);
+                if (overrideColor != null && overrideColor.BackColor != null)
+                    gr.FillRectangle(overrideColor.BackColor, backRect);
                 else if (token.Error)
                     gr.FillRectangle(mErrorColor, backRect);
                 else if (token.Warn)
@@ -1222,7 +1212,20 @@ namespace Gosub.Zurfur
                     FontInfo fontInfo = GetFontInfo(token, token.Y);
                     gr.DrawString(token.Name, fontInfo.Font, fontInfo.Brush, x, y, mTabFormat);
                 }
+                var overrideColor = FindColorOverride(token);
+                if (overrideColor != null && overrideColor.OutlineColor != null)
+                    gr.DrawRectangle(overrideColor.OutlineColor, backRect);
+
             }
+        }
+
+        private TokenColorOverride FindColorOverride(Token token)
+        {
+            if (mTokenColorOverrides != null && mTokenColorOverrides.Length != 0)
+                foreach (var over in mTokenColorOverrides)
+                    if (over.Token == token)
+                        return over;
+            return null;
         }
 
         /// <summary>
@@ -1291,25 +1294,6 @@ namespace Gosub.Zurfur
             DrawScreen(e.Graphics, true);
             DrawSelection(e.Graphics);
             DrawScreen(e.Graphics, false);
-
-            // Draw a rectangle over the hover token (red or gray)
-            if (MouseHoverToken != null 
-                && (MouseHoverToken.Type == eTokenType.Identifier))
-            {
-                Token token = MouseHoverToken;
-
-                // Find token position and bounds
-                int col = IndexToCol(token.Location);
-                int x = (int)(PointX(col));
-                int y = (int)(PointY(token.Y));
-                int xEnd = (int)PointX(col + token.Name.Length);
-                int yEnd = (int)PointY(token.Y + 1);
-
-                x += FILL_X_OFFSET;
-                xEnd += FILL_X_OFFSET;
-                e.Graphics.DrawRectangle(token.Error ? Pens.Red : Pens.Gray,
-                                            new Rectangle(x-1, y, xEnd-x+1, yEnd-y));
-            }
 
             // Draw the cursor
             if (mCursorVisible)
@@ -1983,12 +1967,24 @@ namespace Gosub.Zurfur
     /// </summary>
     public class TokenColorOverride
     {
-        public Token		Token;
-        public Brush		BackColor;
+        public Token Token;
+        public Pen   OutlineColor;
+        public Brush BackColor;
 
+        public TokenColorOverride(Token token, Pen outlineColor)
+        {
+            Token = token;
+            OutlineColor = outlineColor;
+        }
         public TokenColorOverride(Token token, Brush backColor)
         {
             Token = token;
+            BackColor = backColor;
+        }
+        public TokenColorOverride(Token token, Pen outlineColor, Brush backColor)
+        {
+            Token = token;
+            OutlineColor = outlineColor;
             BackColor = backColor;
         }
     }
