@@ -15,6 +15,7 @@ namespace Gosub.Zurfur
         const string VIRTUAL_TOKEN_SHIFT_RIGHT = ">>";
         const string VIRTUAL_TOKEN_GE = ">=";
         const string VIRTUAL_TOKEN_LAMBDA = "()";
+        const string VIRTUAL_TOKEN_INITIALIZER = "{}";
         const string PTR = "^";
 
         ZurfParseCheck mZurfParseCheck;
@@ -34,8 +35,8 @@ namespace Gosub.Zurfur
         public const string TokenSymbols = "<< <= == != && || += -= *= /= %= &= |= ~= <<= => === :: ..";
 
         // Add semicolons to all lines, except for:
-        static WordSet sEndLineSkipSemicolon = new WordSet("; { ( [ ,");
-        static WordSet sBeginLineSkipSemicolon = new WordSet("; { + - * / % | & ~ || && == != = "
+        static WordSet sEndLineSkipSemicolon = new WordSet("; { [ ( ,");
+        static WordSet sBeginLineSkipSemicolon = new WordSet("; { } ] ) + - * / % | & ~ || && == != = "
                                                     + ": ? . , > << <= < => .. :: === += -= *= /= %= &= |= ~= implements else");
         Token mInsertedSemicolon;
 
@@ -647,6 +648,8 @@ namespace Gosub.Zurfur
                 case ";":
                     SkipSemicolon();
                     return null;
+                case "}":
+                    return null;
                 case "{":
                     return ParseStatements();
                 case "=>":
@@ -833,6 +836,7 @@ namespace Gosub.Zurfur
                 case "throw":
                     Accept();
                     statements.Add(new SyntaxExprUnary(keyword, ParseExpr()));
+                    SkipSemicolon();
                     break;
 
                 default:
@@ -1139,21 +1143,16 @@ namespace Gosub.Zurfur
             if (openToken != "(" && openToken != "[")
                 throw new Exception("Compiler error: Expecting '(' or '[' while parsing parameters");
 
-            // Empty () function call?
-            var expectedToken = openToken == "(" ? ")" : "]";
-            if (mTokenName == expectedToken)
-            {
-                // Return an empty () or []
-                Connect(openToken, Accept());
-                return;
-            }
-
             // Parse parameters
-            parameters.Add(isFunc ? ParseFuncCallParameter() : ParseExpr());
-            while (AcceptMatch(","))
+            var expectedToken = openToken == "(" ? ")" : "]";
+            if (mTokenName != expectedToken)
             {
-                Connect(openToken, mPrevToken);
                 parameters.Add(isFunc ? ParseFuncCallParameter() : ParseExpr());
+                while (AcceptMatch(","))
+                {
+                    Connect(openToken, mPrevToken);
+                    parameters.Add(isFunc ? ParseFuncCallParameter() : ParseExpr());
+                }
             }
 
             // If not ended properly, reject this expression
@@ -1201,17 +1200,32 @@ namespace Gosub.Zurfur
 
         SyntaxExpr ParseInitializer()
         {
-            if (!AcceptMatch("{"))
-                return null;
+            // Read open brace, '{'
+            var openToken = Accept();
+            if (openToken != "{")
+                throw new Exception("Compiler error: Expecting '{' while parsing initializer");
 
-            var openBrace = mPrevToken;
-            openBrace.AddWarning("Initializers are not yet stored in the parse tree");
-            while (mTokenName != "}" && mTokenName != "")
-                Accept();
+            // Parse expressions
+            var parameters = new List<SyntaxExpr>();
+            if (mTokenName != "}")
+            {
+                parameters.Add(mTokenName == "{" ? ParseInitializer() : ParseExpr());
+                while (AcceptMatch(","))
+                {
+                    Connect(openToken, mPrevToken);
+                    parameters.Add(mTokenName == "{" ? ParseInitializer() : ParseExpr());
+                }
+            }
+
+            // If not ended properly, reject this expression
+            if (mTokenName != "}")
+                Reject("Expecting '}' or ','");
+            else if (parameters.Count == 0)
+                RejectToken(mToken, "Initializer list may not be empty");
 
             if (AcceptMatch("}"))
-                Connect(openBrace, mPrevToken);
-            return new SyntaxExprToken(openBrace);
+                Connect(openToken, mPrevToken);
+            return new SyntaxExprMulti(CreateInvisible(openToken, VIRTUAL_TOKEN_INITIALIZER), parameters.ToArray());
         }
 
         bool BeginsTypeDef(WordSet qualifiers, Token token)
@@ -1528,27 +1542,30 @@ namespace Gosub.Zurfur
             if (token.Name == "")
                 mPrevToken.AddError(errorMessage);
 
-            // If the token is invisible, copy the error to the largest visible token
+            // If the token is invisible, copy the connected visible token(s)
             // TBD: For invisible ';', the error should be moved to after the token
             if (token.Invisible)
             {
                 var connected = token.GetInfo<Token[]>();
                 if (connected != null)
                 {
-                    Token lastVisible = null;
+                    Token bestFit = null;
+                    bool lastVisible = token == ";";
                     foreach (var c in connected)
                     {
                         if (c.Invisible)
                             continue;
-                        if (lastVisible == null)
-                            lastVisible = c;
-                        else if (c.Y > lastVisible.Y || (c.Y == lastVisible.Y && c.X > lastVisible.X))
-                            lastVisible = c;
+                        if (bestFit == null)
+                            bestFit = c;
+                        else if (lastVisible && (c.Y > bestFit.Y || (c.Y == bestFit.Y && c.X > bestFit.X)))
+                            bestFit = c; // ";" should be marked only at end of line
+                        else if (!lastVisible && (c.Y < bestFit.Y || (c.Y == bestFit.Y && c.X < bestFit.X)))
+                            bestFit = c; // Virtual tokens should only be marked at beginning
                     }
-                    if (lastVisible != null)
+                    if (bestFit != null)
                     {
-                        lastVisible.Error = true;
-                        lastVisible.AddInfo(errorMessage);
+                        bestFit.Error = true;
+                        bestFit.AddInfo(errorMessage);
                     }
                 }
             }
