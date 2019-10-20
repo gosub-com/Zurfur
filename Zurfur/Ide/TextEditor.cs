@@ -500,6 +500,8 @@ namespace Gosub.Zurfur
                     { eTokenType.Identifier, new FontInfo(normalFont, Color.Black) },
                     { eTokenType.Quote, new FontInfo(normalFont, Color.Brown) },
                     { eTokenType.Comment, new FontInfo(normalFont, Color.Green) },
+                    { eTokenType.PublicComment, new FontInfo(boldFont, Color.Green) },
+                    { eTokenType.CreateVariable, new FontInfo(boldFont, Color.FromArgb(20, 125, 255)) },
                     { eTokenType.TypeName, new FontInfo(normalFont, Color.FromArgb(20,125,160)) }
                 };
                 foreach (var font in mTokenFonts)

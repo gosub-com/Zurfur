@@ -14,6 +14,9 @@ namespace Gosub.Zurfur
         TextEditor          mReparseEditor;
         bool                mInActivatedEvent;
 
+        static Brush sLighterGray = new SolidBrush(Color.FromArgb(224, 224, 224));
+        static WordSet BoldHighlightConnectors = new WordSet("( ) [ ] { } < >");
+
         static readonly string ZURFUR_PROJ_EXT = ".zurfproj";
         static readonly string ZURFUR_SRC_MAIN = "Example.zurf";
         static readonly string EXE_DIR = Path.GetDirectoryName(Application.ExecutablePath);
@@ -168,7 +171,7 @@ namespace Gosub.Zurfur
                     foreach (Token s in connectors)
                     {
                         if (BoldHighlightConnectors.Contains(s))
-                            overrides.Add(new TokenColorOverride(s, Pens.Gray, Brushes.LightGray));
+                            overrides.Add(new TokenColorOverride(s, Pens.Gray, sLighterGray));
                         else
                             overrides.Add(new TokenColorOverride(s, Pens.LightGray));
                     }
@@ -180,8 +183,6 @@ namespace Gosub.Zurfur
                 editor.TokenColorOverrides = overrides.ToArray();
             }
         }
-
-        static WordSet BoldHighlightConnectors = new WordSet("( ) [ ] { } < >");
 
         /// <summary>
         /// When the user click the editor, hide the message box until a

@@ -18,6 +18,8 @@ namespace Gosub.Zurfur
         Number,
         Quote,
         Comment,
+        PublicComment,
+        CreateVariable,
         TypeName
     }
 
@@ -194,16 +196,18 @@ namespace Gosub.Zurfur
         }
 
         /// <summary>
-        /// Reject this token (set error flag and append the message)
-        /// NOTE: Duplicate error messages are ignored
+        /// Add an error to this token (set error flag and append the message)
         /// </summary>
-        public void Reject(string errorMessage)
+        public void AddError(string errorMessage)
         {
             // Display error message
             Error = true;
             AddInfo(errorMessage);
         }
 
+        /// <summary>
+        /// Add a warning to the token (set warning bit and append the message)
+        /// </summary>
         public void AddWarning(string warnMessage)
         {
             Warn = true;
@@ -217,6 +221,35 @@ namespace Gosub.Zurfur
         {
             return token.Name;
         }
+
+        /// <summary>
+        /// Connect the tokens because they are logically connected, such as
+        /// matching '(' and ')' or invisible replacement tokens.
+        /// Use GetInfo<Token[]>() to find connected tokens.
+        /// </summary>
+        static public void Connect(Token t1, Token t2)
+        {
+            // Find tokens that are already connected
+            var tokens = new List<Token>();
+            var s1Connectors = t1.GetInfo<Token[]>();
+            if (s1Connectors != null)
+                tokens.AddRange(s1Connectors);
+            var s2Connectors = t2.GetInfo<Token[]>();
+            if (s2Connectors != null)
+                tokens.AddRange(s2Connectors);
+
+            // Add these tokens to the list
+            tokens.Remove(t1);
+            tokens.Remove(t2);
+            tokens.Add(t1);
+            tokens.Add(t2);
+
+            // Set token info
+            Token[] sa = tokens.ToArray();
+            foreach (Token s in sa)
+                s.RepaceInfo(sa);
+        }
+
 
     }
 

@@ -42,7 +42,7 @@ namespace Gosub.Zurfur
 
             if (mTokenName != "")
             {
-                mToken.Reject("Expecting end of file");
+                mToken.AddError("Expecting end of file");
                 Accept();
                 while (mTokenName != "")
                 {
@@ -56,7 +56,7 @@ namespace Gosub.Zurfur
         {
             if (mTokenName == "")
             {
-                mToken.Reject("Execting a value, not end of file");
+                mToken.AddError("Execting a value, not end of file");
                 return;
             }
             if (sValueTokens.Contains(mTokenName))
@@ -70,7 +70,7 @@ namespace Gosub.Zurfur
             else if (mTokenName == "[")
                 ParseArray();
             else
-                mToken.Reject("Expecting a value, 'true', 'false', 'null', '{', '[', number, or string");
+                mToken.AddError("Expecting a value, 'true', 'false', 'null', '{', '[', number, or string");
         }
 
         void ParseArray()
@@ -108,7 +108,7 @@ namespace Gosub.Zurfur
             if (mTokenName != "" && mTokenName[0] == '\"')
                 Accept();
             else
-                mToken.Reject("Expecting a string");
+                mToken.AddError("Expecting a string");
 
             if (mTokenName != ":")
                 Reject("Expecting ':'", sEndObjectKey);
@@ -124,7 +124,7 @@ namespace Gosub.Zurfur
         // Reject the current token, then advance until the first stopToken
         void Reject(string errorMessage, WordSet stopTokens)
         {
-            mToken.Reject(errorMessage);
+            mToken.AddError(errorMessage);
             while (!stopTokens.Contains(mToken))
             {
                 mToken.Grayed = true;

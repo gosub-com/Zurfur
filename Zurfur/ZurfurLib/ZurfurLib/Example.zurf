@@ -1,111 +1,131 @@
-using a.b.c;
-using system.gosub.p;
+using a.b.c
+using system.gosub.p
 
-namespace Zurfur.Example;
+namespace Zurfur.Example
 
 
 // Test class
 pub class Example 
 { 
+    // Todo List:
+    //    .. operator doesn't need parameters at beginning or end
+    //    Support for :: operator (start::count)
+    //    Extension method format: "func Sum::List<int>() int"
+    //    Change `namespace` and `using` to `module` and `import`
+    //    Finish lambda & Initializers
+    //    Invisible ';' should give error after end of line
+    //    Editor should always use spaces (or tabs, just pick one and be done)
+    //    Editor should comment out blocks with CTRL-'/'
+    //    Implement switch (doesn't use break)
+    //    Switch statement
+
     // Fields initialized to zero, null, or "" for string
-    f1 int;			// Initialized to 0
-    f2 float32;		// Initialized to 0.0
-    f3 string;		// Initialized to "", not NULL
+    f1 int			// Initialized to 0
+    f2 float32		// Initialized to 0.0
+    f3 string		// Initialized to "", not NULL
     
     // Fields initialized to null
-    f4 Array<int>;
-    f5 Array<Array<int>>; 
-    f6 []int;       // Same as Array<int>
-    f7 Map<string,List<int>>;	
-    f8 Pointer<int>;
-    f9 *int;        // Same as Pointer<int>
+    f4 Array<int>
+    f5 Array<Array<int>> 
+    f6 []int       // Same as Array<int>
+    f7 Map<string,List<int>>
+    f8 Pointer<int>
+    f9 ^int        // Same as Pointer<int>
     
     // Fields initialized via constructor
-    f10 int(FuncReturnsInt());
-    f11 Array<int>();          // Array, Count=0
-    f12 Array<int>(32);        // Array, Count=32
-    f13 Array<int>({1,2,3});   // Array initialized with 1, 2, 3
-    f13 List<int>(32);         // Empty List, Capacity=32
-    f14 Map<string,string>();  // Empty map
+    f10 int(FuncReturnsInt())
+    f11 Array<int>()          // Array, Count=0
+    f12 Array<int>(32)        // Array, Count=32
+    f13 Array<int>({1,2,3})   // Array initialized with 1, 2, 3
+    f13 List<int>(32)         // Empty List, Capacity=32
+    f14 Map<string,string>()  // Empty map
     
     // Fields initialized via assignment
-    f15 int = 32;
-    f16 int = FuncReturnsInt() >> 4;
-    f17 float32 = FuncReturnsFloat32orInt();
-    f18 string = "Hello";
-    f19 *int = GetIntPtr();			// Same as Pointer<int> = `GetIntPtr()`
+    f15 int = 32
+    f16 int = FuncReturnsInt() >> 4
+    f17 float32 = FuncReturnsFloat32orInt()
+    f18 string = "Hello"
+    f19 ^int = GetIntPtr()			// Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
-    pub prop P1 int => 1;
-    pub prop P2 float =>  f1 + f2;
-    pub prop P3 int { get { return 3; } }
-    pub prop P4 int = 3 { get; set; } // Initialized to 3
+    pub prop P1 int => 1
+    pub prop P2 float =>  f1 + f2
+    pub prop P3 int { get { return 3 } }
+    pub prop P4 int = 3 { get set } // Initialized to 3
     pub prop P5 int(3) // Initializes p1 to 3
     {
-        get { return p1; }
-        set { p1 = value;}
+        get { return p1 }
+        set { p1 = value }
     }
     
-    pub this[index i] int => i;
+    pub this[index i] int => i
     
     // Function
-    func fun1(a int) float => f1 + f2 + a;
-    func func1(a int) {}
+    func fun1(a int) float => f1 + f2 + a
+    func func1(a int) { }
     func func2(a ref float32) {}
     func func3(a ref string) {}
     func func4(a Array) {}
     func func5(a [][]int) {} 
     func func5(a Array<Array<int>>) {}
-    func func6(a ref **int) {}
+    func func6(a ref ^^int) {}
     func func7(a List<int>) { }
     func func8(a ref List<List<int>>) { }
     func func10(a Map<string,List<int>>) { }
     
     pub func Sort<T>(greaterThan func(a T, b T) bool) { }
-    pub MyFieldFunc func(sender object, message string);
+    pub MyFieldFunc func(sender object, message string)
 
 
-    pub func M<A,B>(a A, b B, c List<int>) List<int>
-    {
-    }
+    pub func M<A,B>(a A, b B, c List<int>) List<int> {}
     
     func func8(a ref List<List<int>>) { }
     func func8(a ref List<int,x,y,z>) { }
     pub func Main(args Array<string>)
     {
         // Function calls vs parameter lists
-        #a1 = MyType<a,b,c>();
-        #a2 = MyType(a,b,c)();    	
-        #a3 = List<List<int>>();
-        #a4 = List(List(int))();
-        #a5 = M<string,int.x<T>.y>.Hello2<x.x>();
-        #a6 = M(string,int.x(T).y).Hello2(x.x)();        
-        #a7 = f(f<a>())(a+b);
+        @a1 = MyType<a,b,c>()
+        @a2 = MyType(a,b,c)()
+        @a3 = List<List<int>>()
+        @a4 = List(List(int))()
+        @a5 = M<string,int.x<T>.y>.Hello2<x.x>()
+        @a6 = M(string,int.x(T).y).Hello2(x.x)()     
+        @a7 = f(f<a>())(a+b)
 
         // Casts
-        #c1 = (M<string,int.x<T>.y>.Hello2)A;
-        #c2 = (M<string,int.x<T>.y>.Hello2<x.x>)A;
-        #c3 = (List<int,y,z>)x;
+        @c1 = (M<string,int.x<T>.y>.Hello2)A
+        @c2 = (M<string,int.x<T>.y>.Hello2<x.x>)A
+        @c3 = (List<int,y,z>)x
 
         // Static assigments
-        M<string>.Hello = 6;
-        M<string,int.x<T>.y>.Hello2 = f(1, 2, "Jeremy");
-        M<string,int>.Hello2 = f(1, 2, func() => a<b);
+        M<string>.Hello = 6
+        M<string,int.x<T>.y>.Hello2 = f(1, 2, "Jeremy")
+        M<string,int>.Hello2 = f(1, 2, (x, y) => x < y)
 
         // Cast errors
-        //#ce1 = (M(string,int.x(T).y).Hello2(x.x))A;
-        //#ce2 = (List(int,y,z))x;
-        //#ce3 = (List<int,y.y+2,z>)x;
+        //@ce1 = (M(string,int.x(T).y).Hello2(x.x))A
+        //@ce2 = (List(int,y,z))x
+        //@ce3 = (List<int,y.y+2,z>)x
         
-        // TBD: Fix these
-        #a = x>y;
+        @a = x>y
         if MyFieldFunc != null
-            { MyFieldFunc(this, "hello"); }
+            { MyFieldFunc(this, "hello") }
 
-        #l1 = func(a T) { return 23 };
-        #l2 = func(a T) => 23 ;
-        list.Sort(func(a T, b T) => a < b);
-        list.Sort(func(a T, b T) { return a < b });
+        @l1 = (a) => { return 23 }
+        @l2 = (a) => 23
+        list.Sort((a, b) => a < b)
+        list.Sort((a, b) => { return a < b })
+     	for a in 1..23
+    	{
+    		// TBD: Get switch statement going
+    		switch a
+    		{
+    		case 1:
+    		case 2:
+    		
+    		}
+    	}
+
         
     }
 }
@@ -113,22 +133,22 @@ pub class Example
 pub static func Sort<T>(s Span<T>, lessThan func(a T, b T) bool)
 {
     // Simple selection sort
-    for #i in s.Length-1
+    for @i in s.Length-1
     {
-        #lowElem = s[i];
-        #lowIndex = i;
-        for #j in i+1..s.Length
+        @lowElem = s[i]
+        @lowIndex = i
+        for @j in i+1..s.Length
         {
             if lessThan(s[j], lowElem)
             {
-                lowElem = s[j];
-                lowIndex = j;
+                lowElem = s[j]
+                lowIndex = j
             }
         }
         if lowIndex != i
         {
-            s[lowIndex] = s[i];
-            s[i] = lowElem;
+            s[lowIndex] = s[i]
+            s[i] = lowElem
         }
     }
 }
@@ -136,7 +156,7 @@ pub static func Sort<T>(s Span<T>, lessThan func(a T, b T) bool)
 
 pub struct ro string
 {
-    ro str Array<byte>;
+    ro str Array<byte>
 
     construct() { str = Array<byte>.Empty }
     construct(s string) { todo() }
@@ -152,41 +172,41 @@ pub struct ro string
 
 pub struct ref ro Span<T>
 {
-    ro data ref T;
-    pub ro Length int;
-    pub this[index int] ref T => todo();
-    pub func Slice(start int, length int) Span<T> { todo(); }
+    ro data ref T
+    pub ro Length int
+    pub this[index int] ref T => todo()
+    pub func Slice(start int, length int) Span<T> { todo() }
     // TBD: implicit conversion to RoSpan
 }
 
 pub struct ref ro RoSpan<T>
 {
-    ro data ref T;
+    ro data ref T
     
-    pub ro Length int;
-    pub this[index int] ro ref T => todo();
-    pub func Slice(start int, length int) RoSpan<T> { todo(); }
+    pub ro Length int
+    pub this[index int] ro ref T => todo()
+    pub func Slice(start int, length int) RoSpan<T> { todo() }
 }
 
 pub struct ref ro Memory<T>
 {
-    ro data object;
-    ro offset xint;
+    ro data object
+    ro offset xint
     
-    pub ro Length int;
-    pub this[index int] ref T => todo();
-    pub func Slice(start int, length int) Memory<T> { todo(); }
+    pub ro Length int
+    pub this[index int] ref T => todo()
+    pub func Slice(start int, length int) Memory<T> { todo() }
     // TBD: implicit conversion to RoSpan
 }
 
 pub struct ref ro RoMemory<T>
 {
-    ro data object;
-    ro offset xint;
+    ro data object
+    ro offset xint
     
-    pub ro Length int;
-    pub this[index int] ro ref T => todo();
-    pub func Slice(start int, length int) RoMemory<T> { todo(); }
+    pub ro Length int
+    pub this[index int] ro ref T => todo()
+    pub func Slice(start int, length int) RoMemory<T> { todo() }
 }
 
 // All variable sized objects must inherit from this class, must be sealed, and
@@ -195,25 +215,25 @@ pub struct ref ro RoMemory<T>
 // The inheriting class must be sealed (that's what sealed1 means)
 pub unsafe sealed1 class VariableSizedObject<T>
 {
-    pub ro Length int;
+    pub ro Length int
 
     // Must be called first thing from the constuctor, never called again
     protected unsafe static func AllocateObject(int length) { todo() }
 
     // Return a pointer to the Array
-    // { return (T*)((*void)this + sizeof(this))}
-    protected unsafe prop DataPointer *T => todo();
+    // { return (T^)((^void)this + sizeof(this))}
+    protected unsafe prop DataPointer ^T => todo()
 }
 
 
 // Array of constant size
 pub sealed class Array<T> extends VariableSizedObject<T>
 {
-    const MaxSize int = int.MaxInt/2;
-    pub static ro Empty Array<T>();
+    const MaxSize int = int.MaxInt/2
+    pub static ro Empty Array<T>()
 
     construct(length int) { todo }
-    pub this[index int] ref T => todo();
+    pub this[index int] ref T => todo()
     pub func Slice(start int, length int) Span<T> { todo }
     pub func RoSlice(start int, length int) RoSpan<T> { todo }
 }
@@ -222,7 +242,7 @@ pub sealed class Array<T> extends VariableSizedObject<T>
 pub class List<T>
 {
     construct(capacity int) { todo() }
-    pub this[index int] ref T => todo();
+    pub this[index int] ref T => todo()
 }
 
 pub class Map<TKey, TValue>
@@ -234,7 +254,7 @@ pub class Map<TKey, TValue>
 pub sealed class Matrix2d<t> extends VariableSizedObject<T>
 {
     construct(len1 int, len2 int) { todo() }	
-    pub this[i1 int, i2 int] ref T => todo();
+    pub this[i1 int, i2 int] ref T => todo()
 }
 
 // Represents a buffer in un-managed memory.  This class can create and 
@@ -242,10 +262,10 @@ pub sealed class Matrix2d<t> extends VariableSizedObject<T>
 // The GC knows this class and deletes the memory when necessary.
 pub sealed class UnmanagedMemory<T> extends UnmanagedHande where T is IBlittableStruct
 {
-    pub ro Memory *void;
-    pub ro Capacity int;
-    pub ro OwnedByGc bool;
-    length int;
+    pub ro Memory ^void
+    pub ro Capacity int
+    pub ro OwnedByGc bool
+    length int
     
     pub prop Length int
     {
@@ -262,7 +282,7 @@ pub sealed class UnmanagedMemory<T> extends UnmanagedHande where T is IBlittable
     // Attach this object to a buffer allocated by unmanaged code.  
     // Lenght and Capacity are set automatically. Be sure that
     // unmanaged code doesn't delete the object while still in use.  
-    unsafe construct(data *void, sizeOfBufferInBytes int) { todo() }
+    unsafe construct(data ^void, sizeOfBufferInBytes int) { todo() }
 
     pub func CopyTo() { todo() }
 }
@@ -287,7 +307,7 @@ pub class StructObject
 pub class ClassObject
 {
     // The only member
-    protected unsafe ro VT *void;
+    protected unsafe ro VT ^void
 
     pub override func GetType() { todo }
 }
@@ -301,90 +321,81 @@ pub class FinalizedNotify
 
 pub class FinalizedNotifyQueue 
 {
-    pub prop Count int => todo();
+    pub prop Count int => todo()
     pub func Dequeue() IntPtr { todo() }
     pub afunc WaitQueueNotEmpty() { todo() }
 }
 
-pub static func MemCopy(to *void, from *void, length xint)
+pub static func MemCopy(dest ^void, source ^void, length xint)
 {
-    if length <= 0
-    {
-        return;
-    }
-
-    // Align `to` on int32
-    while to & 3 != 0 && length != 0
-    {
-        *(*byte)to = *(*byte)from; to+=1; from+=1; length-=1;
-    }
-    
-    if (to|from) & 3 == 0
-    {
-        MemCopyAlign32(to, from, length);
-        return;
-    }
-    
-    // Byte copy
-    #end = to + length;
-    while end-to >= 4
-    {
-        *(*byte)to = *(*byte)from; to+=1; from+=1;
-        *(*byte)to = *(*byte)from; to+=1; from+=1;
-        *(*byte)to = *(*byte)from; to+=1; from+=1;
-        *(*byte)to = *(*byte)from; to+=1; from+=1;
-    } 
-    while to != end
-    {
-        *(*byte)to = *(*byte)from; to+=1; from+=1;
-    }
-}
-
-pub static func MemCopyAlign32(to *void, from *void, length xint)
-{
+	@to = (^byte)dest
+	@from = (^byte)source
+	
     if length <= 0
     {
         return
     }
-    if (to|from) & 3 != 0
+    // Align `to` on int32
+    while (xint)to & 3 != 0 && length != 0
     {
-        throw MisalignedMemoryAccessException();
+        ^to = ^from; to+=1; from+=1; length-=1
+    }
+    
+    if (xint)from & 3 == 0
+    {
+        MemCopyAlign32(to, from, length)
+        return
+    }
+    
+    // Byte copy
+    @end = to + length
+    while (xint)end-(xint)to >= 4
+    {
+        ^to = ^from; to+=1; from+=1
+        ^to = ^from; to+=1; from+=1
+        ^to = ^from; to+=1; from+=1
+        ^to = ^from; to+=1; from+=1
+    } 
+    while (xint)to != (xint)end
+    {
+        ^to = ^from; to+=1; from+=1
+    }
+}
+
+pub static func MemCopyAlign32(dest ^void, source ^void, length xint)
+{
+	@to = (^byte)dest
+	@from = (^byte)source
+
+    if length <= 0
+    {
+        return
+    }
+    if ((xint)from | (xint)to) & 3 != 0
+    {
+    	throw MemoryAccessEception()
     }
 
     // Try 64 bit copy first
-    #end = to + length;
-    if (to^from) & 7 == 0 && length >= 8
+    @end = to + length
+    if ((xint)to~(xint)from) & 4 == 0 && length >= 8
     {
-        if to & 7 != 0
+        if (xint)to & 4 != 0
         {
-            *(*int32)to = *(*int32)from; to+=4; from+=4;
-        }
-        while end - to >= 32
-        {
-            *(*int64)to = *(*int64)from; to+=8; from+=8;
-            *(*int64)to = *(*int64)from; to+=8; from+=8;
-            *(*int64)to = *(*int64)from; to+=8; from+=8;
-            *(*int64)to = *(*int64)from; to+=8; from+=8;
+            ^(^int32)to = ^(^int32)from; to+=4; from+=4
         }
         while end - to >= 8
         {
-            *(*int64)to = *(*int64)from; to+=8; from+=8;
+            ^(^int64)to = ^(^int64)from; to+=8; from+=8
         }
     }
-    while end-to >= 16
+    while (xint)end-(xint)to >= 4
     {
-        *(*int32)to = *(*int32)from; to+=4; from+=4;
-        *(*int32)to = *(*int32)from; to+=4; from+=4;
-        *(*int32)to = *(*int32)from; to+=4; from+=4;
-        *(*int32)to = *(*int32)from; to+=4; from+=4;
+        ^(^int32)to = ^(^int32)from; to+=4; from+=4
     }
-    while end-to >= 4
+    while (xint)to != end
     {
-        *(*int32)to = *(*int32)from; to+=4; from+=4;
-    }
-    while to != end
-    {
-        *(*byte)to = *(*byte)from; to+=1; from+=1;
+        ^to = ^from; to+=1; from+=1
     }
 }
 

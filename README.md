@@ -38,21 +38,21 @@ This isn't documentation, so much as thoughts about where to go:
 
 ## Operator Precedence
 
-    Primary: . () [] # (T)x
-    Unary: + - ! ~ & *
+    Primary: . () [] @ (T)x
+    Unary: + - ! ~ & ^
     Exponentiation: **
     Multiplication and bits: * / % << >> & 
-    Add and bits: + - | ^
-    Range: ..
-    Comparisons: == != === < <= > >= (must have parenthisis)
+    Add and bits: + - | ~
+    Range: .. ::
+    Comparison: == != < <= > >= === !==
     Conditional: &&
     Conditional: ||
     Ternary: a ? b : c
-    Lambda: ->
+    Lambda: =>
+    Assignment Statement: = += -= *= /= %= &= |= ~= <<= >>= 
     Comma: ,
-    Assignment Statement: = += -= *= /= %= &= |= ^= <<= >>= 
 
-The `#` operator is the same as using `var` in front of a variable in C#.
+The `@` operator is the same as using `var` in front of a variable in C#.
 
 Operator `==` does not default to object comparison, and only works when it
 is defined for the given type.  Use `===` for object comparison.  Comparison
@@ -61,8 +61,8 @@ operators are not overloadable, however you can implement just one function,
 Or, if you only care about equality, implement `Equals` to get `==` and
 `!=` operators.
 
-The `->` operator is only for lambda and not used to dereference a pointer.
-Pointers are dereferenced by the `.` operator, just like a reference.
+The `->` operator is not used.  Pointers are dereferenced by the `.` operator,
+just like a reference.  The unaray `^` operator is the same as unary `*` in C.
 
 ## Basic types
 

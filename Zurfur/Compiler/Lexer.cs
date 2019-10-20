@@ -277,7 +277,7 @@ namespace Gosub.Zurfur
                 endIndex++;
             string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
             charIndex = endIndex;
-            return new Token(token, 0, startIndex, eTokenType.Comment);
+            return new Token(token, 0, startIndex, token.StartsWith("///") ? eTokenType.PublicComment : eTokenType.Comment);
         }
 
         private Token ScanString(string line, ref int charIndex, int startIndex)
