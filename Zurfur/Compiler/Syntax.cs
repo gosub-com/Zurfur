@@ -50,7 +50,7 @@ namespace Gosub.Zurfur
         public Token Keyword; // class, struct, etc.
         public SyntaxExpr BaseClass;
         public Token Name;
-        public SyntaxTypeParam []TypeParams = Array.Empty<SyntaxTypeParam>();
+        public SyntaxExpr TypeParams;
         public SyntaxExpr Alias;
         public SyntaxExpr[] Implements;
         public SyntaxConstraint []Constraints;
@@ -59,13 +59,6 @@ namespace Gosub.Zurfur
         {
             return Name == null ? "(class)" : Name.ToString();
         }
-    }
-
-    class SyntaxTypeParam
-    {
-        static readonly Token EmptyToken = new Token();
-        public Token Name = EmptyToken;
-        public Token Qualifier = EmptyToken;
     }
 
     class SyntaxConstraint
@@ -101,8 +94,8 @@ namespace Gosub.Zurfur
         public Token Keyword; // func, afunc, prop, this, construct, etc.
         public SyntaxExpr ClassName;
         public Token Name;
-        public SyntaxTypeParam[] TypeParams = Array.Empty<SyntaxTypeParam>();
-        public SyntaxFuncParam[] Params;
+        public SyntaxExpr TypeParams;
+        public SyntaxExpr Params;
         public SyntaxExpr ReturnType;
         public SyntaxExpr Statements;
 
@@ -112,21 +105,10 @@ namespace Gosub.Zurfur
             sb.Append(Name == null ? "(func)" : Name.ToString());
             sb.Append("(");
             if (Params != null)
-                for (int i = 0; i < Params.Length; i++)
-                    sb.Append(Params[i].ToString() + (i == Params.Length - 1 ? "" : ","));
+                for (int i = 0; i < Params.Count; i++)
+                    sb.Append(Params[i].ToString() + (i == Params.Count - 1 ? "" : ","));
             sb.Append(")");
             return sb.ToString();
-        }
-    }
-
-    class SyntaxFuncParam
-    {
-        public Token Name;
-        public SyntaxExpr TypeName;
-
-        public override string ToString()
-        {
-            return (Name == null ? "(param)" : Name) + (TypeName == null ? "" : TypeName.ToString());
         }
     }
 

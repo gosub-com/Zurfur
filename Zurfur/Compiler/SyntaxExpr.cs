@@ -15,6 +15,8 @@ namespace Gosub.Zurfur
         public abstract SyntaxExpr this[int index] { get; }
         public abstract IEnumerator<SyntaxExpr> GetEnumerator();
 
+        public static readonly SyntaxExpr Empty = new SyntaxExprToken(Token.Empty);
+
         public SyntaxExpr(Token token, int count)
         {
             Token = token ?? throw new ArgumentNullException("Token must not be null");

@@ -230,7 +230,7 @@ namespace Gosub.Zurfur
             ShowTypes(aClass.Alias, true);
             ShowTypes(aClass.BaseClass, true);
             aClass.Name.Type = eTokenType.TypeName;
-            ShowTypes(aClass.TypeParams);
+            ShowTypes(aClass.TypeParams, true);
             if (aClass.Constraints != null)
                 foreach (var constraint in aClass.Constraints)
                 {
@@ -248,12 +248,14 @@ namespace Gosub.Zurfur
         void ShowTypes(SyntaxFunc func)
         {
             ShowTypes(func.ClassName, true);
-            ShowTypes(func.TypeParams);
+            ShowTypes(func.TypeParams, true);
             ShowTypes(func.ReturnType, true);
             ShowTypes(func.Statements, false);
             if (func.Params != null)
-                foreach (var p in func.Params)
-                    ShowTypes(p.TypeName, true);
+                foreach (var param in func.Params)
+                    if (param.Count >= 1)
+                        ShowTypes(param[0], true);
+
         }
 
         void ShowTypes(SyntaxExpr expr, bool isType)
@@ -279,13 +281,6 @@ namespace Gosub.Zurfur
                 ShowTypes(e, isType);
         }
 
-        void ShowTypes(SyntaxTypeParam []param)
-        {
-            if (param != null)
-                foreach (var p in param)
-                    p.Name.Type = eTokenType.TypeName;
-        }
-
         public void ShowParseTree(SyntaxUnit unit)
         {
             if (!mShowParseTree)
@@ -301,7 +296,8 @@ namespace Gosub.Zurfur
                 ShowParseTree(func.ReturnType);
                 if (func.Params != null)
                     foreach (var param in func.Params)
-                        ShowParseTree(param.TypeName);
+                        if (param.Count >= 1)
+                            ShowParseTree(param[0]);
                 if (func.Statements != null)
                     foreach (var statement in func.Statements)
                         ShowParseTree(statement);

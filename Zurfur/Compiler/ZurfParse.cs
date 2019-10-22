@@ -454,22 +454,25 @@ namespace Gosub.Zurfur
             mUnit.Classes.Add(synClass);
         }
 
-        SyntaxTypeParam []ParseTypeParams(WordSet errorStop)
+        SyntaxExpr ParseTypeParams(WordSet errorStop)
         {
             if (mToken != "<")
-                return Array.Empty<SyntaxTypeParam>();
+                return SyntaxExpr.Empty;
 
-            var typeParams = new List<SyntaxTypeParam>();
+            var typeParams = new List<SyntaxExpr>();
             var openToken = Accept();
             do
             {
                 // Parse in or out qualifier
-                var param = new SyntaxTypeParam();
+                Token qualifier = null;
                 if (sTypeDefParamQualifiers.Contains(mTokenName))
-                    param.Qualifier = Accept();
-                if (!ParseIdentifier("Expecting a type name", out param.Name))
+                    qualifier = Accept();
+                if (!ParseIdentifier("Expecting a type name", out var name))
                     break;
-                typeParams.Add(param);
+                if (qualifier == null)
+                    typeParams.Add(new SyntaxExprToken(name));
+                else
+                    typeParams.Add(new SyntaxExprUnary(name, new SyntaxExprToken(qualifier)));
                 if (mTokenName == ",")
                     Connect(openToken, mToken);
             } while (AcceptMatch(","));
@@ -478,7 +481,7 @@ namespace Gosub.Zurfur
                 Connect(mPrevToken, openToken);
             else
                 Reject("Expecing end of type parameters: '>'", errorStop);
-            return typeParams.ToArray();
+            return new SyntaxExprMulti(Token.Empty, typeParams.ToArray());
         }
 
         SyntaxConstraint ParseConstraint()
@@ -546,7 +549,7 @@ namespace Gosub.Zurfur
             if (mTokenName != "[")
                 Reject("Expecting '[' after indexer keyword", sRejectIndexerParams);
 
-            SyntaxFuncParam []parameters = null;
+            SyntaxExpr parameters = null;
             if (mTokenName == "[")
                 parameters = ParseFuncParamsDef();
 
@@ -555,7 +558,7 @@ namespace Gosub.Zurfur
             ParsePropertyBody(parentClass, qualifiers, comments, keyword, keyword, parameters, returnType);
         }
 
-        void ParsePropertyBody(SyntaxClass parentClass, List<Token> qualifiers, string[] comments, Token keyword, Token name, SyntaxFuncParam []parameters, SyntaxExpr returnType)
+        void ParsePropertyBody(SyntaxClass parentClass, List<Token> qualifiers, string[] comments, Token keyword, Token name, SyntaxExpr parameters, SyntaxExpr returnType)
         {
             var synFunc = new SyntaxFunc();
             synFunc.Namespace = mUnit.CurrentNamespace;
@@ -677,7 +680,7 @@ namespace Gosub.Zurfur
             return ParseIdentifier("Expecting a type name", out funcName);
         }
 
-        private void ParseFuncDef(out SyntaxTypeParam []typeParams, out SyntaxFuncParam []parameters, out SyntaxExpr returnType)
+        private void ParseFuncDef(out SyntaxExpr typeParams, out SyntaxExpr parameters, out SyntaxExpr returnType)
         {
             typeParams = ParseTypeParams(sRejectFuncName);
 
@@ -723,7 +726,7 @@ namespace Gosub.Zurfur
             synFunc.ReturnType = ParseTypeDef(sFuncDefReturnTypeQualifiers, sRejectFuncParam);
         }
 
-        SyntaxFuncParam []ParseFuncParamsDef()
+        SyntaxExpr ParseFuncParamsDef()
         {
             // Read open token, '(' or '['
             var openToken = Accept();
@@ -732,7 +735,7 @@ namespace Gosub.Zurfur
 
             // Parse parameters
             var closeToken = openToken.Name == "(" ? ")" : "]";
-            var parameters = new List<SyntaxFuncParam>();
+            var parameters = new List<SyntaxExpr>();
             if (mTokenName != closeToken)
                 parameters.Add(ParseFuncParamDef());
             while (AcceptMatch(","))
@@ -745,16 +748,15 @@ namespace Gosub.Zurfur
                 Reject("Expecting '" + closeToken + "'", closeToken == ")" ? sRejectFuncParamsParen : sRejectFuncParamsBracket);
             if (AcceptMatch(closeToken))
                 Connect(openToken, mPrevToken);
-            return parameters.ToArray();
+            return new SyntaxExprMulti(Token.Empty, parameters.ToArray());
         }
 
-        SyntaxFuncParam ParseFuncParamDef()
+        SyntaxExpr ParseFuncParamDef()
         {
-            var synParam = new SyntaxFuncParam();
-            if (!ParseIdentifier("Expecting a variable name", out synParam.Name, sRejectFuncParam))
-                return synParam;
-            synParam.TypeName = ParseTypeDef(sFuncDefParamTypeQualifiers, sRejectFuncParam);
-            return synParam;
+            if (!ParseIdentifier("Expecting a variable name", out var name, sRejectFuncParam))
+                return new SyntaxExprToken(Token.Empty);
+            var type = ParseTypeDef(sFuncDefParamTypeQualifiers, sRejectFuncParam);
+            return new SyntaxExprUnary(name, type);
         }
 
         private SyntaxExpr ParseStatements()
@@ -1075,7 +1077,6 @@ namespace Gosub.Zurfur
 
                 // Parse a cast: The closing ')' is followed by '(' or identifier
                 // Use ')' to differentiate from function call which is '('
-                // TBD: Remove cast syntax, require keyword?
                 if (!VerifyCastExpression(result))
                 {
                     RejectToken(openToken, "Cast has an illegal character in it.");
@@ -1247,7 +1248,7 @@ namespace Gosub.Zurfur
             }
             else if (mTokenName == "func" || mTokenName == "afunc")
             {
-                return ParseLambdaDef(); // TBD: Store in arse tree
+                return ParseLambdaDef(); 
             }
             else
             {
@@ -1261,7 +1262,6 @@ namespace Gosub.Zurfur
         {
             var keyword = Accept();
             keyword.Type = eTokenType.Reserved;
-            keyword.AddWarning("Lambda definitions are not yet stored in the parse tree. ");
             ParseFuncDef(out var typeParams, out var parameters, out var returnType);
             return new SyntaxExprToken(mToken);
         }
@@ -1543,7 +1543,6 @@ namespace Gosub.Zurfur
                 mPrevToken.AddError(errorMessage);
 
             // If the token is invisible, copy the connected visible token(s)
-            // TBD: For invisible ';', the error should be moved to after the token
             if (token.Invisible)
             {
                 var connected = token.GetInfo<Token[]>();
