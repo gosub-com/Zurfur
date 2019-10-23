@@ -3,6 +3,7 @@ using system.gosub.p
 
 namespace Zurfur.Example
 
+pub func Example::Extension() { }
 
 // Test class
 pub class Example 
@@ -10,10 +11,6 @@ pub class Example
     // Todo List:
     //    .. operator doesn't need parameters at beginning or end
     //    Support for :: operator (start::count)
-    //    Extension method format: "func Sum::List<int>() int"
-    //    Change `namespace` and `using` to `module` and `import`
-    //    Finish lambda & Initializers
-    //    Invisible ';' should give error after end of line
     //    Editor should always use spaces (or tabs, just pick one and be done)
     //    Editor should comment out blocks with CTRL-'/'
     //    Implement switch (doesn't use break)
@@ -115,17 +112,25 @@ pub class Example
         @l2 = (a) => 23
         list.Sort((a, b) => a < b)
         list.Sort((a, b) => { return a < b })
+
+        // Switch expression
+        @num = switch myConstant { 23 => a, 27 => b, default => 0}
+
+        // Switch statement
+		switch a
+		{
+		case 1:
+            DoIt(1) // No break necessary, always breaks unless there are no statements                
+		case 2: // Empty case does fall through
+        case 3:
+            DoIt2()
+        default: doit3();
+		}
+		
+		// For statement
      	for a in 1..23
     	{
-    		// TBD: Get switch statement going
-    		switch a
-    		{
-    		case 1:
-    		case 2:
-    		
-    		}
     	}
-
         
     }
 }
@@ -158,9 +163,9 @@ pub struct ro string
 {
     ro str Array<byte>
 
-    construct() { str = Array<byte>.Empty }
-    construct(s string) { todo() }
-    construct(s Span<byte>) { todo() }
+    new() { str = Array<byte>.Empty }
+    new(s string) { todo() }
+    new(s Span<byte>) { todo() }
     pub func Slice(start int, length int) RoSpan<byte> { todo() }
     pub func Slice(start int) RoSpan<byte> { todo() }
     
@@ -227,12 +232,12 @@ pub unsafe sealed1 class VariableSizedObject<T>
 
 
 // Array of constant size
-pub sealed class Array<T> extends VariableSizedObject<T>
+pub sealed class Array<T> : VariableSizedObject<T>
 {
     const MaxSize int = int.MaxInt/2
     pub static ro Empty Array<T>()
 
-    construct(length int) { todo }
+    new(length int) { todo }
     pub this[index int] ref T => todo()
     pub func Slice(start int, length int) Span<T> { todo }
     pub func RoSlice(start int, length int) RoSpan<T> { todo }
@@ -241,26 +246,26 @@ pub sealed class Array<T> extends VariableSizedObject<T>
 // Note that the List class has a ref return indexer, just like Array
 pub class List<T>
 {
-    construct(capacity int) { todo() }
+    new(capacity int) { todo() }
     pub this[index int] ref T => todo()
 }
 
 pub class Map<TKey, TValue>
 {
-    construct(capacity int) { todo() }
+    new(capacity int) { todo() }
 }
 
 // The matrix class is used to implement square 2d arrays
-pub sealed class Matrix2d<t> extends VariableSizedObject<T>
+pub sealed class Matrix2d<t> : VariableSizedObject<T>
 {
-    construct(len1 int, len2 int) { todo() }	
+    new(len1 int, len2 int) { todo() }	
     pub this[i1 int, i2 int] ref T => todo()
 }
 
 // Represents a buffer in un-managed memory.  This class can create and 
 // own the memory, or it can be attached to an already existing buffer.
 // The GC knows this class and deletes the memory when necessary.
-pub sealed class UnmanagedMemory<T> extends UnmanagedHande where T is IBlittableStruct
+pub sealed class UnmanagedMemory<T> : UnmanagedHande where T is IBlittableStruct
 {
     pub ro Memory ^void
     pub ro Capacity int
@@ -276,13 +281,13 @@ pub sealed class UnmanagedMemory<T> extends UnmanagedHande where T is IBlittable
     // Create the buffer, the GC owns it and deletes it when there are no more
     // references to this object.  Be careful that unmanaged code doesn't
     // hold a reference to the memory beyond the lifetime of this object
-    construct(length int) { todo }
-    construct(length int, capacity int) { todo }
+    new(length int) { todo }
+    new(length int, capacity int) { todo }
 
     // Attach this object to a buffer allocated by unmanaged code.  
     // Lenght and Capacity are set automatically. Be sure that
     // unmanaged code doesn't delete the object while still in use.  
-    unsafe construct(data ^void, sizeOfBufferInBytes int) { todo() }
+    unsafe new(data ^void, sizeOfBufferInBytes int) { todo() }
 
     pub func CopyTo() { todo() }
 }

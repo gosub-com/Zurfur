@@ -15,7 +15,7 @@ namespace Gosub.Zurfur
         public abstract SyntaxExpr this[int index] { get; }
         public abstract IEnumerator<SyntaxExpr> GetEnumerator();
 
-        public static readonly SyntaxExpr Empty = new SyntaxExprToken(Token.Empty);
+        public static readonly SyntaxExpr Empty = new SyntaxToken(Token.Empty);
 
         public SyntaxExpr(Token token, int count)
         {
@@ -65,9 +65,9 @@ namespace Gosub.Zurfur
         }
     }
 
-    class SyntaxExprToken : SyntaxExpr
+    class SyntaxToken : SyntaxExpr
     {
-        public SyntaxExprToken(Token token)
+        public SyntaxToken(Token token)
             : base(token, 0)
         {
         }
@@ -85,11 +85,11 @@ namespace Gosub.Zurfur
         }
     }
 
-    class SyntaxExprUnary : SyntaxExpr
+    class SyntaxUnary : SyntaxExpr
     {
         SyntaxExpr mParam0;
 
-        public SyntaxExprUnary(Token token, SyntaxExpr p0)
+        public SyntaxUnary(Token token, SyntaxExpr p0)
             : base(token, 1)
         {
             mParam0 = p0 ?? throw new ArgumentNullException("p0 must not be null");
@@ -110,12 +110,12 @@ namespace Gosub.Zurfur
         }
     }
 
-    class SyntaxExprBinary : SyntaxExpr
+    class SyntaxBinary : SyntaxExpr
     {
         SyntaxExpr mParam0;
         SyntaxExpr mParam1;
 
-        public SyntaxExprBinary(Token token, SyntaxExpr p0, SyntaxExpr p1)
+        public SyntaxBinary(Token token, SyntaxExpr p0, SyntaxExpr p1)
             : base(token, 2)
         {
             mParam0 = p0 ?? throw new ArgumentNullException("p0 must not be null");
@@ -142,11 +142,11 @@ namespace Gosub.Zurfur
     }
 
     // Multi-paramerter expression
-    class SyntaxExprMulti : SyntaxExpr
+    class SyntaxMulti : SyntaxExpr
     {
         SyntaxExpr[] mParameters;
 
-        public SyntaxExprMulti(Token token, SyntaxExpr[] parameters)
+        public SyntaxMulti(Token token, SyntaxExpr[] parameters)
             : base(token, parameters.Length)
         {
             if (parameters == null)
@@ -157,7 +157,7 @@ namespace Gosub.Zurfur
             mParameters = parameters;
         }
 
-        public SyntaxExprMulti(Token token, SyntaxExpr p0, SyntaxExpr p1, SyntaxExpr p2)
+        public SyntaxMulti(Token token, SyntaxExpr p0, SyntaxExpr p1, SyntaxExpr p2)
             : base(token, 3)
         {
             if (p0 == null || p1 == null || p2 == null)

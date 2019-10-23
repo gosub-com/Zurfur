@@ -84,7 +84,7 @@ field of a struct.
 ## Namespace/using
 
 Unlike in C#, functions and variables may be at the namespace level, but
-they must be static or const.  Because of this, there is no need for
+they must be static, const, or extension methods.  Because of this, there is no need for
 a static class as a namespace will accomplish the same thing.
 TBD: Do we want to use the keyword module instead?  We'll use namespace
 for now since namespaces don't imply an opaque unit and can be

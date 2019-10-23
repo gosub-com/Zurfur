@@ -15,7 +15,7 @@ pub interface IEnumerable<out T>
 }
 
 pub interface ICollection<T>
-    implements IEnumerable<T>
+    : IEnumerable<T>
 {
     prop Count int { get; }
     prop IsReadOnly bool { set; }
@@ -27,7 +27,7 @@ pub interface ICollection<T>
 }
 
 pub interface IList<T>
-    implements ICollection<T>
+    : ICollection<T>
 {
     this[int index] T { get; set; }
     func Insert(int index, T item);
@@ -37,14 +37,14 @@ pub interface IList<T>
 
 pub struct KeyValuePair<TKey, TValue>
 {
-    construct(TKey key, TValue value) { todo() };
+    pub new(TKey key, TValue value) { todo() };
     pub prop Key TKey => todo();
     pub prop Value TValue => todo();
 }
 
 
 pub interface IDictionary<TKey, TValue> 
-    implements ICollection<KeyValuePair<TKey, TValue>>, 
+    : ICollection<KeyValuePair<TKey, TValue>>, 
                IEnumerable<KeyValuePair<TKey, TValue>>
 {
     this[key TKey] TValue { get; set; }
@@ -81,7 +81,7 @@ pub interface IGeneric<Q>
 }
 
 // Test generic class
-pub class MyGeneric<QQ> extends IGeneric<QQ>
+pub class MyGeneric<QQ> : IGeneric<QQ>
 {
     pub func IGeneric<QQ>::A<T>(QQ a) int { }
 }

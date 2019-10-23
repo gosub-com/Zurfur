@@ -33,16 +33,16 @@ pub struct bool
 /// int8 (-128..127)
 pub struct int8
 {
-    extern construct(from uint8)
-    extern construct(from int16)
-    extern construct(from uint16)
-    extern construct(from int32)
-    extern construct(from uint32)
-    extern construct(from int64)
-    extern construct(from uint64)
-    extern construct(from float32)
-    extern construct(from float64)
-    extern construct(from decimal)
+    extern new(from uint8)
+    extern new(from int16)
+    extern new(from uint16)
+    extern new(from int32)
+    extern new(from uint32)
+    extern new(from int64)
+    extern new(from uint64)
+    extern new(from float32)
+    extern new(from float64)
+    extern new(from decimal)
 
     const MaxValue int8 = 127	
     const MinValue int8 = -128
@@ -55,16 +55,16 @@ pub struct int8
 /// uint8 (0..255) same as byte
 pub struct uint8
 {
-    extern construct(from int8)
-    extern construct(from int16)
-    extern construct(from uint16)
-    extern construct(from int32)
-    extern construct(from uint32)
-    extern construct(from int64)
-    extern construct(from uint64)
-    extern construct(from float32)
-    extern construct(from float64)
-    extern construct(from decimal)
+    extern new(from int8)
+    extern new(from int16)
+    extern new(from uint16)
+    extern new(from int32)
+    extern new(from uint32)
+    extern new(from int64)
+    extern new(from uint64)
+    extern new(from float32)
+    extern new(from float64)
+    extern new(from decimal)
     
     const MaxValue uint8 = 255	
     const MinValue uint8 = 0
@@ -76,16 +76,16 @@ pub struct uint8
 /// int16 (-32768..32768)
 pub struct int16
 {
-    extern construct(from int8)
-    extern construct(from uint8)
-    extern construct(from uint16)
-    extern construct(from int32)
-    extern construct(from uint32)
-    extern construct(from int64)
-    extern construct(from uint64)
-    extern construct(from float32)
-    extern construct(from float64)
-    extern construct(from decimal)
+    extern new(from int8)
+    extern new(from uint8)
+    extern new(from uint16)
+    extern new(from int32)
+    extern new(from uint32)
+    extern new(from int64)
+    extern new(from uint64)
+    extern new(from float32)
+    extern new(from float64)
+    extern new(from decimal)
 
     const MaxValue int16 = 32767
     const MinValue int16 = -32768
@@ -98,16 +98,16 @@ pub struct int16
 /// uint16 (0..65535)
 pub struct uint16
 {
-    extern construct(from int8)
-    extern construct(from uint8)
-    extern construct(from int16)
-    extern construct(from int32)
-    extern construct(from uint32)
-    extern construct(from int64)
-    extern construct(from uint64)
-    extern construct(from float32)
-    extern construct(from float64)
-    extern construct(from decimal)
+    extern new(from int8)
+    extern new(from uint8)
+    extern new(from int16)
+    extern new(from int32)
+    extern new(from uint32)
+    extern new(from int64)
+    extern new(from uint64)
+    extern new(from float32)
+    extern new(from float64)
+    extern new(from decimal)
 
     const MaxValue uint16 = 65535	
     const MinValue uint16 = 0
@@ -119,16 +119,16 @@ pub struct uint16
 /// A 32 bit integer (same as int)
 pub struct int32
 {
-    extern construct(from int8)
-    extern construct(from uint8)
-    extern construct(from int16)
-    extern construct(from uint16)
-    extern construct(from uint32)
-    extern construct(from int64)
-    extern construct(from uint64)
-    extern construct(from float32)
-    extern construct(from float64)
-    extern construct(from decimal)
+    extern new(from int8)
+    extern new(from uint8)
+    extern new(from int16)
+    extern new(from uint16)
+    extern new(from uint32)
+    extern new(from int64)
+    extern new(from uint64)
+    extern new(from float32)
+    extern new(from float64)
+    extern new(from decimal)
 
     const MaxValue int32 = 2147483647	
     const MinValue int32 = -2147483648
@@ -159,16 +159,16 @@ pub struct int32
 /// 32 bit unsigned integer (same as uint)
 pub struct uint32
 {
-    extern construct(from int8)
-    extern construct(from uint8)
-    extern construct(from int16)
-    extern construct(from uint16)
-    extern construct(from int32)
-    extern construct(from int64)
-    extern construct(from uint64)
-    extern construct(from float32)
-    extern construct(from float64)
-    extern construct(from decimal)
+    extern new(from int8)
+    extern new(from uint8)
+    extern new(from int16)
+    extern new(from uint16)
+    extern new(from int32)
+    extern new(from int64)
+    extern new(from uint64)
+    extern new(from float32)
+    extern new(from float64)
+    extern new(from decimal)
 
     const MaxValue uint32 = (0)	
     const MinValue uint32 = 4294967295
@@ -199,16 +199,16 @@ pub struct uint32
 /// A 64 bit integer
 pub struct int64
 {
-    extern construct(from int8)
-    extern construct(from uint8)
-    extern construct(from int16)
-    extern construct(from uint16)
-    extern construct(from int32)
-    extern construct(from uint32)
-    extern construct(from uint64)
-    extern construct(from float32)
-    extern construct(from float64)
-    extern construct(from decimal)
+    extern new(from int8)
+    extern new(from uint8)
+    extern new(from int16)
+    extern new(from uint16)
+    extern new(from int32)
+    extern new(from uint32)
+    extern new(from uint64)
+    extern new(from float32)
+    extern new(from float64)
+    extern new(from decimal)
 
     const MaxValue int64 = 9223372036854775807	
     const MinValue int64 = -9223372036854775808
@@ -239,16 +239,16 @@ pub struct int64
 /// 64 bit unsigned integer
 pub struct uint64
 {
-    extern construct(from int8)
-    extern construct(from uint8)
-    extern construct(from int16)
-    extern construct(from uint16)
-    extern construct(from int32)
-    extern construct(from uint32)
-    extern construct(from int64)
-    extern construct(from float32)
-    extern construct(from float64)
-    extern construct(from decimal)
+    extern new(from int8)
+    extern new(from uint8)
+    extern new(from int16)
+    extern new(from uint16)
+    extern new(from int32)
+    extern new(from uint32)
+    extern new(from int64)
+    extern new(from float32)
+    extern new(from float64)
+    extern new(from decimal)
 
     const MaxValue uint64 = 0	
     const MinValue uint64 = 18446744073709551615
@@ -278,16 +278,16 @@ pub struct uint64
 
 pub struct float32
 {
-    extern construct(from int8)
-    extern construct(from uint8)
-    extern construct(from int16)
-    extern construct(from uint16)
-    extern construct(from int32)
-    extern construct(from uint32)
-    extern construct(from int64)
-    extern construct(from uint64)
-    extern construct(from float64)
-    extern construct(from decimal)
+    extern new(from int8)
+    extern new(from uint8)
+    extern new(from int16)
+    extern new(from uint16)
+    extern new(from int32)
+    extern new(from uint32)
+    extern new(from int64)
+    extern new(from uint64)
+    extern new(from float64)
+    extern new(from decimal)
 
     // Normal float32 comparisons (NAN==NAN is false)
     // TBD: Maybe we don't need funny NAN comparisons since we're starting fresh?
@@ -326,16 +326,16 @@ pub struct float32
 
 pub struct float64
 {
-    extern construct(from int8)
-    extern construct(from uint8)
-    extern construct(from int16)
-    extern construct(from uint16)
-    extern construct(from int32)
-    extern construct(from uint32)
-    extern construct(from int64)
-    extern construct(from uint64)
-    extern construct(from float32)
-    extern construct(from decimal)
+    extern new(from int8)
+    extern new(from uint8)
+    extern new(from int16)
+    extern new(from uint16)
+    extern new(from int32)
+    extern new(from uint32)
+    extern new(from int64)
+    extern new(from uint64)
+    extern new(from float32)
+    extern new(from decimal)
 
     // Normal float64 comparisons (NAN==NAN is false)
     // TBD: Maybe we don't need funny NAN comparisons since we're starting fresh?
@@ -375,16 +375,16 @@ pub struct float64
 /// exponents covering the range of double.
 pub struct decimal
 {
-    extern construct(from int8)
-    extern construct(from uint8)
-    extern construct(from int16)
-    extern construct(from uint16)
-    extern construct(from int32)
-    extern construct(from uint32)
-    extern construct(from int64)
-    extern construct(from uint64)
-    extern construct(from float32)
-    extern construct(from float64)
+    extern new(from int8)
+    extern new(from uint8)
+    extern new(from int16)
+    extern new(from uint16)
+    extern new(from int32)
+    extern new(from uint32)
+    extern new(from int64)
+    extern new(from uint64)
+    extern new(from float32)
+    extern new(from float64)
 
     const MaxValue decimal = 1E+1000M	
     const MinValue decimal = -1E+1000M

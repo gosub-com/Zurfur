@@ -48,11 +48,10 @@ namespace Gosub.Zurfur
         public string[] Comments;
         public Token[] Qualifiers;
         public Token Keyword; // class, struct, etc.
-        public SyntaxExpr BaseClass;
+        public SyntaxExpr []BaseClasses;
         public Token Name;
         public SyntaxExpr TypeParams;
         public SyntaxExpr Alias;
-        public SyntaxExpr[] Implements;
         public SyntaxConstraint []Constraints;
 
         public override string ToString()

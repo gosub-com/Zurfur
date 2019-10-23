@@ -32,6 +32,16 @@ namespace Gosub.Zurfur
         static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static extern abstract virtual override new");
         static WordSet sFuncOperatorQualifiers = new WordSet("pub public protected private internal unsafe extern");
 
+        static WordMap<int> sClassFuncFieldQualifiersOrder = new WordMap<int>()
+        {
+            { "pub", 1 }, { "public", 1 }, { "protected", 1 }, { "private", 1 }, { "internal", 1 },
+            { "unsafe", 2 }, { "extern", 3 }, { "static", 4 },  {"const", 4 },
+            { "sealed", 6 }, { "sealed1", 6 },
+            { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
+            { "volatile", 9 },
+            { "ref", 10}, { "ro", 11}, {"readonly", 11}
+        };
+
         ZurfParse mParser;
 
         public ZurfParseCheck(ZurfParse parser)
@@ -50,7 +60,7 @@ namespace Gosub.Zurfur
         {
             foreach (var aClass in unit.Classes)
             {
-                CheckPublicQualifier(aClass.ParentClass, aClass.Name, aClass.Qualifiers);
+                CheckQualifiers(aClass.ParentClass, aClass.Name, aClass.Qualifiers);
 
                 var keyword = aClass.Keyword;
                 var outerKeyword = aClass.ParentClass == null ? "" : aClass.ParentClass.Keyword;
@@ -78,7 +88,9 @@ namespace Gosub.Zurfur
 
             foreach (var func in unit.Funcs)
             {
-                CheckPublicQualifier(func.ParentClass, func.Name, func.Qualifiers);
+                CheckQualifiers(func.ParentClass, func.Name, func.Qualifiers);
+
+                CheckFuncBody(null, func.Statements);
 
                 var keyword = func.Keyword;
                 var outerKeyword = func.ParentClass == null ? "" : func.ParentClass.Keyword;
@@ -90,7 +102,10 @@ namespace Gosub.Zurfur
                     mParser.RejectToken(keyword, "Interface may not contain function body");
                 if (outerKeyword == "interface")
                     RejectQualifiers(func.Qualifiers, sInterfaceQualifiersAllowed, "This qualifier may not appear before a function defined inside an interface");
-                if (outerKeyword == "" && sGlobalFuncsRequiringStatic.Contains(keyword) && !HasQualifier(func.Qualifiers, sStaticQualifier))
+                if (outerKeyword == ""
+                        && sGlobalFuncsRequiringStatic.Contains(keyword)
+                        && !HasQualifier(func.Qualifiers, sStaticQualifier)
+                        && func.ClassName == null)
                     mParser.RejectToken(keyword, "Functions at the namespace level must be static");
                 if (outerKeyword == "" && sGlobalFuncsNotAllowed.Contains(keyword))
                     mParser.RejectToken(keyword, "Must not be defined at the namespace level");
@@ -112,7 +127,7 @@ namespace Gosub.Zurfur
 
             foreach (var field in unit.Fields)
             {
-                CheckPublicQualifier(field.ParentClass, field.Name, field.Qualifiers);
+                CheckQualifiers(field.ParentClass, field.Name, field.Qualifiers);
 
                 var outerKeyword = field.ParentClass == null ? "" : field.ParentClass.Keyword;
                 if (outerKeyword == "" && !HasQualifier(field.Qualifiers, sRequireGlobalFieldQualifiers))
@@ -124,7 +139,7 @@ namespace Gosub.Zurfur
             }
         }
 
-        void CheckPublicQualifier(SyntaxClass parentClass, Token token, Token[] qualifiers)
+        void CheckQualifiers(SyntaxClass parentClass, Token token, Token[] qualifiers)
         {
             if (token == null || token.Name == "" || qualifiers == null)
                 return;
@@ -132,8 +147,28 @@ namespace Gosub.Zurfur
             bool isInInterface = parentClass != null && parentClass.Keyword.Name == "interface";
             bool isConst = false;
             bool isPublic = false;
-            foreach (var qualifier in qualifiers)
+            int sortOrder = -1;
+            for (int i = 0; i < qualifiers.Length; i++)
             {
+                var qualifier = qualifiers[i];
+
+                // Verify no duplicates
+                for (int j = 0; j < i; j++)
+                {
+                    if (qualifiers[j].Name == qualifier.Name)
+                        mParser.RejectToken(qualifier, "Cannot have duplicate qualifiers");
+                }
+
+                // Sort order and no combining
+                if (sClassFuncFieldQualifiersOrder.TryGetValue(qualifier.Name, out var newSortOrder))
+                {
+                    if (newSortOrder == sortOrder)
+                        mParser.RejectToken(qualifier, "The '" + qualifier + "' qualifier cannot be combined with '" + qualifiers[i-1] + "'");
+                    if (newSortOrder < sortOrder)
+                        mParser.RejectToken(qualifier, "The '" + qualifier + "' qualifier must come before '" + qualifiers[i-1] + "'");
+                    sortOrder = newSortOrder;
+                }
+
                 if (isInInterface && sIllegalInterfaceQualifiers.Contains(qualifier))
                 {
                     mParser.RejectToken(qualifier, "An interface may not have this qualifier");
@@ -212,6 +247,70 @@ namespace Gosub.Zurfur
             }
         }
 
+        void CheckFuncBody(SyntaxExpr parent, SyntaxExpr expr)
+        {
+            if (expr == null)
+                return;
+            if (expr.Token == ")" && expr.Count != 0 && !CheckCastExpression(expr[0]))
+            {
+                mParser.RejectToken(expr.Token, "Cast has an illegal character in it.");
+                Grayout(expr[0]);
+                for (int i = 1; i < expr.Count; i++)
+                    CheckFuncBody(expr, expr[i]);
+            }
+            if (expr.Token == "()")
+            {
+                if (parent == null || parent.Token != "=>")
+                {
+                        mParser.RejectToken(expr.Token, expr.Count == 0
+                            ? "Empty expression not allowed unless followed by lambda '=>' token"
+                            : "Multi-parameter expression not allowed unless followed by lambda '=>' token");
+                        foreach (var e in expr)
+                            Grayout(e);
+                }
+            }
+            else
+            {
+                foreach (var e in expr)
+                    CheckFuncBody(expr, e);
+            }
+        }
+
+        bool CheckCastExpression(SyntaxExpr expr)
+        {
+            bool ok = true;
+            if (expr.Token.Type != eTokenType.Identifier
+                && expr.Token != ZurfParse.VIRTUAL_TOKEN_TYPE_ARG_LIST
+                && expr.Token != ZurfParse.PTR
+                && expr.Token != "]"
+                && expr.Token != ".")
+            {
+                var message = "Cast expression must be a type name, and may not contain '" + expr.Token + "'";
+                if (expr.Token == "<")
+                    message += ".  NOTE: '<' cannot be interpreted as a type argument list in this context";
+                if (expr.Token == "()")
+                    message = "Cast may not contain ',' separated expressions";
+                mParser.RejectToken(expr.Token, message);
+                ok = false;
+            }
+            foreach (var e in expr)
+                if (!CheckCastExpression(e))
+                    ok = false;
+            return ok;
+        }
+
+        void Grayout(SyntaxExpr expr)
+        {
+            expr.Token.Grayed = true;
+            var connectors = expr.Token.GetInfo<Token[]>();
+            if (connectors != null)
+                foreach (var t in connectors)
+                    t.Grayed = true;
+            foreach (var e in expr)
+                Grayout(e);
+        }
+
+
         public void ShowTypes(SyntaxUnit unit)
         {
             foreach (var aClass in unit.Classes)
@@ -228,7 +327,9 @@ namespace Gosub.Zurfur
         void ShowTypes(SyntaxClass aClass)
         {
             ShowTypes(aClass.Alias, true);
-            ShowTypes(aClass.BaseClass, true);
+            if (aClass.BaseClasses != null)
+                foreach (var baseClass in aClass.BaseClasses)
+                    ShowTypes(baseClass, true);
             aClass.Name.Type = eTokenType.TypeName;
             ShowTypes(aClass.TypeParams, true);
             if (aClass.Constraints != null)
@@ -240,9 +341,6 @@ namespace Gosub.Zurfur
                         foreach (var typeName in constraint.TypeNames)
                             ShowTypes(typeName, true);
                 }
-            if (aClass.Implements != null)
-                foreach (var imp in aClass.Implements)
-                    ShowTypes(imp, true);
         }
 
         void ShowTypes(SyntaxFunc func)
@@ -288,7 +386,9 @@ namespace Gosub.Zurfur
 
             foreach (var aClass in unit.Classes)
             {
-                ShowParseTree(aClass.BaseClass);
+                if (aClass.BaseClasses != null)
+                    foreach (var baseClass in aClass.BaseClasses)
+                        ShowParseTree(baseClass);
                 ShowParseTree(aClass.Alias);
             }
             foreach (var func in unit.Funcs)
@@ -319,6 +419,7 @@ namespace Gosub.Zurfur
                 ShowParseTree(e); // Subtrees without info token
             return expr;
         }
+
 
 
     }
