@@ -3,10 +3,30 @@ using system.gosub.p
 
 namespace Zurfur.Example
 
-pub func Example::Extension() { }
+pub class Example
+{
+	pub F1 str 								// String initialized to ""
+	pub F2 Array<int>; 						// Initialized to null
+	pub F3 List<str>({"Hello", "World"}) 	// Initialized list
+	pub F4 Map<str,int>({{"A",1},{"B",2}}) 	// Initialized map
+	pub func Func1(a int) float => F1 + a + " hi"
+}
+pub func Example::MyExtension() => Func1(10) // Extension method
+
+
+pub func Example::Extension() 
+{ 
+	for @a in 1..23
+	{
+		F(out @b, c)
+		@a+24 = 23 // TBD: Fix @ expression target
+		a + 55 = 23 // TBD: Fix 
+	}
+}
+
 
 // Test class
-pub class Example 
+pub class Example2
 { 
     // Todo List:
     //    .. operator doesn't need parameters at beginning or end
@@ -60,14 +80,12 @@ pub class Example
     // Function
     func fun1(a int) float => f1 + f2 + a
     func func1(a int) { }
-    func func2(a ref float32) {}
-    func func3(a ref string) {}
-    func func4(a Array) {}
+    func func2(a out string) bool {}
+    func func4(a ref MyStruct) {}
     func func5(a [][]int) {} 
     func func5(a Array<Array<int>>) {}
-    func func6(a ref ^^int) {}
     func func7(a List<int>) { }
-    func func8(a ref List<List<int>>) { }
+    func func8(a out List<List<int>>) { }
     func func10(a Map<string,List<int>>) { }
     
     pub func Sort<T>(greaterThan func(a T, b T) bool) { }
@@ -76,8 +94,9 @@ pub class Example
 
     pub func M<A,B>(a A, b B, c List<int>) List<int> {}
     
-    func func8(a ref List<List<int>>) { }
-    func func8(a ref List<int,x,y,z>) { }
+    func func8(a out List<List<int>>) { }
+    func func8(a out MyList<int,x,y,z>){ }
+    
     pub func Main(args Array<string>)
     {
         // Function calls vs parameter lists
@@ -113,7 +132,13 @@ pub class Example
         list.Sort((a, b) => a < b)
         list.Sort((a, b) => { return a < b })
 
-        // Switch expression
+		// In operator
+		if myString in myMap || myIn in 1..23
+		{
+			DoSomething();
+		}
+
+        // Switch expressions
         @num = switch myConstant { 23 => a, 27 => b, default => 0}
 
         // Switch statement
@@ -126,23 +151,36 @@ pub class Example
             DoIt2()
         default: doit3();
 		}
-		
-		// For statement
-     	for a in 1..23
-    	{
-    	}
-        
+		        
     }
 }
+
+pub interface MyInterfaceTest
+{
+    func A() int;
+    pub func B() int => A() + 1;
+    protected func C() int;
+    pub struct Astruct { pub int a; };
+    pub enum Aenum { a; b; c};
+    pub class Aclass { pub int a;  };
+}
+
+pub class MyClass1 : MyInterfaceTest
+{
+    pub func A() int => 3;
+    pub func MyInterfaceTest::C() int => 3;
+
+}
+
 
 pub static func Sort<T>(s Span<T>, lessThan func(a T, b T) bool)
 {
     // Simple selection sort
-    for @i in s.Length-1
+    for @i in s.Count-1
     {
         @lowElem = s[i]
         @lowIndex = i
-        for @j in i+1..s.Length
+        for @j in i+1..s.Count
         {
             if lessThan(s[j], lowElem)
             {
@@ -159,15 +197,15 @@ pub static func Sort<T>(s Span<T>, lessThan func(a T, b T) bool)
 }
 
 
-pub struct ro string
+pub struct string
 {
-    ro str Array<byte>
+    str Array<byte>
 
-    new() { str = Array<byte>.Empty }
-    new(s string) { todo() }
-    new(s Span<byte>) { todo() }
-    pub func Slice(start int, length int) RoSpan<byte> { todo() }
-    pub func Slice(start int) RoSpan<byte> { todo() }
+    pub new() { str = Array<byte>.Empty }
+    pub new(s string) { todo() }
+    pub new(s RoSpan<byte>) { todo() }
+    pub this[index int] byte => todo()
+    pub this[range Range] RoSpan<byte> => todo() // Slice
     
     pub operator+(s1 string, s2 string) string { todo() }   
     pub operator+(s1 RoSpan<byte>, s2 string) string { todo() }
@@ -175,44 +213,25 @@ pub struct ro string
     // TBD: Implicit conversion to and from RoSpan
 }
 
-pub struct ref ro Span<T>
+
+pub ref struct Span<T>
 {
-    ro data ref T
-    pub ro Length int
+    data ref T
+    pub Count int
     pub this[index int] ref T => todo()
-    pub func Slice(start int, length int) Span<T> { todo() }
-    // TBD: implicit conversion to RoSpan
+    pub this[index Range] Span<T> => todo(); // Slice
+    pub prop Ro Span<T> => todo() // Covert to RoSpan (TBD: Implicit)
 }
 
-pub struct ref ro RoSpan<T>
+pub ref struct RoSpan<T>
 {
-    ro data ref T
-    
-    pub ro Length int
-    pub this[index int] ro ref T => todo()
-    pub func Slice(start int, length int) RoSpan<T> { todo() }
+    data ref T
+    pub Count int
+    pub this[index int] T => todo()
+    pub this[index Range] RoSpan<T> => todo(); // Slice
+    // TBD: implicit conversion to RoSpan?
 }
 
-pub struct ref ro Memory<T>
-{
-    ro data object
-    ro offset xint
-    
-    pub ro Length int
-    pub this[index int] ref T => todo()
-    pub func Slice(start int, length int) Memory<T> { todo() }
-    // TBD: implicit conversion to RoSpan
-}
-
-pub struct ref ro RoMemory<T>
-{
-    ro data object
-    ro offset xint
-    
-    pub ro Length int
-    pub this[index int] ro ref T => todo()
-    pub func Slice(start int, length int) RoMemory<T> { todo() }
-}
 
 // All variable sized objects must inherit from this class, must be sealed, and
 // must call AllocateObject first thing in the constructor.  For efficiency,
@@ -220,10 +239,10 @@ pub struct ref ro RoMemory<T>
 // The inheriting class must be sealed (that's what sealed1 means)
 pub unsafe sealed1 class VariableSizedObject<T>
 {
-    pub ro Length int
+    pub ro Count int
 
     // Must be called first thing from the constuctor, never called again
-    protected unsafe static func AllocateObject(int length) { todo() }
+    protected unsafe static func AllocateObject(count int) { todo() }
 
     // Return a pointer to the Array
     // { return (T^)((^void)this + sizeof(this))}
@@ -232,27 +251,51 @@ pub unsafe sealed1 class VariableSizedObject<T>
 
 
 // Array of constant size
-pub sealed class Array<T> : VariableSizedObject<T>
+pub sealed class Array<T> : VariableSizedObject<T>, IArray<T>
 {
     const MaxSize int = int.MaxInt/2
     pub static ro Empty Array<T>()
 
-    new(length int) { todo }
+    new(count int) => todo()
+    new(items ICollection<T>) => todo()
+    
     pub this[index int] ref T => todo()
-    pub func Slice(start int, length int) Span<T> { todo }
-    pub func RoSlice(start int, length int) RoSpan<T> { todo }
+    pub this[range Range] Span<T> => todo()
 }
 
 // Note that the List class has a ref return indexer, just like Array
-pub class List<T>
+pub class List<T> : IList<T>
 {
-    new(capacity int) { todo() }
+	new() => todo()
+    new(capacity int) => todo()
+    new(items ICollection<T>) => todo()
+    
     pub this[index int] ref T => todo()
+    pub this[range Range] Span<T> => todo()
+    pub func Clear() => todo()
+    pub func Insert(index int, item T) => todo()
+    pub func Insert(index int, collection ICollection<T>) => todo()
+    pub func Remove(range Range) => todo()
+    pub func Remove(index int) => todo()
+    
 }
 
-pub class Map<TKey, TValue>
+pub class Map<TKey, TValue> : IMap<TKey, TValue>
 {
-    new(capacity int) { todo() }
+    new() => todo()
+    new(capacity int) => todo()
+    new(keyValues ICollection<KeyValuePair<TKey, TValue>>) => todo()
+    
+    pub this[key TKey] TValue { get => todo() set => todo() }
+	pub operator in(a TKey) bool => todo()
+
+    pub func Clear() => todo()    
+    pub func Get(key TKey, defaultValue TValue) TValue => todo()
+    pub func TryGet(key TKey, value out TValue) bool => todo()
+    pub func Add(keyValues ICollection<KeyValue<TKey, TValue>>) => todo()    
+    pub func Remove(TKey key) bool => todo()
+    pub prop Keys ICollection<TKey> { get => todo() }
+    pub prop Values ICollection<TValue> { get => todo() }
 }
 
 // The matrix class is used to implement square 2d arrays
@@ -265,14 +308,15 @@ pub sealed class Matrix2d<t> : VariableSizedObject<T>
 // Represents a buffer in un-managed memory.  This class can create and 
 // own the memory, or it can be attached to an already existing buffer.
 // The GC knows this class and deletes the memory when necessary.
-pub sealed class UnmanagedMemory<T> : UnmanagedHande where T is IBlittableStruct
+pub sealed class UnmanagedMemory<T> : UnmanagedHande 
+				where T : IBlittableStruct
 {
     pub ro Memory ^void
     pub ro Capacity int
     pub ro OwnedByGc bool
-    length int
+    count int
     
-    pub prop Length int
+    pub prop Count int
     {
         get { todo() }
         set { todo() }
@@ -281,8 +325,8 @@ pub sealed class UnmanagedMemory<T> : UnmanagedHande where T is IBlittableStruct
     // Create the buffer, the GC owns it and deletes it when there are no more
     // references to this object.  Be careful that unmanaged code doesn't
     // hold a reference to the memory beyond the lifetime of this object
-    new(length int) { todo }
-    new(length int, capacity int) { todo }
+    new(count int) { todo() }
+    new(count int, capacity int) { todo() }
 
     // Attach this object to a buffer allocated by unmanaged code.  
     // Lenght and Capacity are set automatically. Be sure that
@@ -296,8 +340,8 @@ pub sealed class UnmanagedMemory<T> : UnmanagedHande where T is IBlittableStruct
 // This is the base for all objects, struct and class alike.
 pub class object
 {
-    pub virtual func GetType() { todo }
-    pub virtual func ToString() { todo }
+    pub virtual func GetType() { todo() }
+    pub virtual func ToString() { todo() }
 }
 
 // This is the base for all struct objects.
@@ -314,7 +358,7 @@ pub class ClassObject
     // The only member
     protected unsafe ro VT ^void
 
-    pub override func GetType() { todo }
+    pub override func GetType() { todo() }
 }
 
 // Base class for all things that need to notify when they are garbage collected

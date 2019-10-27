@@ -15,22 +15,29 @@ namespace Gosub.Zurfur
         // Debug the parse tree
         bool mShowParseTree = true;
 
+        public Token LastToken;
+
         // TBD: Still haven't decieded if `Map`, `Array`, and `List` should be lower case
-        static WordSet sNoPubWarningKeywords = new WordSet("this object string void bool byte xint xuint int uint int8 uint8 int16 uint16 int32 uint32 int64 uint64 float32 float64 decimal");
-        static WordSet sIllegalInterfaceQualifiers = new WordSet("pub private internal protected");
+        static WordSet sNoPubWarningKeywords = new WordSet("this object string void bool byte xint xuint int uint int8 uint8 int16 uint16 int32 uint32 int64 uint64 float32 float64 decimal in");
         static WordSet sRequireGlobalFieldQualifiers = new WordSet("static const");
-        static WordSet sInterfaceQualifiersAllowed = new WordSet("static");
+        static WordSet sFuncInInterfaceQualifiersAllowedEmpty = new WordSet("static pub protected");
+        static WordSet sFuncInInterfaceQualifiersAllowedNotEmpty = new WordSet("static pub private protected");
         static WordSet sGlobalFuncsRequiringStatic = new WordSet("func afunc construct destruct");
         static WordSet sStaticQualifier = new WordSet("static");
         static WordSet sGlobalFuncsNotAllowed = new WordSet("prop this operator");
 
         static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal");
         static WordSet sClassQualifiers = new WordSet("pub public protected private internal unsafe sealed sealed1 abstract");
-        static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe ro ref");
+        static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe ref mut");
         static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
-        static WordSet sFieldQualifiers = new WordSet("pub public protected private internal unsafe static volatile ro const");
+        static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static volatile mut const");
+        static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static volatile ro const");
+        static WordSet sFieldInEnumQualifiers = new WordSet("");
         static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static extern abstract virtual override new");
         static WordSet sFuncOperatorQualifiers = new WordSet("pub public protected private internal unsafe extern");
+
+        static WordSet sStatements = new WordSet("if return while for switch case default throw "
+                                                     + "= ( += -= *= /= %= &= |= ~= <<= >>=");
 
         static WordMap<int> sClassFuncFieldQualifiersOrder = new WordMap<int>()
         {
@@ -39,7 +46,8 @@ namespace Gosub.Zurfur
             { "sealed", 6 }, { "sealed1", 6 },
             { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
             { "volatile", 9 },
-            { "ref", 10}, { "ro", 11}, {"readonly", 11}
+            { "ref", 10},
+            { "mut", 11 }, { "ro", 11}, {"readonly", 11}
         };
 
         ZurfParse mParser;
@@ -51,23 +59,28 @@ namespace Gosub.Zurfur
 
         public void Check(SyntaxUnit unit)
         {
-            CheckParseTree(unit);            
+            LastToken = null;
+            CheckParseTree(unit);
+            LastToken = null;
             ShowTypes(unit); // TBD: This is temporary until type analysis is complete
+            LastToken = null;
             ShowParseTree(unit);
         }
 
         void CheckParseTree(SyntaxUnit unit)
         {
+            LastToken = null;
             foreach (var aClass in unit.Classes)
             {
+                LastToken = aClass.Keyword;
                 CheckQualifiers(aClass.ParentClass, aClass.Name, aClass.Qualifiers);
 
                 var keyword = aClass.Keyword;
                 var outerKeyword = aClass.ParentClass == null ? "" : aClass.ParentClass.Keyword;
                 if (aClass.Namespace == null && outerKeyword == "")
                     mParser.RejectToken(keyword, "The namespace must be defined before the " + keyword);
-                if (outerKeyword != "" && (outerKeyword == "interface" || outerKeyword == "enum"))
-                    mParser.RejectToken(keyword, "Classes, structs, enums, and interfaces may not be nested inside an interface or enum");
+                if (outerKeyword != "" && outerKeyword == "enum")
+                    mParser.RejectToken(keyword, "Classes, structs, enums, and interfaces may not be nested inside an enum");
 
                 switch (keyword)
                 {
@@ -88,6 +101,8 @@ namespace Gosub.Zurfur
 
             foreach (var func in unit.Funcs)
             {
+                LastToken = func.Keyword;
+
                 CheckQualifiers(func.ParentClass, func.Name, func.Qualifiers);
 
                 CheckFuncBody(null, func.Statements);
@@ -98,10 +113,14 @@ namespace Gosub.Zurfur
                     mParser.RejectToken(keyword, "The namespace must be defined before method");
                 if (func.Statements == null && outerKeyword != "interface" && keyword != "prop" && keyword != "get" && keyword != "set")
                     RejectTokenIfNotQualified(keyword, func.Qualifiers, "extern", "Function without a body must have the'extern' qualifier");
-                if (func.Statements != null && outerKeyword == "interface")
-                    mParser.RejectToken(keyword, "Interface may not contain function body");
                 if (outerKeyword == "interface")
-                    RejectQualifiers(func.Qualifiers, sInterfaceQualifiersAllowed, "This qualifier may not appear before a function defined inside an interface");
+                {
+                    if (func.Statements == null)
+                        RejectQualifiers(func.Qualifiers, sFuncInInterfaceQualifiersAllowedEmpty, "This qualifier may not appear before an empty function defined inside an interface");
+                    else
+                        RejectQualifiers(func.Qualifiers, sFuncInInterfaceQualifiersAllowedNotEmpty, "This qualifier may not appear before an empty function defined inside an interface");
+
+                }
                 if (outerKeyword == ""
                         && sGlobalFuncsRequiringStatic.Contains(keyword)
                         && !HasQualifier(func.Qualifiers, sStaticQualifier)
@@ -127,15 +146,34 @@ namespace Gosub.Zurfur
 
             foreach (var field in unit.Fields)
             {
+                LastToken = field.Name;
+
                 CheckQualifiers(field.ParentClass, field.Name, field.Qualifiers);
 
                 var outerKeyword = field.ParentClass == null ? "" : field.ParentClass.Keyword;
-                if (outerKeyword == "" && !HasQualifier(field.Qualifiers, sRequireGlobalFieldQualifiers))
-                    mParser.RejectToken(field.Name, "Fields at the namespace level must be static or const");
-                if (outerKeyword == "interface")
-                    mParser.RejectToken(field.Name, "Fields are not allowed inside an interface");
 
-                RejectQualifiers(field.Qualifiers, sFieldQualifiers, "This qualifier does not apply to a field");
+                var quals = outerKeyword == "class" ? sFieldInClassQualifiers : sFieldInStructQualifiers;
+                if (outerKeyword == "enum")
+                    quals = sFieldInEnumQualifiers;
+                switch (outerKeyword)
+                {
+                    case "":
+                        if (!HasQualifier(field.Qualifiers, sRequireGlobalFieldQualifiers))
+                            mParser.RejectToken(field.Name, "Fields at the namespace level must be static or const");
+                        break;
+                    case "interface":
+                        mParser.RejectToken(field.Name, "Fields are not allowed inside an interface");
+                        break;
+                    case "class":
+                        RejectQualifiers(field.Qualifiers, sFieldInClassQualifiers, "Does not apply to a field in a class");
+                        break;
+                    case "struct":
+                        RejectQualifiers(field.Qualifiers, sFieldInStructQualifiers, "Does not apply to a field in a struct");
+                        break;
+                    case "enum":
+                        RejectQualifiers(field.Qualifiers, sFieldInEnumQualifiers, "Does not apply to a field in an enum");
+                        break;
+                }
             }
         }
 
@@ -167,11 +205,6 @@ namespace Gosub.Zurfur
                     if (newSortOrder < sortOrder)
                         mParser.RejectToken(qualifier, "The '" + qualifier + "' qualifier must come before '" + qualifiers[i-1] + "'");
                     sortOrder = newSortOrder;
-                }
-
-                if (isInInterface && sIllegalInterfaceQualifiers.Contains(qualifier))
-                {
-                    mParser.RejectToken(qualifier, "An interface may not have this qualifier");
                 }
 
                 switch (qualifier.Name)
@@ -251,28 +284,67 @@ namespace Gosub.Zurfur
         {
             if (expr == null)
                 return;
-            if (expr.Token == ")" && expr.Count != 0 && !CheckCastExpression(expr[0]))
+
+            LastToken = expr.Token;
+            switch (expr.Token)
             {
-                mParser.RejectToken(expr.Token, "Cast has an illegal character in it.");
-                Grayout(expr[0]);
-                for (int i = 1; i < expr.Count; i++)
-                    CheckFuncBody(expr, expr[i]);
-            }
-            if (expr.Token == "()")
-            {
-                if (parent == null || parent.Token != "=>")
-                {
+                case "__pcfail":
+                    throw new Exception("Parse check fail test");
+
+                case "{": // Statement
+                    foreach (var e in expr)
+                    {
+                        if (!sStatements.Contains(e.Token))
+                            mParser.RejectToken(e.Token, "Only assignment and call can be used as statements");
+                        CheckFuncBody(expr, e);
+                    }
+                    break;
+
+                case "switch":
+                    // Switch expression (not statement)
+                    if (parent != null && parent.Token != "{" && expr.Count >= 2)
+                    {
+                        if (expr[1].Count == 0)
+                            mParser.RejectToken(expr[1].Token, "Switch expression list may not be empty");                       
+                        // All cases should have "=>"
+                        foreach (var e in expr[1])
+                            if (e.Token != "=>")
+                                mParser.RejectToken(e.Token, "Expecting switch expression to contain '=>'");
+                    }
+
+                    foreach (var e in expr)
+                        CheckFuncBody(expr, e);
+                    break;
+
+                case ")": // Cast
+                    if (expr.Count != 0 && !CheckCastExpression(expr[0]))
+                    {
+                        mParser.RejectToken(expr.Token, "Cast has an illegal character in it.");
+                        Grayout(expr[0]);
+                    }
+                    for (int i = 1; i < expr.Count; i++)
+                        CheckFuncBody(expr, expr[i]);
+                    break;
+
+                case "()": // Lambda parameters
+                    if (parent == null || parent.Token != "=>")
+                    {
                         mParser.RejectToken(expr.Token, expr.Count == 0
                             ? "Empty expression not allowed unless followed by lambda '=>' token"
                             : "Multi-parameter expression not allowed unless followed by lambda '=>' token");
                         foreach (var e in expr)
                             Grayout(e);
-                }
-            }
-            else
-            {
-                foreach (var e in expr)
-                    CheckFuncBody(expr, e);
+                    }
+                    break;
+
+                case "=>": // Lambda
+                    //if (expr[])
+                    break;
+
+                default:
+                    foreach (var e in expr)
+                        CheckFuncBody(expr, e);
+                    break;
             }
         }
 
@@ -310,7 +382,6 @@ namespace Gosub.Zurfur
                 Grayout(e);
         }
 
-
         public void ShowTypes(SyntaxUnit unit)
         {
             foreach (var aClass in unit.Classes)
@@ -332,15 +403,21 @@ namespace Gosub.Zurfur
                     ShowTypes(baseClass, true);
             aClass.Name.Type = eTokenType.TypeName;
             ShowTypes(aClass.TypeParams, true);
-            if (aClass.Constraints != null)
-                foreach (var constraint in aClass.Constraints)
-                {
-                    if (constraint.GenericTypeName != null)
-                        constraint.GenericTypeName.Type = eTokenType.TypeName;
-                    if (constraint.TypeNames != null)
-                        foreach (var typeName in constraint.TypeNames)
-                            ShowTypes(typeName, true);
-                }
+            ShowTypes(aClass.Constraints);
+        }
+
+        void ShowTypes(SyntaxConstraint []constraints)
+        {
+            if (constraints == null)
+                return;
+            foreach (var constraint in constraints)
+            {
+                if (constraint.GenericTypeName != null)
+                    constraint.GenericTypeName.Type = eTokenType.TypeName;
+                if (constraint.TypeNames != null)
+                    foreach (var typeName in constraint.TypeNames)
+                        ShowTypes(typeName, true);
+            }
         }
 
         void ShowTypes(SyntaxFunc func)
@@ -349,6 +426,7 @@ namespace Gosub.Zurfur
             ShowTypes(func.TypeParams, true);
             ShowTypes(func.ReturnType, true);
             ShowTypes(func.Statements, false);
+            ShowTypes(func.Constraints);
             if (func.Params != null)
                 foreach (var param in func.Params)
                     if (param.Count >= 1)

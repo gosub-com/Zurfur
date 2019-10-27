@@ -96,6 +96,7 @@ namespace Gosub.Zurfur
         public SyntaxExpr TypeParams;
         public SyntaxExpr Params;
         public SyntaxExpr ReturnType;
+        public SyntaxConstraint[] Constraints;
         public SyntaxExpr Statements;
 
         public override string ToString()

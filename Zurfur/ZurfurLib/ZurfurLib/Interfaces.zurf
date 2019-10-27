@@ -4,9 +4,8 @@ namespace Zurfur.Collections;
 
 pub interface IEnumerator<out T>
 {
-    // NOTE: Do not need to implement Reset() or Dispose()
-    func MoveNext();
-    prop Current T { get; }
+    func MoveNext() bool
+    prop Current T { get }
 }
 
 pub interface IEnumerable<out T>
@@ -17,45 +16,52 @@ pub interface IEnumerable<out T>
 pub interface ICollection<T>
     : IEnumerable<T>
 {
-    prop Count int { get; }
-    prop IsReadOnly bool { set; }
-    func Add(item T);
-    func Clear();
-    func Contains(item T) bool;
-    func CopyTo(array []T, arrayIndex int);
-    func Remove(item T) bool;
+    prop Count int { get }
+    prop IsReadOnly bool { set }
+}
+
+pub interface IArray<T> 
+    : ICollection<T>
+{
+    this[index int] ref T { get }
+    func Fill(f T);
 }
 
 pub interface IList<T>
-    : ICollection<T>
+    : IArray<T>
 {
-    this[int index] T { get; set; }
-    func Insert(int index, T item);
-    func RemoveAt(int index);
-    func IndexOf(T item) int;
+    this[index int] ref T { get }
+    func Clear();
+    func Insert(index int, item T);
+    func Insert(index int, collection ICollection<T>)
+    func Remove(range Range);
+    func Remove(index int);
+
+    pub func Add(item T) { Insert(Count, item) }
+    pub func Add(items collection<T>) { Insert(Count, items) }
 }
 
 pub struct KeyValuePair<TKey, TValue>
 {
-    pub new(TKey key, TValue value) { todo() };
-    pub prop Key TKey => todo();
-    pub prop Value TValue => todo();
+    pub new(key TKey, value TValue) { Key = key; Value = value }
+    pub Key TKey;
+    pub Value TValue;
 }
 
 
-pub interface IDictionary<TKey, TValue> 
-    : ICollection<KeyValuePair<TKey, TValue>>, 
-               IEnumerable<KeyValuePair<TKey, TValue>>
+pub interface IMap<TKey, TValue> 
+    : ICollection<KeyValuePair<TKey, TValue>>
 {
-    this[key TKey] TValue { get; set; }
-    this[key TKey, defaultValue TValue] TValue { get; }
-    
-    prop Keys ICollection<TKey> { get; }
-    prop Values ICollection<TValue> { get; }
-    func Add(key TKey, value TValue);
-    func ContainsKey(TKey key) bool;
-    func Remove(TKey key) bool;
-    func TryGet(key TKey, value out TValue) bool;
+    this[key TKey] TValue { get set }
+	operator in(a TKey) bool
+
+    func Clear()
+    func Get(key TKey, defaultValue TValue) TValue;
+    func TryGet(key TKey, value out TValue) bool    
+    func Add(keyValuesvs ICollection<KeyValue<TKey, TValue>>)
+    func Remove(TKey key) bool
+    prop Keys ICollection<TKey> { get }
+    prop Values ICollection<TValue> { get }
 }
 
 /// Implement IHashable on any object that can be stored in a Map.

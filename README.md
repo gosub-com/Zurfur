@@ -12,10 +12,13 @@ spelled **_ZurFUR_** because out cat has fur.
 * Ahead of time compile to WebAssembly with tiny run-time library
 * Stretch goal: Rewrite compiler and IDE in Zurfur on Node.js
 
+![](Doc/IDE.png)
+
 Zurfur is similar to C#, but borrows syntax and design concepts from
 Golang.  Here are some differences between Zurfur and C#:
 
-* Strings are UTF8 byte arrays
+* Strings are UTF8 byte arrays initialized to "" by default
+* Structs are immutable by default
 * Type declaration syntax and operator precedence is from Golang
 * Built from the ground up using `ref` returns, so `List` acts exactly like `Array`
 * Interfaces connect to any object with matching signature (just like Golang)
@@ -23,10 +26,9 @@ Golang.  Here are some differences between Zurfur and C#:
 
 ## Overview
 
-I will write an architectural overview document, I promise.  But for now,
-read this to get an idea of how it's put together: https://github.com/gosub-com/Bit
+Read about the lexer, editor, and parser here: https://github.com/gosub-com/Bit
 
-This isn't documentation, so much as thoughts about where to go:
+Thoughts about where to go and how to do it:
 
 * [Async](Doc/Async.md)
 * [Class Objects](Doc/ClassObjects.md)
@@ -36,33 +38,47 @@ This isn't documentation, so much as thoughts about where to go:
 * [Simple Intermediate Language (SIL)](Doc/Sil.md)
 * [Stack Frames](Doc/StackFrames.md)
 
+## Hello world
+
+    pub static func main()
+    {
+	    Console.Log("Hello World")
+    }
+
+Functions are declared with the `func` keyword.
+
 ## Operator Precedence
 
     Primary: . () [] @ (T)x
     Unary: + - ! ~ & ^
-    Exponentiation: **
     Multiplication and bits: * / % << >> & 
     Add and bits: + - | ~
     Range: .. ::
-    Comparison: == != < <= > >= === !==
+    Comparison: == != < <= > >= === !== in
     Conditional: &&
     Conditional: ||
     Ternary: a ? b : c
     Lambda: =>
-    Assignment Statement: = += -= *= /= %= &= |= ~= <<= >>= 
+    Assignment Statements: = += -= *= /= %= &= |= ~= <<= >>= 
     Comma: ,
 
 The `@` operator is the same as using `var` in front of a variable in C#.
 
+TBD: The `*` operator is only for multiplication.   The `^` operator is
+only for dereferencing pointers.  The `~` operator is used for both
+unary complement and binary xor.  These changes were made so the parser can
+insert invisible `;`'s on lines that don't begin with a binary operator. 
+
+The `->` operator is not used.  Pointers are dereferenced by the `.` operator,
+as if they were regular references.  TBD: Change lambda from `=>` to `->`?
+
 Operator `==` does not default to object comparison, and only works when it
 is defined for the given type.  Use `===` for object comparison.  Comparison
 operators are not overloadable, however you can implement just one function,
-`static func Compare(other MyType) int` to get all six relational operators.
-Or, if you only care about equality, implement `Equals` to get `==` and
-`!=` operators.
+`static func Compare(a myType, b myType) int` to get all six relational operators.
+Or, if you only care about equality, implement `static func Equals(a myType, b myType) bool`
+to get `==` and `!=` operators.
 
-The `->` operator is not used.  Pointers are dereferenced by the `.` operator,
-just like a reference.  The unaray `^` operator is the same as unary `*` in C.
 
 ## Basic types
 
@@ -71,7 +87,10 @@ just like a reference.  The unaray `^` operator is the same as unary `*` in C.
 
 `byte`, `int`, and `uint` are aliases for `uint8`, `int32`, and `uint32`.
 `string` is an immutable array of UTF8 encoded bytes.  `xint` and `xuint` are
-extended integer types, which could be 32 or 64 bits depending on run-time architecture.
+extended integer types, which could be 32 or 64 bits depending on run-time
+architecture.
+
+TBD: Lower case `array`, `list`, and `map`?  `span`, `roSpan`?
 
 `Array<type>` is identical to an array.  Type definitions like `[]int` are
 shorthand for `Array<int>`.
@@ -83,18 +102,37 @@ field of a struct.
 
 ## Namespace/using
 
-Unlike in C#, functions and variables may be at the namespace level, but
-they must be static, const, or extension methods.  Because of this, there is no need for
-a static class as a namespace will accomplish the same thing.
-TBD: Do we want to use the keyword module instead?  We'll use namespace
-for now since namespaces don't imply an opaque unit and can be
-stiched together from files located anywhere.
-
-`using Zurur.Math` would dump the intrinsic math functions, `Cos`,
-`Sin`, etc. into the global symbol table.  If you want to froce them to be
+Similar to C# namespaces, but a little more like modules since
+static functions, variables, constants, and extension methods may be declared
+at the namespace level.  `using Zurur.Math` imports the intrinsic math functions,
+`Cos`, `Sin`, etc. into the global symbol table.  If you want to froce them to be
 prefixed with `Math.`, it can be done with `using Math=Zurfur.Math`.
 
-## Casting
+TBD: Do we want to use the keyword `module` and `import` instead?  We'll
+keep `namespace` for now since a module may contain different namespaces.
+
+## Classes
+
+A class is a heap only object, pretty much the same as in C#.  Field
+definitions are `field` followed by `type`, just like in go lang:
+
+    pub class Example
+    {
+	    pub F1 string                             // F1 is a string initialized to ""
+	    pub F2 Array<int>;                        // F2 is an array of int, Initialized to null
+	    pub F3 List<string>({"Hello", "World"})   // F3 is an initialized list
+	    pub F4 Map<string,int>({{"A",1},{"B",2}}) // F4 is an initialized map
+	    pub func Func1(a int) float => F1 + a + " hi"  // Func1 is a member function
+    }
+
+Extension methods are defined outside the class and may be placed directly in
+the namespace.  An extension method of `example` looks like this:
+
+    pub func Example::MyExtension() => Func1(10)
+
+TBD: Use `fn` instead of `func`?
+
+## Cast
 
 Casting is used much less than in C# because a cast is not used to covert
 struct types.  A cast such as `(int)myFloat` should be written as
@@ -108,6 +146,10 @@ parenthisis `(`, it's a cast.  Otherwise, it is not.  For example,
 `(a+b)c` is always an invalid cast.  `(a)*b` is never a cast.  If you
 need to cast a dereferenced pointer, an extra parenthisis is required
 as in `(a)(*b)`.
+
+
+
+
 
 ## Open Questions
 

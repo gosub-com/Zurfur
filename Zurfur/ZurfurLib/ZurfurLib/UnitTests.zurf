@@ -1,0 +1,6 @@
+﻿namespace Zurfur;
+
+static func test_HelloWorld()
+{
+	Console.Log("Hello World, 2+2=" + 4);
+}
