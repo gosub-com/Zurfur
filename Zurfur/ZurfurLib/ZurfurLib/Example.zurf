@@ -5,14 +5,36 @@ namespace Zurfur.Example
 
 pub class Example
 {
-	pub F1 str 								// String initialized to ""
-	pub F2 Array<int>; 						// Initialized to null
-	pub F3 List<str>({"Hello", "World"}) 	// Initialized list
-	pub F4 Map<str,int>({{"A",1},{"B",2}}) 	// Initialized map
-	pub func Func1(a int) float => F1 + a + " hi"
+    F1 string                       // Private string initialized to ""
+    pub F2 Array<int>               // Array of int, initialized to null
+    pub F3 Array<int>(23)           // Array, length 23 integers (all 0)
+    pub F4 Array<int>({1,2,3})      // Array intialized with 1,2,3
+    pub F5 List<string>({"Hello", "World"})     // Initialized list
+    pub F6 Map<string,int>({{"A",1},{"B",2}})   // Initialized map
+    pub ro F7 string("Hello world")             // Initialized read only string
+    pub func Func1(a int) float => F1 + " hi"   // Member function
+    pub prop Prop1 string => F1                 // Property returning F1
 }
 pub func Example::MyExtension() => Func1(10) // Extension method
 
+
+pub enum MyEnum
+{
+    A           // A is 0
+    B; C        // B is 1, C is 2
+    D = 32      // D is 32
+    E			// E is 33
+    
+    // Enumerations can override ToString
+    override func ToString() => MyConvertToTranslatedName()
+}
+
+pub struct MyPoint
+{
+	pub X int
+	pub Y int
+	pub override func ToString() => "(" + X + "," + Y + ")"
+}
 
 pub func Example::Extension() 
 { 

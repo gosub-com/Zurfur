@@ -27,8 +27,8 @@ namespace Gosub.Zurfur
         Lexer				mLexer;			// Lexer to be paresed
         Lexer.Enumerator	mLexerEnum;		// Enumerator for the Lexer
         string				mTokenName="*"; // Skipped by first accept
-        Token				mToken = new Token(";", -1, 0);
-        Token               mPrevToken = new Token(";", -1, 0);
+        Token				mToken = new Token(";", -1, -1);
+        Token               mPrevToken = new Token(";", -1, -1);
         List<string>        mComments = new List<string>();
 
         SyntaxUnit mUnit;
@@ -1501,6 +1501,7 @@ namespace Gosub.Zurfur
             {
                 mInsertedToken = mToken;
                 mToken = CreateInvisible(prevToken, ";");
+                mToken.Location = new TokenLoc(mToken.X+1, mToken.Y);
                 mTokenName = ";";
             }
             return mPrevToken;
@@ -1569,7 +1570,7 @@ namespace Gosub.Zurfur
 
         Token CreateInvisible(Token token, string text, eTokenType type = eTokenType.Normal)
         {
-            var newToken = new Token(text, token.Y, token.X, type);
+            var newToken = new Token(text, token.X, token.Y, type);
             newToken.Invisible = true;
             Connect(token, newToken);
             return newToken;

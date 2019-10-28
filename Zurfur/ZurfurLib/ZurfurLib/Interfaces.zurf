@@ -23,14 +23,13 @@ pub interface ICollection<T>
 pub interface IArray<T> 
     : ICollection<T>
 {
-    this[index int] ref T { get }
+    this[index int] T { get set }
     func Fill(f T);
 }
 
 pub interface IList<T>
     : IArray<T>
 {
-    this[index int] ref T { get }
     func Clear();
     func Insert(index int, item T);
     func Insert(index int, collection ICollection<T>)

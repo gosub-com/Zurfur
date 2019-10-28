@@ -56,18 +56,18 @@ namespace Gosub.Zurfur
         {
         }
 
-        public Token(string name, int y, int x)
+        public Token(string name, int x, int y)
         {
             Name = name;
-            Y = y;
             X = x;
+            Y = y;
         }
 
-        public Token(string name, int y, int x, eTokenType tokenType)
+        public Token(string name, int x, int y, eTokenType tokenType)
         {
             Name = name;
-            Y = y;
             X = x;
+            Y = y;
             Type = tokenType;
         }
 
@@ -268,7 +268,7 @@ namespace Gosub.Zurfur
         /// </summary>
         public int X;
 
-        public TokenLoc(int y, int x)
+        public TokenLoc(int x, int y)
         {
             Y = y;
             X = x;

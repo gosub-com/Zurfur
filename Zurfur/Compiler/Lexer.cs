@@ -222,7 +222,7 @@ namespace Gosub.Zurfur
             // End of line?
             int startIndex = charIndex;
             if (charIndex >= line.Length)
-                return new Token("", 0, startIndex);
+                return new Token("", startIndex, 0);
 
             // Identifier
             char ch1 = line[charIndex];
@@ -257,17 +257,17 @@ namespace Gosub.Zurfur
                     && mSpecialSymbols.ContainsKey(code * 65536 + line[charIndex + 2]))
                 {
                     charIndex += 3;
-                    return new Token(Mintern[line.Substring(startIndex, 3)], 0, startIndex);
+                    return new Token(Mintern[line.Substring(startIndex, 3)], startIndex, 0);
                 }
                 if (mSpecialSymbols.ContainsKey(code))
                 {
                     charIndex += 2;
-                    return new Token(Mintern[line.Substring(startIndex, 2)], 0, startIndex);
+                    return new Token(Mintern[line.Substring(startIndex, 2)], startIndex, 0);
                 }
             }
 
             // Single character
-            return new Token(Mintern[line[charIndex++].ToString()], 0, startIndex);
+            return new Token(Mintern[line[charIndex++].ToString()], startIndex, 0);
         }
 
         private Token ScanComment(string line, ref int charIndex, int startIndex)
@@ -277,7 +277,7 @@ namespace Gosub.Zurfur
                 endIndex++;
             string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
             charIndex = endIndex;
-            return new Token(token, 0, startIndex, token.StartsWith("///") ? eTokenType.PublicComment : eTokenType.Comment);
+            return new Token(token, startIndex, 0, token.StartsWith("///") ? eTokenType.PublicComment : eTokenType.Comment);
         }
 
         private Token ScanString(string line, ref int charIndex, int startIndex)
@@ -297,7 +297,7 @@ namespace Gosub.Zurfur
                 endIndex++; // Skip end quote
             string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
             charIndex = endIndex;
-            return new Token(token, 0, startIndex, eTokenType.Quote);
+            return new Token(token, startIndex, 0, eTokenType.Quote);
         }
 
         bool IsAsciiDigit(char ch)
@@ -350,7 +350,7 @@ namespace Gosub.Zurfur
 
             string number = Mintern[line.Substring(charIndex, endIndex - charIndex)];
             charIndex = endIndex;  // Skip token
-            return new Token(number, 0, startIndex, eTokenType.Number);
+            return new Token(number, startIndex, 0, eTokenType.Number);
         }
 
         private Token SacanIdentifier(string line, ref int charIndex, int startIndex)
@@ -362,7 +362,7 @@ namespace Gosub.Zurfur
                 endIndex++;
             string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
             charIndex = endIndex; // Skip token
-            return new Token(token, 0, startIndex, eTokenType.Identifier);
+            return new Token(token, startIndex, 0, eTokenType.Identifier);
         }
 
         /// <summary>

@@ -217,7 +217,7 @@ namespace Gosub.Zurfur
                     return;
                 mLexer.ReplaceText(new string[] { value },
                     new TokenLoc(0, 0),
-                    new TokenLoc(LineCount, GetLine(LineCount-1).Length));
+                    new TokenLoc(GetLine(LineCount-1).Length, LineCount));
                 OnTextChangedInternal();
                 Invalidate();
             }
@@ -1481,7 +1481,7 @@ namespace Gosub.Zurfur
                 mSelStart = mSelEnd = CursorLoc;
                 mSelStart.X = startIndex;
                 mSelEnd.X = endIndex;
-                CursorLoc = new TokenLoc(CursorLoc.Y, endIndex);
+                CursorLoc = new TokenLoc(endIndex, CursorLoc.Y);
                 UpdateCursorBlinker();
             }
 
@@ -1679,9 +1679,9 @@ namespace Gosub.Zurfur
             // END
             if (e.KeyCode == Keys.End)
             {
-                TokenLoc newCursor = new TokenLoc(CursorLoc.Y, 0);
+                TokenLoc newCursor = new TokenLoc(0, CursorLoc.Y);
                 if (e.Control)
-                    newCursor = new TokenLoc(LineCount-1, 0);
+                    newCursor = new TokenLoc(0, LineCount-1);
                 newCursor.X = GetLine(newCursor.Y).Length;
                 MoveCursor(newCursor, true, e.Shift);
                 mCursorUpDownColumn = -1;
@@ -1724,7 +1724,7 @@ namespace Gosub.Zurfur
             // CTRL-A (select all)
             if (e.KeyCode == Keys.A && e.Control)
             {
-                CursorLoc = new TokenLoc(LineCount-1, GetLine(LineCount-1).Length);
+                CursorLoc = new TokenLoc(GetLine(LineCount-1).Length, LineCount-1);
                 mSelStart = new TokenLoc();
                 mSelEnd = CursorLoc;
                 ensureCursorOnScreen = false;
@@ -1827,16 +1827,15 @@ namespace Gosub.Zurfur
 
                 // Mover cursor and selection to match inserted/removed chars
                 if (CursorLoc.Y == mSelStart.Y + i)
-                    CursorLoc = new TokenLoc(CursorLoc.Y, Math.Max(0, CursorLoc.X+moveCh));
+                    CursorLoc = new TokenLoc(Math.Max(0, CursorLoc.X+moveCh), CursorLoc.Y);
                 if (mSelStart.Y == mSelStart.Y + i)
                     mSelStart.X = Math.Max(0, mSelStart.X+moveCh);
                 if (mSelEnd.Y == mSelStart.Y + i)
                     mSelEnd.X = Math.Max(0, mSelEnd.X+moveCh);
             }
 
-            ReplaceText(lines.ToArray(), new TokenLoc(mSelStart.Y, 0),
-                                         new TokenLoc(mSelEnd.Y, GetLine(mSelEnd.Y).Length));
-
+            ReplaceText(lines.ToArray(), new TokenLoc(0, mSelStart.Y),
+                                         new TokenLoc(GetLine(mSelEnd.Y).Length, mSelEnd.Y));
         }
 
         /// <summary>
