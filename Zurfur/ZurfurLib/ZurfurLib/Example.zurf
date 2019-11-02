@@ -5,36 +5,16 @@ namespace Zurfur.Example
 
 pub class Example
 {
-    F1 string                       // Private string initialized to ""
-    pub F2 Array<int>               // Array of int, initialized to null
-    pub F3 Array<int>(23)           // Array, length 23 integers (all 0)
-    pub F4 Array<int>({1,2,3})      // Array intialized with 1,2,3
-    pub F5 List<string>({"Hello", "World"})     // Initialized list
-    pub F6 Map<string,int>({{"A",1},{"B",2}})   // Initialized map
-    pub ro F7 string("Hello world")             // Initialized read only string
-    pub func Func1(a int) float => F1 + " hi"   // Member function
-    pub prop Prop1 string => F1                 // Property returning F1
+	info str 					// Private string initialized to ""
+    f1 Array<int>({1,2,3})      			// Initialized array
+    f2 List<str>({"Hello", "World"})    	// Initialized list
+    f3 Map<str,int>({{"A",1},{"B",2}})  	// Initialized map
+    pub ro Header str("Zurfur") 			// Public read only string
+    pub func Func(a int) str => Header+a	// Member function
+    pub prop Prop str => Header + info  	// Property
 }
 pub func Example::MyExtension() => Func1(10) // Extension method
 
-
-pub enum MyEnum
-{
-    A           // A is 0
-    B; C        // B is 1, C is 2
-    D = 32      // D is 32
-    E			// E is 33
-    
-    // Enumerations can override ToString
-    override func ToString() => MyConvertToTranslatedName()
-}
-
-pub struct MyPoint
-{
-	pub X int
-	pub Y int
-	pub override func ToString() => "(" + X + "," + Y + ")"
-}
 
 pub func Example::Extension() 
 { 
@@ -61,13 +41,13 @@ pub class Example2
     // Fields initialized to zero, null, or "" for string
     f1 int			// Initialized to 0
     f2 float32		// Initialized to 0.0
-    f3 string		// Initialized to "", not NULL
+    f3 str          // Initialized to "", not NULL
     
     // Fields initialized to null
     f4 Array<int>
     f5 Array<Array<int>> 
     f6 []int       // Same as Array<int>
-    f7 Map<string,List<int>>
+    f7 Map<str,List<int>>
     f8 Pointer<int>
     f9 ^int        // Same as Pointer<int>
     
@@ -77,13 +57,13 @@ pub class Example2
     f12 Array<int>(32)        // Array, Count=32
     f13 Array<int>({1,2,3})   // Array initialized with 1, 2, 3
     f13 List<int>(32)         // Empty List, Capacity=32
-    f14 Map<string,string>()  // Empty map
+    f14 Map<str,str>()  	// Empty map
     
     // Fields initialized via assignment
     f15 int = 32
     f16 int = FuncReturnsInt() >> 4
     f17 float32 = FuncReturnsFloat32orInt()
-    f18 string = "Hello"
+    f18 str = "Hello"
     f19 ^int = GetIntPtr()			// Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
@@ -102,16 +82,16 @@ pub class Example2
     // Function
     func fun1(a int) float => f1 + f2 + a
     func func1(a int) { }
-    func func2(a out string) bool {}
+    func func2(a out str) bool {}
     func func4(a ref MyStruct) {}
     func func5(a [][]int) {} 
     func func5(a Array<Array<int>>) {}
     func func7(a List<int>) { }
     func func8(a out List<List<int>>) { }
-    func func10(a Map<string,List<int>>) { }
+    func func10(a Map<str,List<int>>) { }
     
     pub func Sort<T>(greaterThan func(a T, b T) bool) { }
-    pub MyFieldFunc func(sender object, message string)
+    pub MyFieldFunc func(sender object, message str)
 
 
     pub func M<A,B>(a A, b B, c List<int>) List<int> {}
@@ -119,31 +99,31 @@ pub class Example2
     func func8(a out List<List<int>>) { }
     func func8(a out MyList<int,x,y,z>){ }
     
-    pub func Main(args Array<string>)
+    pub func Main(args Array<str>)
     {
         // Function calls vs parameter lists
         @a1 = MyType<a,b,c>()
         @a2 = MyType(a,b,c)()
         @a3 = List<List<int>>()
         @a4 = List(List(int))()
-        @a5 = M<string,int.x<T>.y>.Hello2<x.x>()
-        @a6 = M(string,int.x(T).y).Hello2(x.x)()     
+        @a5 = M<str,int.x<T>.y>.Hello2<x.x>()
+        @a6 = M(str,int.x(T).y).Hello2(x.x)()     
         @a7 = f(f<a>())(a+b)
 
         // Casts
-        @c1 = (M<string,int.x<T>.y>.Hello2)A
-        @c2 = (M<string,int.x<T>.y>.Hello2<x.x>)A
-        @c3 = (List<int,y,z>)x
+        @c1 = (M<str,int.x<T>.y>.Hello2)A
+        @c2 = (M<str,int.x<T>.y>.Hello2<x.x>)A
+        @c3 = (List<int,y,z>)A
 
         // Static assigments
-        M<string>.Hello = 6
-        M<string,int.x<T>.y>.Hello2 = f(1, 2, "Jeremy")
-        M<string,int>.Hello2 = f(1, 2, (x, y) => x < y)
+        M<str>.Hello = 6
+        M<str,int.x<T>.y>.Hello2 = f(1, 2, "Jeremy")
+        M<str,int>.Hello2 = f(1, 2, (x, y) => x < y)
 
         // Cast errors
-        //@ce1 = (M(string,int.x(T).y).Hello2(x.x))A
-        //@ce2 = (List(int,y,z))x
-        //@ce3 = (List<int,y.y+2,z>)x
+        //@ce1 = (M(str,int.x(T).y).Hello2(x.x))A
+        //@ce2 = (List(int,y,z))A
+        //@ce3 = (List<int,y.y+2,z>)A
         
         @a = x>y
         if MyFieldFunc != null
@@ -155,7 +135,7 @@ pub class Example2
         list.Sort((a, b) => { return a < b })
 
 		// In operator
-		if myString in myMap || myIn in 1..23
+		if myStr in myMap || myIn in 1..23
 		{
 			DoSomething();
 		}
@@ -176,6 +156,23 @@ pub class Example2
 		        
     }
 }
+
+pub struct MyPoint
+{
+	pub X int
+	pub Y int
+	pub override func ToStr() => "(" + X + "," + Y + ")"
+}
+
+
+pub enum MyEnum
+{	
+	A 			// A=0
+	B; C		// B=1, C=2
+	D = 23		// D=23
+	E; F; G		// E=24, F=25, G=26
+}
+
 
 pub interface MyInterfaceTest
 {
@@ -219,27 +216,27 @@ pub static func Sort<T>(s Span<T>, lessThan func(a T, b T) bool)
 }
 
 
-pub struct string
+pub struct str
 {
-    str Array<byte>
+    ro str Array<byte>
 
     pub new() { str = Array<byte>.Empty }
-    pub new(s string) { todo() }
+    pub new(s str) { todo() }
     pub new(s RoSpan<byte>) { todo() }
     pub this[index int] byte => todo()
     pub this[range Range] RoSpan<byte> => todo() // Slice
     
-    pub operator+(s1 string, s2 string) string { todo() }   
-    pub operator+(s1 RoSpan<byte>, s2 string) string { todo() }
-    pub operator+(s1 string, s2 RoSpan<byte>) string { todo() }
+    pub operator+(s1 str, s2 str) str { todo() }   
+    pub operator+(s1 RoSpan<byte>, s2 str) str { todo() }
+    pub operator+(s1 str, s2 RoSpan<byte>) str { todo() }
     // TBD: Implicit conversion to and from RoSpan
 }
 
 
 pub ref struct Span<T>
 {
-    data ref T
-    pub Count int
+    ro data ref T
+    pub ro Count int
     pub this[index int] ref T => todo()
     pub this[index Range] Span<T> => todo(); // Slice
     pub prop Ro Span<T> => todo() // Covert to RoSpan (TBD: Implicit)
@@ -247,9 +244,9 @@ pub ref struct Span<T>
 
 pub ref struct RoSpan<T>
 {
-    data ref T
-    pub Count int
-    pub this[index int] T => todo()
+    ro data ref T
+    pub ro Count int
+    pub this[index int] ro ref T => todo()
     pub this[index Range] RoSpan<T> => todo(); // Slice
     // TBD: implicit conversion to RoSpan?
 }
@@ -273,7 +270,8 @@ pub unsafe sealed1 class VariableSizedObject<T>
 
 
 // Array of constant size
-pub sealed class Array<T> : VariableSizedObject<T>, IArray<T>
+pub sealed class Array<T> 
+	: VariableSizedObject<T>, IArray<T>
 {
     const MaxSize int = int.MaxInt/2
     pub static ro Empty Array<T>()
@@ -286,23 +284,30 @@ pub sealed class Array<T> : VariableSizedObject<T>, IArray<T>
 }
 
 // Note that the List class has a ref return indexer, just like Array
-pub class List<T> : IList<T>
+pub class List<T> 
+	: IList<T>
 {
 	new() => todo()
     new(capacity int) => todo()
     new(items ICollection<T>) => todo()
     
+    // NOTE: Ref return satisfies both indexer get and set
     pub this[index int] ref T => todo()
     pub this[range Range] Span<T> => todo()
+
+    // NOTE: `Add` not needed because of default implementation
+    pub prop Count int { get }
     pub func Clear() => todo()
-    pub func Insert(index int, item T) => todo()
-    pub func Insert(index int, collection ICollection<T>) => todo()
-    pub func Remove(range Range) => todo()
-    pub func Remove(index int) => todo()
+    pub func Remove(item T) => todo()
+    pub func InsertAt(index int, item T) => todo()
+    pub func InsertAt(index int, items ICollection<T>) => todo()
+    pub func RemoveAt(index int) => todo()
+    pub func RemoveAt(range Range) => todo()
     
 }
 
-pub class Map<TKey, TValue> : IMap<TKey, TValue>
+pub class Map<TKey, TValue> 
+	: IMap<TKey, TValue>
 {
     new() => todo()
     new(capacity int) => todo()
@@ -311,10 +316,12 @@ pub class Map<TKey, TValue> : IMap<TKey, TValue>
     pub this[key TKey] TValue { get => todo() set => todo() }
 	pub operator in(a TKey) bool => todo()
 
+    pub prop Count int { get }
     pub func Clear() => todo()    
     pub func Get(key TKey, defaultValue TValue) TValue => todo()
     pub func TryGet(key TKey, value out TValue) bool => todo()
-    pub func Add(keyValues ICollection<KeyValue<TKey, TValue>>) => todo()    
+    pub func Add(item KeyValue<TKey, TValue>) => todo()    
+    pub func Add(items ICollection<KeyValue<TKey, TValue>>) => todo()    
     pub func Remove(TKey key) bool => todo()
     pub prop Keys ICollection<TKey> { get => todo() }
     pub prop Values ICollection<TValue> { get => todo() }
@@ -363,7 +370,7 @@ pub sealed class UnmanagedMemory<T> : UnmanagedHande
 pub class object
 {
     pub virtual func GetType() { todo() }
-    pub virtual func ToString() { todo() }
+    pub virtual func ToStr() { todo() }
 }
 
 // This is the base for all struct objects.
@@ -399,74 +406,74 @@ pub class FinalizedNotifyQueue
 
 pub static func MemCopy(dest ^void, source ^void, length xint)
 {
-	@to = (^byte)dest
-	@from = (^byte)source
+	@d = (^byte)dest
+	@s = (^byte)source
 	
     if length <= 0
     {
         return
     }
-    // Align `to` on int32
-    while (xint)to & 3 != 0 && length != 0
+    // Align `d` on int32
+    while (xint)d & 3 != 0 && length != 0
     {
-        ^to = ^from; to+=1; from+=1; length-=1
+        ^d = ^s; d+=1; s+=1; length-=1
     }
     
-    if (xint)from & 3 == 0
+    if (xint)s & 3 == 0
     {
-        MemCopyAlign32(to, from, length)
+        MemCopyAlign32(d, s, length)
         return
     }
     
     // Byte copy
-    @end = to + length
-    while (xint)end-(xint)to >= 4
+    @end = d + length
+    while (xint)end-(xint)d >= 4
     {
-        ^to = ^from; to+=1; from+=1
-        ^to = ^from; to+=1; from+=1
-        ^to = ^from; to+=1; from+=1
-        ^to = ^from; to+=1; from+=1
+        ^d = ^s; d+=1; s+=1
+        ^d = ^s; d+=1; s+=1
+        ^d = ^s; d+=1; s+=1
+        ^d = ^s; d+=1; s+=1
     } 
-    while (xint)to != (xint)end
+    while (xint)d != (xint)end
     {
-        ^to = ^from; to+=1; from+=1
+        ^d = ^s; d+=1; s+=1
     }
 }
 
 pub static func MemCopyAlign32(dest ^void, source ^void, length xint)
 {
-	@to = (^byte)dest
-	@from = (^byte)source
+	@d = (^byte)dest
+	@s = (^byte)source
 
     if length <= 0
     {
         return
     }
-    if ((xint)from | (xint)to) & 3 != 0
+    if ((xint)s | (xint)d) & 3 != 0
     {
     	throw MemoryAccessEception()
     }
 
     // Try 64 bit copy first
-    @end = to + length
-    if ((xint)to~(xint)from) & 4 == 0 && length >= 8
+    @end = d + length
+    if ((xint)d~(xint)s) & 4 == 0 && length >= 8
     {
-        if (xint)to & 4 != 0
+        if (xint)d & 4 != 0
         {
-            ^(^int32)to = ^(^int32)from; to+=4; from+=4
+            ^(^int32)d = ^(^int32)s; d+=4; s+=4
         }
-        while end - to >= 8
+        while end - d >= 8
         {
-            ^(^int64)to = ^(^int64)from; to+=8; from+=8
+            ^(^int64)d = ^(^int64)s; d+=8; s+=8
         }
     }
-    while (xint)end-(xint)to >= 4
+    while (xint)end-(xint)d >= 4
     {
-        ^(^int32)to = ^(^int32)from; to+=4; from+=4
+        ^(^int32)d = ^(^int32)s; d+=4; s+=4
     }
-    while (xint)to != end
+    while (xint)d != end
     {
-        ^to = ^from; to+=1; from+=1
+        ^d = ^s; d+=1; s+=1
     }
 }
 

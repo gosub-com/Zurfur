@@ -13,31 +13,46 @@ pub interface IEnumerable<out T>
     func GetEnumerator() IEnumerator<T>;
 }
 
+/// Base class for all collections
 pub interface ICollection<T>
     : IEnumerable<T>
 {
     prop Count int { get }
-    prop IsReadOnly bool { set }
 }
+
+/// Base class for all mutable collections
+pub interface IMutableCollection<T>
+	: ICollection<T>
+{
+	func Clear()
+	func Add(item T)
+	func Add(items ICollection<T>)
+	func Remove(item T)
+}
+
+pub interface IRoArray<T> 
+    : ICollection<T>
+{
+    this[index int] T { get }
+}
+
 
 pub interface IArray<T> 
     : ICollection<T>
 {
     this[index int] T { get set }
-    func Fill(f T);
 }
 
 pub interface IList<T>
-    : IArray<T>
+    : IMutableCollection<T>, IArray<T>, IRoArray<T>
 {
-    func Clear();
-    func Insert(index int, item T);
-    func Insert(index int, collection ICollection<T>)
-    func Remove(range Range);
-    func Remove(index int);
+    func InsertAt(index int, item T);
+    func InsertAt(index int, collection ICollection<T>)
+    func RemoveAt(index int);
+    func RemoveAt(range Range);
 
-    pub func Add(item T) { Insert(Count, item) }
-    pub func Add(items collection<T>) { Insert(Count, items) }
+    pub func Add(item T) { InsertAt(Count, item) }
+    pub func Add(items ICollection<T>) { InsertAt(Count, items) }
 }
 
 pub struct KeyValuePair<TKey, TValue>
@@ -47,20 +62,25 @@ pub struct KeyValuePair<TKey, TValue>
     pub Value TValue;
 }
 
-
-pub interface IMap<TKey, TValue> 
-    : ICollection<KeyValuePair<TKey, TValue>>
+pub interface IRoMap<TKey, TValue>
+	: ICollection<KeyValuePair<TKey, TValue>>
 {
-    this[key TKey] TValue { get set }
 	operator in(a TKey) bool
+    this[key TKey] TValue { get }
 
-    func Clear()
     func Get(key TKey, defaultValue TValue) TValue;
     func TryGet(key TKey, value out TValue) bool    
-    func Add(keyValuesvs ICollection<KeyValue<TKey, TValue>>)
-    func Remove(TKey key) bool
     prop Keys ICollection<TKey> { get }
     prop Values ICollection<TValue> { get }
+}
+
+pub interface IMap<TKey, TValue> 
+    : IRoMap<KeyValuePair<TKey, TValue>>,
+      IMutableCollection<KeyValuePair<TKey, TValue>>
+    		
+{
+    this[key TKey] TValue { set }
+    func Remove(TKey key) bool
 }
 
 /// Implement IHashable on any object that can be stored in a Map.

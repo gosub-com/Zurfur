@@ -10,6 +10,14 @@ namespace Gosub.Zurfur
     /// </summary>
     class ZurfParse
     {
+        // TODO:
+        // cast syntax review
+        // interface - implicit down conversion, explicit duck typing, no cast to object type, statatic functions
+        // Show vertical connectors in editor
+        // Tabs vs spaces
+        // Invisible ";"
+        // @identifier type
+
         // These tokens are ambiguous, so get replaced while parsing
         public const string VIRTUAL_TOKEN_TYPE_ARG_LIST = "<>";
         const string VIRTUAL_TOKEN_SHIFT_RIGHT = ">>";
@@ -35,7 +43,7 @@ namespace Gosub.Zurfur
 
         // NOTE: >> and >= are omitted and handled at parser level.
         //       TBD: Need to handle >>= as well
-        public const string TokenSymbols = "<< <= == != && || += -= *= /= %= &= |= " + XOR + "= <<= => === :: ..";
+        public const string TokenSymbols = "<< <= == != && || += -= *= /= %= &= |= " + XOR + "= <<= => === :: .. ...";
 
         // Add semicolons to all lines, except for:
         static WordSet sEndLineSkipSemicolon = new WordSet("; { [ ( ,");
@@ -43,24 +51,24 @@ namespace Gosub.Zurfur
                                                     + ": ? . , > << <= < => .. :: === += -= *= /= %= &= |= " + XOR + "= else where is");
         Token mInsertedToken;
 
-        static readonly string sReservedWordsList = "abstract as base break case catch class const "
+        static readonly string sReservedWordsList = "abstract as to base break case catch class const "
             + "continue default delegate do else enum event explicit extern false defer use "
             + "finally fixed for goto if implicit in interface internal is lock namespace module include "
-            + "new null operator out override params pub public private protected readonly ro ref mut "
+            + "new null operator out override pub public private protected readonly ro ref mut "
             + "return sealed sealed1 sizeof stackalloc heapalloc static struct switch this throw true try "
-            + "typeof unsafe using static virtual volatile while asm managed unmanaged "
+            + "typeof unsafe using static virtual volatile while dowhile asm managed unmanaged "
             + "async await astart func afunc get set yield global partial var where nameof cast";
         static readonly string sReservedControlWords = "using namespace module include class struct enum interface "
-            + "func afunc prop get set operator if else switch await for while";
+            + "func afunc prop get set operator if else switch await for while dowhile _";
         static WordMap<eTokenType> sReservedWords = new WordMap<eTokenType>();
         static WordSet sReservedIdentifierVariables = new WordSet("null this true false default");
 
         static WordSet sClassFuncFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "extern static const sealed sealed1 abstract virtual override new volatile ref ro mut readonly");
+            + "extern static const sealed sealed1 abstract virtual override new volatile ref ro readonly");
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sFieldDefTypeQualifiers = new WordSet("ref");
-        static WordSet sFuncDefReturnTypeQualifiers = new WordSet("ref");
+        static WordSet sFuncDefReturnTypeQualifiers = new WordSet("ro ref");
         static WordSet sFuncDefParamTypeQualifiers = new WordSet("out ref");
         static WordSet sTypeDefParamQualifiers = new WordSet("in out");
         static WordSet sFuncCallParamQualifiers = new WordSet("out ref");
@@ -706,6 +714,11 @@ namespace Gosub.Zurfur
                 Connect(openToken, mPrevToken);
                 parameters.Add(ParseFuncParamDef());
             }
+
+            // Ellipse to signify repeated parameters
+            if (AcceptMatch("..."))
+                mPrevToken.AddWarning("Repeated parameters not supported yet");
+
             if (AcceptMatchOrReject(closeToken))
                 Connect(openToken, mPrevToken);
 
@@ -994,10 +1007,31 @@ namespace Gosub.Zurfur
                 }
                 else if (AcceptMatch("."))
                 {
-                    // Member access
-                    accepted = true;
-                    result = new SyntaxBinary(mPrevToken, result,
-                        new SyntaxToken(ParseIdentifier("Expecting identifier")));
+                    // Experimental cast style: Identifier.(type)
+                    if (mTokenName == "(" || AcceptMatch("to") || AcceptMatch("as") || AcceptMatch("cast") || AcceptMatch("is"))
+                    {
+                        var openToken = mToken;
+                        if (AcceptMatchOrReject("(", "start of cast", false)
+                            && ParseTypeName(out var typeName, sEmptyWordSet)
+                            && AcceptMatchOrReject(")", "end of cast", false))
+                        {
+                            // Parse a cast: Use ')' to differentiate from function call which is '('
+                            Connect(mPrevToken, openToken);
+                            result = new SyntaxBinary(mPrevToken, typeName, result);
+                            accepted = true;
+                        }
+                        else
+                        {
+                            return new SyntaxToken(openToken); // Parse error, doesn't matter
+                        }
+                    }
+                    else
+                    {
+                        // Member access
+                        accepted = true;
+                        result = new SyntaxBinary(mPrevToken, result,
+                            new SyntaxToken(ParseIdentifier("Expecting identifier")));
+                    }
                 }
                 else if (mTokenName == "<" && mPrevToken.Type == eTokenType.Identifier)
                 {
@@ -1043,9 +1077,11 @@ namespace Gosub.Zurfur
                 // Expression order parentheses are thrown away, lambda is kept
                 SyntaxExpr result = expressions.Count == 1 ? expressions[0] 
                                     : new SyntaxMulti(CreateInvisible(mPrevToken, VIRTUAL_TOKEN_LAMBDA), expressions.ToArray());
+
                 if (mToken.Type != eTokenType.Identifier && mTokenName != "(")
                     return result;
 
+                mPrevToken.AddWarning("Try the new experimental casting style: 'Expression.(type)' or 'Expression.to(type)'. This style may be removed");
                 // Parse a cast: The closing ')' is followed by '(' or identifier
                 // Use ')' to differentiate from function call which is '('
                 return new SyntaxBinary(mPrevToken, result, ParsePrimary());
@@ -1386,13 +1422,15 @@ namespace Gosub.Zurfur
         }
 
         // Accept match, otherwise reject until match token, then try one more time
-        bool AcceptMatchOrReject(string matchToken, string message = null)
+        bool AcceptMatchOrReject(string matchToken, string message = null, bool tryToRecover = true)
         {
             if (AcceptMatch(matchToken))
                 return true;
             Reject("Expecting '" + matchToken + "'" + (message == null ? "" : ", " + message), 
-                        new WordSet(matchToken));
-            return AcceptMatch(matchToken);
+                        tryToRecover ? new WordSet(matchToken) : null);
+            if (tryToRecover)
+                return AcceptMatch(matchToken);
+            return false;
         }
 
         struct ParsePoint
@@ -1490,6 +1528,9 @@ namespace Gosub.Zurfur
                 mToken.Type = eTokenType.Identifier;
             else
                 mToken.Type = eTokenType.Normal;
+
+            if (mTokenName.Length != 0 &&  (mTokenName[0] == '_' || mTokenName[mTokenName.Length-1] == '_') && mTokenName != "_")
+                RejectToken(mToken, "Identifiers may not begin or end with '_'");
 
             if (mTokenName == "__pfail")
                 throw new Exception("Parse fail test");

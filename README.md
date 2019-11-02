@@ -25,17 +25,7 @@ Golang.  Here are some differences between Zurfur and C#:
 
 ## Overview
 
-Read about the lexer, editor, and parser here: https://github.com/gosub-com/Bit
-
-Thoughts about where to go and how to do it:
-
-* [Async](Doc/Async.md)
-* [Class Objects](Doc/ClassObjects.md)
-* [Func and Func Pointers](Doc/FuncAndFuncPointers.md)
-* [Garbage Collector](Doc/GarbageCollector.md)
-* [Multithreding](Doc/Multithreading.md)
-* [Simple Intermediate Language (SIL)](Doc/Sil.md)
-* [Stack Frames](Doc/StackFrames.md)
+Thoughts about where to go and how to do it: [Internals](Doc/Internals.md).
 
 ## Functions
 
@@ -61,7 +51,7 @@ Functions are allowed at the namespace level, but must be static or
 extension methods.
 
     /// This is an extension method
-    pub func MyClass::MyExtensionFunc(a string) string
+    pub func MyClass::MyExtensionFunc(a str) str
     {
         return a + ": " + memberVariable
     }
@@ -77,7 +67,7 @@ which is the same as `var` in C#.
     @myString = "Hello World"
     @myInt = 3
     @myList = List<int>({1,2,3});
-    @myMap = Map<string,int>({{"A",1},{"B",2}})
+    @myMap = Map<str,int>({{"A",1},{"B",2}})
 
 TBD: Make them immutable by default, and add `mut@` or `@@` for mutable?  
 I've never had a problem with mutable by default, so don't see the point
@@ -86,10 +76,10 @@ but am open to the argument.
 ## Basic types
 
     int8, uint8, byte, int16, uint16, int32, int, uint32, uint, int64, uint64
-    float32, float64, xint, xuint, decimal, string, Array, List, Map
+    float32, float64, xint, xuint, decimal, str, Array, List, Map
 
 `byte`, `int`, and `uint` are aliases for `uint8`, `int32`, and `uint32`.
-`string` is an immutable array of UTF8 encoded bytes.  `xint` and `xuint` are
+`str` is an immutable array of UTF8 encoded bytes.  `xint` and `xuint` are
 extended integer types, which could be 32 or 64 bits depending on run-time
 architecture.
 
@@ -100,7 +90,6 @@ it indexes using a `ref` return.  It acts just like an array including the
 ability to modify a field of a mutable struct or slice it to create a `Span`
 
 TBD: Lower case `array`, `list`, and `map`?  `span`, `roSpan`?
-Use `str` instead of `string`?
 
 ## Classes
 
@@ -109,15 +98,15 @@ followed by `type`, just like in Golang:
 
     pub class Example
     {
-	    F1 string                       // Private string initialized to ""
-	    pub F2 Array<int>                       // Array of int, initialized to null
-        pub F3 Array<int>(23)                   // Array, length 23 integers (all 0)
-        pub F4 Array<int>({1,2,3})              // Array initialized with 1,2,3
-	    pub F5 List<string>({"Hello", "World"})     // Initialized list
-	    pub F6 Map<string,int>({{"A",1},{"B",2}})   // Initialized map
-        pub ro F7 string("Hello world")             // Initialized read only string
+	    F1 str                                   // Private string initialized to ""
+	    pub F2 Array<int>                        // Array of int, initialized to null
+        pub F3 Array<int>(23)                    // Array, length 23 integers (all 0)
+        pub F4 Array<int>({1,2,3})               // Array initialized with 1,2,3
+	    pub F5 List<str>({"Hello", "World"})     // Initialized list
+	    pub F6 Map<str,int>({{"A",1},{"B",2}})   // Initialized map
+        pub ro F7 str("Hello world")             // Initialized read only string
 	    pub func Func1(a int) float => F1 + " hi"   // Member function
-        pub prop Prop1 string => F1                 // Property returning F1
+        pub prop Prop1 str => F1                 // Property returning F1
     }
 
 The `ro` keyword makes a field read only.  The `prop` keyword is used to
@@ -142,46 +131,21 @@ since they are
 A struct is usually a stack object or embedded in a class, and can be used where
 speed and efficiency are desired:
 
-    pub struct MyPoint
+    pub struct MyPointXY
     {
 	    pub X int
 	    pub Y int
+        pub new(x int, y int) { X = x; Y = y}
 	    pub override func ToString() => "(" + X + "," + Y + ")"
     }
 
-A struct is immutable by default, but can use the `mut` keyword to be made
-mutable.  
 
-    pub struct MyMutPoint
-    {
-	    pub mut X int
-	    pub mut Y int
-	    pub override func ToString() => "(" + X + "," + Y + ")"
-    }
-
-The `List<MyMutPoint>` indexer returns a reference (identical to `[]MyMutPoint`)
+The `List<MyPointXY>` indexer returns a reference (identical to `[]MyPointXY`)
 so `myMutPoints[index].X = x` will set X the same as if this were an array.
-
 The indexer for `IList` uses a traditional `get` and `set` function,
-however `myIListOfMutPoint[index].X = x` works as expected since the
+however `myIListOfPoint[index].X = x` works as expected since the
 compiler generates code to `get` the struct, modify it, then `set` it.
 
-A side effect of this is that the immutable struct can seem to be mutated, like this:
-
-    @a = Array<MyPoint>({{1,2},{3,4},{5,6}})
-    a[1].X = 10
-    // Now `a` has {{1,2},{10,4},{5,6}}
-
-Since the array is mutable, the struct appears to be mutable because
-the compiler can generate code like this:
-    
-    @temp = a[1]
-    a[1] = MyPoint(temp.X, temp.Y)
-
-The array can be made immutable using `RoArray`.
-
-**TBD:** I am still not sure immutable by default is the right way to
-go here.  Immutable is all the rage these days, but I'm not sold on it.
 
 ## Enums
 
@@ -204,6 +168,21 @@ The default `ToString` function shows the value as an integer rather
 than the name of the field, but it is possible to override and make it
 display anything you want.  This allows enumerations to be just as light
 weight as an integer and need no metadata in the compiled executable.
+
+## Initializers
+
+An initializer is a parameter enclosed within `{}` and may be used any place
+a function parameter takes either an `ICollection` or an object with a matching
+constructor.  The `ICollection` is always chosen over a constructor if both exist. 
+
+    @a = Map<str, int>({{"A",1}, {"B", 2}})
+
+The `Map` constructor takes an `ICollection<KeyValuePair<str,int>>` parameter.
+The constructor of the key value pair will take `str` and `int` parameters, so
+everything matches up and is accepted.  If the `int` were replaced with `MyPointXY`,
+an extra set of `{}` would be required:
+
+    @a = Map<str, MyPointXY>({{"A",{1,2}}, {"B", {3,4}}})
 
 ## Operator Precedence
 
@@ -241,7 +220,119 @@ to get `==` and `!=` operators.
 
 ## Interfaces
 
-Same as C# 8.0 interfaces, allowing default functions, etc.  Describe more here...
+Interfaces are a cross between C# and GoLang, but a little different from
+both.  They are mostly C# 8.0 (including default implementations, etc.)
+but they also allow *explicit* conversion from any class that defines
+all the required functions.  Unlike C# and Golang, interfaces do not
+allow conversion back to the original object.  
+
+#### Structural Typing
+
+In C#, a class must explicitly support an interface.  This is
+good because it forces the class designers to consider
+the supported interfaces when making API changes.  Golang
+will convert any class to an interface as long as the class
+implements all the matching functions.  This is convenient, but
+there is no contract forcing the class designer to think about
+each supported interface.
+
+Zurfur takes the middle ground.  Classes should list the
+interfaces they support.  But, an *explicit* cast can be used
+to build any interface provided the class implements all the
+functions.  The explicit cast is to remind us us that the class
+does not necessarily support the interface.  **TBD:** Could
+require the `cast` keyword to make it even more explicit
+that structural typing is being used.
+
+#### No Conversion Back to the Concrete Class
+
+Once you have an interface, it's impossible to cast it back
+to the original class.  It can be implicitly converted
+to a base interface or explicitly converted to any interface
+that implements a subset of the methods.
+
+This prevents people from using a cast to bypass the intended
+use of the interface.  For example:
+
+    pub class MyStuff
+    {
+	    // Nobody should modify our stuff, except for us!
+	    mystuff List<Stuff>()
+	
+	    // Don't mind if they look at our stuff
+    	pub ro SeeMyStuff IRoArray<Stuff> = mystuff;
+    }
+
+    pub static func MyFunc(yourStuff MyStuff)
+    {
+	    // Gee, wouldn't it be nice to modify your stuff here?
+	    // ILLEGAL!
+	    ((List<Stuff>)yourStuff.SeeMyStuff).Add(Stuff());
+
+        // Alternate experimental cast (still ILLEGAL)
+	    yourStuff.SeeMyStuff.to(List<Stuff>).Add(Stuff());
+    }
+
+## Casting
+
+In the code, cast looks like `(Type)identifier` or `(Type)(expression)`
+and is used when a type conversion should be explicit, including
+conversion from a base class to a derived class, conversion between
+pointer types, and converting integer types that may lose precision.
+
+**TBD:** Allow conversion from `float` to `int` via constructor 
+(e.g `myInt = int(a+myFoat)`)?  This syntax looks  nicer than 
+`myInt = (int)(a+myFloat)`.  The problem comes with a field
+definition like this `a int(MyFunc())`.  Since the type name is
+required, it's not clear that the conversion should be allowed.
+If the return type of `MyFunc` changes from `int` to `float` there
+would be an undetected loss of precision.  One solution is to
+to allow `int(MyFloat)` in expressions (since it's clear we
+want the conversion), but require the cast for field definitions
+that lose precision:
+
+    // Field definitions
+    a int(MyByteFunc())         // Ok, no loss of precision
+    a int(MyIntFunc())          // Ok
+    a int(MyFloatFunc())        // Fail, not truly explicit since `int` is required
+    a int((int)MyFloatFunc())   // Ok because of explicit cast
+
+    // Expressions in code
+    @a = int(MyFloatFunc())                 // Ok, `int` is explicit 
+    MyFuncTakingInt(int(MyFloatFunc()))     // Ok, `int` is explicit
+
+
+The cast construct is determined at the parse level.  Whenever a closing
+parenthesis `)` is found, if the next symbol is an identifier or an open
+parenthesis `(`, it's a cast.  Otherwise, it is not.  For example,
+`(a)b`, `(a)(b)` are always casts regardless of what `a` or `b` is.
+`(a+b)c` is an invalid cast.  `(a)^b` is not a cast.  If you
+need to cast a dereferenced pointer, an extra parenthesis is required
+as in `(a)(^b)`.
+
+#### TBD: Experimental Cast
+
+The parser currently accepts a postfix cast in the form of `Expression.(type)`, 
+`Expression.to(type)`, and `Expression.cast(type)`.  So, 
+`((MyInterfaceType)MyObject).InterfaceFunc()` can be written as 
+`MyObject.(MyInterfaceType).InterfaceFunc` or `MyObject.to(MyInterfaceType).InterfaceFunc`.
+And a conversion from `float` to `int` like this `MyFloat.(int)` or `MyFloat.to(int).  
+This looks a little funky, especially for pointer conversions, but maybe it just takes
+some getting used to.
+
+    // See above for definition of MyStuff
+    pub static func MyFunc(yourStuff MyStuff)
+    {
+        // Standard method
+	    ((List<Stuff>)yourStuff.SeeMyStuff).Add(Stuff());
+
+        // Experminetal methods (leaning towards using to)
+	    yourStuff.SeeMyStuff.(List<Stuff>).Add(Stuff());
+	    yourStuff.SeeMyStuff.to(List<Stuff>).Add(Stuff());
+	    yourStuff.SeeMyStuff.cast(List<Stuff>).Add(Stuff());
+    }
+
+**TBD:** Tell me which you like better
 
 ## Arrays, Slicing, and the Range Operator
 
@@ -274,7 +365,7 @@ For the time being, async is built into the type system but it looks and
 acts as if it were sync.  Calling an async function from async code blocks
 without using the `await` keyword:
 
-    afunc MySlowIoFunctionAsync(server string) string 
+    afunc MySlowIoFunctionAsync(server str) str 
     {
         // In C# `await` would be needed before both function calls, but not in Zurfur
         @a = MakeXhrCallToServerAsync(server)  // Blocks without await keyword
@@ -285,7 +376,7 @@ without using the `await` keyword:
 Async code normally looks and acts as if it were sync.  When we want
 to start or wait for multiple tasks, use the `astart` and `await` keywords.
 
-    afunc GetStuffFromSeveralServers() string 
+    afunc GetStuffFromSeveralServers() str 
     {
         // Start the functions, but do not block
         @a = astart MySlowIoFunctionAsync("server1");
@@ -299,7 +390,7 @@ to start or wait for multiple tasks, use the `astart` and `await` keywords.
         GiveThisTaskToAUserWhoCancelTheOperationEarly(timeout)
 
         // Collect the results in the order they complete order
-        @sum = new list<string>()
+        @sum = new list<str>()
         await a, b, c, timeout
         {
             case a.HasResult: sum += a.Result;
@@ -325,22 +416,6 @@ using the `astart` keyword, like this: `func MySyncFunction() { astart MyAsyncFu
 
 **TBD:** As you can see, much is still TBD.
 
-## Casting
-
-Casting is used much less than in C# because a cast is not used to covert
-struct types.  A cast such as `(int)myFloat` should be written as
-`int(myFloat)`.  Casts are only used to convert between class/interface
-types or for pointer conversions.
-
-The cast construct is determined at the parse level.  Whenever a closing
-parenthesis `)` is found, if the next symbol is an identifier or an open
-parenthesis `(`, it's a cast.  Otherwise, it is not.  For example,
-`(a)b`, `(a)(b)` are always casts regardless of what `a` or `b` is.
-`(a+b)c` is always an invalid cast.  `(a)*b` is never a cast.  If you
-need to cast a dereferenced pointer, an extra parenthesis is required
-as in `(a)(^b)`.
-
-
 ## Pointers
 
 `^` is used to dereference pointers and `.` is used to access a field
@@ -352,7 +427,10 @@ Describe more here...
 
 ## Open Questions
 
-Should structs be immutable by default?  I am not so sure.
+Should structs be immutable by default?  No.  Immutable won't be
+immutable when they are in an array or a property with a setter.
+If `MyPoint` is immutable, then `MyArray[i].X=1` is legal because
+the compiler can transorm to `MyArray[i] = new MyPoint(1,MyArray[i].Y)`
 
 Do we want lower case to be private by default and upper case to
 be public similar to Golang?  My personal preference is to have 
@@ -361,7 +439,7 @@ be public similar to Golang?  My personal preference is to have
 Should we switch to i32, i64, f32, f64, etc., like WebAssembly?
 
 Should `Array`, `Map`, and `List` be lower case since they are almost as
-basic as `string` and `decimal`?  If so, should `Span` and `RoSpan` be lower
+basic as `str` and `decimal`?  If so, should `Span` and `RoSpan` be lower
 case?  My preference is leaning toward them lower case but leaving `Span` and
 `RoSpan` upper case.  What about `Sin`, `Cos`, etc.?
 

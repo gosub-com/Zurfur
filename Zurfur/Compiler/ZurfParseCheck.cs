@@ -17,8 +17,6 @@ namespace Gosub.Zurfur
 
         public Token LastToken;
 
-        // TBD: Still haven't decieded if `Map`, `Array`, and `List` should be lower case
-        static WordSet sNoPubWarningKeywords = new WordSet("this object string void bool byte xint xuint int uint int8 uint8 int16 uint16 int32 uint32 int64 uint64 float32 float64 decimal in");
         static WordSet sRequireGlobalFieldQualifiers = new WordSet("static const");
         static WordSet sFuncInInterfaceQualifiersAllowedEmpty = new WordSet("static pub protected");
         static WordSet sFuncInInterfaceQualifiersAllowedNotEmpty = new WordSet("static pub private protected");
@@ -28,9 +26,9 @@ namespace Gosub.Zurfur
 
         static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal");
         static WordSet sClassQualifiers = new WordSet("pub public protected private internal unsafe sealed sealed1 abstract");
-        static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe ref mut");
+        static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe ref ro");
         static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
-        static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static volatile mut const");
+        static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static volatile ro const");
         static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static volatile ro const");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
         static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static extern abstract virtual override new");
@@ -225,22 +223,6 @@ namespace Gosub.Zurfur
                         break;
                 }
             }
-            if (isPublic || isInInterface)
-            {
-                // Public warning
-                if (char.IsLower(token.Name[0]) && !sNoPubWarningKeywords.Contains(token.Name))
-                    token.AddWarning("Lower case symbols should not be public");
-            }
-            else if (!isConst)
-            {
-                // Private warnings
-                if (char.IsUpper(token.Name[0]) && !sNoPubWarningKeywords.Contains(token.Name))
-                    token.AddWarning("Upper case symbols should not be private");
-                else if (ZurfParse.sOverloadableOperators.Contains(token.Name))
-                    token.AddWarning("Operators should not be private");
-                else if (token.Name == "this")
-                    token.AddWarning("Indexer should not be private");
-            }
         }
 
         bool HasQualifier(Token[] qualifiers, WordSet accept)
@@ -316,6 +298,10 @@ namespace Gosub.Zurfur
                         CheckFuncBody(expr, e);
                     break;
 
+                case "to":
+                case "as":
+                case "cast":
+                case "is":
                 case ")": // Cast
                     if (expr.Count != 0 && !CheckCastExpression(expr[0]))
                     {
@@ -442,7 +428,7 @@ namespace Gosub.Zurfur
                 expr.Token.Type = eTokenType.TypeName;
 
             // Cast
-            if (expr.Token == ")")
+            if (expr.Token == ")" || expr.Token == "to" || expr.Token == "as" || expr.Token == "is" || expr.Token == "cast")
             {
                 if (expr.Count != 0)
                     ShowTypes(expr[0], true);
@@ -486,7 +472,6 @@ namespace Gosub.Zurfur
                 ShowParseTree(field.TypeName);
             }
         }
-
 
         SyntaxExpr ShowParseTree(SyntaxExpr expr)
         {
