@@ -25,8 +25,9 @@ namespace Gosub.Zurfur
         const string VIRTUAL_TOKEN_LAMBDA = "()";
         const string VIRTUAL_TOKEN_INITIALIZER = "{}";
 
-        public const string PTR = "^";
-        public const string XOR = "~";
+        public const string PTR = "*";
+        public const string DEREFERENCE = "*.";
+        public const string XOR = "^";
         public const string NEWVAR = "@";
 
         ZurfParseCheck mZurfParseCheck;
@@ -43,7 +44,7 @@ namespace Gosub.Zurfur
 
         // NOTE: >> and >= are omitted and handled at parser level.
         //       TBD: Need to handle >>= as well
-        public const string TokenSymbols = "<< <= == != && || += -= *= /= %= &= |= " + XOR + "= <<= => === :: .. ...";
+        public const string TokenSymbols = "<< <= == != && || += -= *= /= %= &= |= " + XOR + "= <<= => === :: .. ... *.";
 
         // Add semicolons to all lines, except for:
         static WordSet sEndLineSkipSemicolon = new WordSet("; { [ ( ,");
@@ -51,7 +52,7 @@ namespace Gosub.Zurfur
                                                     + ": ? . , > << <= < => .. :: === += -= *= /= %= &= |= " + XOR + "= else where is");
         Token mInsertedToken;
 
-        static readonly string sReservedWordsList = "abstract as to base break case catch class const "
+        static readonly string sReservedWordsList = "abstract as base break case catch class const "
             + "continue default delegate do else enum event explicit extern false defer use "
             + "finally fixed for goto if implicit in interface internal is lock namespace module include "
             + "new null operator out override pub public private protected readonly ro ref mut "
@@ -80,7 +81,8 @@ namespace Gosub.Zurfur
         static WordSet sAddOperators = new WordSet("+ - | " + XOR);
         static WordSet sMultiplyOperators = new WordSet("* / % & << >>"); // For '>>', use VIRTUAL_TOKEN_SHIFT_RIGHT
         static WordSet sAssignOperators = new WordSet("= += -= *= /= %= |= &= " + XOR + "= <<= >>=");
-        static WordSet sUnaryOperators = new WordSet("+ - ! & " + XOR + " " + PTR);
+        static WordSet sUnaryOperators = new WordSet("+ - ! & " + XOR + " " + DEREFERENCE);
+        public static WordSet sCastOperators = new WordSet(") # as is cast");
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
         // This seems stange because something like `a = F<T1,T2>;` is not a valid expression
@@ -243,6 +245,7 @@ namespace Gosub.Zurfur
                         ParseClass(parentClass, qualifiers);
                         break;
 
+                    case "cast":
                     case "operator":
                     case "new":
                     case "func":
@@ -604,6 +607,9 @@ namespace Gosub.Zurfur
                     ParseNewDef(synFunc);
                     synFunc.Constraints = ParseConstraints();
                     break;
+                case "cast":
+                    ParseCastDef(synFunc);
+                    break;
                 case "operator":
                     ParseOperatorDef(synFunc);
                     break;
@@ -672,11 +678,21 @@ namespace Gosub.Zurfur
         {
             synFunc.Name = mToken;
             if (mToken != "(")
-                Reject("Expecting '(' after 'new' token", sRejectFuncName);
-
-            // Parse parameters
+                Reject("Expecting '(' after '" + synFunc.Keyword + "' token", sRejectFuncName);
             if (mToken == "(")
                 synFunc.Params = ParseFuncParamsDef();
+        }
+
+        private void ParseCastDef(SyntaxFunc synFunc)
+        {
+            synFunc.Name = mToken;
+            if (mToken != "(")
+                Reject("Expecting '(' after '" + synFunc.Keyword + "' token", sRejectFuncName);
+            if (mToken == "(")
+                synFunc.Params = ParseFuncParamsDef();
+            if (synFunc.Params != null && synFunc.Params.Count != 1)
+                RejectToken(synFunc.Keyword, "Expecting exactly 1 parameter");
+            // TBD: Could have a return type for conversion to a different type
         }
 
         private void ParseOperatorDef(SyntaxFunc synFunc)
@@ -991,7 +1007,36 @@ namespace Gosub.Zurfur
             if (mTokenName == "switch")
                 return ParseSwitchExpression();
 
+            // Prefix cast: #type(expression)
+            if (mTokenName == "#" || mTokenName == "cast")
+            {
+                var operatorToken = Accept();
+                if (ParseTypeName(out var typeName, sEmptyWordSet)
+                    && AcceptMatchOrReject("(", "start of cast expression", false))
+                {
+                    var openToken = mPrevToken;
+                    var castExpr = ParseExpr();
+                    if (AcceptMatchOrReject(")", "end of cast expression", false))
+                    {
+                        Connect(openToken, mPrevToken);
+                        var result2 = (SyntaxExpr)new SyntaxBinary(operatorToken, typeName, castExpr);
+                        result2 = PrimaryPostfix(result2);
+                        return result2;
+                    }
+                }
+                return new SyntaxToken(operatorToken);  // Error, doesn't matter
+            }
+
             var result = ParseAtom();
+            result = PrimaryPostfix(result);
+            return result;
+        }
+
+        /// <summary>
+        /// Primary postfix: function call '()', array '[]', member access '.', cast
+        /// </summary>
+        private SyntaxExpr PrimaryPostfix(SyntaxExpr result)
+        {
             bool accepted;
             do
             {
@@ -1007,28 +1052,29 @@ namespace Gosub.Zurfur
                 }
                 else if (AcceptMatch("."))
                 {
-                    // Experimental cast style: Identifier.(type)
-                    if (mTokenName == "(" || AcceptMatch("to") || AcceptMatch("as") || AcceptMatch("cast") || AcceptMatch("is"))
+                    accepted = true;
+
+                    if (sCastOperators.Contains(mToken))
                     {
+                        // Postfix cast: primary.#(type)
+                        var operatorToken = Accept();
                         var openToken = mToken;
                         if (AcceptMatchOrReject("(", "start of cast", false)
                             && ParseTypeName(out var typeName, sEmptyWordSet)
                             && AcceptMatchOrReject(")", "end of cast", false))
                         {
-                            // Parse a cast: Use ')' to differentiate from function call which is '('
                             Connect(mPrevToken, openToken);
-                            result = new SyntaxBinary(mPrevToken, typeName, result);
-                            accepted = true;
+                            result = new SyntaxBinary(operatorToken, typeName, result);
                         }
-                        else
-                        {
-                            return new SyntaxToken(openToken); // Parse error, doesn't matter
-                        }
+                    }
+                    else if (AcceptMatch(PTR))
+                    {
+                        // Dereference: primary.*
+                        result = new SyntaxUnary(mPrevToken, result);
                     }
                     else
                     {
                         // Member access
-                        accepted = true;
                         result = new SyntaxBinary(mPrevToken, result,
                             new SyntaxToken(ParseIdentifier("Expecting identifier")));
                     }
@@ -1066,7 +1112,7 @@ namespace Gosub.Zurfur
                 return new SyntaxToken(mToken);
             }
 
-            // Parse parentheses: expression, cast, or lambda parameters (not a function call)
+            // Parse parentheses: expression, or lambda parameters (not a function call)
             if (mTokenName == "(")
             {
                 // Parse expressions
@@ -1075,16 +1121,9 @@ namespace Gosub.Zurfur
                 ParseParen(expressions, false);
 
                 // Expression order parentheses are thrown away, lambda is kept
-                SyntaxExpr result = expressions.Count == 1 ? expressions[0] 
-                                    : new SyntaxMulti(CreateInvisible(mPrevToken, VIRTUAL_TOKEN_LAMBDA), expressions.ToArray());
-
-                if (mToken.Type != eTokenType.Identifier && mTokenName != "(")
-                    return result;
-
-                mPrevToken.AddWarning("Try the new experimental casting style: 'Expression.(type)' or 'Expression.to(type)'. This style may be removed");
-                // Parse a cast: The closing ')' is followed by '(' or identifier
-                // Use ')' to differentiate from function call which is '('
-                return new SyntaxBinary(mPrevToken, result, ParsePrimary());
+                return expressions.Count == 1 
+                        ? expressions[0] 
+                        : new SyntaxMulti(CreateInvisible(mPrevToken, VIRTUAL_TOKEN_LAMBDA), expressions.ToArray());
             }
 
             // Number, string, identifier

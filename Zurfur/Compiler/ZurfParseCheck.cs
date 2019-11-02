@@ -298,20 +298,6 @@ namespace Gosub.Zurfur
                         CheckFuncBody(expr, e);
                     break;
 
-                case "to":
-                case "as":
-                case "cast":
-                case "is":
-                case ")": // Cast
-                    if (expr.Count != 0 && !CheckCastExpression(expr[0]))
-                    {
-                        mParser.RejectToken(expr.Token, "Cast has an illegal character in it.");
-                        Grayout(expr[0]);
-                    }
-                    for (int i = 1; i < expr.Count; i++)
-                        CheckFuncBody(expr, expr[i]);
-                    break;
-
                 case "()": // Lambda parameters
                     if (parent == null || parent.Token != "=>")
                     {
@@ -332,29 +318,6 @@ namespace Gosub.Zurfur
                         CheckFuncBody(expr, e);
                     break;
             }
-        }
-
-        bool CheckCastExpression(SyntaxExpr expr)
-        {
-            bool ok = true;
-            if (expr.Token.Type != eTokenType.Identifier
-                && expr.Token != ZurfParse.VIRTUAL_TOKEN_TYPE_ARG_LIST
-                && expr.Token != ZurfParse.PTR
-                && expr.Token != "]"
-                && expr.Token != ".")
-            {
-                var message = "Cast expression must be a type name, and may not contain '" + expr.Token + "'";
-                if (expr.Token == "<")
-                    message += ".  NOTE: '<' cannot be interpreted as a type argument list in this context";
-                if (expr.Token == "()")
-                    message = "Cast may not contain ',' separated expressions";
-                mParser.RejectToken(expr.Token, message);
-                ok = false;
-            }
-            foreach (var e in expr)
-                if (!CheckCastExpression(e))
-                    ok = false;
-            return ok;
         }
 
         void Grayout(SyntaxExpr expr)
@@ -424,12 +387,15 @@ namespace Gosub.Zurfur
         {
             if (expr == null)
                 return;
-            if (isType && expr.Token.Type == eTokenType.Identifier)
+            if (isType && (expr.Token.Type == eTokenType.Identifier
+                            || expr.Token == "*") )
                 expr.Token.Type = eTokenType.TypeName;
 
             // Cast
-            if (expr.Token == ")" || expr.Token == "to" || expr.Token == "as" || expr.Token == "is" || expr.Token == "cast")
+            if (ZurfParse.sCastOperators.Contains(expr.Token))
             {
+                //if (expr.Token == "#" || expr.Token == "^")
+                //    expr.Token.Type = eTokenType.TypeName;
                 if (expr.Count != 0)
                     ShowTypes(expr[0], true);
                 for (int i = 1; i < expr.Count; i++)

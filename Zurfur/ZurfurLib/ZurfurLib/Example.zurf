@@ -49,7 +49,7 @@ pub class Example2
     f6 []int       // Same as Array<int>
     f7 Map<str,List<int>>
     f8 Pointer<int>
-    f9 ^int        // Same as Pointer<int>
+    f9 *int        // Same as Pointer<int>
     
     // Fields initialized via constructor
     f10 int(FuncReturnsInt())
@@ -64,7 +64,7 @@ pub class Example2
     f16 int = FuncReturnsInt() >> 4
     f17 float32 = FuncReturnsFloat32orInt()
     f18 str = "Hello"
-    f19 ^int = GetIntPtr()			// Same as Pointer<int> = `GetIntPtr()`
+    f19 *int = GetIntPtr()			// Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
     pub prop P1 int => 1
@@ -111,19 +111,28 @@ pub class Example2
         @a7 = f(f<a>())(a+b)
 
         // Casts
-        @c1 = (M<str,int.x<T>.y>.Hello2)A
-        @c2 = (M<str,int.x<T>.y>.Hello2<x.x>)A
-        @c3 = (List<int,y,z>)A
+	    @a = #int(a+b+myFloat)*23+4        // Prefix, operator
+	    @a = (a+b+myFloat).#(int)*23+4     // Postfix, operator
+	    @a = cast int(a+b+myFloat)*23+4    // Prefix, keyword
+	    @a = (a+b+myFloat).cast(int)*23+4  // Postfix, keyword
+		@a = #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())    // Prefix
+		@a = yourStuff.SeeMyStuff.#(List<Stuff>).Add(Stuff())    // Postfix
+		@a = yourStuff.SeeMyStuff.cast(List<Stuff>).Add(Stuff()) // Postfix
+	    @b = #*int(myVoidPointer).*      // Prefix
+	    @b = myVoidPointer.#(*int).*     // Postfix
+        @c1 = #M<str,int.x<T>.y>.Hello2(A)
+        @c2 = #M<str,int.x<T>.y>.Hello2<x.x>(A)
+        @c3 = #List<int,y,z>(A)
+        @a = #int(a+b+myFloat)
+	    @a = #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
+	    @a = (#List<Stuff>(yourStuff.SeeMyStuff)).Add(Stuff())
+        @b = #*int(myVoidPointer).*
+	    #List<Stuff>(yourStuff.SeeMyStuff)[23] = 4
 
         // Static assigments
         M<str>.Hello = 6
         M<str,int.x<T>.y>.Hello2 = f(1, 2, "Jeremy")
         M<str,int>.Hello2 = f(1, 2, (x, y) => x < y)
-
-        // Cast errors
-        //@ce1 = (M(str,int.x(T).y).Hello2(x.x))A
-        //@ce2 = (List(int,y,z))A
-        //@ce3 = (List<int,y.y+2,z>)A
         
         @a = x>y
         if MyFieldFunc != null
@@ -265,7 +274,7 @@ pub unsafe sealed1 class VariableSizedObject<T>
 
     // Return a pointer to the Array
     // { return (T^)((^void)this + sizeof(this))}
-    protected unsafe prop DataPointer ^T => todo()
+    protected unsafe prop DataPointer *T => todo()
 }
 
 
@@ -340,7 +349,7 @@ pub sealed class Matrix2d<t> : VariableSizedObject<T>
 pub sealed class UnmanagedMemory<T> : UnmanagedHande 
 				where T : IBlittableStruct
 {
-    pub ro Memory ^void
+    pub ro Memory *void
     pub ro Capacity int
     pub ro OwnedByGc bool
     count int
@@ -360,7 +369,7 @@ pub sealed class UnmanagedMemory<T> : UnmanagedHande
     // Attach this object to a buffer allocated by unmanaged code.  
     // Lenght and Capacity are set automatically. Be sure that
     // unmanaged code doesn't delete the object while still in use.  
-    unsafe new(data ^void, sizeOfBufferInBytes int) { todo() }
+    unsafe new(data *void, sizeOfBufferInBytes int) { todo() }
 
     pub func CopyTo() { todo() }
 }
@@ -385,7 +394,7 @@ pub class StructObject
 pub class ClassObject
 {
     // The only member
-    protected unsafe ro VT ^void
+    protected unsafe ro VT *void
 
     pub override func GetType() { todo() }
 }
@@ -404,76 +413,72 @@ pub class FinalizedNotifyQueue
     pub afunc WaitQueueNotEmpty() { todo() }
 }
 
-pub static func MemCopy(dest ^void, source ^void, length xint)
+pub static func MemCopy(dest *void, source *void, length xint)
 {
-	@d = (^byte)dest
-	@s = (^byte)source
+	@to = #xint(dest)
+	@from = #xint(source)
 	
     if length <= 0
     {
         return
     }
-    // Align `d` on int32
-    while (xint)d & 3 != 0 && length != 0
+    // Align `to` on int32
+    while to & 3 != 0 && length != 0
     {
-        ^d = ^s; d+=1; s+=1; length-=1
+        #*byte(to).* = #*byte(from).*; to+=1; from+=1; length-=1
     }
     
-    if (xint)s & 3 == 0
+    if from & 3 == 0
     {
-        MemCopyAlign32(d, s, length)
+        MemCopy32(#*void(to), #*void(from), length)
         return
     }
     
     // Byte copy
-    @end = d + length
-    while (xint)end-(xint)d >= 4
+    @end = to + length
+    while end-to >= 4
     {
-        ^d = ^s; d+=1; s+=1
-        ^d = ^s; d+=1; s+=1
-        ^d = ^s; d+=1; s+=1
-        ^d = ^s; d+=1; s+=1
+        #*byte(to).* = #*byte(from).*; to+=1; from+=1
+        #*byte(to).* = #*byte(from).*; to+=1; from+=1
+        #*byte(to).* = #*byte(from).*; to+=1; from+=1
+        #*byte(to).* = #*byte(from).*; to+=1; from+=1
     } 
-    while (xint)d != (xint)end
+    while to != end
     {
-        ^d = ^s; d+=1; s+=1
+        #*byte(to).* = #*byte(from).*; to+=1; from+=1
     }
 }
 
-pub static func MemCopyAlign32(dest ^void, source ^void, length xint)
+pub static func MemCopy32(dest *void, source *void, length xint)
 {
-	@d = (^byte)dest
-	@s = (^byte)source
+	@to = #xint(dest)
+	@from = #xint(source)
 
     if length <= 0
     {
         return
     }
-    if ((xint)s | (xint)d) & 3 != 0
-    {
-    	throw MemoryAccessEception()
-    }
 
     // Try 64 bit copy first
-    @end = d + length
-    if ((xint)d~(xint)s) & 4 == 0 && length >= 8
+    @end = to + length
+    if (to^from) & 4 == 0 && length >= 8
     {
-        if (xint)d & 4 != 0
+        if to & 4 != 0
         {
-            ^(^int32)d = ^(^int32)s; d+=4; s+=4
+            #*int32(to).* = #*int32(from).*; to+=4; from+=4
         }
-        while end - d >= 8
+        while end - to >= 8  
         {
-            ^(^int64)d = ^(^int64)s; d+=8; s+=8
+            #*int64(to).* = #*int64(from).*; to+=8; from+=8
         }
     }
-    while (xint)end-(xint)d >= 4
+    while end-to >= 4
     {
-        ^(^int32)d = ^(^int32)s; d+=4; s+=4
+        #*int32(to).* = #*int32(from).*; to+=4; from+=4
     }
-    while (xint)d != end
+    while to != end
     {
-        ^d = ^s; d+=1; s+=1
+        #*byte(to).* = #*byte(from).*; to+=1; from+=1
     }
 }
 

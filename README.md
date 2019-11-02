@@ -188,10 +188,10 @@ an extra set of `{}` would be required:
 
 Operator precedence comes from Golang.
 
-    Primary: . () [] @ (T)x
-    Unary: + - ! ~ & ^
+    Primary: . () [] @ # .*
+    Unary: + - ! & ^
     Multiplication and bits: * / % << >> & 
-    Add and bits: + - | ~
+    Add and bits: + - | ^
     Range: .. ::
     Comparison: == != < <= > >= === !== in
     Conditional: &&
@@ -203,13 +203,11 @@ Operator precedence comes from Golang.
 
 The `@` operator is the same as using `var` in front of a variable in C#.
 
-TBD: The `*` operator is only for multiplication.   The `^` operator is
-only for dereferencing pointers.  The `~` operator is used for both
-unary complement and binary xor.  These changes were made so the parser can
-insert invisible `;`'s on lines that don't begin with a binary operator. 
+The `*` operator is only for multiplication, and there is no `->` operator.
+See pointers section below for discussion.
 
-The `->` operator is not used.  Pointers are dereferenced by the `.` operator,
-as if they were regular references.  TBD: Change lambda from `=>` to `->`?
+Like Golang, there is no unary `~` operator.  The unary version of `^`
+can be used instead.
 
 Operator `==` does not default to object comparison, and only works when it
 is defined for the given type.  Use `===` for object comparison.  Comparison
@@ -218,13 +216,52 @@ operators are not overloadable, however you can implement just one function,
 Or, if you only care about equality, implement `static func Equals(a myType, b myType) bool`
 to get `==` and `!=` operators.
 
+## Casting
+
+The cast as we know it from C# has several problems.  First, the parser
+doesn't know a type name is expected until after it has been parsed, meaning
+the IDE can't show a list filtered by type name while you are typing.  Second,
+the syntax for cast looks strange for simple types `@myInt = (int)(a+b*myFloat)`
+where you'd much rather type it like this `@myInt = int(a+b*myFloat)`.
+Third, sometimes a postfix cast is easier to read.
+
+Zurfur accepts two forms of cast syntax, a prefix and a postfix version.
+The prefix version looks like this `#type(expression)`, and the postfix
+version looks like this `primary.#(ptype)`.  The `()` around `expression`
+and `ptype` are required similarly to C#.
+
+    // Standard C# casts 
+    @a = (int)(a+b+myFloat)
+	((List<Stuff>)yourStuff.SeeMyStuff).Add(Stuff())
+
+    // Zurfur casts
+    @a = #int(a+b+myFloat)          // Prefix
+    @a = (a+b+myFloat).#(int)       // Postfix
+	yourStuff.SeeMyStuff.#(List<Stuff>).Add(Stuff())   // Postfix
+	#List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())    // Prefix
+
+A cast is used when a type conversion should be explicit, including
+conversion from a base class to a derived class, conversion between
+pointer types, and conversion of integer types that may lose precision.
+
+A constructor can be used to convert types that don't lose precision,
+like `byte` to `int`, but a cast must be used to convert `int` to `byte`
+because precision can be lost.  In the definitions below, we want an
+error if MyIntFunc() should ever return a float.
+
+    // Field definitions
+    a int(MyByteFunc())         // Ok, no loss of precision
+    a int(MyIntFunc())          // Ok, but fails if MyIntFunc returns a float
+    a int(MyFloatFunc())        // Fail, constructor won't risk losing precision
+    a int(#int(MyFloatFunc()))  // Ok, explicit cast
+
 ## Interfaces
 
 Interfaces are a cross between C# and GoLang, but a little different from
 both.  They are mostly C# 8.0 (including default implementations, etc.)
 but they also allow *explicit* conversion from any class that defines
 all the required functions.  Unlike C# and Golang, interfaces do not
-allow conversion back to the original object.  
+allow casting back to the original object.  
 
 #### Structural Typing
 
@@ -239,27 +276,27 @@ each supported interface.
 Zurfur takes the middle ground.  Classes should list the
 interfaces they support.  But, an *explicit* cast can be used
 to build any interface provided the class implements all the
-functions.  The explicit cast is to remind us us that the class
-does not necessarily support the interface.  **TBD:** Could
-require the `cast` keyword to make it even more explicit
-that structural typing is being used.
+functions.  The explicit cast is to remind us that the class
+does not necessarily support the interface, and it's on the
+user (not the library writer) to make sure it's all kosher.
 
 #### No Conversion Back to the Concrete Class
 
 Once you have an interface, it's impossible to cast it back
-to the original class.  It can be implicitly converted
-to a base interface or explicitly converted to any interface
-that implements a subset of the methods.
+to the original class or any other concrete class, including
+`object`.  It can be implicitly converted to a base interface
+or explicitly converted to any interface that implements a subset
+of its methods.
 
 This prevents people from using a cast to bypass the intended
 use of the interface.  For example:
 
     pub class MyStuff
     {
-	    // Nobody should modify our stuff, except for us!
+	    // Nobody should modify my stuff, except for us!
 	    mystuff List<Stuff>()
 	
-	    // Don't mind if they look at our stuff
+	    // Don't mind if they look at my stuff
     	pub ro SeeMyStuff IRoArray<Stuff> = mystuff;
     }
 
@@ -267,76 +304,39 @@ use of the interface.  For example:
     {
 	    // Gee, wouldn't it be nice to modify your stuff here?
 	    // ILLEGAL!
-	    ((List<Stuff>)yourStuff.SeeMyStuff).Add(Stuff());
-
-        // Alternate experimental cast (still ILLEGAL)
-	    yourStuff.SeeMyStuff.to(List<Stuff>).Add(Stuff());
+	    yourStuff.SeeMyStuff.#(List<Stuff>).Add(Stuff());
     }
-
-## Casting
-
-In the code, cast looks like `(Type)identifier` or `(Type)(expression)`
-and is used when a type conversion should be explicit, including
-conversion from a base class to a derived class, conversion between
-pointer types, and converting integer types that may lose precision.
-
-**TBD:** Allow conversion from `float` to `int` via constructor 
-(e.g `myInt = int(a+myFoat)`)?  This syntax looks  nicer than 
-`myInt = (int)(a+myFloat)`.  The problem comes with a field
-definition like this `a int(MyFunc())`.  Since the type name is
-required, it's not clear that the conversion should be allowed.
-If the return type of `MyFunc` changes from `int` to `float` there
-would be an undetected loss of precision.  One solution is to
-to allow `int(MyFloat)` in expressions (since it's clear we
-want the conversion), but require the cast for field definitions
-that lose precision:
-
-    // Field definitions
-    a int(MyByteFunc())         // Ok, no loss of precision
-    a int(MyIntFunc())          // Ok
-    a int(MyFloatFunc())        // Fail, not truly explicit since `int` is required
-    a int((int)MyFloatFunc())   // Ok because of explicit cast
-
-    // Expressions in code
-    @a = int(MyFloatFunc())                 // Ok, `int` is explicit 
-    MyFuncTakingInt(int(MyFloatFunc()))     // Ok, `int` is explicit
-
-
-The cast construct is determined at the parse level.  Whenever a closing
-parenthesis `)` is found, if the next symbol is an identifier or an open
-parenthesis `(`, it's a cast.  Otherwise, it is not.  For example,
-`(a)b`, `(a)(b)` are always casts regardless of what `a` or `b` is.
-`(a+b)c` is an invalid cast.  `(a)^b` is not a cast.  If you
-need to cast a dereferenced pointer, an extra parenthesis is required
-as in `(a)(^b)`.
-
-#### TBD: Experimental Cast
-
-The parser currently accepts a postfix cast in the form of `Expression.(type)`, 
-`Expression.to(type)`, and `Expression.cast(type)`.  So, 
-`((MyInterfaceType)MyObject).InterfaceFunc()` can be written as 
-`MyObject.(MyInterfaceType).InterfaceFunc` or `MyObject.to(MyInterfaceType).InterfaceFunc`.
-And a conversion from `float` to `int` like this `MyFloat.(int)` or `MyFloat.to(int).  
-This looks a little funky, especially for pointer conversions, but maybe it just takes
-some getting used to.
-
-    // See above for definition of MyStuff
-    pub static func MyFunc(yourStuff MyStuff)
-    {
-        // Standard method
-	    ((List<Stuff>)yourStuff.SeeMyStuff).Add(Stuff());
-
-        // Experminetal methods (leaning towards using to)
-	    yourStuff.SeeMyStuff.(List<Stuff>).Add(Stuff());
-	    yourStuff.SeeMyStuff.to(List<Stuff>).Add(Stuff());
-	    yourStuff.SeeMyStuff.cast(List<Stuff>).Add(Stuff());
-    }
-
-**TBD:** Tell me which you like better
 
 ## Arrays, Slicing, and the Range Operator
 
 Describe here...
+
+## Pointers
+
+The `*` operator is only for multiplication, and there is no `->` operator.
+The `.` operator is used for accessing fields or members of a pointer to
+struct.  The `.*` operator dereferences a pointer.  Like a wild card, 
+`.*` means all fields.  For example, `@i=intPtr().*`, `i` is the dereferenced
+value. 
+ 
+    pub static func strcpy(dest *byte, source *byte)
+    {
+	    while source.* != 0
+	        { dest.* = source.*;  dest += 1;  source += 1 }
+        dest.* = 0
+    }
+
+**TBD:** Experimental - We could keep the dereference prefix, like in C and
+C#, and it would look like this:
+
+    pub static func strcpy(dest *byte, source *byte)
+    {
+	    while *.source != 0
+	        { *.dest = *.source;  dest += 1;  source += 1 }
+        *.dest = 0
+    }
+
+Both forms are currently supported, but one will be removed in the future.
 
 
 ## Namespace/using
@@ -415,16 +415,7 @@ A sync function cannot implicitly call an async function, but it can start it
 using the `astart` keyword, like this: `func MySyncFunction() { astart MyAsyncFunction() }`
 
 **TBD:** As you can see, much is still TBD.
-
-## Pointers
-
-`^` is used to dereference pointers and `.` is used to access a field
-or method of a struct through a pointer.  `->` is not needed because
-`.` works fine.  `*` was changed to `^` since the former is also
-a binary operator.  
-
-Describe more here...
-
+    
 ## Open Questions
 
 Should structs be immutable by default?  No.  Immutable won't be
