@@ -15,7 +15,6 @@ pub class Example
 }
 pub func Example::MyExtension() => Func1(10) // Extension method
 
-
 pub func Example::Extension() 
 { 
 	for @a in 1..23
@@ -25,7 +24,6 @@ pub func Example::Extension()
 		a + 55 = 23 // TBD: Fix 
 	}
 }
-
 
 // Test class
 pub class Example2
@@ -224,24 +222,6 @@ pub static func Sort<T>(s Span<T>, lessThan func(a T, b T) bool)
     }
 }
 
-
-pub struct str
-{
-    ro str Array<byte>
-
-    pub new() { str = Array<byte>.Empty }
-    pub new(s str) { todo() }
-    pub new(s RoSpan<byte>) { todo() }
-    pub this[index int] byte => todo()
-    pub this[range Range] RoSpan<byte> => todo() // Slice
-    
-    pub operator+(s1 str, s2 str) str { todo() }   
-    pub operator+(s1 RoSpan<byte>, s2 str) str { todo() }
-    pub operator+(s1 str, s2 RoSpan<byte>) str { todo() }
-    // TBD: Implicit conversion to and from RoSpan
-}
-
-
 pub ref struct Span<T>
 {
     ro data ref T
@@ -307,26 +287,47 @@ pub class List<T>
     // NOTE: `Add` not needed because of default implementation
     pub prop Count int { get }
     pub func Clear() => todo()
-    pub func Remove(item T) => todo()
-    pub func InsertAt(index int, item T) => todo()
-    pub func InsertAt(index int, items ICollection<T>) => todo()
-    pub func RemoveAt(index int) => todo()
-    pub func RemoveAt(range Range) => todo()
+    pub func Insert(index int, item T) => todo()
+    pub func Insert(index int, items ICollection<T>) => todo()
+    pub func Remove(index int) => todo()
+    pub func Remove(range Range) => todo()
     
 }
 
 pub class Map<TKey, TValue> 
 	: IMap<TKey, TValue>
 {
-    new() => todo()
-    new(capacity int) => todo()
+	comparer func(a TKey, b TKey) bool;
+	getHashCOde func(a TKey, b TKey) bool;
+	comparer IComparer;
+	
+
+    new() where TKey : IEquatable
+    {
+    	comparer = (a, b) => TKey.compare(a, b);
+    	getHashCode = (a) => TKey.getHashCode(a);
+    	comparer = TKey;
+		
+    }
+    new(comparer IEquatable)
+    {
+    	comparer = this.comparer;
+    }
+    new(compare func(a TKey, b TKey) bool, 
+    	getHashCode func(a TKey, b TKey) uint)
+    {
+    	comparer = compare;
+    }
+    new(capacity int) where TKey : IEquatable
+    	=> todo()
     new(keyValues ICollection<KeyValuePair<TKey, TValue>>) => todo()
     
     pub this[key TKey] TValue { get => todo() set => todo() }
 	pub operator in(a TKey) bool => todo()
 
     pub prop Count int { get }
-    pub func Clear() => todo()    
+    pub func Clear() => todo()
+    pub func Contains(key TKey) bool => todo();    
     pub func Get(key TKey, defaultValue TValue) TValue => todo()
     pub func TryGet(key TKey, value out TValue) bool => todo()
     pub func Add(item KeyValue<TKey, TValue>) => todo()    

@@ -11,18 +11,20 @@ pub struct int = int32
 pub struct uint = uint32
 pub struct byte = uint8
 
+// TBD: Needs to be an actual struct to enforce proper typing and casting rules
 /// 32 bit or 64 bit integer depending on the platform
 pub struct xint = int32 
 
+// TBD: Needs to be an actual struct to enforce proper typing and casting rules
 /// 32 bit or 64 bit integer depending on the platform
 pub struct xuint = uint32
 
 /// bool (true or false)
 pub struct bool
+	: IEquatable<bool>
 {
     pub extern static func GetHashCode(a bool) uint
     pub extern static func Equals(a bool, b bool) bool
-    pub extern static func Compare(a bool, b bool) int
 
     // Not overloadable, but these are supplied specially for this type
     //static extern func operator!(a bool)
@@ -32,6 +34,7 @@ pub struct bool
 
 /// int8 (-128..127)
 pub struct int8
+	: IComparable<int8>
 {
     extern cast(from uint8)
     extern cast(from int16)
@@ -44,6 +47,8 @@ pub struct int8
     extern cast(from float64)
     extern cast(from decimal)
 
+	const Origin int8 = 0;
+	const Identity int8 = 1;
     const MaxValue int8 = 127	
     const MinValue int8 = -128
     pub extern static func GetHashCode(a int8) uint
@@ -54,6 +59,7 @@ pub struct int8
 
 /// uint8 (0..255) same as byte
 pub struct uint8
+	: IComparable<uint8>
 {
     extern cast(from int8)
     extern cast(from int16)
@@ -66,6 +72,8 @@ pub struct uint8
     extern cast(from float64)
     extern cast(from decimal)
     
+	const Origin int8 = 0;
+	const Identity int8 = 1;
     const MaxValue uint8 = 255	
     const MinValue uint8 = 0
     pub extern static func GetHashCode(a uint8) uint
@@ -75,6 +83,7 @@ pub struct uint8
 
 /// int16 (-32768..32768)
 pub struct int16
+	: IComparable<int16>
 {
     extern new(from int8)
     extern new(from uint8)
@@ -87,6 +96,8 @@ pub struct int16
     extern cast(from float64)
     extern cast(from decimal)
 
+	const Origin int8 = 0;
+	const Identity int8 = 1;
     const MaxValue int16 = 32767
     const MinValue int16 = -32768
     pub extern static func GetHashCode(a int16) uint
@@ -97,6 +108,7 @@ pub struct int16
 
 /// uint16 (0..65535)
 pub struct uint16
+	: IComparable<uint16>
 {
     extern cast(from int8)
     extern new(from uint8)
@@ -109,6 +121,8 @@ pub struct uint16
     extern cast(from float64)
     extern cast(from decimal)
 
+	const Origin int8 = 0;
+	const Identity int8 = 1;
     const MaxValue uint16 = 65535	
     const MinValue uint16 = 0
     pub extern static func GetHashCode(a uint16) uint
@@ -118,6 +132,7 @@ pub struct uint16
 
 /// A 32 bit integer (same as int)
 pub struct int32
+	: IArithmetic<int32>
 {
     extern new(from int8)
     extern new(from uint8)
@@ -130,6 +145,8 @@ pub struct int32
     extern cast(from float64)
     extern cast(from decimal)
 
+	const Origin int8 = 0;
+	const Identity int8 = 1;
     const MaxValue int32 = 2147483647	
     const MinValue int32 = -2147483648
 
@@ -145,10 +162,10 @@ pub struct int32
     pub extern operator-(a int32, b int32) int32
     pub extern operator*(a int32, b int32) int32
     pub extern operator/(a int32, b int32) int32
+    pub extern operator%(a int32, b int32) int32
     
     // Not overloadable, but these are supplied specially for this type
-    //static extern func operator%(a int32, b int32)
-    //static extern func operator~(a int32)
+    //static extern func operator^(a int32)
     //static extern func operator|(a int32, b int32)
     //static extern func operator&(a int32, b int32)
     //static extern func operator^(a int32, b int32)
@@ -158,6 +175,7 @@ pub struct int32
 
 /// 32 bit unsigned integer (same as uint)
 pub struct uint32
+	: IArithmetic<uint32>
 {
     extern cast(from int8)
     extern new(from uint8)
@@ -170,6 +188,8 @@ pub struct uint32
     extern cast(from float64)
     extern cast(from decimal)
 
+	const Origin int8 = 0;
+	const Identity int8 = 1;
     const MaxValue uint32 = (0)	
     const MinValue uint32 = 4294967295
 
@@ -185,10 +205,10 @@ pub struct uint32
     pub extern operator-(a uint32, b uint32) uint32
     pub extern operator*(a uint32, b uint32) uint32
     pub extern operator/(a uint32, b uint32) uint32
+    pub extern operator%(a uint32, b uint32) uint32
 
     // Not overloadable, but these are supplied specially for this type
-    //static extern func operator%(a uint32, b uint32)
-    //static extern func operator~(a uint32)
+    //static extern func operator^(a uint32)
     //static extern func operator|(a uint32, b uint32)
     //static extern func operator&(a uint32, b uint32)
     //static extern func operator^(a uint32, b uint32)
@@ -198,6 +218,7 @@ pub struct uint32
 
 /// A 64 bit integer
 pub struct int64
+	: IArithmetic<int64>
 {
     extern new(from int8)
     extern new(from uint8)
@@ -210,6 +231,8 @@ pub struct int64
     extern cast(from float64)
     extern cast(from decimal)
 
+	const Origin int8 = 0;
+	const Identity int8 = 1;
     const MaxValue int64 = 9223372036854775807	
     const MinValue int64 = -9223372036854775808
 
@@ -225,10 +248,10 @@ pub struct int64
     pub extern operator-(a int64, b int64) int64
     pub extern operator*(a int64, b int64) int64
     pub extern operator/(a int64, b int64) int64
+    pub extern operator%(a int64, b int64) int64
 
     // Not overloadable, but these are supplied specially for this type
-    //static extern func operator%(a int64, b int64)
-    //static extern func operator~(a int64)
+    //static extern func operator^(a int64)
     //static extern func operator|(a int64, b int64)
     //static extern func operator&(a int64, b int64)
     //static extern func operator^(a int64, b int64)
@@ -238,6 +261,7 @@ pub struct int64
 
 /// 64 bit unsigned integer
 pub struct uint64
+	: IArithmetic<uint64>
 {
     extern cast(from int8)
     extern new(from uint8)
@@ -250,6 +274,8 @@ pub struct uint64
     extern cast(from float64)
     extern cast(from decimal)
 
+	const Origin int8 = 0;
+	const Identity int8 = 1;
     const MaxValue uint64 = 0	
     const MinValue uint64 = 18446744073709551615
 
@@ -265,10 +291,10 @@ pub struct uint64
     pub extern operator-(a uint64, b uint64) uint64
     pub extern operator*(a uint64, b uint64) uint64
     pub extern operator/(a uint64, b uint64) uint64
+    pub extern operator%(a uint64, b uint64) uint64
 
     // Not overloadable, but these are supplied specially for this type
-    //static extern func operator%(a uint64, b uint64)
-    //static extern func operator~(a uint64)
+    //static extern func operator^(a uint64)
     //static extern func operator|(a uint64, b uint64)
     //static extern func operator&(a uint64, b uint64)
     //static extern func operator^(a uint64, b uint64)
@@ -277,6 +303,7 @@ pub struct uint64
 }
 
 pub struct float32
+	: IArithmetic<float32>
 {
     extern new(from int8)
     extern new(from uint8)
@@ -296,9 +323,11 @@ pub struct float32
     
     // Comparisons for sorting (NAN>infinity and NAN==NAN are both true)
     pub extern static func GetHashCode(a float32) uint
-    pub extern static func IHashable<float32>::Equals(a float32, b float32) bool
-    pub extern static func ISortable<float32>::Compare(a float32, b float32) int
+    pub extern static func IEquatable<float32>::Equals(a float32, b float32) bool
+    pub extern static func IComparable<float32>::Compare(a float32, b float32) int
 
+	const Origin int8 = 0;
+	const Identity int8 = 1;
     const MinValue float32 = -3.40282347E+38F
     const MaxValue float32 = 3.40282347E+38F
     const Epsilon float32 = 1.401298E-45F
@@ -318,13 +347,11 @@ pub struct float32
     pub extern operator-(a float32, b float32) float32
     pub extern operator*(a float32, b float32) float32
     pub extern operator/(a float32, b float32) float32
-    
-    // Not overloadable, but these are supplied specially for this type
-    //static extern func operator%(a float32, b float32)	
-    //static extern func operator**(a float32, b float32)
+    pub extern operator%(a float32, b float32) float32    
 }
 
 pub struct float64
+	: IArithmetic<float64>
 {
     extern new(from int8)
     extern new(from uint8)
@@ -344,9 +371,11 @@ pub struct float64
     
     // Comparisons for sorting (NAN>infinity and NAN==NAN are both true)
     pub extern static func GetHashCode(a float64) uint
-    pub extern static func IHashable<float32>::Equals(a float64, b float64) bool
-    pub extern static func ISortable<float32>::Compare(a float64, b float64) int
+    pub extern static func IEquatable<float32>::Equals(a float64, b float64) bool
+    pub extern static func IComparable<float32>::Compare(a float64, b float64) int
 
+	const Origin int8 = 0;
+	const Identity int8 = 1;
     const MinValue float64 = -1.7976931348623157E+308
     const MaxValue float64 = 1.7976931348623157E+308
     const Epsilon float64 = 4.94065645841247E-324
@@ -365,15 +394,13 @@ pub struct float64
     pub extern operator-(a float64, b float64) float64
     pub extern operator*(a float64, b float64) float64
     pub extern operator/(a float64, b float64) float64
-    
-    // Not overloadable, but these are supplied specially for this type
-    //static extern func operator%(a float64, b float64)	
-    //static extern func operator**(a float64, b float64)
+    pub extern operator%(a float64, b float64) float64
 }
 
 /// 128 bit decimal integer.  This will support NAN, infinity, and
 /// exponents covering the range of double.
 pub struct decimal
+	: IArithmetic<decimal>
 {
     extern new(from int8)
     extern new(from uint8)
@@ -386,6 +413,8 @@ pub struct decimal
     extern new(from float32)
     extern new(from float64)
 
+	const Origin int8 = 0;
+	const Identity int8 = 1;
     const MaxValue decimal = 1E+1000M	
     const MinValue decimal = -1E+1000M
     const PositiveInfinity decimal = 1.0/0.0
@@ -408,7 +437,27 @@ pub struct decimal
     pub extern operator-(a decimal, b decimal) decimal
     pub extern operator*(a decimal, b decimal) decimal
     pub extern operator/(a decimal, b decimal) decimal
+    pub extern operator%(a decimal, b decimal) decimal
+}
+
+/// String is a wrapper for a read only array of bytes
+pub struct str
+	: IComparable<str>, IRoArray<byte>
+{
+    ro str Array<byte>
+
+    pub new() { str = Array<byte>.Empty }
+    pub new(s str) { todo() }
+    pub new(s RoSpan<byte>) { todo() }
+    pub this[index int] byte => todo()
+    pub this[range Range] RoSpan<byte> => todo() // Slice
     
-    // Not overloadable, but these are supplied specially for this type    
-    //static extern func operator%(a decimal, b decimal)
+    pub extern static func GetHashCode(a str) uint
+    pub extern static func Equals(a str, b str) bool
+    pub extern static func Compare(a str, b str) int
+        
+    pub operator+(s1 str, s2 str) str { todo() }   
+    pub operator+(s1 RoSpan<byte>, s2 str) str { todo() }
+    pub operator+(s1 str, s2 RoSpan<byte>) str { todo() }
+    // TBD: Implicit conversion to and from RoSpan
 }

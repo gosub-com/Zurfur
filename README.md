@@ -2,7 +2,7 @@
 
 Zurfur is is a programming language I'm designing just for fun and enlightenment.
 The language is named after our cat, Zurfur, who was named by my son.  It's
-spelled **_ZurFUR_** because out cat has fur.
+spelled **_ZurFUR_** because our cat has fur.
 
 ## Design Goals
 
@@ -146,7 +146,6 @@ The indexer for `IList` uses a traditional `get` and `set` function,
 however `myIListOfPoint[index].X = x` works as expected since the
 compiler generates code to `get` the struct, modify it, then `set` it.
 
-
 ## Enums
 
 Enumerations are similar to C# enumerations, in that they are just
@@ -169,26 +168,11 @@ than the name of the field, but it is possible to override and make it
 display anything you want.  This allows enumerations to be just as light
 weight as an integer and need no metadata in the compiled executable.
 
-## Initializers
-
-An initializer is a parameter enclosed within `{}` and may be used any place
-a function parameter takes either an `ICollection` or an object with a matching
-constructor.  The `ICollection` is always chosen over a constructor if both exist. 
-
-    @a = Map<str, int>({{"A",1}, {"B", 2}})
-
-The `Map` constructor takes an `ICollection<KeyValuePair<str,int>>` parameter.
-The constructor of the key value pair will take `str` and `int` parameters, so
-everything matches up and is accepted.  If the `int` were replaced with `MyPointXY`,
-an extra set of `{}` would be required:
-
-    @a = Map<str, MyPointXY>({{"A",{1,2}}, {"B", {3,4}}})
-
 ## Operator Precedence
 
 Operator precedence comes from Golang.
 
-    Primary: . () [] @ # .*
+    Primary: . () [] @ # .* {}
     Unary: + - ! & ^
     Multiplication and bits: * / % << >> & 
     Add and bits: + - | ^
@@ -210,11 +194,37 @@ Like Golang, there is no unary `~` operator.  The unary version of `^`
 can be used instead.
 
 Operator `==` does not default to object comparison, and only works when it
-is defined for the given type.  Use `===` for object comparison.  Comparison
-operators are not overloadable, however you can implement just one function,
-`static func Compare(a myType, b myType) int` to get all six relational operators.
-Or, if you only care about equality, implement `static func Equals(a myType, b myType) bool`
-to get `==` and `!=` operators.
+is defined for the given type.  Use `===` for object comparison. 
+
+#### Operator Overloading
+
+`+`, `-`, `*`, `/`, `%`, and `in` are the only operators that may be individually
+overloaded.  The `==` and `!=` operator may be overloaded together by implementing
+`static func Equals(a myType, b myType) bool`.  All six operators, `==`, `!=`,
+`<`, `<=`, `==`, `!=`, `>=`, and `>` by implementing just one function:
+`static func Compare(a myType, b myType) int`.  If both functions are overloaded,
+`Equals` is used for equality comparisons, and `Compare` is used for the others.
+
+Overloads using the `operator` keyword are static.  Only static
+versions of `Equals` and `Compare` are used for the comparison operators.
+Zurfur inherits this from C#, and Eric Lippert
+[gives a great explanation of why](https://blogs.msdn.microsoft.com/ericlippert/2007/05/14/why-are-overloaded-operators-always-static-in-c).
+
+#### Initializers
+
+An initializer is a parameter enclosed within `{}` and may be used any place
+a function parameter takes either an `ICollection` or an object with a matching
+constructor.  The `ICollection` is always chosen over a constructor if both exist. 
+
+    @a = Map<str, int>({{"A",1}, {"B", 2}})
+
+The `Map` constructor takes an `ICollection<KeyValuePair<str,int>>` parameter.
+The constructor of the key value pair will take `str` and `int` parameters, so
+everything matches up and is accepted.  If the `int` were replaced with `MyPointXY`,
+an extra set of `{}` would be required:
+
+    @a = Map<str, MyPointXY>({{"A",{1,2}}, {"B", {3,4}}})
+
 
 ## Casting
 
@@ -297,7 +307,7 @@ use of the interface.  For example:
 	    mystuff List<Stuff>()
 	
 	    // Don't mind if they look at my stuff
-    	pub ro SeeMyStuff IRoArray<Stuff> = mystuff;
+        pub ro SeeMyStuff IRoArray<Stuff> = mystuff;
     }
 
     pub static func MyFunc(yourStuff MyStuff)
@@ -305,6 +315,33 @@ use of the interface.  For example:
 	    // Gee, wouldn't it be nice to modify your stuff here?
 	    // ILLEGAL!
 	    yourStuff.SeeMyStuff.#(List<Stuff>).Add(Stuff());
+    }
+
+#### Static Functions
+
+Interfaces may include static functions.  Static functions are
+a better fit than virtual functions for some operations.
+For instance,  `IComparable` has only static functions.  This is
+because, when you want to know if `a >= b`, it doesn't make sense
+to ask `a` (via virtual function dispatch) to compare itself to `b`
+which could be a different type.  What does it mean if they are
+different types?  `a` wouldn't know what `b` is.  Note that `a`
+and `b` can still be different types as long as the base class
+implements `IComparable`, but the comparison function is on the
+base class, not the derived classes.
+
+`IArithmetic` is a static only interface, allowing this generic
+function:
+
+    // Return value if it low..high otherwise return low or high.  
+    pub static func BoundValue<T>(value T, low T, high T) T
+		    where T : IAritmetic
+    {
+	    if value <= low
+		    { return low; }
+	    if value >= high
+		    { return high; }
+	    return value;
     }
 
 ## Arrays, Slicing, and the Range Operator
@@ -315,8 +352,8 @@ Describe here...
 
 The `*` operator is only for multiplication, and there is no `->` operator.
 The `.` operator is used for accessing fields or members of a pointer to
-struct.  The `.*` operator dereferences a pointer.  Like a wild card, 
-`.*` means all fields.  For example, `@i=intPtr().*`, `i` is the dereferenced
+struct.  The `.*` operator dereferences a pointer, just like a wild card, it
+means all fields.  For example, `@i=intPtr().*`, `i` is the dereferenced
 value. 
  
     pub static func strcpy(dest *byte, source *byte)

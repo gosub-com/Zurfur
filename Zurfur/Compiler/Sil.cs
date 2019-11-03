@@ -16,10 +16,12 @@ namespace Gosub.Zurfur.Compiler
     /// 
     /// File types:
     /// 
-    ///     .zsildef - Header file with unresolved type names
-    ///     .zsilh - Header file with resolved type names
-    ///     .zsilobj - Object file with all symbolic information
-    ///     .zsilmod - Module level object file for public distribution
+    ///     .zsil - Everything needed to compile a single file
+    ///     .zsilp - A package, ready for public distribution.
+    ///              Possibly obfuscated, possibly some optimization,
+    ///              but platform and build independent
+    ///     .zsilobj - Low level, platform and build specific,
+    ///                ready to be transformed to WebAssembly.
     ///     
     /// Compilation steps:
     /// 
@@ -34,12 +36,11 @@ namespace Gosub.Zurfur.Compiler
     ///     3) Generate the object file containing everything.
     /// 
     /// TBD: Type string name headers: 
-    ///     "$" Zurfur reserved ($int, $int32, $String, $Array, $ref, $ro, etc.)
+    ///     "$" Zurfur reserved ($int, $int32, $str, $Array, $ref, $ro, etc.)
     ///     ".." Module local type name
     ///     "." Fully qualified type name
     ///     "!" Type argument
     ///     ":" Parameter name
-    ///     "->" Return parameters follow
     ///     "@" Op code
     /// </summary>
     public class SilModule

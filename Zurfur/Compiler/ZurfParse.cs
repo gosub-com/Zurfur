@@ -76,7 +76,7 @@ namespace Gosub.Zurfur
 
         static WordSet sAllowConstraintKeywords = new WordSet("class struct unmanaged");
 
-        public static WordSet sOverloadableOperators = new WordSet("+ - * / in");
+        public static WordSet sOverloadableOperators = new WordSet("+ - * / % in");
         static WordSet sComparisonOperators = new WordSet("== != < <= > >= === in"); // For '>=', use VIRTUAL_TOKEN_GE
         static WordSet sAddOperators = new WordSet("+ - | " + XOR);
         static WordSet sMultiplyOperators = new WordSet("* / % & << >>"); // For '>>', use VIRTUAL_TOKEN_SHIFT_RIGHT

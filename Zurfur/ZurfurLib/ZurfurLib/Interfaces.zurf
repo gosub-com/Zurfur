@@ -1,6 +1,36 @@
 ﻿
 namespace Zurfur.Collections;
 
+/// Implement IEquatable on any object that can be stored in a Map.
+/// This is different than implementing just Equals
+/// in that NAN must compare to itself as true.
+pub interface IEquatable<T>
+{
+    static func GetHashCode(a T) uint;
+    static func Equals(a T, b T) bool;
+}
+
+/// Implement IComparable on any object that can be sorted.
+/// This is different than implementing just Compare
+/// in that NAN must have a valid sort order.
+pub interface IComparable<T>
+	: IEquatable<T>
+{
+    static func Compare(a T, b T) int;
+}
+
+pub interface IArithmetic<T>
+	: IComparable<T>
+{
+	operator-(a T) T;
+	operator-(a T, b T) T;
+	operator+(a T, b T) T;
+	operator*(a T, b T) T;
+	operator/(a T, b T) T;
+	operator%(a T, b T) T;
+	static prop Identity T { get }
+	static prop Origin T { get }
+}
 
 pub interface IEnumerator<out T>
 {
@@ -13,21 +43,26 @@ pub interface IEnumerable<out T>
     func GetEnumerator() IEnumerator<T>;
 }
 
-/// Base class for all collections
+/// Base class for all collections.
+/// Collections are immutable until proven otherwise.
 pub interface ICollection<T>
     : IEnumerable<T>
 {
     prop Count int { get }
 }
 
-/// Base class for all mutable collections
+/// Base class for all mutable collections.
 pub interface IMutableCollection<T>
 	: ICollection<T>
 {
 	func Clear()
 	func Add(item T)
 	func Add(items ICollection<T>)
-	func Remove(item T)
+	// NOTE: 'Remove' and 'Contains' are not included because
+	//		each collection may have a different idea about
+	//	    how to compare and find objects.  
+	//		TBD: Consider adding them back in.  With constraint?
+	//		func RemoveObject(item T) where T : IEquatable
 }
 
 pub interface IRoArray<T> 
@@ -46,10 +81,10 @@ pub interface IArray<T>
 pub interface IList<T>
     : IMutableCollection<T>, IArray<T>, IRoArray<T>
 {
-    func InsertAt(index int, item T);
-    func InsertAt(index int, collection ICollection<T>)
-    func RemoveAt(index int);
-    func RemoveAt(range Range);
+    func Insert(index int, item T);
+    func Insert(index int, collection ICollection<T>)
+    func Remove(index int);
+    func Remove(range Range);
 
     pub func Add(item T) { InsertAt(Count, item) }
     pub func Add(items ICollection<T>) { InsertAt(Count, items) }
@@ -67,7 +102,7 @@ pub interface IRoMap<TKey, TValue>
 {
 	operator in(a TKey) bool
     this[key TKey] TValue { get }
-
+    pub func Contains(key TKey) bool => todo();    
     func Get(key TKey, defaultValue TValue) TValue;
     func TryGet(key TKey, value out TValue) bool    
     prop Keys ICollection<TKey> { get }
@@ -81,23 +116,6 @@ pub interface IMap<TKey, TValue>
 {
     this[key TKey] TValue { set }
     func Remove(TKey key) bool
-}
-
-/// Implement IHashable on any object that can be stored in a Map.
-/// This is different than implementing just Equals
-/// in that NAN must compare to itself as true.
-pub interface IHashable<in T>
-{
-    static func GetHashCode(a T) uint;
-    static func Equals(a T, b T) bool;
-}
-
-/// Implement ISortable on any object that can be sorted.
-/// This is different than implementing just Compare
-/// in that NAN must have a valid sort order.
-pub interface ISortable<in T>
-{
-    static func Compare(a T, b T) int;
 }
 
 pub interface IGeneric<Q>
