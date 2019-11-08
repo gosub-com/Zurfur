@@ -49,7 +49,7 @@ pub class Example2  // YES, errors working
     f6 []int       // Same as Array<int>
     f7 Map<str,List<int>>
     f8 Pointer<int>
-    f9 *int        // Same as Pointer<int>
+    f9 ^int        // Same as Pointer<int>
     
     // Fields initialized via constructor
     f10 int(FuncReturnsInt())
@@ -64,7 +64,7 @@ pub class Example2  // YES, errors working
     f16 int = FuncReturnsInt() >> 4
     f17 float32 = FuncReturnsFloat32orInt()
     f18 str = "Hello"
-    f19 *int = GetIntPtr()			// Same as Pointer<int> = `GetIntPtr()`
+    f19 ^int = GetIntPtr()			// Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
     pub prop P1 int => 1
@@ -115,15 +115,15 @@ pub class Example2  // YES, errors working
 	    @a = (a+b+myFloat)#(int)*23+4     // Postfix, operator
 		@a = #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())    // Prefix
 		@a = yourStuff.SeeMyStuff#(List<Stuff>).Add(Stuff())    // Postfix
-	    @b = *.#*int(myVoidPointer)      // Prefix
-	    @b = *.myVoidPointer#(*int)     // Postfix
+	    @b = ^#^int(myVoidPointer)      // Prefix
+	    @b = ^myVoidPointer#(^int)     // Postfix
         @c1 = #M<str,int.x<T>.y>.Hello2(A)
         @c2 = #M<str,int.x<T>.y>.Hello2<x.x>(A)
         @c3 = #List<int,y,z>(A)
         @a = #int(a+b+myFloat)
 	    @a = #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
 	    @a = (#List<Stuff>(yourStuff.SeeMyStuff)).Add(Stuff())
-        @b = *.#*int(myVoidPointer)
+        @b = ^#^int(myVoidPointer)
 	    #List<Stuff>(yourStuff.SeeMyStuff)[23] = 4
 
         // Static assigments
@@ -253,7 +253,7 @@ pub unsafe sealed1 class VariableSizedObject<T>
 
     // Return a pointer to the Array
     // { return (T^)((^void)this + sizeof(this))}
-    protected unsafe prop DataPointer *T => todo()
+    protected unsafe prop DataPointer ^T => todo()
 }
 
 
@@ -349,7 +349,7 @@ pub sealed class Matrix2d<t> : VariableSizedObject<T>
 pub sealed class UnmanagedMemory<T> : UnmanagedHande 
 				where T : IBlittableStruct
 {
-    pub ro Memory *void
+    pub ro Memory ^void
     pub ro Capacity int
     pub ro OwnedByGc bool
     count int
@@ -369,7 +369,7 @@ pub sealed class UnmanagedMemory<T> : UnmanagedHande
     // Attach this object to a buffer allocated by unmanaged code.  
     // Lenght and Capacity are set automatically. Be sure that
     // unmanaged code doesn't delete the object while still in use.  
-    unsafe new(data *void, sizeOfBufferInBytes int) { todo() }
+    unsafe new(data ^void, sizeOfBufferInBytes int) { todo() }
 
     pub func CopyTo() { todo() }
 }
@@ -394,7 +394,7 @@ pub class StructObject
 pub class ClassObject
 {
     // The only member
-    protected unsafe ro VT *void
+    protected unsafe ro VT ^void
 
     pub override func GetType() { todo() }
 }
@@ -413,7 +413,7 @@ pub class FinalizedNotifyQueue
     pub afunc WaitQueueNotEmpty() { todo() }
 }
 
-pub static func MemCopy(dest *void, source *void, length xint)
+pub static func MemCopy(dest ^void, source ^void, length xint)
 {
 	@to = #xint(dest)
 	@from = #xint(source)
@@ -425,12 +425,12 @@ pub static func MemCopy(dest *void, source *void, length xint)
     // Align `to` on int32
     while to & 3 != 0 && length != 0
     {
-        *.#*byte(to) = *.#*byte(from); to+=1; from+=1; length-=1
+        ^#^byte(to) = ^#^byte(from); to+=1; from+=1; length-=1
     }
     
     if from & 3 == 0
     {
-        MemCopy32(#*void(to), #*void(from), length)
+        MemCopy32(#^void(to), #^void(from), length)
         return
     }
     
@@ -438,18 +438,18 @@ pub static func MemCopy(dest *void, source *void, length xint)
     @end = to + length
     while end-to >= 4
     {
-        *.#*byte(to) = *.#*byte(from); to+=1; from+=1
-        *.#*byte(to) = *.#*byte(from); to+=1; from+=1
-        *.#*byte(to) = *.#*byte(from); to+=1; from+=1
-        *.#*byte(to) = *.#*byte(from); to+=1; from+=1
+        ^#^byte(to) = ^#^byte(from); to+=1; from+=1
+        ^#^byte(to) = ^#^byte(from); to+=1; from+=1
+        ^#^byte(to) = ^#^byte(from); to+=1; from+=1
+        ^#^byte(to) = ^#^byte(from); to+=1; from+=1
     } 
     while to != end
     {
-        *.#*byte(to) = *.#*byte(from); to+=1; from+=1
+        ^#^byte(to) = ^#^byte(from); to+=1; from+=1
     }
 }
 
-pub static func MemCopy32(dest *void, source *void, length xint)
+pub static func MemCopy32(dest ^void, source ^void, length xint)
 {
 	@to = #xint(dest)
 	@from = #xint(source)
@@ -461,24 +461,24 @@ pub static func MemCopy32(dest *void, source *void, length xint)
 
     // Try 64 bit copy first
     @end = to + length
-    if (to^from) & 4 == 0 && length >= 8
+    if (to~from) & 4 == 0 && length >= 8
     {
         if to & 4 != 0
         {
-            *.#*int32(to) = *.#*int32(from); to+=4; from+=4
+            ^#^int32(to) = ^#^int32(from); to+=4; from+=4
         }
         while end - to >= 8  
         {
-            *.#*int64(to) = *.#*int64(from); to+=8; from+=8
+            ^#^int64(to) = ^#^int64(from); to+=8; from+=8
         }
     }
     while end-to >= 4
     {
-        *.#*int32(to) = *.#*int32(from); to+=4; from+=4
+        ^#^int32(to) = ^#^int32(from); to+=4; from+=4
     }
     while to != end
     {
-        *.#*byte(to) = *.#*byte(from); to+=1; from+=1
+        ^#^byte(to) = ^#^byte(from); to+=1; from+=1
     }
 }
 

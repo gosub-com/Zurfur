@@ -373,14 +373,12 @@ namespace Gosub.Zurfur.Compiler
             if (expr == null)
                 return;
             if (isType && (expr.Token.Type == eTokenType.Identifier
-                            || expr.Token == "*") )
+                            || expr.Token == ZurfParse.PTR) )
                 expr.Token.Type = eTokenType.TypeName;
 
             // Cast
             if (ZurfParse.sCastOperators.Contains(expr.Token))
             {
-                //if (expr.Token == "#" || expr.Token == "^")
-                //    expr.Token.Type = eTokenType.TypeName;
                 if (expr.Count != 0)
                     ShowTypes(expr[0], true);
                 for (int i = 1; i < expr.Count; i++)

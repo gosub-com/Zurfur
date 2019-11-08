@@ -17,9 +17,8 @@ namespace Gosub.Zurfur.Compiler
         const string VIRTUAL_TOKEN_LAMBDA = "()";
         const string VIRTUAL_TOKEN_INITIALIZER = "{}";
 
-        public const string PTR = "*";
-        public const string DEREFERENCE = "*.";
-        public const string XOR = "^";
+        public const string PTR = "^";
+        public const string XOR = "~";
         public const string NEWVAR = "@";
 
         ZurfParseCheck mZurfParseCheck;
@@ -46,7 +45,7 @@ namespace Gosub.Zurfur.Compiler
 
         // NOTE: >> and >= are omitted and handled at parser level.
         //       TBD: Need to handle >>= as well
-        public const string TokenSymbols = "<< <= == != && || += -= *= /= %= &= |= " + XOR + "= <<= => === :: .. ... *.";
+        public const string TokenSymbols = "<< <= == != && || += -= *= /= %= &= |= " + XOR + "= <<= => === :: .. ...";
 
         // Add semicolons to all lines, except for:
         static WordSet sEndLineSkipSemicolon = new WordSet("; { [ ( ,");
@@ -83,7 +82,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sAddOperators = new WordSet("+ - | " + XOR);
         static WordSet sMultiplyOperators = new WordSet("* / % & << >>"); // For '>>', use VIRTUAL_TOKEN_SHIFT_RIGHT
         static WordSet sAssignOperators = new WordSet("= += -= *= /= %= |= &= " + XOR + "= <<= >>=");
-        static WordSet sUnaryOperators = new WordSet("+ - ! & " + XOR + " " + DEREFERENCE);
+        static WordSet sUnaryOperators = new WordSet("+ - ! & " + XOR + " " + PTR);
         public static WordSet sCastOperators = new WordSet("# as is cast");
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
@@ -1318,7 +1317,7 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         bool ParseTypeName(out SyntaxExpr result, WordSet errorStop)
         {
-            // Unary operators '*' and '[]', short for Pointer<type> and Array<type>
+            // Unary operators '^' and '[]', short for Pointer<type> and Array<type>
             // Treat qualifiers `in`, `out`, `ref`, `ro` similar to unary operators
             result = null;
             if (mToken == PTR || mToken == "[")
