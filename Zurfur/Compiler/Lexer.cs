@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
-
-
-namespace Gosub.Zurfur
+namespace Gosub.Zurfur.Compiler
 {
     /// <summary>
     /// Lexical analyzer - scan and separate tokens in a file.
@@ -13,6 +12,8 @@ namespace Gosub.Zurfur
     public class Lexer
     {
         static HashSet<char> sStringEscapes = new HashSet<char> { '\"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u' };
+        static Regex sFindUrl = new Regex(@"(http|https|file|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?");
+
 
         // Strings and tokens buffer
         List<string> mLines = new List<string>();
@@ -69,6 +70,8 @@ namespace Gosub.Zurfur
         /// </summary>
         public void SetSpecialSymbols(string symbols)
         {
+            symbols += " //"; // TBD: Remove
+
             mSpecialSymbols.Clear();
             mSpecialSymbolsHas3Chars = false;
             var sa = symbols.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries);
@@ -208,12 +211,54 @@ namespace Gosub.Zurfur
         }
 
         /// <summary>
+        /// Scan lines of text from an array, completely 
+        /// replacing all text in Lines, and all tokens
+        /// </summary>
+        public void ScanLines(string[] lines)
+        {
+            mTokens.Clear();
+
+            // Must have at least one line of text
+            if (lines.Length == 0)
+                lines = new string[1] { "" };
+            mLines = new List<string>(lines.Length);
+
+            // For each line
+            for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++)
+            {
+                mLines.Add(lines[lineIndex]);
+                mTokens.Add(ScanLine(lines[lineIndex], lineIndex));
+            }
+        }
+
+        /// <summary>
+        /// Scan a line
+        /// </summary>
+        List<Token> ScanLine(string line, int lineIndex)
+        {
+            int charIndex = 0;
+
+            // Build an array of tokens for this line
+            List<Token> tokens = new List<Token>();
+            while (charIndex < line.Length)
+                ScanToken(line, ref charIndex, tokens);
+
+            foreach (var token in tokens)
+                token.Y = lineIndex;
+
+            if (tokens.Count != 0)
+                tokens[tokens.Count-1].Eoln = true;
+
+            return tokens;
+        }
+
+        /// <summary>
         /// Get the next token on the line.  
         /// Returns a "" token if there are none left.
         /// NOTE: The token's LineIndex is set to zero
         /// NOTE: The token is stripped of TABs
         /// </summary>
-        Token ScanToken(string line, ref int charIndex)
+        void ScanToken(string line, ref int charIndex, List<Token> tokens)
         {
             // Skip white space
             while (charIndex < line.Length && char.IsWhiteSpace(line[charIndex]))
@@ -222,32 +267,39 @@ namespace Gosub.Zurfur
             // End of line?
             int startIndex = charIndex;
             if (charIndex >= line.Length)
-                return new Token("", startIndex, 0);
+                return;
 
             // Identifier
             char ch1 = line[charIndex];
             if (char.IsLetter(ch1) || ch1 == '_')
             {
-                return SacanIdentifier(line, ref charIndex, startIndex);
+                tokens.Add(SacanIdentifier(line, ref charIndex, startIndex));
+                return;
             }
 
             // Number
             if (IsAsciiDigit(ch1))
             {
-                // Hop over number
-                return ScanNumber(line, ref charIndex, startIndex);
+                tokens.Add(ScanNumber(line, ref charIndex, startIndex));
+                return;
             }
             // Quote
             if (ch1 == '\"')
             {
-                return ScanString(line, ref charIndex, startIndex);
+                tokens.Add(ScanString(line, ref charIndex, startIndex));
+                return;
             }
             // Comment
             if (TokenizeComments && ch1 == '/')
             {
-                if (charIndex + 1 < line.Length && line[charIndex+1] == '/')
-                    return ScanComment(line, ref charIndex, startIndex);
+                if (charIndex + 1 < line.Length && line[charIndex + 1] == '/')
+                {
+                    ScanComment(line, startIndex, tokens);
+                    charIndex = line.Length;
+                    return;
+                }
             }
+
             // Special symbols
             if (mSpecialSymbols.Count != 0 && charIndex+1 < line.Length)
             {
@@ -257,27 +309,44 @@ namespace Gosub.Zurfur
                     && mSpecialSymbols.ContainsKey(code * 65536 + line[charIndex + 2]))
                 {
                     charIndex += 3;
-                    return new Token(Mintern[line.Substring(startIndex, 3)], startIndex, 0);
+                    tokens.Add(new Token(Mintern[line.Substring(startIndex, 3)], startIndex, 0));
+                    return;
                 }
                 if (mSpecialSymbols.ContainsKey(code))
                 {
                     charIndex += 2;
-                    return new Token(Mintern[line.Substring(startIndex, 2)], startIndex, 0);
+                    tokens.Add(new Token(Mintern[line.Substring(startIndex, 2)], startIndex, 0));
+                    return;
                 }
             }
 
             // Single character
-            return new Token(Mintern[line[charIndex++].ToString()], startIndex, 0);
+            tokens.Add(new Token(Mintern[line[charIndex++].ToString()], startIndex, 0));
         }
 
-        private Token ScanComment(string line, ref int charIndex, int startIndex)
+        private void ScanComment(string comment, int startIndex, List<Token> tokens)
         {
-            int endIndex = charIndex;
-            while (endIndex < line.Length && (line[endIndex] != '\n' || line[endIndex] != '\r'))
-                endIndex++;
-            string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
-            charIndex = endIndex;
-            return new Token(token, startIndex, 0, token.StartsWith("///") ? eTokenType.PublicComment : eTokenType.Comment);
+            eTokenType commentType = startIndex + 2 < comment.Length && comment[startIndex+2] == '/' 
+                                        ? eTokenType.PublicComment : eTokenType.Comment;
+
+            // Chop up URLs in the comment
+            var m = sFindUrl.Match(comment, startIndex);
+            while (m.Success && startIndex < comment.Length)
+            {
+                var pre = comment.Substring(startIndex, m.Index-startIndex).TrimEnd();
+                if (pre != "")
+                    tokens.Add(new Token(pre, startIndex, 0, commentType));
+                tokens.Add(new Token(m.Value, m.Index, 0, commentType));
+                startIndex = m.Index + m.Length;
+                while (startIndex < comment.Length && char.IsWhiteSpace(comment[startIndex]))
+                    startIndex++;
+                m = sFindUrl.Match(comment, startIndex);
+            }
+
+            comment = comment.Substring(startIndex).TrimEnd();
+            if (comment != "")
+                tokens.Add(new Token(comment, startIndex, 0, commentType));
+
         }
 
         private Token ScanString(string line, ref int charIndex, int startIndex)
@@ -363,52 +432,6 @@ namespace Gosub.Zurfur
             string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
             charIndex = endIndex; // Skip token
             return new Token(token, startIndex, 0, eTokenType.Identifier);
-        }
-
-        /// <summary>
-        /// Scan a line
-        /// </summary>
-        List<Token> ScanLine(string line, int lineIndex)
-        {
-            int charIndex = 0;
-
-            // Build an array of tokens for this line
-            List<Token> tokens = new List<Token>();
-            Token token;
-            do
-            {
-                token = ScanToken(line, ref charIndex);
-                token.Y = lineIndex;
-
-                // Add everything except LF to this line
-                if (token.Name.Length != 0)
-                    tokens.Add(token);
-            } while (token.Name.Length != 0);
-
-            // Copy tokens to array
-            tokens.TrimExcess();
-            return tokens;
-        }
-
-        /// <summary>
-        /// Scan lines of text from an array, completely 
-        /// replacing all text in Lines, and all tokens
-        /// </summary>
-        public void ScanLines(string[] lines)
-        {
-            mTokens.Clear();
-
-            // Must have at least one line of text
-            if (lines.Length == 0)
-                lines = new string[1] { "" };
-            mLines = new List<string>(lines.Length);
-
-            // For each line
-            for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++)
-            {
-                mLines.Add(lines[lineIndex]);
-                mTokens.Add(ScanLine(lines[lineIndex], lineIndex));
-            }
         }
 
         /// <summary>

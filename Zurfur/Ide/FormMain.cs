@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using System.IO;
+using Gosub.Zurfur.Compiler;
 
 namespace Gosub.Zurfur
 {
@@ -14,8 +15,12 @@ namespace Gosub.Zurfur
         TextEditor          mReparseEditor;
         bool                mInActivatedEvent;
 
-        static Brush sLighterGray = new SolidBrush(Color.FromArgb(224, 224, 224));
-        static WordSet BoldHighlightConnectors = new WordSet("( ) [ ] { } < >");
+
+        static Pen sBoldConnectorOutlineColor = new Pen(Color.FromArgb(192, 192, 192));
+        static Brush sBoldConnectorBackColor = new SolidBrush(Color.FromArgb(224, 224, 224));
+        static Pen sConnectorOutlineColor = Pens.LightGray;
+        static Brush sConnectorBackColor = null;
+        static WordSet sBoldHighlightConnectors = new WordSet("( ) [ ] { } < >");
 
         static readonly string ZURFUR_PROJ_EXT = ".zurfproj";
         static readonly string ZURFUR_SRC_MAIN = "Example.zurf";
@@ -106,8 +111,9 @@ namespace Gosub.Zurfur
                 return;
 
             ParseText(textEditor);
-            textEditor.MouseTokenChanged += editor_MouseTokenChanged;
+            textEditor.MouseHoverTokenChanged += editor_MouseTokenChanged;
             textEditor.TextChanged2 += editor_TextChanged2;
+            textEditor.MouseClick += editor_MouseClick;
             textEditor.MouseDown += editor_MouseDown;
         }
 
@@ -117,7 +123,7 @@ namespace Gosub.Zurfur
             if (textEditor == null)
                 return;
 
-            textEditor.MouseTokenChanged -= editor_MouseTokenChanged;
+            textEditor.MouseHoverTokenChanged -= editor_MouseTokenChanged;
             textEditor.TextChanged2 -= editor_TextChanged2;
             textEditor.MouseDown -= editor_MouseDown;
         }
@@ -160,24 +166,39 @@ namespace Gosub.Zurfur
             mHoverMessageForm.Visible = false;
 
             // Update hover token colors
+            List<TokenColorOverride> overrides = new List<TokenColorOverride>();
             editor.TokenColorOverrides = null;
-            if (newToken != null && newToken.Type != eTokenType.Comment)
+            if (newToken != null)
             {
+                // Show active link when CTRL is pressed
+                if ((ModifierKeys & Keys.Control) == Keys.Control && newToken.Url != "")
+                {
+                    var ov = new TokenColorOverride(newToken);
+                    ov.Font = new Font(editor.Font, FontStyle.Underline);
+                    ov.ForeColor = Brushes.Blue;
+                    overrides.Add(ov);
+                    editor.Cursor = Cursors.Hand;
+                }
+                else
+                {
+                    editor.Cursor = Cursors.IBeam;
+                }
+
                 // Make a list of connecting tokens
-                List<TokenColorOverride> overrides = new List<TokenColorOverride>();
-                Token []connectors = newToken.GetInfo<Token[]>();
+                Token[]connectors = newToken.GetInfo<Token[]>();
                 if (connectors != null)
                 {
                     foreach (Token s in connectors)
                     {
-                        if (BoldHighlightConnectors.Contains(s))
-                            overrides.Add(new TokenColorOverride(s, Pens.Gray, sLighterGray));
+                        if (sBoldHighlightConnectors.Contains(s))
+                            overrides.Add(new TokenColorOverride(s, sBoldConnectorOutlineColor, sBoldConnectorBackColor));
                         else
-                            overrides.Add(new TokenColorOverride(s, Pens.LightGray));
+                            overrides.Add(new TokenColorOverride(s, sConnectorOutlineColor, sConnectorBackColor));
                     }
                 }
-                // Highlight current location
-                overrides.Add(new TokenColorOverride(newToken, newToken.Error ? Pens.Red : Pens.LightBlue));
+                // Highlight current location (if not already showing something from above)
+                if (newToken.Type != eTokenType.Comment && newToken.Type != eTokenType.PublicComment)
+                    overrides.Add(new TokenColorOverride(newToken, newToken.Error ? Pens.Red : Pens.LightBlue));
 
                 // Update editor to show them
                 editor.TokenColorOverrides = overrides.ToArray();
@@ -193,6 +214,22 @@ namespace Gosub.Zurfur
             mHoverToken = null;
             mHoverMessageForm.Visible = false;
         }
+
+        /// <summary>
+        /// Open web browser
+        /// </summary>
+        private void editor_MouseClick(object sender, MouseEventArgs e)
+        {
+            var token = ((TextEditor)sender).MouseHoverToken;
+            if (token != null && (ModifierKeys & Keys.Control) == Keys.Control && token.Url != "")
+            {
+                if (token.Url.ToLower().StartsWith("http"))
+                    System.Diagnostics.Process.Start(token.Url);
+                else
+                    MessageBox.Show(this, "TBD: Still working on this:)", "Zurfur");
+            }
+        }
+
 
         void menuFileOpenProject_Click(object sender, EventArgs e)
         {
@@ -478,11 +515,25 @@ namespace Gosub.Zurfur
 
             // For the time being, we'll use the extension to decide
             // which parser to use.  TBD: Move this logic to its own class
+            // TBD: Need build system
             var ext = Path.GetExtension(editor.FilePath).ToLower();
             if (ext == ".zurf")
             {
+                // Parse text
                 var parser = new ZurfParse(editor.Lexer);
                 var program = parser.Parse();
+
+                // Generate Sil
+                if (!parser.ParseError)
+                {
+                    var sil = new SilGen(editor.FilePath, program);
+                    sil.GenerateDefinitions();
+                }
+
+                // Show parser generated tokens
+                var extraTokens = parser.ExtraTokens();
+                editor.ExtraTokens = extraTokens;
+
             }
             else if (ext == ".json")
             {

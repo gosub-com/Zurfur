@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Gosub.Zurfur
+namespace Gosub.Zurfur.Compiler
 {
     /// <summary>
     /// Check the parse tree for various errors and warnings.
@@ -181,8 +178,6 @@ namespace Gosub.Zurfur
                 return;
 
             bool isInInterface = parentClass != null && parentClass.Keyword.Name == "interface";
-            bool isConst = false;
-            bool isPublic = false;
             int sortOrder = -1;
             for (int i = 0; i < qualifiers.Length; i++)
             {
@@ -205,23 +200,8 @@ namespace Gosub.Zurfur
                     sortOrder = newSortOrder;
                 }
 
-                switch (qualifier.Name)
-                {
-                    case "public":
-                        mParser.RejectToken(qualifier, "Use 'pub' instead of public");
-                        return;
-                    case "pub":
-                        isPublic = true;
-                        break;
-                    case "protected":
-                    case "internal":
-                        return;
-                    case "private":
-                        break; // Private checked below
-                    case "const":
-                        isConst = true;
-                        break;
-                }
+                if (qualifier.Name == "public")
+                    mParser.RejectToken(qualifier, "Use 'pub' instead of public");
             }
         }
 
@@ -277,7 +257,12 @@ namespace Gosub.Zurfur
                     foreach (var e in expr)
                     {
                         if (!sStatements.Contains(e.Token))
-                            mParser.RejectToken(e.Token, "Only assignment and call can be used as statements");
+                        {
+                            if (e.Token == "{")
+                                mParser.RejectToken(e.Token, "Unnecessary scope is not allowed");
+                            else
+                                mParser.RejectToken(e.Token, "Only assignment and call can be used as statements");
+                        }
                         CheckFuncBody(expr, e);
                     }
                     break;

@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Drawing;
 
-namespace Gosub.Zurfur
+namespace Gosub.Zurfur.Compiler
 {
     /// <summary>
     /// Basic types recognized by the lexer
@@ -25,10 +24,13 @@ namespace Gosub.Zurfur
 
     public enum eTokenBits : short
     {
-        Error = 1,
-        Warn = 2,
-        Grayed = 4,
-        Invisible = 8
+        Eoln = 1, // Read only (set only in constructor)
+        Error = 2,
+        Warn = 4,
+        Grayed = 8,
+        Invisible = 16,
+        Underline = 32,
+        NoClearMask = Eoln
     }
 
     /// <summary>
@@ -107,13 +109,23 @@ namespace Gosub.Zurfur
             get => (mBits & eTokenBits.Invisible) != 0;
             set { mBits = mBits & ~eTokenBits.Invisible | (value ? eTokenBits.Invisible : 0); }
         }
+        public bool Underline
+        {
+            get => (mBits & eTokenBits.Underline) != 0;
+            set { mBits = mBits & ~eTokenBits.Underline | (value ? eTokenBits.Underline : 0); }
+        }
+        public bool Eoln
+        {
+            get => (mBits & eTokenBits.Eoln) != 0;
+            set { mBits = mBits & ~eTokenBits.Eoln | (value ? eTokenBits.Eoln : 0); }
+        }
 
         /// <summary>
-        /// Clear info and bits, but not type or location
+        /// Clear info and bits, but not type, location, or eoln bit
         /// </summary>
         public void Clear()
         {
-            mBits = 0;
+            mBits = mBits & eTokenBits.NoClearMask;
             mInfo = null;
         }
 
@@ -215,6 +227,29 @@ namespace Gosub.Zurfur
         }
 
         /// <summary>
+        /// Link a token to one in a different file.  File://filename?x=0&y=0
+        /// </summary>
+        public void SetUrl(string file, Token token)
+        {
+            RemoveInfo<TokenUrl>();
+            AddInfo(new TokenUrl("File://" + file + "?x=" + token.X + "&y=" + token.Y));
+        }
+
+        public string Url
+        {
+            get
+            {
+                var token = GetInfo<TokenUrl>();
+                return token == null ? "" : token.Url;
+            }
+            set
+            {
+                RemoveInfo<TokenUrl>();
+                AddInfo(new TokenUrl(value));
+            }
+        }
+
+        /// <summary>
         /// Convert this token to a string
         /// </summary>
         public static implicit operator string(Token token)
@@ -249,8 +284,6 @@ namespace Gosub.Zurfur
             foreach (Token s in sa)
                 s.RepaceInfo(sa);
         }
-
-
     }
 
     /// <summary>
@@ -327,7 +360,22 @@ namespace Gosub.Zurfur
         {
             return "" + "Line: " + Y + ", Char: " + X;
         }
+    }
 
+    /// <summary>
+    /// Attach to a token to provide a link (standard URL, or file name with location info)
+    /// </summary>
+    public class TokenUrl
+    {
+        public readonly string Url = "";
+
+        /// <summary>
+        /// Standard URL
+        /// </summary>
+        public TokenUrl(string url)
+        {
+            Url = url;
+        }
     }
 
 }

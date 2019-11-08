@@ -1,5 +1,5 @@
 ﻿
-namespace Gosub.Zurfur
+namespace Gosub.Zurfur.Compiler
 {
     class WordSet : WordMap<bool>
     {

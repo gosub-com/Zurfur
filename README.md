@@ -228,7 +228,7 @@ an extra set of `{}` would be required:
 
 ## Casting
 
-The cast as we know it from C# has several problems.  First, the parser
+The cast as we know it from C and C# has several problems.  First, the parser
 doesn't know a type name is expected until after it has been parsed, meaning
 the IDE can't show a list filtered by type name while you are typing.  Second,
 the syntax for cast looks strange for simple types `@myInt = (int)(a+b*myFloat)`
@@ -237,18 +237,16 @@ Third, sometimes a postfix cast is easier to read.
 
 Zurfur accepts two forms of cast syntax, a prefix and a postfix version.
 The prefix version looks like this `#type(expression)`, and the postfix
-version looks like this `primary.#(ptype)`.  The `()` around `expression`
-and `ptype` are required similarly to C#.
+version looks like this `primary#(type)`.  The `()` in both versions are
+mandatory, same as in C#.  Two examples:
 
-    // Standard C# casts 
-    @a = (int)(a+b+myFloat)
-	((List<Stuff>)yourStuff.SeeMyStuff).Add(Stuff())
+    @a = (int)(a+myFloat)       // C# (not allowed in Zurfur)
+    @a = #int(a+myFloat)        // Prefix
+    @a = (a+myFloat)#(int)      // Postfix
 
-    // Zurfur casts
-    @a = #int(a+b+myFloat)          // Prefix
-    @a = (a+b+myFloat).#(int)       // Postfix
-	yourStuff.SeeMyStuff.#(List<Stuff>).Add(Stuff())   // Postfix
-	#List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())    // Prefix
+	((List<Stuff>)yourStuff.SeeMyStuff).Add(Stuff())    // C# (not allowed in Zurfur)
+	yourStuff.SeeMyStuff#(List<Stuff>).Add(Stuff())     // Postfix
+	#List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())     // Prefix
 
 A cast is used when a type conversion should be explicit, including
 conversion from a base class to a derived class, conversion between
@@ -290,31 +288,27 @@ functions.  The explicit cast is to remind us that the class
 does not necessarily support the interface, and it's on the
 user (not the library writer) to make sure it's all kosher.
 
-#### No Conversion Back to the Concrete Class
+#### Optional Conversion Back to the Concrete Class
 
-Once you have an interface, it's impossible to cast it back
-to the original class or any other concrete class, including
-`object`.  It can be implicitly converted to a base interface
-or explicitly converted to any interface that implements a subset
-of its methods.
+An interface can optionally be `protected`.  A protected interface
+cannot be converted back to the original class or any other concrete
+class, including `object`.  It can be implicitly converted to a base
+interface or explicitly converted to any interface that implements a
+subset of its methods.
 
 This prevents people from using a cast to bypass the intended
 use of the interface.  For example:
 
     pub class MyStuff
     {
-	    // Nobody should modify my stuff, except for us!
-	    mystuff List<Stuff>()
-	
-	    // Don't mind if they look at my stuff
-        pub ro SeeMyStuff IRoArray<Stuff> = mystuff;
+        // Nobody should modify my stuff, but it's ok if they look at it
+	    myStuff List<Stuff>()
+        pub ro SeeMyStuff IRoArray<Stuff> = #protected IRoArray<Stuff>(myStuff);
     }
-
     pub static func MyFunc(yourStuff MyStuff)
     {
-	    // Gee, wouldn't it be nice to modify your stuff here?
-	    // ILLEGAL!
-	    yourStuff.SeeMyStuff.#(List<Stuff>).Add(Stuff());
+	    // Modify your stuff.  ILLEGAL!
+	    yourStuff.SeeMyStuff#(List<Stuff>).Add(Stuff());
     }
 
 #### Static Functions
@@ -352,20 +346,10 @@ Describe here...
 
 The `*` operator is only for multiplication, and there is no `->` operator.
 The `.` operator is used for accessing fields or members of a pointer to
-struct.  The `.*` operator dereferences a pointer, just like a wild card, it
-means all fields.  For example, `@i=intPtr().*`, `i` is the dereferenced
+struct.  The `*.` operator dereferences a pointer, just like a wild card, it
+means all fields.  For example, `@i=*.intPtr()`, `i` is the dereferenced
 value. 
  
-    pub static func strcpy(dest *byte, source *byte)
-    {
-	    while source.* != 0
-	        { dest.* = source.*;  dest += 1;  source += 1 }
-        dest.* = 0
-    }
-
-**TBD:** Experimental - We could keep the dereference prefix, like in C and
-C#, and it would look like this:
-
     pub static func strcpy(dest *byte, source *byte)
     {
 	    while *.source != 0
@@ -373,16 +357,21 @@ C#, and it would look like this:
         *.dest = 0
     }
 
-Both forms are currently supported, but one will be removed in the future.
+TBD: Use `*:` for better clarity? 
 
 
 ## Namespace/using
 
 Similar to C# namespaces, but a little more like modules since
-static functions, variables, constants, and extension methods may be declared
+static functions, constants, and extension methods may be declared
 at the namespace level.  `using Zurur.Math` imports the intrinsic math functions,
 `Cos`, `Sin`, etc. into the global symbol table.  If you want to froce them to be
 prefixed with `Math.`, it can be done with `using Math=Zurfur.Math`.
+
+The first namespace defined in a file does not use curly braces to start a
+new scope, nor should it start a new level of indentation.  All other
+namespaces are sub-namespaces of the top level namespace and must
+use curly braces.  Only one top level namespace per file is allowed.
 
 TBD: Do we want to use the keyword `module` and `import` instead?  We'll
 keep `namespace` for now since a module may contain different namespaces.

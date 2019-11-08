@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Gosub.Zurfur
+namespace Gosub.Zurfur.Compiler
 {
     /// <summary>
     /// Base class for an expression tree.

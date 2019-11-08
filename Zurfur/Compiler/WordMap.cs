@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Gosub.Zurfur
+namespace Gosub.Zurfur.Compiler
 {
     class WordMap<V> : Dictionary<string, V>
     {

@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Drawing;
-using System.Data;
 using System.Text;
 using System.Windows.Forms;
 using System.IO;
+using Gosub.Zurfur.Compiler;
 
 namespace Gosub.Zurfur
 {
@@ -41,7 +40,7 @@ namespace Gosub.Zurfur
         int             mTabSize = 4;
 
         // Mouse and drawing info
-        Token           mLastMouseHoverToken;
+        Token           mMouseHoverToken;
         Point           mTopLeft;
         Point           mTestPoint;
         Token           mTestToken;
@@ -66,7 +65,8 @@ namespace Gosub.Zurfur
         // Fonts, colors, and misc.
         Dictionary<eTokenType, FontInfo> mTokenFonts = new Dictionary<eTokenType, FontInfo>();
         Dictionary<eTokenType, FontInfo> mTokenFontsGrayed = new Dictionary<eTokenType, FontInfo>();
-        Font        mShrunkFont;
+        Dictionary<eTokenType, FontInfo> mTokenFontsUnderlined = new Dictionary<eTokenType, FontInfo>();
+        Font mShrunkFont;
         Brush       mSelectColor = new SolidBrush(Color.FromArgb(160, 160, 255));
         Brush       mSelectColorNoFocus = new SolidBrush(Color.FromArgb(208, 208, 208));
         EventArgs   mEventArgs = new EventArgs();
@@ -74,8 +74,8 @@ namespace Gosub.Zurfur
         Brush       mWarnColor = Brushes.Yellow;
         static Token sNormalToken = new Token();
 
-        // User back color overrides
-        TokenColorOverride	[]mTokenColorOverrides;
+        Token[] mExtraTokens;
+        TokenColorOverride[]mTokenColorOverrides;
 
         // Internal quick access to mLexer
         int LineCount { get { return mLexer.LineCount; } }
@@ -87,7 +87,7 @@ namespace Gosub.Zurfur
         /// <summary>
         /// This event occurs when the mouse hover token changes.
         /// </summary>
-        public event EditorTokenDelegate MouseTokenChanged;
+        public event EditorTokenDelegate MouseHoverTokenChanged;
 
         /// <summary>
         /// This event occurs when the cursor location changes
@@ -230,6 +230,7 @@ namespace Gosub.Zurfur
         {
             RecalcLineTops();
             TextChanged2?.Invoke(this, mEventArgs);
+            UpdateMouseHoverToken();
         }
 
         /// <summary>
@@ -285,7 +286,7 @@ namespace Gosub.Zurfur
         /// </summary>
         public Token MouseHoverToken
         {
-            get { return mLastMouseHoverToken; }
+            get { return mMouseHoverToken; }
         }
 
         /// <summary>
@@ -296,8 +297,18 @@ namespace Gosub.Zurfur
             get { return mTokenColorOverrides; }
             set
             {
-                Invalidate();
                 mTokenColorOverrides = value;
+                Invalidate();
+            }
+        }
+
+        public Token []ExtraTokens
+        {
+            get { return mExtraTokens; }
+            set
+            {
+                mExtraTokens = value;
+                Invalidate();
             }
         }
 
@@ -506,6 +517,11 @@ namespace Gosub.Zurfur
                 };
                 foreach (var font in mTokenFonts)
                 {
+                    mTokenFontsUnderlined[font.Key] = new FontInfo(new Font(
+                        font.Value.Font, FontStyle.Underline | font.Value.Font.Style), font.Value.Color);
+                }
+                foreach (var font in mTokenFonts)
+                {
                     mTokenFontsGrayed[font.Key] = new FontInfo(font.Value.Font,
                                                     Lerp(font.Value.Color, Color.LightGray, 0.5f));
                 }
@@ -514,6 +530,8 @@ namespace Gosub.Zurfur
             Dictionary<eTokenType, FontInfo> colorTable;
             if (token.Grayed)
                 colorTable = mTokenFontsGrayed;
+            else if (token.Underline)
+                colorTable = mTokenFontsUnderlined;
             else
                 colorTable = mTokenFonts;
 
@@ -1180,45 +1198,49 @@ namespace Gosub.Zurfur
 
             // Print the token
             var backRect = new Rectangle((int)(x - 1) + FILL_X_OFFSET, (int)y, (int)(xEnd - x + 1), (int)(yEnd - y));
+            var overrides = FindColorOverride(token);
+
             if (background)
             {
                 // Draw background color
-                var overrideColor = FindColorOverride(token);
-                if (overrideColor != null && overrideColor.BackColor != null)
-                    gr.FillRectangle(overrideColor.BackColor, backRect);
+                if (overrides != null && overrides.BackColor != null)
+                    gr.FillRectangle(overrides.BackColor, backRect);
                 else if (token.Error)
                     gr.FillRectangle(mErrorColor, backRect);
                 else if (token.Warn)
                     gr.FillRectangle(mWarnColor, backRect);
+                return;
+            }
+
+            if (token.Invisible)
+                return;
+
+            // Adjust tabs
+            int tabStartColumn = mTabSize - col % mTabSize;
+            if (tabStartColumn != mTabStartColumnPrevious && token.Name.IndexOf('\t') >= 0)
+            {
+                mTabStartColumnPrevious = tabStartColumn;
+                mTabFormat.SetTabStops(tabStartColumn*mFontSize.Width, mTabSpacing);
+            }
+
+            if (token.Y >= 0 && token.Y < mLineShrunk.Length && mLineShrunk[token.Y])
+            {
+                // Draw shrunk text
+                x = (int)(x + mFontSize.Width * SHRUNK_FONT_OFFSET.X);
+                y = (int)(y + mFontSize.Height * SHRUNK_FONT_OFFSET.Y);
+                gr.DrawString(token.Name, mShrunkFont, Brushes.Black, x, y, mTabFormat);
             }
             else
             {
-                // Adjust tabs
-                int tabStartColumn = (mTabSize - col % mTabSize);
-                if (tabStartColumn != mTabStartColumnPrevious && token.Name.IndexOf('\t') >= 0)
-                {
-                    mTabStartColumnPrevious = tabStartColumn;
-                    mTabFormat.SetTabStops(tabStartColumn*mFontSize.Width, mTabSpacing);
-                }
-
-                if (token.Y >= 0 && token.Y < mLineShrunk.Length && mLineShrunk[token.Y])
-                {
-                    // Draw shrunk text
-                    x = (int)(x + mFontSize.Width * SHRUNK_FONT_OFFSET.X);
-                    y = (int)(y + mFontSize.Height * SHRUNK_FONT_OFFSET.Y);
-                    gr.DrawString(token.Name, mShrunkFont, Brushes.Black, x, y, mTabFormat);
-                }
-                else
-                {
-                    // Draw normal text
-                    FontInfo fontInfo = GetFontInfo(token, token.Y);
-                    gr.DrawString(token.Name, fontInfo.Font, fontInfo.Brush, x, y, mTabFormat);
-                }
-                var overrideColor = FindColorOverride(token);
-                if (overrideColor != null && overrideColor.OutlineColor != null)
-                    gr.DrawRectangle(overrideColor.OutlineColor, backRect);
-
+                // Draw normal text
+                FontInfo fontInfo = GetFontInfo(token, token.Y);
+                var font = overrides != null && overrides.Font != null ? overrides.Font : fontInfo.Font;
+                var brush = overrides != null && overrides.ForeColor != null ? overrides.ForeColor : fontInfo.Brush;
+                gr.DrawString(token.Name, font, brush, x, y, mTabFormat);
             }
+            // Draw outline
+            if (overrides != null && overrides.OutlineColor != null)
+                gr.DrawRectangle(overrides.OutlineColor, backRect);
         }
 
         private TokenColorOverride FindColorOverride(Token token)
@@ -1263,7 +1285,11 @@ namespace Gosub.Zurfur
                     break;
 
                 DrawToken(gr, token, background);
-            }			
+            }
+
+            if (ExtraTokens != null)
+                foreach (Token token in ExtraTokens)
+                    DrawToken(gr, token, background);
         }
 
         /// <summary>
@@ -1426,13 +1452,18 @@ namespace Gosub.Zurfur
             Invalidate();
         }
 
-
         /// <summary>
         /// Returns true if this is a letter or digit or underscore '_'
         /// </summary>
         bool IsLetterOrDigit(char ch)
         {
             return ch == '_' || char.IsLetterOrDigit(ch);
+        }
+
+        protected override void OnMouseClick(MouseEventArgs e)
+        {
+            UpdateMouseHoverToken();
+            base.OnMouseClick(e);
         }
 
         /// <summary>
@@ -1494,19 +1525,7 @@ namespace Gosub.Zurfur
         /// </summary>
         protected override void OnMouseMove(MouseEventArgs e)
         {
-            // Draw to NULL graphics to find the point
-            mTestPoint = new Point(e.X, e.Y);
-            mTestToken = null;
-            DrawScreen(null, true);
-
-            // Set new mouse hover token
-            if (mTestToken != mLastMouseHoverToken)
-            {
-                Token previousToken = mLastMouseHoverToken;
-                mLastMouseHoverToken = mTestToken;
-                MouseTokenChanged?.Invoke(this, previousToken, mLastMouseHoverToken);
-                Invalidate();
-            }
+            UpdateMouseHoverToken();
 
             // If mouse button is down, move selection
             if (mMouseDown)
@@ -1521,6 +1540,23 @@ namespace Gosub.Zurfur
                 mDelayedInvalidate = true;
             }
             base.OnMouseMove(e);
+        }
+
+        private void UpdateMouseHoverToken(bool forceEvent = false)
+        {
+            // Draw to NULL graphics to find the point
+            mTestPoint = PointToClient(Form.MousePosition);
+            mTestToken = null;
+            DrawScreen(null, true);
+
+            // Set new mouse hover token
+            if (forceEvent || mTestToken != mMouseHoverToken)
+            {
+                Token previousToken = mMouseHoverToken;
+                mMouseHoverToken = mTestToken;
+                MouseHoverTokenChanged?.Invoke(this, previousToken, mMouseHoverToken);
+                Invalidate();
+            }
         }
 
         /// <summary>
@@ -1539,11 +1575,11 @@ namespace Gosub.Zurfur
         /// </summary>
         protected override void OnMouseLeave(EventArgs e)
         {
-            if (mLastMouseHoverToken != null)
+            if (mMouseHoverToken != null)
             {
-                Token previousToken = mLastMouseHoverToken;
-                mLastMouseHoverToken = null;
-                MouseTokenChanged?.Invoke(this, previousToken, mLastMouseHoverToken);
+                Token previousToken = mMouseHoverToken;
+                mMouseHoverToken = null;
+                MouseHoverTokenChanged?.Invoke(this, previousToken, mMouseHoverToken);
                 Invalidate();
             }
             base.OnMouseLeave(e);
@@ -1557,6 +1593,7 @@ namespace Gosub.Zurfur
             mTopLeft = new Point();
             mTopLeft = new Point((int)PointX(hScrollBar.Value), (int)PointY(vScrollBar.Value));
             UpdateCursorBlinker();
+            UpdateMouseHoverToken();
             Invalidate();
         }
 
@@ -1576,7 +1613,18 @@ namespace Gosub.Zurfur
             ScrollBar_Changed();
         }
 
-
+        bool mControlKeyDown;
+        protected override void OnKeyUp(KeyEventArgs e)
+        {
+            // SHIFT, CTRL, and ALT keys update the hover token
+            // since the look may change when these keys are pressed
+            if (e.KeyValue == 16 || e.KeyValue == 17 || e.KeyValue == 18)
+            {
+                if (mControlKeyDown)
+                    UpdateMouseHoverToken(true);
+                mControlKeyDown = false;
+            }
+        }
 
         /// <summary>
         /// Handle all control type keys
@@ -1595,9 +1643,15 @@ namespace Gosub.Zurfur
             if (e.KeyCode == Keys.F3)
                 FormSearch.FindNext(ParentForm, this);
 
-            // Don't do anything for SHIFT, CTRL, or ALT keys
+            // SHIFT, CTRL, and ALT keys update the hover token
+            // since the look may change when these keys are pressed
             if (e.KeyValue == 16 || e.KeyValue == 17 || e.KeyValue == 18)
+            {
+                if (!mControlKeyDown)
+                    UpdateMouseHoverToken(true);
+                mControlKeyDown = true;
                 return;
+            }
 
             // NOTE: ASCII characters are handled in OnKeyPress
             bool ensureCursorOnScreen = true;
@@ -1969,8 +2023,15 @@ namespace Gosub.Zurfur
     public class TokenColorOverride
     {
         public Token Token;
+        public Font  Font;
+        public Brush ForeColor;
         public Pen   OutlineColor;
         public Brush BackColor;
+
+        public TokenColorOverride(Token token)
+        {
+            Token = token;
+        }
 
         public TokenColorOverride(Token token, Pen outlineColor)
         {

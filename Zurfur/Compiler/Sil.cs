@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Gosub.Zurfur.Compiler
 {
@@ -43,19 +40,25 @@ namespace Gosub.Zurfur.Compiler
     ///     ":" Parameter name
     ///     "@" Op code
     /// </summary>
+    /// 
+
+
     public class SilModule
     {
-        public const int VERSION = 1;
-        public string Comments = "";
-        public int Version = VERSION;
-        public SilFile []Files = new SilFile[0];
+    }
+
+    public class SilNamespace
+    {
+        string Name;
+        string NameFull;
+
     }
 
     public class SilFile
     {
-        public string Module = "";
-        public SilType[] Types = new SilType[0];
-        public SilFunc[] Funcs = new SilFunc[0];
+        public string FileName;
+
+
     }
 
     /// <summary>
@@ -63,7 +66,6 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     public class SilType
     {
-        public int X, Y;
         public string Attributes = "";
         public string Name = "";
         public SilField[] Fields = new SilField[0];
@@ -72,7 +74,6 @@ namespace Gosub.Zurfur.Compiler
 
     public class SilField
     {
-        public int X, Y;
         public string Comments = "";
         public string Attributes = "";
         public string Name = "";

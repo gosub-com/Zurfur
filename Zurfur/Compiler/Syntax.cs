@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 
-namespace Gosub.Zurfur
+namespace Gosub.Zurfur.Compiler
 {
     class SyntaxUnit
     {
@@ -20,32 +18,40 @@ namespace Gosub.Zurfur
 
     class SyntaxNamespace
     {
-        public string[] Comments;
+        public string Comments;
+        public Token Name => QualifiedIdentifiers.Length == 0 ? new Token("(none)", 0, 0) : QualifiedIdentifiers[QualifiedIdentifiers.Length - 1];
         public Token Keyword;
-        public SyntaxExpr QualifiedIdentifiers;
+        public Token[] QualifiedIdentifiers = Token.EmptyArray;
+        public SyntaxNamespace ParentNamespace;
+
+        string mFullName;
+        public string FullName => ToString();
 
         public override string ToString()
         {
-            if (QualifiedIdentifiers == null)
-                return "(namespace)";
-            var s = "";
-            for (int i = 0; i < QualifiedIdentifiers.Count; i++)
-                s += QualifiedIdentifiers[i].Token + (i == QualifiedIdentifiers.Count - 1 ? "" : ".");
-            return s;
+            if (mFullName != null)
+                return mFullName;
+            mFullName = "";
+            for (int i = 0; i < QualifiedIdentifiers.Length;  i++)
+                mFullName = mFullName + QualifiedIdentifiers[i] + (i == QualifiedIdentifiers.Length-1 ? "" : ".");
+            if (ParentNamespace != null)
+                mFullName = ParentNamespace.FullName + "." + mFullName;
+            return mFullName;
         }
+
     }
 
     class SyntaxUsing
     {
         public Token Keyword;
-        public SyntaxExpr QualifiedIdentifiers;
+        public Token[] QualifiedIdentifiers = Token.EmptyArray;
     }
 
     class SyntaxClass // or struct, enum, or interface
     {
         public SyntaxNamespace Namespace;
         public SyntaxClass ParentClass;
-        public string[] Comments;
+        public string Comments;
         public Token[] Qualifiers;
         public Token Keyword; // class, struct, etc.
         public SyntaxExpr []BaseClasses;
@@ -54,9 +60,19 @@ namespace Gosub.Zurfur
         public SyntaxExpr Alias;
         public SyntaxConstraint []Constraints;
 
+        public string FullName => ToString();
+        string mFullName;
+
         public override string ToString()
         {
-            return Name == null ? "(class)" : Name.ToString();
+            if (mFullName != null)
+                return mFullName;
+            mFullName = Name == null ? "(none)" : Name.ToString();
+            if (ParentClass != null)
+                mFullName = ParentClass.FullName + "." + mFullName;
+            else
+                mFullName = (Namespace == null ? "(none)" : Namespace.ToString()) + "." + mFullName;
+            return mFullName;
         }
     }
 
@@ -71,7 +87,7 @@ namespace Gosub.Zurfur
     {
         public SyntaxNamespace Namespace;
         public SyntaxClass ParentClass;
-        public string[] Comments;
+        public string Comments;
         public Token[] Qualifiers;
         public Token Name;
         public SyntaxExpr TypeName;
@@ -88,7 +104,7 @@ namespace Gosub.Zurfur
     {
         public SyntaxNamespace Namespace;
         public SyntaxClass ParentClass;
-        public string[] Comments;
+        public string Comments;
         public Token[] Qualifiers;
         public Token Keyword; // func, afunc, prop, this, construct, etc.
         public SyntaxExpr ClassName;
