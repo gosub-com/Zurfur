@@ -216,7 +216,7 @@ namespace Gosub.Zurfur
                 if (Match(text, find, ref matchEnd))
                 {
                     mEditor.SelSet(text.Location, matchEnd);
-                    mEditor.CursorLoc = text.Location;
+                    mEditor.CursorLoc = matchEnd;
                     mPreviousSearchLoc = text.Location;
 
                     if (pastEnd)

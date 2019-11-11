@@ -27,12 +27,21 @@ Golang.  Here are some differences between Zurfur and C#:
 
 Thoughts about where to go and how to do it: [Internals](Doc/Internals.md).
 
+#### Status Update
+
+The syntax is still being developed, nothing is set in stone yet.  Feel
+free to send me comments letting me know what you think should be changed.
+I am currently working on [ZSIL](Doc/Zsil.md) header file.
+
 ## Functions
 
-    /// This is a public documentation comment
-    pub static func main()
+    /// This is a public documentation comment, which should not be marked
+    /// up with XML.  Use '`' to refer to symbols in the source.  For example,
+    /// call `Main` to run this example.  Parameters should have a ':' after them.
+    /// `args`: A list of arguments.
+    pub static func Main(args []str)
     {
-        // This is a regular comment
+        // This is a regular private comment
 	    Console.Log("Hello World, 2+2=" + add(2,2))
     }
 
@@ -172,7 +181,7 @@ weight as an integer and need no metadata in the compiled executable.
 
 Operator precedence comes from Golang.
 
-    Primary: . () [] @ # .* {}
+    Primary: . () [] @ # ^ {}
     Unary: + - ! & ^
     Multiplication and bits: * / % << >> & 
     Add and bits: + - | ^
@@ -346,10 +355,20 @@ Describe here...
 
 The `*` operator is only for multiplication, and there is no `->` operator.
 The `.` operator is used for accessing fields or members of a pointer to
-struct.  The `*.` operator dereferences a pointer, just like a wild card, it
-means all fields.  For example, `@i=*.intPtr()`, `i` is the dereferenced
-value. 
+struct.  The `^` operator dereferences a pointer.  The `~` operator is
+both xor and complement.
  
+    pub static func strcpy(dest ^byte, source ^byte)
+    {
+	    while ^source != 0
+	        { ^dest = ^source;  dest += 1;  source += 1 }
+        ^dest = 0
+    }
+
+TBD: I'm still debating going back to `*` for pointers, but changing
+the unary dereference operator to `*.` so it's not the same as multiplication.
+In which case, strcpy would look like this:
+
     pub static func strcpy(dest *byte, source *byte)
     {
 	    while *.source != 0
@@ -357,24 +376,19 @@ value.
         *.dest = 0
     }
 
-TBD: Use `*:` for better clarity? 
 
+## Namespaces
 
-## Namespace/using
-
-Similar to C# namespaces, but a little more like modules since
-static functions, constants, and extension methods may be declared
-at the namespace level.  `using Zurur.Math` imports the intrinsic math functions,
-`Cos`, `Sin`, etc. into the global symbol table.  If you want to froce them to be
-prefixed with `Math.`, it can be done with `using Math=Zurfur.Math`.
+Namespaces are similar to C#, but can also contain static functions,
+and extension methods.  `using Zurur.Math` imports the intrinsic
+math functions, `Cos`, `Sin`, etc. into the global symbol table.  If you
+want to froce them to be prefixed with `Math.`, it can be done with
+`using Math=Zurfur.Math`.
 
 The first namespace defined in a file does not use curly braces to start a
 new scope, nor should it start a new level of indentation.  All other
 namespaces are sub-namespaces of the top level namespace and must
 use curly braces.  Only one top level namespace per file is allowed.
-
-TBD: Do we want to use the keyword `module` and `import` instead?  We'll
-keep `namespace` for now since a module may contain different namespaces.
 
 ## Async
 

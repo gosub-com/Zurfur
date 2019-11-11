@@ -203,7 +203,7 @@ namespace Gosub.Zurfur.Compiler
             // Set token info
             Token[] sa = tokens.ToArray();
             foreach (Token s in sa)
-                s.RepaceInfo(sa);
+                s.ReplaceInfo(sa);
         }
 
     }

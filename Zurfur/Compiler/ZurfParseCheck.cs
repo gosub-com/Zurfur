@@ -14,7 +14,7 @@ namespace Gosub.Zurfur.Compiler
 
         public Token LastToken;
 
-        static WordSet sRequireGlobalFieldQualifiers = new WordSet("static const");
+        static WordSet sRequireGlobalFieldQualifiers = new WordSet("const");
         static WordSet sFuncInInterfaceQualifiersAllowedEmpty = new WordSet("static pub protected");
         static WordSet sFuncInInterfaceQualifiersAllowedNotEmpty = new WordSet("static pub private protected");
         static WordSet sGlobalFuncsRequiringStatic = new WordSet("func afunc construct destruct");
@@ -22,7 +22,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sGlobalFuncsNotAllowed = new WordSet("prop this operator");
 
         static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal");
-        static WordSet sClassQualifiers = new WordSet("pub public protected private internal unsafe sealed sealed1 abstract");
+        static WordSet sClassQualifiers = new WordSet("pub public protected private internal unsafe sealed sealed1 abstract ro");
         static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe ref ro");
         static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
         static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static volatile ro const");
@@ -154,7 +154,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     case "":
                         if (!HasQualifier(field.Qualifiers, sRequireGlobalFieldQualifiers))
-                            mParser.RejectToken(field.Name, "Fields at the namespace level must be static or const");
+                            mParser.RejectToken(field.Name, "Fields at the namespace level must be const");
                         break;
                     case "interface":
                         mParser.RejectToken(field.Name, "Fields are not allowed inside an interface");

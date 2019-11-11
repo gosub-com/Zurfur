@@ -40,11 +40,13 @@ namespace Gosub.Zurfur
         int             mTabSize = 4;
 
         // Mouse and drawing info
+        bool            mMouseDown;
         Token           mMouseHoverToken;
         Point           mTopLeft;
         Point           mTestPoint;
         Token           mTestToken;
-        SizeF           mFontSize;
+        SizeF           mFontSize = new SizeF(9, 19);
+        bool            mMeasureFont = true;
         bool            mDelayedInvalidate;
         int[]           mLineTops = Array.Empty<int>();
         bool[]          mLineShrunk = Array.Empty<bool>();
@@ -60,7 +62,6 @@ namespace Gosub.Zurfur
         // Selection
         TokenLoc        mSelStart;
         TokenLoc        mSelEnd;
-        bool            mMouseDown;
 
         // Fonts, colors, and misc.
         Dictionary<eTokenType, FontInfo> mTokenFonts = new Dictionary<eTokenType, FontInfo>();
@@ -72,6 +73,7 @@ namespace Gosub.Zurfur
         EventArgs   mEventArgs = new EventArgs();
         Brush       mErrorColor = Brushes.Pink;
         Brush       mWarnColor = Brushes.Yellow;
+        Brush       mCodeInCommentColor = new SolidBrush(Color.FromArgb(208, 255, 208));
         static Token sNormalToken = new Token();
 
         Token[] mExtraTokens;
@@ -346,17 +348,23 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Returns the number of full lines in the window (partial lines don't count)
         /// </summary>
-        int LinesInWindow
-        {
-            get { return Math.Max(1, (int)(ClientRectangle.Height / mFontSize.Height)-1); }
+        int LinesInWindow()
+        {            
+            const int REMOVE_PARTIALS = 2; // Add 1 for bottom of line, then 1 more to remove partials
+            var height = ClientRectangle.Height - (hScrollBar.Visible ? hScrollBar.Height : 0);
+            var lines = 0;
+            while (PointY(vScrollBar.Value + lines + REMOVE_PARTIALS) < height)
+                lines++;
+            
+            return Math.Max(1, lines);
         }
 
         /// <summary>
         /// Returns the size
         /// </summary>
-        int CharsAcrossWindow
+        int CharsAcrossWindow()
         {
-            get { return Math.Max(0, (int)(ClientRectangle.Width / mFontSize.Width)-1); }
+            return Math.Max(0, (int)(ClientRectangle.Width / mFontSize.Width)-1);
         }
 
         /// <summary>
@@ -495,7 +503,7 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Returns the font used to draw the given token type
         /// </summary>
-        FontInfo GetFontInfo(Token token, int line)
+        FontInfo GetFontInfo(Token token)
         {
             if (mTokenFonts.Count == 0 || mShrunkFont == null)
             {
@@ -560,7 +568,7 @@ namespace Gosub.Zurfur
                 if (mTabSize == value)
                     return;
                 Invalidate();
-                mFontSize = new SizeF(); // Flag to setup new font
+                mMeasureFont = true;
                 mTabStartColumnPrevious = -1;
             }
         }
@@ -569,20 +577,22 @@ namespace Gosub.Zurfur
         {
             // Vertical properties
             int linesInFile = LineCount;
+            int linesInWindow = LinesInWindow();
             vScrollBar.Maximum = linesInFile;
-            vScrollBar.LargeChange = LinesInWindow;
-            vScrollBar.Enabled = linesInFile > LinesInWindow;
-            vScrollBar.Visible = linesInFile > LinesInWindow && linesInFile > 1;
+            vScrollBar.LargeChange = linesInWindow;
+            vScrollBar.Enabled = linesInFile > linesInWindow;
+            vScrollBar.Visible = linesInFile > linesInWindow && linesInFile > 1;
             vScrollBar.SmallChange = 1;
 
             // Horizontal properties
             int charsAccross = 0;
+            int charsAcrossWindow = CharsAcrossWindow();
             for (int i = 0; i < LineCount; i++)
                 charsAccross = Math.Max(charsAccross, IndexToCol(GetLine(i), GetLine(i).Length));
             hScrollBar.Maximum = charsAccross;
-            hScrollBar.LargeChange = Math.Max(1, CharsAcrossWindow);
-            hScrollBar.Enabled = charsAccross > CharsAcrossWindow;
-            hScrollBar.Visible = charsAccross > CharsAcrossWindow && charsAccross > 1;
+            hScrollBar.LargeChange = Math.Max(1, charsAcrossWindow);
+            hScrollBar.Enabled = charsAccross > charsAcrossWindow;
+            hScrollBar.Visible = charsAccross > charsAcrossWindow && charsAccross > 1;
             hScrollBar.SmallChange = 1;
 
             // Location & Size
@@ -607,7 +617,7 @@ namespace Gosub.Zurfur
 
         protected override void OnFontChanged(EventArgs e)
         {
-            mFontSize = new SizeF(); // Flag to setup new font
+            mMeasureFont = true;
             mTokenFonts.Clear();
             mTabStartColumnPrevious = -1;
             var vScrollWidth = vScrollBar.Width; // Preserve vScrollBar width which gets changed when font is changed
@@ -771,19 +781,21 @@ namespace Gosub.Zurfur
         /// </summary>
         void EnsureCursorOnScreen()
         {
-            int marginY = Math.Min(2, Math.Max(0, LinesInWindow-4));
-            int marginX = Math.Min(4, Math.Max(0, CharsAcrossWindow-5));
-
-            // Ensure carret is on the screen when a key is pressed
+            // Vertical
+            int linesInWindow = LinesInWindow();
+            int marginY = Math.Min(2, Math.Max(0, linesInWindow - 4));
             if (CursorLoc.Y < vScrollBar.Value+marginY)
                 vScrollBar.Value = Math.Max(0, CursorLoc.Y-marginY);
-            if (CursorLoc.Y > vScrollBar.Value + LinesInWindow-marginY)
-                vScrollBar.Value = Math.Min(vScrollBar.Maximum, CursorLoc.Y-LinesInWindow+marginY);
+            if (CursorLoc.Y > vScrollBar.Value + linesInWindow - marginY)
+                vScrollBar.Value = Math.Min(vScrollBar.Maximum, CursorLoc.Y- linesInWindow + marginY);
 
+            // Horizontal
+            int charsAcrossWindow = CharsAcrossWindow();
+            int marginX = Math.Min(4, Math.Max(0, charsAcrossWindow - 5));
             if (IndexToCol(CursorLoc) < hScrollBar.Value+marginX)
                 hScrollBar.Value = Math.Max(0, IndexToCol(CursorLoc)-marginX);
-            if (IndexToCol(CursorLoc) > hScrollBar.Value + CharsAcrossWindow - marginX)
-                hScrollBar.Value = Math.Min(hScrollBar.Maximum, IndexToCol(CursorLoc)-CharsAcrossWindow+marginX);
+            if (IndexToCol(CursorLoc) > hScrollBar.Value + charsAcrossWindow - marginX)
+                hScrollBar.Value = Math.Min(hScrollBar.Maximum, IndexToCol(CursorLoc)- charsAcrossWindow + marginX);
         }
 
         /// <summary>
@@ -1204,11 +1216,19 @@ namespace Gosub.Zurfur
             {
                 // Draw background color
                 if (overrides != null && overrides.BackColor != null)
+                {
                     gr.FillRectangle(overrides.BackColor, backRect);
-                else if (token.Error)
-                    gr.FillRectangle(mErrorColor, backRect);
-                else if (token.Warn)
-                    gr.FillRectangle(mWarnColor, backRect);
+                }
+                else
+                {
+                    // TBD: This should be looked up in GetFontInfo based on Type and Subtype
+                    if (token.Subtype == eTokenSubtype.Error)
+                        gr.FillRectangle(mErrorColor, backRect);
+                    else if (token.Subtype == eTokenSubtype.Warn)
+                        gr.FillRectangle(mWarnColor, backRect);
+                    else if (token.Subtype == eTokenSubtype.CodeInComment)
+                        gr.FillRectangle(mCodeInCommentColor, backRect);
+                }
                 return;
             }
 
@@ -1233,7 +1253,7 @@ namespace Gosub.Zurfur
             else
             {
                 // Draw normal text
-                FontInfo fontInfo = GetFontInfo(token, token.Y);
+                FontInfo fontInfo = GetFontInfo(token);
                 var font = overrides != null && overrides.Font != null ? overrides.Font : fontInfo.Font;
                 var brush = overrides != null && overrides.ForeColor != null ? overrides.ForeColor : fontInfo.Brush;
                 gr.DrawString(token.Name, font, brush, x, y, mTabFormat);
@@ -1300,14 +1320,15 @@ namespace Gosub.Zurfur
             e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
             // Initialize fonts (or setup when changed)
-            if (mFontSize == new SizeF())
+            if (mMeasureFont)
             {
                 // Measure the font size
-                var normalFont = GetFontInfo(sNormalToken, -1).Font;
+                mMeasureFont = false;
+                var normalFont = GetFontInfo(sNormalToken).Font;
                 SizeF size1 = e.Graphics.MeasureString("MM\r\nMM", normalFont);
                 SizeF size2 = e.Graphics.MeasureString("MMM\r\nMMM\r\nMMM", normalFont);
-                mFontSize.Width = size2.Width - size1.Width;
-                mFontSize.Height = (int)(size2.Height - size1.Height+1 + 0.5f);
+                mFontSize.Width = Math.Max(1, size2.Width - size1.Width);
+                mFontSize.Height = Math.Max(1, (int)(size2.Height - size1.Height+1 + 0.5f));
                 for (int i = 0; i < mTabSpacing.Length; i++)
                     mTabSpacing[i] = mFontSize.Width*mTabSize;
                 mTabSpacing[0] = 0;
@@ -1338,8 +1359,7 @@ namespace Gosub.Zurfur
                     float x = PointX(IndexToCol(CursorLoc));
                     float y = PointY(CursorLoc.Y);
                     e.Graphics.DrawString(GetLine(CursorLoc.Y)[CursorLoc.X].ToString(),
-                                            GetFontInfo(sNormalToken, CursorLoc.Y).Font, Brushes.White,
-                                            x, y);
+                                            GetFontInfo(sNormalToken).Font, Brushes.White, x, y);
                 }
             }
 
@@ -1356,7 +1376,7 @@ namespace Gosub.Zurfur
         void RecalcLineTops()
         {
             // Font is changing
-            if (mFontSize == new SizeF())
+            if (mMeasureFont)
                 return;
 
             if (!mShrinkLines)
@@ -1743,14 +1763,14 @@ namespace Gosub.Zurfur
             // PAGE UP
             if (e.KeyCode == Keys.PageUp && !e.Control)
             {
-                int linesInWindow = LinesInWindow;
+                int linesInWindow = LinesInWindow();
                 vScrollBar.Value = Math.Max(0, vScrollBar.Value - linesInWindow);
                 MoveCursor(ArrowKeyDown(CursorLoc, -linesInWindow), true, e.Shift);
             }
             // PAGE DOWN
             if (e.KeyCode == Keys.PageDown && !e.Control)
             {
-                int linesInWindow = LinesInWindow;
+                int linesInWindow = LinesInWindow();
                 vScrollBar.Value = Math.Max(0, Math.Min(vScrollBar.Maximum - linesInWindow, vScrollBar.Value + linesInWindow));
                 MoveCursor(ArrowKeyDown(CursorLoc, linesInWindow), false, e.Shift);
             }
@@ -1968,13 +1988,18 @@ namespace Gosub.Zurfur
             }
 
             // While selecting text, scroll the screen
-            int linesInWindow = LinesInWindow;
-            if (mMouseDown && CursorLoc.Y - vScrollBar.Value > linesInWindow
-                        && vScrollBar.Value < vScrollBar.Maximum -linesInWindow)
-                vScrollBar.Value++;
-            else if (mMouseDown && CursorLoc.Y < vScrollBar.Value
+            if (mMouseDown)
+            {
+                int linesInWindow = LinesInWindow();
+                if (CursorLoc.Y - vScrollBar.Value > linesInWindow
+                        && vScrollBar.Value < vScrollBar.Maximum - linesInWindow
+                        && PointToClient(Form.MousePosition).Y > ClientSize.Height - hScrollBar.Height)
+                    vScrollBar.Value++;
+
+                if (CursorLoc.Y < vScrollBar.Value
                         && vScrollBar.Value > 0)
-                vScrollBar.Value--;
+                    vScrollBar.Value--;
+            }
 
             // Optionally invalidate
             if (mDelayedInvalidate)

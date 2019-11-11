@@ -7,7 +7,7 @@ namespace Gosub.Zurfur.Compiler
     /// <summary>
     /// Basic types recognized by the lexer
     /// </summary>
-    public enum eTokenType : short
+    public enum eTokenType : byte
     {
         // Lexer recognized types:
         Normal,
@@ -22,15 +22,22 @@ namespace Gosub.Zurfur.Compiler
         TypeName
     }
 
+    public enum eTokenSubtype : byte
+    {
+        Normal,
+        Error,
+        Warn,
+        CodeInComment
+    }
+
     public enum eTokenBits : short
     {
-        Eoln = 1, // Read only (set only in constructor)
-        Error = 2,
-        Warn = 4,
-        Grayed = 8,
-        Invisible = 16,
-        Underline = 32,
-        NoClearMask = Eoln
+        Eoln = 1, // Read only
+        Boln = 2, // Read only
+        Grayed = 4,
+        Invisible = 8,
+        Underline = 16,
+        ReadOnlyMask = Eoln | Boln
     }
 
     /// <summary>
@@ -51,6 +58,7 @@ namespace Gosub.Zurfur.Compiler
         public readonly string Name = "";
         public TokenLoc Location;
         public eTokenType Type;
+        public eTokenSubtype Subtype;
         eTokenBits mBits;
         object mInfo; // Null, object, or List<Object>
 
@@ -89,16 +97,24 @@ namespace Gosub.Zurfur.Compiler
             return Name;
         }
 
+        /// <summary>
+        /// Alias for Subtype == Error
+        /// </summary>
         public bool Error
         {
-            get => (mBits & eTokenBits.Error) != 0;
-            set { mBits = mBits & ~eTokenBits.Error | (value ? eTokenBits.Error : 0); }
+            get => Subtype == eTokenSubtype.Error;
+            set { Subtype = eTokenSubtype.Error; }
         }
+
+        /// <summary>
+        /// Alias for Subtype == Warn (but does not set if the token already has an error)
+        /// </summary>
         public bool Warn
         {
-            get => (mBits & eTokenBits.Warn) != 0;
-            set { mBits = mBits & ~eTokenBits.Warn | (value ? eTokenBits.Warn : 0); }
+            get => Subtype == eTokenSubtype.Warn;
+            set { if (Subtype != eTokenSubtype.Error) Subtype = eTokenSubtype.Warn; }
         }
+
         public bool Grayed
         {
             get => (mBits & eTokenBits.Grayed) != 0;
@@ -117,15 +133,30 @@ namespace Gosub.Zurfur.Compiler
         public bool Eoln
         {
             get => (mBits & eTokenBits.Eoln) != 0;
-            set { mBits = mBits & ~eTokenBits.Eoln | (value ? eTokenBits.Eoln : 0); }
+        }
+        public bool Boln
+        {
+            get => (mBits & eTokenBits.Boln) != 0;
+        }
+
+        public void SetEolnByLexerOnly()
+        {
+            mBits |= eTokenBits.Eoln;
+        }
+        public void SetBolnByLexerOnly()
+        {
+            mBits |= eTokenBits.Boln;
         }
 
         /// <summary>
-        /// Clear info and bits, but not type, location, or eoln bit
+        /// Clear info, bits, type, and subtype, but not location or eoln bit
         /// </summary>
         public void Clear()
         {
-            mBits = mBits & eTokenBits.NoClearMask;
+            Type = eTokenType.Normal;
+            Subtype = eTokenSubtype.Normal;
+            Type = eTokenType.Normal;
+            mBits = mBits & eTokenBits.ReadOnlyMask;
             mInfo = null;
         }
 
@@ -147,6 +178,7 @@ namespace Gosub.Zurfur.Compiler
             list.Add(info);
             mInfo = list;
         }
+
         public void RemoveInfo<T>()
         {
             if (mInfo == null)
@@ -160,7 +192,8 @@ namespace Gosub.Zurfur.Compiler
             if (list != null)
                 list.RemoveAll((obj) => obj is T);
         }
-        public void RepaceInfo<T>(T info)
+
+        public void ReplaceInfo<T>(T info)
         {
             RemoveInfo<T>();
             AddInfo(info);
@@ -282,7 +315,7 @@ namespace Gosub.Zurfur.Compiler
             // Set token info
             Token[] sa = tokens.ToArray();
             foreach (Token s in sa)
-                s.RepaceInfo(sa);
+                s.ReplaceInfo(sa);
         }
     }
 

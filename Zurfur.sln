@@ -14,6 +14,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Doc", "Doc", "{3089177A-1B87-4E67-8D0D-E5C8922E5543}"
 	ProjectSection(SolutionItems) = preProject
 		Doc\Internals.md = Doc\Internals.md
+		Doc\Zsil.md = Doc\Zsil.md
 	EndProjectSection
 EndProject
 Global

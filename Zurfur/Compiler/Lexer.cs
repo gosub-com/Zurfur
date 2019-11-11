@@ -12,14 +12,15 @@ namespace Gosub.Zurfur.Compiler
     public class Lexer
     {
         static HashSet<char> sStringEscapes = new HashSet<char> { '\"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u' };
-        static Regex sFindUrl = new Regex(@"(http|https|file|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?");
-
+        static Regex sFindUrl = new Regex(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
 
         // Strings and tokens buffer
         List<string> mLines = new List<string>();
-        List<List<Token>> mTokens = new List<List<Token>>();
+        List<Token[]> mTokens = new List<Token[]>();
         Dictionary<long, bool> mSpecialSymbols = new Dictionary<long, bool>();
         bool mSpecialSymbolsHas3Chars;
+
+        List<Token> mTokenBuffer = new List<Token>();  // Be kind to the GC
 
         /// <summary>
         /// Create an empty lexer
@@ -28,7 +29,7 @@ namespace Gosub.Zurfur.Compiler
         {
             ScanLines(new string[] { "" });
         }
-        
+
         /// <summary>
         /// Create a new lexer from the given text
         /// </summary>
@@ -70,8 +71,6 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public void SetSpecialSymbols(string symbols)
         {
-            symbols += " //"; // TBD: Remove
-
             mSpecialSymbols.Clear();
             mSpecialSymbolsHas3Chars = false;
             var sa = symbols.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries);
@@ -188,7 +187,7 @@ namespace Gosub.Zurfur.Compiler
                     for (int i = 1; i < replacementText.Length; i++)
                     {
                         mLines.Insert(start.Y+i, replacementText[i]);
-                        mTokens.Insert(start.Y+i, new List<Token>());
+                        mTokens.Insert(start.Y+i, Array.Empty<Token>());
                     }
                     end.Y = start.Y + replacementText.Length-1;
                     endIndex = replacementText[replacementText.Length-1].Length;
@@ -234,21 +233,25 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Scan a line
         /// </summary>
-        List<Token> ScanLine(string line, int lineIndex)
+        Token []ScanLine(string line, int lineIndex)
         {
             int charIndex = 0;
 
             // Build an array of tokens for this line
-            List<Token> tokens = new List<Token>();
             while (charIndex < line.Length)
-                ScanToken(line, ref charIndex, tokens);
+                ScanToken(line, ref charIndex, mTokenBuffer);
 
-            foreach (var token in tokens)
+            foreach (var token in mTokenBuffer)
                 token.Y = lineIndex;
 
-            if (tokens.Count != 0)
-                tokens[tokens.Count-1].Eoln = true;
+            if (mTokenBuffer.Count != 0)
+            {
+                mTokenBuffer[0].SetBolnByLexerOnly();
+                mTokenBuffer[mTokenBuffer.Count - 1].SetEolnByLexerOnly();
+            }
 
+            var tokens = mTokenBuffer.ToArray();
+            mTokenBuffer.Clear();
             return tokens;
         }
 
@@ -455,14 +458,11 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public struct Enumerator:IEnumerator<Token>
         {
-            static List<Token>	sEmptyList = new List<Token>();
-            static Token sEmptyToken = new Token();
-
             Lexer		mLexer;
             int			mIndexLine;
             int			mIndexToken;
             Token		mCurrent;
-            List<Token>	mCurrentLine;
+            Token       []mCurrentLine;
 
             /// <summary>
             /// Enumerate all tokens
@@ -472,7 +472,7 @@ namespace Gosub.Zurfur.Compiler
                 mLexer = lexer;
                 mIndexLine = 0;
                 mIndexToken = 0;
-                mCurrentLine = mLexer.mTokens.Count <= 0 ? sEmptyList : mLexer.mTokens[0];
+                mCurrentLine = mLexer.mTokens.Count <= 0 ? Array.Empty<Token>() : mLexer.mTokens[0];
                 mCurrent = null;
             }
 
@@ -484,14 +484,14 @@ namespace Gosub.Zurfur.Compiler
                 mLexer = lexer;
                 mIndexLine = Math.Max(0, startLine);
                 mIndexToken = 0;
-                mCurrentLine = mLexer.mTokens.Count <= mIndexLine ? sEmptyList : mLexer.mTokens[mIndexLine];
+                mCurrentLine = mLexer.mTokens.Count <= mIndexLine ? Array.Empty<Token>() : mLexer.mTokens[mIndexLine];
                 mCurrent = null;
             }
 
             public IEnumerator<Token> GetEnumerator() { return this; }
             public void Dispose() { }
             public Token Current { get { return mCurrent; } }
-            public int CurrentLineTokenCount {  get { return mCurrentLine.Count;  } }
+            public int CurrentLineTokenCount {  get { return mCurrentLine.Length;  } }
             object System.Collections.IEnumerator.Current { get { return mCurrent; } }
 
             /// <summary>
@@ -499,9 +499,9 @@ namespace Gosub.Zurfur.Compiler
             /// </summary>
             public Token PeekOnLine()
             {
-                if (mIndexToken < mCurrentLine.Count)
+                if (mIndexToken < mCurrentLine.Length)
                     return mCurrentLine[mIndexToken];
-                return sEmptyToken;
+                return Token.Empty;
             }
 
             public void Reset()
@@ -515,7 +515,7 @@ namespace Gosub.Zurfur.Compiler
             public bool MoveNext()
             {
                 // More tokens on this line?
-                if (mIndexToken < mCurrentLine.Count)
+                if (mIndexToken < mCurrentLine.Length)
                 {
                     mCurrent = mCurrentLine[mIndexToken++];
                     return true;
@@ -525,7 +525,7 @@ namespace Gosub.Zurfur.Compiler
                 do
                 {
                     mIndexLine++;
-                } while (mIndexLine < mLexer.mTokens.Count && mLexer.mTokens[mIndexLine].Count == 0);
+                } while (mIndexLine < mLexer.mTokens.Count && mLexer.mTokens[mIndexLine].Length == 0);
                 
                 // Return next token
                 if (mIndexLine < mLexer.mTokens.Count)
@@ -547,7 +547,7 @@ namespace Gosub.Zurfur.Compiler
                 if (mIndexLine < mLexer.mTokens.Count)
                 {
                     mCurrentLine = mLexer.mTokens[mIndexLine++];
-                    mCurrent = mCurrentLine.Count == 0 ? sEmptyToken : mCurrentLine[mIndexToken++];
+                    mCurrent = mCurrentLine.Length == 0 ? Token.Empty : mCurrentLine[mIndexToken++];
                     return true;
                 }
                 mCurrent = null;

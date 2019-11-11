@@ -33,6 +33,7 @@ connecting parenthesis.
 
 Very WIP...
 
+
 ## Class Objects
 
 Like in C#, all `class` objects live on the heap.
@@ -61,9 +62,9 @@ All objects are a multiple of 64 bits, and the size of A can be calculated with
 
 ## Func and Func Pointers
 
-Whenever you see `func` without an `*`, think c# style delegates.  The
+Whenever you see `func` without an `^`, think c# style delegates.  The
 delegate lives on the heap and can optionally carry the `this` of any
-object. Whenever you see `*func`, think C style function pointer.  The 
+object. Whenever you see `^func`, think C style function pointer.  The 
 function pointer carries no information other than the entry point to a
 function with its type signature.
 
@@ -198,7 +199,7 @@ This is an example of pinning an object while calling an unmanged function:
 
     // Unmanaged function and data structure
     struct Line { x1 int;  y1 int;  x2 int;  y2 int }
-    extern func DrawLines(lines *Line, numLines int)
+    extern func DrawLines(lines ^Line, numLines int)
 
     func DrawMyFigure() 
     {
@@ -207,7 +208,7 @@ This is an example of pinning an object while calling an unmanged function:
         unsafe 
         {
             // Say we only want to draw the middle 10 lines
-            @linePtr = fixed((*int)&figure[10]);
+            @linePtr = fixed(#^int(&figure[10]));
             DrawLines(linePtr, 10);
         }
     }
@@ -347,7 +348,7 @@ high order two bits contain the type (normal, pinned, interior, or weak) and the
 six bits contain the reference count:
 
     p ipointer // Points to start of object or stack frame
-    r *RefLayout // Points to start of reference layout table
+    r ^RefLayout // Points to start of reference layout table
     while r.Skip != 0 || r.Count != 0 {
         p += sizeof(ipointer)*r.Skip;
         for @count in r.Count & 63 
@@ -382,87 +383,6 @@ This is the method we will use to multi-thread the compiler in WebAssembly.
 One benefit of doing it this way is that each module has its own memory
 space, so the garbage collector will have a smaller working set
 of objects to reclaim for each instance.
-
-
-## Simple Intermediate Language (SIL)
-
-SIL is modeled after WebAssembly, but supports higher level constructs
-such as generics and addressable local variables.  
-
-Instruction | Description
---- | ---
-ldl/ldla|Load local (address)
-ldp/ldpa|Load parameter (address)
-ld.i32/ld.i64|Load constant int 32/64 bits
-ld.f32/ld.f64|Load constant float 32/64 bits
-ld.str|Load string
-block|Block (br branches down, like break)
-loop|Loop (br branches up, like continue)
-end|End of Block/Loop/If
-br|Branch
-br_if|Branch conditional
-return|Return
-throw|Throw
-calls|Call static function
-callv|Call virtual function
-calli|Call indirect
-drop|Drop # of stack objects
-
-Example: `if a() { DoIf() } else { DoElse() }`
-
-    block 0
-        block 1
-            call a
-            call not
-            br_if 1
-            call DoIf
-            br 0
-        end 1
-        call DoElse
-    end 0        
-
-Example: `if a() || b() { DoIf() } else { DoElse() }`
-
-    block 0
-        block 1
-            block 2
-                call a
-                br_if 2
-                call b
-                call not
-                br_if 1
-            end 2
-            call DoIf
-            br 0
-        end 1
-        call DoElse
-    end 0
-
-
-
-
-
-### Header SIL
-
-The first part of the SIL file is the header type information.
-This should be quickly generated for each file, and then
-the type information can be used while compiling the other files.
-
-### High Level SIL
-
-High level SIL preserves all type information and code.  It has
-no optimizations.
-
-### Low Level SIL
-
-Low level SIL has all type information stripped out, is optimized, and is
-ready to be transformed into web assembly code.
-
-LL SIL has only the following types: `i8`, `i16`, `i32`, `i64`, and 
-`intptr` which is either 32 or 64 bits depending on the machine architecture.  
-Every other type, including `float` and `uint` is supplied by libraries.
-
-TBD: Describe more here
 
 ## Stack Frames
 

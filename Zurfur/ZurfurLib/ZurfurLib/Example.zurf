@@ -5,6 +5,7 @@ using system.gosub.p
 // http://zurfur.com
 namespace Zurfur.Example
 
+/// Example class, a test of hover comments and `code` comments
 pub class Example
 {
 	info str 					// Private string initialized to ""

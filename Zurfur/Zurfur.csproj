@@ -51,7 +51,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Compiler\Sil.cs" />
     <Compile Include="Compiler\SilGen.cs" />
     <Compile Include="Compiler\Symbols.cs" />
     <Compile Include="Compiler\ZurfParseCheck.cs" />

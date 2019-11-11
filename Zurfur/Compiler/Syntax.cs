@@ -16,6 +16,12 @@ namespace Gosub.Zurfur.Compiler
         public List<SyntaxField> Fields = new List<SyntaxField>();
     }
 
+    class SyntaxUsing
+    {
+        public Token Keyword;
+        public Token[] QualifiedIdentifiers = Token.EmptyArray;
+    }
+
     class SyntaxNamespace
     {
         public string Comments;
@@ -41,39 +47,40 @@ namespace Gosub.Zurfur.Compiler
 
     }
 
-    class SyntaxUsing
-    {
-        public Token Keyword;
-        public Token[] QualifiedIdentifiers = Token.EmptyArray;
-    }
-
-    class SyntaxClass // or struct, enum, or interface
+    class SyntaxScope
     {
         public SyntaxNamespace Namespace;
         public SyntaxClass ParentClass;
         public string Comments;
         public Token[] Qualifiers;
-        public Token Keyword; // class, struct, etc.
-        public SyntaxExpr []BaseClasses;
+        public Token Keyword; // class, struct, func, prop, blank for field, etc.
         public Token Name;
+
+        protected string mFullName;
+
+        virtual public string FullName
+        {
+            get
+            {
+                if (mFullName != null)
+                    return mFullName;
+                mFullName = Name == null ? "(none)" : Name.ToString();
+                if (ParentClass == null)
+                    mFullName = (Namespace == null ? "(none)" : Namespace.ToString()) + "." + mFullName;
+                else
+                    mFullName = ParentClass.FullName + "/" + mFullName;
+                return mFullName;
+            }
+        }
+        public override string ToString() => FullName;
+    }
+
+    class SyntaxClass : SyntaxScope // or struct, enum, or interface
+    {
+        public SyntaxExpr []BaseClasses;
         public SyntaxExpr TypeParams;
         public SyntaxExpr Alias;
         public SyntaxConstraint []Constraints;
-
-        public string FullName => ToString();
-        string mFullName;
-
-        public override string ToString()
-        {
-            if (mFullName != null)
-                return mFullName;
-            mFullName = Name == null ? "(none)" : Name.ToString();
-            if (ParentClass != null)
-                mFullName = ParentClass.FullName + "." + mFullName;
-            else
-                mFullName = (Namespace == null ? "(none)" : Namespace.ToString()) + "." + mFullName;
-            return mFullName;
-        }
     }
 
     class SyntaxConstraint
@@ -83,49 +90,39 @@ namespace Gosub.Zurfur.Compiler
         public SyntaxExpr []TypeNames;
     }
 
-    class SyntaxField
+    class SyntaxField : SyntaxScope
     {
-        public SyntaxNamespace Namespace;
-        public SyntaxClass ParentClass;
-        public string Comments;
-        public Token[] Qualifiers;
-        public Token Name;
         public SyntaxExpr TypeName;
         public Token InitToken;
         public SyntaxExpr InitExpr;
 
-        public override string ToString()
+        public SyntaxField()
         {
-            return Name == null ? "(token)" : Name;
+            Keyword = Token.Empty;
         }
+
+        public override string FullName
+        {
+            get
+            {
+                if (mFullName != null)
+                    return mFullName;
+                mFullName = base.FullName + "::" + Name;
+                return mFullName;
+            }
+        }
+
     }
 
-    class SyntaxFunc
+    class SyntaxFunc : SyntaxScope
     {
-        public SyntaxNamespace Namespace;
-        public SyntaxClass ParentClass;
-        public string Comments;
-        public Token[] Qualifiers;
-        public Token Keyword; // func, afunc, prop, this, construct, etc.
         public SyntaxExpr ClassName;
-        public Token Name;
         public SyntaxExpr TypeParams;
         public SyntaxExpr Params;
         public SyntaxExpr ReturnType;
         public SyntaxConstraint[] Constraints;
         public SyntaxExpr Statements;
 
-        public override string ToString()
-        {
-            var sb = new StringBuilder();
-            sb.Append(Name == null ? "(func)" : Name.ToString());
-            sb.Append("(");
-            if (Params != null)
-                for (int i = 0; i < Params.Count; i++)
-                    sb.Append(Params[i].ToString() + (i == Params.Count - 1 ? "" : ","));
-            sb.Append(")");
-            return sb.ToString();
-        }
     }
 
 }

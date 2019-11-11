@@ -171,7 +171,8 @@ namespace Gosub.Zurfur
             if (newToken != null)
             {
                 // Show active link when CTRL is pressed
-                if ((ModifierKeys & Keys.Control) == Keys.Control && newToken.Url != "")
+                if ((ModifierKeys & Keys.Control) == Keys.Control 
+                    && (newToken.Url != "" || newToken.GetInfo<SymScope>() != null))
                 {
                     var ov = new TokenColorOverride(newToken);
                     ov.Font = new Font(editor.Font, FontStyle.Underline);
@@ -197,8 +198,13 @@ namespace Gosub.Zurfur
                     }
                 }
                 // Highlight current location (if not already showing something from above)
-                if (newToken.Type != eTokenType.Comment && newToken.Type != eTokenType.PublicComment)
+                if (newToken.Type != eTokenType.Comment
+                    && newToken.Type != eTokenType.PublicComment
+                    || newToken.Subtype == eTokenSubtype.CodeInComment
+                    || newToken.Underline)
+                {
                     overrides.Add(new TokenColorOverride(newToken, newToken.Error ? Pens.Red : Pens.LightBlue));
+                }
 
                 // Update editor to show them
                 editor.TokenColorOverrides = overrides.ToArray();
@@ -221,12 +227,21 @@ namespace Gosub.Zurfur
         private void editor_MouseClick(object sender, MouseEventArgs e)
         {
             var token = ((TextEditor)sender).MouseHoverToken;
-            if (token != null && (ModifierKeys & Keys.Control) == Keys.Control && token.Url != "")
+            if (token != null && (ModifierKeys & Keys.Control) == Keys.Control 
+                && (token.Url != "" || token.GetInfo<SymScope>() != null))
             {
                 if (token.Url.ToLower().StartsWith("http"))
+                {
                     System.Diagnostics.Process.Start(token.Url);
+                }
+                else if (token.GetInfo<SymScope>() != null)
+                {
+                    MessageBox.Show(this, "TBD: Still working on goto symbol", "Zurfur");
+                }
                 else
+                {
                     MessageBox.Show(this, "TBD: Still working on this:)", "Zurfur");
+                }
             }
         }
 
@@ -462,7 +477,15 @@ namespace Gosub.Zurfur
         /// </summary>
         private void timer1_Tick(object sender, EventArgs e)
         {
-            // Recompile 250 milliseconds after the user stops typing
+            CheckForRecompile();
+            DisplayHoverForm();
+        }
+
+        /// <summary>
+        /// Called periodically from timer to recompile
+        /// </summary>
+        private void CheckForRecompile()
+        {
             if (mReparseEditor != null
                 && (DateTime.Now - mLastEditorChangedTime).TotalMilliseconds > 250)
             {
@@ -487,24 +510,39 @@ namespace Gosub.Zurfur
                     }
                 }
             }
+        }
 
-            // Display the hover message
+        /// <summary>
+        /// Called periodically to display the hover form
+        /// </summary>
+        private void DisplayHoverForm()
+        {
             var activeEditor = mvEditors.EditorViewActive as TextEditor;
             if (activeEditor != null
                     && mHoverToken != null
                     && mHoverToken.Type != eTokenType.Comment
-                    && mHoverToken.GetInfoString() != ""
+                    && (mHoverToken.GetInfoString() != "" || mHoverToken.GetInfo<SymScope>() != null)
                     && !mHoverMessageForm.Visible)
             {
-                // Set form size, location, and text
-                mHoverMessageForm.Message.Text = mHoverToken.GetInfoString();
-                var s = mHoverMessageForm.Message.Size;
-                mHoverMessageForm.ClientSize = new Size(s.Width + 8, s.Height + 8);
-                var p = activeEditor.PointToScreen(activeEditor.LocationToken(mHoverToken.Location));
-                p.Y -= s.Height + 32;
-                mHoverMessageForm.Location = p;
+                // Get message
+                string message = "";
+                var symbol = mHoverToken.GetInfo<SymScope>();
+                if (symbol != null)
+                {
+                    message += symbol.ToString() + "\r\n";
+                    if (symbol.Comments != "")
+                        message += symbol.Comments + "\r\n";
+                    message += "\r\n";
+                }
+                message += mHoverToken.GetInfoString();
+                mHoverMessageForm.Message.Text = message;
 
-                // Display the form
+                // Show form with proper size and location
+                var size = mHoverMessageForm.Message.Size;
+                mHoverMessageForm.ClientSize = new Size(size.Width + 8, size.Height + 8);
+                var location = activeEditor.PointToScreen(activeEditor.LocationToken(mHoverToken.Location));
+                location.Y -= size.Height + 32;
+                mHoverMessageForm.Location = location;
                 mHoverMessageForm.Show(this);
             }
         }
@@ -527,7 +565,9 @@ namespace Gosub.Zurfur
                 if (!parser.ParseError)
                 {
                     var sil = new SilGen(editor.FilePath, program);
-                    sil.GenerateDefinitions();
+                    sil.GenerateTypeDefinitions();
+                    // TBD: sil.MergeTypeDefinitions();
+                    sil.GenerateHeader();
                 }
 
                 // Show parser generated tokens

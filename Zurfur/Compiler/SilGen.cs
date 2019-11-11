@@ -4,81 +4,94 @@ using System.Collections.Generic;
 namespace Gosub.Zurfur.Compiler
 {
 
-
     class SilGen
     {
         SyntaxUnit mUnit;
-        SymFile mSymbols = new SymFile();
+        SymPackage mPackage = new SymPackage();
+        SymFile mFile = new SymFile();
         bool mError;
         public bool GenError => mError;
 
+        // Any symbol containing DUP_STR is a duplicate.
+        const string DUP_SYMBOL = "@dup";
+        string mDupSymbol = "";
+        int mDups;
+
         /// <summary>
-        /// Step 1: GenerateDefinitions (requires nothing from any other file)
-        /// Step 2: GenerateHeader (requires definitions from all other files)
-        /// Step 3: GenerateCode (requires headers from all other files)
+        /// Step 1: GenerateTypeDefinitions, requires nothing from any other file.
+        /// Step 2: MergeTypeDefinitions, requires step 1 output from all files in package.
+        /// Step 3: GenerateHeader, requires definitions from all other files and packages.
+        /// Step 4: GenerateCode
         /// </summary>
-        /// <param name="unit"></param>
         public SilGen(string fileName, SyntaxUnit unit)
         {
             mUnit = unit;
-            mSymbols.FileName = fileName;
+            mFile.FileName = fileName;
+            mDupSymbol = DUP_SYMBOL + ((DateTime.Now.Ticks + fileName.GetHashCode()) % 997) + "_";
         }
 
         /// <summary>
-        /// Step 1: Get the definitions contained in this file.
+        /// Step 1: Get the type definitions contained in this file.
+        /// Load namespaces, classes, structs, etc.
         /// </summary>
-        public void GenerateDefinitions()
+        public void GenerateTypeDefinitions()
         {
             var unit = mUnit;
             if (mUnit.Namespaces.Count == 0)
                 return;
 
             // Find namespaces
-            mSymbols.TopNamespace = mUnit.Namespaces[0].FullName;
             foreach (var ns in unit.Namespaces)
             {
-                if (!mSymbols.Symbols.ContainsKey(ns.FullName))
+                if (!mPackage.Symbols.ContainsKey(ns.FullName))
                 {
                     var scope = new SymScope(SymTypeEnum.Namespace);
-                    scope.KeywordToken = ns.Keyword;
                     scope.NameToken = ns.Name;
-                    scope.File = mSymbols;
+                    scope.File = mFile;
                     scope.Name = ns.FullName;
-                    mSymbols.Symbols[ns.FullName] = scope;
+                    mPackage.Symbols[ns.FullName] = scope;
                 }
             }
 
             // Find classes
             foreach (var aClass in unit.Classes)
             {
-                var newClass = new SymScope(SymTypeEnum.Class);
-                newClass.KeywordToken = aClass.Keyword;
-                newClass.NameToken = aClass.Name;
-                newClass.File = mSymbols;
-                newClass.Name = aClass.FullName;
-
-                if (mSymbols.Symbols.TryGetValue(aClass.FullName, out var remoteClass))
-                {
-                    DuplicateError(aClass.Name, mSymbols.FileName, 
-                                   remoteClass.NameToken, remoteClass.File.FileName);
-
-                    // TBD: We probably want to store this in the symbol table so it can be parsed later
-                    mSymbols.Symbols[aClass.FullName + "@duplicate"] = newClass;
-                }
-                else
-                {
-                    mSymbols.Symbols[aClass.FullName] = newClass;
-                }
+                AddSymbol(aClass, new SymClass());
             }
+
 
         }
 
-        private void DuplicateError(Token localToken, string localFile, Token remoteToken, string remoteFile)
+        /// <summary>
+        /// Add a new symbol, mark duplicates with an error
+        /// </summary>
+        private void AddSymbol(SyntaxScope scope, SymScope newSymbol)
         {
-            Reject(remoteToken, "Duplicate name");
-            Reject(localToken, "Duplicate name");
-            Link(remoteToken, localFile, localToken);
-            Link(localToken, remoteFile, remoteToken);
+            newSymbol.NameToken = scope.Name;
+            newSymbol.File = mFile;
+            newSymbol.Name = scope.FullName;
+            newSymbol.Comments = scope.Comments;
+
+            if (mPackage.Symbols.TryGetValue(scope.FullName, out var remoteSymbol))
+            {
+                DuplicateError(newSymbol, remoteSymbol, "Duplicate smbol");
+
+                // Store this symbol with a different name so it can be generated
+                mPackage.Symbols[scope.FullName + mDupSymbol + ++mDups] = newSymbol;
+            }
+            else
+            {
+                mPackage.Symbols[scope.FullName] = newSymbol;
+                newSymbol.NameToken.ReplaceInfo(newSymbol);
+            }
+        }
+
+        private void DuplicateError(SymScope localSymbol, SymScope remoteSymbol, string message)
+        {
+            Reject(localSymbol.NameToken, message);
+            Reject(remoteSymbol.NameToken, message);
+            localSymbol.NameToken.ReplaceInfo(remoteSymbol);
+            remoteSymbol.NameToken.ReplaceInfo(localSymbol);
         }
 
         void Reject(Token token, string errorMessage)
@@ -87,21 +100,34 @@ namespace Gosub.Zurfur.Compiler
             token.AddError(errorMessage);
         }
 
-        void Link(Token token, string fileName, Token remote)
+        /// <summary>
+        /// TBD: Step 2: Merge the type definitions from all files.
+        /// </summary>
+        public void MergeTypeDefinitions(IEnumerable<SilGen> package)
         {
-            token.SetUrl(fileName, remote);
+            
         }
 
         /// <summary>
-        /// Step 2: Generate the header file.
+        /// TBD: Step 3: Generate the header file.
         /// </summary>
         public void GenerateHeader()
         {
+            var unit = mUnit;
+            foreach (var field in unit.Fields)
+            {
+                AddSymbol(field, new SymField());
+            }
 
+            // TBD: Need to add parameter type names and bunches of other info
+            foreach (var func in unit.Funcs)
+            {
+                AddSymbol(func, new SymFunc());
+            }
         }
 
         /// <summary>
-        /// Step 3: Generate the code.
+        /// TBD: Step 4: Generate the code.
         /// </summary>
         public void GenerateCode()
         {

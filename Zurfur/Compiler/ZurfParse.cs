@@ -1548,42 +1548,15 @@ namespace Gosub.Zurfur.Compiler
                 return mPrevToken;
             }
 
-            // Read next token, and skip comments
-            var firstComment = true;
-            do
-            {
-                // Read next token (set EOF flag if no more tokens on line)
-                if (mLexerEnum.MoveNext())
-                    mToken = mLexerEnum.Current;
-                else
-                    mToken = new Token("", 0, 0, eTokenType.Reserved);
+            // Read next token (use "" as EOF flag)
+            GetNextToken();
 
-                // Keep track of public comments
-                if (mToken.Type == eTokenType.Comment || mToken.Type == eTokenType.PublicComment)
-                {
-                    if (firstComment)
-                        mComments.Clear();
-                    firstComment = false;
-                    mComments.Append(mToken.Name);
-                    mComments.Append(" ");
+            if (mTokenName == "//" || mTokenName == "///")
+                ParseComments();
 
-                    if (!mToken.Name.StartsWith("/")
-                        && (mToken.Name.ToLower().StartsWith("http://")
-                            || mToken.Name.ToLower().StartsWith("https//")
-                            || mToken.Name.ToLower().StartsWith("file://")))
-                    {
-                        mToken.Url = mToken.Name;
-                        mToken.Underline = true;
-                    }
-
-                }
-            } while (mToken.Type == eTokenType.Comment || mToken.Type == eTokenType.PublicComment);
-
-            // Reset token info
-            mToken.Clear();
-            mTokenName = mToken.Name;
             if (mTokenName != "")
                 mLastVisibleToken = mToken;
+
             if (mTokenName.Length == 0)
                 mToken.Type = eTokenType.Normal;
             else if (mTokenName[0] == '\"')
@@ -1615,7 +1588,61 @@ namespace Gosub.Zurfur.Compiler
             }
             return mPrevToken;
         }
-      
+
+        void GetNextToken()
+        {
+            if (mLexerEnum.MoveNext())
+                mToken = mLexerEnum.Current;
+            else
+                mToken = new Token("", 0, 0, eTokenType.Reserved);
+            mToken.Clear();
+            mTokenName = mToken.Name;
+        }
+
+        void ParseComments()
+        {
+            mComments.Clear();
+            while (mTokenName == "//" || mTokenName == "///")
+            {
+                var tokenType = mToken == "///" ? eTokenType.PublicComment : eTokenType.Comment;
+                mToken.Type = tokenType;
+                GetNextToken();
+                bool isCodeComment = false;
+                while (!mToken.Boln)
+                {
+                    mToken.Type = tokenType;
+                    if (tokenType == eTokenType.PublicComment)
+                    {
+                        // TBD: Need some work to reconstruct comment spacing properly
+                        mComments.Append(mToken.Name);
+                        mComments.Append(" ");
+                    }
+                    var lcComment = mTokenName.ToLower();
+                    if (lcComment.StartsWith("http://") 
+                            || lcComment.StartsWith("https//")
+                            || lcComment.StartsWith("file://"))
+                    {
+                        mToken.Url = mToken.Name;
+                        mToken.Underline = true;
+                    }
+                    if (mTokenName == "`")
+                    {
+                        isCodeComment = !isCodeComment;
+                        mToken.Subtype = eTokenSubtype.Normal;
+                    }
+                    else
+                    {
+                        mToken.Subtype = isCodeComment ? eTokenSubtype.CodeInComment : eTokenSubtype.Normal;
+                    }
+                    GetNextToken();
+                }
+
+            }
+
+
+        }
+
+
         // Reject the given token
         public void RejectToken(Token token, string errorMessage)
         {

@@ -441,12 +441,13 @@ pub struct decimal
 }
 
 /// String is a wrapper for a read only array of bytes
-pub struct str
-	: IComparable<str>, IRoArray<byte>
+pub sealed ro class str
+	: VariableSizedObject<byte>, IComparable<str>, IRoArray<byte>
 {
-    ro str Array<byte>
-
-    pub new() { str = Array<byte>.Empty }
+	pub static ro Empty string("");
+	// TBD: Need some syntax to make `Empty` the default
+	
+    pub new() { todo() }
     pub new(s str) { todo() }
     pub new(s RoSpan<byte>) { todo() }
     pub this[index int] byte => todo()

@@ -13,11 +13,46 @@ namespace Gosub.Zurfur.Compiler
         Field
     }
 
+    class SymPackage
+    {
+        public string PackageName = "";
+        public PackageInfo PackageInfo = new PackageInfo();
+        public CompilerInfo CompilerInfo = new CompilerInfo();
+
+        public Dictionary<string, SymScope> Symbols = new Dictionary<string, SymScope>();
+    }
+
+    class PackageInfo
+    {
+        public DateTime BuildDate = DateTime.Now;
+        public string Title = "";
+        public string Description = "";
+        public string Company = "";
+        public string Product = "";
+        public string Copyright = "";
+        public string Version = "";
+    }
+
+    class CompilerInfo
+    {
+        public string Name = "Zurfur";
+        public string Version = "0.0.0";
+
+        /// <summary>
+        /// The platform is "ZSIL" for a package ready for public distribution.
+        /// Everything else is tied to a specific compiler, buildname, 
+        /// and all build options and constants.
+        /// </summary>
+        public string Platform = "";
+        public int PlatformVersion;
+        public string BuildName = ""; // Debug, Release, etc.
+        public Dictionary<string, string> BuildOptions = new Dictionary<string, string>();
+        public Dictionary<string, string> BuildConstants = new Dictionary<string, string>();
+    }
+
     class SymFile
     {
-        public string FileName = "(none)";
-        public string TopNamespace = "";
-        public Dictionary<string, SymScope> Symbols = new Dictionary<string, SymScope>();
+        public string FileName = "";
     }
 
     /// <summary>
@@ -25,14 +60,12 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     class SymScope
     {
-        public string Name = "(none)";
-        public SymFile File;
-        public SymScope Parent;
-        public bool IsRoot => Parent == null;
         public SymTypeEnum Type;
-        public Token KeywordToken;
-        public Token NameToken;
-        //public Dictionary<string, SymScope> Symbols = new Dictionary<string, SymScope>();
+        public string Name = "(none)";
+        public string Comments = "";
+        public SymFile File;
+        public Token NameToken = Token.Empty;
+        public Dictionary<string, SymScope> Symbols = new Dictionary<string, SymScope>();
 
 
         public SymScope(SymTypeEnum type)
@@ -42,9 +75,33 @@ namespace Gosub.Zurfur.Compiler
 
         public override string ToString()
         {
-            return Type + ":" + Name + (Parent == null ? "" : " of " + Parent.Name);
+            return Type + ":" + Name;
         }
+    }
 
+    class SymNamespace : SymScope
+    {
+        public SymNamespace() : base(SymTypeEnum.Namespace) { }
+    }
+
+    class SymClass : SymScope
+    {
+        public SymClass() : base(SymTypeEnum.Class) {  }
+    }
+
+    class SymField : SymScope
+    {
+        public SymField() : base(SymTypeEnum.Field) { }
+    }
+
+    class SymFuncs : SymScope
+    {
+        public SymFuncs() : base(SymTypeEnum.Funcs) { }
+    }
+
+    class SymFunc : SymScope
+    {
+        public SymFunc() : base(SymTypeEnum.Func) { }
     }
 
 }
