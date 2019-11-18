@@ -157,7 +157,7 @@ namespace Gosub.Zurfur.Compiler
                 if (mLexerEnum.MoveNext())
                     mToken = mLexerEnum.Current;
                 else
-                    mToken = new Token("", 0, 0, eTokenType.Reserved);
+                    mToken = new Token("");
 
             } while (mToken.Type == eTokenType.Comment);
 
@@ -203,7 +203,7 @@ namespace Gosub.Zurfur.Compiler
             // Set token info
             Token[] sa = tokens.ToArray();
             foreach (Token s in sa)
-                s.ReplaceInfo(sa);
+                s.SetInfo(sa);
         }
 
     }

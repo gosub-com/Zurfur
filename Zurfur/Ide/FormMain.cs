@@ -4,23 +4,17 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.IO;
 using Gosub.Zurfur.Compiler;
+using Gosub.Zurfur.Ide; // TBD: Change all namespaces in IDE directory
 
 namespace Gosub.Zurfur
 {
     public partial class FormMain:Form
     {
-        FormHoverMessage    mHoverMessageForm;
-        Token               mHoverToken;
-        DateTime            mLastEditorChangedTime;
-        TextEditor          mReparseEditor;
         bool                mInActivatedEvent;
+        ZurfEditController mZurfEditController = new ZurfEditController();
 
-
-        static Pen sBoldConnectorOutlineColor = new Pen(Color.FromArgb(192, 192, 192));
-        static Brush sBoldConnectorBackColor = new SolidBrush(Color.FromArgb(224, 224, 224));
-        static Pen sConnectorOutlineColor = Pens.LightGray;
-        static Brush sConnectorBackColor = null;
-        static WordSet sBoldHighlightConnectors = new WordSet("( ) [ ] { } < >");
+        static readonly WordSet sTextEditorExtensions = new WordSet(".txt .json .md .htm .html .css");
+        static readonly WordSet sImageEditorExtensions = new WordSet(".jpg .jpeg .png .bmp");
 
         static readonly string ZURFUR_PROJ_EXT = ".zurfproj";
         static readonly string ZURFUR_SRC_MAIN = "Example.zurf";
@@ -37,7 +31,6 @@ namespace Gosub.Zurfur
         private void FormMain_Load(object sender, EventArgs e)
         {
             Text += " - " + "V" + App.Version;
-            mHoverMessageForm = new FormHoverMessage();
         }
 
         private void FormMain_Shown(object sender, EventArgs e)
@@ -107,144 +100,26 @@ namespace Gosub.Zurfur
         private void mvEditors_EditorAdded(IEditor editor)
         {
             var textEditor = editor as TextEditor;
-            if (textEditor == null)
-                return;
-
-            ParseText(textEditor);
-            textEditor.MouseHoverTokenChanged += editor_MouseTokenChanged;
-            textEditor.TextChanged2 += editor_TextChanged2;
-            textEditor.MouseClick += editor_MouseClick;
-            textEditor.MouseDown += editor_MouseDown;
+            if (textEditor != null)
+                mZurfEditController.AddEditor(textEditor);
         }
 
         private void mvEditors_EditorRemoved(IEditor editor)
         {
             var textEditor = editor as TextEditor;
-            if (textEditor == null)
-                return;
-
-            textEditor.MouseHoverTokenChanged -= editor_MouseTokenChanged;
-            textEditor.TextChanged2 -= editor_TextChanged2;
-            textEditor.MouseDown -= editor_MouseDown;
+            if (textEditor != null)
+                mZurfEditController.RemoveEditor(textEditor);
         }
 
         private void mvEditors_EditorActiveViewChanged(IEditor editor)
         {
-            // Reparse old one if necessary
-            if (mReparseEditor != null)
-                ParseText(mReparseEditor);
-            mReparseEditor = null;
+            mZurfEditController.ActiveViewChanged(editor as TextEditor);
 
             if (editor != null)
-            {
-                var textEditor = editor as TextEditor;
-                if (textEditor != null)
-                    editor_MouseTokenChanged(textEditor, null, null);
                 projectTree.Select(editor.FilePath);
-            }
             else
-            {
                 projectTree.OpenAndSelect(""); // NoSelection
-            }
         }
-
-        private void editor_TextChanged2(object sender, EventArgs e)
-        {
-            // Setup to re-parse some time after the user stops typing
-            mLastEditorChangedTime = DateTime.Now;
-            mReparseEditor = sender as TextEditor;
-        }
-
-        /// <summary>
-        /// Setup to display the message for the hover token.
-        /// Immediately show connected tokens.
-        /// </summary>
-        private void editor_MouseTokenChanged(TextEditor editor, Token previousToken, Token newToken)
-        {
-            // Setup to display the hover token
-            mHoverToken = newToken;
-            mHoverMessageForm.Visible = false;
-
-            // Update hover token colors
-            List<TokenColorOverride> overrides = new List<TokenColorOverride>();
-            editor.TokenColorOverrides = null;
-            if (newToken != null)
-            {
-                // Show active link when CTRL is pressed
-                if ((ModifierKeys & Keys.Control) == Keys.Control 
-                    && (newToken.Url != "" || newToken.GetInfo<SymScope>() != null))
-                {
-                    var ov = new TokenColorOverride(newToken);
-                    ov.Font = new Font(editor.Font, FontStyle.Underline);
-                    ov.ForeColor = Brushes.Blue;
-                    overrides.Add(ov);
-                    editor.Cursor = Cursors.Hand;
-                }
-                else
-                {
-                    editor.Cursor = Cursors.IBeam;
-                }
-
-                // Make a list of connecting tokens
-                Token[]connectors = newToken.GetInfo<Token[]>();
-                if (connectors != null)
-                {
-                    foreach (Token s in connectors)
-                    {
-                        if (sBoldHighlightConnectors.Contains(s))
-                            overrides.Add(new TokenColorOverride(s, sBoldConnectorOutlineColor, sBoldConnectorBackColor));
-                        else
-                            overrides.Add(new TokenColorOverride(s, sConnectorOutlineColor, sConnectorBackColor));
-                    }
-                }
-                // Highlight current location (if not already showing something from above)
-                if (newToken.Type != eTokenType.Comment
-                    && newToken.Type != eTokenType.PublicComment
-                    || newToken.Subtype == eTokenSubtype.CodeInComment
-                    || newToken.Underline)
-                {
-                    overrides.Add(new TokenColorOverride(newToken, newToken.Error ? Pens.Red : Pens.LightBlue));
-                }
-
-                // Update editor to show them
-                editor.TokenColorOverrides = overrides.ToArray();
-            }
-        }
-
-        /// <summary>
-        /// When the user click the editor, hide the message box until a
-        /// new token is hovered over.
-        /// </summary>
-        private void editor_MouseDown(object sender, MouseEventArgs e)
-        {
-            mHoverToken = null;
-            mHoverMessageForm.Visible = false;
-        }
-
-        /// <summary>
-        /// Open web browser
-        /// </summary>
-        private void editor_MouseClick(object sender, MouseEventArgs e)
-        {
-            var token = ((TextEditor)sender).MouseHoverToken;
-            if (token != null && (ModifierKeys & Keys.Control) == Keys.Control 
-                && (token.Url != "" || token.GetInfo<SymScope>() != null))
-            {
-                if (token.Url.ToLower().StartsWith("http"))
-                {
-                    System.Diagnostics.Process.Start(token.Url);
-                }
-                else if (token.GetInfo<SymScope>() != null)
-                {
-                    MessageBox.Show(this, "TBD: Still working on goto symbol", "Zurfur");
-                }
-                else
-                {
-                    MessageBox.Show(this, "TBD: Still working on this:)", "Zurfur");
-                }
-            }
-        }
-
 
         void menuFileOpenProject_Click(object sender, EventArgs e)
         {
@@ -310,8 +185,6 @@ namespace Gosub.Zurfur
                 }
         }
 
-        static readonly WordSet sTextEditorExtensions = new WordSet(".txt .json .md .htm .html .css");
-        static readonly WordSet sImageEditorExtensions = new WordSet(".jpg .jpeg .png .bmp");
         void LoadFile(string path)
         {
             // Check for aleady loaded file path
@@ -477,147 +350,7 @@ namespace Gosub.Zurfur
         /// </summary>
         private void timer1_Tick(object sender, EventArgs e)
         {
-            CheckForRecompile();
-            DisplayHoverForm();
-        }
-
-        /// <summary>
-        /// Called periodically from timer to recompile
-        /// </summary>
-        private void CheckForRecompile()
-        {
-            if (mReparseEditor != null
-                && (DateTime.Now - mLastEditorChangedTime).TotalMilliseconds > 250)
-            {
-                if (System.Diagnostics.Debugger.IsAttached)
-                {
-                    // Reset the lexer, re-parse, and compile
-                    ParseText(mReparseEditor);
-                    mReparseEditor = null;
-                }
-                else
-                {
-                    try
-                    {
-                        // Reset the lexer, re-parse, and compile
-                        ParseText(mReparseEditor);
-                        mReparseEditor = null;
-                    }
-                    catch (Exception ex)
-                    {
-                        mReparseEditor = null;
-                        MessageBox.Show(this, "Error compiling: " + ex.Message);
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Called periodically to display the hover form
-        /// </summary>
-        private void DisplayHoverForm()
-        {
-            var activeEditor = mvEditors.EditorViewActive as TextEditor;
-            if (activeEditor != null
-                    && mHoverToken != null
-                    && mHoverToken.Type != eTokenType.Comment
-                    && (mHoverToken.GetInfoString() != "" || mHoverToken.GetInfo<SymScope>() != null)
-                    && !mHoverMessageForm.Visible)
-            {
-                // Get message
-                string message = "";
-                var symbol = mHoverToken.GetInfo<SymScope>();
-                if (symbol != null)
-                {
-                    message += symbol.ToString() + "\r\n";
-                    if (symbol.Comments != "")
-                        message += symbol.Comments + "\r\n";
-                    message += "\r\n";
-                }
-                message += mHoverToken.GetInfoString();
-                mHoverMessageForm.Message.Text = message;
-
-                // Show form with proper size and location
-                var size = mHoverMessageForm.Message.Size;
-                mHoverMessageForm.ClientSize = new Size(size.Width + 8, size.Height + 8);
-                var location = activeEditor.PointToScreen(activeEditor.LocationToken(mHoverToken.Location));
-                location.Y -= size.Height + 32;
-                mHoverMessageForm.Location = location;
-                mHoverMessageForm.Show(this);
-            }
-        }
-
-        private void ParseText(TextEditor editor)
-        {
-            var t1 = DateTime.Now;
-
-            // For the time being, we'll use the extension to decide
-            // which parser to use.  TBD: Move this logic to its own class
-            // TBD: Need build system
-            var ext = Path.GetExtension(editor.FilePath).ToLower();
-            if (ext == ".zurf")
-            {
-                // Parse text
-                var parser = new ZurfParse(editor.Lexer);
-                var program = parser.Parse();
-
-                // Generate Sil
-                if (!parser.ParseError)
-                {
-                    var sil = new SilGen(editor.FilePath, program);
-                    sil.GenerateTypeDefinitions();
-                    // TBD: sil.MergeTypeDefinitions();
-                    sil.GenerateHeader();
-                }
-
-                // Show parser generated tokens
-                var extraTokens = parser.ExtraTokens();
-                editor.ExtraTokens = extraTokens;
-
-            }
-            else if (ext == ".json")
-            {
-                var parser = new JsonParse(editor.Lexer);
-                parser.Parse();
-            }
-            else
-            {
-                return;
-            }
-
-            var t2 = DateTime.Now;
-            // TBD: Analyze, code generation, etc
-            var t3 = DateTime.Now;
-
-            // Debug times
-            var parseTime = t2 - t1;
-            var genTime = t3 - t2;
-
-            // Call this function after the tokens changed in a way that
-            // causes the vertical marks or connectors to have changed
-            var marks = new List<VerticalMarkInfo>();
-            int lastMark = -1;
-            foreach (var token in editor.Lexer)
-            {
-                // WARNINGS
-                if (token.Warn && token.Location.Y != lastMark)
-                {
-                    lastMark = token.Location.Y;
-                    marks.Add(new VerticalMarkInfo { Color = Color.Gold, Length = 1, Start = lastMark });
-                }
-            }
-            lastMark = -1;
-            foreach (var token in editor.Lexer)
-            {
-                // ERRORS
-                if (token.Error && token.Location.Y != lastMark)
-                {
-                    lastMark = token.Location.Y;
-                    marks.Add(new VerticalMarkInfo { Color = Color.Red, Length = 1, Start = lastMark });
-                }
-            }
-            editor.SetMarks(marks.ToArray());
-            editor.Invalidate();
+            mZurfEditController.Timer();
         }
 
         private void menuHelpAbout_Click(object sender, EventArgs e)

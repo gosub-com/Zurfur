@@ -11,7 +11,7 @@ namespace Gosub.Zurfur.Compiler
         public SyntaxNamespace CurrentNamespace { get { return Namespaces.Count == 0 ? null : Namespaces[Namespaces.Count - 1]; } }
 
         public List<SyntaxNamespace> Namespaces = new List<SyntaxNamespace>();
-        public List<SyntaxClass> Classes = new List<SyntaxClass>();
+        public List<SyntaxType> Types = new List<SyntaxType>();
         public List<SyntaxFunc> Funcs = new List<SyntaxFunc>();
         public List<SyntaxField> Fields = new List<SyntaxField>();
     }
@@ -19,64 +19,43 @@ namespace Gosub.Zurfur.Compiler
     class SyntaxUsing
     {
         public Token Keyword;
-        public Token[] QualifiedIdentifiers = Token.EmptyArray;
-    }
-
-    class SyntaxNamespace
-    {
-        public string Comments;
-        public Token Name => QualifiedIdentifiers.Length == 0 ? new Token("(none)", 0, 0) : QualifiedIdentifiers[QualifiedIdentifiers.Length - 1];
-        public Token Keyword;
-        public Token[] QualifiedIdentifiers = Token.EmptyArray;
-        public SyntaxNamespace ParentNamespace;
-
-        string mFullName;
-        public string FullName => ToString();
-
-        public override string ToString()
-        {
-            if (mFullName != null)
-                return mFullName;
-            mFullName = "";
-            for (int i = 0; i < QualifiedIdentifiers.Length;  i++)
-                mFullName = mFullName + QualifiedIdentifiers[i] + (i == QualifiedIdentifiers.Length-1 ? "" : ".");
-            if (ParentNamespace != null)
-                mFullName = ParentNamespace.FullName + "." + mFullName;
-            return mFullName;
-        }
-
+        public Token[] NamePath = Token.EmptyArray;
     }
 
     class SyntaxScope
     {
-        public SyntaxNamespace Namespace;
-        public SyntaxClass ParentClass;
+        public virtual bool IsNamespace => false;
+        public virtual bool IsType => false;
+        public SyntaxScope ParentScope;
         public string Comments;
         public Token[] Qualifiers;
         public Token Keyword; // class, struct, func, prop, blank for field, etc.
         public Token Name;
 
-        protected string mFullName;
-
         virtual public string FullName
         {
             get
             {
-                if (mFullName != null)
-                    return mFullName;
-                mFullName = Name == null ? "(none)" : Name.ToString();
-                if (ParentClass == null)
-                    mFullName = (Namespace == null ? "(none)" : Namespace.ToString()) + "." + mFullName;
-                else
-                    mFullName = ParentClass.FullName + "/" + mFullName;
-                return mFullName;
+                var name = Name == null ? "(none)" : Name;
+                if (ParentScope != null)
+                    name = ParentScope.FullName + "." + name;
+                return name;
             }
         }
         public override string ToString() => FullName;
     }
 
-    class SyntaxClass : SyntaxScope // or struct, enum, or interface
+    class SyntaxNamespace : SyntaxScope
     {
+        public override bool IsNamespace => true;
+    }
+
+    /// <summary>
+    /// Includes struct, enum, interface
+    /// </summary>
+    class SyntaxType : SyntaxScope
+    {
+        public override bool IsType => true;
         public SyntaxExpr []BaseClasses;
         public SyntaxExpr TypeParams;
         public SyntaxExpr Alias;
@@ -95,22 +74,13 @@ namespace Gosub.Zurfur.Compiler
         public SyntaxExpr TypeName;
         public Token InitToken;
         public SyntaxExpr InitExpr;
+        public override string FullName => base.FullName + "::" + Name;
 
         public SyntaxField()
         {
             Keyword = Token.Empty;
         }
 
-        public override string FullName
-        {
-            get
-            {
-                if (mFullName != null)
-                    return mFullName;
-                mFullName = base.FullName + "::" + Name;
-                return mFullName;
-            }
-        }
 
     }
 
@@ -122,6 +92,7 @@ namespace Gosub.Zurfur.Compiler
         public SyntaxExpr ReturnType;
         public SyntaxConstraint[] Constraints;
         public SyntaxExpr Statements;
+        public Token EndToken; // To mark error at end of body
 
     }
 

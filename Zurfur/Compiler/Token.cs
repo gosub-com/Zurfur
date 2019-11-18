@@ -60,10 +60,15 @@ namespace Gosub.Zurfur.Compiler
         public eTokenType Type;
         public eTokenSubtype Subtype;
         eTokenBits mBits;
-        object mInfo; // Null, object, or List<Object>
+        ObjectBag mInfo;
 
         public Token()
         {
+        }
+
+        public Token(string name)
+        {
+            Name = name;
         }
 
         public Token(string name, int x, int y)
@@ -157,88 +162,16 @@ namespace Gosub.Zurfur.Compiler
             Subtype = eTokenSubtype.Normal;
             Type = eTokenType.Normal;
             mBits = mBits & eTokenBits.ReadOnlyMask;
-            mInfo = null;
+            mInfo = new ObjectBag();
         }
 
-        public void AddInfo(object info)
-        {
-            if (mInfo == null)
-            {
-                mInfo = info;
-                return;
-            }
-            var list = mInfo as List<Object>;
-            if (list != null)
-            {
-                list.Add(info);
-                return;
-            }
-            list = new List<object>();
-            list.Add(mInfo);
-            list.Add(info);
-            mInfo = list;
-        }
-
-        public void RemoveInfo<T>()
-        {
-            if (mInfo == null)
-                return;
-            if (mInfo is T)
-            {
-                mInfo = null;
-                return;
-            }
-            var list = mInfo as List<object>;
-            if (list != null)
-                list.RemoveAll((obj) => obj is T);
-        }
-
-        public void ReplaceInfo<T>(T info)
-        {
-            RemoveInfo<T>();
-            AddInfo(info);
-        }
-
-        public bool HasInfo()
-        {
-            return mInfo != null;
-        }
-
-        public T GetInfo<T>()
-        {
-            if (mInfo is T)
-                return (T)mInfo;
-            var list = mInfo as List<Object>;
-            if (list != null)
-                foreach (var elem in list)
-                    if (elem is T)
-                        return (T)elem;
-            return default(T);
-        }
-        public T[] GetInfos<T>()
-        {
-            if (mInfo is T)
-                return new T[1] { (T)mInfo };
-            var list = mInfo as List<Object>;
-            if (list == null)
-                return new T[0];
-            var infos = new List<T>();
-            foreach (var elem in list)
-                if (elem is T)
-                    infos.Add((T)elem);
-            return infos.ToArray();
-        }
-        public string GetInfoString()
-        {
-            var strings = GetInfos<string>();
-            var sb = new StringBuilder();
-            foreach (var s in strings)
-            {
-                sb.Append(s);
-                sb.Append("\r\n\r\n");
-            }
-            return sb.ToString();
-        }
+        public bool HasInfo() => mInfo.HasInfo();
+        public void AddInfo(object info) => mInfo.AddInfo(info);
+        public void RemoveInfo<T>() => mInfo.RemoveInfo<T>();
+        public void SetInfo<T>(T info) =>  mInfo.SetInfo(info);
+        public T GetInfo<T>() => mInfo.GetInfo<T>();
+        public T[] GetInfos<T>() => mInfo.GetInfos<T>();
+        public string GetInfoString() => mInfo.GetInfoString();
 
         /// <summary>
         /// Add an error to this token (set error flag and append the message)
@@ -315,8 +248,115 @@ namespace Gosub.Zurfur.Compiler
             // Set token info
             Token[] sa = tokens.ToArray();
             foreach (Token s in sa)
-                s.ReplaceInfo(sa);
+                s.SetInfo(sa);
         }
+
+        /// <summary>
+        /// Minimalist implementation of List of object, but is much
+        /// smaller and doesn't use any heap to store one object since
+        /// that's the most common case.  Do not copy, because the
+        /// copy may or may not point to the same array.
+        /// </summary>
+        struct ObjectBag
+        {
+            object mInfo;
+
+            public bool HasInfo()
+            {
+                return mInfo != null;
+            }
+
+            public void AddInfo(object info)
+            {
+                if (mInfo == null)
+                {
+                    mInfo = info;
+                    return;
+                }
+                var list = mInfo as object[];
+                if (list != null)
+                {
+                    for (int i = 0;  i < list.Length;  i++)
+                        if (list[i] == null)
+                        {
+                            list[i] = info;
+                            return;
+                        }
+                    // Expand array
+                    var list2 = new object[list.Length * 2];
+                    Array.Copy(list, list2, list.Length);
+                    list2[list.Length] = info;
+                    mInfo = list2;
+                    return;
+                }
+                list = new object[4];
+                list[0] = mInfo;
+                list[1] = info;
+                mInfo = list;
+            }
+
+            public void RemoveInfo<T>()
+            {
+                if (mInfo == null)
+                    return;
+                if (mInfo is T)
+                {
+                    mInfo = null;
+                    return;
+                }
+                var list = mInfo as object[];
+                if (list != null)
+                    for (int i = 0; i < list.Length; i++)
+                        if (list[i] is T)
+                            list[i] = null;
+            }
+
+            public void SetInfo<T>(T info)
+            {
+                RemoveInfo<T>();
+                AddInfo(info);
+            }
+
+            public T GetInfo<T>()
+            {
+                if (mInfo is T)
+                    return (T)mInfo;
+                var list = mInfo as object[];
+                if (list != null)
+                    foreach (var elem in list)
+                        if (elem is T)
+                            return (T)elem;
+                return default(T);
+            }
+
+            public T[] GetInfos<T>()
+            {
+                if (mInfo is T)
+                    return new T[1] { (T)mInfo };
+                var list = mInfo as object[];
+                if (list == null)
+                    return new T[0];
+                var infos = new List<T>();
+                foreach (var elem in list)
+                    if (elem is T)
+                        infos.Add((T)elem);
+                return infos.ToArray();
+            }
+
+            public string GetInfoString()
+            {
+                var strings = GetInfos<string>();
+                var sb = new StringBuilder();
+                foreach (var s in strings)
+                {
+                    sb.Append(s);
+                    sb.Append("\r\n\r\n");
+                }
+                return sb.ToString();
+            }
+
+        }
+
     }
 
     /// <summary>
@@ -391,7 +431,7 @@ namespace Gosub.Zurfur.Compiler
         }
         public override string ToString()
         {
-            return "" + "Line: " + Y + ", Char: " + X;
+            return "" + "X=" + X + ", Y=" + Y;
         }
     }
 

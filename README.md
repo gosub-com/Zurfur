@@ -17,10 +17,13 @@ spelled **_ZurFUR_** because our cat has fur.
 Zurfur is similar to C#, but borrows syntax and design concepts from
 Golang.  Here are some differences between Zurfur and C#:
 
-* Strings are UTF8 byte arrays initialized to "" by default
+* Strings are UTF8 byte arrays initialized
+* Reference types are initialized without `new` keyword and can't be implicitly `null` **Still TBD**
+* `==` operator does not default to reference comparison
 * Type declaration syntax and operator precedence is from Golang
-* Built from the ground up using `ref` returns, so `List` acts exactly like `Array`
-* Interfaces connect to any object with matching signature (just like Golang)
+* Built from the ground up using `ref` returns
+* Get/set of structs acts like a class, `MyListOfStructPoints[1].X = 5` works like you think it should
+* Interfaces can be explicitly created from object with matching signature (like Golang)
 * Lots of other differences, but if you're familiar with C# it'll all make sense
 
 ## Overview
@@ -67,20 +70,59 @@ extension methods.
 
 TBD: Still considering using `fn` to declare a function.
 
-## Variables
+## Semicolons
+
+Like Golang, semicolons are required between statements but they are automatically
+inserted at the end of lines based on the last non-comment token on the line and
+the first token of the next line.
+
+The general rule is that any line beginning with an operator does not put
+a `;` on the previous line.  Additionally, `,` and `{` at the end of a line
+prevent a semicolon on that line.  The `{` rule is to support curly brace
+at end of line style.  I personally hate that style, but since others love
+it, it's supported.  The `,` rule is because it looks wrong to have a comma
+at the beginning of a line.
+
+Note that we do not want to have `(` at the end of a line prevent generating
+a semicolon because while typing you will get a partially completed line like
+`func a(`.  If the next line were `a int`, there wouldn't be an error until
+the end of that line.
+
+## Local Variables
 
 Within a function, variables are declared and initialized with the `@` symbol,
-which is the same as `var` in C#. 
+which is similar to `var` in C#.
 
     // Local variables declared in a function
     @myString = "Hello World"
     @myInt = 3
-    @myList = List<int>({1,2,3});
+    @myList = List<int>({1,2,3})
     @myMap = Map<str,int>({{"A",1},{"B",2}})
+    @myOtherMap = MyMapReturningFunction()
+   
+This form `@variable = expression` creates a variable with the same type as
+the expression.  A second form `@variable type [=expression]` creates an explicitly
+typed variable with optional assignment from an expression.  If the expression
+cannot be converted, an error is generated
 
-TBD: Make them immutable by default, and add `mut@` or `@@` for mutable?  
-I've never had a problem with mutable by default, so don't see the point
-but am open to the argument.
+    @myStr str = MyStrFunc()    // Error if MyStrFunc returns an int
+    @myInt int = MyIntFunc()    // Error if MyIntFunc returns a float
+    @a str                      // `a` is a string, initialized to ""
+    @b List<int>                // `b` is a List<int>, initialized to empty
+
+**TBD:** It is impossible to implicitly create a `null` reference.  All references
+are initialized via the default constructor.  However, null references
+can be created explicitly when desired.
+
+    
+    @myNullStr ?str         // String is null
+    @myEmptyStr ?str()      // String is ""
+
+**TBD:** If we don't allow null objects by default, how do we make `List<SomeClass>`
+efficient?  Each time the underlying array is expanded, the constructor will be
+called for every object in the array.  Perhaps the underlying array is typed
+`List<?SomeClass>` but the getter converts?  If so, then what does that mean
+for value types?  `List<?int>` shouldn't have each `int` on the heap.
 
 ## Basic types
 
@@ -92,11 +134,22 @@ but am open to the argument.
 extended integer types, which could be 32 or 64 bits depending on run-time
 architecture.
 
-`[]type` is shorthand for `Array<type>`, but cannot be initialized with
-any value other than `null`.  `List<type>` works just like an array, but
-has a capacity and dynamic size.  It's similar to C#'s `List`, except that
-it indexes using a `ref` return.  It acts just like an array including the
-ability to modify a field of a mutable struct or slice it to create a `Span`
+`Array` is your standard C# fixed sized array.  The constructor takes `Count`
+which can never be changed after that. 
+
+    @a Array<int>               // `a` is an array of length zero
+    @b Array<int>(32)           // `b` is an array of length 32
+    @c Array<Array<int>>(10)    // `c` is an array of arrays
+
+`List` is your standard C# variable sized array with a `Count` and `Capacity`
+that changes as items are added or removed.  In Zurfur, lists act more like
+arrays than they do in C# because setters are automatically used to modify
+fields when necessary:
+
+    struct MyPoint { pub X int;  pub Y int}
+    @a = List<MyPoint>({{1,2},{3,4},{5,6}})
+    a[1].Y = 12;    // Now `a` contains {{1,2},{3,12},{5,6}}
+
 
 TBD: Lower case `array`, `list`, and `map`?  `span`, `roSpan`?
 
@@ -107,8 +160,9 @@ followed by `type`, just like in Golang:
 
     pub class Example
     {
+        
 	    F1 str                                   // Private string initialized to ""
-	    pub F2 Array<int>                        // Array of int, initialized to null
+	    pub F2 Array<int>                        // Array of int, initialized to empty (i.e. Count = 0)
         pub F3 Array<int>(23)                    // Array, length 23 integers (all 0)
         pub F4 Array<int>({1,2,3})               // Array initialized with 1,2,3
 	    pub F5 List<str>({"Hello", "World"})     // Initialized list
@@ -181,10 +235,10 @@ weight as an integer and need no metadata in the compiled executable.
 
 Operator precedence comes from Golang.
 
-    Primary: . () [] @ # ^ {}
+    Primary: . () [] @ # {}
     Unary: + - ! & ^
     Multiplication and bits: * / % << >> & 
-    Add and bits: + - | ^
+    Add and bits: + - | ~
     Range: .. ::
     Comparison: == != < <= > >= === !== in
     Conditional: &&
@@ -197,10 +251,8 @@ Operator precedence comes from Golang.
 The `@` operator is the same as using `var` in front of a variable in C#.
 
 The `*` operator is only for multiplication, and there is no `->` operator.
+`^` is for dereferencing.  `~` is both xor and unsary complement.
 See pointers section below for discussion.
-
-Like Golang, there is no unary `~` operator.  The unary version of `^`
-can be used instead.
 
 Operator `==` does not default to object comparison, and only works when it
 is defined for the given type.  Use `===` for object comparison. 
@@ -209,8 +261,8 @@ is defined for the given type.  Use `===` for object comparison.
 
 `+`, `-`, `*`, `/`, `%`, and `in` are the only operators that may be individually
 overloaded.  The `==` and `!=` operator may be overloaded together by implementing
-`static func Equals(a myType, b myType) bool`.  All six operators, `==`, `!=`,
-`<`, `<=`, `==`, `!=`, `>=`, and `>` by implementing just one function:
+`static func Equals(a myType, b myType) bool`.  All six comparison operators,
+`==`, `!=`, `<`, `<=`, `==`, `!=`, `>=`, and `>` by implementing just one function:
 `static func Compare(a myType, b myType) int`.  If both functions are overloaded,
 `Equals` is used for equality comparisons, and `Compare` is used for the others.
 
@@ -277,24 +329,23 @@ error if MyIntFunc() should ever return a float.
 Interfaces are a cross between C# and GoLang, but a little different from
 both.  They are mostly C# 8.0 (including default implementations, etc.)
 but they also allow *explicit* conversion from any class that defines
-all the required functions.  Unlike C# and Golang, interfaces do not
-allow casting back to the original object.  
+all the required functions.   [I didn't realize default implementations
+were so contentious.](https://jeremybytes.blogspot.com/2019/09/interfaces-in-c-8-are-bit-of-mess.html)
+Let me know how to do it better.
 
 #### Structural Typing
 
-In C#, a class must explicitly support an interface.  This is
-good because it forces the class designers to consider
-the supported interfaces when making API changes.  Golang
-will convert any class to an interface as long as the class
-implements all the matching functions.  This is convenient, but
-there is no contract forcing the class designer to think about
-each supported interface.
+In C#, a class must explicitly support an interface.  This is good because
+it forces the class designers to consider the supported interfaces when
+making API changes.  Golang will convert any class to an interface as long
+as the class implements all the matching functions.  This is convenient, but
+there is no contract forcing the class designer to think about each supported interface. 
+[Some people don't seem to like this too much.](https://bluxte.net/musings/2018/04/10/go-good-bad-ugly/#interfaces-are-structural-types)
 
-Zurfur takes the middle ground.  Classes should list the
-interfaces they support.  But, an *explicit* cast can be used
-to build any interface provided the class implements all the
-functions.  The explicit cast is to remind us that the class
-does not necessarily support the interface, and it's on the
+Zurfur takes the middle ground.  Classes should list the interfaces they
+support.  But, an *explicit* cast can be used to build any interface provided
+the class implements all the functions.  The explicit cast is to remind us
+that the class does not necessarily support the interface, and it's on the
 user (not the library writer) to make sure it's all kosher.
 
 #### Optional Conversion Back to the Concrete Class
@@ -336,7 +387,7 @@ base class, not the derived classes.
 `IArithmetic` is a static only interface, allowing this generic
 function:
 
-    // Return value if it low..high otherwise return low or high.  
+    // Return `value` if it `low`..`high` otherwise return `low` or `high`.  
     pub static func BoundValue<T>(value T, low T, high T) T
 		    where T : IAritmetic
     {
@@ -349,7 +400,22 @@ function:
 
 ## Arrays, Slicing, and the Range Operator
 
-Describe here...
+The `..` operator takes two `int`s and make a `Range` which is
+a `struct Range { Start int; End int}`.  The `::` operator also
+makes a range, but the second parameter is a count instead of end
+index.
+
+    for @a in 2..32
+        { Console.Log(a) }
+
+Prints the numbers from 2 to 31.  The end of the range is exclusive,
+so `for @a in 0..myArray.Count` iterates over the entire array.
+An `Array` and `List` can be sliced using these two operators:
+
+    @a = myArray[2..32]     // Elements starting at 2 ending at 31 (excludes element 32)
+    @b = myArray[2::5]      // Elements 2..7 (length 5, excludes element 7)
+
+Describe more here...
 
 ## Pointers
 

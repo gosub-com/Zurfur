@@ -8,22 +8,17 @@ namespace Zurfur.Example
 /// Example class, a test of hover comments and `code` comments
 pub class Example
 {
-	info str 					// Private string initialized to ""
-    f1 Array<int>({1,2,3})      			// Initialized array
-    f2 List<str>({"Hello", "World"})    	// Initialized list
-    f3 Map<str,int>({{"A",1},{"B",2}})  	// Initialized map
-    pub ro Header str("Zurfur") 			// Public read only string
-    pub func Func(a int) str => Header+a	// Member function
     pub prop Prop str => Header + info  	// Property
 }
 pub func Example::MyExtension() => Func1(10) // Extension method
+
 
 pub func Example::Extension() 
 { 
 	for @a in 1..23
 	{
 		F(out @b, c)
-		@a+24 = 23 // TBD: Fix @ expression target
+		@a int + 24 = 23 // TBD: Fix @ expression target
 		a + 55 = 23 // TBD: Fix 
 	}
 }
@@ -47,7 +42,6 @@ pub class Example2  // YES, errors working
     // Fields initialized to null
     f4 Array<int>
     f5 Array<Array<int>> 
-    f6 []int       // Same as Array<int>
     f7 Map<str,List<int>>
     f8 Pointer<int>
     f9 ^int        // Same as Pointer<int>
@@ -85,7 +79,6 @@ pub class Example2  // YES, errors working
     func func1(a int) { }
     func func2(a out str) bool {}
     func func4(a ref MyStruct) {}
-    func func5(a [][]int) {} 
     func func5(a Array<Array<int>>) {}
     func func7(a List<int>) { }
     func func8(a out List<List<int>>) { }
@@ -126,6 +119,22 @@ pub class Example2  // YES, errors working
 	    @a = (#List<Stuff>(yourStuff.SeeMyStuff)).Add(Stuff())
         @b = ^#^int(myVoidPointer)
 	    #List<Stuff>(yourStuff.SeeMyStuff)[23] = 4
+
+
+	    // Local variables declared in a function
+	    @myString = "Hello World"
+	    @myInt = 3
+	    @myList = List<int>({1,2,3})
+	    @myMap = Map<str,int>({{"A",1},{"B",2}})
+	    @myOtherMap = MyMapReturningFunction()
+	   
+	    @myStr str = MyStrFunc()    // Error if MyStrFunc returns an int
+	    @myInt int = MyIntFunc()    // Error if MyIntFunc returns a float
+	    @a str                      // `a` is a string, initialized to ""
+	    @b List<int>                // `b` is a List<int>, initialized to empty
+	
+        @myNullStr ?str         // String is null
+        @myEmptyStr ?str()      // String is ""
 
         // Static assigments
         M<str>.Hello = 6
@@ -222,24 +231,46 @@ pub static func Sort<T>(s Span<T>, lessThan func(a T, b T) bool)
     }
 }
 
-pub ref struct Span<T>
-{
-    ro data ref T
-    pub ro Count int
-    pub this[index int] ref T => todo()
-    pub this[index Range] Span<T> => todo(); // Slice
-    pub prop Ro Span<T> => todo() // Covert to RoSpan (TBD: Implicit)
-}
-
+/// Read only span
 pub ref struct RoSpan<T>
 {
     ro data ref T
     pub ro Count int
     pub this[index int] ro ref T => todo()
-    pub this[index Range] RoSpan<T> => todo(); // Slice
-    // TBD: implicit conversion to RoSpan?
+    pub this[index Range] RoSpan<T> => todo();
 }
 
+/// Span of contiguous elements in memory or an array
+pub ref struct Span<T>
+{
+    ro data ref T
+    pub ro Count int
+    pub this[index int] ref T => todo()
+    pub this[index Range] Span<T> => todo();
+    operator implicit(from Span<T>) RoSpan<T> => todo()
+}
+
+/// Read only array span
+pub struct RoASpan<T>
+{
+    ro data Array<T>
+    pub ro Count int
+    pub this[index int] T => todo()
+    pub this[index Range] RoASpan<T> => todo();
+    operator implicit(from RoASpan<T>) RoSpan<T> => todo()
+}
+
+/// Array span
+pub struct ASpan<T>
+{
+    ro data Array<T>
+    pub ro Count int
+    pub this[index int] ref T => todo()
+    pub this[index Range] ASpan<T> => todo();
+    operator implicit(from ASpan<T>) RoASpan<T> => todo()
+    operator implicit(from ASpan<T>) RoSpan<T> => todo()
+    operator implicit(from ASpan<T>) Span<T> => todo()
+}
 
 // All variable sized objects must inherit from this class, must be sealed, and
 // must call AllocateObject first thing in the constructor.  For efficiency,
@@ -269,7 +300,7 @@ pub sealed class Array<T>
     new(items ICollection<T>) => todo()
     
     pub this[index int] ref T => todo()
-    pub this[range Range] Span<T> => todo()
+    pub this[range Range] ASpan<T> => todo()
 }
 
 // Note that the List class has a ref return indexer, just like Array
@@ -280,12 +311,11 @@ pub class List<T>
     new(capacity int) => todo()
     new(items ICollection<T>) => todo()
     
-    // NOTE: Ref return satisfies both indexer get and set
-    pub this[index int] ref T => todo()
-    pub this[range Range] Span<T> => todo()
+    pub this[index int] T { get => todo(); set => todo() }
+    pub this[index Range] IArray<T> => todo()
 
-    // NOTE: `Add` not needed because of default implementation
     pub prop Count int { get }
+    pub func Add(item T) => todo()
     pub func Clear() => todo()
     pub func Insert(index int, item T) => todo()
     pub func Insert(index int, items ICollection<T>) => todo()
@@ -483,7 +513,7 @@ pub static func MemCopy32(dest ^void, source ^void, length xint)
     }
 }
 
-namespace Example1.HelloWorld
+namespace ExampleNs1.HelloWorld
 {
 	static func F1() => todo;
 	
@@ -495,7 +525,7 @@ namespace Example1.HelloWorld
 }
 
 
-namespace Example1
+namespace ExampleNs1
 {
 	static func F1() => todo;
 	
@@ -532,7 +562,7 @@ namespace Example1
 	}
 }
 
-namespace Example2
+namespace ExampleNs2
 {
 	static func F1() => todo;
 	

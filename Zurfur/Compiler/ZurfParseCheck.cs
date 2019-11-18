@@ -10,7 +10,7 @@ namespace Gosub.Zurfur.Compiler
     class ZurfParseCheck
     {
         // Debug the parse tree
-        bool mShowParseTree = true;
+        bool mShowParseTree = false;
 
         public Token LastToken;
 
@@ -28,11 +28,11 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static volatile ro const");
         static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static volatile ro const");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
-        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static extern abstract virtual override new");
+        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static extern abstract virtual override new ro");
         static WordSet sFuncOperatorQualifiers = new WordSet("pub public protected private internal unsafe extern");
 
         static WordSet sStatements = new WordSet("if return while for switch case default throw "
-                                                     + "= ( += -= *= /= %= &= |= ~= <<= >>=");
+                                                     + "= ( += -= *= /= %= &= |= ~= <<= >>= @");
 
         static WordMap<int> sClassFuncFieldQualifiersOrder = new WordMap<int>()
         {
@@ -65,14 +65,14 @@ namespace Gosub.Zurfur.Compiler
         void CheckParseTree(SyntaxUnit unit)
         {
             LastToken = null;
-            foreach (var aClass in unit.Classes)
+            foreach (var aClass in unit.Types)
             {
                 LastToken = aClass.Keyword;
-                CheckQualifiers(aClass.ParentClass, aClass.Name, aClass.Qualifiers);
+                CheckQualifiers(aClass.ParentScope, aClass.Name, aClass.Qualifiers);
 
                 var keyword = aClass.Keyword;
-                var outerKeyword = aClass.ParentClass == null ? "" : aClass.ParentClass.Keyword;
-                if (aClass.Namespace == null && outerKeyword == "")
+                var outerKeyword = aClass.ParentScope == null ? "" : aClass.ParentScope.Keyword;
+                if (outerKeyword == "")
                     mParser.RejectToken(keyword, "The namespace must be defined before the " + keyword);
                 if (outerKeyword != "" && outerKeyword == "enum")
                     mParser.RejectToken(keyword, "Classes, structs, enums, and interfaces may not be nested inside an enum");
@@ -98,16 +98,26 @@ namespace Gosub.Zurfur.Compiler
             {
                 LastToken = func.Keyword;
 
-                CheckQualifiers(func.ParentClass, func.Name, func.Qualifiers);
+                CheckQualifiers(func.ParentScope, func.Name, func.Qualifiers);
 
                 CheckFuncBody(null, func.Statements);
 
                 var keyword = func.Keyword;
-                var outerKeyword = func.ParentClass == null ? "" : func.ParentClass.Keyword;
-                if (func.Namespace == null && outerKeyword == "")
+                var outerKeyword = func.ParentScope == null ? "" : func.ParentScope.Keyword;
+                if (outerKeyword == "")
                     mParser.RejectToken(keyword, "The namespace must be defined before method");
                 if (func.Statements == null && outerKeyword != "interface" && keyword != "prop" && keyword != "get" && keyword != "set")
-                    RejectTokenIfNotQualified(keyword, func.Qualifiers, "extern", "Function without a body must have the'extern' qualifier");
+                {
+                    bool hasNoBodyQualifier = false;
+                    foreach (var qualifier in func.Qualifiers)
+                        if (qualifier == "extern" || qualifier == "abstract")
+                            hasNoBodyQualifier = true;
+                    var errorToken = func.EndToken == null ? func.Keyword : func.EndToken;
+                    if (!hasNoBodyQualifier && !errorToken.Error)
+                        mParser.RejectToken(errorToken, func.ReturnType == null 
+                            ? "Expecting a type name, or start of method body, or method needs 'extern' or 'abstract' qualifier."
+                            : "Expecting start of method body, or method needs 'extern' or 'abstract' qualifier");
+                }
                 if (outerKeyword == "interface")
                 {
                     if (func.Statements == null)
@@ -116,12 +126,13 @@ namespace Gosub.Zurfur.Compiler
                         RejectQualifiers(func.Qualifiers, sFuncInInterfaceQualifiersAllowedNotEmpty, "This qualifier may not appear before an empty function defined inside an interface");
 
                 }
-                if (outerKeyword == ""
+                if ( (outerKeyword == "" || outerKeyword == "namespace")
                         && sGlobalFuncsRequiringStatic.Contains(keyword)
                         && !HasQualifier(func.Qualifiers, sStaticQualifier)
                         && func.ClassName == null)
-                    mParser.RejectToken(keyword, "Functions at the namespace level must be static");
-                if (outerKeyword == "" && sGlobalFuncsNotAllowed.Contains(keyword))
+                    mParser.RejectToken(keyword, "Functions at the namespace level must be static or extension methods");
+                if ( (outerKeyword == "" || outerKeyword == "namespace")
+                        && sGlobalFuncsNotAllowed.Contains(keyword))
                     mParser.RejectToken(keyword, "Must not be defined at the namespace level");
 
                 switch (keyword)
@@ -143,9 +154,9 @@ namespace Gosub.Zurfur.Compiler
             {
                 LastToken = field.Name;
 
-                CheckQualifiers(field.ParentClass, field.Name, field.Qualifiers);
+                CheckQualifiers(field.ParentScope, field.Name, field.Qualifiers);
 
-                var outerKeyword = field.ParentClass == null ? "" : field.ParentClass.Keyword;
+                var outerKeyword = field.ParentScope == null ? "" : field.ParentScope.Keyword;
 
                 var quals = outerKeyword == "class" ? sFieldInClassQualifiers : sFieldInStructQualifiers;
                 if (outerKeyword == "enum")
@@ -153,6 +164,7 @@ namespace Gosub.Zurfur.Compiler
                 switch (outerKeyword)
                 {
                     case "":
+                    case "namespace":
                         if (!HasQualifier(field.Qualifiers, sRequireGlobalFieldQualifiers))
                             mParser.RejectToken(field.Name, "Fields at the namespace level must be const");
                         break;
@@ -172,7 +184,7 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
-        void CheckQualifiers(SyntaxClass parentClass, Token token, Token[] qualifiers)
+        void CheckQualifiers(SyntaxScope parentClass, Token token, Token[] qualifiers)
         {
             if (token == null || token.Name == "" || qualifiers == null)
                 return;
@@ -261,7 +273,7 @@ namespace Gosub.Zurfur.Compiler
                             if (e.Token == "{")
                                 mParser.RejectToken(e.Token, "Unnecessary scope is not allowed");
                             else
-                                mParser.RejectToken(e.Token, "Only assignment and call can be used as statements");
+                                mParser.RejectToken(e.Token, "Only assignment, function call, and create typed variable can be used as statements");
                         }
                         CheckFuncBody(expr, e);
                     }
@@ -295,7 +307,7 @@ namespace Gosub.Zurfur.Compiler
                     break;
 
                 case "=>": // Lambda
-                    //if (expr[])
+                    // TBD: Check lambda
                     break;
 
                 default:
@@ -318,7 +330,7 @@ namespace Gosub.Zurfur.Compiler
 
         public void ShowTypes(SyntaxUnit unit)
         {
-            foreach (var aClass in unit.Classes)
+            foreach (var aClass in unit.Types)
                 ShowTypes(aClass);
             foreach (var func in unit.Funcs)
                 ShowTypes(func);
@@ -329,7 +341,7 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
-        void ShowTypes(SyntaxClass aClass)
+        void ShowTypes(SyntaxType aClass)
         {
             ShowTypes(aClass.Alias, true);
             if (aClass.BaseClasses != null)
@@ -386,6 +398,13 @@ namespace Gosub.Zurfur.Compiler
                 return;
             }
 
+            // New variable
+            if (expr.Token == ZurfParse.NEWVAR && expr.Count >= 2)
+            {
+                ShowTypes(expr[1], true);
+                return;
+            }
+
             if (expr.Token == ZurfParse.VIRTUAL_TOKEN_TYPE_ARG_LIST)
                 isType = true;
             foreach (var e in expr)
@@ -397,7 +416,7 @@ namespace Gosub.Zurfur.Compiler
             if (!mShowParseTree)
                 return;
 
-            foreach (var aClass in unit.Classes)
+            foreach (var aClass in unit.Types)
             {
                 if (aClass.BaseClasses != null)
                     foreach (var baseClass in aClass.BaseClasses)

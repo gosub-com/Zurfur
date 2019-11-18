@@ -36,16 +36,20 @@ pub struct bool
 pub struct int8
 	: IComparable<int8>
 {
-    extern cast(from uint8)
-    extern cast(from int16)
-    extern cast(from uint16)
-    extern cast(from int32)
-    extern cast(from uint32)
-    extern cast(from int64)
-    extern cast(from uint64)
-    extern cast(from float32)
-    extern cast(from float64)
-    extern cast(from decimal)
+    extern operator explicit(from uint8) int8
+    extern operator explicit(from int16) int8
+    extern operator explicit(from uint16) int8
+    extern operator explicit(from int32) int8
+    extern operator explicit(from uint32) int8
+    extern operator explicit(from int64) int8
+    extern operator explicit(from uint64) int8
+    extern operator explicit(from float32) int8
+    extern operator explicit(from float64) int8
+    extern operator explicit(from decimal) int8
+    
+    extern operator implicit(from int8) int16
+    extern operator implicit(from int8) int32
+    
 
 	const Origin int8 = 0;
 	const Identity int8 = 1;
@@ -61,16 +65,20 @@ pub struct int8
 pub struct uint8
 	: IComparable<uint8>
 {
-    extern cast(from int8)
-    extern cast(from int16)
-    extern cast(from uint16)
-    extern cast(from int32)
-    extern cast(from uint32)
-    extern cast(from int64)
-    extern cast(from uint64)
-    extern cast(from float32)
-    extern cast(from float64)
-    extern cast(from decimal)
+    extern operator explicit(from int8) uint8
+    extern operator explicit(from int16) uint8
+    extern operator explicit(from uint16) uint8
+    extern operator explicit(from int32) uint8
+    extern operator explicit(from uint32) uint8
+    extern operator explicit(from int64) uint8
+    extern operator explicit(from uint64) uint8
+    extern operator explicit(from float32) uint8
+    extern operator explicit(from float64) uint8
+    extern operator explicit(from decimal) uint8
+
+    extern operator implicit(from uint8) int16
+    extern operator implicit(from uint8) uint16
+    extern operator implicit(from uint8) int32
     
 	const Origin int8 = 0;
 	const Identity int8 = 1;
@@ -85,16 +93,16 @@ pub struct uint8
 pub struct int16
 	: IComparable<int16>
 {
-    extern new(from int8)
-    extern new(from uint8)
-    extern cast(from uint16)
-    extern cast(from int32)
-    extern cast(from uint32)
-    extern cast(from int64)
-    extern cast(from uint64)
-    extern cast(from float32)
-    extern cast(from float64)
-    extern cast(from decimal)
+    extern operator explicit(from uint16) int16
+    extern operator explicit(from int32) int16
+    extern operator explicit(from uint32) int16
+    extern operator explicit(from int64) int16
+    extern operator explicit(from uint64) int16
+    extern operator explicit(from float32) int16
+    extern operator explicit(from float64) int16
+    extern operator explicit(from decimal) int16
+
+    extern operator implicit(from int16) int32
 
 	const Origin int8 = 0;
 	const Identity int8 = 1;
@@ -110,16 +118,18 @@ pub struct int16
 pub struct uint16
 	: IComparable<uint16>
 {
-    extern cast(from int8)
-    extern new(from uint8)
-    extern cast(from int16)
-    extern cast(from int32)
-    extern cast(from uint32)
-    extern cast(from int64)
-    extern cast(from uint64)
-    extern cast(from float32)
-    extern cast(from float64)
-    extern cast(from decimal)
+    extern operator explicit(from int8) uint16
+    extern operator explicit(from int16) uint16
+    extern operator explicit(from int32) uint16
+    extern operator explicit(from uint32) uint16
+    extern operator explicit(from int64) uint16
+    extern operator explicit(from uint64) uint16
+    extern operator explicit(from float32) uint16
+    extern operator explicit(from float64) uint16
+    extern operator explicit(from decimal) uint16
+
+    extern operator implicit(from uint16) int32
+    extern operator implicit(from uint16) uint32_x
 
 	const Origin int8 = 0;
 	const Identity int8 = 1;
@@ -130,20 +140,34 @@ pub struct uint16
     pub extern static func Compare(a uint16, b uint16) int
 }
 
+/// Prefer int32 over uint32 (uint16+uint16 is int32, not uint32)
+pub struct uint32_x
+{
+	extern operator implicit(from unit32_x) uint32
+}
+
+/// Prefer float64 over float32
+pub struct float32_x
+{
+	extern operator implicit(from float32_x) float32
+}
+
+
 /// A 32 bit integer (same as int)
 pub struct int32
 	: IArithmetic<int32>
 {
-    extern new(from int8)
-    extern new(from uint8)
-    extern new(from int16)
-    extern new(from uint16)
-    extern cast(from uint32)
-    extern cast(from int64)
-    extern cast(from uint64)
-    extern cast(from float32)
-    extern cast(from float64)
-    extern cast(from decimal)
+    extern operator explicit(from uint32) int32
+    extern operator explicit(from int64) int32
+    extern operator explicit(from uint64) int32
+    extern operator explicit(from float32) int32
+    extern operator explicit(from float64) int32
+    extern operator explicit(from decimal) int32
+    
+    extern operator implicit(from int32) int64
+    extern operator implicit(from int32) decimal
+    extern operator implicit(from int32) float64
+    extern operator implicit(from int32) float32_x
 
 	const Origin int8 = 0;
 	const Identity int8 = 1;
@@ -165,28 +189,35 @@ pub struct int32
     pub extern operator%(a int32, b int32) int32
     
     // Not overloadable, but these are supplied specially for this type
-    //static extern func operator^(a int32)
-    //static extern func operator|(a int32, b int32)
-    //static extern func operator&(a int32, b int32)
-    //static extern func operator^(a int32, b int32)
-    //static extern func operator<<(a int32, b int32)
-    //static extern func operator>>(a int32, b int32)    
+    //static extern func operator~(a int32) int32
+    //static extern func operator~(a int32, b int32) int32
+    //static extern func operator|(a int32, b int32) int32
+    //static extern func operator&(a int32, b int32) int32
+    //static extern func operator<<(a int32, b int32) int32
+    //static extern func operator>>(a int32, b int32) int32
+    //static extern func operator..(a int32, b int32) Range
+    //static extern func operator::(a int32, b int32) Range
 }
 
 /// 32 bit unsigned integer (same as uint)
 pub struct uint32
 	: IArithmetic<uint32>
 {
-    extern cast(from int8)
-    extern new(from uint8)
-    extern cast(from int16)
-    extern new(from uint16)
-    extern cast(from int32)
-    extern cast(from int64)
-    extern cast(from uint64)
-    extern cast(from float32)
-    extern cast(from float64)
-    extern cast(from decimal)
+    extern operator explicit(from int8) uint32
+    extern operator explicit(from int16) uint32
+    extern operator explicit(from int32) uint32
+    extern operator explicit(from int64) uint32
+    extern operator explicit(from uint64) uint32
+    extern operator explicit(from float32) uint32
+    extern operator explicit(from float64) uint32
+    extern operator explicit(from decimal) uint32
+    
+    extern operator implicit(from uint32) int64
+    extern operator implicit(from uint32) uint64
+    extern operator implicit(from uint32) decimal
+    extern operator implicit(from uint32) float64    
+    extern operator implicit(from uint32) float32_x
+    
 
 	const Origin int8 = 0;
 	const Identity int8 = 1;
@@ -208,28 +239,25 @@ pub struct uint32
     pub extern operator%(a uint32, b uint32) uint32
 
     // Not overloadable, but these are supplied specially for this type
-    //static extern func operator^(a uint32)
-    //static extern func operator|(a uint32, b uint32)
-    //static extern func operator&(a uint32, b uint32)
-    //static extern func operator^(a uint32, b uint32)
-    //static extern func operator<<(a uint32, b int32)
-    //static extern func operator>>(a uint32, b int32)
+    //static extern func operator~(a uint32) uint32
+    //static extern func operator~(a uint32, b uint32) uint32
+    //static extern func operator|(a uint32, b uint32) uint32
+    //static extern func operator&(a uint32, b uint32) uint32
+    //static extern func operator<<(a uint32, b int32) uint32
+    //static extern func operator>>(a uint32, b int32) uint32
 }
 
 /// A 64 bit integer
 pub struct int64
 	: IArithmetic<int64>
 {
-    extern new(from int8)
-    extern new(from uint8)
-    extern new(from int16)
-    extern new(from uint16)
-    extern new(from int32)
-    extern new(from uint32)
-    extern cast(from uint64)
-    extern cast(from float32)
-    extern cast(from float64)
-    extern cast(from decimal)
+    extern operator explicit(from uint64) int64
+    extern operator explicit(from float32) int64
+    extern operator explicit(from float64) int64
+    extern operator explicit(from decimal) int64
+    
+    extern operator implicit(from int64) decimal
+    extern operator implicit(from int64) float64
 
 	const Origin int8 = 0;
 	const Identity int8 = 1;
@@ -251,28 +279,31 @@ pub struct int64
     pub extern operator%(a int64, b int64) int64
 
     // Not overloadable, but these are supplied specially for this type
-    //static extern func operator^(a int64)
-    //static extern func operator|(a int64, b int64)
-    //static extern func operator&(a int64, b int64)
-    //static extern func operator^(a int64, b int64)
-    //static extern func operator<<(a int64, b int32)
-    //static extern func operator>>(a int64, b int32)    
+    //static extern func operator~(a int64) int64
+    //static extern func operator~(a int64, b int64) int64
+    //static extern func operator|(a int64, b int64) int64
+    //static extern func operator&(a int64, b int64) int64
+    //static extern func operator<<(a int64, b int32) int64
+    //static extern func operator>>(a int64, b int32) int64
+    //static extern func operator..(a int64, b int64) Range64
+    //static extern func operator::(a int64, b int64) Range64    
 }
 
 /// 64 bit unsigned integer
 pub struct uint64
 	: IArithmetic<uint64>
 {
-    extern cast(from int8)
-    extern new(from uint8)
-    extern cast(from int16)
-    extern new(from uint16)
-    extern cast(from int32)
-    extern new(from uint32)
-    extern cast(from int64)
-    extern cast(from float32)
-    extern cast(from float64)
-    extern cast(from decimal)
+    extern operator explicit(from int8) uint64
+    extern operator explicit(from int16) uint64
+    extern operator explicit(from int32) uint64
+    extern operator explicit(from int64) uint64
+    extern operator explicit(from float32) uint64
+    extern operator explicit(from float64) uint64
+    extern operator explicit(from decimal) uint64
+    
+    extern operator implicit(from uint64) decimal
+    extern operator implicit(from uint64) float64
+    
 
 	const Origin int8 = 0;
 	const Identity int8 = 1;
@@ -294,10 +325,10 @@ pub struct uint64
     pub extern operator%(a uint64, b uint64) uint64
 
     // Not overloadable, but these are supplied specially for this type
-    //static extern func operator^(a uint64)
+    //static extern func operator~(a uint64)
+    //static extern func operator~(a uint64, b uint64)
     //static extern func operator|(a uint64, b uint64)
     //static extern func operator&(a uint64, b uint64)
-    //static extern func operator^(a uint64, b uint64)
     //static extern func operator<<(a uint64, b int32)
     //static extern func operator>>(a uint64, b int32)
 }
@@ -305,16 +336,11 @@ pub struct uint64
 pub struct float32
 	: IArithmetic<float32>
 {
-    extern new(from int8)
-    extern new(from uint8)
-    extern new(from int16)
-    extern new(from uint16)
-    extern new(from int32)
-    extern new(from uint32)
-    extern new(from int64)
-    extern new(from uint64)
-    extern cast(from float64)
-    extern cast(from decimal)
+    extern operator explicit(from float64) float32
+    extern operator explicit(from decimal) float32
+    
+    extern operator implicit(from float32) float64
+    extern operator implicit(from float32) decimal
 
     // Normal float32 comparisons (NAN==NAN is false)
     // TBD: Maybe we don't need funny NAN comparisons since we're starting fresh?
@@ -347,22 +373,20 @@ pub struct float32
     pub extern operator-(a float32, b float32) float32
     pub extern operator*(a float32, b float32) float32
     pub extern operator/(a float32, b float32) float32
-    pub extern operator%(a float32, b float32) float32    
+    pub extern operator%(a float32, b float32) float32  
+    
+    // Not overloadable, but these are supplied specially for this type
+    //static extern func operator..(a float32, b float32) RangeF32
+    //static extern func operator::(a float32, b float32) RangeF32   
+      
 }
 
 pub struct float64
 	: IArithmetic<float64>
 {
-    extern new(from int8)
-    extern new(from uint8)
-    extern new(from int16)
-    extern new(from uint16)
-    extern new(from int32)
-    extern new(from uint32)
-    extern new(from int64)
-    extern new(from uint64)
-    extern new(from float32)
-    extern cast(from decimal)
+    extern operator explicit(from decimal) float64
+    
+    extern operator implicit(from float64) decimal
 
     // Normal float64 comparisons (NAN==NAN is false)
     // TBD: Maybe we don't need funny NAN comparisons since we're starting fresh?
@@ -395,24 +419,17 @@ pub struct float64
     pub extern operator*(a float64, b float64) float64
     pub extern operator/(a float64, b float64) float64
     pub extern operator%(a float64, b float64) float64
+    
+    // Not overloadable, but these are supplied specially for this type
+    //static extern func operator..(a float64, b float64) RangeF64
+    //static extern func operator::(a float64, b float64) RangeF64       
 }
 
 /// 128 bit decimal integer.  This will support NAN, infinity, and
-/// exponents covering the range of double.
+/// exponents covering the entire range of float64 with more precision.
 pub struct decimal
 	: IArithmetic<decimal>
 {
-    extern new(from int8)
-    extern new(from uint8)
-    extern new(from int16)
-    extern new(from uint16)
-    extern new(from int32)
-    extern new(from uint32)
-    extern new(from int64)
-    extern new(from uint64)
-    extern new(from float32)
-    extern new(from float64)
-
 	const Origin int8 = 0;
 	const Identity int8 = 1;
     const MaxValue decimal = 1E+1000M	
@@ -438,6 +455,11 @@ pub struct decimal
     pub extern operator*(a decimal, b decimal) decimal
     pub extern operator/(a decimal, b decimal) decimal
     pub extern operator%(a decimal, b decimal) decimal
+    
+    // Not overloadable, but these are supplied specially for this type
+    //static extern func operator..(a decimal, b decimal) RangeDecimal
+    //static extern func operator::(a decimal, b decimal) RangeDecimal
+    
 }
 
 /// String is a wrapper for a read only array of bytes

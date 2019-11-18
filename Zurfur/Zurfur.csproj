@@ -128,6 +128,7 @@
     <Compile Include="Compiler\Syntax.cs" />
     <Compile Include="Compiler\WordMap.cs" />
     <Compile Include="Compiler\WordSet.cs" />
+    <Compile Include="Ide\ZurfEditController.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Ide\ZurfProjectData.cs" />
     <Compile Include="Ide\ZurfProject.cs" />

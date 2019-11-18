@@ -4,13 +4,14 @@ using System.Collections.Generic;
 namespace Gosub.Zurfur.Compiler
 {
 
-    enum SymTypeEnum
+    enum SymbolTypeEnum
     {
         Namespace,
-        Class, // or Struct, Enum, Interface
+        Type,
+        Field,
         Funcs,
         Func,
-        Field
+        TypeArg
     }
 
     class SymPackage
@@ -19,7 +20,7 @@ namespace Gosub.Zurfur.Compiler
         public PackageInfo PackageInfo = new PackageInfo();
         public CompilerInfo CompilerInfo = new CompilerInfo();
 
-        public Dictionary<string, SymScope> Symbols = new Dictionary<string, SymScope>();
+        public Symbol Symbols = new Symbol(SymbolTypeEnum.Namespace, new Token());
     }
 
     class PackageInfo
@@ -55,53 +56,78 @@ namespace Gosub.Zurfur.Compiler
         public string FileName = "";
     }
 
-    /// <summary>
-    /// Namespace, class, struct, enum, interface
-    /// </summary>
-    class SymScope
+    class Symbol
     {
-        public SymTypeEnum Type;
-        public string Name = "(none)";
+        public readonly SymbolTypeEnum Type;
+        public readonly Token Name = Token.Empty;
+
+        public Symbol Parent;
         public string Comments = "";
         public SymFile File;
-        public Token NameToken = Token.Empty;
-        public Dictionary<string, SymScope> Symbols = new Dictionary<string, SymScope>();
+        public Dictionary<string, Symbol> Symbols = new Dictionary<string, Symbol>();
 
+        Symbol Duplicates;
 
-        public SymScope(SymTypeEnum type)
+        public Symbol(SymbolTypeEnum type, Token name)
         {
             Type = type;
+            Name = name;
         }
+
+        public bool IsDuplicte => Duplicates != null;
+
+        public void AddDuplicate(Symbol symbol)
+        {
+            var d = this;
+            while (d.Duplicates != null)
+                d = d.Duplicates;
+            d.Duplicates = symbol;
+        }
+
+        public string FullName =>
+            Parent == null || Parent.Name == ""  ? Name
+                : Parent.FullName + (Parent.Type == SymbolTypeEnum.Namespace && Type != SymbolTypeEnum.Namespace ? "/" : ".") + Name;
 
         public override string ToString()
         {
-            return Type + ":" + Name;
+            return Type + ":" + FullName;
         }
     }
 
-    class SymNamespace : SymScope
+    /// <summary>
+    /// Class, struct, enum, interface
+    /// </summary>
+    class SymType : Symbol
     {
-        public SymNamespace() : base(SymTypeEnum.Namespace) { }
+        public SymType(Token name) : base(SymbolTypeEnum.Type, name) { }
+
+        public int TypeArgCount;
     }
 
-    class SymClass : SymScope
+    class SymField : Symbol
     {
-        public SymClass() : base(SymTypeEnum.Class) {  }
+        public SymField(Token name) : base(SymbolTypeEnum.Field, name) { }
     }
 
-    class SymField : SymScope
+    class SymFuncs : Symbol
     {
-        public SymField() : base(SymTypeEnum.Field) { }
+        public SymFuncs(Token name) : base(SymbolTypeEnum.Funcs, name) { }
     }
 
-    class SymFuncs : SymScope
+    class SymFunc : Symbol
     {
-        public SymFuncs() : base(SymTypeEnum.Funcs) { }
+        public SymFunc(Token name) : base(SymbolTypeEnum.Func, name) { }
     }
 
-    class SymFunc : SymScope
+    class SymTypeArg : Symbol
     {
-        public SymFunc() : base(SymTypeEnum.Func) { }
+        public readonly int Index;
+
+        public SymTypeArg(Token name, int index) : base(SymbolTypeEnum.TypeArg, name)
+        {
+            Index = index;
+        }
     }
+
 
 }

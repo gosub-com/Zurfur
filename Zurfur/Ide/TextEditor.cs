@@ -68,8 +68,8 @@ namespace Gosub.Zurfur
         Dictionary<eTokenType, FontInfo> mTokenFontsGrayed = new Dictionary<eTokenType, FontInfo>();
         Dictionary<eTokenType, FontInfo> mTokenFontsUnderlined = new Dictionary<eTokenType, FontInfo>();
         Font mShrunkFont;
-        Brush       mSelectColor = new SolidBrush(Color.FromArgb(160, 160, 255));
-        Brush       mSelectColorNoFocus = new SolidBrush(Color.FromArgb(208, 208, 208));
+        Brush       mSelectColor = new SolidBrush(Color.FromArgb(208, 208, 255));
+        Brush       mSelectColorNoFocus = new SolidBrush(Color.FromArgb(224, 224, 224));
         EventArgs   mEventArgs = new EventArgs();
         Brush       mErrorColor = Brushes.Pink;
         Brush       mWarnColor = Brushes.Yellow;
@@ -235,6 +235,7 @@ namespace Gosub.Zurfur
             UpdateMouseHoverToken();
         }
 
+
         /// <summary>
         /// Read only mode - Do not allow user to change text
         /// </summary>
@@ -345,15 +346,17 @@ namespace Gosub.Zurfur
             }
         }
 
+        public int TopVisibleLine => vScrollBar.Value;
+
         /// <summary>
         /// Returns the number of full lines in the window (partial lines don't count)
         /// </summary>
-        int LinesInWindow()
+        public int LinesInWindow()
         {            
             const int REMOVE_PARTIALS = 2; // Add 1 for bottom of line, then 1 more to remove partials
             var height = ClientRectangle.Height - (hScrollBar.Visible ? hScrollBar.Height : 0);
             var lines = 0;
-            while (PointY(vScrollBar.Value + lines + REMOVE_PARTIALS) < height)
+            while (PointY(TopVisibleLine + lines + REMOVE_PARTIALS) < height)
                 lines++;
             
             return Math.Max(1, lines);
@@ -411,6 +414,8 @@ namespace Gosub.Zurfur
         {
             return new Point((int)PointX(IndexToCol(loc)), (int)PointY(loc.Y));
         }
+
+        public Size FontSize => new Size((int)mFontSize.Width, (int)mFontSize.Height);
 
 
         /// <summary>
@@ -1280,22 +1285,23 @@ namespace Gosub.Zurfur
         void DrawScreen(Graphics gr, bool background)
         {
             // Get clipping region (entire screen when gr is NULL)
-            float mMinY = -mFontSize.Height - 1;
-            float mMaxY = ClientRectangle.Height + 1;
+            float minY = -mFontSize.Height - 1;
+            float maxY = ClientRectangle.Height + 1;
             if (gr != null)
             {
                 // Optionally adjust clipping region
-                mMinY = gr.VisibleClipBounds.Top - mFontSize.Height - 1;
-                mMaxY = gr.VisibleClipBounds.Bottom + 1;
+                minY = gr.VisibleClipBounds.Top - mFontSize.Height - 1;
+                maxY = gr.VisibleClipBounds.Bottom + 1;
             }
 
             // Find first and last visible line
-            int startLine = 0;
-            while (startLine < LineCount && PointY(startLine) < mMinY)
+            int startLine = TopVisibleLine;
+            while (startLine < LineCount && PointY(startLine) < minY)
                 startLine++;
             int endLine = startLine;
-            while (endLine <= LineCount && PointY(endLine) < mMaxY)
+            while (endLine <= LineCount && PointY(endLine) < maxY)
                 endLine++;
+
 
             // Draw all tokens on the screen
             foreach (Token token in mLexer.GetEnumeratorStartAtLine(startLine))

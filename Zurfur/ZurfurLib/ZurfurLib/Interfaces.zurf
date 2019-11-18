@@ -6,8 +6,9 @@ namespace Zurfur.Collections;
 /// in that NAN must compare to itself as true.
 pub interface IEquatable<T>
 {
-    static func GetHashCode(a T) uint;
-    static func Equals(a T, b T) bool;
+	// TBD: These functions are `ro` including all in the base class
+    static func GetHashCode(a T) uint
+    static func Equals(a T, b T) bool
 }
 
 /// Implement IComparable on any object that can be sorted.
@@ -16,18 +17,18 @@ pub interface IEquatable<T>
 pub interface IComparable<T>
 	: IEquatable<T>
 {
-    static func Compare(a T, b T) int;
+    static func Compare(a T, b T) int
 }
 
 pub interface IArithmetic<T>
 	: IComparable<T>
 {
-	operator-(a T) T;
-	operator-(a T, b T) T;
-	operator+(a T, b T) T;
-	operator*(a T, b T) T;
-	operator/(a T, b T) T;
-	operator%(a T, b T) T;
+	operator-(a T) T
+	operator-(a T, b T) T
+	operator+(a T, b T) T
+	operator*(a T, b T) T
+	operator/(a T, b T) T
+	operator%(a T, b T) T
 	static prop Identity T { get }
 	static prop Origin T { get }
 }
@@ -40,7 +41,7 @@ pub interface IEnumerator<out T>
 
 pub interface IEnumerable<out T>
 {
-    func GetEnumerator() IEnumerator<T>;
+    func GetEnumerator() IEnumerator<T>
 }
 
 /// Base class for all collections.
@@ -76,25 +77,26 @@ pub interface IArray<T>
     : ICollection<T>
 {
     this[index int] T { get set }
+    this[range Range] IArray => todo()
 }
 
 pub interface IList<T>
     : IMutableCollection<T>, IArray<T>, IRoArray<T>
 {
-    func Insert(index int, item T);
+    func Insert(index int, item T)
     func Insert(index int, collection ICollection<T>)
-    func Remove(index int);
-    func Remove(range Range);
+    func Remove(index int)
+    func Remove(range Range)
 
-    pub func Add(item T) { InsertAt(Count, item) }
-    pub func Add(items ICollection<T>) { InsertAt(Count, items) }
+    pub func Add(item T) { Insert(Count, item) }
+    pub func Add(items ICollection<T>) { Insert(Count, items) }
 }
 
 pub struct KeyValuePair<TKey, TValue>
 {
     pub new(key TKey, value TValue) { Key = key; Value = value }
-    pub Key TKey;
-    pub Value TValue;
+    pub Key TKey
+    pub Value TValue
 }
 
 pub interface IRoMap<TKey, TValue>
@@ -102,8 +104,8 @@ pub interface IRoMap<TKey, TValue>
 {
 	operator in(a TKey) bool
     this[key TKey] TValue { get }
-    pub func Contains(key TKey) bool => todo();    
-    func Get(key TKey, defaultValue TValue) TValue;
+    pub func Contains(key TKey) bool => todo()
+    func Get(key TKey, defaultValue TValue) TValue
     func TryGet(key TKey, value out TValue) bool    
     prop Keys ICollection<TKey> { get }
     prop Values ICollection<TValue> { get }

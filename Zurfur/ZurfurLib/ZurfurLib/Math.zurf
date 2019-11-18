@@ -3,49 +3,49 @@
 const PI double = 3.141592653589793238
 const E double = 2.718281828459045235
 
-pub extern static func Abs(n decimal) decimal
-pub extern static func Abs(n float64) float64
-pub extern static func Abs(n float32) float32
-pub extern static func Abs(n int64) int64
-pub extern static func Abs(n int32) int32
-pub extern static func Acos(n float64) float64
-pub extern static func ASin(n float64) float64
-pub extern static func ATan(n float64) float64
-pub extern static func ATan2(y float64, x float64) float64
-pub extern static func Ceil(n decimal) decmal
-pub extern static func Ceil(n float64) float64
-pub extern static func Ceil(n float32) float32
-pub extern static func Cos(n float64) float64
-pub extern static func Cosh(n float64) float64
-pub extern static func Exp(n float64) float64
-pub extern static func Floor(n decimal) decimal
-pub extern static func Floor(n float64) float64
-pub extern static func Floor(n float32) float32
-pub extern static func Log(n float64) float64
-pub extern static func Log10(n float64) float64
-pub extern static func Log(n float64, b float64) float64
-pub extern static func Max(n1 decimal, n2 decimal) decimal
-pub extern static func Max(n1 float64, n2 float64) float64
-pub extern static func Max(n1 float32, n2 float32) float32
-pub extern static func Max(n1 int64, n2 int64) int64
-pub extern static func Max(n1 int32, n2 int32) int32
-pub extern static func Pow(x float64, y float64)
-pub extern static func Round(n decimal, d int) decimal
-pub extern static func Round(n decimal) decimal
-pub extern static func Round(n float64, d int) float64
-pub extern static func Round(n float64) float64
-pub extern static func Round(n float32, d int) float32
-pub extern static func Round(n float32) float32
-pub extern static func Sign(n decimal) int
-pub extern static func Sign(n float64) int
-pub extern static func Sign(n float32) int
-pub extern static func Sign(n int64) int
-pub extern static func Sign(n int32) int
-pub extern static func Sin(n float64) float64
-pub extern static func Sinh(n float64) float64
-pub extern static func Sqrt(n float64) float64
-pub extern static func Tan(n float64) float64
-pub extern static func Tanh(n float64) float64
-pub extern static func Trunc(n decimal) decimal
-pub extern static func Trunc(n float64) float64
-pub extern static func Trunc(n float32) float32
+pub extern static ro func Abs(n decimal) decimal
+pub extern static ro func Abs(n float64) float64
+pub extern static ro func Abs(n float32) float32
+pub extern static ro func Abs(n int64) int64
+pub extern static ro func Abs(n int32) int32
+pub extern static ro func Acos(n float64) float64
+pub extern static ro func ASin(n float64) float64
+pub extern static ro func ATan(n float64) float64
+pub extern static ro func ATan2(y float64, x float64) float64
+pub extern static ro func Ceil(n decimal) decmal
+pub extern static ro func Ceil(n float64) float64
+pub extern static ro func Ceil(n float32) float32
+pub extern static ro func Cos(n float64) float64
+pub extern static ro func Cosh(n float64) float64
+pub extern static ro func Exp(n float64) float64
+pub extern static ro func Floor(n decimal) decimal
+pub extern static ro func Floor(n float64) float64
+pub extern static ro func Floor(n float32) float32
+pub extern static ro func Log(n float64) float64
+pub extern static ro func Log10(n float64) float64
+pub extern static ro func Log(n float64, b float64) float64
+pub extern static ro func Max(n1 decimal, n2 decimal) decimal
+pub extern static ro func Max(n1 float64, n2 float64) float64
+pub extern static ro func Max(n1 float32, n2 float32) float32
+pub extern static ro func Max(n1 int64, n2 int64) int64
+pub extern static ro func Max(n1 int32, n2 int32) int32
+pub extern static ro func Pow(x float64, y float64)
+pub extern static ro func Round(n decimal, d int) decimal
+pub extern static ro func Round(n decimal) decimal
+pub extern static ro func Round(n float64, d int) float64
+pub extern static ro func Round(n float64) float64
+pub extern static ro func Round(n float32, d int) float32
+pub extern static ro func Round(n float32) float32
+pub extern static ro func Sign(n decimal) int
+pub extern static ro func Sign(n float64) int
+pub extern static ro func Sign(n float32) int
+pub extern static ro func Sign(n int64) int
+pub extern static ro func Sign(n int32) int
+pub extern static ro func Sin(n float64) float64
+pub extern static ro func Sinh(n float64) float64
+pub extern static ro func Sqrt(n float64) float64
+pub extern static ro func Tan(n float64) float64
+pub extern static ro func Tanh(n float64) float64
+pub extern static ro func Trunc(n decimal) decimal
+pub extern static ro func Trunc(n float64) float64
+pub extern static ro func Trunc(n float32) float32
