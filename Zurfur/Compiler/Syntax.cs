@@ -92,8 +92,6 @@ namespace Gosub.Zurfur.Compiler
         public SyntaxExpr ReturnType;
         public SyntaxConstraint[] Constraints;
         public SyntaxExpr Statements;
-        public Token EndToken; // To mark error at end of body
-
     }
 
 }

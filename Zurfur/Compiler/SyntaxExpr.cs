@@ -85,6 +85,12 @@ namespace Gosub.Zurfur.Compiler
         }
     }
 
+    class SyntaxError : SyntaxToken
+    {
+        public SyntaxError() : base(Token.Empty) {  }
+    }
+
+
     class SyntaxUnary : SyntaxExpr
     {
         SyntaxExpr mParam0;

@@ -4,29 +4,32 @@ using System.Collections.Generic;
 namespace Gosub.Zurfur.Compiler
 {
 
-    class SilGen
+    class SilGenHeader
     {
         SyntaxUnit mUnit;
         SymPackage mPackage = new SymPackage();
         SymFile mFile = new SymFile();
         bool mError;
+
         public bool GenError => mError;
+        public SymPackage Package => mPackage;
 
         /// <summary>
         /// Step 1: GenerateTypeDefinitions, requires nothing from any other package.
-        ///         a) Per file, b) Merge all files
+        ///         a) Per file, b) Merge all files to a package
         /// Step 2: GenerateHeader, requires type definitions from all other packages.
         /// Step 3: GenerateCode, requires header of all other packages.
         /// </summary>
-        public SilGen(string fileName, SyntaxUnit unit)
+        public SilGenHeader(string fileName, SyntaxUnit unit)
         {
             mUnit = unit;
             mFile.FileName = fileName;
         }
 
         /// <summary>
-        /// Step 1: Get the type definitions contained in this file.
-        /// Load namespaces, types, and fields
+        /// Step 1a: Get the type definitions contained in this file.
+        /// Load namespaces, types, fields, and func group names.
+        /// Requires nothing from any other file or package.
         /// </summary>
         public void GenerateTypeDefinitions()
         {
@@ -39,6 +42,9 @@ namespace Gosub.Zurfur.Compiler
                     AddClass(type);
                 foreach (var field in mUnit.Fields)
                     AddField(field);
+                foreach (var func in mUnit.Funcs)
+                    AddFuncGroup(func);
+
             }
             catch (Exception ex)
             {
@@ -48,7 +54,10 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Step 1a: Merge type definitions from all files.  This is a TBD place holder.
+        /// Step 1b: Merge type definitions from all files in the package.
+        /// This is a TBD place holder.
+        /// Requires step 1a output from all files in the package, but
+        /// no definitions from any other package.
         /// </summary>
         public void MergeTypeDefinitions()
         {
@@ -56,14 +65,12 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// TBD: Step 2: Generate the header file.
+        /// Step 2: Generate header.
+        /// Requires step 1b output from all files in the package plus
+        /// header files (step 2 output) from all other packages.
         /// </summary>
         public void GenerateHeader()
         {
-            foreach (var func in mUnit.Funcs)
-                AddFunc(func);
-
-
         }
 
         /// <summary>
@@ -72,14 +79,14 @@ namespace Gosub.Zurfur.Compiler
         public void GenerateCode()
         {
             // Test link
-            foreach (var aClass in mUnit.Types)
+            /*foreach (var aClass in mUnit.Types)
             {
                 var newSymbol = FindSymbol(aClass);
 
                 foreach (var cc in mUnit.Funcs)
                     if (cc.ClassName != null && cc.ClassName.Token.Name == newSymbol.Name)
                         cc.ClassName.Token.SetInfo(newSymbol);
-            }
+            }*/
 
 
         }
@@ -87,34 +94,33 @@ namespace Gosub.Zurfur.Compiler
         Symbol AddNamespace(SyntaxScope ns)
         {
             var parentSymbol = ns.ParentScope == null ? mPackage.Symbols : AddNamespace(ns.ParentScope);
-            if (!parentSymbol.Symbols.TryGetValue(ns.Name, out var symbol))
+            if (!parentSymbol.Symbols.TryGetValue(ns.Name, out var newSymbol))
             {
-                symbol = new Symbol(SymbolTypeEnum.Namespace, ns.Name);
-                parentSymbol.Symbols[ns.Name] = symbol;
-                symbol.Parent = parentSymbol;
-                symbol.File = mFile;
+                newSymbol = new Symbol(SymbolTypeEnum.Namespace, ns.Name, parentSymbol);
+                parentSymbol.Symbols[ns.Name] = newSymbol;
+                newSymbol.File = mFile;
             }
-            ns.Name.SetInfo(symbol);
-            if (symbol.Type != SymbolTypeEnum.Namespace)
+            ns.Name.SetInfo(newSymbol);
+            if (newSymbol.Type != SymbolTypeEnum.Namespace)
                 throw new Exception("Expecting '" + ns.FullName + "' to be a namespace");
-            symbol.Comments += ns.Comments;
-            return symbol;
+            newSymbol.Comments += ns.Comments;
+            return newSymbol;
         }
 
         void AddClass(SyntaxType aClass)
         {
-            var newSymbol = new SymType(aClass.Name);
             var parentSymbol = FindSymbol(aClass.ParentScope);
-            newSymbol.Comments = aClass.Comments;
-            AddSymbol(parentSymbol, newSymbol);
+            var newClass = new SymType(aClass.Name, parentSymbol);
+            newClass.Comments = aClass.Comments;
+            AddSymbol(parentSymbol, newClass);
 
             // Add type parameters
             if (aClass.TypeParams != null)
             {
-                newSymbol.TypeArgCount = aClass.TypeParams.Count;
+                newClass.TypeArgCount = aClass.TypeParams.Count;
                 int index = 0;
                 foreach (var param in aClass.TypeParams)
-                    AddSymbol(newSymbol, new SymTypeArg(param.Token, index++));
+                    AddSymbol(newClass, new SymTypeArg(param.Token, index++, newClass));
             }
 
             // TBD: Base class, type constraints, etc.
@@ -130,12 +136,12 @@ namespace Gosub.Zurfur.Compiler
                 return;  
             }
 
-            var newSymbol = new SymField(field.Name);
-            newSymbol.Comments = field.Comments;
-            AddSymbol(parentSymbol, newSymbol);
+            var newField = new SymField(field.Name, parentSymbol);
+            newField.Comments = field.Comments;
+            AddSymbol(parentSymbol, newField);
         }
 
-        private void AddFunc(SyntaxFunc func)
+        private void AddFuncGroup(SyntaxFunc func)
         {
             if (func.ClassName != null)
             {
@@ -148,32 +154,25 @@ namespace Gosub.Zurfur.Compiler
                 return; // Skip processing in duplicate processes (for now)
             }
             // Retrieve or create the funcs symbol
-            SymFuncs newSymbol = null;
+            SymFuncs newFunc = null;
             if (parentSymbol.Symbols.TryGetValue(func.Name, out var remoteSymbol))
-                newSymbol = remoteSymbol as SymFuncs;
-            if (newSymbol == null)
+                newFunc = remoteSymbol as SymFuncs;
+            if (newFunc == null)
             {
-                newSymbol = new SymFuncs(func.Name);
-                newSymbol.File = mFile;
-                newSymbol.Parent = parentSymbol;
-                newSymbol.Name.SetInfo(newSymbol);
-                newSymbol.Comments = func.Comments;
-                newSymbol.Symbols[func.Name] = newSymbol;
+                newFunc = new SymFuncs(func.Name, parentSymbol);
+                newFunc.File = mFile;
+                newFunc.Name.SetInfo(newFunc);
+                newFunc.Comments = func.Comments;
+                newFunc.Symbols[func.Name] = newFunc;
             }
 
             if (remoteSymbol != null && remoteSymbol.Type != SymbolTypeEnum.Funcs)
             {
                 Reject(func.Name, "Duplicate of " + remoteSymbol);
                 if (remoteSymbol.Type != SymbolTypeEnum.Namespace && !remoteSymbol.Name.Error)
-                    Reject(remoteSymbol.Name, "Duplicate of " + newSymbol);
-                return;
+                    Reject(remoteSymbol.Name, "Duplicate of " + newFunc);
             }
-
-            // TBD: Link them up here
-
-
         }
-
 
         Symbol FindSymbol(SyntaxScope scope)
         {
@@ -190,7 +189,6 @@ namespace Gosub.Zurfur.Compiler
         private bool AddSymbol(Symbol parentSymbol, Symbol newSymbol)
         {
             newSymbol.File = mFile;
-            newSymbol.Parent = parentSymbol;
             newSymbol.Name.SetInfo(newSymbol);
 
             if (!parentSymbol.Symbols.TryGetValue(newSymbol.Name, out var remoteSymbol))

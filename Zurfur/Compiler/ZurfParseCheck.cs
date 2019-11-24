@@ -28,8 +28,8 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static volatile ro const");
         static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static volatile ro const");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
-        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static extern abstract virtual override new ro");
-        static WordSet sFuncOperatorQualifiers = new WordSet("pub public protected private internal unsafe extern");
+        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static abstract virtual override new ro");
+        static WordSet sFuncOperatorQualifiers = new WordSet("pub public protected private internal unsafe");
 
         static WordSet sStatements = new WordSet("if return while for switch case default throw "
                                                      + "= ( += -= *= /= %= &= |= ~= <<= >>= @");
@@ -37,7 +37,7 @@ namespace Gosub.Zurfur.Compiler
         static WordMap<int> sClassFuncFieldQualifiersOrder = new WordMap<int>()
         {
             { "pub", 1 }, { "public", 1 }, { "protected", 1 }, { "private", 1 }, { "internal", 1 },
-            { "unsafe", 2 }, { "extern", 3 }, { "static", 4 },  {"const", 4 },
+            { "unsafe", 2 }, { "static", 4 },  {"const", 4 },
             { "sealed", 6 }, { "sealed1", 6 },
             { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
             { "volatile", 9 },
@@ -106,17 +106,9 @@ namespace Gosub.Zurfur.Compiler
                 var outerKeyword = func.ParentScope == null ? "" : func.ParentScope.Keyword;
                 if (outerKeyword == "")
                     mParser.RejectToken(keyword, "The namespace must be defined before method");
-                if (func.Statements == null && outerKeyword != "interface" && keyword != "prop" && keyword != "get" && keyword != "set")
+                if (func.Statements == null)
                 {
-                    bool hasNoBodyQualifier = false;
-                    foreach (var qualifier in func.Qualifiers)
-                        if (qualifier == "extern" || qualifier == "abstract")
-                            hasNoBodyQualifier = true;
-                    var errorToken = func.EndToken == null ? func.Keyword : func.EndToken;
-                    if (!hasNoBodyQualifier && !errorToken.Error)
-                        mParser.RejectToken(errorToken, func.ReturnType == null 
-                            ? "Expecting a type name, or start of method body, or method needs 'extern' or 'abstract' qualifier."
-                            : "Expecting start of method body, or method needs 'extern' or 'abstract' qualifier");
+                    mParser.RejectToken(func.Keyword, "Missing body");
                 }
                 if (outerKeyword == "interface")
                 {
@@ -272,7 +264,7 @@ namespace Gosub.Zurfur.Compiler
                         {
                             if (e.Token == "{")
                                 mParser.RejectToken(e.Token, "Unnecessary scope is not allowed");
-                            else
+                            else if (e.Token != "defer")
                                 mParser.RejectToken(e.Token, "Only assignment, function call, and create typed variable can be used as statements");
                         }
                         CheckFuncBody(expr, e);
@@ -296,7 +288,7 @@ namespace Gosub.Zurfur.Compiler
                     break;
 
                 case "()": // Lambda parameters
-                    if (parent == null || parent.Token != "=>")
+                    if (parent == null || parent.Token != "->")
                     {
                         mParser.RejectToken(expr.Token, expr.Count == 0
                             ? "Empty expression not allowed unless followed by lambda '=>' token"
@@ -306,7 +298,7 @@ namespace Gosub.Zurfur.Compiler
                     }
                     break;
 
-                case "=>": // Lambda
+                case "->": // Lambda
                     // TBD: Check lambda
                     break;
 
@@ -388,20 +380,13 @@ namespace Gosub.Zurfur.Compiler
                             || expr.Token == ZurfParse.PTR) )
                 expr.Token.Type = eTokenType.TypeName;
 
-            // Cast
-            if (ZurfParse.sCastOperators.Contains(expr.Token))
-            {
-                if (expr.Count != 0)
-                    ShowTypes(expr[0], true);
-                for (int i = 1; i < expr.Count; i++)
-                    ShowTypes(expr[i], isType);
-                return;
-            }
-
             // New variable
-            if (expr.Token == ZurfParse.NEWVAR && expr.Count >= 2)
+            if (expr.Token == ZurfParse.NEWVAR)
             {
-                ShowTypes(expr[1], true);
+                if (expr.Count >= 1)
+                    ShowTypes(expr[1], true);
+                for (int i = 2; i < expr.Count; i++)
+                    ShowTypes(expr[i], isType);
                 return;
             }
 

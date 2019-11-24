@@ -18,7 +18,7 @@ Zurfur is similar to C#, but borrows syntax and design concepts from
 Golang.  Here are some differences between Zurfur and C#:
 
 * Strings are UTF8 byte arrays initialized
-* Reference types are initialized without `new` keyword and can't be implicitly `null` **Still TBD**
+* Reference types are initialized without `new` keyword and are non-nullable by default
 * `==` operator does not default to reference comparison
 * Type declaration syntax and operator precedence is from Golang
 * Built from the ground up using `ref` returns
@@ -73,20 +73,19 @@ TBD: Still considering using `fn` to declare a function.
 ## Semicolons
 
 Like Golang, semicolons are required between statements but they are automatically
-inserted at the end of lines based on the last non-comment token on the line and
-the first token of the next line.
+inserted at the end of lines based on the last non-comment token and the first token
+of the next line.
 
 The general rule is that any line beginning with an operator does not put
 a `;` on the previous line.  Additionally, `,` and `{` at the end of a line
 prevent a semicolon on that line.  The `{` rule is to support curly brace
-at end of line style.  I personally hate that style, but since others love
-it, it's supported.  The `,` rule is because it looks wrong to have a comma
+at end of line style.  The `,` rule is because it looks wrong to have a comma
 at the beginning of a line.
 
-Note that we do not want to have `(` at the end of a line prevent generating
-a semicolon because while typing you will get a partially completed line like
-`func a(`.  If the next line were `a int`, there wouldn't be an error until
-the end of that line.
+Note that a `(` at the end of a line does not suppress the semicolons.  This is
+so a partially completed line such as `func a(` doesn't continue to the next line
+while typing.  **TBD:** Consider having `(` and `[` suppress semicolons when at
+the end of a line.
 
 ## Local Variables
 
@@ -110,19 +109,25 @@ cannot be converted, an error is generated
     @a str                      // `a` is a string, initialized to ""
     @b List<int>                // `b` is a List<int>, initialized to empty
 
-**TBD:** It is impossible to implicitly create a `null` reference.  All references
-are initialized via the default constructor.  However, null references
-can be created explicitly when desired.
+References are non-nullable (i.e. may never be `null`) and are initialized
+when created.  The optimizer may decide to delay initialization until the
+variable is actually used which could have implications if the constructor
+has side effects.  For instance:
 
+    @myList List<int>               // Note: `@myList List<int>()` is the same
+    if MyFunc()
+        { myList = MyListFunc() }   // Constructor not called above
+    else
+        { myList.Add(1) }           // Constructor called here
+
+It is possible to create a nullable reference.
     
     @myNullStr ?str         // String is null
     @myEmptyStr ?str()      // String is ""
 
-**TBD:** If we don't allow null objects by default, how do we make `List<SomeClass>`
-efficient?  Each time the underlying array is expanded, the constructor will be
-called for every object in the array.  Perhaps the underlying array is typed
-`List<?SomeClass>` but the getter converts?  If so, then what does that mean
-for value types?  `List<?int>` shouldn't have each `int` on the heap.
+A non-nullable reference can be assigned to a nullable, but a cast
+will be needed to convert nullable to non-nullable.  **TBD:** Find
+a shorter way to cast this case, maybe #?(expression)
 
 ## Basic types
 
@@ -152,6 +157,18 @@ fields when necessary:
 
 
 TBD: Lower case `array`, `list`, and `map`?  `span`, `roSpan`?
+
+#### Strings
+
+Strings are immutable utf8 byte arrays.  They can be translated by using the
+`tr"string"` syntax.  Translated strings are grouped separately, and then
+looked up dynamically at run time.  The `Arg()` function can be used
+to replace occurrences of `%number`.  There is no fromatting beyond
+string replacement.  For example: `tr"Hello %1. You like %2.".Arg(name).Arg(adjective)`
+might generate `Hello Jeremy.  You like ice cream.`
+
+**TBD:** This will be sufficient for first release, but later we want
+syntax for interpolated and pluralized strings.  Perhaps `tr(number)"String"`
 
 ## Classes
 
@@ -235,8 +252,8 @@ weight as an integer and need no metadata in the compiled executable.
 
 Operator precedence comes from Golang.
 
-    Primary: . () [] @ # {}
-    Unary: + - ! & ^
+    Primary: . () [] # {}
+    Unary: + - ! & ^ ~
     Multiplication and bits: * / % << >> & 
     Add and bits: + - | ~
     Range: .. ::
@@ -244,18 +261,16 @@ Operator precedence comes from Golang.
     Conditional: &&
     Conditional: ||
     Ternary: a ? b : c
-    Lambda: =>
+    Lambda: ->
     Comma: ,
     Assignment Statements: = += -= *= /= %= &= |= ~= <<= >>= 
 
-The `@` operator is the same as using `var` in front of a variable in C#.
-
-The `*` operator is only for multiplication, and there is no `->` operator.
-`^` is for dereferencing.  `~` is both xor and unsary complement.
-See pointers section below for discussion.
+The `*` operator is only for multiplication, and `->` is only for
+lambda, neither are for dereferencing pointers.  `~` is both xor 
+and unary complement.  See pointers section below for discussion.
 
 Operator `==` does not default to object comparison, and only works when it
-is defined for the given type.  Use `===` for object comparison. 
+is defined for the given type.  Use `===` and `!===` for object comparison. 
 
 #### Operator Overloading
 
@@ -289,25 +304,19 @@ an extra set of `{}` would be required:
 
 ## Casting
 
-The cast as we know it from C and C# has several problems.  First, the parser
+The cast as we know it from C and C# has a couple of problems.  First, the parser
 doesn't know a type name is expected until after it has been parsed, meaning
 the IDE can't show a list filtered by type name while you are typing.  Second,
 the syntax for cast looks strange for simple types `@myInt = (int)(a+b*myFloat)`
-where you'd much rather type it like this `@myInt = int(a+b*myFloat)`.
-Third, sometimes a postfix cast is easier to read.
+when you'd much rather see it like a function call `@myInt = int(a+b*myFloat)`.
 
-Zurfur accepts two forms of cast syntax, a prefix and a postfix version.
-The prefix version looks like this `#type(expression)`, and the postfix
-version looks like this `primary#(type)`.  The `()` in both versions are
-mandatory, same as in C#.  Two examples:
+Zurfur uses `#` to cast from one type to another.  It looks like this `#type(expression)`:
 
     @a = (int)(a+myFloat)       // C# (not allowed in Zurfur)
-    @a = #int(a+myFloat)        // Prefix
-    @a = (a+myFloat)#(int)      // Postfix
+    @a = #int(a+myFloat)        // Zurfur style
 
 	((List<Stuff>)yourStuff.SeeMyStuff).Add(Stuff())    // C# (not allowed in Zurfur)
-	yourStuff.SeeMyStuff#(List<Stuff>).Add(Stuff())     // Postfix
-	#List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())     // Prefix
+	#List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())     // Zurfur style
 
 A cast is used when a type conversion should be explicit, including
 conversion from a base class to a derived class, conversion between

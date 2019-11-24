@@ -8,34 +8,53 @@ namespace Gosub.Zurfur.Ide
 {
     /// <summary>
     /// Manage a group of Zurfur text editors.   Customizes their look
-    /// and interacts with the compiler asking for symbolic info.
+    /// and interacts with the compiler asking it to build and
+    /// retrieve symbolic info.
     /// </summary>
     class ZurfEditController
     {
-        FormHoverMessage mHoverMessageForm;
-        Token mHoverToken;
-        DateTime mLastEditorChangedTime;
-        TextEditor mActiveEditor;
-        TextEditor mReparseEditor;
-
         static Pen sBoldConnectorOutlineColor = new Pen(Color.FromArgb(192, 192, 255));
         static Brush sBoldConnectorBackColor = new SolidBrush(Color.FromArgb(224, 224, 255));
         static Pen sConnectorOutlineColor = new Pen(Color.FromArgb(192, 192, 255));
         static Brush sConnectorBackColor = null;
         static WordSet sBoldHighlightConnectors = new WordSet("( ) [ ] { } < >");
 
-        public ZurfEditController()
+        FormHoverMessage mHoverMessageForm;
+        Token mHoverToken;
+        TextEditor mActiveEditor;
+
+        Dictionary<string, TextEditor> mEditors = new Dictionary<string, TextEditor>();
+
+        /// <summary>
+        /// For the time being, the editor is in charge of sending files to the build.
+        /// This will be changed so there is a looser assocition.
+        /// </summary>
+        BuildPackage mBuildPackage;
+
+        public ZurfEditController(BuildPackage buildPackage)
         {
+            mBuildPackage = buildPackage;
             mHoverMessageForm = new FormHoverMessage();
         }
 
         public void AddEditor(TextEditor editor)
         {
-            ParseText(editor);
+            if (mEditors.ContainsKey(editor.FilePath))
+                return;
+
+            mEditors[editor.FilePath] = editor;
+            var buildFile = mBuildPackage.AddFile(editor.FilePath, editor.Lexer);
+
+            if (mEditors.Count == 1)
+                MonitorBuildPackage();
+
             editor.MouseHoverTokenChanged += editor_MouseTokenChanged;
             editor.TextChanged2 += editor_TextChanged2;
             editor.MouseClick += editor_MouseClick;
             editor.MouseDown += editor_MouseDown;
+
+            buildFile.Interactive = true;
+            SendRecompileMessage(editor);
         }
 
         public void RemoveEditor(TextEditor editor)
@@ -44,6 +63,13 @@ namespace Gosub.Zurfur.Ide
             editor.TextChanged2 -= editor_TextChanged2;
             editor.MouseClick -= editor_MouseClick;
             editor.MouseDown -= editor_MouseDown;
+
+            mEditors.Remove(editor.FilePath);
+            mBuildPackage.RemoveFile(editor.FilePath);
+
+            // So the awaiter exits if this is the last editor
+            mBuildPackage.ForceNotifyBuildChanged();
+
         }
 
         /// <summary>
@@ -51,11 +77,6 @@ namespace Gosub.Zurfur.Ide
         /// </summary>
         public void ActiveViewChanged(TextEditor editor)
         {
-            // Reparse old one if necessary
-            if (mReparseEditor != null)
-                ParseText(mReparseEditor);
-            mReparseEditor = null;
-
             mActiveEditor = editor;
             if (editor != null)
                 editor_MouseTokenChanged(editor, null, null);
@@ -63,9 +84,19 @@ namespace Gosub.Zurfur.Ide
 
         private void editor_TextChanged2(object sender, EventArgs e)
         {
-            // Setup to re-parse some time after the user stops typing
-            mLastEditorChangedTime = DateTime.Now;
-            mReparseEditor = sender as TextEditor;
+            // Send message to build build manager to recompile
+            var editor = sender as TextEditor;
+            SendRecompileMessage(editor);
+        }
+
+        private void SendRecompileMessage(TextEditor editor)
+        {
+            if (editor != null)
+            {
+                var buildFile = mBuildPackage.GetFile(editor.FilePath);
+                if (buildFile != null)
+                    buildFile.FileModified();
+            }
         }
 
         /// <summary>
@@ -175,43 +206,11 @@ namespace Gosub.Zurfur.Ide
         }
 
         /// <summary>
-        /// Should be called periodically from the UI thread to
+        /// Called periodically from the UI thread to show various info
         /// </summary>
         public void Timer()
         {
-            CheckForRecompile();
             DisplayHoverForm();
-        }
-        /// <summary>
-        /// Called periodically from timer to recompile
-        /// </summary>
-        private void CheckForRecompile()
-        {
-            if (mReparseEditor != null
-                && (DateTime.Now - mLastEditorChangedTime).TotalMilliseconds > 250)
-            {
-                if (System.Diagnostics.Debugger.IsAttached)
-                {
-                    // Reset the lexer, re-parse, and compile
-                    ParseText(mReparseEditor);
-                    mReparseEditor = null;
-                }
-                else
-                {
-                    try
-                    {
-                        // Reset the lexer, re-parse, and compile
-                        ParseText(mReparseEditor);
-                        mReparseEditor = null;
-                    }
-                    catch (Exception ex)
-                    {
-                        mReparseEditor = null;
-                        if (mActiveEditor != null)
-                            MessageBox.Show(mActiveEditor, "Error compiling: " + ex.Message);
-                    }
-                }
-            }
         }
 
         /// <summary>
@@ -249,50 +248,31 @@ namespace Gosub.Zurfur.Ide
             }
         }
 
-        private void ParseText(TextEditor editor)
+        async void MonitorBuildPackage()
         {
-            // For the time being, we'll use the extension to decide
-            // which parser to use.  
-            // TBD: This will all be moved to a build manager
-            var ext = System.IO.Path.GetExtension(editor.FilePath).ToLower();
-            if (ext == ".zurf")
+            while (mEditors.Count != 0)
             {
-                // Parse text
-                var t1 = DateTime.Now;
-                var parser = new ZurfParse(editor.Lexer);
-                var program = parser.Parse();
+                await mBuildPackage.AwaitBuildChanged();
 
-                // Generate Sil
-                if (!parser.ParseError)
-                {
-                    // TBD: This will all be moved to a bild manager
-                    var sil = new SilGen(editor.FilePath, program);
-                    sil.GenerateTypeDefinitions();
-                    sil.MergeTypeDefinitions();
-                    sil.GenerateHeader();
-                    sil.GenerateCode();
-                }
-                var t2 = DateTime.Now;
-                var parseTime = t2 - t1;
-
-
-                // Show parser generated tokens
-                var extraTokens = parser.ExtraTokens();
-                editor.ExtraTokens = extraTokens;
-
+                foreach (var kv in mEditors)
+                    UpdateBuildInfo(kv.Value);
             }
-            else if (ext == ".json")
+        }
+
+        private void UpdateBuildInfo(TextEditor editor)
+        {
+            // TBD: This could be sped up by tracking `FileBuildVersion`
+            //      but is probably not really necessary
+            var buildFile = mBuildPackage.GetFile(editor.FilePath);
+            if (buildFile == null)
             {
-                var parser = new JsonParse(editor.Lexer);
-                parser.Parse();
-            }
-            else
-            {
+                if (System.Diagnostics.Debugger.IsAttached)
+                    throw new Exception("Build file shouldn't be null here");
                 return;
             }
 
-            // Call this function after the tokens changed in a way that
-            // causes the vertical marks or connectors to have changed
+            // Update the editor with new build info
+            editor.ExtraTokens = buildFile.ExtraTokens;
             var marks = new List<VerticalMarkInfo>();
             int lastMark = -1;
             foreach (var token in editor.Lexer)
@@ -326,7 +306,6 @@ namespace Gosub.Zurfur.Ide
             editor.SetMarks(marks.ToArray());
             editor.Invalidate();
         }
-
 
 
     }

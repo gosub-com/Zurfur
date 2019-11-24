@@ -1,0 +1,58 @@
+﻿
+/// Internal stuff needed to implement libraries and compiler stuff
+namespace Zurfur.Internal
+
+
+
+/// A return reference is used when a reference is returned from
+/// a function.  This is required so the GC can pin the object
+/// containing the reference.  Also used when an object returns
+/// a reference to one of its own fields.
+pub ref ro struct rref<T>
+{
+    pub ro obj  ?object   // Container object, or null if pointing to non GC memory
+    pub ro r    ^T       // The reference
+    pub new(obj ?obj, reference ^T) { this.obj = obj;  r = reference}
+}
+
+/// A forward reference is a reqular pointer passed down the call stack.
+/// The object containing the reference is already stored on the memory
+/// stack, and is therefore GC pinned.
+pub ref ro struct fref<T>
+{
+    pub ro r ^T
+    pub new(reference ^T) { r = reference}
+}
+
+/// Interfaces are implemented as two pointers, one to a `vtable`, and
+/// one to the object itself.  In a multithreaded environment, these
+/// would need to be read and written to memory as an automic operation.
+pub ro struct InterfacePointer
+{
+    pub ro vtable ^InterfaceVTable;
+    pub ro obj ^void;
+}
+
+/// Base for all compiler generated interface vtables
+pub ro struct InterfaceVTable
+{
+	pub ro vtable ^void // TBD: Common 
+	pub ro IsProtected func() bool
+	pub ro GetObject func() ^void
+}
+
+/// All variable sized objects must inherit from this
+/// class and must be sealed (that's what sealed1 means)
+pub sealed1 class ArrayBase<T>
+{
+	default ArrayBase<T> = ArrayBase<T>(0)
+	pub ro Count int
+	    
+	new(count int) 
+	    => todo() // Allocate object on heap
+	    
+	protected prop DataSpan Span<T> 
+	    => todo()
+	protected unsafe prop DataPointer ^T 
+	    => #^T(#^byte(this) + Sizeof(ArrayBase))	    
+}

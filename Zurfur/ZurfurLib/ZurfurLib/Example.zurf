@@ -1,5 +1,5 @@
-using a.b.c
-using system.gosub.p
+use a.b.c
+use system.gosub.p
 
 
 // http://zurfur.com
@@ -8,7 +8,15 @@ namespace Zurfur.Example
 /// Example class, a test of hover comments and `code` comments
 pub class Example
 {
+    pub field1 float32
+    pub field2 int    
     pub prop Prop str => Header + info  	// Property
+    pub func A(a int) float => a+1
+    pub func A(a float32) float => a+1
+    pub func B(a float32) float => a+1
+    pub prop ChangedTime DateTime = DateTime.Now
+    	=> default get private set
+    
 }
 pub func Example::MyExtension() => Func1(10) // Extension method
 
@@ -18,7 +26,6 @@ pub func Example::Extension()
 	for @a in 1..23
 	{
 		F(out @b, c)
-		@a int + 24 = 23 // TBD: Fix @ expression target
 		a + 55 = 23 // TBD: Fix 
 	}
 }
@@ -51,7 +58,7 @@ pub class Example2  // YES, errors working
     f11 Array<int>()          // Array, Count=0
     f12 Array<int>(32)        // Array, Count=32
     f13 Array<int>({1,2,3})   // Array initialized with 1, 2, 3
-    f13 List<int>(32)         // Empty List, Capacity=32
+    f13a List<int>(32)         // Empty List, Capacity=32
     f14 Map<str,str>()  	// Empty map
     
     // Fields initialized via assignment
@@ -65,10 +72,10 @@ pub class Example2  // YES, errors working
     pub prop P1 int => 1
     pub prop P2 float =>  f1 + f2
     pub prop P3 int { get { return 3 } }
-    pub prop P4 int = 3 { get set } // Initialized to 3
+    pub prop P4 int = 3 => default get set // Initialized to 3
     pub prop P5 int(3) // Initializes p1 to 3
     {
-        get { return p1 }
+        get { return p1 } 
         set { p1 = value }
     }
     
@@ -95,6 +102,9 @@ pub class Example2  // YES, errors working
     
     pub func Main(args Array<str>)
     {
+    	use @a = OpenFile("My File");
+    	defer file.close();
+    	
         // Function calls vs parameter lists
         @a1 = MyType<a,b,c>()
         @a2 = MyType(a,b,c)()
@@ -106,11 +116,8 @@ pub class Example2  // YES, errors working
 
         // Casts
 	    @a = #int(a+b+myFloat)*23+4        // Prefix, operator
-	    @a = (a+b+myFloat)#(int)*23+4     // Postfix, operator
 		@a = #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())    // Prefix
-		@a = yourStuff.SeeMyStuff#(List<Stuff>).Add(Stuff())    // Postfix
 	    @b = ^#^int(myVoidPointer)      // Prefix
-	    @b = ^myVoidPointer#(^int)     // Postfix
         @c1 = #M<str,int.x<T>.y>.Hello2(A)
         @c2 = #M<str,int.x<T>.y>.Hello2<x.x>(A)
         @c3 = #List<int,y,z>(A)
@@ -135,20 +142,22 @@ pub class Example2  // YES, errors working
 	
         @myNullStr ?str         // String is null
         @myEmptyStr ?str()      // String is ""
+        
+        @myTranslation = tr"jeremy"
 
         // Static assigments
         M<str>.Hello = 6
         M<str,int.x<T>.y>.Hello2 = f(1, 2, "Jeremy")
-        M<str,int>.Hello2 = f(1, 2, (x, y) => x < y)
+        M<str,int>.Hello2 = f(1, 2, (x, y) -> x < y)
         
         @a = x>y
         if MyFieldFunc != null
             { MyFieldFunc(this, "hello") }
 
-        @l1 = (a) => { return 23 }
-        @l2 = (a) => 23
-        list.Sort((a, b) => a < b)
-        list.Sort((a, b) => { return a < b })
+        @l1 = (a) -> { return 23 }
+        @l2 = (a) -> 23
+        list.Sort((a, b) -> a < b)
+        list.Sort((a, b) -> { return a < b })
 
 		// In operator
 		if myStr in myMap || myIn in 1..23
@@ -163,8 +172,8 @@ pub class Example2  // YES, errors working
 		switch a
 		{
 		case 1:
-            DoIt(1) // No break necessary, always breaks unless there are no statements                
-		case 2: // Empty case does fall through
+            DoIt(1) // No break necessary         
+		case 2: // Empty case is the only time it falls through
         case 3:
             DoIt2()
         default: doit3();
@@ -192,12 +201,15 @@ pub enum MyEnum
 
 pub interface MyInterfaceTest
 {
-    func A() int;
-    pub func B() int => A() + 1;
-    protected func C() int;
-    pub struct Astruct { pub int a; };
-    pub enum Aenum { a; b; c};
-    pub class Aclass { pub int a;  };
+    func A() int 
+    	=> youdo
+    protected func C() int
+    	=> youdo
+    	
+    pub func B() int => A() + 1
+    pub struct Astruct { pub a int }
+    pub enum Aenum { a; b; c}
+    pub class Aclass { pub a int  }
 }
 
 pub class MyClass1 : MyInterfaceTest
@@ -229,142 +241,6 @@ pub static func Sort<T>(s Span<T>, lessThan func(a T, b T) bool)
             s[i] = lowElem
         }
     }
-}
-
-/// Read only span
-pub ref struct RoSpan<T>
-{
-    ro data ref T
-    pub ro Count int
-    pub this[index int] ro ref T => todo()
-    pub this[index Range] RoSpan<T> => todo();
-}
-
-/// Span of contiguous elements in memory or an array
-pub ref struct Span<T>
-{
-    ro data ref T
-    pub ro Count int
-    pub this[index int] ref T => todo()
-    pub this[index Range] Span<T> => todo();
-    operator implicit(from Span<T>) RoSpan<T> => todo()
-}
-
-/// Read only array span
-pub struct RoASpan<T>
-{
-    ro data Array<T>
-    pub ro Count int
-    pub this[index int] T => todo()
-    pub this[index Range] RoASpan<T> => todo();
-    operator implicit(from RoASpan<T>) RoSpan<T> => todo()
-}
-
-/// Array span
-pub struct ASpan<T>
-{
-    ro data Array<T>
-    pub ro Count int
-    pub this[index int] ref T => todo()
-    pub this[index Range] ASpan<T> => todo();
-    operator implicit(from ASpan<T>) RoASpan<T> => todo()
-    operator implicit(from ASpan<T>) RoSpan<T> => todo()
-    operator implicit(from ASpan<T>) Span<T> => todo()
-}
-
-// All variable sized objects must inherit from this class, must be sealed, and
-// must call AllocateObject first thing in the constructor.  For efficiency,
-// this class is unsafe and doesn't do any bounds checking.
-// The inheriting class must be sealed (that's what sealed1 means)
-pub unsafe sealed1 class VariableSizedObject<T>
-{
-    pub ro Count int
-
-    // Must be called first thing from the constuctor, never called again
-    protected unsafe static func AllocateObject(count int) { todo() }
-
-    // Return a pointer to the Array
-    // { return (T^)((^void)this + sizeof(this))}
-    protected unsafe prop DataPointer ^T => todo()
-}
-
-
-// Array of constant size
-pub sealed class Array<T> 
-	: VariableSizedObject<T>, IArray<T>
-{
-    const MaxSize int = int.MaxInt/2
-    pub static ro Empty Array<T>()
-
-    new(count int) => todo()
-    new(items ICollection<T>) => todo()
-    
-    pub this[index int] ref T => todo()
-    pub this[range Range] ASpan<T> => todo()
-}
-
-// Note that the List class has a ref return indexer, just like Array
-pub class List<T> 
-	: IList<T>
-{
-	new() => todo()
-    new(capacity int) => todo()
-    new(items ICollection<T>) => todo()
-    
-    pub this[index int] T { get => todo(); set => todo() }
-    pub this[index Range] IArray<T> => todo()
-
-    pub prop Count int { get }
-    pub func Add(item T) => todo()
-    pub func Clear() => todo()
-    pub func Insert(index int, item T) => todo()
-    pub func Insert(index int, items ICollection<T>) => todo()
-    pub func Remove(index int) => todo()
-    pub func Remove(range Range) => todo()
-    
-}
-
-pub class Map<TKey, TValue> 
-	: IMap<TKey, TValue>
-{
-	comparer func(a TKey, b TKey) bool;
-	getHashCOde func(a TKey, b TKey) bool;
-	comparer IComparer;
-	
-
-    new() where TKey : IEquatable
-    {
-    	comparer = (a, b) => TKey.compare(a, b);
-    	getHashCode = (a) => TKey.getHashCode(a);
-    	comparer = TKey;
-		
-    }
-    new(comparer IEquatable)
-    {
-    	comparer = this.comparer;
-    }
-    new(compare func(a TKey, b TKey) bool, 
-    	getHashCode func(a TKey, b TKey) uint)
-    {
-    	comparer = compare;
-    }
-    new(capacity int) where TKey : IEquatable
-    	=> todo()
-    new(keyValues ICollection<KeyValuePair<TKey, TValue>>) => todo()
-    
-    pub this[key TKey] TValue { get => todo() set => todo() }
-	pub operator in(a TKey) bool => todo()
-
-    pub prop Count int { get }
-    pub func Clear() => todo()
-    pub func Contains(key TKey) bool => todo();    
-    pub func Get(key TKey, defaultValue TValue) TValue => todo()
-    pub func TryGet(key TKey, value out TValue) bool => todo()
-    pub func Add(item KeyValue<TKey, TValue>) => todo()    
-    pub func Add(items ICollection<KeyValue<TKey, TValue>>) => todo()    
-    pub func Remove(TKey key) bool => todo()
-    pub prop Keys ICollection<TKey> { get => todo() }
-    pub prop Values ICollection<TValue> { get => todo() }
 }
 
 // The matrix class is used to implement square 2d arrays

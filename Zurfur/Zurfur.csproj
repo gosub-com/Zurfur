@@ -51,7 +51,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Compiler\SilGen.cs" />
+    <Compile Include="Compiler\BuildFile.cs" />
+    <Compile Include="Compiler\BuildPackage.cs" />
+    <Compile Include="Compiler\SilGenHeader.cs" />
+    <Compile Include="Compiler\SilGenJson.cs" />
+    <Compile Include="Compiler\SilJson.cs" />
     <Compile Include="Compiler\Symbols.cs" />
     <Compile Include="Compiler\ZurfParseCheck.cs" />
     <Compile Include="Ide\IEditor.cs" />
@@ -90,12 +94,6 @@
     </Compile>
     <Compile Include="Ide\FormSearch.Designer.cs">
       <DependentUpon>FormSearch.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Ide\FormViewText.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Ide\FormViewText.Designer.cs">
-      <DependentUpon>FormViewText.cs</DependentUpon>
     </Compile>
     <Compile Include="Ide\MultiViewEditor.cs">
       <SubType>UserControl</SubType>
@@ -157,9 +155,6 @@
       <DependentUpon>FormSearch.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="Ide\FormViewText.resx">
-      <DependentUpon>FormViewText.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Ide\MultiViewEditor.resx">
       <DependentUpon>MultiViewEditor.cs</DependentUpon>
     </EmbeddedResource>
@@ -187,10 +182,16 @@
     <Compile Include="Compiler\Token.cs" />
     <Compile Include="Compiler\Lexer.cs" />
     <Compile Include="App.cs" />
+    <None Include="ZurfurLib\ZurfurLib\BaseTypes2.zurf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="ZurfurLib\ZurfurLib\Interfaces.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="ZurfurLib\ZurfurLib\BaseTypes.zurf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="ZurfurLib\ZurfurLib\Internal.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="ZurfurLib\ZurfurLib\Math.zurf">

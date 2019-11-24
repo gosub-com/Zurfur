@@ -7,8 +7,8 @@ namespace Zurfur.Collections;
 pub interface IEquatable<T>
 {
 	// TBD: These functions are `ro` including all in the base class
-    static func GetHashCode(a T) uint
-    static func Equals(a T, b T) bool
+    static func GetHashCode(a T) uint => youdo
+    static func Equals(a T, b T) bool => youdo
 }
 
 /// Implement IComparable on any object that can be sorted.
@@ -17,31 +17,31 @@ pub interface IEquatable<T>
 pub interface IComparable<T>
 	: IEquatable<T>
 {
-    static func Compare(a T, b T) int
+    static func Compare(a T, b T) int  => youdo
 }
 
 pub interface IArithmetic<T>
 	: IComparable<T>
 {
-	operator-(a T) T
-	operator-(a T, b T) T
-	operator+(a T, b T) T
-	operator*(a T, b T) T
-	operator/(a T, b T) T
-	operator%(a T, b T) T
-	static prop Identity T { get }
-	static prop Origin T { get }
+	operator-(a T) T => youdo
+	operator-(a T, b T) T => youdo
+	operator+(a T, b T) T => youdo
+	operator*(a T, b T) T => youdo
+	operator/(a T, b T) T => youdo
+	operator%(a T, b T) T => youdo
+	static prop Identity T => youdo get
+	static prop Origin T => youdo get
 }
 
 pub interface IEnumerator<out T>
 {
-    func MoveNext() bool
-    prop Current T { get }
+    func MoveNext() bool => youdo
+    prop Current T => youdo get
 }
 
 pub interface IEnumerable<out T>
 {
-    func GetEnumerator() IEnumerator<T>
+    func GetEnumerator() IEnumerator<T> => youdo
 }
 
 /// Base class for all collections.
@@ -49,16 +49,16 @@ pub interface IEnumerable<out T>
 pub interface ICollection<T>
     : IEnumerable<T>
 {
-    prop Count int { get }
+    prop Count int => youdo get
 }
 
 /// Base class for all mutable collections.
 pub interface IMutableCollection<T>
 	: ICollection<T>
 {
-	func Clear()
-	func Add(item T)
-	func Add(items ICollection<T>)
+	func Clear() => youdo
+	func Add(item T) => youdo
+	func Add(items ICollection<T>) => youdo
 	// NOTE: 'Remove' and 'Contains' are not included because
 	//		each collection may have a different idea about
 	//	    how to compare and find objects.  
@@ -69,24 +69,24 @@ pub interface IMutableCollection<T>
 pub interface IRoArray<T> 
     : ICollection<T>
 {
-    this[index int] T { get }
+    this[index int] T => youdo get
 }
 
 
 pub interface IArray<T> 
     : ICollection<T>
 {
-    this[index int] T { get set }
+    this[index int] T => youdo get set
     this[range Range] IArray => todo()
 }
 
 pub interface IList<T>
     : IMutableCollection<T>, IArray<T>, IRoArray<T>
 {
-    func Insert(index int, item T)
-    func Insert(index int, collection ICollection<T>)
-    func Remove(index int)
-    func Remove(range Range)
+    func Insert(index int, item T) => youdo
+    func Insert(index int, collection ICollection<T>) => youdo
+    func Remove(index int) => youdo
+    func Remove(range Range) => youdo
 
     pub func Add(item T) { Insert(Count, item) }
     pub func Add(items ICollection<T>) { Insert(Count, items) }
@@ -102,13 +102,13 @@ pub struct KeyValuePair<TKey, TValue>
 pub interface IRoMap<TKey, TValue>
 	: ICollection<KeyValuePair<TKey, TValue>>
 {
-	operator in(a TKey) bool
-    this[key TKey] TValue { get }
-    pub func Contains(key TKey) bool => todo()
-    func Get(key TKey, defaultValue TValue) TValue
-    func TryGet(key TKey, value out TValue) bool    
-    prop Keys ICollection<TKey> { get }
-    prop Values ICollection<TValue> { get }
+	operator in(a TKey) bool => youdo
+    this[key TKey] TValue => youdo get
+    pub func Contains(key TKey) bool => youdo
+    func Get(key TKey, defaultValue TValue) TValue => youdo
+    func TryGet(key TKey, value out TValue) bool => youdo
+    prop Keys ICollection<TKey> => youdo get
+    prop Values ICollection<TValue> => youdo get
 }
 
 pub interface IMap<TKey, TValue> 
@@ -116,13 +116,14 @@ pub interface IMap<TKey, TValue>
       IMutableCollection<KeyValuePair<TKey, TValue>>
     		
 {
-    this[key TKey] TValue { set }
-    func Remove(TKey key) bool
+    this[key TKey] TValue => youdo get set
+    func Remove(TKey key) bool => youdo
 }
 
+/// This is a test
 pub interface IGeneric<Q>
 {
-    func A<T>(Q m) int;
+    func A<T>(Q m) int => test()
 }
 
 // Test generic class

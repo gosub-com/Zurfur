@@ -11,7 +11,8 @@ namespace Gosub.Zurfur
     public partial class FormMain:Form
     {
         bool                mInActivatedEvent;
-        ZurfEditController mZurfEditController = new ZurfEditController();
+        BuildPackage mZurfBuilder;
+        ZurfEditController mZurfEditController;
 
         static readonly WordSet sTextEditorExtensions = new WordSet(".txt .json .md .htm .html .css");
         static readonly WordSet sImageEditorExtensions = new WordSet(".jpg .jpeg .png .bmp");
@@ -25,6 +26,8 @@ namespace Gosub.Zurfur
 
         public FormMain()
         {
+            mZurfBuilder = new BuildPackage();
+            mZurfEditController = new ZurfEditController(mZurfBuilder);
             InitializeComponent();
         }
 
@@ -204,7 +207,7 @@ namespace Gosub.Zurfur
             {
                 // TBD: Move lexer/parser setup to it's own class
                 var newEditor = new TextEditor();
-                newEditor.Lexer.SetSpecialSymbols(ZurfParse.TokenSymbols);
+                newEditor.Lexer.SetSpecialSymbols(ZurfParse.MULTI_CHAR_TOKENS);
                 newEditor.Lexer.TokenizeComments = true;
                 newEditor.LoadFile(path);
                 mvEditors.AddEditor(newEditor);
@@ -351,6 +354,7 @@ namespace Gosub.Zurfur
         private void timer1_Tick(object sender, EventArgs e)
         {
             mZurfEditController.Timer();
+            mZurfBuilder.Timer();
         }
 
         private void menuHelpAbout_Click(object sender, EventArgs e)
