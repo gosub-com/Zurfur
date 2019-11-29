@@ -88,6 +88,7 @@ namespace Gosub.Zurfur.Compiler
     class SyntaxError : SyntaxToken
     {
         public SyntaxError() : base(Token.Empty) {  }
+        public SyntaxError(Token token) : base(token) { }
     }
 
 

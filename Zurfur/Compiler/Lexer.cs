@@ -379,47 +379,36 @@ namespace Gosub.Zurfur.Compiler
 
         private Token ScanNumber(string line, ref int charIndex, int startIndex)
         {
-            // Integer digits
+            // Just scoop up everything that could be a number
             int endIndex = charIndex;
             while (endIndex < line.Length && IsAsciiDigit(line[endIndex]))
+            {
                 endIndex++;
 
-            // Decimal point followed by a digit, then digits
-            if (endIndex < line.Length && line[endIndex] == '.'
-                && endIndex+1 < line.Length && IsAsciiDigit(line[endIndex+1]))
-            {
-                endIndex += 2;
-                while (endIndex < line.Length && IsAsciiDigit(line[endIndex]))
+                if (endIndex+1 < line.Length 
+                    && (line[endIndex] == 'e' || line[endIndex] == 'E')
+                    && (IsAsciiDigit(line[endIndex+1]) || line[endIndex+1] == '+' || line[endIndex+1] == '-'))
+                {
+                    // Skip exponent
+                    endIndex += 2;
+                }
+                else if (endIndex+1 < line.Length
+                        && line[endIndex] == '.' && IsAsciiDigit(line[endIndex+1]))
+                {
+                    // Skip decimal point
                     endIndex++;
+                }
+                else
+                {
+                    // Skip letters and '_'
+                    while (endIndex < line.Length
+                            && (char.IsLetter(line[endIndex]) || line[endIndex] == '_'))
+                        endIndex++;
+                }
             }
 
-            // Exponent
-            if (endIndex < line.Length && (line[endIndex] == 'e' || line[endIndex] == 'E'))
-            {
-                // 'E' or 'e', then optional +/ -, then digits
-                endIndex++;
-                if (endIndex < line.Length && (line[endIndex] == '+' || line[endIndex] == '-'))
-                    endIndex++;
-                while (endIndex < line.Length && IsAsciiDigit(line[endIndex]))
-                    endIndex++;
-            }
-            // Parse suffix
-            if (endIndex < line.Length
-                &&  (line[endIndex] == 'u' || line[endIndex] == 'U'))
-            {
-                endIndex++;
-                if (endIndex < line.Length && (line[endIndex] == 'l' || line[endIndex] == 'L'))
-                    endIndex++;
-            }
-            else if (endIndex < line.Length
-                &&  (line[endIndex] == 'd' || line[endIndex] == 'D'
-                     || line[endIndex] == 'f' || line[endIndex] == 'F'
-                     || line[endIndex] == 'm' || line[endIndex] == 'M'
-                     || line[endIndex] == 'l' || line[endIndex] == 'L'))
-            {
-                endIndex++;
-            }
-
+            if (endIndex - charIndex < 0)
+                return Token.Empty;
             string number = Mintern[line.Substring(charIndex, endIndex - charIndex)];
             charIndex = endIndex;  // Skip token
             return new Token(number, startIndex, 0, eTokenType.Number);
@@ -497,10 +486,10 @@ namespace Gosub.Zurfur.Compiler
             /// <summary>
             /// Returns the next token on the line, or "" if at end of line
             /// </summary>
-            public Token PeekOnLine()
+            public Token PeekOnLine(int i = 0)
             {
-                if (mIndexToken < mCurrentLine.Length)
-                    return mCurrentLine[mIndexToken];
+                if (mIndexToken+i < mCurrentLine.Length)
+                    return mCurrentLine[mIndexToken+i];
                 return Token.Empty;
             }
 

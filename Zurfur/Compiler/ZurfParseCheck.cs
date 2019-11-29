@@ -28,11 +28,11 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static volatile ro const");
         static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static volatile ro const");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
-        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static abstract virtual override new ro");
+        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static virtual override new ro");
         static WordSet sFuncOperatorQualifiers = new WordSet("pub public protected private internal unsafe");
 
-        static WordSet sStatements = new WordSet("if return while for switch case default throw "
-                                                     + "= ( += -= *= /= %= &= |= ~= <<= >>= @");
+        static WordSet sStatements = new WordSet("if return while for switch case default throw defer break continue "
+                                                     + "{ = ( += -= *= /= %= &= |= ~= <<= >>= @");
 
         static WordMap<int> sClassFuncFieldQualifiersOrder = new WordMap<int>()
         {
@@ -262,10 +262,7 @@ namespace Gosub.Zurfur.Compiler
                     {
                         if (!sStatements.Contains(e.Token))
                         {
-                            if (e.Token == "{")
-                                mParser.RejectToken(e.Token, "Unnecessary scope is not allowed");
-                            else if (e.Token != "defer")
-                                mParser.RejectToken(e.Token, "Only assignment, function call, and create typed variable can be used as statements");
+                            mParser.RejectToken(e.Token, "Only assignment, function call, and create typed variable can be used as statements");
                         }
                         CheckFuncBody(expr, e);
                     }
@@ -388,6 +385,15 @@ namespace Gosub.Zurfur.Compiler
                 for (int i = 2; i < expr.Count; i++)
                     ShowTypes(expr[i], isType);
                 return;
+            }
+
+            // Cast
+            if (expr.Token == "#" || expr.Token == "sizeof")
+            {
+                if (expr.Count >= 1)
+                    ShowTypes(expr[0], true);
+                if (expr.Count >= 2)
+                    ShowTypes(expr[1], false);
             }
 
             if (expr.Token == ZurfParse.VIRTUAL_TOKEN_TYPE_ARG_LIST)

@@ -36,23 +36,23 @@ pub ro struct InterfacePointer
 /// Base for all compiler generated interface vtables
 pub ro struct InterfaceVTable
 {
-	pub ro vtable ^void // TBD: Common 
-	pub ro IsProtected func() bool
-	pub ro GetObject func() ^void
+    pub ro vtable ^void // TBD: Common 
+    pub ro IsProtected func() bool
+    pub ro GetObject func() ^void
 }
 
 /// All variable sized objects must inherit from this
 /// class and must be sealed (that's what sealed1 means)
 pub sealed1 class ArrayBase<T>
 {
-	default ArrayBase<T> = ArrayBase<T>(0)
-	pub ro Count int
-	    
-	new(count int) 
-	    => todo() // Allocate object on heap
-	    
-	protected prop DataSpan Span<T> 
-	    => todo()
-	protected unsafe prop DataPointer ^T 
-	    => #^T(#^byte(this) + Sizeof(ArrayBase))	    
+    default ArrayBase<T> = ArrayBase<T>(0)
+    pub ro Count int
+        
+    new(count int) 
+        => todo() // Allocate object on heap
+        
+    protected prop DataSpan Span<T> 
+        => todo()
+    protected unsafe prop DataPointer ^T 
+        => #^T(#^byte(this) + Sizeof(ArrayBase))	    
 }

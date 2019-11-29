@@ -21,7 +21,7 @@ pub struct xuint = uint32
 
 /// bool (true or false)
 pub ro struct bool
-	: IEquatable<bool>
+    : IEquatable<bool>
 {
     pub static func GetHashCode(a bool) uint => extern
     pub static func Equals(a bool, b bool) bool => extern
@@ -34,7 +34,7 @@ pub ro struct bool
 
 /// int8 (-128..127)
 pub ro struct int8
-	: IComparable<int8>
+    : IComparable<int8>
 {
     operator explicit(from uint8) int8 => extern
     operator explicit(from int16) int8 => extern
@@ -51,8 +51,8 @@ pub ro struct int8
     operator implicit(from int8) int32 => extern
     
 
-	const Origin int8 = 0;
-	const Identity int8 = 1;
+    const Origin int8 = 0;
+    const Identity int8 = 1;
     const MaxValue int8 = 127	
     const MinValue int8 = -128
     pub static func GetHashCode(a int8) uint => extern
@@ -63,7 +63,7 @@ pub ro struct int8
 
 /// uint8 (0..255) same as byte
 pub ro struct uint8
-	: IComparable<uint8>
+    : IComparable<uint8>
 {
     operator explicit(from int8) uint8 => extern
     operator explicit(from int16) uint8 => extern
@@ -80,8 +80,8 @@ pub ro struct uint8
     operator implicit(from uint8) uint16 => extern
     operator implicit(from uint8) int32 => extern
     
-	const Origin int8 = 0;
-	const Identity int8 = 1;
+    const Origin int8 = 0;
+    const Identity int8 = 1;
     const MaxValue uint8 = 255	
     const MinValue uint8 = 0
     pub static func GetHashCode(a uint8) uint => extern
@@ -91,7 +91,7 @@ pub ro struct uint8
 
 /// int16 (-32768..32768)
 pub ro struct int16
-	: IComparable<int16>
+    : IComparable<int16>
 {
     operator explicit(from uint16) int16 => extern
     operator explicit(from int32) int16 => extern
@@ -104,8 +104,8 @@ pub ro struct int16
 
     operator implicit(from int16) int32 => extern
 
-	const Origin int8 = 0;
-	const Identity int8 = 1;
+    const Origin int8 = 0;
+    const Identity int8 = 1;
     const MaxValue int16 = 32767
     const MinValue int16 = -32768
     pub static func GetHashCode(a int16) uint => extern
@@ -116,7 +116,7 @@ pub ro struct int16
 
 /// uint16 (0..65535)
 pub ro struct uint16
-	: IComparable<uint16>
+    : IComparable<uint16>
 {
     operator explicit(from int8) uint16 => extern
     operator explicit(from int16) uint16 => extern
@@ -131,8 +131,8 @@ pub ro struct uint16
     operator implicit(from uint16) int32 => extern
     operator implicit(from uint16) uint32_x => extern
 
-	const Origin int8 = 0;
-	const Identity int8 = 1;
+    const Origin int8 = 0;
+    const Identity int8 = 1;
     const MaxValue uint16 = 65535	
     const MinValue uint16 = 0
     pub static func GetHashCode(a uint16) uint => extern
@@ -143,19 +143,19 @@ pub ro struct uint16
 /// Prefer int32 over uint32 (uint16+uint16 is int32, not uint32)
 pub ro struct uint32_x
 {
-	operator implicit(from unit32_x) uint32 => extern
+    operator implicit(from unit32_x) uint32 => extern
 }
 
 /// Prefer float64 over float32
 pub ro struct float32_x
 {
-	operator implicit(from float32_x) float32 => extern
+    operator implicit(from float32_x) float32 => extern
 }
 
 
 /// A 32 bit integer (same as int)
 pub ro struct int32
-	: IArithmetic<int32>
+    : IArithmetic<int32>
 {
     operator explicit(from uint32) int32 => extern
     operator explicit(from int64) int32 => extern
@@ -169,8 +169,8 @@ pub ro struct int32
     operator implicit(from int32) float64 => extern
     operator implicit(from int32) float32_x => extern
 
-	const Origin int8 = 0;
-	const Identity int8 = 1;
+    const Origin int8 = 0;
+    const Identity int8 = 1;
     const MaxValue int32 = 2147483647	
     const MinValue int32 = -2147483648
 
@@ -201,7 +201,7 @@ pub ro struct int32
 
 /// 32 bit unsigned integer (same as uint)
 pub ro struct uint32
-	: IArithmetic<uint32>
+    : IArithmetic<uint32>
 {
     operator explicit(from int8) uint32 => extern
     operator explicit(from int16) uint32 => extern
@@ -219,10 +219,10 @@ pub ro struct uint32
     operator implicit(from uint32) float32_x => extern
     
 
-	const Origin int8 = 0;
-	const Identity int8 = 1;
-    const MaxValue uint32 = (0)	
-    const MinValue uint32 = 4294967295
+    const Origin int8 = 0;
+    const Identity int8 = 1;
+    const MaxValue uint32 = 4294967295	
+    const MinValue uint32 = 0
 
     // Comparisons    
     pub static func GetHashCode(a uint32) uint => extern
@@ -249,7 +249,7 @@ pub ro struct uint32
 
 /// A 64 bit integer
 pub ro struct int64
-	: IArithmetic<int64>
+    : IArithmetic<int64>
 {
     operator explicit(from uint64) int64 => extern
     operator explicit(from float32) int64 => extern
@@ -259,8 +259,8 @@ pub ro struct int64
     operator implicit(from int64) decimal => extern
     operator implicit(from int64) float64 => extern
 
-	const Origin int8 = 0;
-	const Identity int8 = 1;
+    const Origin int8 = 0;
+    const Identity int8 = 1;
     const MaxValue int64 = 9223372036854775807	
     const MinValue int64 = -9223372036854775808
 
@@ -291,7 +291,7 @@ pub ro struct int64
 
 /// 64 bit unsigned integer
 pub ro struct uint64
-	: IArithmetic<uint64>
+    : IArithmetic<uint64>
 {
     operator explicit(from int8) uint64 => extern
     operator explicit(from int16) uint64 => extern
@@ -305,10 +305,10 @@ pub ro struct uint64
     operator implicit(from uint64) float64 => extern
     
 
-	const Origin int8 = 0;
-	const Identity int8 = 1;
-    const MaxValue uint64 = 0	
-    const MinValue uint64 = 18446744073709551615
+    const Origin int8 = 0;
+    const Identity int8 = 1;
+    const MaxValue uint64 = 18446744073709551615	
+    const MinValue uint64 = 0
 
     // Comparisons    
     pub static func GetHashCode(a uint64) uint => extern
@@ -334,7 +334,7 @@ pub ro struct uint64
 }
 
 pub ro struct float32
-	: IArithmetic<float32>
+    : IArithmetic<float32>
 {
     operator explicit(from float64) float32 => extern
     operator explicit(from decimal) float32 => extern
@@ -352,10 +352,10 @@ pub ro struct float32
     pub static func IEquatable<float32>::Equals(a float32, b float32) bool => extern
     pub static func IComparable<float32>::Compare(a float32, b float32) int => extern
 
-	const Origin int8 = 0;
-	const Identity int8 = 1;
-    const MinValue float32 = -3.40282347E+38F
+    const Origin int8 = 0;
+    const Identity int8 = 1;
     const MaxValue float32 = 3.40282347E+38F
+    const MinValue float32 = -3.40282347E+38F
     const Epsilon float32 = 1.401298E-45F
     const PositiveInfinity float32 = 1F/0F
     const NegativeInfinity float32 = -1F/0F
@@ -382,7 +382,7 @@ pub ro struct float32
 }
 
 pub ro struct float64
-	: IArithmetic<float64>
+    : IArithmetic<float64>
 {
     operator explicit(from decimal) float64 => extern
     
@@ -398,10 +398,10 @@ pub ro struct float64
     pub static func IEquatable<float32>::Equals(a float64, b float64) bool => extern
     pub static func IComparable<float32>::Compare(a float64, b float64) int => extern
 
-	const Origin int8 = 0;
-	const Identity int8 = 1;
-    const MinValue float64 = -1.7976931348623157E+308
+    const Origin int8 = 0;
+    const Identity int8 = 1;
     const MaxValue float64 = 1.7976931348623157E+308
+    const MinValue float64 = -1.7976931348623157E+308
     const Epsilon float64 = 4.94065645841247E-324
     const PositiveInfinity float64 = 1.0/0.0
     const NegativeInfinity float64 = -1.0/0.0
@@ -428,10 +428,10 @@ pub ro struct float64
 /// 128 bit decimal integer.  This will support NAN, infinity, and
 /// exponents covering the entire range of float64 with more precision.
 pub ro struct decimal
-	: IArithmetic<decimal>
+    : IArithmetic<decimal>
 {
-	const Origin int8 = 0;
-	const Identity int8 = 1;
+    const Origin int8 = 0;
+    const Identity int8 = 1;
     const MaxValue decimal = 1E+1000M	
     const MinValue decimal = -1E+1000M
     const PositiveInfinity decimal = 1.0/0.0

@@ -1,0 +1,30 @@
+﻿///
+/// This is where we will keep syntactically correct, but
+/// non runnable unit tests.  As they become runnable,
+/// they will be moved to Zurfur.UnitTests or
+/// 
+/// These tests are really big now, but they will be broken
+/// up and moved as individual features get implemented.
+///
+
+namespace Zurfur.UnitTests.Future
+
+static func test_ForSimple()
+{
+
+    @count int
+    for @a in 0..10
+    {
+        if a == 2
+            => count += 100
+        else if a == 3 || a == 4
+            => count += 1000
+        else if a == 5
+            => count += 10000
+            => count += 10000
+        else
+            => count += 100000
+        count += a
+    }
+    Console.Log("For loop: " + count == 622145 ? "Pass" : "Fail")
+}

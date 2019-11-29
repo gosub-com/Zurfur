@@ -1,0 +1,34 @@
+﻿///
+/// This is where we will keep unit tests that are supposed
+/// to fail so we can see the behavior of the parser or other
+/// components.  We never want to see the parser hang and we
+/// want sensible error messages.
+///
+/// TBD: Need some way to automatically verify these fail
+///
+
+### // We want some syntax to reset the parser to start over
+
+namespace ZurfTest.UnitTests.Failed
+
+
+/// Bunch of tests with parse cutoff as user types
+static func a(
+static func a(i
+static func a(i int
+static func a(i int,	// This line bleeds into the next one
+// TBD: Fix the above by making some reserved words end a statement
+//		`static` at start inserts `;` above.  What about `func`?
+static func a(i int, a
+static func a(i int, a
+
+
+
+func a() => 3 // Non-static function should fail
+
+
+### // We want some syntax to reset the parser to start over
+
+/// Set of tests that pass parsing, but fail compiling
+
+static func a() => 3 //

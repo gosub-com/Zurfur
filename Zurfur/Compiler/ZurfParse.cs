@@ -12,14 +12,13 @@ namespace Gosub.Zurfur.Compiler
     {
         // These tokens are ambiguous, so get replaced while parsing
         public const string VIRTUAL_TOKEN_TYPE_ARG_LIST = "<>";
-        const string VIRTUAL_TOKEN_SHIFT_RIGHT = ">>";
-        const string VIRTUAL_TOKEN_GE = ">=";
         const string VIRTUAL_TOKEN_LAMBDA_PARAMS = "()";
         const string VIRTUAL_TOKEN_INITIALIZER = "{}";
 
         public const string PTR = "^";
         public const string XOR = "~";
         public const string NEWVAR = "@";
+        public const string SSEP = "=>";  // Statement separator
 
         ZurfParseCheck mZurfParseCheck;
 
@@ -44,15 +43,14 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public Token[] ExtraTokens() => mExtraTokens.ToArray();
 
-        // NOTE: >> and >= are omitted and handled at parser level.
-        //       TBD: Need to handle >>= as well
-        public const string MULTI_CHAR_TOKENS = "<< <= == != && || += -= *= /= %= &= |= " + XOR + "= <<= => -> !== === :: .. ...";
+        // NOTE: >=, >>, and >>= are omitted and handled at parser level.
+        public const string MULTI_CHAR_TOKENS = "<< <= == != && || += -= *= /= %= &= |= " + XOR + "= <<= => -> !== === :: .. ... " + SSEP;
 
         // Add semicolons to all lines, except for:
-        static WordSet sEndLineSkipSemicolon = new WordSet("; { ,");
-        static WordSet sBeginLineSkipSemicolon = new WordSet("; { } [ ] ( ) + - * / % | & " + XOR + " || && == != = "
+        static WordSet sEndLineSkipSemicolon = new WordSet("; { [ ( ,");
+        static WordSet sBeginLineSkipSemicolon = new WordSet("{ } ] ) + - * / % | & " + XOR + " || && == != = "
                                                 + ": ? . , > << <= < => -> .. :: !== === += -= *= /= %= &= |= " + XOR + "= " 
-                                                + "else where is extends implements");
+                                                + "where is in as extends implements " + SSEP);
         Token mInsertedToken;
 
         static readonly string sReservedWordsList = "abstract as base break case catch class const "
@@ -95,8 +93,9 @@ namespace Gosub.Zurfur.Compiler
         // and #F<T1>(expression) to cast.
         static WordSet sTypeArgumentParameterSymbols = new WordSet("( ) .");
 
-        static WordSet sStatementsDone = new WordSet("} func using namespace module class struct interface enum", true);
-        static WordSet sRejectAnyStop = new WordSet("; { } using namespace module class struct interface enum if else for while throw switch case func afunc prop get set", true);
+        static WordSet sStatementEndings = new WordSet("; => }");
+        static WordSet sStatementsDone = new WordSet("} func namespace class struct interface enum", true);
+        static WordSet sRejectAnyStop = new WordSet("=> ; { } namespace class struct interface enum if else for while throw switch case func afunc prop get set", true);
         static WordSet sRejectForCondition = new WordSet("in");
         static WordSet sRejectFuncName = new WordSet("( [");
         static WordSet sRejectFuncParam = new WordSet(", )");
@@ -208,8 +207,9 @@ namespace Gosub.Zurfur.Compiler
                         break;
 
                     case "{":
+                    case "=>":
                         RejectQualifiers(qualifiers, "Unexpected qualifiers");
-                        RejectToken(mToken, "Unexpected start of scope.  Expecting a keyword, such as 'class', 'func', etc. before the start of a new scope.");
+                        RejectToken(mToken, "Unexpected '" + mTokenName + "'.  Expecting a keyword, such as 'class', 'func', etc. before the start of a new scope.");
                         Accept();
                         break;
 
@@ -583,27 +583,7 @@ namespace Gosub.Zurfur.Compiler
 
             if (mTokenName == "=>")
             {
-                var lambdaOp = Accept();
-                if (sAutoImplementMethod.ContainsKey(mTokenName))
-                {
-                    var autoKeyword = Accept();
-                    Token getToken = Token.Empty;
-                    Token setToken = Token.Empty;
-                    Token setVisibility = Token.Empty;
-                    if (AcceptMatchOrReject("get", "to specify property to implement"))
-                        getToken = mPrevToken;
-                    if (AcceptMatch("private") || AcceptMatch("protected"))
-                        setVisibility = mPrevToken;
-                    if (AcceptMatch("set"))
-                        setToken = mPrevToken;
-                    getToken.Type = eTokenType.Reserved;
-                    setToken.Type = eTokenType.Reserved;
-                    synFunc.Statements = new SyntaxBinary(autoKeyword, new SyntaxToken(getToken), new SyntaxToken(setToken));
-                }
-                else
-                {
-                    synFunc.Statements = new SyntaxUnary(lambdaOp, ParseExpr());
-                }
+                synFunc.Statements = ParseStatements("Property", StatementsType.PropertyBody);
                 mUnit.Funcs.Add(synFunc);
                 return;
             }
@@ -625,9 +605,7 @@ namespace Gosub.Zurfur.Compiler
                     case "set":
                         gotGetOrSet = true;
                         synFunc.Keyword = Accept();
-                        synFunc.Statements = ParseMethodBody();
-                        if (synFunc.Statements != null & sAutoImplementMethod.Contains(synFunc.Statements.Token))
-                            RejectToken(synFunc.Statements.Token, "Cannot use this here, use '=>' after the property definition");
+                        synFunc.Statements = ParseStatements("property", StatementsType.MethodBody);
                         mUnit.Funcs.Add(synFunc);
                         break;
                     default:
@@ -679,32 +657,10 @@ namespace Gosub.Zurfur.Compiler
                     throw new Exception("Error parsing function def");
             }
 
-            synFunc.Statements = ParseMethodBody();
-
+            synFunc.Statements = ParseStatements("func", StatementsType.MethodBody);
             if (synFunc.Name != null)
                 mUnit.Funcs.Add(synFunc);
         }
-
-        SyntaxExpr ParseMethodBody()
-        {
-            switch (mTokenName)
-            {
-                case "{":
-                    return ParseStatements("func, property, or method");
-                case "=>":
-                    var lambdaOp = Accept();
-                    if (sAutoImplementMethod.ContainsKey(mTokenName))
-                        return new SyntaxToken(Accept());
-                    else
-                        return new SyntaxUnary(lambdaOp, ParseExpr());
-                default:
-                    Reject("Expecting '{' or '=>', for start of method body");
-                    if (mToken == "{")
-                        return ParseStatements("func, property, or method");
-                    return new SyntaxError();
-            }
-        }
-
 
         bool ParseFuncNameDef(out SyntaxExpr className, out Token funcName)
         {
@@ -817,14 +773,85 @@ namespace Gosub.Zurfur.Compiler
             return new SyntaxUnary(name, type);
         }
 
-        private SyntaxExpr ParseStatements(string errorMessage)
+        enum StatementsType
         {
+            Statements,
+            Switch,
+            MethodBody,
+            PropertyBody
+        }
+
+        private SyntaxExpr ParseStatements(string errorMessage, StatementsType type = StatementsType.Statements)
+        {
+            var statements = new List<SyntaxExpr>();
+
+            if (mToken == SSEP)
+            {
+                int maxConjoined;
+                if (type == StatementsType.Statements)
+                    maxConjoined = 2;
+                else if (type == StatementsType.Switch)
+                    maxConjoined = 0;
+                else
+                    maxConjoined = 1;
+
+                var count = 0;
+                var statementKeyword = mToken;
+                while (AcceptMatch(SSEP))
+                {
+                    if (count++ >= maxConjoined)
+                    {
+                        RejectToken(mPrevToken, "Maximum '=>' conjoined statements is " + maxConjoined);
+                        break;
+                    }
+                    if (mToken == ";" || mToken == "{" || mToken == "}")
+                    {
+                        Reject("Expecting a statement or expression after '" + SSEP + "'");
+                        break;
+                    }
+                    if (type == StatementsType.MethodBody || type == StatementsType.PropertyBody)
+                    {
+                        if (sAutoImplementMethod.ContainsKey(mTokenName))
+                        {
+                            Token getToken = Token.Empty;
+                            Token setToken = Token.Empty;
+                            Token setVisibility = Token.Empty;
+                            var autoKeyword = Accept();
+                            if (type == StatementsType.PropertyBody)
+                            {
+                                if (AcceptMatchOrReject("get", "to specify property to implement"))
+                                    getToken = mPrevToken;
+                                if (AcceptMatch("private") || AcceptMatch("protected"))
+                                    setVisibility = mPrevToken;
+                                if (AcceptMatch("set"))
+                                    setToken = mPrevToken;
+                                getToken.Type = eTokenType.Reserved;
+                                setToken.Type = eTokenType.Reserved;
+                            }
+                            statements.Add(new SyntaxBinary(autoKeyword, new SyntaxToken(getToken), new SyntaxToken(setToken)));
+                            break;
+                        }
+                    }
+                    if ((mToken.Type == eTokenType.Reserved || mToken.Type == eTokenType.ReservedControl)
+                                && mToken != "return" && mToken != "break" // TBD: Make into wordset
+                                && mToken != "continue" && mToken != "throw" && mToken != "sizeof")
+                    {
+                        Reject("Only 'return', 'break', 'continue', and 'throw' reserved words allowed after '" + SSEP + "'.  Use '{}' instead");
+                        break;
+                    }
+
+                    ParseStatement(statements, false);
+                    if (mTokenName == ";" && !mToken.Invisible)
+                        RejectToken(mToken, "Not allowed to have a ';' on a statement starting with '" + SSEP + "'");
+                }
+                return new SyntaxMulti(CreateInvisible(statementKeyword, "=>"), statements.ToArray());
+            }
+
             // Read open token, '{'
-            if (!AcceptMatchOrReject("{"))
+            if (!AcceptMatchOrReject("{", "or '" + SSEP + "'"))
                 return new SyntaxError();
 
             var openToken = mPrevToken;
-            var statements = new List<SyntaxExpr>();
             while (!sStatementsDone.Contains(mTokenName))
                 ParseStatement(statements);
 
@@ -834,16 +861,22 @@ namespace Gosub.Zurfur.Compiler
             return new SyntaxMulti(openToken, statements.ToArray());
         }
 
-        private void ParseStatement(List<SyntaxExpr> statements)
+        private void ParseStatement(List<SyntaxExpr> statements, bool requireSemicolon = true)
         {
             var keyword = mToken;
-            bool requireSemicolon = true;
             switch (mToken)
             {
                 case ";":
                     break;
 
+                case "=>":
+                    RejectToken(mToken, "Unexpected '=>'");
+                    Accept();
+                    break;
+
+
                 case "{":
+                    RejectToken(mToken, "Unnecessary scope is not allowed");
                     statements.Add(ParseStatements("scope"));
                     break;
                 
@@ -873,16 +906,30 @@ namespace Gosub.Zurfur.Compiler
                     Accept();
                     var ifCondition = ParseExpr();
                     var ifBody = ParseStatements("if");
-                    if (mToken == "else")
+                    AcceptSemicolonOrReject();
+                    requireSemicolon = false;
+                    if (mToken != "else")
                     {
-                        // IF/WHILE (condition) (body) (else-body)
-                        Accept();
-                        statements.Add(new SyntaxMulti(keyword, ifCondition, ifBody, ParseStatements("else")));
+                        // IF (condition) (body)
+                        statements.Add(new SyntaxBinary(keyword, ifCondition, ifBody));
                     }
                     else
                     {
-                        // IF/WHILE (condition) (body)
-                        statements.Add(new SyntaxBinary(keyword, ifCondition, ifBody));
+                        // IF (condition) (body) (else-body)
+                        Accept();
+                        if (mTokenName != "if")
+                        {
+                            statements.Add(new SyntaxMulti(keyword, ifCondition, ifBody, ParseStatements("else")));
+                        }
+                        else
+                        {
+                            // IF (condition) (body) ( (else-if-body) )
+                            var elseIfToken = mToken;
+                            var elseStatements = new List<SyntaxExpr>();
+                            ParseStatement(elseStatements);
+                            statements.Add(new SyntaxMulti(keyword, ifCondition, ifBody, 
+                                               new SyntaxMulti(CreateInvisible(elseIfToken, "{"), elseStatements.ToArray())));
+                        }
                     }
                     break;
 
@@ -904,17 +951,13 @@ namespace Gosub.Zurfur.Compiler
                     statements.Add(new SyntaxMulti(keyword, forVariable, forCondition, ParseStatements("for")));
                     break;
 
+                case "throw":
                 case "return":
                     Accept();
-                    if (mTokenName == ";" || mTokenName == "}")
+                    if (sStatementEndings.Contains(mTokenName))
                         statements.Add(new SyntaxToken(keyword));
                     else
                         statements.Add(new SyntaxUnary(keyword, ParseExpr()));
-                    break;
-
-                case "throw":
-                    Accept();
-                    statements.Add(new SyntaxUnary(keyword, ParseExpr()));
                     break;
 
                 case "continue":
@@ -923,7 +966,7 @@ namespace Gosub.Zurfur.Compiler
                     break;
 
                 case "switch":
-                    statements.Add(new SyntaxBinary(Accept(), ParseExpr(), ParseStatements("switch")));
+                    statements.Add(new SyntaxBinary(Accept(), ParseExpr(), ParseStatements("switch", StatementsType.Switch)));
                     break;
 
                 case "default":
@@ -947,6 +990,7 @@ namespace Gosub.Zurfur.Compiler
                     }
 
                     var result = ParseExpr();
+                    InterceptAndReplaceGT();
                     if (sAssignOperators.Contains(mToken))
                         result = new SyntaxBinary(Accept(), result, ParseExpr());
                     statements.Add(result);
@@ -1048,10 +1092,12 @@ namespace Gosub.Zurfur.Compiler
         SyntaxExpr ParseComparison()
         {
             var result = ParseRange();
-            if (InterceptAndReplaceToken(">", VIRTUAL_TOKEN_GE) || sComparisonOperators.Contains(mTokenName))
+            InterceptAndReplaceGT();
+            if (sComparisonOperators.Contains(mTokenName))
             {
                 result = new SyntaxBinary(Accept(), result, ParseRange());
-                if (InterceptAndReplaceToken(">", VIRTUAL_TOKEN_GE) || sComparisonOperators.Contains(mTokenName))
+                InterceptAndReplaceGT();
+                if (sComparisonOperators.Contains(mTokenName))
                     Reject("Compare operators are not associative, must use parentheses");
             }
             return result;
@@ -1080,10 +1126,12 @@ namespace Gosub.Zurfur.Compiler
         SyntaxExpr ParseMultiply()
         {
             var result = ParseUnary();
-            while (InterceptAndReplaceToken(">", VIRTUAL_TOKEN_SHIFT_RIGHT) || sMultiplyOperators.Contains(mTokenName))
+            InterceptAndReplaceGT();
+            while (sMultiplyOperators.Contains(mTokenName))
             {
                 result = new SyntaxBinary(Accept(), result, ParseUnary());
-                if (mTokenName == "<<" || InterceptAndReplaceToken(">", VIRTUAL_TOKEN_SHIFT_RIGHT))
+                InterceptAndReplaceGT();
+                if (mTokenName == "<<" || mTokenName == ">>")
                 {
                     Reject("Shift operators are not associative, must use parentheses");
                     break;
@@ -1092,20 +1140,33 @@ namespace Gosub.Zurfur.Compiler
             return result;
         }
 
-        bool InterceptAndReplaceToken(string match, string replace)
+        /// <summary>
+        /// Combine >=, >>, and >>= into one token
+        /// </summary>
+        void InterceptAndReplaceGT()
         {
-            if (mTokenName != match)
-                return false;
-
+            if (mTokenName != ">")
+                return;
             var peek = mLexerEnum.PeekOnLine();
-            if (peek.X != mToken.X + mTokenName.Length || mTokenName + peek.Name != replace)
-                return false;
-
+            if (peek.X != mToken.X + mTokenName.Length)
+                return;
+            if (peek != "=" && peek != ">")
+                return;
+            var token = mToken;
+            Accept();
+            var virtualToken = mTokenName + peek;
+            if (virtualToken == ">>")
+            {
+                peek = mLexerEnum.PeekOnLine();
+                if (peek.X == token.X + virtualToken.Length && peek == "=")
+                {
+                    Accept();
+                    virtualToken = ">>=";
+                }                    
+            }
             // Replace with a virtual token
-            Accept();  // Skip match
-            mToken = CreateInvisible(mToken, replace);
+            mToken = CreateInvisible(mToken, virtualToken);
             mTokenName = mToken.Name;
-            return true;
         }
 
         SyntaxExpr ParseUnary()
@@ -1121,6 +1182,24 @@ namespace Gosub.Zurfur.Compiler
         {
             if (mTokenName == "switch")
                 return ParseSwitchExpression();
+
+            if (mTokenName == "sizeof")
+            {
+                var sizeofToken = Accept();
+                if (AcceptMatchOrReject("(", "start of sizeof operator"))
+                {
+                    var sizeofOpen = mPrevToken;
+                    if (ParseTypeName(out var sizeofType, sEmptyWordSet))
+                    {
+                        if (AcceptMatchOrReject(")", "end of sizeof operator"))
+                        {
+                            Connect(sizeofOpen, mPrevToken);
+                            return new SyntaxUnary(sizeofToken, sizeofType);
+                        }
+                    }
+                }
+                return new SyntaxError(sizeofToken);
+            }
 
             // Prefix cast: #type(expression)
             if (mTokenName == "#")
@@ -1139,7 +1218,7 @@ namespace Gosub.Zurfur.Compiler
                         return result2;
                     }
                 }
-                return new SyntaxToken(operatorToken);  // Error, doesn't matter
+                return new SyntaxError(operatorToken);
             }
 
             var result = ParseAtom();
@@ -1213,6 +1292,10 @@ namespace Gosub.Zurfur.Compiler
                 var openToken = mToken;
                 var expressions = new List<SyntaxExpr>();
                 ParseParen(expressions, false);
+
+                // Disallow old style casts
+                if (mTokenName == "(" || mToken.Type == eTokenType.Identifier)
+                    RejectToken(mToken, "Old style cast not allowed, use #type(expession)");
 
                 // Expression order parentheses are thrown away, lambda is kept
                 return expressions.Count == 1 
@@ -1552,7 +1635,8 @@ namespace Gosub.Zurfur.Compiler
         {
             if (AcceptMatch(";"))
                 return;
-            if (mToken == "}")
+
+            if (sStatementEndings.Contains(mTokenName))
                 return;
 
             Reject("Expecting ';' or end of line");
@@ -1684,7 +1768,7 @@ namespace Gosub.Zurfur.Compiler
                 mToken.Type = tokenType;
                 GetNextToken();
                 bool isCodeComment = false;
-                while (!mToken.Boln)
+                while (!mToken.Boln && mToken != "")
                 {
                     mToken.Type = tokenType;
                     if (tokenType == eTokenType.PublicComment)
@@ -1763,9 +1847,9 @@ namespace Gosub.Zurfur.Compiler
             Token.Connect(t1, t2);
         }
 
-        Token CreateInvisible(Token token, string text, eTokenType type = eTokenType.Normal)
+        Token CreateInvisible(Token token, string text)
         {
-            var newToken = new Token(text, token.X, token.Y, type);
+            var newToken = new Token(text, token.X, token.Y, eTokenType.Normal);
             newToken.Invisible = true;
             Connect(token, newToken);
             return newToken;

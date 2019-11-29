@@ -15,7 +15,7 @@ pub class Example
     pub func A(a float32) float => a+1
     pub func B(a float32) float => a+1
     pub prop ChangedTime DateTime = DateTime.Now
-    	=> default get private set
+        => default get private set
     
 }
 pub func Example::MyExtension() => Func1(10) // Extension method
@@ -23,11 +23,11 @@ pub func Example::MyExtension() => Func1(10) // Extension method
 
 pub func Example::Extension() 
 { 
-	for @a in 1..23
-	{
-		F(out @b, c)
-		a + 55 = 23 // TBD: Fix 
-	}
+    for @a in 1..23
+    {
+        F(out @b, c)
+        a + 55 = 23 // TBD: Fix 
+    }
 }
 
 // Test class
@@ -102,9 +102,9 @@ pub class Example2  // YES, errors working
     
     pub func Main(args Array<str>)
     {
-    	use @a = OpenFile("My File");
-    	defer file.close();
-    	
+        use @a = OpenFile("My File");
+        defer file.close();
+        
         // Function calls vs parameter lists
         @a1 = MyType<a,b,c>()
         @a2 = MyType(a,b,c)()
@@ -115,31 +115,31 @@ pub class Example2  // YES, errors working
         @a7 = f(f<a>())(a+b)
 
         // Casts
-	    @a = #int(a+b+myFloat)*23+4        // Prefix, operator
-		@a = #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())    // Prefix
-	    @b = ^#^int(myVoidPointer)      // Prefix
+        @a = #int(a+b+myFloat)*23+4        // Prefix, operator
+        @a = #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())    // Prefix
+        @b = ^#^int(myVoidPointer)      // Prefix
         @c1 = #M<str,int.x<T>.y>.Hello2(A)
         @c2 = #M<str,int.x<T>.y>.Hello2<x.x>(A)
         @c3 = #List<int,y,z>(A)
         @a = #int(a+b+myFloat)
-	    @a = #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
-	    @a = (#List<Stuff>(yourStuff.SeeMyStuff)).Add(Stuff())
+        @a = #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
+        @a = (#List<Stuff>(yourStuff.SeeMyStuff)).Add(Stuff())
         @b = ^#^int(myVoidPointer)
-	    #List<Stuff>(yourStuff.SeeMyStuff)[23] = 4
+        #List<Stuff>(yourStuff.SeeMyStuff)[23] = 4
 
 
-	    // Local variables declared in a function
-	    @myString = "Hello World"
-	    @myInt = 3
-	    @myList = List<int>({1,2,3})
-	    @myMap = Map<str,int>({{"A",1},{"B",2}})
-	    @myOtherMap = MyMapReturningFunction()
-	   
-	    @myStr str = MyStrFunc()    // Error if MyStrFunc returns an int
-	    @myInt int = MyIntFunc()    // Error if MyIntFunc returns a float
-	    @a str                      // `a` is a string, initialized to ""
-	    @b List<int>                // `b` is a List<int>, initialized to empty
-	
+        // Local variables declared in a function
+        @myString = "Hello World"
+        @myInt = 3
+        @myList = List<int>({1,2,3})
+        @myMap = Map<str,int>({{"A",1},{"B",2}})
+        @myOtherMap = MyMapReturningFunction()
+       
+        @myStr str = MyStrFunc()    // Error if MyStrFunc returns an int
+        @myInt int = MyIntFunc()    // Error if MyIntFunc returns a float
+        @a str                      // `a` is a string, initialized to ""
+        @b List<int>                // `b` is a List<int>, initialized to empty
+    
         @myNullStr ?str         // String is null
         @myEmptyStr ?str()      // String is ""
         
@@ -159,53 +159,112 @@ pub class Example2  // YES, errors working
         list.Sort((a, b) -> a < b)
         list.Sort((a, b) -> { return a < b })
 
-		// In operator
-		if myStr in myMap || myIn in 1..23
-		{
-			DoSomething();
-		}
+        // In operator
+        if myStr in myMap || myIn in 1..23
+        {
+            DoSomething();
+        }
 
         // Switch expressions
         @num = switch myConstant { 23 => a, 27 => b, default => 0}
 
         // Switch statement
-		switch a
-		{
-		case 1:
+        switch a
+        {
+        case 1:
             DoIt(1) // No break necessary         
-		case 2: // Empty case is the only time it falls through
+        case 2: // Empty case is the only time it falls through
         case 3:
             DoIt2()
         default: doit3();
-		}
-		        
+        }
+                
+    }
+}
+
+
+pub func Example::IfTests() 
+{ 
+    // In operator
+    if myStr in myMap || myIn in 1..23
+    {
+        DoSomething()
+        break
+        return
+    }
+    
+    while f(x)
+        => x = x + 1
+    
+    if myStr in myMap || myIn in 1..23
+        => DoSomething()
+        => hello()
+    
+    if a
+      => todo()
+      => todo()
+    else if b
+      => todo()
+    else if c
+      => todo()
+    
+    if a
+      => f(x)
+    
+
+    if myStr in myMap || myIn in 1..23
+      => DoSomething()
+      => hello()
+    else 
+      => f(a)
+
+    if myStr in myMap || myIn in 1..23
+    {
+        DoSomething()
+        hello()
+    }
+    else 
+    {
+        f(a)
+    }
+        
+
+    for @a in 1..23
+      => F(out @b, c)
+      => a + 55 = 23 // TBD: Fix 
+
+
+    for @a in 1..23
+    {
+        F(out @b, c)
+        a + 55 = 23 // TBD: Fix 
     }
 }
 
 pub struct MyPoint
 {
-	pub X int
-	pub Y int
-	pub override func ToStr() => "(" + X + "," + Y + ")"
+    pub X int
+    pub Y int
+    pub override func ToStr() => "(" + X + "," + Y + ")"
 }
 
 
 pub enum MyEnum
 {	
-	A 			// A=0
-	B; C		// B=1, C=2
-	D = 23		// D=23
-	E; F; G		// E=24, F=25, G=26
+    A 			// A=0
+    B; C		// B=1, C=2
+    D = 23		// D=23
+    E; F; G		// E=24, F=25, G=26
 }
 
 
 pub interface MyInterfaceTest
 {
     func A() int 
-    	=> youdo
+        => youdo
     protected func C() int
-    	=> youdo
-    	
+        => youdo
+        
     pub func B() int => A() + 1
     pub struct Astruct { pub a int }
     pub enum Aenum { a; b; c}
@@ -214,8 +273,8 @@ pub interface MyInterfaceTest
 
 pub class MyClass1 : MyInterfaceTest
 {
-    pub func A() int => 3;
-    pub func MyInterfaceTest::C() int => 3;
+    pub func A() int => 3
+    pub func MyInterfaceTest::C() int => 3
 
 }
 
@@ -254,7 +313,7 @@ pub sealed class Matrix2d<t> : VariableSizedObject<T>
 // own the memory, or it can be attached to an already existing buffer.
 // The GC knows this class and deletes the memory when necessary.
 pub sealed class UnmanagedMemory<T> : UnmanagedHande 
-				where T : IBlittableStruct
+                where T : IBlittableStruct
 {
     pub ro Memory ^void
     pub ro Capacity int
@@ -322,9 +381,9 @@ pub class FinalizedNotifyQueue
 
 pub static func MemCopy(dest ^void, source ^void, length xint)
 {
-	@to = #xint(dest)
-	@from = #xint(source)
-	
+    @to = #xint(dest)
+    @from = #xint(source)
+    
     if length <= 0
     {
         return
@@ -358,8 +417,8 @@ pub static func MemCopy(dest ^void, source ^void, length xint)
 
 pub static func MemCopy32(dest ^void, source ^void, length xint)
 {
-	@to = #xint(dest)
-	@from = #xint(source)
+    @to = #xint(dest)
+    @from = #xint(source)
 
     if length <= 0
     {
@@ -391,20 +450,20 @@ pub static func MemCopy32(dest ^void, source ^void, length xint)
 
 namespace ExampleNs1.HelloWorld
 {
-	static func F1() => todo;
-	
-	class ClassEx1
-	{
-		a int;
-		b int;
-	}
+    static func F1() => todo
+    
+    class ClassEx1
+    {
+        a int;
+        b int;
+    }
 }
 
 
 namespace ExampleNs1
 {
-	static func F1() => todo;
-	
+    static func F1() => todo
+    
     namespace InnerEx1
     {
 
@@ -414,54 +473,54 @@ namespace ExampleNs1
     {
     }
 
-	class ClassEx1
-	{
-		a int;
-		b int;
-		class Inner1
-		{
-		}
-	
-		class Inner2
-		{
-		}
-	}
-	class ClassEx2
-	{
-		class Inner1
-		{
-		}
-	
-		class Inner2
-		{
-		}
-	}
+    class ClassEx1
+    {
+        a int;
+        b int;
+        class Inner1
+        {
+        }
+    
+        class Inner2
+        {
+        }
+    }
+    class ClassEx2
+    {
+        class Inner1
+        {
+        }
+    
+        class Inner2
+        {
+        }
+    }
 }
 
 namespace ExampleNs2
 {
-	static func F1() => todo;
-	
-	class ClassEx1
-	{
-		a int;
-		b int;
-		class Inner1
-		{
-		}
-	
-		class Inner2
-		{
-		}
-	}
-	class ClassEx2
-	{
-		class Inner1
-		{
-		}
-	
-		class Inner2
-		{
-		}
-	}
+    static func F1() => todo
+    
+    class ClassEx1
+    {
+        a int;
+        b int;
+        class Inner1
+        {
+        }
+    
+        class Inner2
+        {
+        }
+    }
+    class ClassEx2
+    {
+        class Inner1
+        {
+        }
+    
+        class Inner2
+        {
+        }
+    }
 }

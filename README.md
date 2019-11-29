@@ -45,13 +45,11 @@ I am currently working on [ZSIL](Doc/Zsil.md) header file.
     pub static func Main(args []str)
     {
         // This is a regular private comment
-	    Console.Log("Hello World, 2+2=" + add(2,2))
+        Console.Log("Hello World, 2+2=" + add(2,2))
     }
 
     static func add(a int, b int) int
-    {
-	    return a + b
-    }
+        => return a + b
 
 
 Functions are declared with the `func` keyword. The type names come
@@ -64,9 +62,7 @@ extension methods.
 
     /// This is an extension method
     pub func MyClass::MyExtensionFunc(a str) str
-    {
-        return a + ": " + memberVariable
-    }
+        => a + ": " + memberVariable
 
 TBD: Still considering using `fn` to declare a function.
 
@@ -77,15 +73,8 @@ inserted at the end of lines based on the last non-comment token and the first t
 of the next line.
 
 The general rule is that any line beginning with an operator does not put
-a `;` on the previous line.  Additionally, `,` and `{` at the end of a line
-prevent a semicolon on that line.  The `{` rule is to support curly brace
-at end of line style.  The `,` rule is because it looks wrong to have a comma
-at the beginning of a line.
-
-Note that a `(` at the end of a line does not suppress the semicolons.  This is
-so a partially completed line such as `func a(` doesn't continue to the next line
-while typing.  **TBD:** Consider having `(` and `[` suppress semicolons when at
-the end of a line.
+a `;` on the previous line.  Additionally, `{`, `[`, `(`, or `,` at the end
+of a line prevents a semicolon on that line.  
 
 ## Local Variables
 
@@ -114,11 +103,11 @@ when created.  The optimizer may decide to delay initialization until the
 variable is actually used which could have implications if the constructor
 has side effects.  For instance:
 
-    @myList List<int>               // Note: `@myList List<int>()` is the same
+    @myList List<int>           // Note: `@myList List<int>()` is the same
     if MyFunc()
-        { myList = MyListFunc() }   // Constructor not called above
+      => myList = MyListFunc()  // Constructor not called above
     else
-        { myList.Add(1) }           // Constructor called here
+      => myList.Add(1)          // Constructor called here
 
 It is possible to create a nullable reference.
     
@@ -176,22 +165,30 @@ A class is a heap only object, same as in C#.  Field definitions are `field`
 followed by `type`, just like in Golang:
 
     pub class Example
-    {
-        
-	    F1 str                                   // Private string initialized to ""
-	    pub F2 Array<int>                        // Array of int, initialized to empty (i.e. Count = 0)
-        pub F3 Array<int>(23)                    // Array, length 23 integers (all 0)
-        pub F4 Array<int>({1,2,3})               // Array initialized with 1,2,3
-	    pub F5 List<str>({"Hello", "World"})     // Initialized list
-	    pub F6 Map<str,int>({{"A",1},{"B",2}})   // Initialized map
-        pub ro F7 str("Hello world")             // Initialized read only string
-	    pub func Func1(a int) float => F1 + " hi"   // Member function
-        pub prop Prop1 str => F1                 // Property returning F1
+    {        
+        F1 str                                      // Private string initialized to ""
+        pub F2 Array<int>                           // Array of int, initialized to empty (i.e. Count = 0)
+        pub F4 Array<int>({1,2,3})                  // Array initialized with 1,2,3
+        pub F5 List<str>({"Hello", "World"})        // Initialized list
+        pub F6 Map<str,int>({{"A",1},{"B",2}})      // Initialized map
+        pub ro F7 str("Hello world")                // Initialized read only string
+        pub func Func1(a int) float => F1 + " hi"   // Member function
+        pub prop Prop1 str => F1                    // Property returning F1
+        pub prop ChangedTime DateTime = DateTime.Now // Default value and default get/set
+            => default get private set
     }
 
-The `ro` keyword makes a field read only.  The `prop` keyword is used to
-define a property.  Extension methods are defined outside the class and may
-be placed directly in the namespace:
+The `ro` keyword makes a field read only.  A class can be marked `ro` which
+means all fields must be makred `ro` and there can be no properties with
+setters.  
+
+The `prop` keyword is used to define a property.  Properties can be given
+a default value by `=` immediately after the type name.  The compiler can
+auto implement them with `=> default` followed by `get` and optionally `set`.
+Or you can implement them the regular way `prop GetExpr { get { return expressio } }`
+
+Extension methods are defined outside the class, always static, and may be
+placed directly in the namespace of the class they are for.
 
     pub func Example::MyExtension() => Prop1 + ":" + Func1(23)
 
@@ -203,9 +200,6 @@ both for the parser and the person looking at variable declarations.
     pub @MyMemberVariable1 int
     pub new_qualifier @MyMemberVariable2 int
 
-An exception would be made for const (since that's a keyword) and enumerations
-since they are
-
 ## Structs
 
 A struct is usually a stack object or embedded in a class, and can be used where
@@ -213,12 +207,11 @@ speed and efficiency are desired:
 
     pub struct MyPointXY
     {
-	    pub X int
-	    pub Y int
+        pub X int
+        pub Y int
         pub new(x int, y int) { X = x; Y = y}
-	    pub override func ToString() => "(" + X + "," + Y + ")"
+        pub override func ToString() => "(" + X + "," + Y + ")"
     }
-
 
 The `List<MyPointXY>` indexer returns a reference (identical to `[]MyPointXY`)
 so `myMutPoints[index].X = x` will set X the same as if this were an array.
@@ -252,7 +245,7 @@ weight as an integer and need no metadata in the compiled executable.
 
 Operator precedence comes from Golang.
 
-    Primary: . () [] # {}
+    Primary: x.y f(x) a[i] #type(expr)
     Unary: + - ! & ^ ~
     Multiplication and bits: * / % << >> & 
     Add and bits: + - | ~
@@ -263,14 +256,16 @@ Operator precedence comes from Golang.
     Ternary: a ? b : c
     Lambda: ->
     Comma: ,
-    Assignment Statements: = += -= *= /= %= &= |= ~= <<= >>= 
+    Assignment Statements: = += -= *= /= %= &= |= ~= <<= >>=
+    Statement separator: => (not an operator, not lambda)
 
 The `*` operator is only for multiplication, and `->` is only for
 lambda, neither are for dereferencing pointers.  `~` is both xor 
-and unary complement.  See pointers section below for discussion.
+and unary complement.  See pointers section below for discussion.    
 
 Operator `==` does not default to object comparison, and only works when it
 is defined for the given type.  Use `===` and `!===` for object comparison. 
+
 
 #### Operator Overloading
 
@@ -301,7 +296,6 @@ an extra set of `{}` would be required:
 
     @a = Map<str, MyPointXY>({{"A",{1,2}}, {"B", {3,4}}})
 
-
 ## Casting
 
 The cast as we know it from C and C# has a couple of problems.  First, the parser
@@ -315,8 +309,8 @@ Zurfur uses `#` to cast from one type to another.  It looks like this `#type(exp
     @a = (int)(a+myFloat)       // C# (not allowed in Zurfur)
     @a = #int(a+myFloat)        // Zurfur style
 
-	((List<Stuff>)yourStuff.SeeMyStuff).Add(Stuff())    // C# (not allowed in Zurfur)
-	#List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())     // Zurfur style
+    ((List<Stuff>)yourStuff.SeeMyStuff).Add(Stuff())    // C# (not allowed in Zurfur)
+    #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())     // Zurfur style
 
 A cast is used when a type conversion should be explicit, including
 conversion from a base class to a derived class, conversion between
@@ -338,9 +332,27 @@ error if MyIntFunc() should ever return a float.
 Interfaces are a cross between C# and GoLang, but a little different from
 both.  They are mostly C# 8.0 (including default implementations, etc.)
 but they also allow *explicit* conversion from any class that defines
-all the required functions.   [I didn't realize default implementations
+all the required functions.
+
+[I didn't realize default implementations
 were so contentious.](https://jeremybytes.blogspot.com/2019/09/interfaces-in-c-8-are-bit-of-mess.html)
-Let me know how to do it better.
+Let me know how to do it better.  Also, since they can have default
+implementations, should we change the name to something different?  **trait**?
+Here is `IEquatable<T>` from the stadard library:
+
+    // TBD: Is `interface` the right keyword since there can be implementations?
+    pub interface IEquatable<T>
+    {
+        static func GetHashCode(a T) uint 
+            => youdo
+        static func Equals(a T, b T) bool 
+            => youdo
+    }
+
+Note that unimplemented functions and properties are explicitly marked with
+`youdo`.   Functions and properties must either have an implementation or
+specify `youdo`, `default`, or `extern`.  
+
 
 #### Structural Typing
 
@@ -371,13 +383,13 @@ use of the interface.  For example:
     pub class MyStuff
     {
         // Nobody should modify my stuff, but it's ok if they look at it
-	    myStuff List<Stuff>()
+        myStuff List<Stuff>()
         pub ro SeeMyStuff IRoArray<Stuff> = #protected IRoArray<Stuff>(myStuff);
     }
     pub static func MyFunc(yourStuff MyStuff)
     {
-	    // Modify your stuff.  ILLEGAL!
-	    yourStuff.SeeMyStuff#(List<Stuff>).Add(Stuff());
+        // Modify your stuff.  ILLEGAL!
+        yourStuff.SeeMyStuff#(List<Stuff>).Add(Stuff());
     }
 
 #### Static Functions
@@ -398,13 +410,13 @@ function:
 
     // Return `value` if it `low`..`high` otherwise return `low` or `high`.  
     pub static func BoundValue<T>(value T, low T, high T) T
-		    where T : IAritmetic
+            where T : IAritmetic
     {
-	    if value <= low
-		    { return low; }
-	    if value >= high
-		    { return high; }
-	    return value;
+        if value <= low
+          => return low;
+        if value >= high
+          => return high;
+        return value;
     }
 
 ## Arrays, Slicing, and the Range Operator
@@ -415,7 +427,7 @@ makes a range, but the second parameter is a count instead of end
 index.
 
     for @a in 2..32
-        { Console.Log(a) }
+        => Console.Log(a)
 
 Prints the numbers from 2 to 31.  The end of the range is exclusive,
 so `for @a in 0..myArray.Count` iterates over the entire array.
@@ -435,8 +447,8 @@ both xor and complement.
  
     pub static func strcpy(dest ^byte, source ^byte)
     {
-	    while ^source != 0
-	        { ^dest = ^source;  dest += 1;  source += 1 }
+        while ^source != 0
+            { ^dest = ^source;  dest += 1;  source += 1 }
         ^dest = 0
     }
 
@@ -446,8 +458,8 @@ In which case, strcpy would look like this:
 
     pub static func strcpy(dest *byte, source *byte)
     {
-	    while *.source != 0
-	        { *.dest = *.source;  dest += 1;  source += 1 }
+        while *.source != 0
+            { *.dest = *.source;  dest += 1;  source += 1 }
         *.dest = 0
     }
 
@@ -494,9 +506,9 @@ to start or wait for multiple tasks, use the `astart` and `await` keywords.
     afunc GetStuffFromSeveralServers() str 
     {
         // Start the functions, but do not block
-        @a = astart MySlowIoFunctionAsync("server1");
-        @b = astart MySlowIoFunctionAsync("server2");
-        @c = astart MySlowIoFunctionAsync("server3");
+        @a = astart MySlowIoFunctionAsync("server1")
+        @b = astart MySlowIoFunctionAsync("server2")
+        @c = astart MySlowIoFunctionAsync("server3")
 
         // The timeout cancels the task after 10 seconds, but we'll hand
         // the task to the user who may push a button to cancel early
@@ -508,13 +520,13 @@ to start or wait for multiple tasks, use the `astart` and `await` keywords.
         @sum = new list<str>()
         await a, b, c, timeout
         {
-            case a.HasResult: sum += a.Result;
-            case b.HasResult: sum += b.Result;
-            case c.HasResult: sum += c.Result;
-            case a.HasException: sum += "a failed" // It threw an exception but swallow it and continue
-            case b.HasException: sum += "b failed"; break;  // Cancel remaining tasks and exit immediately
-            case timeout.HasResult: break;  // 10 seconds has passed, cancel automatically
-            case timeout.HasException: break;  // The user has canceled the operation early
+            case a.HasResult: sum += a.Result
+            case b.HasResult: sum += b.Result
+            case c.HasResult: sum += c.Result
+            case a.HasException: sum += "a failed"   // It threw an exception but swallow it and continue
+            case b.HasException: sum += "b failed"   // Cancel remaining tasks and exit immediately
+            case timeout.HasResult: break            // 10 seconds has passed, cancel automatically
+            case timeout.HasException: break         // The user has canceled the operation early
             // TBD: break cancels all remaining tasks
             // TBD: If `c` throws, all remaining tasks are canceled.
         }
@@ -523,13 +535,20 @@ to start or wait for multiple tasks, use the `astart` and `await` keywords.
 
         // Not strictly necessary, but TBD good practice? 
         // TBD: Make sure Task functions can use `FinalizeNotify` to clean up
-        timeout.Cancel();  
+        timeout.Cancel()
     }
 
 A sync function cannot implicitly call an async function, but it can start it
 using the `astart` keyword, like this: `func MySyncFunction() { astart MyAsyncFunction() }`
 
 **TBD:** As you can see, much is still TBD.
+
+#### Async Implementation 
+
+Async will be implemented with an actual stack, not with heap objects. 
+This should improve GC performance since each task call won't be
+required to create a heap allocation.  Stacks themselves won't be
+GC objects.  Instead there will be a reusable list of stack arrays.
     
 ## Open Questions
 

@@ -1,6 +1,11 @@
-﻿namespace Zurfur;
+﻿///
+/// This is where we will keep working unit tests.
+/// Nothing works yet.
+///
+
+namespace Zurfur.UnitTests
 
 static func test_HelloWorld()
 {
-	Console.Log("Hello World, 2+2=" + 4);
+    Console.Log("Hello World, 2+2=" + 4);
 }

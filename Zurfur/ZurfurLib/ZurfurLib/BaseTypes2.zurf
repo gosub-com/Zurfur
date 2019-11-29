@@ -9,7 +9,7 @@ pub ref ro struct RoSpan<T>
     ro data ref T
     pub ro Count int
     pub this[index int] ro ref T => todo()
-    pub this[index Range] RoSpan<T> => todo();
+    pub this[index Range] RoSpan<T> => todo()
 }
 
 /// Span of contiguous elements in memory or an array
@@ -18,7 +18,7 @@ pub ref ro struct Span<T>
     ro data ref T
     pub ro Count int
     pub this[index int] ref T => todo()
-    pub this[index Range] Span<T> => todo();
+    pub this[index Range] Span<T> => todo()
     operator implicit(from Span<T>) RoSpan<T> => todo()
 }
 
@@ -28,7 +28,7 @@ pub ro struct RoASpan<T>
     ro data Array<T>
     pub ro Count int
     pub this[index int] T => todo()
-    pub this[index Range] RoASpan<T> => todo();
+    pub this[index Range] RoASpan<T> => todo()
     operator implicit(from RoASpan<T>) RoSpan<T> => todo()
 }
 
@@ -38,7 +38,7 @@ pub ro struct ASpan<T>
     ro data Array<T>
     pub ro Count int
     pub this[index int] ref T => todo()
-    pub this[index Range] ASpan<T> => todo();
+    pub this[index Range] ASpan<T> => todo()
     operator implicit(from ASpan<T>) RoASpan<T> => todo()
     operator implicit(from ASpan<T>) RoSpan<T> => todo()
     operator implicit(from ASpan<T>) Span<T> => todo()
@@ -46,10 +46,10 @@ pub ro struct ASpan<T>
 
 /// String is a wrapper for a read only array of bytes
 pub sealed ro class str
-	: ArrayBase<byte>, IComparable<str>, IRoArray<byte>
+    : ArrayBase<byte>, IComparable<str>, IRoArray<byte>
 {
-	default string = "";
-	
+    default string = "";
+    
     pub new() { todo() }
     pub new(s str) { todo() }
     pub new(s RoSpan<byte>) { todo() }
@@ -68,7 +68,7 @@ pub sealed ro class str
 
 // Array of constant size
 pub sealed class Array<T> 
-	: ArrayBase<T>, IArray<T>
+    : ArrayBase<T>, IArray<T>
 {
     const MaxSize int = int.MaxInt/2
     pub static ro Empty Array<T>()
@@ -82,13 +82,13 @@ pub sealed class Array<T>
 
 // Note that the List class has a ref return indexer, just like Array
 pub class List<T> 
-	: IList<T>
+    : IList<T>
 {
-	new() => todo()
+    new() => todo()
     new(capacity int) => todo()
     new(items ICollection<T>) => todo()
     
-    pub this[index int] T { get => todo(); set => todo() }
+    pub this[index int] T { get => todo() set => todo() }
     pub this[index Range] IArray<T> => todo()
 
     pub prop Count int => todo()
@@ -102,33 +102,33 @@ pub class List<T>
 }
 
 pub class Map<TKey, TValue> 
-	: IMap<TKey, TValue>
+    : IMap<TKey, TValue>
 {
-	compareFunc func(a TKey, b TKey) bool;
-	hashFunc func(a TKey) bool;
-	
+    compareFunc func(a TKey, b TKey) bool;
+    hashFunc func(a TKey) bool;
+    
 
     new() where TKey : IEquatable<TKey>
     {
-    	compareFunc = (a, b) -> TKey.Compare(a, b);
-    	hashFunc = (a) -> TKey.GetHashCode(a);		
+        compareFunc = (a, b) -> TKey.Compare(a, b);
+        hashFunc = (a) -> TKey.GetHashCode(a);		
     }
     new(compare func(a TKey, b TKey) bool, 
-    	getHashCode func(a TKey) uint)
+        getHashCode func(a TKey) uint)
     {
-    	compareFunc = compare;
-    	hashFunc = getHashCode;
+        compareFunc = compare;
+        hashFunc = getHashCode;
     }
     new(capacity int) where TKey : IEquatable
-    	=> todo()
+        => todo()
     new(keyValues ICollection<KeyValuePair<TKey, TValue>>) => todo()
     
     pub this[key TKey] TValue { get => todo() set => todo() }
-	pub operator in(a TKey) bool => todo()
+    pub operator in(a TKey) bool => todo()
 
     pub prop Count int => todo()
     pub func Clear() => todo()
-    pub func Contains(key TKey) bool => todo();    
+    pub func Contains(key TKey) bool => todo()
     pub func Get(key TKey, defaultValue TValue) TValue => todo()
     pub func TryGet(key TKey, value out TValue) bool => todo()
     pub func Add(item KeyValue<TKey, TValue>) => todo()    
