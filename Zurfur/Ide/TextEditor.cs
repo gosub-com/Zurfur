@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
 using System.IO;
-using Gosub.Zurfur.Compiler;
+using Gosub.Zurfur.Lex;
 
 namespace Gosub.Zurfur
 {
@@ -120,7 +120,7 @@ namespace Gosub.Zurfur
 
         public TextEditor()
         {
-            mLexer = new Lexer();
+            mLexer = new LexText();
             InitializeComponent();
         }
 

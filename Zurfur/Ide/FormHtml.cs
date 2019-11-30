@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
-using Gosub.Zurfur.Compiler;
+using Gosub.Zurfur.Lex;
 
 namespace Gosub.Zurfur
 {

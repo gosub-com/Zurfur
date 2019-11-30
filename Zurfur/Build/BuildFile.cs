@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Gosub.Zurfur.Compiler
+using Gosub.Zurfur.Lex;
+using Gosub.Zurfur.Compiler;
+
+namespace Gosub.Zurfur.Build
 {
     /// <summary>
     /// These are owned by BuildPackage, used for communication with the IDE
@@ -13,7 +13,7 @@ namespace Gosub.Zurfur.Compiler
     {
         public readonly string FileName = "";
         BuildPackage mPackage;
-        Lexer mLexer = new Lexer();
+        Lexer mLexer = new LexZurf();
 
         public BuildFile(string fileName, BuildPackage package)
         {

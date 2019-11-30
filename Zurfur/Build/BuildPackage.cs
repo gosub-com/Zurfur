@@ -4,7 +4,11 @@ using System.IO;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
-namespace Gosub.Zurfur.Compiler
+using Gosub.Zurfur.Lex;
+using Gosub.Zurfur.Compiler;
+
+
+namespace Gosub.Zurfur.Build
 {
     /// <summary>
     /// The builder will eventually load the files from the filesystem
@@ -185,7 +189,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 // Parse text
                 var t1 = DateTime.Now;
-                var parser = new ZurfParse(buildFile.Lexer);
+                var parser = new ParseZurf(buildFile.Lexer);
                 var program = parser.Parse();
 
                 // Generate Sil
@@ -210,7 +214,7 @@ namespace Gosub.Zurfur.Compiler
             }
             else if (ext == ".json")
             {
-                var parser = new JsonParse(buildFile.Lexer);
+                var parser = new ParseJson(buildFile.Lexer);
                 parser.Parse();
             }
         }

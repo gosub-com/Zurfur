@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using Gosub.Zurfur.Lex;
+
 namespace Gosub.Zurfur.Compiler
 {
     /// <summary>
     /// Check the parse tree for various errors and warnings.
     /// NOTE: Many of these errors will be moved to analysis phase
     /// </summary>
-    class ZurfParseCheck
+    class ParseZurfCheck
     {
         // Debug the parse tree
         bool mShowParseTree = false;
@@ -45,9 +47,9 @@ namespace Gosub.Zurfur.Compiler
             { "mut", 11 }, { "ro", 11}, {"readonly", 11}
         };
 
-        ZurfParse mParser;
+        ParseZurf mParser;
 
-        public ZurfParseCheck(ZurfParse parser)
+        public ParseZurfCheck(ParseZurf parser)
         {
             mParser = parser;
         }
@@ -374,11 +376,11 @@ namespace Gosub.Zurfur.Compiler
             if (expr == null)
                 return;
             if (isType && (expr.Token.Type == eTokenType.Identifier
-                            || expr.Token == ZurfParse.PTR) )
+                            || expr.Token == ParseZurf.PTR) )
                 expr.Token.Type = eTokenType.TypeName;
 
             // New variable
-            if (expr.Token == ZurfParse.NEWVAR)
+            if (expr.Token == ParseZurf.NEWVAR)
             {
                 if (expr.Count >= 1)
                     ShowTypes(expr[1], true);
@@ -396,7 +398,7 @@ namespace Gosub.Zurfur.Compiler
                     ShowTypes(expr[1], false);
             }
 
-            if (expr.Token == ZurfParse.VIRTUAL_TOKEN_TYPE_ARG_LIST)
+            if (expr.Token == ParseZurf.VIRTUAL_TOKEN_TYPE_ARG_LIST)
                 isType = true;
             foreach (var e in expr)
                 ShowTypes(e, isType);

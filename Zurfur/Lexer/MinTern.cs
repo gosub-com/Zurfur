@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Gosub.Zurfur.Compiler
+namespace Gosub.Zurfur.Lex
 {
     /// <summary>
     /// Minimalist string intern system.  Note that string.Intern holds

@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
+using Gosub.Zurfur.Lex;
+
 namespace Gosub.Zurfur.Compiler
 {
     /// <summary>
     /// Base class for the parser
     /// </summary>
-    class ZurfParse
+    class ParseZurf
     {
         // These tokens are ambiguous, so get replaced while parsing
         public const string VIRTUAL_TOKEN_TYPE_ARG_LIST = "<>";
@@ -20,7 +22,7 @@ namespace Gosub.Zurfur.Compiler
         public const string NEWVAR = "@";
         public const string SSEP = "=>";  // Statement separator
 
-        ZurfParseCheck mZurfParseCheck;
+        ParseZurfCheck mZurfParseCheck;
 
         bool				mParseError;	// Flag is set whenever a parse error occurs
         Lexer				mLexer;			// Lexer to be paresed
@@ -104,7 +106,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sRejectUntilColon = new WordSet(":");
         static WordSet sRejectUntilEq = new WordSet("=");
 
-        static ZurfParse()
+        static ParseZurf()
         {
             sReservedWords.AddWords(sReservedWordsList, eTokenType.Reserved);
             sReservedWords.AddWords(sReservedControlWords, eTokenType.ReservedControl);
@@ -113,9 +115,9 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Parse the given lexer
         /// </summary>
-        public ZurfParse(Lexer tokens)
+        public ParseZurf(Lexer tokens)
         {
-            mZurfParseCheck = new ZurfParseCheck(this);
+            mZurfParseCheck = new ParseZurfCheck(this);
             mLexer = tokens;
             mLexerEnum = new Lexer.Enumerator(mLexer);
             Accept();

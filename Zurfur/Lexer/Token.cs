@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Gosub.Zurfur.Compiler
+namespace Gosub.Zurfur.Lex
 {
     /// <summary>
     /// Basic types recognized by the lexer

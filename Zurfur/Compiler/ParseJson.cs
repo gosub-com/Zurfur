@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using Gosub.Zurfur.Lex;
+
 namespace Gosub.Zurfur.Compiler
 {
-    class JsonParse
+    class ParseJson
     {
         const bool SHOW_PARSE_TREE = true;
 
@@ -23,7 +25,7 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Parse the given lexer
         /// </summary>
-        public JsonParse(Lexer tokens)
+        public ParseJson(Lexer tokens)
         {
             mLexer = tokens;
             mLexerEnum = new Lexer.Enumerator(mLexer);

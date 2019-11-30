@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 
+using Gosub.Zurfur.Lex;
+
 namespace Gosub.Zurfur.Compiler
 {
     /// <summary>

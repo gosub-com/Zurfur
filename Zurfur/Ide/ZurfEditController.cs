@@ -2,7 +2,10 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
+
+using Gosub.Zurfur.Lex;
 using Gosub.Zurfur.Compiler;
+using Gosub.Zurfur.Build;
 
 namespace Gosub.Zurfur.Ide
 {

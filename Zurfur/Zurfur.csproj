@@ -51,13 +51,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Compiler\BuildFile.cs" />
-    <Compile Include="Compiler\BuildPackage.cs" />
+    <Compile Include="Build\BuildFile.cs" />
+    <Compile Include="Build\BuildPackage.cs" />
+    <Compile Include="Compiler\LexZurf.cs" />
     <Compile Include="Compiler\SilGenHeader.cs" />
     <Compile Include="Compiler\SilGenJson.cs" />
     <Compile Include="Compiler\SilJson.cs" />
     <Compile Include="Compiler\Symbols.cs" />
-    <Compile Include="Compiler\ZurfParseCheck.cs" />
+    <Compile Include="Compiler\ParseZurfCheck.cs" />
     <Compile Include="Ide\IEditor.cs" />
     <Compile Include="Ide\ImageEditor.cs">
       <SubType>UserControl</SubType>
@@ -107,8 +108,9 @@
     <Compile Include="Ide\VerticalMarks.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Compiler\MinTern.cs" />
-    <Compile Include="Compiler\JsonParse.cs" />
+    <Compile Include="Lexer\LexText.cs" />
+    <Compile Include="Lexer\MinTern.cs" />
+    <Compile Include="Compiler\ParseJson.cs" />
     <Compile Include="Compiler\SyntaxExpr.cs" />
     <Compile Include="Ide\TextEditor.cs">
       <SubType>UserControl</SubType>
@@ -122,10 +124,10 @@
     <Compile Include="Ide\FormMain.Designer.cs">
       <DependentUpon>FormMain.cs</DependentUpon>
     </Compile>
-    <Compile Include="Compiler\ZurfParse.cs" />
+    <Compile Include="Compiler\ParseZurf.cs" />
     <Compile Include="Compiler\Syntax.cs" />
-    <Compile Include="Compiler\WordMap.cs" />
-    <Compile Include="Compiler\WordSet.cs" />
+    <Compile Include="Lexer\WordMap.cs" />
+    <Compile Include="Lexer\WordSet.cs" />
     <Compile Include="Ide\ZurfEditController.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Ide\ZurfProjectData.cs" />
@@ -179,8 +181,8 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <Compile Include="Compiler\Token.cs" />
-    <Compile Include="Compiler\Lexer.cs" />
+    <Compile Include="Lexer\Token.cs" />
+    <Compile Include="Lexer\Lexer.cs" />
     <Compile Include="App.cs" />
     <None Include="ZurfurLib\ZurfurLib\BaseTypes2.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

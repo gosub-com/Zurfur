@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using Gosub.Zurfur.Lex;
+
 namespace Gosub.Zurfur.Compiler
 {
 

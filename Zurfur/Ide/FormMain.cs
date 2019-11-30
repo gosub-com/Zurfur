@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using System.IO;
+
 using Gosub.Zurfur.Compiler;
-using Gosub.Zurfur.Ide; // TBD: Change all namespaces in IDE directory
+using Gosub.Zurfur.Ide;
+using Gosub.Zurfur.Lex;
+using Gosub.Zurfur.Build;
 
 namespace Gosub.Zurfur
 {
@@ -207,15 +210,25 @@ namespace Gosub.Zurfur
             {
                 // TBD: Move lexer/parser setup to it's own class
                 var newEditor = new TextEditor();
-                newEditor.Lexer.SetSpecialSymbols(ZurfParse.MULTI_CHAR_TOKENS);
-                newEditor.Lexer.TokenizeComments = true;
+                var zurfLex = new LexZurf();
+                zurfLex.SetSpecialSymbols(ParseZurf.MULTI_CHAR_TOKENS);
+                zurfLex.TokenizeComments = true;
+                newEditor.Lexer = zurfLex;
+                newEditor.LoadFile(path);
+                mvEditors.AddEditor(newEditor);
+            }
+            else if (ext == ".json")
+            {
+                var newEditor = new TextEditor();
+                var zurfLex = new LexZurf();
+                zurfLex.TokenizeComments = true;
+                newEditor.Lexer = zurfLex;
                 newEditor.LoadFile(path);
                 mvEditors.AddEditor(newEditor);
             }
             else if (sTextEditorExtensions.Contains(ext))
             {
                 var newEditor = new TextEditor();
-                newEditor.Lexer.TokenizeComments = ext == ".json";
                 newEditor.LoadFile(path);
                 mvEditors.AddEditor(newEditor);
             }

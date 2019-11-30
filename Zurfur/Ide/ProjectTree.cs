@@ -6,12 +6,14 @@ using System.Drawing.Imaging;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
-using Gosub.Zurfur.Compiler;
+using Gosub.Zurfur.Lex;
 
 namespace Gosub.Zurfur
 {
     public partial class ProjectTree : UserControl
     {
+        static readonly WordSet sImageExtensions = new WordSet(".jpg .jpeg .bmp .png");
+
         string mRootDir = "";
         DirInfo mDirInfo = new DirInfo();
         Dictionary<string, FileExtra> mFileExtra = new Dictionary<string, FileExtra>();
@@ -247,7 +249,6 @@ namespace Gosub.Zurfur
 
         }
 
-        static readonly WordSet sImageExtensions = new WordSet(".jpg .jpeg .bmp .png");
         private async void treeView_NodeMouseHover(object sender, TreeNodeMouseHoverEventArgs e)
         {
             if (e.Node == null || !mFileExtra.TryGetValue(e.Node.Name.ToLower(), out var extra))
