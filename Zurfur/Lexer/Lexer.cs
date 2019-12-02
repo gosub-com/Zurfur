@@ -20,11 +20,35 @@ namespace Gosub.Zurfur.Lex
         protected abstract Token[] ScanLine(string line, int lineIndex);
 
         /// <summary>
+        /// This must be overridden by the inheriting class to create the same
+        /// type of lexer and clone anything that is mutable.
+        /// </summary>
+        protected abstract Lexer CloneInternal();
+
+        /// <summary>
         /// Create an empty lexer
         /// </summary>
         public Lexer()
         {
             ScanLines(new string[] { "" });
+        }
+
+        /// <summary>
+        /// Clone the lexer, but not the tokens are shared.  Since the
+        /// mutable parts are cloned, the copies should be thread safe.
+        /// </summary>
+        public Lexer Clone()
+        {
+            var lex = CloneInternal();
+            lex.mLines = new List<string>(mLines);
+            lex.mTokens = new List<Token[]>(mTokens);
+            return lex;
+        }
+
+
+        public static bool IsAsciiDigit(char ch)
+        {
+            return ch >= '0' && ch <= '9';
         }
 
 

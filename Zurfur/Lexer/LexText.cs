@@ -14,6 +14,11 @@ namespace Gosub.Zurfur.Lex
         List<Token> mTokenBuffer = new List<Token>();  // Be kind to the GC
         public MinTern Mintern { get; set; }
 
+        protected override Lexer CloneInternal()
+        {
+            return new LexText();
+        }
+
         /// <summary>
         /// Scan a line
         /// </summary>

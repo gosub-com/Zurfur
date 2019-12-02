@@ -15,7 +15,7 @@ spelled **_ZurFUR_** because our cat has fur.
 ![](Doc/IDE.png)
 
 Zurfur is similar to C#, but borrows syntax and design concepts from
-Golang.  Here are some differences between Zurfur and C#:
+Golang and Javascript.  Here are some differences between Zurfur and C#:
 
 * Strings are UTF8 byte arrays initialized
 * Reference types are initialized without `new` keyword and are non-nullable by default
@@ -38,35 +38,32 @@ I am currently working on [ZSIL](Doc/Zsil.md) header file.
 
 ## Functions
 
-    /// This is a public documentation comment, which should not be marked
-    /// up with XML.  Use '`' to refer to symbols in the source.  For example,
-    /// call `Main` to run this example.  Parameters should have a ':' after them.
-    /// `args`: A list of arguments.
+    /// This is a public documentation comment.  Use `variable` to
+    /// refere to variables in the code.  Do not use XML.
     pub static func Main(args []str)
     {
         // This is a regular private comment
         Console.Log("Hello World, 2+2=" + add(2,2))
     }
 
+    // Regular static function
     static func add(a int, b int) int
         => return a + b
+
+    // Extension method for MyClass
+    pub func MyClass::MyExtensionFunc(a str) str
+        => a + ": " + memberVariable
 
 
 Functions are declared with the `func` keyword. The type names come
 after each argument, and the return type comes after the parameters.
 Functions, classes, structs, enums, variables and constants are
-private unless they have the 'pub' qualifier.
+private unless they have the 'pub' qualifier.  Functions are allowed
+at the namespace level, but must be static or extension methods.
 
-Functions are allowed at the namespace level, but must be static or
-extension methods.
+TBD: Still considering using `fun` to declare a function.
 
-    /// This is an extension method
-    pub func MyClass::MyExtensionFunc(a str) str
-        => a + ": " + memberVariable
-
-TBD: Still considering using `fn` to declare a function.
-
-## Semicolons
+## Semicolons and Statements
 
 Like Golang, semicolons are required between statements but they are automatically
 inserted at the end of lines based on the last non-comment token and the first token
@@ -76,27 +73,46 @@ The general rule is that any line beginning with an operator does not put
 a `;` on the previous line.  Additionally, `{`, `[`, `(`, or `,` at the end
 of a line prevents a semicolon on that line.  
 
+All statement blocks require either curly braces (e.g. `if expr { statements }`)
+or can use the statement separator `=>` (e.g. `if expr => statement`) 
+provided that the statement itself is not a compound statement.
+    
+    // Ok
+    if a
+      => DoThis()
+
+    // Not OK, curly braces required after `if a`
+    if a
+      => if b
+        => DoThis()
+
 ## Local Variables
 
 Within a function, variables are declared and initialized with the `@` symbol,
 which is similar to `var` in C#.
 
-    // Local variables declared in a function
-    @myString = "Hello World"
-    @myInt = 3
-    @myList = List<int>({1,2,3})
-    @myMap = Map<str,int>({{"A",1},{"B",2}})
-    @myOtherMap = MyMapReturningFunction()
+    @a = 3                              // `a` is an int
+    @b = "Hello World"                  // `b` is a str
+    @c = MyFunction()                   // `c` is whatever type is returned by MyFunction
+    @d = List<int>({1,2,3})             // `d` is a list of integers, intialized with {1,2,3}
+    @e = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
+
+Creating arrays and maps of common types can be abbreviated:
+
+    @a = {1,2,3}                    // `a` is Array<int>
+    @b = {"Hello", "World"}         // `b` is Array<str>
+    @c = {1:4, 2:5, 3:6}            // `c` is Map<int,int>
+    @d = {"Hello":1,"Wold":2}       // `d` is Map<str,int>
    
-This form `@variable = expression` creates a variable with the same type as
+The above form `@variable = expression` creates a variable with the same type as
 the expression.  A second form `@variable type [=expression]` creates an explicitly
 typed variable with optional assignment from an expression.  If the expression
 cannot be converted, an error is generated
 
-    @myStr str = MyStrFunc()    // Error if MyStrFunc returns an int
-    @myInt int = MyIntFunc()    // Error if MyIntFunc returns a float
-    @a str                      // `a` is a string, initialized to ""
-    @b List<int>                // `b` is a List<int>, initialized to empty
+    @a int = MyIntFunc()            // Error if MyIntFunc returns a float
+    @b str                          // `b` is a string, initialized to ""
+    @c List<int> = {1,2,3}          // `c` is a List<int>, initialized with {1,2,3}
+    @d Map<str,int> = {"A":1,"B":2} // `d` is an initialzied Map<str,int>
 
 References are non-nullable (i.e. may never be `null`) and are initialized
 when created.  The optimizer may decide to delay initialization until the
@@ -124,32 +140,12 @@ a shorter way to cast this case, maybe #?(expression)
     float32, float64, xint, xuint, decimal, str, Array, List, Map
 
 `byte`, `int`, and `uint` are aliases for `uint8`, `int32`, and `uint32`.
-`str` is an immutable array of UTF8 encoded bytes.  `xint` and `xuint` are
-extended integer types, which could be 32 or 64 bits depending on run-time
-architecture.
-
-`Array` is your standard C# fixed sized array.  The constructor takes `Count`
-which can never be changed after that. 
-
-    @a Array<int>               // `a` is an array of length zero
-    @b Array<int>(32)           // `b` is an array of length 32
-    @c Array<Array<int>>(10)    // `c` is an array of arrays
-
-`List` is your standard C# variable sized array with a `Count` and `Capacity`
-that changes as items are added or removed.  In Zurfur, lists act more like
-arrays than they do in C# because setters are automatically used to modify
-fields when necessary:
-
-    struct MyPoint { pub X int;  pub Y int}
-    @a = List<MyPoint>({{1,2},{3,4},{5,6}})
-    a[1].Y = 12;    // Now `a` contains {{1,2},{3,12},{5,6}}
-
-
-TBD: Lower case `array`, `list`, and `map`?  `span`, `roSpan`?
+`xint` and `xuint` are extended integer types, which could be 32 or 64 bits
+depending on run-time architecture.
 
 #### Strings
 
-Strings are immutable utf8 byte arrays.  They can be translated by using the
+Strings are immutable UTF8 byte arrays.  They can be translated by using the
 `tr"string"` syntax.  Translated strings are grouped separately, and then
 looked up dynamically at run time.  The `Arg()` function can be used
 to replace occurrences of `%number`.  There is no fromatting beyond
@@ -158,6 +154,94 @@ might generate `Hello Jeremy.  You like ice cream.`
 
 **TBD:** This will be sufficient for first release, but later we want
 syntax for interpolated and pluralized strings.  Perhaps `tr(number)"String"`
+
+#### Array
+
+`Array` is your standard C# fixed sized array.  The constructor takes `Count`
+which can never be changed after that. 
+
+    @a Array<int>               // `a` is an array of length zero
+    @b Array<int>(32)           // `b` is an array of length 32
+    @c Array<Array<int>>(10)    // `c` is an array of arrays
+
+#### List
+
+`List` is a variable sized array with a `Count` and `Capacity`
+that changes as items are added or removed.  In Zurfur, lists act more like
+arrays than they do in C# because setters are automatically used to modify
+fields when necessary:
+
+    struct MyPoint { pub X int;  pub Y int}
+    @a = List<MyPoint>({{1,2},{3,4},{5,6}})
+    a[1].Y = 12    // Now `a` contains {{1,2},{3,12},{5,6}}
+
+#### Map
+
+`Map` is a hash table and is similar to `Dictionary` in C#.
+
+    @a = {"Hello":1, "World":2}     // Map<str, int>
+    @b = a["World"]                 // `b` is 2
+    @c = a["not found"]             // throws excepton
+    @d = a.Get("not found", -1)     // `d` is -1
+
+TBD: Lower case `array`, `list`, and `map`?  `span`, `roSpan`?
+
+## Operator Precedence
+
+Operator precedence comes from Golang.
+
+    Primary: x.y f(x) a[i] #type(expr)
+    Unary: + - ! & ^ ~
+    Multiplication and bits: * / % << >> & 
+    Add and bits: + - | ~
+    Range: .. ::
+    Comparison: == != < <= > >= === !== in
+    Conditional: &&
+    Conditional: ||
+    Ternary: a ? b : c
+    Lambda: ->
+    Comma: ,
+    Assignment Statements: = += -= *= /= %= &= |= ~= <<= >>=
+    Statement separator: => (not an operator, not lambda)
+
+The `*` operator is only for multiplication, and `->` is only for
+lambda, neither are for dereferencing pointers.  `~` is both xor 
+and unary complement.  See pointers section below for discussion.    
+
+Operator `==` does not default to object comparison, and only works when it
+is defined for the given type.  Use `===` and `!===` for object comparison. 
+
+#### Operator Overloading
+
+`+`, `-`, `*`, `/`, `%`, and `in` are the only operators that may be individually
+overloaded.  The `==` and `!=` operator may be overloaded together by implementing
+`static func Equals(a myType, b myType) bool`.  All six comparison operators,
+`==`, `!=`, `<`, `<=`, `==`, `!=`, `>=`, and `>` can be implemented with just one function:
+`static func Compare(a myType, b myType) int`.  If both functions are overloaded,
+`Equals` is used for equality comparisons, and `Compare` is used for the others.
+
+Overloads using the `operator` keyword are static.  Only static
+versions of `Equals` and `Compare` are used for the comparison operators.
+Zurfur inherits this from C#, and Eric Lippert
+[gives a great explanation of why](https://blogs.msdn.microsoft.com/ericlippert/2007/05/14/why-are-overloaded-operators-always-static-in-c).
+
+#### Initializers
+
+An initializer is a list or map enclosed within `{}` and may be used any place
+a function parameter takes either an `ICollection` or an object with a matching
+constructor.  The `ICollection` is always chosen over a constructor if both exist. 
+
+    @a = Map<str,int>({{"A",1}, {"B", 2}})  // Use ICollection and KeyValuePair constructor
+    @b = Map<str,int>({"A":1, "B":2})       // Use Map syntax (note the `:`)
+    @c = {"A":1, "B":2}                     // Use abbreviated form for common types
+
+The first expression is accepted because the `Map` constructor takes an
+`ICollection<KeyValuePair<str,int>>` parameter. The constructor `KeyValuePair`
+takes `str` and `int` parameters, so everything matches up and is accepted.  We can
+initialize a map of points like this, provided `MyPointXY` has a constructor that
+takes two integers:
+
+    @a = Map<str, MyPointXY>({{"A",{1,2}}, {"B", {3,4}}})
 
 ## Classes
 
@@ -240,61 +324,6 @@ The default `ToString` function shows the value as an integer rather
 than the name of the field, but it is possible to override and make it
 display anything you want.  This allows enumerations to be just as light
 weight as an integer and need no metadata in the compiled executable.
-
-## Operator Precedence
-
-Operator precedence comes from Golang.
-
-    Primary: x.y f(x) a[i] #type(expr)
-    Unary: + - ! & ^ ~
-    Multiplication and bits: * / % << >> & 
-    Add and bits: + - | ~
-    Range: .. ::
-    Comparison: == != < <= > >= === !== in
-    Conditional: &&
-    Conditional: ||
-    Ternary: a ? b : c
-    Lambda: ->
-    Comma: ,
-    Assignment Statements: = += -= *= /= %= &= |= ~= <<= >>=
-    Statement separator: => (not an operator, not lambda)
-
-The `*` operator is only for multiplication, and `->` is only for
-lambda, neither are for dereferencing pointers.  `~` is both xor 
-and unary complement.  See pointers section below for discussion.    
-
-Operator `==` does not default to object comparison, and only works when it
-is defined for the given type.  Use `===` and `!===` for object comparison. 
-
-
-#### Operator Overloading
-
-`+`, `-`, `*`, `/`, `%`, and `in` are the only operators that may be individually
-overloaded.  The `==` and `!=` operator may be overloaded together by implementing
-`static func Equals(a myType, b myType) bool`.  All six comparison operators,
-`==`, `!=`, `<`, `<=`, `==`, `!=`, `>=`, and `>` by implementing just one function:
-`static func Compare(a myType, b myType) int`.  If both functions are overloaded,
-`Equals` is used for equality comparisons, and `Compare` is used for the others.
-
-Overloads using the `operator` keyword are static.  Only static
-versions of `Equals` and `Compare` are used for the comparison operators.
-Zurfur inherits this from C#, and Eric Lippert
-[gives a great explanation of why](https://blogs.msdn.microsoft.com/ericlippert/2007/05/14/why-are-overloaded-operators-always-static-in-c).
-
-#### Initializers
-
-An initializer is a parameter enclosed within `{}` and may be used any place
-a function parameter takes either an `ICollection` or an object with a matching
-constructor.  The `ICollection` is always chosen over a constructor if both exist. 
-
-    @a = Map<str, int>({{"A",1}, {"B", 2}})
-
-The `Map` constructor takes an `ICollection<KeyValuePair<str,int>>` parameter.
-The constructor of the key value pair will take `str` and `int` parameters, so
-everything matches up and is accepted.  If the `int` were replaced with `MyPointXY`,
-an extra set of `{}` would be required:
-
-    @a = Map<str, MyPointXY>({{"A",{1,2}}, {"B", {3,4}}})
 
 ## Casting
 

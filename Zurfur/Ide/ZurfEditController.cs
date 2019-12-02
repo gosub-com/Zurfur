@@ -32,9 +32,9 @@ namespace Gosub.Zurfur.Ide
         /// For the time being, the editor is in charge of sending files to the build.
         /// This will be changed so there is a looser assocition.
         /// </summary>
-        BuildPackage mBuildPackage;
+        BuildManager mBuildPackage;
 
-        public ZurfEditController(BuildPackage buildPackage)
+        public ZurfEditController(BuildManager buildPackage)
         {
             mBuildPackage = buildPackage;
             mHoverMessageForm = new FormHoverMessage();
@@ -46,7 +46,6 @@ namespace Gosub.Zurfur.Ide
                 return;
 
             mEditors[editor.FilePath] = editor;
-            var buildFile = mBuildPackage.AddFile(editor.FilePath, editor.Lexer);
 
             if (mEditors.Count == 1)
                 MonitorBuildPackage();
@@ -56,7 +55,6 @@ namespace Gosub.Zurfur.Ide
             editor.MouseClick += editor_MouseClick;
             editor.MouseDown += editor_MouseDown;
 
-            buildFile.Interactive = true;
             SendRecompileMessage(editor);
         }
 
@@ -68,7 +66,7 @@ namespace Gosub.Zurfur.Ide
             editor.MouseDown -= editor_MouseDown;
 
             mEditors.Remove(editor.FilePath);
-            mBuildPackage.RemoveFile(editor.FilePath);
+            mBuildPackage.CloseFile(editor.FilePath);
 
             // So the awaiter exits if this is the last editor
             mBuildPackage.ForceNotifyBuildChanged();
@@ -98,7 +96,7 @@ namespace Gosub.Zurfur.Ide
             {
                 var buildFile = mBuildPackage.GetFile(editor.FilePath);
                 if (buildFile != null)
-                    buildFile.FileModified();
+                    buildFile.Lexer = editor.Lexer;
             }
         }
 

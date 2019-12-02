@@ -286,14 +286,35 @@ namespace Gosub.Zurfur.Compiler
                         CheckFuncBody(expr, e);
                     break;
 
-                case "()": // Lambda parameters
-                    if (parent == null || parent.Token != "->")
+                case ")": // Lambda parameters
+                    if (expr.Count != 1 && (parent == null || parent.Token != "->"))
                     {
                         mParser.RejectToken(expr.Token, expr.Count == 0
                             ? "Empty expression not allowed unless followed by lambda '=>' token"
                             : "Multi-parameter expression not allowed unless followed by lambda '=>' token");
                         foreach (var e in expr)
                             Grayout(e);
+                    }
+                    break;
+
+                case ParseZurf.VIRTUAL_TOKEN_INITIALIZER:
+                    foreach (var e in expr)
+                    {
+                        CheckFuncBody(expr, e);
+                        if (e.Token == ":" && e.Count > 0 && e[0].Token == ParseZurf.VIRTUAL_TOKEN_INITIALIZER)
+                            mParser.RejectToken(e.Token, "Not expecting ':' after object initializer");
+                    }
+
+                    bool isObject1 = expr.Count != 0 && expr[0].Token == ":";
+                    foreach (var e in expr)
+                    {
+                        bool isObject2 = e.Token == ":";
+                        if (isObject1 != isObject2)
+                        {
+                            var errorToken = isObject1 ? expr[0].Token : e.Token;
+                            mParser.RejectToken(errorToken, "Expecting all initializer expressions to have a ':' or none of them to have a ':'");
+                            break;
+                        }
                     }
                     break;
 

@@ -53,6 +53,7 @@
   <ItemGroup>
     <Compile Include="Build\BuildFile.cs" />
     <Compile Include="Build\BuildPackage.cs" />
+    <Compile Include="Build\BuildManager.cs" />
     <Compile Include="Compiler\LexZurf.cs" />
     <Compile Include="Compiler\SilGenHeader.cs" />
     <Compile Include="Compiler\SilGenJson.cs" />

@@ -132,7 +132,7 @@ pub class Example2  // YES, errors working
         @myString = "Hello World"
         @myInt = 3
         @myList = List<int>({1,2,3})
-        @myMap = Map<str,int>({{"A",1},{"B",2}})
+        @myMap = Map<str,int>({"A":1,"B":2})
         @myOtherMap = MyMapReturningFunction()
        
         @myStr str = MyStrFunc()    // Error if MyStrFunc returns an int

@@ -17,13 +17,21 @@ namespace Gosub.Zurfur.Compiler
         Dictionary<long, bool> mSpecialSymbols = new Dictionary<long, bool>();
         bool mSpecialSymbolsHas3Chars;
 
-        public MinTern Mintern { get; set; } = new MinTern();
+        public MinTern Mintern { get; set; }
 
 
         /// <summary>
         /// Set to true to process `//` style comments
         /// </summary>
         public bool TokenizeComments { get; set; }
+
+        protected override Lexer CloneInternal()
+        {
+            var lex = new LexZurf();
+            lex.mSpecialSymbols = new Dictionary<long, bool>(mSpecialSymbols);
+            lex.mSpecialSymbolsHas3Chars = mSpecialSymbolsHas3Chars;
+            return lex;
+        }
 
 
         /// <summary>
@@ -55,6 +63,8 @@ namespace Gosub.Zurfur.Compiler
         protected override Token[] ScanLine(string line, int lineIndex)
         {
             int charIndex = 0;
+            if (Mintern == null)
+                Mintern = new MinTern();
 
             // Build an array of tokens for this line
             while (charIndex < line.Length)
@@ -189,11 +199,6 @@ namespace Gosub.Zurfur.Compiler
             string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
             charIndex = endIndex;
             return new Token(token, startIndex, 0, eTokenType.Quote);
-        }
-
-        protected static bool IsAsciiDigit(char ch)
-        {
-            return ch >= '0' && ch <= '9';
         }
 
         private Token ScanNumber(string line, ref int charIndex, int startIndex)

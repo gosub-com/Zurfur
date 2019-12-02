@@ -12,10 +12,11 @@ namespace Gosub.Zurfur.Build
     class BuildFile
     {
         public readonly string FileName = "";
-        BuildPackage mPackage;
+        BuildManager mPackage;
         Lexer mLexer = new LexZurf();
+        public DateTime LastWriteTimeUtc;
 
-        public BuildFile(string fileName, BuildPackage package)
+        public BuildFile(string fileName, BuildManager package)
         {
             FileName = fileName;
             mPackage = package;
@@ -27,19 +28,23 @@ namespace Gosub.Zurfur.Build
         public int FileBuildVersion;
 
         /// <summary>
-        /// An editor may set the lexer, in which case, that lexer
-        /// will override the one loaded from the file system.  
-        /// NOTE: The editor should call this once to set the
-        /// new lexer, but should call `FileChanged` each time the
-        /// text changes
+        /// Get or set a clone of the build manager lexer.  The first time a
+        /// lexer is needed, it must come through the build manager from here.
+        /// When the text changes, this property can be set to override the
+        /// text in the build manager (and also on disk).   Getting and
+        /// setting create a clone of the lexer (but share tokens)so it can be
+        /// re-parsed in a background thread
         /// </summary>
         public Lexer Lexer
         {
-            get { return mLexer; }
+            // The build manager never mutates the lexer, so assuming this
+            // is called from the UI thread, it should be thread safe
+            get { return mLexer.Clone(); }
+
             set
             {
-                mLexer = value;
-                FileModified();
+                mLexer = value.Clone();
+                mPackage.FileModifiedInternal(this);
             }
         }
 
@@ -57,16 +62,6 @@ namespace Gosub.Zurfur.Build
         {
             ExtraTokens = tokens;
         }
-
-        /// <summary>
-        /// This should be called each time the `Lexer` text or file is
-        /// modified by an external source
-        /// </summary>
-        public void FileModified()
-        {
-            mPackage.FileModifiedInternal(this);
-        }
-
 
         /// <summary>
         /// When interactive, spend more time generating feedback, such

@@ -14,8 +14,8 @@ namespace Gosub.Zurfur
     public partial class FormMain:Form
     {
         bool                mInActivatedEvent;
-        BuildPackage mZurfBuilder;
-        ZurfEditController mZurfEditController;
+        BuildManager        mBuilderMan;
+        ZurfEditController  mEditController;
 
         static readonly WordSet sTextEditorExtensions = new WordSet(".txt .json .md .htm .html .css");
         static readonly WordSet sImageEditorExtensions = new WordSet(".jpg .jpeg .png .bmp");
@@ -29,8 +29,8 @@ namespace Gosub.Zurfur
 
         public FormMain()
         {
-            mZurfBuilder = new BuildPackage();
-            mZurfEditController = new ZurfEditController(mZurfBuilder);
+            mBuilderMan = new BuildManager();
+            mEditController = new ZurfEditController(mBuilderMan);
             InitializeComponent();
         }
 
@@ -107,19 +107,19 @@ namespace Gosub.Zurfur
         {
             var textEditor = editor as TextEditor;
             if (textEditor != null)
-                mZurfEditController.AddEditor(textEditor);
+                mEditController.AddEditor(textEditor);
         }
 
         private void mvEditors_EditorRemoved(IEditor editor)
         {
             var textEditor = editor as TextEditor;
             if (textEditor != null)
-                mZurfEditController.RemoveEditor(textEditor);
+                mEditController.RemoveEditor(textEditor);
         }
 
         private void mvEditors_EditorActiveViewChanged(IEditor editor)
         {
-            mZurfEditController.ActiveViewChanged(editor as TextEditor);
+            mEditController.ActiveViewChanged(editor as TextEditor);
 
             if (editor != null)
                 projectTree.Select(editor.FilePath);
@@ -204,41 +204,28 @@ namespace Gosub.Zurfur
                 }
             }
 
-            // For now just use extension to see if we can open it
-            var ext = Path.GetExtension(path).ToLower();
-            if (ext == ".zurf")
-            {
-                // TBD: Move lexer/parser setup to it's own class
-                var newEditor = new TextEditor();
-                var zurfLex = new LexZurf();
-                zurfLex.SetSpecialSymbols(ParseZurf.MULTI_CHAR_TOKENS);
-                zurfLex.TokenizeComments = true;
-                newEditor.Lexer = zurfLex;
-                newEditor.LoadFile(path);
-                mvEditors.AddEditor(newEditor);
-            }
-            else if (ext == ".json")
+            var buildFile = Path.GetExtension(path).ToLower();
+            var lex = mBuilderMan.LoadFile(path);
+            if (lex != null)
             {
                 var newEditor = new TextEditor();
-                var zurfLex = new LexZurf();
-                zurfLex.TokenizeComments = true;
-                newEditor.Lexer = zurfLex;
-                newEditor.LoadFile(path);
+                newEditor.FilePath = path;
+                newEditor.Lexer = lex.Lexer;
                 mvEditors.AddEditor(newEditor);
             }
-            else if (sTextEditorExtensions.Contains(ext))
+            else if (sTextEditorExtensions.Contains(buildFile))
             {
                 var newEditor = new TextEditor();
                 newEditor.LoadFile(path);
                 mvEditors.AddEditor(newEditor);
             }
-            else if (sImageEditorExtensions.Contains(ext))
+            else if (sImageEditorExtensions.Contains(buildFile))
             {
                 var newEditor = new ImageEditor();
                 newEditor.LoadFile(path);
                 mvEditors.AddEditor(newEditor);
             }
-            else if (ext == ".zurfproj")
+            else if (buildFile == ".zurfproj")
             {
                 var newEditor = new ProjectEditor();
                 newEditor.LoadFile(path);
@@ -366,8 +353,8 @@ namespace Gosub.Zurfur
         /// </summary>
         private void timer1_Tick(object sender, EventArgs e)
         {
-            mZurfEditController.Timer();
-            mZurfBuilder.Timer();
+            mEditController.Timer();
+            mBuilderMan.Timer();
         }
 
         private void menuHelpAbout_Click(object sender, EventArgs e)
