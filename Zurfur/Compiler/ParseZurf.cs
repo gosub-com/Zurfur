@@ -48,7 +48,7 @@ namespace Gosub.Zurfur.Compiler
         public Token[] ExtraTokens() => mExtraTokens.ToArray();
 
         // NOTE: >=, >>, and >>= are omitted and handled at parser level.
-        public const string MULTI_CHAR_TOKENS = "<< <= == != && || += -= *= /= %= &= |= " + XOR + "= <<= => -> !== === :: .. ... " + SSEP;
+        public const string MULTI_CHAR_TOKENS = "<< <= == != && || += -= *= /= %= &= |= " + XOR + "= <<= => -> !== === :: .. ... ++ -- " + SSEP;
 
         // Add semicolons to all lines, except for:
         static WordSet sEndLineSkipSemicolon = new WordSet("; { [ ( ,");
@@ -88,7 +88,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sAddOperators = new WordSet("+ - | " + XOR);
         static WordSet sMultiplyOperators = new WordSet("* / % & << >>"); // For '>>', use VIRTUAL_TOKEN_SHIFT_RIGHT
         static WordSet sAssignOperators = new WordSet("= += -= *= /= %= |= &= " + XOR + "= <<= >>=");
-        static WordSet sUnaryOperators = new WordSet("+ - ! & " + XOR + " " + PTR);
+        static WordSet sUnaryOperators = new WordSet("- ! & " + XOR + " " + PTR);
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
         // This seems stange because something like `a = F<T1,T2>;` is not a valid expression
@@ -204,8 +204,9 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         void ParseScopeStatements(SyntaxScope parentScope)
         {
+            bool topScope = parentScope == null;
             var qualifiers = new List<Token>();
-            while (mTokenName != "" && mTokenName != "}")
+            while (mTokenName != "" && (mTokenName != "}" || topScope))
             {
                 while (mTokenName == "[")
                 {
@@ -818,14 +819,7 @@ namespace Gosub.Zurfur.Compiler
             if (mToken != SSEP)
                 throw new Exception("Compiler error: Expecting '=>'");
 
-            int maxConjoined;
-            if (type == StatementsType.Statements)
-                maxConjoined = 2;
-            else if (type == StatementsType.Switch)
-                maxConjoined = 0;
-            else
-                maxConjoined = 1;
-
+            int maxConjoined = type == StatementsType.Switch ? 0 : 1;
             var count = 0;
             var statementKeyword = mToken;
             var statements = NewExprList();
@@ -890,12 +884,14 @@ namespace Gosub.Zurfur.Compiler
                 case "=>":
                     RejectToken(mToken, "Unexpected '=>'");
                     Accept();
+                    requireSemicolon = false;
                     break;
 
 
                 case "{":
                     RejectToken(mToken, "Unnecessary scope is not allowed");
                     statements.Add(ParseStatements("scope"));
+                    requireSemicolon = false;
                     break;
                 
                 case "defer":
@@ -919,6 +915,16 @@ namespace Gosub.Zurfur.Compiler
                 case "while":
                     statements.Add(new SyntaxBinary(Accept(), ParseExpr(), ParseStatements("while")));
                     break;
+
+                case "do":
+                    var doKeyword = Accept();
+                    var doStatements = ParseStatements("do");
+                    var doExpr = (SyntaxExpr)new SyntaxError();
+                    if (AcceptMatchOrReject("while"))
+                        doExpr = ParseExpr();
+                    statements.Add(new SyntaxBinary(doKeyword, doStatements, doExpr));
+                    break;
+
 
                 case "if":
                     Accept();
@@ -1046,8 +1052,9 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         SyntaxExpr ParseAssignment()
         {
-            if (mTokenName == "{")
-                return ParseInitializer();
+            // TBD: Decide if we want this
+            //if (mTokenName == "{")
+            //    return ParseInitializer();
             return ParseExpr();
         }
 

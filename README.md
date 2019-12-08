@@ -7,6 +7,7 @@ spelled **_ZurFUR_** because our cat has fur.
 ## Design Goals
 
 * Fun and easy to use 
+* Become the go-to language for client side programming in the browser
 * Managed code is safe, efficient, and garbage collected
 * Unmanaged code is just as efficient as C++
 * Ahead of time compile to WebAssembly with tiny run-time library
@@ -19,12 +20,11 @@ Golang and Javascript.  Here are some differences between Zurfur and C#:
 
 * Strings are UTF8 byte arrays initialized
 * Reference types are initialized without `new` keyword and are non-nullable by default
-* `==` operator does not default to reference comparison
 * Type declaration syntax and operator precedence is from Golang
-* Built from the ground up using `ref` returns
+* Interfaces can be created from object with matching signature (structural typing from Golang)
+* Built from the ground up using `ref` returns, slices, and other modern C# constructs
 * Get/set of structs acts like a class, `MyListOfStructPoints[1].X = 5` works like you think it should
-* Interfaces can be explicitly created from object with matching signature (like Golang)
-* Lots of other differences, but if you're familiar with C# it'll all make sense
+* `==` operator does not default to reference comparison
 
 ## Overview
 
@@ -38,8 +38,8 @@ I am currently working on [ZSIL](Doc/Zsil.md) header file.
 
 ## Functions
 
-    /// This is a public documentation comment.  Use `variable` to
-    /// refere to variables in the code.  Do not use XML.
+    /// This is a public documentation comment.  Do not use XML.
+    /// Use `name` to refer to variables in the code. 
     pub static func Main(args []str)
     {
         // This is a regular private comment
@@ -47,7 +47,7 @@ I am currently working on [ZSIL](Doc/Zsil.md) header file.
     }
 
     // Regular static function
-    static func add(a int, b int) int
+    pub static func add(a int, b int) int
         => return a + b
 
     // Extension method for MyClass
@@ -63,28 +63,6 @@ at the namespace level, but must be static or extension methods.
 
 TBD: Still considering using `fun` to declare a function.
 
-## Semicolons and Statements
-
-Like Golang, semicolons are required between statements but they are automatically
-inserted at the end of lines based on the last non-comment token and the first token
-of the next line.
-
-The general rule is that any line beginning with an operator does not put
-a `;` on the previous line.  Additionally, `{`, `[`, `(`, or `,` at the end
-of a line prevents a semicolon on that line.  
-
-All statement blocks require either curly braces (e.g. `if expr { statements }`)
-or can use the statement separator `=>` (e.g. `if expr => statement`) 
-provided that the statement itself is not a compound statement.
-    
-    // Ok
-    if a
-      => DoThis()
-
-    // Not OK, curly braces required after `if a`
-    if a
-      => if b
-        => DoThis()
 
 ## Local Variables
 
@@ -96,13 +74,8 @@ which is similar to `var` in C#.
     @c = MyFunction()                   // `c` is whatever type is returned by MyFunction
     @d = List<int>({1,2,3})             // `d` is a list of integers, intialized with {1,2,3}
     @e = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
+    @f = Json({"A":1,"B":{1,2,3}})      // `f` is a Json object containing a number and an array
 
-Creating arrays and maps of common types can be abbreviated:
-
-    @a = {1,2,3}                    // `a` is Array<int>
-    @b = {"Hello", "World"}         // `b` is Array<str>
-    @c = {1:4, 2:5, 3:6}            // `c` is Map<int,int>
-    @d = {"Hello":1,"Wold":2}       // `d` is Map<str,int>
    
 The above form `@variable = expression` creates a variable with the same type as
 the expression.  A second form `@variable type [=expression]` creates an explicitly
@@ -111,19 +84,21 @@ cannot be converted, an error is generated
 
     @a int = MyIntFunc()            // Error if MyIntFunc returns a float
     @b str                          // `b` is a string, initialized to ""
-    @c List<int> = {1,2,3}          // `c` is a List<int>, initialized with {1,2,3}
-    @d Map<str,int> = {"A":1,"B":2} // `d` is an initialzied Map<str,int>
+    @c List<int>                    // `c` is an empty List<int>
+    @d Map<str,int> = MyMapFunc()   // Error if MyMapFunc doesn't return Map<str,int>
+
+#### Non-Nullable References
 
 References are non-nullable (i.e. may never be `null`) and are initialized
 when created.  The optimizer may decide to delay initialization until the
 variable is actually used which could have implications if the constructor
 has side effects.  For instance:
 
-    @myList List<int>           // Note: `@myList List<int>()` is the same
+    @myList List<int>()         // Optimizer may remove this constructor call
     if MyFunc()
-      => myList = MyListFunc()  // Constructor not called above
+      => myList = MyListFunc()  // Constructor might not be called above
     else
-      => myList.Add(1)          // Constructor called here
+      => myList.Add(1)          // Optimizer may move constructor call here
 
 It is possible to create a nullable reference.
     
@@ -131,8 +106,11 @@ It is possible to create a nullable reference.
     @myEmptyStr ?str()      // String is ""
 
 A non-nullable reference can be assigned to a nullable, but a cast
-will be needed to convert nullable to non-nullable.  **TBD:** Find
-a shorter way to cast this case, maybe #?(expression)
+or conditional test must be used to convert nullable to non-nullable.  
+
+Pointers are always nullable and they default to null.  Pointers can
+only be used in an unsafe context, and it is up to you to make sure
+they are not null before being used.
 
 ## Basic types
 
@@ -148,7 +126,7 @@ depending on run-time architecture.
 Strings are immutable UTF8 byte arrays.  They can be translated by using the
 `tr"string"` syntax.  Translated strings are grouped separately, and then
 looked up dynamically at run time.  The `Arg()` function can be used
-to replace occurrences of `%number`.  There is no fromatting beyond
+to replace occurrences of `%number`.  There is no formatting beyond
 string replacement.  For example: `tr"Hello %1. You like %2.".Arg(name).Arg(adjective)`
 might generate `Hello Jeremy.  You like ice cream.`
 
@@ -157,12 +135,20 @@ syntax for interpolated and pluralized strings.  Perhaps `tr(number)"String"`
 
 #### Array
 
-`Array` is your standard C# fixed sized array.  The constructor takes `Count`
-which can never be changed after that. 
+`Array` is your standard C# fixed sized array.  The constructor takes the count,
+which can never be changed after that:
 
     @a Array<int>               // `a` is an array of length zero
     @b Array<int>(32)           // `b` is an array of length 32
     @c Array<Array<int>>(10)    // `c` is an array of arrays
+
+The C# syntax for creating an array with `[]` has been dropped in
+favor of a generic array class implementing `ICollection`, and support
+for initializer expressions:
+
+    @a = Array<int>({1,2,3})    // Instead of 'var a = new int[]{1,2,3}
+
+Arrays can be sliced.  See below for more information.
 
 #### List
 
@@ -175,14 +161,16 @@ fields when necessary:
     @a = List<MyPoint>({{1,2},{3,4},{5,6}})
     a[1].Y = 12    // Now `a` contains {{1,2},{3,12},{5,6}}
 
+See below for information about initializer expressions and slice operator.
+
 #### Map
 
 `Map` is a hash table and is similar to `Dictionary` in C#.
 
-    @a = {"Hello":1, "World":2}     // Map<str, int>
-    @b = a["World"]                 // `b` is 2
-    @c = a["not found"]             // throws excepton
-    @d = a.Get("not found", -1)     // `d` is -1
+    @a = Map<str,int>({"Hello":1, "World":2})
+    @b = a["World"]                             // `b` is 2
+    @c = a["not found"]                         // throws exception
+    @d = a.Get("not found", -1)                 // `d` is -1
 
 TBD: Lower case `array`, `list`, and `map`?  `span`, `roSpan`?
 
@@ -191,7 +179,7 @@ TBD: Lower case `array`, `list`, and `map`?  `span`, `roSpan`?
 Operator precedence comes from Golang.
 
     Primary: x.y f(x) a[i] #type(expr)
-    Unary: + - ! & ^ ~
+    Unary: - ! & ~ ^
     Multiplication and bits: * / % << >> & 
     Add and bits: + - | ~
     Range: .. ::
@@ -200,7 +188,7 @@ Operator precedence comes from Golang.
     Conditional: ||
     Ternary: a ? b : c
     Lambda: ->
-    Comma: ,
+    Comma Separator: ,
     Assignment Statements: = += -= *= /= %= &= |= ~= <<= >>=
     Statement separator: => (not an operator, not lambda)
 
@@ -208,40 +196,202 @@ The `*` operator is only for multiplication, and `->` is only for
 lambda, neither are for dereferencing pointers.  `~` is both xor 
 and unary complement.  See pointers section below for discussion.    
 
+The `..` operator takes two `int`s and make a `Range` which is a
+`struct Range { Start int; End int}`.  The `::` operator also
+makes a range, but the second parameter is a count instead of end
+index.  See `For Loop` below for examples.
+
+Assignment is a statement, not an expression.  Therefore, expressions like
+`while (a += count) < 20` and `a = b += 1` are not allowed.  Comma is also
+not an expression, and may only be used where they are expected, such as
+a function call or lambda expession.
+
 Operator `==` does not default to object comparison, and only works when it
-is defined for the given type.  Use `===` and `!===` for object comparison. 
+is defined for the given type.  Use `===` and `!==` for object comparison. 
 
 #### Operator Overloading
 
 `+`, `-`, `*`, `/`, `%`, and `in` are the only operators that may be individually
-overloaded.  The `==` and `!=` operator may be overloaded together by implementing
+defined.  The `==` and `!=` operator may be defined together by implementing
 `static func Equals(a myType, b myType) bool`.  All six comparison operators,
-`==`, `!=`, `<`, `<=`, `==`, `!=`, `>=`, and `>` can be implemented with just one function:
-`static func Compare(a myType, b myType) int`.  If both functions are overloaded,
-`Equals` is used for equality comparisons, and `Compare` is used for the others.
+`==`, `!=`, `<`, `<=`, `==`, `!=`, `>=`, and `>` can be implemented with just
+one function: `static func Compare(a myType, b myType) int`.  If both functions
+are defined, `Equals` is used for equality comparisons, and `Compare` is used
+for the others.
 
 Overloads using the `operator` keyword are static.  Only static
 versions of `Equals` and `Compare` are used for the comparison operators.
 Zurfur inherits this from C#, and Eric Lippert
 [gives a great explanation of why](https://blogs.msdn.microsoft.com/ericlippert/2007/05/14/why-are-overloaded-operators-always-static-in-c).
 
-#### Initializers
+## Initializer Expressions
 
-An initializer is a list or map enclosed within `{}` and may be used any place
-a function parameter takes either an `ICollection` or an object with a matching
-constructor.  The `ICollection` is always chosen over a constructor if both exist. 
+An initializer is a Json-like list or map enclosed within `{}` and may be used
+any place a function parameter takes either an `ICollection`, `IRoMap`, or an
+object with a matching constructor:
 
-    @a = Map<str,int>({{"A",1}, {"B", 2}})  // Use ICollection and KeyValuePair constructor
-    @b = Map<str,int>({"A":1, "B":2})       // Use Map syntax (note the `:`)
-    @c = {"A":1, "B":2}                     // Use abbreviated form for common types
+    @a = Array<int>({1,2,3})                // Array syntax (note lack of `:`)
+    @b = Map<str,int>({"A":1, "B":2})       // Map syntax (note the `:`)
+    @c = Map<str,int>({{"A",1}, {"B", 2}})  // Use ICollection and KeyValuePair constructor
 
-The first expression is accepted because the `Map` constructor takes an
-`ICollection<KeyValuePair<str,int>>` parameter. The constructor `KeyValuePair`
-takes `str` and `int` parameters, so everything matches up and is accepted.  We can
-initialize a map of points like this, provided `MyPointXY` has a constructor that
-takes two integers:
+The first expression `a` uses array syntax to initialize the array.  The second
+expression `b` uses map syntax to initialize the map.  The third expression, `c`
+is accepted because the `Map` constructor takes an `ICollection<KeyValuePair<str,int>>`
+parameter. The `KeyValuePair` constructor takes `str` and `int` parameters, so
+everything matches up and is accepted.
 
-    @a = Map<str, MyPointXY>({{"A",{1,2}}, {"B", {3,4}}})
+A `Map<str,MyPointXY>` can be initialized like this as long as `MyPointXY` has a
+constructor taking two integers:
+
+    @a = Map<str, MyPointXY>({"A": {1,2}, "B": {3,4}})      // Use map initializer syntax
+    @b = Map<str, MyPointXY>({{"A",{1,2}}, {"B", {3,4}}})   // Use `ICollection` and constructor
+
+#### Json Initializer Expressions
+
+The initializer syntax has support for Json, except that curly braces `{}` are
+used for arrays rather than brackets `[]`.  The library will have a class to
+support Json objects with syntax something like this:
+
+    @a = Json({
+        "Param1" : 23,
+        "Param2" : {1,2,3},
+        "Param3" : {"Hello":12, "World" : "Earth"},
+        "Time" : "2019-12-07T14:13:46"
+    })
+    @b = a["Param1"].Int            // `b` is 23
+    @c = a["param2"][1].Int         // `c` is 2
+    @d = a["Param3"]["World"].Str   // `d` is "Earth"
+    @e = a["Time"].DateTime         // `e` is converted to DateTime
+    a["Param2"][1].Int = 5          // Set the value
+
+**TBD:** Json object indexers never throw an exception, always return a
+default of 0, "", or empty map/array.  This is similar to `QVariant` in Qt,
+is very easy to work with, and copes with missing keys well.  The flip side
+is that incorrect data could fail with unpredictable results.
+
+## Statements
+
+Like Golang, semicolons are required between statements but they are automatically
+inserted at the end of lines based on the last non-comment token and the first token
+of the next line.
+
+The general rule is that any line beginning with an operator does not put
+a `;` on the previous line.  Additionally, `{`, `[`, `(`, or `,` at the end
+of a line prevents a semicolon on that line.  
+
+All compound statements require either curly braces (e.g. 
+`if expr { statements }`) or can use the statement separator `=>` (e.g.
+`if expr => statement`):
+    
+    if a
+      => DoThis()
+
+The statement separator `=>` never allows a second level of indentation, and there
+cannot be a `;` after the statement.
+
+    if a
+      => if b           // SYNTAX ERROR, compound statement not allowed here
+        => DoThis()     // Second level => is not allowed
+
+    if a
+      => f(x);  f(x+1)  // SYNTAX ERROR, ';' not allowed after '=>' statement.
+
+#### For Loop
+
+For the time being, `for` loops only allow one format: `for @newVariable in expression`. 
+The new variable is read-only and its scope is limited to within the `for` loop block.
+The simplest form of the for loop is when the expression evaluates to an integer:
+
+    // Print the numbers 0 to 9
+    for @i in 10
+      => Console.WriteLine(i)   // `i` is an integer
+
+    // Increment all the numbers in an array
+    for @i in array.Count
+      => array[i] += 1
+
+The range operators can be used as follows:
+
+    // Print the numbers from 5 to 49
+    for @i in 5..50
+      => Console.WriteLine(i)   // `i` is an integer
+
+    // Print all the numbers in the array except the first and last
+    for @i in 1..array.Count-1
+      => Console.WriteLine(array[i])
+
+    // Collect elements 5,6, and 7 into myArray
+    for @i in 5::3
+        myList.Add(myArray[i])
+
+Any object that supplies an enumerator (or has a `get` indexer and a `Count` property)
+can be enumerated.  The `Map` enumerator supplies key value pairs:
+
+    // Print key value pairs of all elements in a map
+    for @kv in map
+      => Console.WriteLine("Key: " + kv.Key.ToString() + " is " + kv.Value.ToString())
+
+The expression after `in` is evaluated at the start of the loop and never
+changes once calculated:
+
+    // Print the numbers from 1 to 9
+    @x = 10
+    for @i in 1..x
+    {
+        x = x + 5               // This does not affect the loop bounds 
+        Console.WriteLine(i)
+    }
+
+When iterating over a collection, just like in C#, it is illegal to add
+or remove elements from the collection.  An exception is thrown if
+it is attempted.  Here are two examples of things to avoid:
+
+    for @i in myIntList
+      => myIntList.Add(1)   // Exception thrown on next iteration
+
+    // This does not remove 0's and increment the remaining elements
+    // The count is evaluated only at the beginning of the loop.
+    for @i in myIntList.Count
+    {
+        if myIntList[i] == 0
+          => RemoveAt(i)        // There are at least two problems with this
+        else
+          => myIntList[i] += 1  // This will throw an exception if any element was removed
+    }
+    
+
+**TBD:** Explore syntax to iterate with different count steps.  Perhaps something
+like `for @newVar in expression : stepExpression` where `stepExpression` is a
+positive compile time constant.
+
+#### While and Do Loops
+
+Same as C#.
+
+**TBD:** Explore syntax to allow post increment statement to make up
+for the `for` loop not allowing it.  Perhaps something like
+`while treePointer != null, treePointer = treePointer.Next {statements}`
+From what I've seen, this is not necessary and would be abused too often.
+
+#### Switch
+
+The switch statement is mostly the same as C#, except that a `case` statement
+has an implicit `break` before it.  `break` is not allowed at the same
+level as a `case` statement.
+
+    switch expression
+    {
+    case 0:
+        DoStuff0()  // No fall through here.
+    case 1:
+        DoStuff1()
+        break;      // SYNTAX ERROR: Break is illegal here
+    case 2:
+        DoStuff2()
+        if x==y
+          => break  // Exit switch statement early, don't DoStuff3
+        DoStuff3()
+    }
 
 ## Classes
 
@@ -367,7 +517,7 @@ all the required functions.
 were so contentious.](https://jeremybytes.blogspot.com/2019/09/interfaces-in-c-8-are-bit-of-mess.html)
 Let me know how to do it better.  Also, since they can have default
 implementations, should we change the name to something different?  **trait**?
-Here is `IEquatable<T>` from the stadard library:
+Here is `IEquatable<T>` from the standard library:
 
     // TBD: Is `interface` the right keyword since there can be implementations?
     pub interface IEquatable<T>
@@ -418,7 +568,7 @@ use of the interface.  For example:
     pub static func MyFunc(yourStuff MyStuff)
     {
         // Modify your stuff.  ILLEGAL!
-        yourStuff.SeeMyStuff#(List<Stuff>).Add(Stuff());
+        #List<Stuff>(yourStuff.SeeMyStuf).Add(Stuff());
     }
 
 #### Static Functions
@@ -448,24 +598,58 @@ function:
         return value;
     }
 
-## Arrays, Slicing, and the Range Operator
+## Arrays and Slicing
 
-The `..` operator takes two `int`s and make a `Range` which is
-a `struct Range { Start int; End int}`.  The `::` operator also
-makes a range, but the second parameter is a count instead of end
-index.
-
-    for @a in 2..32
-        => Console.Log(a)
-
-Prints the numbers from 2 to 31.  The end of the range is exclusive,
-so `for @a in 0..myArray.Count` iterates over the entire array.
-An `Array` and `List` can be sliced using these two operators:
+Given a range, arrays can be sliced:
 
     @a = myArray[2..32]     // Elements starting at 2 ending at 31 (excludes element 32)
     @b = myArray[2::5]      // Elements 2..7 (length 5, excludes element 7)
 
+If `myArray` is of type `Array<byte>`, a string can be created directly from the slice:
+
+    @s = str(myArray[2::5])     // Create a string
+    MyStrFunc(myArray[2::5])    // Convert slice to string, pass to function
+
+#### List Slice
+
+**TBD:** Allow slicing a `List`?  It is an unsafe operation, but would be extremely
+useful, allowing 'List<byte>' to double as a string builder class.  Perhaps, the
+slice is a forward reference, which is still unsafe but more difficult to abuse. 
+
+
+#### ASpan, Span, Forward References, Return References
+
+Arrays have implicit conversion to `ASpan`, `Span`, and `RoSpan`.  `ASpan` is used for async
+functions, and `Span` for sync functions, such as `str` class. A lot needs to be said here,
+but the condensed version is:
+
+* ASpan: An array segment that can be stored on the heap or passed to async functions
+* Span: A memory slice that cannot be stored on the heap or passed to async functions
+* Forward Reference: A pointer to an interior struct passed **into** a function
+* Return Reference: A pointer to an interior struct passed **out of** a function,
+implmeneted as a fat pointer (pointer to object and pointer to interior struct)
+
+
+A distinction is made between forward references and return references because the GC needs
+to be aware of (and pin) all references on the stack.  Once a reference is stored on the
+memory stack, it is pinned and held in memory so that it can be passed forward on the
+execution stack without ever being looked at again.  When a reference is returned, there
+must be a way to pin the object that holds the reference.
+
 Describe more here...
+
+## Garbage Collection
+
+The heap allocation model of C#, and inherited by Zurfur, is designed to make
+garbage collection fast and efficient.  Interior references (i.e. references
+that point inside an object) are never stored on the heap. Whenever an interior
+reference is obtained, the object that holds it is pinned until the reference
+is discarded.
+
+Pinning all objects on the memory stack allows references to be passed to
+functions only on the execution stack.
+
+There is more info on GC implementation here [Internals](Doc/Internals.md)
 
 ## Pointers
 

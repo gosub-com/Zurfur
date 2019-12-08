@@ -28,6 +28,7 @@ namespace Gosub.Zurfur.Compiler
         protected override Lexer CloneInternal()
         {
             var lex = new LexZurf();
+            lex.TokenizeComments = TokenizeComments;
             lex.mSpecialSymbols = new Dictionary<long, bool>(mSpecialSymbols);
             lex.mSpecialSymbolsHas3Chars = mSpecialSymbolsHas3Chars;
             return lex;

@@ -20,8 +20,10 @@ static func test_ForSimple()
         else if a == 3 || a == 4
             => count += 1000
         else if a == 5
-            => count += 10000
-            => count += 10000
+        {
+            count += 10000
+            count += 10000
+        }
         else
             => count += 100000
         count += a
@@ -44,8 +46,6 @@ pub func Example::MyExtension() => F()  // Extension method
 
 pub func Example::MyExtension()
 {
-	@a = Map<str,int>({{"A",1},{"B",2},{"C",3}})
-	@b = Map<str,int>({"A":1,"B":2,"C":3})
-	@c = {1,2,3}
-	@d = {"Hello":1, "World":2}
+    @a = Map<str,int>({{"A",1},{"B",2},{"C",3}})
+    @b = Map<str,int>({"A":1,"B":2,"C":3})
 }

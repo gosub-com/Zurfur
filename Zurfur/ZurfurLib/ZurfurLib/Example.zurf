@@ -197,12 +197,16 @@ pub func Example::IfTests()
         => x = x + 1
     
     if myStr in myMap || myIn in 1..23
-        => DoSomething()
-        => hello()
+    {
+        DoSomething()
+        hello()
+    }
     
     if a
-      => todo()
-      => todo()
+    {
+      todo()
+      todo()
+    }
     else if b
       => todo()
     else if c
@@ -213,8 +217,10 @@ pub func Example::IfTests()
     
 
     if myStr in myMap || myIn in 1..23
-      => DoSomething()
-      => hello()
+    {
+      DoSomething()
+      hello()
+    }
     else 
       => f(a)
 
@@ -230,8 +236,10 @@ pub func Example::IfTests()
         
 
     for @a in 1..23
-      => F(out @b, c)
-      => a + 55 = 23 // TBD: Fix 
+    {
+      F(out @b, c)
+      a + 55 = 23 // TBD: Fix 
+    }
 
 
     for @a in 1..23

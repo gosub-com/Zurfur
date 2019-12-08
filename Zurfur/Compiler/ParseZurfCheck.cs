@@ -33,7 +33,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static virtual override new ro");
         static WordSet sFuncOperatorQualifiers = new WordSet("pub public protected private internal unsafe");
 
-        static WordSet sStatements = new WordSet("if return while for switch case default throw defer break continue "
+        static WordSet sStatements = new WordSet("if return while for switch case default throw defer break continue do "
                                                      + "{ = ( += -= *= /= %= &= |= ~= <<= >>= @");
 
         static WordMap<int> sClassFuncFieldQualifiersOrder = new WordMap<int>()

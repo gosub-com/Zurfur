@@ -73,8 +73,8 @@ pub sealed class Array<T>
     const MaxSize int = int.MaxInt/2
     pub static ro Empty Array<T>()
 
-    new(count int) => todo()
-    new(items ICollection<T>) => todo()
+    pub new(count int) => todo()
+    pub new(items ICollection<T>) => todo()
     
     pub this[index int] ref T => todo()
     pub this[range Range] ASpan<T> => todo()
@@ -84,9 +84,9 @@ pub sealed class Array<T>
 pub class List<T> 
     : IList<T>
 {
-    new() => todo()
-    new(capacity int) => todo()
-    new(items ICollection<T>) => todo()
+    pub new() => todo()
+    pub new(capacity int) => todo()
+    pub new(items ICollection<T>) => todo()
     
     pub this[index int] T { get => todo() set => todo() }
     pub this[index Range] IArray<T> => todo()
@@ -108,20 +108,20 @@ pub class Map<TKey, TValue>
     hashFunc func(a TKey) bool;
     
 
-    new() where TKey : IEquatable<TKey>
+    pub new() where TKey : IEquatable<TKey>
     {
         compareFunc = (a, b) -> TKey.Compare(a, b);
         hashFunc = (a) -> TKey.GetHashCode(a);		
     }
-    new(compare func(a TKey, b TKey) bool, 
+    pub new(compare func(a TKey, b TKey) bool, 
         getHashCode func(a TKey) uint)
     {
         compareFunc = compare;
         hashFunc = getHashCode;
     }
-    new(capacity int) where TKey : IEquatable
+    pub new(capacity int) where TKey : IEquatable
         => todo()
-    new(keyValues ICollection<KeyValuePair<TKey, TValue>>) => todo()
+    pub new(keyValues ICollection<KeyValuePair<TKey, TValue>>) => todo()
     
     pub this[key TKey] TValue { get => todo() set => todo() }
     pub operator in(a TKey) bool => todo()
@@ -137,3 +137,27 @@ pub class Map<TKey, TValue>
     pub prop Keys ICollection<TKey> { get => todo() }
     pub prop Values ICollection<TValue> { get => todo() }
 }
+
+// TBD: Ensure this accepts Json({initializer}) syntax
+pub class Json
+{
+    pub new(from int) => todo()
+    pub new(from float32) => todo()
+    pub new(from float64) => todo()
+    pub new(from decimal) => todo()
+    pub new(from str) => todo()
+    pub new(from ICollection<Json>) => todo()
+    pub new(from IRoMap<Json>) => todo()
+   
+    // TBD: Figure out how to make this efficient
+    pub virtual prop Int int => todo()
+    pub virtual prop Float32 float32 => todo()
+    pub virtual prop Float64 float64 => todo()
+    pub virtual prop Decimal decimal => todo()
+    pub virtual prop Str str => todo()
+    pub virtual prop Map Map<Json> => todo()
+    pub virtual prop Array Array<Json> => todo()
+}
+
+
+

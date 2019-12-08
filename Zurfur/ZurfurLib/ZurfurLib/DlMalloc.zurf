@@ -79,7 +79,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     /// </summary>
     protected virtual func CallCorruptionErrorAction()
     {
-        ResetOnError();
+        ResetOnError()
         throw DlMallocException("Malloc Corrupted: TBD: Give more info about address")
     }
 
@@ -89,8 +89,8 @@ pub unsafe abstract class DlMallocBase : IDisposable
     /// </summary>
     protected virtual func CallUsageErrorAction(m2 ^void)
     {
-        ResetOnError();
-        throw DlMallocException("Malloc Usage Error: TBD: Give more info about address");
+        ResetOnError()
+        throw DlMallocException("Malloc Usage Error: TBD: Give more info about address")
     }
 
     /// <summary>
@@ -174,13 +174,13 @@ pub unsafe abstract class DlMallocBase : IDisposable
     //    non-topmost segments.
 
     // Bin types, widths and sizes
-    const NSMALLBINS xuint = 32;
-    const NTREEBINS xuint = 32;
-    const SMALLBIN_SHIFT xuint = 3;
-    const SMALLBIN_WIDTH xuint = SIZE_T_ONE << SMALLBIN_SHIFT;
-    const TREEBIN_SHIFT xuint = 8U;
-    const MIN_LARGE_SIZE xuint = SIZE_T_ONE << TREEBIN_SHIFT;
-    const MAX_SMALL_SIZE xuint = MIN_LARGE_SIZE - SIZE_T_ONE;
+    const NSMALLBINS xuint = 32
+    const NTREEBINS xuint = 32
+    const SMALLBIN_SHIFT xuint = 3
+    const SMALLBIN_WIDTH xuint = SIZE_T_ONE << SMALLBIN_SHIFT
+    const TREEBIN_SHIFT xuint = 8U
+    const MIN_LARGE_SIZE xuint = SIZE_T_ONE << TREEBIN_SHIFT
+    const MAX_SMALL_SIZE xuint = MIN_LARGE_SIZE - SIZE_T_ONE
     static prop MAX_SMALL_REQUEST xuint => MAX_SMALL_SIZE - CHUNK_ALIGN_MASK - CHUNK_OVERHEAD
 
     // Originally called malloc_state, mstate, and mspace
@@ -210,7 +210,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
         {
             @count = 0
             @segment = seg
-            while (segment != null)
+            while segment != null
             {
                 count += 1
                 segment = segment.next
@@ -330,7 +330,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
 
     // The maximum possible xuint value has all bits set
-    const MAX_SIZE_T xuint = xunit.MaxValue;
+    const MAX_SIZE_T xuint = xunit.MaxValue
 
     // ------------------- xuint and alignment properties --------------------
 
@@ -339,15 +339,15 @@ pub unsafe abstract class DlMallocBase : IDisposable
     static prop SIZE_T_BITSIZE xuint => sizeof(xuint) << 3
 
     // Some constants coerced to size_t
-    const SIZE_T_ZERO xuint = 0;
-    const SIZE_T_ONE xuint = 1;
-    const SIZE_T_TWO xuint = 2;
-    const SIZE_T_FOUR xuint = 4;
+    const SIZE_T_ZERO xuint = 0
+    const SIZE_T_ONE xuint = 1
+    const SIZE_T_TWO xuint = 2
+    const SIZE_T_FOUR xuint = 4
     static prop TWO_SIZE_T_SIZES xuint => SIZE_T_SIZE << 1
     static prop FOUR_SIZE_T_SIZES xuint => SIZE_T_SIZE << 2
 
     // The bit mask value corresponding to MALLOC_ALIGNMENT
-    const CHUNK_ALIGN_MASK xuint = MALLOC_ALIGNMENT - SIZE_T_ONE;
+    const CHUNK_ALIGN_MASK xuint = MALLOC_ALIGNMENT - SIZE_T_ONE
 
     // True if address a has acceptable alignment
     static func is_aligned(a ^void) bool 
@@ -510,7 +510,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
             get => #xuint(head_ptr)
             set { head_ptr = #xuint(value) }
         }
-    };
+    }
 
     static func cinuse(p ^mchunk) bool => (p.head & CINUSE_BIT) != 0
     static func pinuse(p ^mchunk) bool => (p.head & PINUSE_BIT) != 0
@@ -557,11 +557,11 @@ pub unsafe abstract class DlMallocBase : IDisposable
     //  use, unless mmapped, in which case both bits are cleared.
     //  FLAG4_BIT is not used by this malloc, but might be useful in extensions.
 
-    const PINUSE_BIT xuint = SIZE_T_ONE;
-    const CINUSE_BIT xuint = SIZE_T_TWO;
-    const FLAG4_BIT xuint = SIZE_T_FOUR;
-    const INUSE_BITS xuint = PINUSE_BIT | CINUSE_BIT;
-    const FLAG_BITS xuint = PINUSE_BIT | CINUSE_BIT | FLAG4_BIT;
+    const PINUSE_BIT xuint = SIZE_T_ONE
+    const CINUSE_BIT xuint = SIZE_T_TWO
+    const FLAG4_BIT xuint = SIZE_T_FOUR
+    const INUSE_BITS xuint = PINUSE_BIT | CINUSE_BIT
+    const FLAG_BITS xuint = PINUSE_BIT | CINUSE_BIT | FLAG4_BIT
 
     // Head value for fenceposts
     static prop FENCEPOST_HEAD xuint => INUSE_BITS | SIZE_T_SIZE
@@ -760,7 +760,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
         pub size      xuint     // allocated size
         pub next     ^msegment  // ptr to next segment
         pub sflags    flag_t    // mmap and extern flag
-    };
+    }
 
     static func is_mmapped_segment(s ^msegment) bool => (s.sflags & flag_t.USE_MMAP_BIT) != 0
     static func is_extern_segment(s ^msegment) bool => (s.sflags & flag_t.EXTERN_BIT) != 0
@@ -785,14 +785,14 @@ pub unsafe abstract class DlMallocBase : IDisposable
         pub granularity xuint
         pub trim_threshold xuint
         pub default_mflags flag_t
-    };
+    }
 
     mparams malloc_params
 
     // Ensure mparams initialized
-    func ensure_initialization() { if (mparams.magic == 0) => init_mparams() }
+    func ensure_initialization() { if mparams.magic == 0 => init_mparams() }
 
-    func is_initialized() bool { return top != null; }
+    func is_initialized() bool { return top != null }
 
     // -------------------------- system alloc setup -------------------------
 
@@ -825,13 +825,13 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // Return segment holding given address
     func segment_holding(addr ^byte) ^msegment
     {
-        @sp = seg;
+        @sp = seg
         while true
         {
             if addr >= sp.baseAddr && addr < sp.baseAddr + sp.size
                 => return sp
             sp = sp.next
-            if (sp == null)
+            if sp == null
                 => return null
         }
     }
@@ -839,7 +839,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // Return true if segment contains a segment link
     func has_segment_link(ss ^msegments) bool
     {
-        @sp = seg;
+        @sp = seg
         while true
         {
             if #^byte(sp) >= ss.baseAddr && #^byte(sp) < ss.baseAddr + ss.size
@@ -860,12 +860,12 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
     // -------------------------- Debugging setup ----------------------------
 
-    [Conditional("DEBUG")] func check_free_chunk(p ^mchunk) { do_check_free_chunk(p); }
-    [Conditional("DEBUG")] func check_inuse_chunk(p ^mchunk) { do_check_inuse_chunk(p); }
-    [Conditional("DEBUG")] func check_malloced_chunk(mem ^void, xuint s) { do_check_malloced_chunk(mem, s); }
-    [Conditional("DEBUG")] func check_mmapped_chunk(p ^mchunk) { do_check_mmapped_chunk(p); }
-    [Conditional("DEBUG")] func check_malloc_state() { do_check_malloc_state(); }
-    [Conditional("DEBUG")] func check_top_chunk(p ^mchunk) { do_check_top_chunk(p); }
+    [Conditional("DEBUG")] func check_free_chunk(p ^mchunk) { do_check_free_chunk(p) }
+    [Conditional("DEBUG")] func check_inuse_chunk(p ^mchunk) { do_check_inuse_chunk(p) }
+    [Conditional("DEBUG")] func check_malloced_chunk(mem ^void, xuint s) { do_check_malloced_chunk(mem, s) }
+    [Conditional("DEBUG")] func check_mmapped_chunk(p ^mchunk) { do_check_mmapped_chunk(p) }
+    [Conditional("DEBUG")] func check_malloc_state() { do_check_malloc_state() }
+    [Conditional("DEBUG")] func check_top_chunk(p ^mchunk) { do_check_top_chunk(p) }
 
     // ---------------------------- Indexing Bins ----------------------------
 
@@ -881,7 +881,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // Find tree index for size S
     static func compute_tree_index(s xuint) uint
     {
-        @x = s >> TREEBIN_SHIFT;
+        @x = s >> TREEBIN_SHIFT
         if x == 0
             => return 0
         if x > 0xFFFF
@@ -955,7 +955,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
         k = y >> (1 - 0) & 1
         n += k
         y >>= k
-        return n + y;
+        return n + y
     }
 
 
@@ -978,385 +978,389 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
     // Check if address a is at least as high as any from MORECORE or MMAP
     func ok_address(a ^void) bool => a >= least_addr
-    static bool ok_next(p ^tchunk, mchunk* n) => #^byte(p) < #^byte(n);
-    static bool ok_next(p ^mchunk, mchunk* n) => #^byte(p) < #^byte(n);
-    static bool ok_inuse(p ^mchunk) => is_inuse(p);
-    static bool ok_pinuse(p ^mchunk) => pinuse(p);
+    static func ok_next(p ^tchunk, n ^mchunk) bool => #^byte(p) < #^byte(n)
+    static func ok_next(p ^mchunk, n ^mchunk) bool => #^byte(p) < #^byte(n)
+    static func ok_inuse(p ^mchunk) bool => is_inuse(p)
+    static func ok_pinuse(p ^mchunk) bool => pinuse(p)
 
 
-    bool ok_magic() => magic == mparams.magic;
+    func ok_magic() bool => magic == mparams.magic
 
-    static bool RTCHECK(bool e) => e;
+    static func RTCHECK(bool e) bool => e
 
-    void set_inuse(p ^mchunk, xuint s)
+    func set_inuse(p ^mchunk, xuint s)
     {
-        p.head = (p.head & PINUSE_BIT) | s | CINUSE_BIT;
-        (#^mchunk((#^byte(p)) + s)).head |= PINUSE_BIT;
+        p.head = (p.head & PINUSE_BIT) | s | CINUSE_BIT
+        #^mchunk((#^byte(p)) + s).head |= PINUSE_BIT
     }
 
-    void set_inuse_and_pinuse(p ^mchunk, xuint s)
+    func set_inuse_and_pinuse(p ^mchunk, s xuint)
     {
-        p.head = s | PINUSE_BIT | CINUSE_BIT;
-        (#^mchunk((#^byte(p)) + s)).head |= PINUSE_BIT;
+        p.head = s | PINUSE_BIT | CINUSE_BIT
+        #^mchunk((#^byte(p)) + s).head |= PINUSE_BIT
     }
 
-    void set_inuse_and_pinuse(p ^tchunk, xuint s)
+    func set_inuse_and_pinuse(p ^tchunk, s xuint)
     {
-        p.head = s | PINUSE_BIT | CINUSE_BIT;
-        (#^mchunk((#^byte(p)) + s)).head |= PINUSE_BIT;
+        p.head = s | PINUSE_BIT | CINUSE_BIT
+        #^mchunk((#^byte(p)) + s).head |= PINUSE_BIT
     }
 
-    void set_size_and_pinuse_of_inuse_chunk(p ^mchunk, xuint s)
+    func set_size_and_pinuse_of_inuse_chunk(p ^mchunk, s xuint)
     {
-        p.head = s | PINUSE_BIT | CINUSE_BIT;
+        p.head = s | PINUSE_BIT | CINUSE_BIT
     }
 
     // ---------------------------- setting mparams --------------------------
 
     // Initialize mparams
-    int init_mparams()
+    func init_mparams() int
     {
         // Sanity-check configuration:
         // xuint must be unsigned and as wide as pointer type.
         // ints must be at least 4 bytes.
         // alignment must be at least 8.
         // Alignment, min chunk size, and page size must all be powers of 2.
-        xuint psize = (uint)Environment.SystemPageSize;
-        xuint gsize = DEFAULT_GRANULARITY != 0 ? DEFAULT_GRANULARITY : psize; // dwAllocationGranularity
-        if ((sizeof(size_t) < sizeof(byte*))
+        @psize = Environment.SystemPageSize
+        @gsize = DEFAULT_GRANULARITY != 0 ? DEFAULT_GRANULARITY : psize // dwAllocationGranularity
+        if (sizeof(size_t) < sizeof(^byte))
             || (MAX_SIZE_T < MIN_CHUNK_SIZE)
             || (sizeof(int) < 4)
             || (MALLOC_ALIGNMENT < 8)
             || ((MALLOC_ALIGNMENT & (MALLOC_ALIGNMENT - SIZE_T_ONE)) != 0)
             || ((MCHUNK_SIZE & (MCHUNK_SIZE - SIZE_T_ONE)) != 0)
             || ((gsize & (gsize - SIZE_T_ONE)) != 0)
-            || ((psize & (psize - SIZE_T_ONE)) != 0))
+            || ((psize & (psize - SIZE_T_ONE)) != 0)
         {
-            throw new DlMallocException("Abort: Sanity check failed");
+            throw DlMallocException("Abort: Sanity check failed")
         }
 
-        if (mparams.magic == 0)
+        if mparams.magic == 0
         {
-            mparams.granularity = gsize;
-            mparams.page_size = psize;
-            mparams.trim_threshold = DEFAULT_TRIM_THRESHOLD;
-            mparams.default_mflags = flag_t.USE_MMAP_BIT;
+            mparams.granularity = gsize
+            mparams.page_size = psize
+            mparams.trim_threshold = DEFAULT_TRIM_THRESHOLD
+            mparams.default_mflags = flag_t.USE_MMAP_BIT
 
-            xuint magic = #xuint(Environment.TickCount + DateTime.Now.Ticks + 0x55555555U);
-            magic |= 8U;    // ensure nonzero
-            magic &= ~7U;   // improve chances of fault for bad values
-            mparams.magic = magic;
+            @magic = #xuint(Environment.TickCount + DateTime.Now.Ticks + 0x55555555U)
+            magic |= 8U    // ensure nonzero
+            magic &= ~7U   // improve chances of fault for bad values
+            mparams.magic = magic
         }
-        return 1;
+        return 1
     }
 
     // ------------------------- Debugging Support ---------------------------
 
-    static void assert(bool c)
+    static func assert(c bool)
     {
-        System.Diagnostics.Debug.Assert(c);
+        System.Diagnostics.Debug.Assert(c)
     }
 
     // Check properties of any chunk, whether free, inuse, mmapped etc 
-    void do_check_any_chunk(p ^mchunk)
+    func do_check_any_chunk(p ^mchunk)
     {
-        assert(is_aligned(chunk2mem(p)) || p.head == FENCEPOST_HEAD);
-        assert(ok_address(p));
+        assert(is_aligned(chunk2mem(p)) || p.head == FENCEPOST_HEAD)
+        assert(ok_address(p))
     }
 
     // Check properties of top chunk
-    void do_check_top_chunk(p ^mchunk)
+    func do_check_top_chunk(p ^mchunk)
     {
-        msegment* sp = segment_holding(#^byte(p));
-        xuint sz = p.head & ~INUSE_BITS; // third-lowest bit can be set!
-        assert(sp != null);
-        assert(is_aligned(chunk2mem(p)) || p.head == FENCEPOST_HEAD);
-        assert(ok_address(p));
-        assert(sz == topsize);
-        assert(sz > 0);
-        assert(sz == #xuint((sp.baseAddr + sp.size) - #^byte(p)) - TOP_FOOT_SIZE);
-        assert(pinuse(p));
-        assert(!pinuse(chunk_plus_offset(p, sz)));
+        msegment* sp = segment_holding(#^byte(p))
+        @sz = p.head & ~INUSE_BITS // third-lowest bit can be set!
+        assert(sp != null)
+        assert(is_aligned(chunk2mem(p)) || p.head == FENCEPOST_HEAD)
+        assert(ok_address(p))
+        assert(sz == topsize)
+        assert(sz > 0)
+        assert(sz == #xuint((sp.baseAddr + sp.size) - #^byte(p)) - TOP_FOOT_SIZE)
+        assert(pinuse(p))
+        assert(!pinuse(chunk_plus_offset(p, sz)))
     }
 
     // Check properties of (inuse) mmapped chunks
-    void do_check_mmapped_chunk(p ^mchunk)
+    func do_check_mmapped_chunk(p ^mchunk)
     {
-        xuint sz = chunksize(p);
-        xuint len = (sz + (p.prev_foot) + MMAP_FOOT_PAD);
-        assert(is_mmapped(p));
-        assert(use_mmap());
-        assert((is_aligned(chunk2mem(p))) || (p.head == FENCEPOST_HEAD));
-        assert(ok_address(p));
-        assert(!is_small(sz));
-        assert((len & (mparams.page_size - SIZE_T_ONE)) == 0);
-        assert(chunk_plus_offset(p, sz).head == FENCEPOST_HEAD);
-        assert(chunk_plus_offset(p, sz + SIZE_T_SIZE).head == 0);
+        @sz = chunksize(p)
+        @len = (sz + (p.prev_foot) + MMAP_FOOT_PAD)
+        assert(is_mmapped(p))
+        assert(use_mmap())
+        assert((is_aligned(chunk2mem(p))) || (p.head == FENCEPOST_HEAD))
+        assert(ok_address(p))
+        assert(!is_small(sz))
+        assert((len & (mparams.page_size - SIZE_T_ONE)) == 0)
+        assert(chunk_plus_offset(p, sz).head == FENCEPOST_HEAD)
+        assert(chunk_plus_offset(p, sz + SIZE_T_SIZE).head == 0)
     }
 
     // Check properties of inuse chunks
-    void do_check_inuse_chunk(p ^mchunk)
+    func do_check_inuse_chunk(p ^mchunk)
     {
-        do_check_any_chunk(p);
-        assert(is_inuse(p));
-        assert(next_pinuse(p));
+        do_check_any_chunk(p)
+        assert(is_inuse(p))
+        assert(next_pinuse(p))
         // If not pinuse and not mmapped, previous chunk has OK offset
-        assert(is_mmapped(p) || pinuse(p) || next_chunk(prev_chunk(p)) == p);
-        if (is_mmapped(p))
-            do_check_mmapped_chunk(p);
+        assert(is_mmapped(p) || pinuse(p) || next_chunk(prev_chunk(p)) == p)
+        if is_mmapped(p)
+          => do_check_mmapped_chunk(p)
     }
 
     // Check properties of free chunks
-    void do_check_free_chunk(p ^mchunk)
+    func do_check_free_chunk(p ^mchunk)
     {
-        xuint sz = chunksize(p);
-        mchunk* next = chunk_plus_offset(p, sz);
-        do_check_any_chunk(p);
-        assert(!is_inuse(p));
-        assert(!next_pinuse(p));
-        assert(!is_mmapped(p));
-        if (p != dv && p != top)
+        @sz = chunksize(p)
+        mchunk* next = chunk_plus_offset(p, sz)
+        do_check_any_chunk(p)
+        assert(!is_inuse(p))
+        assert(!next_pinuse(p))
+        assert(!is_mmapped(p))
+        if p != dv && p != top
         {
-            if (sz >= MIN_CHUNK_SIZE)
+            if sz >= MIN_CHUNK_SIZE
             {
-                assert((sz & CHUNK_ALIGN_MASK) == 0);
-                assert(is_aligned(chunk2mem(p)));
-                assert(next.prev_foot == sz);
-                assert(pinuse(p));
-                assert(next == top || is_inuse(next));
-                assert(p.fd.bk == p);
-                assert(p.bk.fd == p);
+                assert((sz & CHUNK_ALIGN_MASK) == 0)
+                assert(is_aligned(chunk2mem(p)))
+                assert(next.prev_foot == sz)
+                assert(pinuse(p))
+                assert(next == top || is_inuse(next))
+                assert(p.fd.bk == p)
+                assert(p.bk.fd == p)
             }
             else  // markers are always of size SIZE_T_SIZE
-                assert(sz == SIZE_T_SIZE);
+              => assert(sz == SIZE_T_SIZE)
         }
     }
 
     // Check properties of malloced chunks at the point they are malloced
-    void do_check_malloced_chunk(void* mem, xuint s)
+    func do_check_malloced_chunk(mem ^void, s xuint)
     {
-        if (mem != null)
+        if mem != null
         {
-            mchunk* p = mem2chunk(mem);
-            xuint sz = p.head & ~INUSE_BITS;
-            do_check_inuse_chunk(p);
-            assert((sz & CHUNK_ALIGN_MASK) == 0);
-            assert(sz >= MIN_CHUNK_SIZE);
-            assert(sz >= s);
-            /* unless mmapped, size is less than MIN_CHUNK_SIZE more than request */
-            assert(is_mmapped(p) || sz < (s + MIN_CHUNK_SIZE));
+            mchunk* p = mem2chunk(mem)
+            @sz = p.head & ~INUSE_BITS
+            do_check_inuse_chunk(p)
+            assert((sz & CHUNK_ALIGN_MASK) == 0)
+            assert(sz >= MIN_CHUNK_SIZE)
+            assert(sz >= s)
+            // unless mmapped, size is less than MIN_CHUNK_SIZE more than request
+            assert(is_mmapped(p) || sz < (s + MIN_CHUNK_SIZE))
         }
     }
 
     // Check a tree and its subtrees.
-    void do_check_tree(t ^tchunk)
+    func do_check_tree(t ^tchunk)
     {
-        tchunk* head = null;
-        tchunk* u = t;
-        uint tindex = t.index;
-        xuint tsize = chunksize(t);
-        uint idx = compute_tree_index(tsize);
-        assert(tindex == idx);
-        assert(tsize >= MIN_LARGE_SIZE);
-        assert(tsize >= minsize_for_tree_index(idx));
-        assert((idx == NTREEBINS - 1) || (tsize < minsize_for_tree_index((idx + 1))));
+        @head ^tchunk = null
+        @u = t
+        @tindex = t.index
+        @tsize = chunksize(t)
+        @idx = compute_tree_index(tsize)
+        assert(tindex == idx)
+        assert(tsize >= MIN_LARGE_SIZE)
+        assert(tsize >= minsize_for_tree_index(idx))
+        assert((idx == NTREEBINS - 1) || (tsize < minsize_for_tree_index((idx + 1))))
 
         do
         {
             // traverse through chain of same-sized nodes
-            do_check_any_chunk((#^mchunk(u)));
-            assert(u.index == tindex);
-            assert(chunksize(u) == tsize);
-            assert(!is_inuse(u));
-            assert(!next_pinuse(u));
-            assert(u.fd.bk == u);
-            assert(u.bk.fd == u);
-            if (u.parent == null)
+            do_check_any_chunk((#^mchunk(u)))
+            assert(u.index == tindex)
+            assert(chunksize(u) == tsize)
+            assert(!is_inuse(u))
+            assert(!next_pinuse(u))
+            assert(u.fd.bk == u)
+            assert(u.bk.fd == u)
+            if u.parent == null
             {
-                assert(u.child0 == null);
-                assert(u.child1 == null);
+                assert(u.child0 == null)
+                assert(u.child1 == null)
             }
             else
             {
-                assert(head == null); // only one node on chain has parent
-                head = u;
-                assert(u.parent != u);
-                assert(u.parent.child0 == u ||
-                        u.parent.child1 == u ||
-                        *((tchunk**)(u.parent)) == u);
-                if (u.child0 != null)
+                assert(head == null) // only one node on chain has parent
+                head = u
+                assert(u.parent != u)
+                assert(u.parent.child0 == u
+                        || u.parent.child1 == u
+                        || ^(#^^tchunk(u.parent)) == u)
+                if u.child0 != null
                 {
-                    assert(u.child0.parent == u);
-                    assert(u.child0 != u);
-                    do_check_tree(u.child0);
+                    assert(u.child0.parent == u)
+                    assert(u.child0 != u)
+                    do_check_tree(u.child0)
                 }
-                if (u.child1 != null)
+                if u.child1 != null
                 {
-                    assert(u.child1.parent == u);
-                    assert(u.child1 != u);
-                    do_check_tree(u.child1);
+                    assert(u.child1.parent == u)
+                    assert(u.child1 != u)
+                    do_check_tree(u.child1)
                 }
-                if (u.child0 != null && u.child1 != null)
+                if u.child0 != null && u.child1 != null
                 {
-                    assert(chunksize(u.child0) < chunksize(u.child1));
+                    assert(chunksize(u.child0) < chunksize(u.child1))
                 }
             }
-            u = u.fd;
-        } while (u != t);
-        assert(head != null);
+            u = u.fd
+        } while u != t
+        assert(head != null)
     }
 
     //  Check all the chunks in a treebin. 
-    void do_check_treebin(uint i)
+    func do_check_treebin(i uint)
     {
-        tchunk** tb = treebin_at(i);
-        tchunk* t = *tb;
-        bool empty = (treemap & (1U << (int)i)) == 0;
-        if (t == null)
-            assert(empty);
-        if (!empty)
-            do_check_tree(t);
+        @tb = treebin_at(i)
+        @t = ^tb
+        @empty = (treemap & (1U << i)) == 0
+        if t == null
+          => assert(empty)
+        if !empty
+          => do_check_tree(t)
     }
 
     //  Check all the chunks in a smallbin.
-    void do_check_smallbin(uint i)
+    func do_check_smallbin(uint i)
     {
-        mchunk* b = smallbin_at(i);
-        mchunk* p = b.bk;
-        bool empty = (smallmap & (1U << (int)i)) == 0;
-        if (p == b)
-            assert(empty);
-        if (!empty)
+        @b = smallbin_at(i)
+        @p = b.bk
+        @empty = (smallmap & (1U << i)) == 0
+        if p == b
+          => assert(empty)
+        if !empty
         {
-            for (; p != b; p = p.bk)
+            while p != b
             {
-                xuint size = chunksize(p);
-                mchunk* q;
-                /* each chunk claims to be free */
-                do_check_free_chunk(p);
-                /* chunk belongs in bin */
-                assert(small_index(size) == i);
-                assert(p.bk == b || chunksize(p.bk) == chunksize(p));
+                @size = chunksize(p)
+                @q ^mchunk
+                // each chunk claims to be free
+                do_check_free_chunk(p)
+                // chunk belongs in bin
+                assert(small_index(size) == i)
+                assert(p.bk == b || chunksize(p.bk) == chunksize(p))
                 // chunk is followed by an inuse chunk
-                q = next_chunk(p);
-                if (q.head != FENCEPOST_HEAD)
-                    do_check_inuse_chunk(q);
+                q = next_chunk(p)
+                if q.head != FENCEPOST_HEAD
+                  => do_check_inuse_chunk(q)
+                p = p.bk
             }
         }
     }
 
     // Find x in a bin. Used in other check functions.
-    bool bin_find(mchunk* x)
+    func bin_find(x ^mchunk)
     {
-        xuint size = chunksize(x);
-        if (is_small(size))
+        @size = chunksize(x)
+        if is_small(size)
         {
-            uint sidx = small_index(size);
-            mchunk* b = smallbin_at(sidx);
-            if (smallmap_is_marked(sidx))
+            @sidx = small_index(size)
+            @b = smallbin_at(sidx)
+            if smallmap_is_marked(sidx)
             {
-                mchunk* p = b;
+                @p = b
                 do
                 {
-                    if (p == x)
-                        return true;
-                } while ((p = p.fd) != b);
+                    if p == x
+                      => return true
+                    p = p.fd
+                } while p != b
             }
         }
         else
         {
-            uint tidx = compute_tree_index(size);
-            if (treemap_is_marked(tidx))
+            @tidx = compute_tree_index(size)
+            if treemap_is_marked(tidx)
             {
-                tchunk* t = *treebin_at(tidx);
-                xuint sizebits = size << leftshift_for_tree_index(tidx);
-                while (t != null && chunksize(t) != size)
+                @t = ^treebin_at(tidx)
+                @sizebits = size << leftshift_for_tree_index(tidx)
+                while t != null && chunksize(t) != size
                 {
-                    t = ((sizebits >> (int)(SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 ? t.child0 : t.child1;
-                    sizebits <<= 1;
+                    t = ((sizebits >> (SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 ? t.child0 : t.child1
+                    sizebits <<= 1
                 }
-                if (t != null)
+                if t != null
                 {
-                    tchunk* u = t;
+                    @u = t
                     do
                     {
-                        if (u == #^tchunk(x))
-                            return true;
-                    } while ((u = u.fd) != t);
+                        if u == #^tchunk(x)
+                          => return true
+                        u = u.fd
+                    } while u != t
                 }
             }
         }
-        return false;
+        return false
     }
 
     // Traverse each chunk and check it; return total
-    xuint traverse_and_check()
+    func traverse_and_check()
     {
-        xuint sum = 0;
-        if (is_initialized())
+        @sum = 0
+        if is_initialized()
         {
-            msegment* s = seg;
-            sum += topsize + TOP_FOOT_SIZE;
-            while (s != null)
+            @s = seg
+            sum += topsize + TOP_FOOT_SIZE
+            while s != null
             {
-                mchunk* q = align_as_chunk(s.baseAddr);
-                mchunk* lastq = null;
-                assert(pinuse(q));
-                while (segment_holds(s, q) &&
-                        q != top && q.head != FENCEPOST_HEAD)
+                @q = align_as_chunk(s.baseAddr)
+                @lastq = null
+                assert(pinuse(q))
+                while segment_holds(s, q)
+                        && q != top 
+                        && q.head != FENCEPOST_HEAD
                 {
-                    sum += chunksize(q);
-                    if (is_inuse(q))
+                    sum += chunksize(q)
+                    if is_inuse(q)
                     {
-                        assert(!bin_find(q));
-                        do_check_inuse_chunk(q);
+                        assert(!bin_find(q))
+                        do_check_inuse_chunk(q)
                     }
                     else
                     {
-                        assert(q == dv || bin_find(q));
-                        assert(lastq == null || is_inuse(lastq)); /* Not 2 consecutive free */
-                        do_check_free_chunk(q);
+                        assert(q == dv || bin_find(q))
+                        assert(lastq == null || is_inuse(lastq)) // Not 2 consecutive free
+                        do_check_free_chunk(q)
                     }
-                    lastq = q;
-                    q = next_chunk(q);
+                    lastq = q
+                    q = next_chunk(q)
                 }
-                s = s.next;
+                s = s.next
             }
         }
-        return sum;
+        return sum
     }
 
     // Check all properties of malloc_state.
-    void do_check_malloc_state()
+    func do_check_malloc_state()
     {
-        uint i;
-        xuint total;
+        @i uint
+        @total xuint
         // check bins
-        for (i = 0; i < NSMALLBINS; ++i)
-            do_check_smallbin(i);
-        for (i = 0; i < NTREEBINS; ++i)
-            do_check_treebin(i);
+        for @i in 0..NSMALLBINS
+          => do_check_smallbin(i)
+        for @i in 0..NTREEBINS
+          => do_check_treebin(i)
 
-        if (dvsize != 0)
+        if dvsize != 0
         {
             // check dv chunk
-            do_check_any_chunk(dv);
-            assert(dvsize == chunksize(dv));
-            assert(dvsize >= MIN_CHUNK_SIZE);
-            assert(!bin_find(dv));
+            do_check_any_chunk(dv)
+            assert(dvsize == chunksize(dv))
+            assert(dvsize >= MIN_CHUNK_SIZE)
+            assert(!bin_find(dv))
         }
 
-        if (top != null)
+        if top != null
         {
             // check top chunk
-            do_check_top_chunk(top);
-            assert(topsize > 0);
-            assert(!bin_find(top));
+            do_check_top_chunk(top)
+            assert(topsize > 0)
+            assert(!bin_find(top))
         }
 
-        total = traverse_and_check();
-        assert(total <= footprint);
-        assert(footprint <= max_footprint);
+        total = traverse_and_check()
+        assert(total <= footprint)
+        assert(footprint <= max_footprint)
     }
 
     // ----------------------- Operations on smallbins -----------------------
@@ -1368,155 +1372,149 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
     // Link a free chunk into a smallbin 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void insert_small_chunk(p ^mchunk, xuint s)
+    func insert_small_chunk(p ^mchunk, s xuint)
     {
-        uint I = small_index(s);
-        mchunk* B = smallbin_at(I);
-        mchunk* F = B;
-        assert(s >= MIN_CHUNK_SIZE);
-        if (!smallmap_is_marked(I))
-            mark_smallmap(I);
-        else if (RTCHECK(ok_address(B.fd)))
-            F = B.fd;
+        @I = small_index(s)
+        @B = smallbin_at(I)
+        @F = B
+        assert(s >= MIN_CHUNK_SIZE)
+        if !smallmap_is_marked(I)
+          => mark_smallmap(I)
+        else if RTCHECK(ok_address(B.fd))
+          => F = B.fd
         else
-        {
-            CallCorruptionErrorAction();
-        }
-        B.fd = p;
-        F.bk = p;
-        p.fd = F;
-        p.bk = B;
+          => CallCorruptionErrorAction()
+        B.fd = p
+        F.bk = p
+        p.fd = F
+        p.bk = B
     }
 
     // Unlink a chunk from a smallbin
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void unlink_small_chunk(p ^mchunk, xuint s)
+    func unlink_small_chunk(p ^mchunk, s xuint)
     {
-        mchunk* F = p.fd;
-        mchunk* B = p.bk;
-        uint I = small_index(s);
-        assert(p != B);
-        assert(p != F);
-        assert(chunksize(p) == small_index2size(I));
-        if (RTCHECK(F == smallbin_at(I) || (ok_address(F) && F.bk == p)))
+        @F = p.fd
+        @B = p.bk
+        @I = small_index(s)
+        assert(p != B)
+        assert(p != F)
+        assert(chunksize(p) == small_index2size(I))
+        if RTCHECK(F == smallbin_at(I) || (ok_address(F) && F.bk == p))
         {
-            if (B == F)
+            if B == F
+              => clear_smallmap(I)
+            else if RTCHECK(B == smallbin_at(I) 
+                     || (ok_address(B) && B.fd == p))
             {
-                clear_smallmap(I);
-            }
-            else if (RTCHECK(B == smallbin_at(I) ||
-                                (ok_address(B) && B.fd == p)))
-            {
-                F.bk = B;
-                B.fd = F;
+                F.bk = B
+                B.fd = F
             }
             else
-            {
-                CallCorruptionErrorAction();
-            }
+              => CallCorruptionErrorAction()
         }
         else
         {
-            CallCorruptionErrorAction();
+            CallCorruptionErrorAction()
         }
     }
 
-    ///* Unlink the first chunk from a smallbin */
+    // Unlink the first chunk from a smallbin
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void unlink_first_small_chunk(mchunk* b, p ^mchunk, uint i)
+    func unlink_first_small_chunk(b ^mchunk, p ^mchunk, i uint)
     {
-        mchunk* F = p.fd;
-        assert(p != b);
-        assert(p != F);
-        assert(chunksize(p) == small_index2size(i));
-        if (b == F)
+        @F = p.fd
+        assert(p != b)
+        assert(p != F)
+        assert(chunksize(p) == small_index2size(i))
+        if b == F
+          => clear_smallmap(i)
+        else if RTCHECK(ok_address(F) && F.bk == p)
         {
-            clear_smallmap(i);
-        }
-        else if (RTCHECK(ok_address(F) && F.bk == p))
-        {
-            F.bk = b;
-            b.fd = F;
+            F.bk = b
+            b.fd = F
         }
         else
-        {
-            CallCorruptionErrorAction();
-        }
+          => CallCorruptionErrorAction()
     }
 
     // Replace dv node, binning the old one
     // Used only when dvsize known to be small
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void replace_dv(p ^mchunk, xuint s)
+    func replace_dv(p ^mchunk, s xuint)
     {
-        xuint DVS = dvsize;
-        assert(is_small(DVS));
-        if (DVS != 0)
+        @DVS = dvsize
+        assert(is_small(DVS))
+        if DVS != 0
         {
-            mchunk* DV = dv;
-            insert_small_chunk(DV, DVS);
+            mchunk* DV = dv
+            insert_small_chunk(DV, DVS)
         }
-        dvsize = s;
-        dv = p;
+        dvsize = s
+        dv = p
     }
 
     // ------------------------- Operations on trees -------------------------
 
     // Insert chunk into tree
-    void insert_large_chunk(tchunk* x, xuint s)
+    func insert_large_chunk(x ^tchunk, s xuint)
     {
-        tchunk** H;
-        uint I = compute_tree_index(s);
-        H = treebin_at(I);
-        x.index = I;
-        x.child0 = x.child1 = null;
-        if (!treemap_is_marked(I))
+        @H ^^tchunk
+        @I = compute_tree_index(s)
+        H = treebin_at(I)
+        x.index = I
+        x.child0 = null
+        x.child1 = null
+        if !treemap_is_marked(I)
         {
-            mark_treemap(I);
-            *H = x;
-            x.parent = #^tchunk(H);
-            x.fd = x.bk = x;
+            mark_treemap(I)
+            ^H = x
+            x.parent = #^tchunk(H)
+            x.fd = x
+            x.bk = x
         }
         else
         {
-            tchunk* T = *H;
-            xuint K = s << leftshift_for_tree_index(I);
-            for (; ; )
+            @T = ^H
+            @K = s << leftshift_for_tree_index(I)
+            while true
             {
-                if (chunksize(T) != s)
+                if chunksize(T) != s
                 {
-                    tchunk** C = ((K >> (int)(SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 ? &T.child0 : &T.child1;
-                    K <<= 1;
-                    if (*C != null)
-                        T = *C;
-                    else if (RTCHECK(ok_address(C)))
+                    @C = ((K >> (SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 ? &T.child0 : &T.child1
+                    K <<= 1
+                    if ^C != null
+                      => T = ^C
+                    else if RTCHECK(ok_address(C))
                     {
-                        *C = x;
-                        x.parent = T;
-                        x.fd = x.bk = x;
-                        break;
+                        ^C = x
+                        x.parent = T
+                        x.fd = x
+                        x.bk = x
+                        break
                     }
                     else
                     {
-                        CallCorruptionErrorAction();
-                        break;
+                        CallCorruptionErrorAction()
+                        break
                     }
                 }
                 else
                 {
-                    tchunk* F = T.fd;
-                    if (RTCHECK(ok_address(T) && ok_address(F)))
+                    @F = T.fd
+                    if RTCHECK(ok_address(T) && ok_address(F))
                     {
-                        T.fd = F.bk = x;
-                        x.fd = F;
-                        x.bk = T;
-                        x.parent = null;
-                        break;
+                        T.fd = x
+                        F.bk = x
+                        x.fd = F
+                        x.bk = T
+                        x.parent = null
+                        break
                     }
                     else
                     {
-                        CallCorruptionErrorAction();
-                        break;
+                        CallCorruptionErrorAction()
+                        break
                     }
                 }
             }
@@ -1538,90 +1536,102 @@ pub unsafe abstract class DlMallocBase : IDisposable
     //  3. If x is the base of a chain (i.e., has parent links) relink
     //     x's parent and children to x's replacement (or null if none).
 
-    void unlink_large_chunk(tchunk* x)
+    func unlink_large_chunk(x ^tchunk)
     {
-        tchunk* XP = x.parent;
-        tchunk* R;
-        if (x.bk != x)
+        @XP = x.parent
+        @R ^tchunk
+        if x.bk != x
         {
-            tchunk* F = x.fd;
-            R = x.bk;
-            if (RTCHECK(ok_address(F) && F.bk == x && R.fd == x))
+            @F = x.fd
+            R = x.bk
+            if RTCHECK(ok_address(F) && F.bk == x && R.fd == x)
             {
-                F.bk = R;
-                R.fd = F;
+                F.bk = R
+                R.fd = F
             }
             else
-            {
-                CallCorruptionErrorAction();
-            }
+              => CallCorruptionErrorAction()
         }
         else
         {
-            tchunk** RP;
-            if (((R = *(RP = &(x.child1))) != null) ||
-                ((R = *(RP = &(x.child0))) != null))
+            @RP ^^tchunk
+            RP = &x.child1
+            R = ^RP
+            if R == null
             {
-                tchunk** CP;
-                while ((*(CP = &(R.child1)) != null) ||
-                        (*(CP = &(R.child0)) != null))
+                RP = &x.child0
+                R = ^RP
+            }
+            if R != null
+            {
+                @CP ^^tchunk
+                CP = &R.child1
+                if ^CP == null
+                  => CP = &R.child0
+                while ^CP != null
                 {
-                    R = *(RP = CP);
+                    RP = CP
+                    R = ^RP
+                    CP = &R.child1
+                    if ^CP == null
+                      => CP = &R.child0
                 }
-                if (RTCHECK(ok_address(RP)))
-                    *RP = null;
+                if RTCHECK(ok_address(RP))
+                  => ^RP = null
                 else
-                {
-                    CallCorruptionErrorAction();
-                }
+                  => CallCorruptionErrorAction()
             }
         }
-        if (XP != null)
+        if XP != null
         {
-            tchunk** H = treebin_at(x.index);
-            if (x == *H)
+            @H = treebin_at(x.index)
+            if x == ^H
             {
-                if ((*H = R) == null)
-                    clear_treemap(x.index);
+                ^H = R
+                if R == null
+                  => clear_treemap(x.index)
             }
-            else if (RTCHECK(ok_address(XP)))
+            else if RTCHECK(ok_address(XP))
             {
                 if (XP.child0 == x)
-                    XP.child0 = R;
+                  => XP.child0 = R
                 else
-                    XP.child1 = R;
+                  => XP.child1 = R
             }
             else
-                CallCorruptionErrorAction();
-            if (R != null)
+              => CallCorruptionErrorAction()
+            if R != null
             {
-                if (RTCHECK(ok_address(R)))
+                if RTCHECK(ok_address(R))
                 {
-                    tchunk* C0, C1;
-                    R.parent = XP;
-                    if ((C0 = x.child0) != null)
+                    @C0 ^tchunk
+                    @C1 ^tchunk
+                    R.parent = XP
+                    C0 = x.child0
+                    if C0 != null
                     {
-                        if (RTCHECK(ok_address(C0)))
+                        if RTCHECK(ok_address(C0))
                         {
-                            R.child0 = C0;
-                            C0.parent = R;
+                            R.child0 = C0
+                            C0.parent = R
                         }
                         else
-                            CallCorruptionErrorAction();
+                          => CallCorruptionErrorAction()
                     }
-                    if ((C1 = x.child1) != null)
+                    C1 = x.child1
+                    if C1 != null
                     {
-                        if (RTCHECK(ok_address(C1)))
+                        if RTCHECK(ok_address(C1))
                         {
-                            R.child1 = C1;
-                            C1.parent = R;
+                            R.child1 = C1
+                            C1.parent = R
                         }
                         else
-                            CallCorruptionErrorAction();
+                          => CallCorruptionErrorAction()
                     }
                 }
                 else
-                    CallCorruptionErrorAction();
+                  => CallCorruptionErrorAction()
             }
         }
     }
@@ -1629,190 +1639,197 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // Relays to large vs small bin operations 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void insert_chunk(p ^mchunk, xuint s)
+    func insert_chunk(p ^mchunk, s xuint)
     {
-        if (is_small(s))
-            insert_small_chunk(p, s);
+        if is_small(s)
+          => insert_small_chunk(p, s)
         else
-            insert_large_chunk(#^tchunk(p), s);
+          => insert_large_chunk(#^tchunk(p), s)
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void unlink_chunk(p ^mchunk, xuint s)
+    func unlink_chunk(p ^mchunk, s xuint)
     {
-        if (is_small(s))
-            unlink_small_chunk(p, s);
+        if is_small(s)
+          => unlink_small_chunk(p, s)
         else
-            unlink_large_chunk(#^tchunk(p));
+          => unlink_large_chunk(#^tchunk(p))
     }
 
     // -------------------------- mspace management --------------------------
 
     // Initialize top chunk and its size 
-    void init_top(p ^mchunk, xuint psize)
+    func init_top(p ^mchunk, psize xuint)
     {
         // Ensure alignment
-        xuint offset = align_offset(chunk2mem(p));
-        p = #^mchunk(#^byte(p) + offset);
-        psize -= offset;
+        @offset = align_offset(chunk2mem(p))
+        p = #^mchunk(#^byte(p) + offset)
+        psize -= offset
 
-        top = p;
-        topsize = psize;
-        p.head = psize | PINUSE_BIT;
+        top = p
+        topsize = psize
+        p.head = psize | PINUSE_BIT
         // set size of fake trailing chunk holding overhead space only once
-        chunk_plus_offset(p, psize).head = TOP_FOOT_SIZE;
-        trim_check = mparams.trim_threshold; // reset on each update
+        chunk_plus_offset(p, psize).head = TOP_FOOT_SIZE
+        trim_check = mparams.trim_threshold // reset on each update
     }
 
     // Initialize bins for a new mstate that is otherwise zeroed out
-    void init_bins()
+    func init_bins()
     {
-        /* Establish circular links for smallbins */
-        uint i;
-        for (i = 0; i < NSMALLBINS; ++i)
+        // Establish circular links for smallbins
+        @i uint
+        for @i in NSMALLBINS
         {
-            mchunk* bin = smallbin_at(i);
-            bin.fd = bin.bk = bin;
+            @bin = smallbin_at(i)
+            bin.bk = bin
+            bin.fd = bin
         }
     }
 
     /// <summary>
     /// Default corruption action - forget all allocated memory.
     /// </summary>
-    protected void ResetOnError()
+    protected func ResetOnError()
     {
-        int i;
-        ++malloc_corruption_error_count;
+        @i int
+        malloc_corruption_error_count += 1
         // Reinitialize fields to forget about all memory
-        smallmap = treemap = 0;
-        dvsize = topsize = 0;
-        seg.baseAddr = null;
-        seg.size = 0;
-        seg.next = null;
-        top = dv = null;
-        for (i = 0; i < (int)NTREEBINS; ++i)
-            *treebin_at((uint)i) = null;
-        init_bins();
+        smallmap = 0
+        treemap = 0
+        dvsize = 0
+        topsize = 0
+        seg.baseAddr = null
+        seg.size = 0
+        seg.next = null
+        top = null
+        dv = null
+        for @i in NTREEBINS
+          => ^treebin_at(i) = null
+        init_bins()
     }
 
     // Allocate chunk and prepend remainder with chunk in successor base.
-    void* prepend_alloc(byte* newbase, byte* oldbase,
-                                xuint nb)
+    func prepend_alloc(newbase ^byte,
+                       oldbase ^byte,
+                       nb xuint) ^void
     {
-        mchunk* p = align_as_chunk(newbase);
-        mchunk* oldfirst = align_as_chunk(oldbase);
-        xuint psize = #xuint(#^byte(oldfirst) - #^byte(p));
-        mchunk* q = chunk_plus_offset(p, nb);
-        xuint qsize = psize - nb;
-        set_size_and_pinuse_of_inuse_chunk(p, nb);
+        @p = align_as_chunk(newbase)
+        @oldfirst = align_as_chunk(oldbase)
+        @psize = #xuint(#^byte(oldfirst) - #^byte(p))
+        @q = chunk_plus_offset(p, nb)
+        @qsize = psize - nb
+        set_size_and_pinuse_of_inuse_chunk(p, nb)
 
-        assert(#^byte(oldfirst) > #^byte(q));
-        assert(pinuse(oldfirst));
-        assert(qsize >= MIN_CHUNK_SIZE);
+        assert(#^byte(oldfirst) > #^byte(q))
+        assert(pinuse(oldfirst))
+        assert(qsize >= MIN_CHUNK_SIZE)
 
         // consolidate remainder with first chunk of old base
-        if (oldfirst == top)
+        if oldfirst == top
         {
-            xuint tsize = topsize += qsize;
-            top = q;
-            q.head = tsize | PINUSE_BIT;
-            check_top_chunk(q);
+            topsize += qsize
+            @tsize = topsize
+            top = q
+            q.head = tsize | PINUSE_BIT
+            check_top_chunk(q)
         }
-        else if (oldfirst == dv)
+        else if oldfirst == dv
         {
-            xuint dsize = dvsize += qsize;
-            dv = q;
-            set_size_and_pinuse_of_free_chunk(q, dsize);
+            dvsize += qsize
+            @dsize = dvsize
+            dv = q
+            set_size_and_pinuse_of_free_chunk(q, dsize)
         }
         else
         {
-            if (!is_inuse(oldfirst))
+            if !is_inuse(oldfirst)
             {
-                xuint nsize = chunksize(oldfirst);
-                unlink_chunk(oldfirst, nsize);
-                oldfirst = chunk_plus_offset(oldfirst, nsize);
-                qsize += nsize;
+                @nsize = chunksize(oldfirst)
+                unlink_chunk(oldfirst, nsize)
+                oldfirst = chunk_plus_offset(oldfirst, nsize)
+                qsize += nsize
             }
-            set_free_with_pinuse(q, qsize, oldfirst);
-            insert_chunk(q, qsize);
-            check_free_chunk(q);
+            set_free_with_pinuse(q, qsize, oldfirst)
+            insert_chunk(q, qsize)
+            check_free_chunk(q)
         }
 
-        check_malloced_chunk(chunk2mem(p), nb);
-        return chunk2mem(p);
+        check_malloced_chunk(chunk2mem(p), nb)
+        return chunk2mem(p)
     }
 
     // Add a segment to hold a new noncontiguous region
-    void add_segment(byte* tbase, xuint tsize, flag_t mmapped)
+    func add_segment(tbase ^byte, tsize xuint, mmapped flag_t)
     {
         // Determine locations and sizes of segment, fenceposts, old top
-        byte* old_top = #^byte(top);
-        msegment* oldsp = segment_holding(old_top);
-        byte* old_end = oldsp.baseAddr + oldsp.size;
-        xuint ssize = pad_request(sizeof(msegment));
-        byte* rawsp = old_end - (ssize + FOUR_SIZE_T_SIZES + CHUNK_ALIGN_MASK);
-        xuint offset = align_offset(chunk2mem(rawsp));
-        byte* asp = rawsp + offset;
-        byte* csp = (asp < (old_top + MIN_CHUNK_SIZE)) ? old_top : asp;
-        mchunk* sp = #^mchunk(csp);
-        msegment* ss = (msegment*)(chunk2mem(sp));
-        mchunk* tnext = chunk_plus_offset(sp, ssize);
-        mchunk* p = tnext;
-        int nfences = 0;
+        @old_top = #^byte(top)
+        @oldsp = segment_holding(old_top)
+        @old_end = oldsp.baseAddr + oldsp.size
+        @ssize = pad_request(sizeof(msegment))
+        @rawsp = old_end - (ssize + FOUR_SIZE_T_SIZES + CHUNK_ALIGN_MASK)
+        @offset = align_offset(chunk2mem(rawsp))
+        @asp = rawsp + offset
+        @csp = (asp < (old_top + MIN_CHUNK_SIZE)) ? old_top : asp
+        @sp = #^mchunk(csp)
+        @ss = #^msegment(chunk2mem(sp))
+        @tnext = chunk_plus_offset(sp, ssize)
+        @p = tnext
+        @nfences = 0
 
         // reset top to new space
-        init_top(#^mchunk(tbase), tsize - TOP_FOOT_SIZE);
+        init_top(#^mchunk(tbase), tsize - TOP_FOOT_SIZE)
 
         // Set up segment record
-        assert(is_aligned(ss));
-        set_size_and_pinuse_of_inuse_chunk(sp, ssize);
-        *ss = *seg; // Push current record
-        seg.baseAddr = tbase;
-        seg.size = tsize;
-        seg.sflags = mmapped;
-        seg.next = ss;
+        assert(is_aligned(ss))
+        set_size_and_pinuse_of_inuse_chunk(sp, ssize)
+        ^ss = ^seg // Push current record
+        seg.baseAddr = tbase
+        seg.size = tsize
+        seg.sflags = mmapped
+        seg.next = ss
 
         // Insert trailing fenceposts
-        for (; ; )
+        while true
         {
-            mchunk* nextp = chunk_plus_offset(p, SIZE_T_SIZE);
-            p.head = FENCEPOST_HEAD;
-            ++nfences;
-            if (#^byte(&(nextp.head_ptr)) < old_end)
-                p = nextp;
+            @nextp = chunk_plus_offset(p, SIZE_T_SIZE)
+            p.head = FENCEPOST_HEAD
+            nfences += 1
+            if #^byte(&(nextp.head_ptr)) < old_end
+              => p = nextp
             else
-                break;
+              => break
         }
-        assert(nfences >= 2);
+        assert(nfences >= 2)
 
         // Insert the rest of old top into a bin as an ordinary free chunk
-        if (csp != old_top)
+        if csp != old_top
         {
-            mchunk* q = #^mchunk(old_top);
-            xuint psize = #xuint(csp - old_top);
-            mchunk* tn = chunk_plus_offset(q, psize);
-            set_free_with_pinuse(q, psize, tn);
-            insert_chunk(q, psize);
+            mchunk* q = #^mchunk(old_top)
+            @psize = #xuint(csp - old_top)
+            mchunk* tn = chunk_plus_offset(q, psize)
+            set_free_with_pinuse(q, psize, tn)
+            insert_chunk(q, psize)
         }
 
-        check_top_chunk(top);
+        check_top_chunk(top)
     }
 
     // -------------------------- System allocation --------------------------
 
     // Get memory from system using MMAP
-    void* sys_alloc(nb xuint)
+    func sys_alloc(nb xuint) ^void
     {
-        byte* tbase = null;
-        xuint tsize = 0;
-        flag_t mmap_flag = 0;
-        xuint asize; // allocation size
+        @tbase ^byte = null
+        @tsize = 0
+        @mmap_flag flag_t = 0
+        @asize xuint // allocation size
 
-        ensure_initialization();
+        ensure_initialization()
 
-        asize = granularity_align(nb + SYS_ALLOC_PADDING);
-        if (asize <= nb)
-            return null; // wraparound
+        asize = granularity_align(nb + SYS_ALLOC_PADDING)
+        if asize <= nb
+          => return null // wraparound
 
         // Try getting memory via CallMoreCore
         // In all cases, we need to request enough bytes from system to ensure
@@ -1820,453 +1837,465 @@ pub unsafe abstract class DlMallocBase : IDisposable
         // top_foot, plus alignment-pad to make sure we don't lose bytes if
         // not on boundary, and round this up to a granularity unit.
 
-        if (tbase == null)
+        if tbase == null
         {
             // Try MMAP
-            byte* mp = #^byte(CallMoreCore(ref asize))
-            if (mp != null)
+            @mp = #^byte(CallMoreCore(ref asize))
+            if mp != null
             {
-                tbase = mp;
-                tsize = asize;
-                mmap_flag = flag_t.USE_MMAP_BIT;
+                tbase = mp
+                tsize = asize
+                mmap_flag = flag_t.USE_MMAP_BIT
             }
         }
 
-        if (tbase != null)
+        if tbase != null
         {
-            if ((footprint += tsize) > max_footprint)
-                max_footprint = footprint;
+            footprint += tsize
+            if footprint > max_footprint
+              => max_footprint = footprint
 
-            if (!is_initialized())
-            {
-                throw new DlMallocException("Must already be initialized");
-            }
+            if !is_initialized()
+              => throw DlMallocException("Must already be initialized")
 
             // Try to merge with an existing segment
             // Only consider most recent segment if traversal suppressed 
-            msegment* sp = seg;
-            while (sp != null && tbase != sp.baseAddr + sp.size)
-                sp = NO_SEGMENT_TRAVERSAL ? null : sp.next;
+            @sp = seg
+            while sp != null && tbase != sp.baseAddr + sp.size
+              => sp = NO_SEGMENT_TRAVERSAL ? null : sp.next
 
-            if (sp != null &&
-                !is_extern_segment(sp) &&
-                (sp.sflags & flag_t.USE_MMAP_BIT) == mmap_flag &&
-                segment_holds(sp, top))
+            if sp != null
+                && !is_extern_segment(sp)
+                && (sp.sflags & flag_t.USE_MMAP_BIT) == mmap_flag
+                && segment_holds(sp, top)
             {
                 // append
-                sp.size += tsize;
-                init_top(top, topsize + tsize);
+                sp.size += tsize
+                init_top(top, topsize + tsize)
             }
             else
             {
-                if (tbase < least_addr)
-                    least_addr = tbase;
-                sp = seg;
-                while (sp != null && sp.baseAddr != tbase + tsize)
-                    sp = (NO_SEGMENT_TRAVERSAL) ? null : sp.next;
-                if (sp != null &&
-                    !is_extern_segment(sp) &&
-                    (sp.sflags & flag_t.USE_MMAP_BIT) == mmap_flag)
+                if tbase < least_addr
+                  => least_addr = tbase
+                sp = seg
+                while sp != null && sp.baseAddr != tbase + tsize
+                  => sp = (NO_SEGMENT_TRAVERSAL) ? null : sp.next
+                if sp != null
+                    && !is_extern_segment(sp)
+                    && (sp.sflags & flag_t.USE_MMAP_BIT) == mmap_flag
                 {
-                    byte* oldbase = sp.baseAddr;
-                    sp.baseAddr = tbase;
-                    sp.size += tsize;
-                    return prepend_alloc(tbase, oldbase, nb);
+                    byte* oldbase = sp.baseAddr
+                    sp.baseAddr = tbase
+                    sp.size += tsize
+                    return prepend_alloc(tbase, oldbase, nb)
                 }
                 else
-                    add_segment(tbase, tsize, mmap_flag);
+                  => add_segment(tbase, tsize, mmap_flag)
             }
 
-            if (nb < topsize)
+            if nb < topsize
             {
                 // Allocate from new or extended top space
-                xuint rsize = topsize -= nb;
-                mchunk* p = top;
-                mchunk* r = top = chunk_plus_offset(p, nb);
-                r.head = rsize | PINUSE_BIT;
-                set_size_and_pinuse_of_inuse_chunk(p, nb);
-                check_top_chunk(top);
-                check_malloced_chunk(chunk2mem(p), nb);
-                return chunk2mem(p);
+                topsize -= nb
+                @rsize = topsize
+                @p = top
+                top = chunk_plus_offset(p, nb)
+                @r = top
+                r.head = rsize | PINUSE_BIT
+                set_size_and_pinuse_of_inuse_chunk(p, nb)
+                check_top_chunk(top)
+                check_malloced_chunk(chunk2mem(p), nb)
+                return chunk2mem(p)
             }
         }
 
-        CallMallocFailureAction();
-        return null;
+        CallMallocFailureAction()
+        return null
     }
 
 
     // -----------------------  system deallocation -------------------------- 
 
     // Unmap and unlink any mmapped segments that don't contain used chunks
-    xuint release_unused_segments()
+    func release_unused_segments() xuint
     {
-        xuint released = 0;
-        int nsegs = 0;
-        msegment* pred = seg;
-        msegment* sp = pred.next;
-        while (sp != null)
+        @released xuint = 0
+        @nsegs = 0
+        @pred = seg
+        @sp = pred.next
+        while sp != null
         {
-            byte* baseAddr = sp.baseAddr;
-            xuint size = sp.size;
-            msegment* next = sp.next;
-            ++nsegs;
-            if (is_mmapped_segment(sp) && !is_extern_segment(sp))
+            @baseAddr = sp.baseAddr
+            @size = sp.size
+            @next = sp.next
+            nsegs += 1
+            if is_mmapped_segment(sp) && !is_extern_segment(sp)
             {
-                mchunk* p = align_as_chunk(baseAddr);
-                xuint psize = chunksize(p);
+                @p = align_as_chunk(baseAddr)
+                @psize = chunksize(p)
                 // Can unmap if first chunk holds entire segment and not pinned
-                if (!is_inuse(p) && #^byte(p) + psize >= baseAddr + size - TOP_FOOT_SIZE)
+                if !is_inuse(p) && #^byte(p) + psize >= baseAddr + size - TOP_FOOT_SIZE
                 {
-                    tchunk* tp = #^tchunk(p);
-                    assert(segment_holds(sp, #^byte(sp)));
-                    if (p == dv)
+                    tchunk* tp = #^tchunk(p)
+                    assert(segment_holds(sp, #^byte(sp)))
+                    if p == dv
                     {
-                        dv = null;
-                        dvsize = 0;
+                        dv = null
+                        dvsize = 0
                     }
                     else
                     {
-                        unlink_large_chunk(tp);
+                        unlink_large_chunk(tp)
                     }
-                    if (CallReleaseCore(baseAddr, size))
+                    if CallReleaseCore(baseAddr, size)
                     {
-                        released += size;
-                        footprint -= size;
+                        released += size
+                        footprint -= size
                         // unlink obsoleted record
-                        sp = pred;
-                        sp.next = next;
+                        sp = pred
+                        sp.next = next
                     }
                     else
                     { // back out if cannot unmap
-                        insert_large_chunk(tp, psize);
+                        insert_large_chunk(tp, psize)
                     }
                 }
             }
-            if (NO_SEGMENT_TRAVERSAL) // scan only first segment
-                break;
-            pred = sp;
-            sp = next;
+            if NO_SEGMENT_TRAVERSAL // scan only first segment
+              => break
+            pred = sp
+            sp = next
         }
         // Reset check counter
-        release_checks = ((#xuint(nsegs) > #xuint(MAX_RELEASE_CHECK_RATE)) ?
-                                #xuint(nsegs) : #xuint(MAX_RELEASE_CHECK_RATE));
-        return released;
+        release_checks = (#xuint(nsegs) > #xuint(MAX_RELEASE_CHECK_RATE)) 
+                            ? #xuint(nsegs) 
+                            : #xuint(MAX_RELEASE_CHECK_RATE)
+        return released
     }
 
-    int sys_trim(pad xuint)
+    func sys_trim(pad xuint) int
     {
-        xuint released = 0;
-        ensure_initialization();
-        if (pad < MAX_REQUEST && is_initialized())
+        @released xuint = 0
+        ensure_initialization()
+        if pad < MAX_REQUEST && is_initialized()
         {
-            pad += TOP_FOOT_SIZE; // ensure enough room for segment overhead
+            pad += TOP_FOOT_SIZE // ensure enough room for segment overhead
 
-            if (topsize > pad)
+            if topsize > pad
             {
                 // Shrink top space in granularity-size units, keeping at least one
-                xuint unit = mparams.granularity;
-                xuint extra = ((topsize - pad + (unit - SIZE_T_ONE)) / unit -
-                                SIZE_T_ONE) * unit;
-                msegment* sp = segment_holding(#^byte(top));
+                @unit = mparams.granularity
+                @extra = ((topsize - pad + (unit - SIZE_T_ONE)) / unit
+                                - SIZE_T_ONE) * unit
+                msegment* sp = segment_holding(#^byte(top))
 
-                if (!is_extern_segment(sp))
+                if !is_extern_segment(sp)
                 {
-                    if (is_mmapped_segment(sp))
+                    if is_mmapped_segment(sp)
                     {
-                        if (sp.size >= extra &&
-                            !has_segment_link(sp))
+                        if sp.size >= extra 
+                            && !has_segment_link(sp)
                         {
                             // can't shrink if pinned
-                            xuint newsize = sp.size - extra;
+                            @newsize = sp.size - extra
 
-                            if (CallReleaseCore(sp.baseAddr + newsize, extra))
+                            if CallReleaseCore(sp.baseAddr + newsize, extra)
                             {
-                                released = extra;
+                                released = extra
                             }
                         }
                     }
                 }
 
-                if (released != 0)
+                if released != 0
                 {
-                    sp.size -= released;
-                    footprint -= released;
-                    init_top(top, topsize - released);
-                    check_top_chunk(top);
+                    sp.size -= released
+                    footprint -= released
+                    init_top(top, topsize - released)
+                    check_top_chunk(top)
                 }
             }
 
             // Unmap any unused mmapped segments
-            released += release_unused_segments();
+            released += release_unused_segments()
 
             // On failure, disable autotrim to avoid repeated failed future calls
-            if (released == 0 && topsize > trim_check)
-                trim_check = MAX_SIZE_T;
+            if released == 0 && topsize > trim_check
+              => trim_check = MAX_SIZE_T
         }
 
-        return (released != 0) ? 1 : 0;
+        return released != 0 ? 1 : 0
     }
 
     // Consolidate and bin a chunk. Differs from exported versions
     //   of free mainly in that the chunk need not be marked as inuse.
-    void dispose_chunk(mchunk* p, xuint psize)
+    func dispose_chunk(p ^mchunk, psize xuint)
     {
-        mchunk* next = chunk_plus_offset(p, psize);
-        if (!pinuse(p))
+        @next = chunk_plus_offset(p, psize)
+        if !pinuse(p)
         {
-            mchunk* prev;
-            xuint prevsize = p.prev_foot;
-            if (is_mmapped(p))
+            @prev ^mchunk
+            @prevsize = p.prev_foot
+            if is_mmapped(p)
             {
-                psize += prevsize + MMAP_FOOT_PAD;
-                if (CallReleaseCore(#^byte(p) - prevsize, psize))
-                    footprint -= psize;
-                return;
+                psize += prevsize + MMAP_FOOT_PAD
+                if CallReleaseCore(#^byte(p) - prevsize, psize)
+                  => footprint -= psize
+                return
             }
-            prev = chunk_minus_offset(p, prevsize);
-            psize += prevsize;
-            p = prev;
-            if (RTCHECK(ok_address(prev)))
+            prev = chunk_minus_offset(p, prevsize)
+            psize += prevsize
+            p = prev
+            if RTCHECK(ok_address(prev))
             {
                 // consolidate backward
-                if (p != dv)
+                if p != dv
                 {
-                    unlink_chunk(p, prevsize);
+                    unlink_chunk(p, prevsize)
                 }
-                else if ((next.head & INUSE_BITS) == INUSE_BITS)
+                else if (next.head & INUSE_BITS) == INUSE_BITS
                 {
-                    dvsize = psize;
-                    set_free_with_pinuse(p, psize, next);
-                    return;
+                    dvsize = psize
+                    set_free_with_pinuse(p, psize, next)
+                    return
                 }
             }
             else
             {
-                CallCorruptionErrorAction();
-                return;
+                CallCorruptionErrorAction()
+                return
             }
         }
-        if (RTCHECK(ok_address(next)))
+        if RTCHECK(ok_address(next))
         {
-            if (!cinuse(next))
+            if !cinuse(next)
             {
                 // consolidate forward
-                if (next == top)
+                if next == top
                 {
-                    xuint tsize = topsize += psize;
-                    top = p;
-                    p.head = tsize | PINUSE_BIT;
-                    if (p == dv)
+                    topsize += psize
+                    @tsize = topsize
+                    top = p
+                    p.head = tsize | PINUSE_BIT
+                    if p == dv
                     {
-                        dv = null;
-                        dvsize = 0;
+                        dv = null
+                        dvsize = 0
                     }
-                    return;
+                    return
                 }
-                else if (next == dv)
+                else if next == dv
                 {
-                    xuint dsize = dvsize += psize;
-                    dv = p;
-                    set_size_and_pinuse_of_free_chunk(p, dsize);
-                    return;
+                    dvsize += psize
+                    @dsize = dvsize
+                    dv = p
+                    set_size_and_pinuse_of_free_chunk(p, dsize)
+                    return
                 }
                 else
                 {
-                    xuint nsize = chunksize(next);
-                    psize += nsize;
-                    unlink_chunk(next, nsize);
-                    set_size_and_pinuse_of_free_chunk(p, psize);
-                    if (p == dv)
+                    @nsize = chunksize(next)
+                    psize += nsize
+                    unlink_chunk(next, nsize)
+                    set_size_and_pinuse_of_free_chunk(p, psize)
+                    if p == dv
                     {
-                        dvsize = psize;
-                        return;
+                        dvsize = psize
+                        return
                     }
                 }
             }
             else
             {
-                set_free_with_pinuse(p, psize, next);
+                set_free_with_pinuse(p, psize, next)
             }
-            insert_chunk(p, psize);
+            insert_chunk(p, psize)
         }
         else
         {
-            CallCorruptionErrorAction();
+            CallCorruptionErrorAction()
         }
     }
 
     // ---------------------------- malloc ---------------------------
 
     // allocate a large request from the best fitting chunk in a treebin
-    void* tmalloc_large(nb xuint)
+    func tmalloc_large(xuint nb) ^void
     {
-        tchunk* v = null;
-        xuint rsize = #xuint(-(long)nb); // Unsigned negation
-        tchunk* t;
-        uint idx = compute_tree_index(nb);
-        if ((t = *treebin_at(idx)) != null)
+        @v ^tchunk = null
+        @rsize = #xuint(-#xint(nb)) // Unsigned negation
+        @t ^tchunk
+        @idx = compute_tree_index(nb)
+        t = ^treebin_at(idx)
+        if t != null
         {
-            /* Traverse tree for this bin looking for node with size == nb */
-            xuint sizebits = nb << leftshift_for_tree_index(idx);
-            tchunk* rst = null;  // The deepest untaken right subtree
-            for (; ; )
+            // Traverse tree for this bin looking for node with size == nb
+            @sizebits = nb << leftshift_for_tree_index(idx)
+            tchunk* rst = null  // The deepest untaken right subtree
+            while true
             {
-                tchunk* rt;
-                xuint trem = chunksize(t) - nb;
-                if (trem < rsize)
+                @rt ^tchunk
+                @trem = chunksize(t) - nb
+                if trem < rsize
                 {
-                    v = t;
-                    if ((rsize = trem) == 0)
-                        break;
+                    v = t
+                    rsize = trem
+                    if rsize == 0
+                      => break
                 }
-                rt = t.child1;
-                t = ((sizebits >> (int)(SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 ? t.child0 : t.child1;
-                if (rt != null && rt != t)
-                    rst = rt;
-                if (t == null)
+                rt = t.child1
+                t = ((sizebits >> #int(SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 
+                        ? t.child0 : t.child1
+                if rt != null && rt != t
+                  => rst = rt
+                if t == null
                 {
-                    t = rst; // set t to least subtree holding sizes > nb
-                    break;
+                    t = rst // set t to least subtree holding sizes > nb
+                    break
                 }
-                sizebits <<= 1;
+                sizebits <<= 1
             }
         }
-        if (t == null && v == null)
+        if t == null && v == null
         {
             // set t to root of next non-empty treebin
-            uint leftbits = left_bits(idx2bit(idx)) & treemap;
-            if (leftbits != 0)
+            @leftbits = left_bits(idx2bit(idx)) & treemap
+            if leftbits != 0
             {
-                uint leastbit = least_bit(leftbits);
-                uint i = compute_bit2idx(leastbit);
-                t = *treebin_at(i);
+                @leastbit = least_bit(leftbits)
+                @i = compute_bit2idx(leastbit)
+                t = ^treebin_at(i)
             }
         }
 
-        while (t != null)
+        while t != null
         {
             // find smallest of tree or subtree
-            xuint trem = chunksize(t) - nb;
-            if (trem < rsize)
+            @trem = chunksize(t) - nb
+            if trem < rsize
             {
-                rsize = trem;
-                v = t;
+                rsize = trem
+                v = t
             }
-            t = leftmost_child(t);
+            t = leftmost_child(t)
         }
 
         // If dv is a better fit, return 0 so malloc will use it
-        if (v != null && rsize < #xuint(dvsize - nb))
+        if v != null && rsize < #xuint(dvsize - nb)
         {
-            if (RTCHECK(ok_address(v)))
+            if RTCHECK(ok_address(v))
             {
                 // split
-                mchunk* r = chunk_plus_offset(v, nb);
-                assert(chunksize(v) == rsize + nb);
-                if (RTCHECK(ok_next(v, r)))
+                mchunk* r = chunk_plus_offset(v, nb)
+                assert(chunksize(v) == rsize + nb)
+                if RTCHECK(ok_next(v, r))
                 {
-                    unlink_large_chunk(v);
-                    if (rsize < MIN_CHUNK_SIZE)
-                        set_inuse_and_pinuse(v, (rsize + nb));
+                    unlink_large_chunk(v)
+                    if rsize < MIN_CHUNK_SIZE
+                      => set_inuse_and_pinuse(v, (rsize + nb))
                     else
                     {
-                        set_size_and_pinuse_of_inuse_chunk(#^mchunk(v), nb);
-                        set_size_and_pinuse_of_free_chunk(r, rsize);
-                        insert_chunk(r, rsize);
+                        set_size_and_pinuse_of_inuse_chunk(#^mchunk(v), nb)
+                        set_size_and_pinuse_of_free_chunk(r, rsize)
+                        insert_chunk(r, rsize)
                     }
-                    return chunk2mem(v);
+                    return chunk2mem(v)
                 }
             }
-            CallCorruptionErrorAction();
+            CallCorruptionErrorAction()
         }
-        return null;
+        return null
     }
 
     // allocate a small request from the best fitting chunk in a treebin
-    void* tmalloc_small(nb xuint)
+    func tmalloc_small(nb xuint) ^void
     {
-        tchunk* t;
-        tchunk* v;
-        xuint rsize;
-        uint leastbit = least_bit(treemap);
-        uint i = compute_bit2idx(leastbit);
-        v = t = *treebin_at(i);
-        rsize = chunksize(t) - nb;
+        @t ^tchunk
+        @v ^tchunk
+        @rsize xuint
+        @leastbit = least_bit(treemap)
+        @i = compute_bit2idx(leastbit)
+        t = ^treebin_at(i)
+        v = t
+        rsize = chunksize(t) - nb
 
-        while ((t = leftmost_child(t)) != null)
+        t = leftmost_child(t)
+        while t != null
         {
-            xuint trem = chunksize(t) - nb;
-            if (trem < rsize)
+            @trem = chunksize(t) - nb
+            if trem < rsize
             {
-                rsize = trem;
-                v = t;
+                rsize = trem
+                v = t
             }
+            t = leftmost_child(t)            
         }
 
-        if (RTCHECK(ok_address(v)))
+        if RTCHECK(ok_address(v))
         {
-            mchunk* r = chunk_plus_offset(v, nb);
-            assert(chunksize(v) == rsize + nb);
-            if (RTCHECK(ok_next(v, r)))
+            mchunk* r = chunk_plus_offset(v, nb)
+            assert(chunksize(v) == rsize + nb)
+            if RTCHECK(ok_next(v, r))
             {
-                unlink_large_chunk(v);
-                if (rsize < MIN_CHUNK_SIZE)
-                    set_inuse_and_pinuse(v, (rsize + nb));
+                unlink_large_chunk(v)
+                if rsize < MIN_CHUNK_SIZE
+                  => set_inuse_and_pinuse(v, (rsize + nb))
                 else
                 {
-                    set_size_and_pinuse_of_inuse_chunk(#^mchunk(v), nb);
-                    set_size_and_pinuse_of_free_chunk(r, rsize);
-                    replace_dv(r, rsize);
+                    set_size_and_pinuse_of_inuse_chunk(#^mchunk(v), nb)
+                    set_size_and_pinuse_of_free_chunk(r, rsize)
+                    replace_dv(r, rsize)
                 }
-                return chunk2mem(v);
+                return chunk2mem(v)
             }
         }
 
-        CallCorruptionErrorAction();
-        return null;
+        CallCorruptionErrorAction()
+        return null
     }
 
     // Traversal
-    void internal_inspect_all(DlInspect handler)
+    func internal_inspect_all(
+        handler func(start ^void, end ^void, usedBytes ulong))
     {
         if (!is_initialized())
-            return;
+          => return
 
-        mchunk* top2 = top;
-        msegment* s;
-        for (s = seg; s != null; s = s.next)
+        @top2 = top
+        @s = seg
+        while s != null
         {
-            mchunk* q = align_as_chunk(s.baseAddr);
-            while (segment_holds(s, q) && q.head != FENCEPOST_HEAD)
+            mchunk* q = align_as_chunk(s.baseAddr)
+            while segment_holds(s, q) && q.head != FENCEPOST_HEAD
             {
-                mchunk* next = next_chunk(q);
-                xuint sz = chunksize(q);
-                xuint used;
-                void* start;
+                mchunk* next = next_chunk(q)
+                @sz = chunksize(q)
+                @used xuint
+                @start ^void
                 if (is_inuse(q))
                 {
-                    used = sz - CHUNK_OVERHEAD; // must not be mmapped
-                    start = chunk2mem(q);
+                    used = sz - CHUNK_OVERHEAD // must not be mmapped
+                    start = chunk2mem(q)
                 }
                 else
                 {
-                    used = 0;
+                    used = 0
                     if (is_small(sz))
-                    {     /* offset by possible bookkeeping */
-                        start = #^void(#^byte(q) + sizeof(mchunk));
+                    {   // offset by possible bookkeeping
+                        start = #^void(#^byte(q) + sizeof(mchunk))
                     }
                     else
                     {
-                        start = #^void(#^byte(q) + sizeof(tchunk));
+                        start = #^void(#^byte(q) + sizeof(tchunk))
                     }
                 }
                 if (start < #^void(next))  // skip if all space is bookkeeping
-                    handler(start, next, used);
+                  => handler(start, next, used)
                 if (q == top2)
-                    break;
-                q = next;
+                  => break
+                q = next
             }
+            s = s.next
         }
     }
 
@@ -2276,39 +2305,42 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
     // ----------------------------- user mspaces ----------------------------
 
-
-    protected static void MemClear(void* mem, long size)
+    // TBD: Optimize and move to standard library
+    protected static func MemClear(mem ^void, size long)
     {
-        var b = #^byte(mem);
-        while (--size >= 0)
-            *b++ = 0;
+        @b = #^byte(mem)
+        for @s in 0..size
+            { ^b = 0; b += 1 }
     }
 
-    void init_user_mstate(byte* tbase, xuint tsize)
+    func init_user_mstate(tbase ^byte, tsize xuint)
     {
-        mchunk* mn;
-        mchunk* msp = align_as_chunk(tbase);
-        void* m = chunk2mem(msp);
+        @mn mchunk
+        @msp = align_as_chunk(tbase)
+        @m ^void = chunk2mem(msp)
 
-        smallbins = (mchunk**)Marshal.AllocHGlobal(sizeof(mchunk*) * ((int)((NSMALLBINS + 1) * 2)));
-        treebins = (tchunk**)Marshal.AllocHGlobal(sizeof(tchunk*) * ((int)NTREEBINS));
-        seg = (msegment*)Marshal.AllocHGlobal(sizeof(msegment));
-        MemClear(smallbins, sizeof(mchunk*) * ((int)((NSMALLBINS + 1) * 2)));
-        MemClear(treebins, sizeof(tchunk*) * ((int)NTREEBINS));
-        MemClear(seg, sizeof(msegment));
+        smallbins = #^^mchunk(Marshal.AllocHGlobal(sizeof(^mchunk) * (((NSMALLBINS + 1) * 2))))
+        treebins = #^^tchunk(Marshal.AllocHGlobal(sizeof(^tchunk) * (NTREEBINS)))
+        seg = #^msegment(Marshal.AllocHGlobal(sizeof(msegment)))
+        MemClear(smallbins, sizeof(^mchunk) * (((NSMALLBINS + 1) * 2)))
+        MemClear(treebins, sizeof(^tchunk) * (NTREEBINS))
+        MemClear(seg, sizeof(msegment))
 
-        xuint msize = 0;
-        msp.head = (msize | INUSE_BITS);
-        seg.baseAddr = least_addr = tbase;
-        seg.size = footprint = max_footprint = tsize;
-        magic = mparams.magic;
-        release_checks = MAX_RELEASE_CHECK_RATE;
-        mflags = mparams.default_mflags;
+        @msize xuint = 0
+        msp.head = (msize | INUSE_BITS)
+        seg.baseAddr = tbase
+        least_addr = tbase
+        seg.size = tsize
+        footprint = tsize
+        max_footprint = tsize
+        magic = mparams.magic
+        release_checks = MAX_RELEASE_CHECK_RATE
+        mflags = mparams.default_mflags
 
-        init_bins();
-        mn = next_chunk(mem2chunk(m));
-        init_top(mn, #xuint((tbase + tsize) - #^byte(mn)) - TOP_FOOT_SIZE);
-        check_top_chunk(top);
+        init_bins()
+        mn = next_chunk(mem2chunk(m))
+        init_top(mn, #xuint((tbase + tsize) - #^byte(mn)) - TOP_FOOT_SIZE)
+        check_top_chunk(top)
     }
 
     // Initialize the malloc space with the
@@ -2319,20 +2351,20 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // control the sizes of incremental increases of this space by
     // compiling with a different DEFAULT_GRANULARITY.
     // Calling this function is optional.
-    public void Init(capacity xuint)
+    pub func Init(xuint capacity)
     {
-        ensure_initialization();
-        xuint rs = capacity == 0 ? mparams.granularity : capacity + TOP_FOOT_SIZE;
-        xuint tsize = granularity_align(rs);
-        byte* tbase = #^byte(CallMoreCore(ref tsize))
+        ensure_initialization()
+        @rs = capacity == 0 ? mparams.granularity : capacity + TOP_FOOT_SIZE
+        @tsize = granularity_align(rs)
+        @tbase = #^byte(CallMoreCore(ref tsize))
         if (tbase != null)
         {
-            init_user_mstate(tbase, tsize);
-            seg.sflags = flag_t.USE_MMAP_BIT;
+            init_user_mstate(tbase, tsize)
+            seg.sflags = flag_t.USE_MMAP_BIT
         }
         else
         {
-            throw new DlMallocException("Out of memory, cannot initialize malloc.");
+            throw DlMallocException("Out of memory, cannot initialize malloc.")
         }
     }
 
@@ -2340,35 +2372,36 @@ pub unsafe abstract class DlMallocBase : IDisposable
     //  of its memory back to the system, returning the total number of
     //  bytes freed. After destruction, the results of access to all memory
     //  used by the space become undefined.
-    public void Dispose()
+    pub func Dispose()
     {
-        msegment* sp = seg;
+        @sp = seg
         while (sp != null)
         {
-            byte* baseAddr = sp.baseAddr;
-            xuint size = sp.size;
-            flag_t flag = sp.sflags;
-            sp = sp.next;
-            if ((flag & flag_t.USE_MMAP_BIT) != 0 && (flag & flag_t.EXTERN_BIT) == 0 &&
-                CallReleaseCore(baseAddr, size))
+            @baseAddr = sp.baseAddr
+            @size = sp.size
+            @flag = sp.sflags
+            sp = sp.next
+            if ((flag & flag_t.USE_MMAP_BIT) != 0 
+                && (flag & flag_t.EXTERN_BIT) == 0
+                && CallReleaseCore(baseAddr, size))
             {
-                //freed += size;
+                //freed += size
             }
         }
-        Marshal.FreeHGlobal((IntPtr)smallbins);
-        Marshal.FreeHGlobal((IntPtr)treebins);
-        Marshal.FreeHGlobal((IntPtr)seg);
-        smallbins = null;
-        treebins = null;
-        seg = null;
-        top = null;
-        CallDisposeFinal();
+        Marshal.FreeHGlobal(smallbins)
+        Marshal.FreeHGlobal(treebins)
+        Marshal.FreeHGlobal(seg)
+        smallbins = null
+        treebins = null
+        seg = null
+        top = null
+        CallDisposeFinal()
     }
 
     /// <summary>
     /// Malloc can be exposed or used by the inheriting class
     /// </summary>
-    protected void* Malloc(length xuint)
+    protected func Malloc(length xuint) ^void
     {
         //     Basic algorithm:
         //     If a small request (< 256 bytes minus per-chunk overhead):
@@ -2390,192 +2423,209 @@ pub unsafe abstract class DlMallocBase : IDisposable
         //       5. If available, get memory from system and use it
 
         if (!is_initialized())
-            Init(0);
+            => Init(0)
 
         if (!ok_magic())
         {
-            CallUsageErrorAction(null);
-            return null;
+            CallUsageErrorAction(null)
+            return null
         }
-        void* mem;
-        xuint nb;
+        @mem ^void
+        @nb xuint
         if (length <= MAX_SMALL_REQUEST)
         {
-            uint idx;
-            uint smallbits;
-            nb = (length < MIN_REQUEST) ? MIN_CHUNK_SIZE : pad_request(length);
-            idx = small_index(nb);
-            smallbits = smallmap >> (int)idx;
+            @idx uint
+            @smallbits uint
+            nb = (length < MIN_REQUEST) ? MIN_CHUNK_SIZE : pad_request(length)
+            idx = small_index(nb)
+            smallbits = smallmap >> idx
 
             if ((smallbits & 0x3U) != 0)
             {
                 // Remainderless fit to a smallbin.
-                mchunk* b, p;
-                idx += ~smallbits & 1;       // Uses next bin if idx empty
-                b = smallbin_at(idx);
-                p = b.fd;
-                assert(chunksize(p) == small_index2size(idx));
-                unlink_first_small_chunk(b, p, idx);
-                set_inuse_and_pinuse(p, small_index2size(idx));
-                mem = chunk2mem(p);
-                check_malloced_chunk(mem, nb);
-                return mem;
+                @b ^mchunk
+                @p ^mchunk
+                idx += ~smallbits & 1       // Uses next bin if idx empty
+                b = smallbin_at(idx)
+                p = b.fd
+                assert(chunksize(p) == small_index2size(idx))
+                unlink_first_small_chunk(b, p, idx)
+                set_inuse_and_pinuse(p, small_index2size(idx))
+                mem = chunk2mem(p)
+                check_malloced_chunk(mem, nb)
+                return mem
             }
             else if (nb > dvsize)
             {
                 if (smallbits != 0)
                 {
                     // Use chunk in next nonempty smallbin
-                    mchunk* b, p, r;
-                    xuint rsize;
-                    uint leftbits = (smallbits << (int)idx) & left_bits(idx2bit(idx));
-                    uint leastbit = least_bit(leftbits);
-                    uint i = compute_bit2idx(leastbit);
-                    b = smallbin_at(i);
-                    p = b.fd;
-                    assert(chunksize(p) == small_index2size(i));
-                    unlink_first_small_chunk(b, p, i);
-                    rsize = small_index2size(i) - nb;
+                    @b ^mchunk
+                    @p ^mchunk
+                    @r ^mchunk
+                    @rsize xuint
+                    @leftbits = (smallbits << idx) & left_bits(idx2bit(idx))
+                    @leastbit = least_bit(leftbits)
+                    @i = compute_bit2idx(leastbit)
+                    b = smallbin_at(i)
+                    p = b.fd
+                    assert(chunksize(p) == small_index2size(i))
+                    unlink_first_small_chunk(b, p, i)
+                    rsize = small_index2size(i) - nb
                     // Fit here cannot be remainderless if 4byte sizes
                     if (SIZE_T_SIZE != 4 && rsize < MIN_CHUNK_SIZE)
-                        set_inuse_and_pinuse(p, small_index2size(i));
+                        => set_inuse_and_pinuse(p, small_index2size(i))
                     else
                     {
-                        set_size_and_pinuse_of_inuse_chunk(p, nb);
-                        r = chunk_plus_offset(p, nb);
-                        set_size_and_pinuse_of_free_chunk(r, rsize);
-                        replace_dv(r, rsize);
+                        set_size_and_pinuse_of_inuse_chunk(p, nb)
+                        r = chunk_plus_offset(p, nb)
+                        set_size_and_pinuse_of_free_chunk(r, rsize)
+                        replace_dv(r, rsize)
                     }
-                    mem = chunk2mem(p);
-                    check_malloced_chunk(mem, nb);
-                    return mem;
+                    mem = chunk2mem(p)
+                    check_malloced_chunk(mem, nb)
+                    return mem
                 }
-                else if (treemap != 0 && (mem = tmalloc_small(nb)) != null)
-                {
-                    check_malloced_chunk(mem, nb);
-                    return mem;
+                else
+                { 
+                    if (treemap != 0)
+                    {
+                        mem = tmalloc_small(nb)
+                        if mem != null
+                        {
+                            check_malloced_chunk(mem, nb)
+                            return mem
+                        }
+                    }
                 }
             }
         }
         else if (length >= MAX_REQUEST)
-            nb = MAX_SIZE_T; // Too big to allocate. Force failure (in sys alloc)
+            => nb = MAX_SIZE_T // Too big to allocate. Force failure (in sys alloc)
         else
         {
-            nb = pad_request(length);
-            if (treemap != 0 && (mem = tmalloc_large(nb)) != null)
+            nb = pad_request(length)
+            if (treemap != 0)
             {
-                check_malloced_chunk(mem, nb);
-                return mem;
+                mem = tmalloc_large(nb)
+                if mem != null
+                {
+                    check_malloced_chunk(mem, nb)
+                    return mem
+                }
             }
         }
 
         if (nb <= dvsize)
         {
-            xuint rsize = dvsize - nb;
-            mchunk* p = dv;
+            @rsize = dvsize - nb
+            mchunk* p = dv
             if (rsize >= MIN_CHUNK_SIZE)
             {
                 // split dv
-                mchunk* r = dv = chunk_plus_offset(p, nb);
-                dvsize = rsize;
-                set_size_and_pinuse_of_free_chunk(r, rsize);
-                set_size_and_pinuse_of_inuse_chunk(p, nb);
+                dv = chunk_plus_offset(p, nb)
+                @r = dv
+                dvsize = rsize
+                set_size_and_pinuse_of_free_chunk(r, rsize)
+                set_size_and_pinuse_of_inuse_chunk(p, nb)
             }
             else
             {
                 // exhaust dv
-                xuint dvs = dvsize;
-                dvsize = 0;
-                dv = null;
-                set_inuse_and_pinuse(p, dvs);
+                @dvs = dvsize
+                dvsize = 0
+                dv = null
+                set_inuse_and_pinuse(p, dvs)
             }
-            mem = chunk2mem(p);
-            check_malloced_chunk(mem, nb);
-            return mem;
+            mem = chunk2mem(p)
+            check_malloced_chunk(mem, nb)
+            return mem
         }
         else if (nb < topsize)
         {
             // Split top
-            xuint rsize = topsize -= nb;
-            mchunk* p = top;
-            mchunk* r = top = chunk_plus_offset(p, nb);
-            r.head = rsize | PINUSE_BIT;
-            set_size_and_pinuse_of_inuse_chunk(p, nb);
-            mem = chunk2mem(p);
-            check_top_chunk(top);
-            check_malloced_chunk(mem, nb);
-            return mem;
+            topsize -= nb
+            @rsize = topsize
+            @p = top
+            top = chunk_plus_offset(p, nb)
+            @r = top
+            r.head = rsize | PINUSE_BIT
+            set_size_and_pinuse_of_inuse_chunk(p, nb)
+            mem = chunk2mem(p)
+            check_top_chunk(top)
+            check_malloced_chunk(mem, nb)
+            return mem
         }
 
-        mem = sys_alloc(nb);
+        mem = sys_alloc(nb)
 
-        return mem;
+        return mem
     }
 
     /// <summary>
     /// Free can be exposed or used by the inheriting class
     /// </summary>
-    protected void Free(void* mem)
+    protected func Free(mem ^void)
     {
         // Consolidate freed chunks with preceeding or succeeding bordering
         // free chunks, if they exist, and then place in a bin.  Intermixed
         // with special cases for top, dv, mmapped chunks, and usage errors.
 
         if (mem == null)
-            return;
+            => return
 
         if (!is_initialized())
-            Init(0);
+            => Init(0)
 
-        mchunk* p = mem2chunk(mem);
+        mchunk* p = mem2chunk(mem)
         if (!ok_magic())
         {
-            CallUsageErrorAction(p);
-            return;
+            CallUsageErrorAction(p)
+            return
         }
-        check_inuse_chunk(p);
+        check_inuse_chunk(p)
         if (!RTCHECK(ok_address(p) && ok_inuse(p)))
         {
-            CallUsageErrorAction(p);
-            return;
+            CallUsageErrorAction(p)
+            return
         }
 
-        xuint psize = chunksize(p);
-        mchunk* next = chunk_plus_offset(p, psize);
+        @psize = chunksize(p)
+        @next = chunk_plus_offset(p, psize)
         if (!pinuse(p))
         {
-            xuint prevsize = p.prev_foot;
+            @prevsize = p.prev_foot
             if (is_mmapped(p))
             {
                 // NOTE: Direct MMAP was removed, so this never gets called
-                psize += prevsize + MMAP_FOOT_PAD;
+                psize += prevsize + MMAP_FOOT_PAD
                 if (CallReleaseCore(#^byte(p) - prevsize, psize))
-                    footprint -= psize;
-                return;
+                  => footprint -= psize
+                return
             }
             else
             {
-                mchunk* prev = chunk_minus_offset(p, prevsize);
-                psize += prevsize;
-                p = prev;
+                mchunk* prev = chunk_minus_offset(p, prevsize)
+                psize += prevsize
+                p = prev
                 if (RTCHECK(ok_address(prev)))
                 {
                     // consolidate backward
                     if (p != dv)
                     {
-                        unlink_chunk(p, prevsize);
+                        unlink_chunk(p, prevsize)
                     }
                     else if ((next.head & INUSE_BITS) == INUSE_BITS)
                     {
-                        dvsize = psize;
-                        set_free_with_pinuse(p, psize, next);
-                        return;
+                        dvsize = psize
+                        set_free_with_pinuse(p, psize, next)
+                        return
                     }
                 }
                 else
                 {
-                    CallUsageErrorAction(p);
-                    return;
+                    CallUsageErrorAction(p)
+                    return
                 }
             }
         }
@@ -2587,84 +2637,87 @@ pub unsafe abstract class DlMallocBase : IDisposable
                 // consolidate forward
                 if (next == top)
                 {
-                    xuint tsize = topsize += psize;
-                    top = p;
-                    p.head = tsize | PINUSE_BIT;
+                    topsize += psize
+                    @tsize = topsize
+                    top = p
+                    p.head = tsize | PINUSE_BIT
                     if (p == dv)
                     {
-                        dv = null;
-                        dvsize = 0;
+                        dv = null
+                        dvsize = 0
                     }
                     if (should_trim(tsize))
-                        sys_trim(0);
-                    return;
+                      => sys_trim(0)
+                    return
                 }
                 else if (next == dv)
                 {
-                    xuint dsize = dvsize += psize;
-                    dv = p;
-                    set_size_and_pinuse_of_free_chunk(p, dsize);
-                    return;
+                    dvsize += psize
+                    @dsize = dvsize
+                    dv = p
+                    set_size_and_pinuse_of_free_chunk(p, dsize)
+                    return
                 }
                 else
                 {
-                    xuint nsize = chunksize(next);
-                    psize += nsize;
-                    unlink_chunk(next, nsize);
-                    set_size_and_pinuse_of_free_chunk(p, psize);
+                    @nsize = chunksize(next)
+                    psize += nsize
+                    unlink_chunk(next, nsize)
+                    set_size_and_pinuse_of_free_chunk(p, psize)
                     if (p == dv)
                     {
-                        dvsize = psize;
-                        return;
+                        dvsize = psize
+                        return
                     }
                 }
             }
             else
-                set_free_with_pinuse(p, psize, next);
+              => set_free_with_pinuse(p, psize, next)
 
             if (is_small(psize))
             {
-                insert_small_chunk(p, psize);
-                check_free_chunk(p);
+                insert_small_chunk(p, psize)
+                check_free_chunk(p)
             }
             else
             {
-                tchunk* tp = #^tchunk(p);
-                insert_large_chunk(tp, psize);
-                check_free_chunk(p);
-                if (--release_checks == 0)
-                    release_unused_segments();
+                tchunk* tp = #^tchunk(p)
+                insert_large_chunk(tp, psize)
+                check_free_chunk(p)
+                release_checks -= 1
+                if (release_checks == 0)
+                  => release_unused_segments()
             }
-            return;
+            return
         }
-        CallUsageErrorAction(p);
+        CallUsageErrorAction(p)
     }
 
-    public delegate void DlInspect(void* start, void* end, ulong usedBytes);
 
-    protected void InspectAll(DlInspect handler)
+    protected func InspectAll(
+        handler func(start ^void, end ^void, usedBytes ulong))
     {
         if (ok_magic())
         {
-            internal_inspect_all(handler);
+            internal_inspect_all(handler)
         }
         else
         {
-            CallUsageErrorAction(null);
+            CallUsageErrorAction(null)
         }
     }
 
-    protected int Trim(pad xuint = 0)
+    protected func Trim(pad xuint) int
     {
-        int result = 0;
+        @result = 0
         if (ok_magic())
         {
-            result = sys_trim(pad);
+            result = sys_trim(pad)
         }
         else
         {
-            CallUsageErrorAction(null);
+            CallUsageErrorAction(null)
         }
-        return result;
+        return result
     }
 }
