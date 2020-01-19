@@ -10,7 +10,7 @@ pub class Example
 {
     pub field1 float32
     pub field2 int    
-    pub prop Prop str => Header + info  	// Property
+    pub prop Prop str => Header + info      // Property
     pub func A(a int) float => a+1
     pub func A(a float32) float => a+1
     pub func B(a float32) float => a+1
@@ -42,8 +42,8 @@ pub class Example2  // YES, errors working
     //    Switch statement
 
     // Fields initialized to zero, null, or "" for string
-    f1 int			// Initialized to 0
-    f2 float32		// Initialized to 0.0
+    f1 int          // Initialized to 0
+    f2 float32      // Initialized to 0.0
     f3 str          // Initialized to "", not NULL
     
     // Fields initialized to null
@@ -55,18 +55,18 @@ pub class Example2  // YES, errors working
     
     // Fields initialized via constructor
     f10 int(FuncReturnsInt())
-    f11 Array<int>()          // Array, Count=0
-    f12 Array<int>(32)        // Array, Count=32
-    f13 Array<int>({1,2,3})   // Array initialized with 1, 2, 3
-    f13a List<int>(32)         // Empty List, Capacity=32
-    f14 Map<str,str>()  	// Empty map
+    f11 Array<int>()            // Array, Count=0
+    f12 Array<int>(32)          // Array, Count=32
+    f13 Array<int>({1,2,3})     // Array initialized with 1, 2, 3
+    f13a List<int>(32)          // Empty List, Capacity=32
+    f14 Map<str,str>()          // Empty map
     
     // Fields initialized via assignment
     f15 int = 32
     f16 int = FuncReturnsInt() >> 4
     f17 float32 = FuncReturnsFloat32orInt()
     f18 str = "Hello"
-    f19 ^int = GetIntPtr()			// Same as Pointer<int> = `GetIntPtr()`
+    f19 ^int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
     pub prop P1 int => 1
@@ -258,11 +258,11 @@ pub struct MyPoint
 
 
 pub enum MyEnum
-{	
-    A 			// A=0
-    B; C		// B=1, C=2
-    D = 23		// D=23
-    E; F; G		// E=24, F=25, G=26
+{
+    A           // A=0
+    B; C        // B=1, C=2
+    D = 23      // D=23
+    E; F; G     // E=24, F=25, G=26
 }
 
 
@@ -311,16 +311,16 @@ pub static func Sort<T>(s Span<T>, lessThan func(a T, b T) bool)
 }
 
 // The matrix class is used to implement square 2d arrays
-pub sealed class Matrix2d<t> : VariableSizedObject<T>
+pub class Matrix2d<t> : VariableSizedObject<T>
 {
-    new(len1 int, len2 int) { todo() }	
+    new(len1 int, len2 int) { todo() }
     pub this[i1 int, i2 int] ref T => todo()
 }
 
 // Represents a buffer in un-managed memory.  This class can create and 
 // own the memory, or it can be attached to an already existing buffer.
 // The GC knows this class and deletes the memory when necessary.
-pub sealed class UnmanagedMemory<T> : UnmanagedHande 
+pub class UnmanagedMemory<T> : UnmanagedHande 
                 where T : IBlittableStruct
 {
     pub ro Memory ^void
@@ -348,13 +348,6 @@ pub sealed class UnmanagedMemory<T> : UnmanagedHande
     pub func CopyTo() { todo() }
 }
 
-
-// This is the base for all objects, struct and class alike.
-pub class object
-{
-    pub virtual func GetType() { todo() }
-    pub virtual func ToStr() { todo() }
-}
 
 // This is the base for all struct objects.
 pub class StructObject

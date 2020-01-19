@@ -20,7 +20,7 @@ pub struct xint = int32
 pub struct xuint = uint32
 
 /// bool (true or false)
-pub ro struct bool
+pub struct bool
     : IEquatable<bool>
 {
     pub new (from bool) => extern
@@ -34,7 +34,7 @@ pub ro struct bool
 }
 
 /// int8 (-128..127)
-pub ro struct int8
+pub struct int8
     : IComparable<int8>
 {
     pub new (from int8) => extern
@@ -60,7 +60,7 @@ pub ro struct int8
 
     const Origin int8 = 0;
     const Identity int8 = 1;
-    const MaxValue int8 = 127	
+    const MaxValue int8 = 127
     const MinValue int8 = -128
     pub static func GetHashCode(a int8) uint => extern
     pub static func Equals(a int8, b int8) bool => extern
@@ -69,7 +69,7 @@ pub ro struct int8
 
 
 /// uint8 (0..255) same as byte
-pub ro struct uint8
+pub struct uint8
     : IComparable<uint8>
 {
     pub new (from uint8) => extern
@@ -97,7 +97,7 @@ pub ro struct uint8
     
     const Origin int8 = 0;
     const Identity int8 = 1;
-    const MaxValue uint8 = 255	
+    const MaxValue uint8 = 255
     const MinValue uint8 = 0
     pub static func GetHashCode(a uint8) uint => extern
     pub static func Equals(a uint8, b uint8) bool => extern
@@ -105,7 +105,7 @@ pub ro struct uint8
 }
 
 /// int16 (-32768..32768)
-pub ro struct int16
+pub struct int16
     : IComparable<int16>
 {
     pub new (from int16) => extern
@@ -136,7 +136,7 @@ pub ro struct int16
 
 
 /// uint16 (0..65535)
-pub ro struct uint16
+pub struct uint16
     : IComparable<uint16>
 {
     pub new (from uint16) => extern
@@ -161,7 +161,7 @@ pub ro struct uint16
 
     const Origin int8 = 0;
     const Identity int8 = 1;
-    const MaxValue uint16 = 65535	
+    const MaxValue uint16 = 65535
     const MinValue uint16 = 0
     pub static func GetHashCode(a uint16) uint => extern
     pub static func Equals(a uint16, b uint16) bool => extern
@@ -169,7 +169,7 @@ pub ro struct uint16
 }
 
 /// A 32 bit integer (same as int)
-pub ro struct int32
+pub struct int32
     : IArithmetic<int32>
 {
     pub new (from int32) => extern
@@ -189,7 +189,7 @@ pub ro struct int32
 
     const Origin int8 = 0;
     const Identity int8 = 1;
-    const MaxValue int32 = 2147483647	
+    const MaxValue int32 = 2147483647
     const MinValue int32 = -2147483648
 
     // Comparisons    
@@ -218,7 +218,7 @@ pub ro struct int32
 }
 
 /// 32 bit unsigned integer (same as uint)
-pub ro struct uint32
+pub struct uint32
     : IArithmetic<uint32>
 {
     pub new (from uint32) => extern
@@ -241,7 +241,7 @@ pub ro struct uint32
 
     const Origin int8 = 0;
     const Identity int8 = 1;
-    const MaxValue uint32 = 4294967295	
+    const MaxValue uint32 = 4294967295
     const MinValue uint32 = 0
 
     // Comparisons    
@@ -268,7 +268,7 @@ pub ro struct uint32
 }
 
 /// A 64 bit integer
-pub ro struct int64
+pub struct int64
     : IArithmetic<int64>
 {
     pub new (from int64) => extern
@@ -283,7 +283,7 @@ pub ro struct int64
 
     const Origin int8 = 0;
     const Identity int8 = 1;
-    const MaxValue int64 = 9223372036854775807	
+    const MaxValue int64 = 9223372036854775807
     const MinValue int64 = -9223372036854775808
 
     // Comparisons    
@@ -312,7 +312,7 @@ pub ro struct int64
 }
 
 /// 64 bit unsigned integer
-pub ro struct uint64
+pub struct uint64
     : IArithmetic<uint64>
 {
     pub new (from uint64) => extern
@@ -331,7 +331,7 @@ pub ro struct uint64
 
     const Origin int8 = 0;
     const Identity int8 = 1;
-    const MaxValue uint64 = 18446744073709551615	
+    const MaxValue uint64 = 18446744073709551615
     const MinValue uint64 = 0
 
     // Comparisons    
@@ -357,7 +357,7 @@ pub ro struct uint64
     //static func operator>>(a uint64, b int32)
 }
 
-pub ro struct float32
+pub struct float32
     : IArithmetic<float32>
 {
     pub new (from float32) => extern
@@ -407,7 +407,7 @@ pub ro struct float32
       
 }
 
-pub ro struct float64
+pub struct float64
     : IArithmetic<float64>
 {
     pub new (from float64) => extern
@@ -455,14 +455,14 @@ pub ro struct float64
 
 /// 128 bit decimal integer.  This will support NAN, infinity, and
 /// exponents covering the entire range of float64 with more precision.
-pub ro struct decimal
+pub struct decimal
     : IArithmetic<decimal>
 {
     pub new (from decimal) => extern
 
     const Origin int8 = 0;
     const Identity int8 = 1;
-    const MaxValue decimal = 1E+1000M	
+    const MaxValue decimal = 1E+1000M
     const MinValue decimal = -1E+1000M
     const PositiveInfinity decimal = 1.0/0.0
     const NegativeInfinity decimal = -1.0/0.0

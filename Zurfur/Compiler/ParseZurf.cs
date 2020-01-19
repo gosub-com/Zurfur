@@ -61,17 +61,19 @@ namespace Gosub.Zurfur.Compiler
             + "continue default delegate do else enum event explicit extern false defer use "
             + "finally fixed for goto if implicit in interface internal is lock namespace module include "
             + "new null operator out override pub public private protected readonly ro ref mut "
-            + "return sealed sealed1 sizeof stackalloc heapalloc static struct switch this throw true try "
+            + "return unsealed sealed sealed1 sizeof stackalloc heapalloc static struct switch this throw true try "
             + "typeof unsafe using static virtual volatile while dowhile asm managed unmanaged "
-            + "async await astart func afunc get set yield global partial var where nameof of "
-            + "mixin trait youdo extends implements implement";
+            + "async await astart func afunc get set yield global partial var where nameof of youdo "
+            // TBD: Remove these when we are sure we don't want them
+            + "trait extends implements implement union type fn fun afn afun def adef";
+
         static readonly string sReservedControlWords = "using namespace module include class struct enum interface "
             + "func afunc prop get set operator if else switch await for while dowhile _";
         static WordMap<eTokenType> sReservedWords = new WordMap<eTokenType>();
         static WordSet sReservedIdentifierVariables = new WordSet("null this true false default");
 
         static WordSet sClassFuncFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static const sealed sealed1 abstract virtual override new volatile ref ro readonly");
+            + "static const unsealed sealed1 abstract virtual override new volatile ref ro mut readonly");
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sFieldDefTypeQualifiers = new WordSet("ref");
@@ -89,6 +91,9 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sMultiplyOperators = new WordSet("* / % & << >>"); // For '>>', use VIRTUAL_TOKEN_SHIFT_RIGHT
         static WordSet sAssignOperators = new WordSet("= += -= *= /= %= |= &= " + XOR + "= <<= >>=");
         static WordSet sUnaryOperators = new WordSet("- ! & " + XOR + " " + PTR);
+
+        static WordSet sSeparatorStatements = new WordSet("return break contnue throw sizeof this true false");
+
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
         // This seems stange because something like `a = F<T1,T2>;` is not a valid expression
@@ -684,6 +689,13 @@ namespace Gosub.Zurfur.Compiler
                 }
             }
 
+            // TBD: Allow "new" reserved word for extension method
+            //if (className != null && AcceptMatch("new"))
+            //{
+            //    funcName = mPrevToken;
+            //    return true;
+            //}
+
             // Parse function name and type parameters
             return ParseIdentifier("Expecting a function", out funcName);
         }
@@ -859,10 +871,9 @@ namespace Gosub.Zurfur.Compiler
                     }
                 }
                 if ((mToken.Type == eTokenType.Reserved || mToken.Type == eTokenType.ReservedControl)
-                            && mToken != "return" && mToken != "break" // TBD: Make into wordset
-                            && mToken != "continue" && mToken != "throw" && mToken != "sizeof")
+                            && !sSeparatorStatements.Contains(mTokenName))
                 {
-                    Reject("Only 'return', 'break', 'continue', and 'throw' reserved words allowed after '" + SSEP + "'.  Use '{}' instead");
+                    Reject("This reserved word not allowed after '" + SSEP + "'.  Use '{}' instead");
                     break;
                 }
 
@@ -1812,6 +1823,20 @@ namespace Gosub.Zurfur.Compiler
                 mToken = new Token("");
             mToken.Clear();
             mTokenName = mToken.Name;
+
+            // Check for tabs
+            if (mToken.Boln)
+            {
+                var line = mLexer.GetLine(mToken.Y);
+                var i = line.IndexOf('\t');
+                while (i >= 0)
+                {
+                    var tabToken = new Token(" ",i, mToken.Y);
+                    tabToken.Invisible = true;
+                    RejectToken(tabToken, "Illegal tab");
+                    i = line.IndexOf('\t', i + 1);
+                }
+            }
         }
 
         void ParseComments()

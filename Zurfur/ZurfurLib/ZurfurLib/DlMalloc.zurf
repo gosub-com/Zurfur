@@ -756,7 +756,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     /// </summary>
     struct msegment
     {
-        pub baseAddr ^byte  	// base address
+        pub baseAddr ^byte      // base address
         pub size      xuint     // allocated size
         pub next     ^msegment  // ptr to next segment
         pub sflags    flag_t    // mmap and extern flag

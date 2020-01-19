@@ -35,9 +35,10 @@ namespace Gosub.Zurfur
         StringFormat    mTabFormat = new StringFormat();
         float[]         mTabSpacing = new float[32];
         int             mTabStartColumnPrevious = -1;
-        string[]        mInsertOneChar = new string[] { "" };
+        string[]        mInsertOneString = new string[] { "" };
         string[]        mInsertCR = new string[] { "", "" };
         int             mTabSize = 4;
+        bool            mTabInsertsSpaces = true;
 
         // Mouse and drawing info
         bool            mMouseDown;
@@ -1875,33 +1876,18 @@ namespace Gosub.Zurfur
                 string line = lines[i];
                 if (!shift)
                 {
-                    // Append '\t' to start of line
-                    line = "\t" + line;
+                    // Insert space
+                    line = " " + line;
                     moveCh = 1;
                 }
                 else
                 {
-                    // Remove first '\t' from line (if within TabSize zone)
-                    for (int col = 0; col < line.Length &&  col < TabSize
-                                        && (line[col] == '\t' || line[col] == ' '); col++)
+                    // Remove space or tab
+                    if (line.StartsWith(" ") || line.StartsWith("\t"))
                     {
-                        if (line[col] == '\t')
-                        {
-                            line = line.Substring(0, col)
-                                    + new string(' ', TabSize - col)
-                                    + line.Substring(col+1);
-                            moveCh = TabSize-col-1;
-                            break;
-                        }
+                        line = line.Substring(1);
+                        moveCh = -1;
                     }
-                    // Remove TabSize spaces from line
-                    int spaceIndex = 0;
-                    while (spaceIndex < line.Length
-                            && line[spaceIndex] == ' '
-                            && spaceIndex < TabSize)
-                        spaceIndex++;
-                    line = line.Substring(spaceIndex);
-                    moveCh -= spaceIndex;
                 }
                 lines[i] = line;
 
@@ -1963,11 +1949,16 @@ namespace Gosub.Zurfur
                 insert = mInsertCR;
                 mInsertCR[1] = line.Substring(0, i);
             }
+            else if (e.KeyChar == '\t' && mTabInsertsSpaces)
+            {
+                insert = mInsertOneString;
+                mInsertOneString[0] = new string(' ', mTabSize - ( IndexToCol(CursorLoc) % mTabSize) );
+            }
             else
             {
                 // Insert a single char
-                insert = mInsertOneChar;
-                mInsertOneChar[0] = char.ToString(e.KeyChar);
+                insert = mInsertOneString;
+                mInsertOneString[0] = char.ToString(e.KeyChar);
             }
 
             // Insert/replace the typed char

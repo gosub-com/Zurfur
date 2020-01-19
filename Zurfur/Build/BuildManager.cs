@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Gosub.Zurfur.Lex;
@@ -39,25 +40,30 @@ namespace Gosub.Zurfur.Build
         /// Re-loads the file if it is stale.  Returns NULL if this isn't
         /// a file the build system cares about.
         /// </summary>
-        public BuildFile LoadFile(string path)
+        public async Task<BuildFile> LoadFileAsync(string path)
         {
+            path = FixPathName(path);
+            var ext = Path.GetExtension(path).ToLower();
+
+            // Ignore unknown files for now
+            if (ext != ".zurf" && ext != ".json")
+                return null;
+
             lock (mLock)
             {
-                // Ignore unknown files
-                path = Path.GetFullPath(path);
-                var ext = Path.GetExtension(path).ToLower();
-                if (ext != ".zurf" && ext != ".json")
-                    return null;
-
                 // See if we already have it, and it's up to date
                 var fi = new FileInfo(path);
                 fi.Refresh(); // Seems to be necessary to get latest info
-                if (mFiles.TryGetValue(path, out var buildFile))
+                if (mFiles.TryGetValue(path, out var buildFile1))
                 {
-                    if (fi.LastWriteTimeUtc == buildFile.LastWriteTimeUtc)
-                        return buildFile;
+                    if (fi.LastWriteTimeUtc == buildFile1.LastWriteTimeUtc)
+                        return buildFile1;
                 }
+            }
 
+            // Load and lex in background thread
+            var buildFile = await Task.Run(() =>
+            {
                 var lex = new LexZurf();
                 if (ext == ".zurf")
                 {
@@ -68,17 +74,48 @@ namespace Gosub.Zurfur.Build
                 {
                     lex.TokenizeComments = true;
                 }
+
                 lex.ScanLines(File.ReadAllLines(path));
 
-                if (!mFiles.TryGetValue(path, out buildFile))
+                lock (mLock)
                 {
-                    buildFile = new BuildFile(path, this);
-                    mFiles[path] = buildFile;
+                    var fi = new FileInfo(path);
+                    fi.Refresh(); // Seems to be necessary to get latest info
+                    if (mFiles.TryGetValue(path, out var buildFile2))
+                    {
+                        if (fi.LastWriteTimeUtc == buildFile2.LastWriteTimeUtc)
+                            return buildFile2;  //  Another thread got here first
+                    }
+                    else
+                    {
+                        buildFile2 = new BuildFile(path, this);
+                        mFiles[path] = buildFile2;
+                    }
+
+                    buildFile2.Lexer = lex;
+                    buildFile2.LastWriteTimeUtc = fi.LastWriteTimeUtc;
+                    return buildFile2;
                 }
-                buildFile.Lexer = lex;
-                buildFile.LastWriteTimeUtc = fi.LastWriteTimeUtc;
-                return buildFile;
-            }
+            });
+            return buildFile;
+        }
+
+
+        public static string FixPathName(string pathName)
+        {
+            pathName = Path.GetFullPath(pathName);
+            if (!(File.Exists(pathName) || Directory.Exists(pathName)))
+                return pathName;
+            return FixPathName(new DirectoryInfo(pathName));
+        }
+
+        public static string FixPathName(DirectoryInfo di)
+        {
+            if (di.Parent == null)
+                return di.Name.ToUpper();
+
+            return Path.Combine(FixPathName(di.Parent),
+                                di.Parent.GetFileSystemInfos(di.Name)[0].Name);
         }
 
 
@@ -97,13 +134,13 @@ namespace Gosub.Zurfur.Build
         }
 
         /// <summary>
-        /// Closes the file being edited (re-loads from disk for purposes of the build)
+        /// Closes the file being edited
         /// </summary>
         public void CloseFile(string fileName)
         {
             // For now just hold it in memory forever since it's probably part of the build
-            if (GetFile(fileName) != null)
-                LoadFile(fileName);
+            // if (GetFile(fileName) != null)
+            //    LoadFile(fileName);
         }
 
         /// <summary>

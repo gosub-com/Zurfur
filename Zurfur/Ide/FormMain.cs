@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using System.IO;
+using System.Threading.Tasks;
 
 using Gosub.Zurfur.Compiler;
 using Gosub.Zurfur.Ide;
@@ -39,18 +40,18 @@ namespace Gosub.Zurfur
             Text += " - " + "V" + App.Version;
         }
 
-        private void FormMain_Shown(object sender, EventArgs e)
+        private async void FormMain_Shown(object sender, EventArgs e)
         {
             if (System.Diagnostics.Debugger.IsAttached)
             {
                 // This will be removed
-                LoadProject(EXAMPLE_PROJECT);
+                await LoadProjectAsync(EXAMPLE_PROJECT);
                 return;
             }
             try
             {
                 // This will be removed
-                LoadProject(EXAMPLE_PROJECT);
+                await LoadProjectAsync(EXAMPLE_PROJECT);
             }
             catch (Exception ex)
             {
@@ -154,15 +155,15 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Show file dialog, then load file or project
         /// </summary>
-        void TryLoadFileOrProject(string fileName)
+        async void TryLoadFileOrProject(string fileName)
         {
             var isProject = Path.GetExtension(fileName).ToLower() == ZURFUR_PROJ_EXT;
             try
             {
                 if (isProject)
-                    LoadProject(fileName);
+                    await LoadProjectAsync(fileName);
                 else
-                    LoadFile(fileName);
+                    await LoadFileAsync(fileName);
             }
             catch (Exception ex)
             {
@@ -172,7 +173,7 @@ namespace Gosub.Zurfur
             }
         }
 
-        void LoadProject(string fileName)
+        async Task LoadProjectAsync(string fileName)
         {
             if (!CanCloseAll())
                 return;
@@ -186,12 +187,12 @@ namespace Gosub.Zurfur
                 if (file.FileName.ToLower() == ZURFUR_SRC_MAIN.ToLower())
                 {
                     projectTree.OpenAndSelect(file.Path);
-                    LoadFile(file.Path);
+                    await LoadFileAsync(file.Path);
                     break;
                 }
         }
 
-        void LoadFile(string path)
+        async Task LoadFileAsync(string path)
         {
             // Check for aleady loaded file path
             path = Path.GetFullPath(path);
@@ -205,7 +206,7 @@ namespace Gosub.Zurfur
             }
 
             var buildFile = Path.GetExtension(path).ToLower();
-            var lex = mBuilderMan.LoadFile(path);
+            var lex = await mBuilderMan.LoadFileAsync(path);
             if (lex != null)
             {
                 var newEditor = new TextEditor();
@@ -470,14 +471,14 @@ namespace Gosub.Zurfur
 
 
 
-        private void projectTree_FileDoubleClicked(object sender, ProjectTree.FileInfo file)
+        private async void projectTree_FileDoubleClicked(object sender, ProjectTree.FileInfo file)
         {
             if (file.IsDir)
                 return;
 
             try
             {
-                LoadFile(file.Path);
+                await LoadFileAsync(file.Path);
             }
             catch (Exception ex)
             {

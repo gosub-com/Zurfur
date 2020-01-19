@@ -24,13 +24,13 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sGlobalFuncsNotAllowed = new WordSet("prop this operator");
 
         static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal");
-        static WordSet sClassQualifiers = new WordSet("pub public protected private internal unsafe sealed sealed1 abstract ro");
-        static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe ref ro");
+        static WordSet sClassQualifiers = new WordSet("pub public protected private internal unsafe unsealed sealed1 abstract ro");
+        static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe ref mut");
         static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
-        static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static volatile ro const");
+        static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static volatile mut const");
         static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static volatile ro const");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
-        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static virtual override new ro");
+        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static virtual override new ro mut");
         static WordSet sFuncOperatorQualifiers = new WordSet("pub public protected private internal unsafe");
 
         static WordSet sStatements = new WordSet("if return while for switch case default throw defer break continue do "
@@ -40,7 +40,7 @@ namespace Gosub.Zurfur.Compiler
         {
             { "pub", 1 }, { "public", 1 }, { "protected", 1 }, { "private", 1 }, { "internal", 1 },
             { "unsafe", 2 }, { "static", 4 },  {"const", 4 },
-            { "sealed", 6 }, { "sealed1", 6 },
+            { "unsealed", 6 }, { "sealed1", 6 },
             { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
             { "volatile", 9 },
             { "ref", 10},

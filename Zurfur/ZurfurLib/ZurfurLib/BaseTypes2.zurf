@@ -3,40 +3,48 @@
 namespace Zurfur
 
 
-/// Read only span
-pub ref ro struct RoSpan<T>
+/// Base class for all objects, struct and class alike.
+pub unsealed class object
 {
-    ro data ref T
-    pub ro Count int
+    pub virtual func GetType() { todo() }
+    pub virtual func ToStr() { todo() }
+}
+
+
+/// Read only span
+pub ref struct RoSpan<T>
+{
+    data ref T
+    pub Count int
     pub this[index int] ro ref T => todo()
     pub this[index Range] RoSpan<T> => todo()
 }
 
 /// Span of contiguous elements in memory or an array
-pub ref ro struct Span<T>
+pub ref struct Span<T>
 {
-    ro data ref T
-    pub ro Count int
+    data ref T
+    pub Count int
     pub this[index int] ref T => todo()
     pub this[index Range] Span<T> => todo()
     operator implicit(from Span<T>) RoSpan<T> => todo()
 }
 
 /// Read only array span
-pub ro struct RoASpan<T>
+pub struct RoASpan<T>
 {
-    ro data Array<T>
-    pub ro Count int
+    data Array<T>
+    pub Count int
     pub this[index int] T => todo()
     pub this[index Range] RoASpan<T> => todo()
     operator implicit(from RoASpan<T>) RoSpan<T> => todo()
 }
 
 /// Array span
-pub ro struct ASpan<T>
+pub struct ASpan<T>
 {
-    ro data Array<T>
-    pub ro Count int
+    data Array<T>
+    pub Count int
     pub this[index int] ref T => todo()
     pub this[index Range] ASpan<T> => todo()
     operator implicit(from ASpan<T>) RoASpan<T> => todo()
@@ -45,10 +53,10 @@ pub ro struct ASpan<T>
 }
 
 /// String is a wrapper for a read only array of bytes
-pub sealed ro class str
+pub ro class str
     : ArrayBase<byte>, IComparable<str>, IRoArray<byte>
 {
-    default string = "";
+    default str = "";
     
     pub new() { todo() }
     pub new(s str) { todo() }
@@ -67,7 +75,7 @@ pub sealed ro class str
 }
 
 // Array of constant size
-pub sealed class Array<T> 
+pub class Array<T> 
     : ArrayBase<T>, IArray<T>
 {
     const MaxSize int = int.MaxInt/2
@@ -110,8 +118,8 @@ pub class Map<TKey, TValue>
 
     pub new() where TKey : IEquatable<TKey>
     {
-        compareFunc = (a, b) -> TKey.Compare(a, b);
-        hashFunc = (a) -> TKey.GetHashCode(a);		
+        compareFunc = (a, b) -> TKey.Compare(a, b)
+        hashFunc = (a) -> TKey.GetHashCode(a)
     }
     pub new(compare func(a TKey, b TKey) bool, 
         getHashCode func(a TKey) uint)
@@ -129,35 +137,12 @@ pub class Map<TKey, TValue>
     pub prop Count int => todo()
     pub func Clear() => todo()
     pub func Contains(key TKey) bool => todo()
+    pub func Get(key TKey) TValue => todo()
     pub func Get(key TKey, defaultValue TValue) TValue => todo()
-    pub func TryGet(key TKey, value out TValue) bool => todo()
+    pub func TryGet(key TKey, value out ?TValue) bool => todo()
     pub func Add(item KeyValue<TKey, TValue>) => todo()    
     pub func Add(items ICollection<KeyValue<TKey, TValue>>) => todo()    
     pub func Remove(TKey key) bool => todo()
     pub prop Keys ICollection<TKey> { get => todo() }
     pub prop Values ICollection<TValue> { get => todo() }
 }
-
-// TBD: Ensure this accepts Json({initializer}) syntax
-pub class Json
-{
-    pub new(from int) => todo()
-    pub new(from float32) => todo()
-    pub new(from float64) => todo()
-    pub new(from decimal) => todo()
-    pub new(from str) => todo()
-    pub new(from ICollection<Json>) => todo()
-    pub new(from IRoMap<Json>) => todo()
-   
-    // TBD: Figure out how to make this efficient
-    pub virtual prop Int int => todo()
-    pub virtual prop Float32 float32 => todo()
-    pub virtual prop Float64 float64 => todo()
-    pub virtual prop Decimal decimal => todo()
-    pub virtual prop Str str => todo()
-    pub virtual prop Map Map<Json> => todo()
-    pub virtual prop Array Array<Json> => todo()
-}
-
-
-

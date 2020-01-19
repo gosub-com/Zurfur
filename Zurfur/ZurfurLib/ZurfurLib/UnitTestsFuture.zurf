@@ -34,7 +34,7 @@ static func test_ForSimple()
 
 pub class Example
 {
-    info str                // Private string initialized to ""	
+    info str                // Private string initialized to ""
     f1 Array<int>({1,2,3})              // Initialized array
     f2 List<str>({"Hello", "World"})    // Initialized list
     f3 Map<str,int>({"A":1, "B":2})     // Initialized map

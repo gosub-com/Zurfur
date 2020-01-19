@@ -15,8 +15,8 @@ spelled **_ZurFUR_** because our cat has fur.
 
 ![](Doc/IDE.png)
 
-Zurfur is similar to C#, but borrows syntax and design concepts from
-Golang and Javascript.  Here are some differences between Zurfur and C#:
+Zurfur is similar to C#, but borrows syntax and design concepts from Golang,
+JavaScript, Zig, and others.  Here are some differences between Zurfur and C#:
 
 * Strings are UTF8 byte arrays initialized
 * Reference types are initialized without `new` keyword and are non-nullable by default
@@ -28,13 +28,17 @@ Golang and Javascript.  Here are some differences between Zurfur and C#:
 
 ## Overview
 
+I love C#.  It's my favorite language to program in.  But, I'd like to fix
+some [warts](http://www.informit.com/articles/article.aspx?p=2425867) and have
+some features from other languages built in from the ground up.
+
 Thoughts about where to go and how to do it: [Internals](Doc/Internals.md).
 
 #### Status Update
 
 The syntax is still being developed, nothing is set in stone yet.  Feel
 free to send me comments letting me know what you think should be changed.
-I am currently working on [ZSIL](Doc/Zsil.md) header file.
+I am currently working on [ZSIL](Doc/Zsil.md) and the build system.
 
 ## Functions
 
@@ -61,7 +65,7 @@ Functions, classes, structs, enums, variables and constants are
 private unless they have the 'pub' qualifier.  Functions are allowed
 at the namespace level, but must be static or extension methods.
 
-TBD: Still considering using `fun` to declare a function.
+TBD: Use `fn`, `fun` or `def` to declare a function?
 
 
 ## Local Variables
@@ -115,11 +119,16 @@ they are not null before being used.
 ## Basic types
 
     int8, uint8, byte, int16, uint16, int32, int, uint32, uint, int64, uint64
-    float32, float64, xint, xuint, decimal, str, Array, List, Map
+    float32, float64, xint, xuint, decimal, object, str, Array, List, Map, Json
 
 `byte`, `int`, and `uint` are aliases for `uint8`, `int32`, and `uint32`.
 `xint` and `xuint` are extended integer types, which could be 32 or 64 bits
 depending on run-time architecture.
+
+**TBD:** Lower case for `array`, `list`, `map`, `json`, `span`, `roSpan`, and
+others library class types?  Leaning toward no since lower case means local
+or private member.  **TBD:** Switch to `i8`, `u8`, `f32`, etc. for all basic
+integer  & float types?  Leaning towards yes because of Zig, Rust, and WebAssembly.
 
 #### Strings
 
@@ -170,9 +179,27 @@ See below for information about initializer expressions and slice operator.
     @a = Map<str,int>({"Hello":1, "World":2})
     @b = a["World"]                             // `b` is 2
     @c = a["not found"]                         // throws exception
-    @d = a.Get("not found", -1)                 // `d` is -1
+    @d = a.Get("not found")                     // `d` is 0
+    @e = a.Get("not found", -1)                 // `e` is -1
 
-TBD: Lower case `array`, `list`, and `map`?  `span`, `roSpan`?
+#### Json
+
+`Json` is the built in Json object with support communication with JavaScript.  
+Using an invalid index does not throw an exception, but instead returns a default
+empty object.
+
+    @a = Json({"Hello":1, "World":2})
+    @b = a["World"]                         // `b` is Json(2), not an int
+    @c = a["World"].Int                     // `c` is 2
+    @d = a["World"].Str                     // `d` is "2"
+    @e = a["not found"]["?"].int            // `e` is 0
+
+The `Json` data structure is meant to be quick and easy to use, not necessarily
+the fastest or most efficient. For efficient memory usage, `Json` will support
+[Newtonsoft](https://www.newtonsoft.com/json) style serialization:
+
+    @a = Json.Serialize(object)                 // `a` is a Json `str`
+    @b = Json.Deserialize<MyObject>(jsonStr)    // `b` is a `MyObject`
 
 ## Operator Precedence
 
@@ -264,10 +291,11 @@ support Json objects with syntax something like this:
     @e = a["Time"].DateTime         // `e` is converted to DateTime
     a["Param2"][1].Int = 5          // Set the value
 
-**TBD:** Json object indexers never throw an exception, always return a
-default of 0, "", or empty map/array.  This is similar to `QVariant` in Qt,
-is very easy to work with, and copes with missing keys well.  The flip side
-is that incorrect data could fail with unpredictable results.
+**TBD:** Use `[]` for arrays?  My vote is no.  If a value contains `:`,
+it's a map, otherwise it's an array.  The motivation for this comes
+from when I had it the other way and it was confusing to look at in some
+cases because `[]` could be either an initializer or an indexer, whereas `{}`
+is always an initializer.
 
 ## Statements
 
@@ -426,32 +454,52 @@ placed directly in the namespace of the class they are for.
 
     pub func Example::MyExtension() => Prop1 + ":" + Func1(23)
 
+As in Kotlin, classes are sealed by default.  Use the `unsealed` keword to
+open them up.  **TBD:** Reverse this to stay compatible with C#?  About 50% of
+the people here https://discuss.kotlinlang.org/t/classes-final-by-default/166/12
+don't like it, but many of them because it's not compatible with Java or some
+library. Perhaps generic classes should be open by default so it's always
+possible to create specializations (e.g. `class MyIntList : List<int> { }`, etc)
+
 TBD: Require `@` for member variables?  This would make it easier to add
 new qualifiers in the future.  It would also be more consistent overall,
 both for the parser and the person looking at variable declarations.
-
-    // TBD: Require `@` for member variables?
-    pub @MyMemberVariable1 int
-    pub new_qualifier @MyMemberVariable2 int
+A struct with fields would look like this: `struct MyPoint { pub @a int; pub @b int}`
 
 ## Structs
 
-A struct is usually a stack object or embedded in a class, and can be used where
-speed and efficiency are desired:
+A struct is a value object (just like C#), and can be used where speed and
+efficiency are desired.  `Struct`'s are immutable by default, but can be
+made immutable using the `mut` keyword.
 
-    pub struct MyPointXY
+    // Immutable point
+    pub struct MyPoint
     {
         pub X int
         pub Y int
         pub new(x int, y int) { X = x; Y = y}
         pub override func ToString() => "(" + X + "," + Y + ")"
     }
+    
+    // Mutable point (each mutable field/func must also be marked, but not properties)
+    pub mut struct MyMutablePoint
+    {
+        pub mut X int
+        pub mut Y int
+        pub new(x int, y int) { X = x; Y = y}
+        pub override func ToString() => "(" + X + "," + Y + ")"
+        pub mut func SetY(y int) { Y = y }
+    }
 
-The `List<MyPointXY>` indexer returns a reference (identical to `[]MyPointXY`)
-so `myMutPoints[index].X = x` will set X the same as if this were an array.
-The indexer for `IList` uses a traditional `get` and `set` function,
-however `myIListOfPoint[index].X = x` works as expected since the
-compiler generates code to `get` the struct, modify it, then `set` it.
+When a struct is mutable, Zurfur allows fields in a struct returned from
+a getter to be assigned provided there is a corresponding setter.
+
+    @a = List<MyMutablePoint>({{1,2},{3,4}, {5,6}})
+    a[1].X = 23         // `a` contains {{1,2},{23,4}, {5,6}}
+    a[1].SetY(24)       // `a` contains {{1,2},{23,24}, {5,6}}
+
+This works because Zurfur knows that `SetY` is mutating so the corresponding
+`List` setter must be called to save the result. Translation: `@temp = a[1];  temp.SetY(24);  a[1] = temp`
 
 ## Enums
 
@@ -474,6 +522,9 @@ The default `ToString` function shows the value as an integer rather
 than the name of the field, but it is possible to override and make it
 display anything you want.  This allows enumerations to be just as light
 weight as an integer and need no metadata in the compiled executable.
+
+**TBD:** Differentiate an enum having only scalar values vs one with flags?
+The one with flags allows `|` and `&`, etc but the other doesn't.
 
 ## Casting
 
@@ -513,6 +564,9 @@ both.  They are mostly C# 8.0 (including default implementations, etc.)
 but they also allow *explicit* conversion from any class that defines
 all the required functions.
 
+**TBD:** Use `trait` keyword instead?  This might be a better keyword for
+this since it's more like Golang and also uses fat pointers (see below)
+
 [I didn't realize default implementations
 were so contentious.](https://jeremybytes.blogspot.com/2019/09/interfaces-in-c-8-are-bit-of-mess.html)
 Let me know how to do it better.  Also, since they can have default
@@ -528,10 +582,9 @@ Here is `IEquatable<T>` from the standard library:
             => youdo
     }
 
-Note that unimplemented functions and properties are explicitly marked with
+Unimplemented functions and properties are explicitly marked with
 `youdo`.   Functions and properties must either have an implementation or
 specify `youdo`, `default`, or `extern`.  
-
 
 #### Structural Typing
 
@@ -598,6 +651,23 @@ function:
         return value;
     }
 
+#### Implementation Note
+
+An interface is implemented using a fat pointer containing a reference to a VTable
+and a reference to the object.  There is very little overhead calling an interface
+method (less than calling a virtual function), but there is a little more overhead
+casting an object to an interface.
+
+See [Interface Dispatch](https://lukasatkinson.de/2018/interface-dispatch/)
+and scroll down to *Fat Pointers*.  A comment by Russ Cox explains why
+this is a good design choice "*The key insight for Go was that in a statically
+typed language, type conversions happen far less often than method calls, so doing
+the work on the type conversion is actually quite cheap.*"
+
+Note that an interface containing only static functions can be implemented using
+a thin pointer.
+
+
 ## Arrays and Slicing
 
 Given a range, arrays can be sliced:
@@ -642,12 +712,12 @@ Describe more here...
 
 The heap allocation model of C#, and inherited by Zurfur, is designed to make
 garbage collection fast and efficient.  Interior references (i.e. references
-that point inside an object) are never stored on the heap. Whenever an interior
-reference is obtained, the object that holds it is pinned until the reference
-is discarded.
+that point inside an object) are never stored on the heap.
 
-Pinning all objects on the memory stack allows references to be passed to
-functions only on the execution stack.
+Whenever an interior reference is obtained, the object that holds it is
+pinned on the memory stack (or async task stack) until the reference is
+discarded.  From then on, it can be passed down the WebAssembly execution
+stack without worrying about it.  
 
 There is more info on GC implementation here [Internals](Doc/Internals.md)
 
@@ -713,15 +783,20 @@ without using the `await` keyword:
         return a;
     }
 
-Async code normally looks and acts as if it were sync.  When we want
-to start or wait for multiple tasks, use the `astart` and `await` keywords.
+[What color is your function?](https://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/)
+In Zurfur, functions do have a color but function call syntax is colorless.  
+When running from async code, `F(X)` may or may not be async.
+
+Async code normally looks and acts as if it were sync.  But, when we want
+to start or wait for multiple tasks, we can also use the `astart` and
+`await` keywords.
 
     afunc GetStuffFromSeveralServers() str 
     {
         // Start the functions, but do not block
-        @a = astart MySlowIoFunctionAsync("server1")
-        @b = astart MySlowIoFunctionAsync("server2")
-        @c = astart MySlowIoFunctionAsync("server3")
+        @a = astart { MySlowIoFunctionAsync("server1") }
+        @b = astart { MySlowIoFunctionAsync("server2") }
+        @c = astart { MySlowIoFunctionAsync("server3") }
 
         // The timeout cancels the task after 10 seconds, but we'll hand
         // the task to the user who may push a button to cancel early
@@ -754,32 +829,55 @@ to start or wait for multiple tasks, use the `astart` and `await` keywords.
 A sync function cannot implicitly call an async function, but it can start it
 using the `astart` keyword, like this: `func MySyncFunction() { astart MyAsyncFunction() }`
 
-**TBD:** As you can see, much is still TBD.
-
 #### Async Implementation 
 
 Async will be implemented with an actual stack, not with heap objects. 
 This should improve GC performance since each task call won't be
 required to create a heap allocation.  Stacks themselves won't be
 GC objects.  Instead there will be a reusable list of stack arrays.
-    
+
+
+#### Async by Default?
+
+Should everything be async by defualt? The compiler can figure out if a
+function needs to be async, and can optimize most sync code into sync
+functions.  There are two problems here.
+
+First, the compiler would have trouble optimizing lambda function calls.
+If `List<T>.Sort(compare func(a T, b T) bool)` is compiled
+as async, it would be an efficiency disaster.
+
+Second, it would be far to easy for a function to *accidentally* be changed
+from sync to async.  Imagine the consequences of changing `malloc` or `new`
+to async.  A library that was previously sync and fast could all of a sudden
+become async and slow without even realizing it was happening.
+
+One solution could be to mark functions `sync`, something like
+`List<T>.Sort(compare sfunc(a T, b T) bool)`.  This seems almost as bad
+as marking them async.  Are there better solutions?
+
+## Threading
+
+The first version of Zurfur will not support multi-threading.  But since async
+looks like just like sync (and everything in JavaScript is async) it will look
+as if we are using plain old blocking calls.  Hopefully the async "blocking"
+calls will be able to solve the [Async Pressure](https://lucumr.pocoo.org/2020/1/1/async-pressure/)
+problem.
+
+The `lock` keyword is reserved for future use.  One thing that won't ever be
+supported is locking on any random object.  There will be a `Mutex` object 
+for that purpose.
+
+
+Real multi-threading can be achieved using Web Workers.  To support that
+option, there will be a quick easy way to serialize object graphs and
+transport them to other Web Assembly instances.  Probably with `Json`.
+
+One benefit of doing it this way is that each module has its own memory
+space, so the garbage collector will have a smaller working set
+of objects to reclaim for each instance.
+
 ## Open Questions
-
-Should structs be immutable by default?  No.  Immutable won't be
-immutable when they are in an array or a property with a setter.
-If `MyPoint` is immutable, then `MyArray[i].X=1` is legal because
-the compiler can transorm to `MyArray[i] = new MyPoint(1,MyArray[i].Y)`
-
-Do we want lower case to be private by default and upper case to
-be public similar to Golang?  My personal preference is to have 
-`pub` be explicit even though it is a bit tedious.
-
-Should we switch to i32, i64, f32, f64, etc., like WebAssembly?
-
-Should `Array`, `Map`, and `List` be lower case since they are almost as
-basic as `str` and `decimal`?  If so, should `Span` and `RoSpan` be lower
-case?  My preference is leaning toward them lower case but leaving `Span` and
-`RoSpan` upper case.  What about `Sin`, `Cos`, etc.?
 
 Should NAN`s compare the way IEEE numbers are supposed to? Since this is a new
 language, my preference would be to have them compare so NAN != NAN and they
