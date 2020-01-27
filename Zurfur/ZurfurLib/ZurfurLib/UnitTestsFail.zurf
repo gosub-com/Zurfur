@@ -12,6 +12,45 @@
 namespace ZurfTest.UnitTests.Failed
 
 
+
+static func a()
+{
+    @a = switch a+b { }
+
+    a+a
+    a/b
+
+    if a
+        => a+2
+    else
+        => f({a,b:2,c})
+    
+    if () + 2
+    {
+        a+2
+        a+2 = 3
+        @a = () + 2
+        
+    }
+    else
+    {
+        @a = () + 2
+        a+2
+        a+2 = 3
+        @a = () + 2
+    }
+
+
+    for @a in 1..23
+    {
+        F(out @b, c)
+        a + 55 = 23
+    }
+
+    
+
+}
+
 /// Bunch of tests with parse cutoff as user types
 static func a(
 static func a(i

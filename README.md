@@ -118,17 +118,21 @@ they are not null before being used.
 
 ## Basic types
 
-    int8, uint8, byte, int16, uint16, int32, int, uint32, uint, int64, uint64
-    float32, float64, xint, xuint, decimal, object, str, Array, List, Map, Json
+    i8, u8, byte, i16, u16, i32, int, u32, uint, i64, u64, f32, f64
+    xint, xuint, decimal, object, str, strs, Array<T>, List<T>, Map<K,V>, Json
+    Span<T>, RoSpan<T>
 
-`byte`, `int`, and `uint` are aliases for `uint8`, `int32`, and `uint32`.
+`byte`, `int`, and `uint` are aliases for `u8`, `i32`, and `u32`.
 `xint` and `xuint` are extended integer types, which could be 32 or 64 bits
 depending on run-time architecture.
 
-**TBD:** Lower case for `array`, `list`, `map`, `json`, `span`, `roSpan`, and
-others library class types?  Leaning toward no since lower case means local
-or private member.  **TBD:** Switch to `i8`, `u8`, `f32`, etc. for all basic
-integer  & float types?  Leaning towards yes because of Zig, Rust, and WebAssembly.
+`str` is an immutable UTF8 byte array.  `strs` is an immutable string span
+which is an alias for `RoSpan<byte>`
+
+`Span<T>` and `RoSpan<T>` are slices of an array.
+
+**TBD:** Use lower case for `array`, `list`, `map`, `json`, `span`, `roSpan`, and
+others library class types?  Or use upper case for `Str`, `i8`, etc?
 
 #### Strings
 
@@ -434,7 +438,7 @@ followed by `type`, just like in Golang:
         pub F5 List<str>({"Hello", "World"})        // Initialized list
         pub F6 Map<str,int>({{"A",1},{"B",2}})      // Initialized map
         pub ro F7 str("Hello world")                // Initialized read only string
-        pub func Func1(a int) float => F1 + " hi"   // Member function
+        pub func Func1(a int) f64 => F1 + " hi"   // Member function
         pub prop Prop1 str => F1                    // Property returning F1
         pub prop ChangedTime DateTime = DateTime.Now // Default value and default get/set
             => default get private set
@@ -454,12 +458,10 @@ placed directly in the namespace of the class they are for.
 
     pub func Example::MyExtension() => Prop1 + ":" + Func1(23)
 
-As in Kotlin, classes are sealed by default.  Use the `unsealed` keword to
-open them up.  **TBD:** Reverse this to stay compatible with C#?  About 50% of
-the people here https://discuss.kotlinlang.org/t/classes-final-by-default/166/12
-don't like it, but many of them because it's not compatible with Java or some
-library. Perhaps generic classes should be open by default so it's always
-possible to create specializations (e.g. `class MyIntList : List<int> { }`, etc)
+Classes are sealed by default.  Use the `unsealed` keword to open them up.
+Sealed generic classes may be inherited to create specializations
+(e.g. `class MyIntList : List<int> { }`, etc), however the virtul functions
+may not be overridden.
 
 TBD: Require `@` for member variables?  This would make it easier to add
 new qualifiers in the future.  It would also be more consistent overall,
@@ -559,27 +561,21 @@ error if MyIntFunc() should ever return a float.
 
 ## Interfaces
 
-Interfaces are a cross between C# and GoLang, but a little different from
-both.  They are mostly C# 8.0 (including default implementations, etc.)
-but they also allow *explicit* conversion from any class that defines
+**TBD:** The keyword will change to `trait`, and some of the documentation
+below will change so it looks a little more like Rust.  We will favor
+static dispatch when possible, but also support dynamic dispatch via fat pointers.
+
+Interfaces are a cross between C#, GoLang, and Rust, but a little different
+from each.  They are similar to C# 8.0 (including default implementations, etc.)
+but also allow Golang style *explicit* conversion from any class that defines
 all the required functions.
 
-**TBD:** Use `trait` keyword instead?  This might be a better keyword for
-this since it's more like Golang and also uses fat pointers (see below)
-
-[I didn't realize default implementations
-were so contentious.](https://jeremybytes.blogspot.com/2019/09/interfaces-in-c-8-are-bit-of-mess.html)
-Let me know how to do it better.  Also, since they can have default
-implementations, should we change the name to something different?  **trait**?
 Here is `IEquatable<T>` from the standard library:
 
-    // TBD: Is `interface` the right keyword since there can be implementations?
-    pub interface IEquatable<T>
+    pub static interface IEquatable<T>
     {
-        static func GetHashCode(a T) uint 
-            => youdo
-        static func Equals(a T, b T) bool 
-            => youdo
+        static func GetHashCode(a T) uint => youdo
+        static func Equals(a T, b T) bool => youdo
     }
 
 Unimplemented functions and properties are explicitly marked with
@@ -603,6 +599,9 @@ user (not the library writer) to make sure it's all kosher.
 
 #### Optional Conversion Back to the Concrete Class
 
+**TBD:** The default will be that the interface cannot be cast back
+to the original class.  The documentation below will be updated.
+
 An interface can optionally be `protected`.  A protected interface
 cannot be converted back to the original class or any other concrete
 class, including `object`.  It can be implicitly converted to a base
@@ -624,7 +623,7 @@ use of the interface.  For example:
         #List<Stuff>(yourStuff.SeeMyStuf).Add(Stuff());
     }
 
-#### Static Functions
+#### Static Interfaces and Functions
 
 Interfaces may include static functions.  Static functions are
 a better fit than virtual functions for some operations.
@@ -682,10 +681,18 @@ If `myArray` is of type `Array<byte>`, a string can be created directly from the
 
 #### List Slice
 
-**TBD:** Allow slicing a `List`?  It is an unsafe operation, but would be extremely
-useful, allowing 'List<byte>' to double as a string builder class.  Perhaps, the
-slice is a forward reference, which is still unsafe but more difficult to abuse. 
+**TBD:** Allow slicing a `List`?  It is a little unsafe because the slice
+becomes detached from the underlying array whenever the capacity changes.
 
+    pub static func BadSlice()
+    {
+        @s = List<byte>()
+        a.Add("Hello Bob")
+        @slice = a[6::3]        // slice is "Bob"
+        a[6] = "R"[0]           // slice is "Rob"
+        a.Add(", we are happy") // slice is now detached from the original array
+        a[6] = "B"[0]           // slice is still "Rob"
+    }
 
 #### ASpan, Span, Forward References, Return References
 
@@ -723,10 +730,9 @@ There is more info on GC implementation here [Internals](Doc/Internals.md)
 
 ## Pointers
 
-The `*` operator is only for multiplication, and there is no `->` operator.
-The `.` operator is used for accessing fields or members of a pointer to
-struct.  The `^` operator dereferences a pointer.  The `~` operator is
-both xor and complement.
+The `^` operator dereferences a pointer.  The `.` operator is used to access fields
+or members of a pointer to the struct.  The `*` operator is only for multiplication,
+and the `->` operator is only for lambdas.  The `~` operator is both xor and complement.
  
     pub static func strcpy(dest ^byte, source ^byte)
     {
@@ -736,8 +742,17 @@ both xor and complement.
     }
 
 TBD: I'm still debating going back to `*` for pointers, but changing
-the unary dereference operator to `*.` so it's not the same as multiplication.
-In which case, strcpy would look like this:
+the unary dereference to `.*` so it's not the same as multiplication.
+Strcpy would look like this:
+
+    pub static func strcpy(dest *byte, source *byte)
+    {
+        while source.* != 0
+            { dest.* = source.*;  dest += 1;  source += 1 }
+        dest.* = 0
+    }
+
+Alternatively `*.`:
 
     pub static func strcpy(dest *byte, source *byte)
     {
@@ -745,6 +760,7 @@ In which case, strcpy would look like this:
             { *.dest = *.source;  dest += 1;  source += 1 }
         *.dest = 0
     }
+
 
 
 ## Namespaces

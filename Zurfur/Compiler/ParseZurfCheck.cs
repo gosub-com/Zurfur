@@ -23,18 +23,15 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sStaticQualifier = new WordSet("static");
         static WordSet sGlobalFuncsNotAllowed = new WordSet("prop this operator");
 
-        static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal");
+        static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static");
         static WordSet sClassQualifiers = new WordSet("pub public protected private internal unsafe unsealed sealed1 abstract ro");
         static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe ref mut");
         static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
-        static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static volatile mut const");
-        static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static volatile ro const");
+        static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static mut const");
+        static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static ro const");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
         static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static virtual override new ro mut");
         static WordSet sFuncOperatorQualifiers = new WordSet("pub public protected private internal unsafe");
-
-        static WordSet sStatements = new WordSet("if return while for switch case default throw defer break continue do "
-                                                     + "{ = ( += -= *= /= %= &= |= ~= <<= >>= @");
 
         static WordMap<int> sClassFuncFieldQualifiersOrder = new WordMap<int>()
         {
@@ -42,9 +39,8 @@ namespace Gosub.Zurfur.Compiler
             { "unsafe", 2 }, { "static", 4 },  {"const", 4 },
             { "unsealed", 6 }, { "sealed1", 6 },
             { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
-            { "volatile", 9 },
-            { "ref", 10},
-            { "mut", 11 }, { "ro", 11}, {"readonly", 11}
+            { "ref", 9},
+            { "mut", 10 }, { "ro", 10}, {"readonly", 10}
         };
 
         ParseZurf mParser;
@@ -102,7 +98,7 @@ namespace Gosub.Zurfur.Compiler
 
                 CheckQualifiers(func.ParentScope, func.Name, func.Qualifiers);
 
-                CheckFuncBody(null, func.Statements);
+                CheckStatements(null, func.Statements);
 
                 var keyword = func.Keyword;
                 var outerKeyword = func.ParentScope == null ? "" : func.ParentScope.Keyword;
@@ -248,10 +244,16 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
-        void CheckFuncBody(SyntaxExpr parent, SyntaxExpr expr)
+        void CheckStatements(SyntaxExpr parent, SyntaxExpr expr)
         {
             if (expr == null)
                 return;
+
+            //            static WordSet sStatements = new WordSet("if return while for switch case default throw defer break continue do use "
+            //                                             + "{ = ( += -= *= /= %= &= |= ~= <<= >>= @");
+
+            // TBD: This will be generalized when generating code
+            WordSet sInvalidLeftAssignments = new WordSet("+ - * / % & | == != < <= > >=");
 
             LastToken = expr.Token;
             switch (expr.Token)
@@ -261,37 +263,96 @@ namespace Gosub.Zurfur.Compiler
 
                 case "{": // Statement
                     foreach (var e in expr)
+                        CheckStatements(expr, e);
+                    break;
+
+                case "(": // Function call
+                    foreach (var e in expr)
+                        CheckExpr(expr, e);
+                    break;
+                
+                case "=": case "+=": case "-=": case "*=": case "/=":
+                case "%=": case "&=": case "|=": case "~=": case "<<=":
+                case ">>=":
+                    if (expr.Count >= 2)
                     {
-                        if (!sStatements.Contains(e.Token))
-                        {
-                            mParser.RejectToken(e.Token, "Only assignment, function call, and create typed variable can be used as statements");
-                        }
-                        CheckFuncBody(expr, e);
+                        if (sInvalidLeftAssignments.Contains(expr[0].Token))
+                            mParser.RejectToken(expr[0].Token, "Invalid operator in left side of assignment");
+                        else
+                            CheckExpr(expr, expr[0]);
+                        CheckExpr(expr, expr[1]);
                     }
+                    break;
+
+                case "=>":
+                    if (expr.Count != 0)
+                        CheckExpr(expr, expr[0]);
+                    break;
+
+                case "@":
+                    if (expr.Count > 2)
+                        CheckExpr(expr, expr[2]);
+                    break;
+
+                case "defer":
+                case "use":
+                case "throw":
+                    foreach (var e in expr)
+                        CheckStatements(expr, e);
                     break;
 
                 case "switch":
-                    // Switch expression (not statement)
-                    if (parent != null && parent.Token != "{" && expr.Count >= 2)
-                    {
-                        if (expr[1].Count == 0)
-                            mParser.RejectToken(expr[1].Token, "Switch expression list may not be empty");                       
-                        // All cases should have "=>"
-                        foreach (var e in expr[1])
-                            if (e.Token != "=>")
-                                mParser.RejectToken(e.Token, "Expecting switch expression to contain '=>'");
-                    }
-
-                    foreach (var e in expr)
-                        CheckFuncBody(expr, e);
+                case "while":
+                case "do":
+                case "if":
+                    if (expr.Count != 0)
+                        CheckExpr(expr, expr[0]);
+                    for (int i = 1; i < expr.Count; i++)
+                        CheckStatements(expr, expr[i]);
                     break;
 
+                case "for":
+                    if (expr.Count >= 2)
+                        CheckExpr(expr, expr[1]);
+                    for (int i = 2;  i < expr.Count;  i++)
+                        CheckStatements(expr, expr[i]);
+                    break;
+
+                case "case":
+                    foreach (var e in expr)
+                        CheckExpr(expr, e);
+                    break;
+
+                case "continue":
+                case "break":
+                case "default":
+                    break;
+
+                case "return":
+                    if (expr.Count != 0)
+                        CheckExpr(expr, expr[0]);
+                    break;
+
+                case "->": // Lambda
+                    // TBD: Check lambda
+                    break;
+
+                default:
+                    mParser.RejectToken(expr.Token, "Only assignment, function call, and create typed variable can be used as statements");
+                    break;
+            }
+        }
+
+        void CheckExpr(SyntaxExpr parent, SyntaxExpr expr)
+        {
+            switch (expr.Token)
+            {
                 case ")": // Lambda parameters
                     if (expr.Count != 1 && (parent == null || parent.Token != "->"))
                     {
                         mParser.RejectToken(expr.Token, expr.Count == 0
-                            ? "Empty expression not allowed unless followed by lambda '=>' token"
-                            : "Multi-parameter expression not allowed unless followed by lambda '=>' token");
+                            ? "Empty expression not allowed unless followed by lambda '->' token"
+                            : "Multi-parameter expression not allowed unless followed by lambda '->' token");
                         foreach (var e in expr)
                             Grayout(e);
                     }
@@ -300,7 +361,7 @@ namespace Gosub.Zurfur.Compiler
                 case ParseZurf.VIRTUAL_TOKEN_INITIALIZER:
                     foreach (var e in expr)
                     {
-                        CheckFuncBody(expr, e);
+                        CheckExpr(expr, e);
                         if (e.Token == ":" && e.Count > 0 && e[0].Token == ParseZurf.VIRTUAL_TOKEN_INITIALIZER)
                             mParser.RejectToken(e.Token, "Not expecting ':' after object initializer");
                     }
@@ -318,13 +379,33 @@ namespace Gosub.Zurfur.Compiler
                     }
                     break;
 
-                case "->": // Lambda
-                    // TBD: Check lambda
+                case "switch":
+                    // Switch expression (not statement)
+                    if (parent != null && parent.Token != "{" && expr.Count >= 2)
+                    {
+                        if (expr[1].Count == 0)
+                            mParser.RejectToken(expr[1].Token, "Switch expression list may not be empty");                       
+                        // All cases should have "=>"
+                        foreach (var e in expr[1])
+                            if (e.Token != "=>")
+                                mParser.RejectToken(e.Token, "Expecting switch expression to contain '=>'");
+                    }
+
+                    if (expr.Count == 2)
+                    {
+                        CheckExpr(expr, expr[0]);
+                        foreach (var e in expr[1])
+                            CheckStatements(null, e);
+                    }
+
+                    //foreach (var e in expr)
+                    //    CheckStatements(expr, e);
                     break;
+
 
                 default:
                     foreach (var e in expr)
-                        CheckFuncBody(expr, e);
+                        CheckExpr(expr, e);
                     break;
             }
         }
@@ -403,7 +484,7 @@ namespace Gosub.Zurfur.Compiler
             // New variable
             if (expr.Token == ParseZurf.NEWVAR)
             {
-                if (expr.Count >= 1)
+                if (expr.Count >= 2)
                     ShowTypes(expr[1], true);
                 for (int i = 2; i < expr.Count; i++)
                     ShowTypes(expr[i], isType);

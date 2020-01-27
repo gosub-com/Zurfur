@@ -4,7 +4,7 @@ namespace Zurfur.Collections;
 /// Implement IEquatable on any object that can be stored in a Map.
 /// This is different than implementing just Equals
 /// in that NAN must compare to itself as true.
-pub interface IEquatable<T>
+pub static interface IEquatable<T>
 {
     // TBD: These functions are `ro` including all in the base class
     static func GetHashCode(a T) uint => youdo
@@ -14,13 +14,13 @@ pub interface IEquatable<T>
 /// Implement IComparable on any object that can be sorted.
 /// This is different than implementing just Compare
 /// in that NAN must have a valid sort order.
-pub interface IComparable<T>
+pub static interface IComparable<T>
     : IEquatable<T>
 {
     static func Compare(a T, b T) int  => youdo
 }
 
-pub interface IArithmetic<T>
+pub static interface IArithmetic<T>
     : IComparable<T>
 {
     operator-(a T) T => youdo
@@ -35,8 +35,8 @@ pub interface IArithmetic<T>
 
 pub interface IEnumerator<out T>
 {
-    func MoveNext() bool => youdo
-    prop Current T => youdo get
+    func HasNext() bool => youdo
+    func GetNext(item out T) bool => youdo
 }
 
 pub interface IEnumerable<out T>

@@ -1067,7 +1067,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // Check properties of top chunk
     func do_check_top_chunk(p ^mchunk)
     {
-        msegment* sp = segment_holding(#^byte(p))
+        @sp = segment_holding(#^byte(p))
         @sz = p.head & ~INUSE_BITS // third-lowest bit can be set!
         assert(sp != null)
         assert(is_aligned(chunk2mem(p)) || p.head == FENCEPOST_HEAD)
@@ -1110,7 +1110,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     func do_check_free_chunk(p ^mchunk)
     {
         @sz = chunksize(p)
-        mchunk* next = chunk_plus_offset(p, sz)
+        @next = chunk_plus_offset(p, sz)
         do_check_any_chunk(p)
         assert(!is_inuse(p))
         assert(!next_pinuse(p))
@@ -1137,7 +1137,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     {
         if mem != null
         {
-            mchunk* p = mem2chunk(mem)
+            @p = mem2chunk(mem)
             @sz = p.head & ~INUSE_BITS
             do_check_inuse_chunk(p)
             assert((sz & CHUNK_ALIGN_MASK) == 0)
@@ -1447,7 +1447,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
         assert(is_small(DVS))
         if DVS != 0
         {
-            mchunk* DV = dv
+            @DV = dv
             insert_small_chunk(DV, DVS)
         }
         dvsize = s
@@ -1805,9 +1805,9 @@ pub unsafe abstract class DlMallocBase : IDisposable
         // Insert the rest of old top into a bin as an ordinary free chunk
         if csp != old_top
         {
-            mchunk* q = #^mchunk(old_top)
+            @q = #^mchunk(old_top)
             @psize = #xuint(csp - old_top)
-            mchunk* tn = chunk_plus_offset(q, psize)
+            @tn = chunk_plus_offset(q, psize)
             set_free_with_pinuse(q, psize, tn)
             insert_chunk(q, psize)
         }
@@ -1884,7 +1884,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                     && !is_extern_segment(sp)
                     && (sp.sflags & flag_t.USE_MMAP_BIT) == mmap_flag
                 {
-                    byte* oldbase = sp.baseAddr
+                    @oldbase = sp.baseAddr
                     sp.baseAddr = tbase
                     sp.size += tsize
                     return prepend_alloc(tbase, oldbase, nb)
@@ -1936,7 +1936,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                 // Can unmap if first chunk holds entire segment and not pinned
                 if !is_inuse(p) && #^byte(p) + psize >= baseAddr + size - TOP_FOOT_SIZE
                 {
-                    tchunk* tp = #^tchunk(p)
+                    @tp = #^tchunk(p)
                     assert(segment_holds(sp, #^byte(sp)))
                     if p == dv
                     {
@@ -1987,7 +1987,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                 @unit = mparams.granularity
                 @extra = ((topsize - pad + (unit - SIZE_T_ONE)) / unit
                                 - SIZE_T_ONE) * unit
-                msegment* sp = segment_holding(#^byte(top))
+                @sp = segment_holding(#^byte(top))
 
                 if !is_extern_segment(sp)
                 {
@@ -2131,7 +2131,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
         {
             // Traverse tree for this bin looking for node with size == nb
             @sizebits = nb << leftshift_for_tree_index(idx)
-            tchunk* rst = null  // The deepest untaken right subtree
+            @rst = null  // The deepest untaken right subtree
             while true
             {
                 @rt ^tchunk
@@ -2186,7 +2186,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
             if RTCHECK(ok_address(v))
             {
                 // split
-                mchunk* r = chunk_plus_offset(v, nb)
+                @r = chunk_plus_offset(v, nb)
                 assert(chunksize(v) == rsize + nb)
                 if RTCHECK(ok_next(v, r))
                 {
@@ -2233,7 +2233,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
         if RTCHECK(ok_address(v))
         {
-            mchunk* r = chunk_plus_offset(v, nb)
+            @r = chunk_plus_offset(v, nb)
             assert(chunksize(v) == rsize + nb)
             if RTCHECK(ok_next(v, r))
             {
@@ -2265,10 +2265,10 @@ pub unsafe abstract class DlMallocBase : IDisposable
         @s = seg
         while s != null
         {
-            mchunk* q = align_as_chunk(s.baseAddr)
+            @q = align_as_chunk(s.baseAddr)
             while segment_holds(s, q) && q.head != FENCEPOST_HEAD
             {
-                mchunk* next = next_chunk(q)
+                @next = next_chunk(q)
                 @sz = chunksize(q)
                 @used xuint
                 @start ^void
@@ -2519,7 +2519,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
         if (nb <= dvsize)
         {
             @rsize = dvsize - nb
-            mchunk* p = dv
+            @p = dv
             if (rsize >= MIN_CHUNK_SIZE)
             {
                 // split dv
@@ -2577,7 +2577,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
         if (!is_initialized())
             => Init(0)
 
-        mchunk* p = mem2chunk(mem)
+        @p = mem2chunk(mem)
         if (!ok_magic())
         {
             CallUsageErrorAction(p)
@@ -2605,7 +2605,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
             }
             else
             {
-                mchunk* prev = chunk_minus_offset(p, prevsize)
+                @prev = chunk_minus_offset(p, prevsize)
                 psize += prevsize
                 p = prev
                 if (RTCHECK(ok_address(prev)))
@@ -2681,7 +2681,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
             }
             else
             {
-                tchunk* tp = #^tchunk(p)
+                @tp = #^tchunk(p)
                 insert_large_chunk(tp, psize)
                 check_free_chunk(p)
                 release_checks -= 1

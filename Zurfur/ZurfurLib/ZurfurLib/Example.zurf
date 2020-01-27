@@ -8,12 +8,12 @@ namespace Zurfur.Example
 /// Example class, a test of hover comments and `code` comments
 pub class Example
 {
-    pub field1 float32
+    pub field1 f32
     pub field2 int    
     pub prop Prop str => Header + info      // Property
-    pub func A(a int) float => a+1
-    pub func A(a float32) float => a+1
-    pub func B(a float32) float => a+1
+    pub func A(a int) f32 => a+1
+    pub func A(a f32) f32 => a+1
+    pub func B(a f32) f32 => a+1
     pub prop ChangedTime DateTime = DateTime.Now
         => default get private set
     
@@ -26,7 +26,6 @@ pub func Example::Extension()
     for @a in 1..23
     {
         F(out @b, c)
-        a + 55 = 23 // TBD: Fix 
     }
 }
 
@@ -43,7 +42,7 @@ pub class Example2  // YES, errors working
 
     // Fields initialized to zero, null, or "" for string
     f1 int          // Initialized to 0
-    f2 float32      // Initialized to 0.0
+    f2 f32      // Initialized to 0.0
     f3 str          // Initialized to "", not NULL
     
     // Fields initialized to null
@@ -64,13 +63,13 @@ pub class Example2  // YES, errors working
     // Fields initialized via assignment
     f15 int = 32
     f16 int = FuncReturnsInt() >> 4
-    f17 float32 = FuncReturnsFloat32orInt()
+    f17 f32 = FuncReturnsf32orInt()
     f18 str = "Hello"
     f19 ^int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
     pub prop P1 int => 1
-    pub prop P2 float =>  f1 + f2
+    pub prop P2 f32 =>  f1 + f2
     pub prop P3 int { get { return 3 } }
     pub prop P4 int = 3 => default get set // Initialized to 3
     pub prop P5 int(3) // Initializes p1 to 3
@@ -82,7 +81,7 @@ pub class Example2  // YES, errors working
     pub this[index i] int => i
     
     // Function
-    func fun1(a int) float => f1 + f2 + a
+    func fun1(a int) f32 => f1 + f2 + a
     func func1(a int) { }
     func func2(a out str) bool {}
     func func4(a ref MyStruct) {}
@@ -115,13 +114,13 @@ pub class Example2  // YES, errors working
         @a7 = f(f<a>())(a+b)
 
         // Casts
-        @a = #int(a+b+myFloat)*23+4        // Prefix, operator
+        @a = #int(a+b+myFloat32)*23+4        // Prefix, operator
         @a = #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())    // Prefix
         @b = ^#^int(myVoidPointer)      // Prefix
         @c1 = #M<str,int.x<T>.y>.Hello2(A)
         @c2 = #M<str,int.x<T>.y>.Hello2<x.x>(A)
         @c3 = #List<int,y,z>(A)
-        @a = #int(a+b+myFloat)
+        @a = #int(a+b+myFloat32)
         @a = #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
         @a = (#List<Stuff>(yourStuff.SeeMyStuff)).Add(Stuff())
         @b = ^#^int(myVoidPointer)
@@ -136,7 +135,7 @@ pub class Example2  // YES, errors working
         @myOtherMap = MyMapReturningFunction()
        
         @myStr str = MyStrFunc()    // Error if MyStrFunc returns an int
-        @myInt int = MyIntFunc()    // Error if MyIntFunc returns a float
+        @myInt int = MyIntFunc()    // Error if MyIntFunc returns a f32
         @a str                      // `a` is a string, initialized to ""
         @b List<int>                // `b` is a List<int>, initialized to empty
     
@@ -238,14 +237,12 @@ pub func Example::IfTests()
     for @a in 1..23
     {
       F(out @b, c)
-      a + 55 = 23 // TBD: Fix 
     }
 
 
     for @a in 1..23
     {
         F(out @b, c)
-        a + 55 = 23 // TBD: Fix 
     }
 }
 
@@ -389,7 +386,7 @@ pub static func MemCopy(dest ^void, source ^void, length xint)
     {
         return
     }
-    // Align `to` on int32
+    // Align `to` on i32
     while to & 3 != 0 && length != 0
     {
         ^#^byte(to) = ^#^byte(from); to+=1; from+=1; length-=1
@@ -432,16 +429,16 @@ pub static func MemCopy32(dest ^void, source ^void, length xint)
     {
         if to & 4 != 0
         {
-            ^#^int32(to) = ^#^int32(from); to+=4; from+=4
+            ^#^i32(to) = ^#^i32(from); to+=4; from+=4
         }
         while end - to >= 8  
         {
-            ^#^int64(to) = ^#^int64(from); to+=8; from+=8
+            ^#^i64(to) = ^#^i64(from); to+=8; from+=8
         }
     }
     while end-to >= 4
     {
-        ^#^int32(to) = ^#^int32(from); to+=4; from+=4
+        ^#^i32(to) = ^#^i32(from); to+=4; from+=4
     }
     while to != end
     {

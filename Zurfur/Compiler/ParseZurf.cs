@@ -62,10 +62,10 @@ namespace Gosub.Zurfur.Compiler
             + "finally fixed for goto if implicit in interface internal is lock namespace module include "
             + "new null operator out override pub public private protected readonly ro ref mut "
             + "return unsealed sealed sealed1 sizeof stackalloc heapalloc static struct switch this throw true try "
-            + "typeof unsafe using static virtual volatile while dowhile asm managed unmanaged "
+            + "typeof unsafe using static virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set yield global partial var where nameof of youdo "
             // TBD: Remove these when we are sure we don't want them
-            + "trait extends implements implement union type fn fun afn afun def adef";
+            + "trait extends implements implement union type fn fun afn afun def adef yield let init";
 
         static readonly string sReservedControlWords = "using namespace module include class struct enum interface "
             + "func afunc prop get set operator if else switch await for while dowhile _";
@@ -73,7 +73,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sReservedIdentifierVariables = new WordSet("null this true false default");
 
         static WordSet sClassFuncFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static const unsealed sealed1 abstract virtual override new volatile ref ro mut readonly");
+            + "static const unsealed sealed1 abstract virtual override new ref ro mut readonly");
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sFieldDefTypeQualifiers = new WordSet("ref");
@@ -795,7 +795,6 @@ namespace Gosub.Zurfur.Compiler
         enum StatementsType
         {
             Statements,
-            Switch,
             MethodBody,
             PropertyBody
         }
@@ -803,7 +802,7 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Parse '{ statements }' or '=> statement'
         /// </summary>
-        private SyntaxExpr ParseStatements(string errorMessage, StatementsType type = StatementsType.Statements)
+        private SyntaxExpr ParseStatements(string errorMessage, StatementsType type)
         {
             if (mToken == SSEP)
                 return ParseStatementsSeparator(errorMessage, type);
@@ -831,15 +830,15 @@ namespace Gosub.Zurfur.Compiler
             if (mToken != SSEP)
                 throw new Exception("Compiler error: Expecting '=>'");
 
-            int maxConjoined = type == StatementsType.Switch ? 0 : 1;
             var count = 0;
             var statementKeyword = mToken;
             var statements = NewExprList();
+
             while (AcceptMatch(SSEP))
             {
-                if (count++ >= maxConjoined)
+                if (count++ >= 1)
                 {
-                    RejectToken(mPrevToken, "Maximum '=>' conjoined statements is " + maxConjoined);
+                    RejectToken(mPrevToken, "Multiple conjoined statements not allowed");
                     break;
                 }
                 if (mToken == ";" || mToken == "{" || mToken == "}")
@@ -881,7 +880,12 @@ namespace Gosub.Zurfur.Compiler
                 if (mTokenName == ";" && !mToken.Invisible)
                     RejectToken(mToken, "Not allowed to have a ';' on a statement starting with '" + SSEP + "'");
             }
-            return new SyntaxMulti(CreateInvisible(statementKeyword, "=>"), FreeExprList(statements));
+
+            // Use "{" for statements, or "=>" for expressions
+            var sepToken = type == StatementsType.Statements
+                                ? CreateInvisible(statementKeyword, "{") : statementKeyword;
+
+            return new SyntaxMulti(sepToken, FreeExprList(statements));
         }
 
         private void ParseStatement(List<SyntaxExpr> statements, bool requireSemicolon = true)
@@ -901,7 +905,7 @@ namespace Gosub.Zurfur.Compiler
 
                 case "{":
                     RejectToken(mToken, "Unnecessary scope is not allowed");
-                    statements.Add(ParseStatements("scope"));
+                    statements.Add(ParseStatements("scope", StatementsType.Statements));
                     requireSemicolon = false;
                     break;
                 
@@ -916,31 +920,33 @@ namespace Gosub.Zurfur.Compiler
                         Reject("Expecting '@' then a new variable decaration");
                         break;
                     }
-                    ParseNewVarStatment(statements);
+                    statements.Add(new SyntaxUnary(useToken, ParseNewVarStatment()));
                     break;
 
                 case NEWVAR:
-                    ParseNewVarStatment(statements);
+                    statements.Add(ParseNewVarStatment());
                     break;
 
                 case "while":
-                    statements.Add(new SyntaxBinary(Accept(), ParseExpr(), ParseStatements("while")));
+                    // WHILE (condition) (body)
+                    statements.Add(new SyntaxBinary(Accept(), ParseExpr(), ParseStatements("while", StatementsType.Statements)));
                     break;
 
                 case "do":
+                    // DO (condition) (body)
                     var doKeyword = Accept();
-                    var doStatements = ParseStatements("do");
+                    var doStatements = ParseStatements("do", StatementsType.Statements);
                     var doExpr = (SyntaxExpr)new SyntaxError();
                     if (AcceptMatchOrReject("while"))
                         doExpr = ParseExpr();
-                    statements.Add(new SyntaxBinary(doKeyword, doStatements, doExpr));
+                    statements.Add(new SyntaxBinary(doKeyword, doExpr, doStatements));
                     break;
 
 
                 case "if":
                     Accept();
                     var ifCondition = ParseExpr();
-                    var ifBody = ParseStatements("if");
+                    var ifBody = ParseStatements("if", StatementsType.Statements);
                     AcceptSemicolonOrReject();
                     requireSemicolon = false;
                     if (mToken != "else")
@@ -954,7 +960,7 @@ namespace Gosub.Zurfur.Compiler
                         Accept();
                         if (mTokenName != "if")
                         {
-                            statements.Add(new SyntaxMulti(keyword, ifCondition, ifBody, ParseStatements("else")));
+                            statements.Add(new SyntaxMulti(keyword, ifCondition, ifBody, ParseStatements("else", StatementsType.Statements)));
                         }
                         else
                         {
@@ -974,6 +980,7 @@ namespace Gosub.Zurfur.Compiler
                     break;
 
                 case "for":
+                    // FOR (variable) (condition) (statements)
                     Accept();
                     if (AcceptMatch(NEWVAR))
                         mPrevToken.Type = eTokenType.CreateVariable;
@@ -983,7 +990,7 @@ namespace Gosub.Zurfur.Compiler
 
                     AcceptMatchOrReject("in");
                     var forCondition = ParseExpr();
-                    statements.Add(new SyntaxMulti(keyword, forVariable, forCondition, ParseStatements("for")));
+                    statements.Add(new SyntaxMulti(keyword, forVariable, forCondition, ParseStatements("for", StatementsType.Statements)));
                     break;
 
                 case "throw":
@@ -1001,7 +1008,8 @@ namespace Gosub.Zurfur.Compiler
                     break;
 
                 case "switch":
-                    statements.Add(new SyntaxBinary(Accept(), ParseExpr(), ParseStatements("switch", StatementsType.Switch)));
+                    // SWITCH (expr) (statements)
+                    statements.Add(new SyntaxBinary(Accept(), ParseExpr(), ParseStatements("switch", StatementsType.Statements)));
                     break;
 
                 case "default":
@@ -1069,12 +1077,12 @@ namespace Gosub.Zurfur.Compiler
             return ParseExpr();
         }
 
-        void ParseNewVarStatment(List<SyntaxExpr> statements)
+        SyntaxExpr ParseNewVarStatment()
         {
             mToken.Type = eTokenType.CreateVariable;
             var newVarToken = Accept();
             if (!ParseIdentifier("Expecting variable name", out var newVarName))
-                return;
+                return new SyntaxError();
 
             SyntaxExpr type = mTokenName == "="
                 ? new SyntaxToken(Token.Empty)
@@ -1082,7 +1090,7 @@ namespace Gosub.Zurfur.Compiler
 
             SyntaxExpr initExpr = ParseAssignmentOrConstructor();
 
-            statements.Add(new SyntaxMulti(newVarToken, new SyntaxToken(newVarName), type, initExpr));
+            return new SyntaxMulti(newVarToken, new SyntaxToken(newVarName), type, initExpr);
         }
 
 
@@ -1099,7 +1107,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 var lambdaToken = Accept();
                 if (mTokenName == "{")
-                    result = new SyntaxBinary(lambdaToken, result, ParseStatements("lambda"));
+                    result = new SyntaxBinary(lambdaToken, result, ParseStatements("lambda", StatementsType.Statements));
                 else
                     result = new SyntaxBinary(lambdaToken, result, ParseTernary());
             }
