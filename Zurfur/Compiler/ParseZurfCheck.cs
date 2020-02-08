@@ -277,9 +277,14 @@ namespace Gosub.Zurfur.Compiler
                     if (expr.Count >= 2)
                     {
                         if (sInvalidLeftAssignments.Contains(expr[0].Token))
-                            mParser.RejectToken(expr[0].Token, "Invalid operator in left side of assignment");
+                        {
+                            if (expr[0].Token != "*" || expr[0].Count >= 2) // Unary `*` is OK
+                                mParser.RejectToken(expr[0].Token, "Invalid operator in left side of assignment");
+                        }
                         else
+                        {
                             CheckExpr(expr, expr[0]);
+                        }
                         CheckExpr(expr, expr[1]);
                     }
                     break;
@@ -478,7 +483,8 @@ namespace Gosub.Zurfur.Compiler
             if (expr == null)
                 return;
             if (isType && (expr.Token.Type == eTokenType.Identifier
-                            || expr.Token == ParseZurf.PTR) )
+                            || expr.Token == ParseZurf.PTR
+                            || expr.Token == "?") )
                 expr.Token.Type = eTokenType.TypeName;
 
             // New variable

@@ -50,7 +50,7 @@ pub class Example2  // YES, errors working
     f5 Array<Array<int>> 
     f7 Map<str,List<int>>
     f8 Pointer<int>
-    f9 ^int        // Same as Pointer<int>
+    f9 *int        // Same as Pointer<int>
     
     // Fields initialized via constructor
     f10 int(FuncReturnsInt())
@@ -65,7 +65,7 @@ pub class Example2  // YES, errors working
     f16 int = FuncReturnsInt() >> 4
     f17 f32 = FuncReturnsf32orInt()
     f18 str = "Hello"
-    f19 ^int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
+    f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
     pub prop P1 int => 1
@@ -116,14 +116,14 @@ pub class Example2  // YES, errors working
         // Casts
         @a = #int(a+b+myFloat32)*23+4        // Prefix, operator
         @a = #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())    // Prefix
-        @b = ^#^int(myVoidPointer)      // Prefix
+        @b = *#*int(myVoidPointer)      // Prefix
         @c1 = #M<str,int.x<T>.y>.Hello2(A)
         @c2 = #M<str,int.x<T>.y>.Hello2<x.x>(A)
         @c3 = #List<int,y,z>(A)
         @a = #int(a+b+myFloat32)
         @a = #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
         @a = (#List<Stuff>(yourStuff.SeeMyStuff)).Add(Stuff())
-        @b = ^#^int(myVoidPointer)
+        @b = *#*int(myVoidPointer)
         #List<Stuff>(yourStuff.SeeMyStuff)[23] = 4
 
 
@@ -320,7 +320,7 @@ pub class Matrix2d<t> : VariableSizedObject<T>
 pub class UnmanagedMemory<T> : UnmanagedHande 
                 where T : IBlittableStruct
 {
-    pub ro Memory ^void
+    pub ro Memory *void
     pub ro Capacity int
     pub ro OwnedByGc bool
     count int
@@ -340,7 +340,7 @@ pub class UnmanagedMemory<T> : UnmanagedHande
     // Attach this object to a buffer allocated by unmanaged code.  
     // Lenght and Capacity are set automatically. Be sure that
     // unmanaged code doesn't delete the object while still in use.  
-    unsafe new(data ^void, sizeOfBufferInBytes int) { todo() }
+    unsafe new(data *void, sizeOfBufferInBytes int) { todo() }
 
     pub func CopyTo() { todo() }
 }
@@ -358,7 +358,7 @@ pub class StructObject
 pub class ClassObject
 {
     // The only member
-    protected unsafe ro VT ^void
+    protected unsafe ro VT *void
 
     pub override func GetType() { todo() }
 }
@@ -377,7 +377,7 @@ pub class FinalizedNotifyQueue
     pub afunc WaitQueueNotEmpty() { todo() }
 }
 
-pub static func MemCopy(dest ^void, source ^void, length xint)
+pub static func MemCopy(dest *void, source *void, length xint)
 {
     @to = #xint(dest)
     @from = #xint(source)
@@ -389,12 +389,12 @@ pub static func MemCopy(dest ^void, source ^void, length xint)
     // Align `to` on i32
     while to & 3 != 0 && length != 0
     {
-        ^#^byte(to) = ^#^byte(from); to+=1; from+=1; length-=1
+        *#*byte(to) = *#*byte(from); to+=1; from+=1; length-=1
     }
     
     if from & 3 == 0
     {
-        MemCopy32(#^void(to), #^void(from), length)
+        MemCopy32(#*void(to), #*void(from), length)
         return
     }
     
@@ -402,18 +402,18 @@ pub static func MemCopy(dest ^void, source ^void, length xint)
     @end = to + length
     while end-to >= 4
     {
-        ^#^byte(to) = ^#^byte(from); to+=1; from+=1
-        ^#^byte(to) = ^#^byte(from); to+=1; from+=1
-        ^#^byte(to) = ^#^byte(from); to+=1; from+=1
-        ^#^byte(to) = ^#^byte(from); to+=1; from+=1
+        *#*byte(to) = *#*byte(from); to+=1; from+=1
+        *#*byte(to) = *#*byte(from); to+=1; from+=1
+        *#*byte(to) = *#*byte(from); to+=1; from+=1
+        *#*byte(to) = *#*byte(from); to+=1; from+=1
     } 
     while to != end
     {
-        ^#^byte(to) = ^#^byte(from); to+=1; from+=1
+        *#*byte(to) = *#*byte(from); to+=1; from+=1
     }
 }
 
-pub static func MemCopy32(dest ^void, source ^void, length xint)
+pub static func MemCopy32(dest *void, source *void, length xint)
 {
     @to = #xint(dest)
     @from = #xint(source)
@@ -429,20 +429,20 @@ pub static func MemCopy32(dest ^void, source ^void, length xint)
     {
         if to & 4 != 0
         {
-            ^#^i32(to) = ^#^i32(from); to+=4; from+=4
+            *#*i32(to) = *#*i32(from); to+=4; from+=4
         }
         while end - to >= 8  
         {
-            ^#^i64(to) = ^#^i64(from); to+=8; from+=8
+            *#*i64(to) = *#*i64(from); to+=8; from+=8
         }
     }
     while end-to >= 4
     {
-        ^#^i32(to) = ^#^i32(from); to+=4; from+=4
+        *#*i32(to) = *#*i32(from); to+=4; from+=4
     }
     while to != end
     {
-        ^#^byte(to) = ^#^byte(from); to+=1; from+=1
+        *#*byte(to) = *#*byte(from); to+=1; from+=1
     }
 }
 

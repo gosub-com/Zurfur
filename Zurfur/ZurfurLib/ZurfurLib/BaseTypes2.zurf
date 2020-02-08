@@ -6,9 +6,10 @@ namespace Zurfur
 /// Base class for all objects, struct and class alike.
 pub unsealed class object
 {
-    vtable ^VTable
+    vtable *VTable
     pub func GetType() { todo() }
-    pub virtual func ToStr() { todo() }
+    pub virtual func ToStr() { return "" }
+    pub virtual func ToStr(format str) { return "" }
 }
 
 /// Read only span

@@ -16,7 +16,7 @@ namespace Gosub.Zurfur.Compiler
         public const string VIRTUAL_TOKEN_TYPE_ARG_LIST = "<>";
         public const string VIRTUAL_TOKEN_INITIALIZER = "{}";
 
-        public const string PTR = "^";
+        public const string PTR = "*";
         public const string XOR = "~";
         public const string NEWVAR = "@";
         public const string SSEP = "=>";  // Statement separator
@@ -52,7 +52,7 @@ namespace Gosub.Zurfur.Compiler
 
         // Add semicolons to all lines, except for:
         static WordSet sEndLineSkipSemicolon = new WordSet("; { [ ( ,");
-        static WordSet sBeginLineSkipSemicolon = new WordSet("{ } ] ) + - * / % | & " + XOR + " || && == != = "
+        static WordSet sBeginLineSkipSemicolon = new WordSet("{ } ] ) + - / % | & " + XOR + " || && == != = "
                                                 + ": ? . , > << <= < => -> .. :: !== === += -= *= /= %= &= |= " + XOR + "= " 
                                                 + "where is in as extends implements " + SSEP);
         Token mInsertedToken;
@@ -1366,9 +1366,13 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Number, string, identifier
-            if (mToken.Type == eTokenType.Number || mToken.Type == eTokenType.Quote)
+            if (mToken.Type == eTokenType.Number)
             {
                 return new SyntaxToken(Accept());
+            }
+            if (mToken.Type == eTokenType.Quote)
+            {
+                return ParseStringLiteral(null);
             }
             if (mToken.Type == eTokenType.Identifier)
             {
@@ -1376,9 +1380,8 @@ namespace Gosub.Zurfur.Compiler
                 if (mToken.Type == eTokenType.Quote && identifier == "tr")
                 {
                     identifier.Type = eTokenType.Reserved;
-                    return new SyntaxUnary(Accept(), new SyntaxToken(identifier));
+                    return ParseStringLiteral(identifier);
                 }
-
                 return new SyntaxToken(identifier);
             }
             // Misc reserved words
@@ -1392,6 +1395,70 @@ namespace Gosub.Zurfur.Compiler
             Reject("Expecting an identifier, number, string literal, or parentheses");
             return new SyntaxToken(errorToken);
         }
+
+        /// <summary>
+        /// Prefix may be null, or 'tr'.  Next token must be quoted string
+        /// </summary>
+        SyntaxExpr ParseStringLiteral(Token prefix)
+        {
+            if (prefix != null)
+                prefix.AddWarning("Not stored in parse tree");
+            var quote = mToken;
+            var str = "";
+            while (mToken.Type == eTokenType.Quote
+                   || mToken.Type == eTokenType.Identifier
+                   || mToken == "{")
+            {
+                if (mToken.Type == eTokenType.Identifier)
+                {
+                    var word = Accept();
+                    word.Type = eTokenType.Reserved;
+                    switch (word.Name)
+                    {
+                        case "tab":  str += "\t";  break;
+                        case "cr": str += "\r"; break;
+                        case "lf": str += "\n";  break;
+                        case "crlf": str += "\r\n";  break;
+                        case "bs": str += "\b"; break;
+                        case "ff": str += "\f";  break;
+                        default:
+                            word.Type = eTokenType.Identifier;
+                            RejectToken(word, "Unexpected token after string literal");
+                            break;
+                    }
+                }
+                else if (mToken == "{")
+                {
+                    mToken.AddWarning("Interpolated strings not stored in parse tree");
+                    str += "~$";
+                    Accept();
+                    ParseExpr();
+                    AcceptMatchOrReject("}");
+                }
+                else
+                {
+                    // Quoted string
+                    var s = mTokenName.Substring(1, Math.Max(0, mTokenName.Length - 2));
+                    str += s;
+                    if (s.Contains("~$") || s.Contains("~#"))
+                        mToken.AddError("String literal may not contain ~$ or ~#");
+                    Accept();
+                }
+            }
+            quote.AddInfo(str.Replace("\r\n", "{crlf}")
+                             .Replace("\r", "{cr}")
+                             .Replace("\n", "{lf}")
+                             .Replace("\t", "{tab}")
+                             .Replace("\f", "{ff}")
+                             .Replace("\b", "{bs}")
+                             .Replace("~$", "{expr}"));
+
+
+
+            return new SyntaxUnary(CreateInvisible(quote, "\""), new SyntaxToken(new Token(str)));
+        }
+
+
 
         /// <summary>
         /// Read the open '(' or '[' and then parse the parameters into parameters
@@ -1787,8 +1854,12 @@ namespace Gosub.Zurfur.Compiler
 
             if (mTokenName.Length == 0)
                 mToken.Type = eTokenType.Normal;
-            else if (mTokenName[0] == '\"')
+            else if (mTokenName[0] == '\"' || mTokenName[0] == '`')
+            {
                 mToken.Type = eTokenType.Quote;
+                if (mTokenName.Length <= 1 || !mTokenName.EndsWith(mTokenName[0].ToString()))
+                        RejectToken(mToken, "Exepcting an end " + mTokenName[0] + " character");
+            }
             else if (mTokenName[0] >= '0' && mTokenName[0] <= '9')
                 mToken.Type = eTokenType.Number;
             else if (sReservedWords.TryGetValue(mTokenName, out var tokenType))
@@ -1807,7 +1878,9 @@ namespace Gosub.Zurfur.Compiler
             // Insert a ';' after each new line
             if (prevToken.Y != mToken.Y
                     && !sEndLineSkipSemicolon.Contains(prevToken)
-                    && !sBeginLineSkipSemicolon.Contains(mTokenName))
+                    && ! (sBeginLineSkipSemicolon.Contains(mTokenName) 
+                            || mTokenName.StartsWith("\"")
+                            || mTokenName.StartsWith("`")))
             {
                 // Mark at end of white space, but before any comment
                 var line = mLexer.GetLine(prevToken.Y);

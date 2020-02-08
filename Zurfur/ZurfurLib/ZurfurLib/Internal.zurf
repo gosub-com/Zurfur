@@ -11,8 +11,8 @@ namespace Zurfur.Internal
 pub ref struct rref<T>
 {
     pub obj  ?object   // Container object, or null if pointing to non GC memory
-    pub r    ^T       // The reference
-    pub new(obj ?obj, reference ^T) { this.obj = obj;  r = reference}
+    pub r    *T       // The reference
+    pub new(obj ?obj, reference *T) { this.obj = obj;  r = reference}
 }
 
 /// A forward reference is a reqular pointer passed down the call stack.
@@ -20,8 +20,8 @@ pub ref struct rref<T>
 /// stack, and is therefore GC pinned.
 pub ref struct fref<T>
 {
-    pub r ^T
-    pub new(reference ^T) { r = reference}
+    pub r *T
+    pub new(reference *T) { r = reference}
 }
 
 /// Interfaces are implemented as two pointers, one to a `vtable`, and
@@ -29,17 +29,17 @@ pub ref struct fref<T>
 /// would need to be read and written to memory as an automic operation.
 pub struct InterfacePointer
 {
-    pub vtable ^InterfaceVTable;
-    pub obj ^void;
-    pub new(vtable ^InterfaceVTable, obj ^void) { this.vtable = vtable;  this.obj = obj}
+    pub vtable *InterfaceVTable;
+    pub obj *void;
+    pub new(vtable *InterfaceVTable, obj *void) { this.vtable = vtable;  this.obj = obj}
 }
 
 /// Base for all compiler generated interface vtables
 pub struct InterfaceVTable
 {
-    pub vtable ^void // TBD: Common 
+    pub vtable *void // TBD: Common 
     pub IsProtected func() bool
-    pub GetObject func() ^void
+    pub GetObject func() *void
 }
 
 /// All variable sized objects must inherit from this
@@ -54,6 +54,6 @@ pub sealed1 class ArrayBase<T>
         
     protected prop DataSpan Span<T> 
         => todo()
-    protected unsafe prop DataPointer ^T 
-        => #^T(#^byte(this) + Sizeof(ArrayBase))
+    protected unsafe prop DataPointer *T 
+        => #*T(#*byte(this) + Sizeof(ArrayBase))
 }

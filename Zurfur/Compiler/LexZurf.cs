@@ -11,7 +11,6 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     class LexZurf : Lexer
     {
-        static HashSet<char> sStringEscapes = new HashSet<char> { '\"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u' };
         static Regex sFindUrl = new Regex(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
         List<Token> mTokenBuffer = new List<Token>();  // Be kind to the GC
         Dictionary<long, bool> mSpecialSymbols = new Dictionary<long, bool>();
@@ -117,7 +116,7 @@ namespace Gosub.Zurfur.Compiler
                 return;
             }
             // Quote
-            if (ch1 == '\"')
+            if (ch1 == '\"' || ch1 == '`')
             {
                 tokens.Add(ScanString(line, ref charIndex, startIndex));
                 return;
@@ -184,15 +183,12 @@ namespace Gosub.Zurfur.Compiler
 
         Token ScanString(string line, ref int charIndex, int startIndex)
         {
+            // TBD: This will go away, let the higher level parser
+            //      determine when to end the quote (and interpret escapes)
+            char endQuote = line[charIndex];
             int endIndex = charIndex + 1;
-            while (endIndex < line.Length && line[endIndex] != '\"')
+            while (endIndex < line.Length && line[endIndex] != endQuote)
             {
-                if (line[endIndex] == '\\')
-                {
-                    // TBD: Handle /u
-                    if (endIndex + 1 < line.Length && sStringEscapes.Contains(line[endIndex + 1]))
-                        endIndex++;
-                }
                 endIndex++;
             }
             if (endIndex != line.Length)

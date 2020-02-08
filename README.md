@@ -18,7 +18,7 @@ spelled **_ZurFUR_** because our cat has fur.
 Zurfur is similar to C#, but borrows syntax and design concepts from Golang,
 JavaScript, Zig, and others.  Here are some differences between Zurfur and C#:
 
-* Strings are UTF8 byte arrays initialized
+* Strings are UTF8 byte arrays, always initialized
 * Reference types are initialized without `new` keyword and are non-nullable by default
 * Type declaration syntax and operator precedence is from Golang
 * Interfaces can be created from object with matching signature (structural typing from Golang)
@@ -136,15 +136,23 @@ others library class types?  Or use upper case for `Str`, `i8`, etc?
 
 #### Strings
 
-Strings are immutable UTF8 byte arrays.  They can be translated by using the
-`tr"string"` syntax.  Translated strings are grouped separately, and then
-looked up dynamically at run time.  The `Arg()` function can be used
-to replace occurrences of `%number`.  There is no formatting beyond
-string replacement.  For example: `tr"Hello %1. You like %2.".Arg(name).Arg(adjective)`
-might generate `Hello Jeremy.  You like ice cream.`
+Strings are immutable byte arrays, generally assumed to hold UTF8 encoded characters.
+However, there is no rule enforcing the UTF8 encoding so they may hold any binary data.
 
-**TBD:** This will be sufficient for first release, but later we want
-syntax for interpolated and pluralized strings.  Perhaps `tr(number)"String"`
+String literals in source code can start with either a quote `"` or a backtick
+`` ` ``, which is useful if the string conains a quote.  They can be translated
+using `tr"string"` syntax, and may be followed by an escape constant such as
+`crlf` or an `{interpolation-expression}`.
+
+    @a = "Regular string literal"
+    @b = "Column1" tab "Column2" tab "Column3" crlf     // Containing tabs and crlf
+    @c = tr"Translated string"
+    @d = "Hello world, 2+2="{2+2}"!"crlf                // Interpolated with crlf at end
+    @e = `Jack says "Hello World!"`                     // Include quote character
+
+Escape constants are `cr`, `lf`, `crlf`, `tab`, `ff`, `bs`
+
+**TBD:** Remove quote strings and use only backtick?
 
 #### Array
 
@@ -210,7 +218,7 @@ the fastest or most efficient. For efficient memory usage, `Json` will support
 Operator precedence comes from Golang.
 
     Primary: x.y f(x) a[i] #type(expr)
-    Unary: - ! & ~ ^
+    Unary: - ! & ~ *
     Multiplication and bits: * / % << >> & 
     Add and bits: + - | ~
     Range: .. ::
@@ -223,9 +231,7 @@ Operator precedence comes from Golang.
     Assignment Statements: = += -= *= /= %= &= |= ~= <<= >>=
     Statement separator: => (not an operator, not lambda)
 
-The `*` operator is only for multiplication, and `->` is only for
-lambda, neither are for dereferencing pointers.  `~` is both xor 
-and unary complement.  See pointers section below for discussion.    
+`~` is both xor and unary complement. 
 
 The `..` operator takes two `int`s and make a `Range` which is a
 `struct Range { Start int; End int}`.  The `::` operator also
@@ -307,13 +313,16 @@ Like Golang, semicolons are required between statements but they are automatical
 inserted at the end of lines based on the last non-comment token and the first token
 of the next line.
 
-The general rule is that any line beginning with an operator does not put
-a `;` on the previous line.  Additionally, `{`, `[`, `(`, or `,` at the end
-of a line prevents a semicolon on that line.  
+The general rule is that any line beginning with a binary operator does not put
+a semicolon on the previous line.  Additionally, `{`, `[`, `(`, or `,` at the end
+of a line prevents a semicolon on that line.
 
-All compound statements require either curly braces (e.g. 
-`if expr { statements }`) or can use the statement separator `=>` (e.g.
-`if expr => statement`):
+**Excepton:** A line beginning with an `*` always has a semicolon before it, so
+multiplication cannot be used to continue a line.  This is necessary so a
+dereference statement such as `*a = 3` cannot be continued from the previous line.
+
+All compound statements require either curly braces (e.g. `if expr { statements }`)
+or can use the statement separator `=>` (e.g. `if expr => statement`):
     
     if a
       => DoThis()
@@ -730,38 +739,18 @@ There is more info on GC implementation here [Internals](Doc/Internals.md)
 
 ## Pointers
 
-The `^` operator dereferences a pointer.  The `.` operator is used to access fields
-or members of a pointer to the struct.  The `*` operator is only for multiplication,
-and the `->` operator is only for lambdas.  The `~` operator is both xor and complement.
+The unary `*` operator dereferences a pointer.  The `.` operator is used to access fields
+or members of a pointer to the struct (so `->` is only used for lambdas). 
  
-    pub static func strcpy(dest ^byte, source ^byte)
-    {
-        while ^source != 0
-            { ^dest = ^source;  dest += 1;  source += 1 }
-        ^dest = 0
-    }
-
-TBD: I'm still debating going back to `*` for pointers, but changing
-the unary dereference to `.*` so it's not the same as multiplication.
-Strcpy would look like this:
-
     pub static func strcpy(dest *byte, source *byte)
     {
-        while source.* != 0
-            { dest.* = source.*;  dest += 1;  source += 1 }
-        dest.* = 0
+        while *source != 0
+            { *dest = *source;  dest += 1;  source += 1 }
+        *dest = 0
     }
 
-Alternatively `*.`:
-
-    pub static func strcpy(dest *byte, source *byte)
-    {
-        while *.source != 0
-            { *.dest = *.source;  dest += 1;  source += 1 }
-        *.dest = 0
-    }
-
-
+Pointers are never tracked by the GC.  Any object that may have a
+pointer pointing into it must be pinned (or covered, see GC section below)
 
 ## Namespaces
 
