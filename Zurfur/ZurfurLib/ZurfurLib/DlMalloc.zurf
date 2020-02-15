@@ -530,14 +530,10 @@ pub unsafe abstract class DlMallocBase : IDisposable
     static func set_foot(p *mchunk, xuint s) => (#*mchunk(#*byte(p) + s)).prev_foot = s
     static func set_size_and_pinuse_of_free_chunk(p *mchunk, s xuint) { p.head = s | PINUSE_BIT; set_foot(p, s) }
     static func set_free_with_pinuse(p *mchunk, s xuint, n *mchunk) { clear_pinuse(n); set_size_and_pinuse_of_free_chunk(p, s) }
-    static func overhead_for(p *mchunk) xuint => is_mmapped(p) ? MMAP_CHUNK_OVERHEAD : CHUNK_OVERHEAD
 
     // ------------------- Chunks sizes and alignments -----------------------
 
     static prop CHUNK_OVERHEAD xuint => SIZE_T_SIZE
-    static prop MMAP_CHUNK_OVERHEAD xuint => TWO_SIZE_T_SIZES
-    static prop MMAP_FOOT_PAD xuint => FOUR_SIZE_T_SIZES
-
     static prop MCHUNK_SIZE xuint => sizeof(mchunk)
     static prop MIN_CHUNK_SIZE xuint => (MCHUNK_SIZE + CHUNK_ALIGN_MASK) & ~CHUNK_ALIGN_MASK
     static prop MAX_REQUEST xuint => -MIN_CHUNK_SIZE << 2
@@ -863,8 +859,6 @@ pub unsafe abstract class DlMallocBase : IDisposable
     [Conditional("DEBUG")] func check_free_chunk(p *mchunk) { do_check_free_chunk(p) }
     [Conditional("DEBUG")] func check_inuse_chunk(p *mchunk) { do_check_inuse_chunk(p) }
     [Conditional("DEBUG")] func check_malloced_chunk(mem *void, xuint s) { do_check_malloced_chunk(mem, s) }
-    [Conditional("DEBUG")] func check_mmapped_chunk(p *mchunk) { do_check_mmapped_chunk(p) }
-    [Conditional("DEBUG")] func check_malloc_state() { do_check_malloc_state() }
     [Conditional("DEBUG")] func check_top_chunk(p *mchunk) { do_check_top_chunk(p) }
 
     // ---------------------------- Indexing Bins ----------------------------
@@ -906,7 +900,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
     // Shift placing maximum resolved bit in a treebin at i as sign bit
     static func leftshift_for_tree_index(i xuint) int
-        => i == NTREEBINS - 1 ? 0 : SIZE_T_BITSIZE - SIZE_T_ONE - (i >> 1) + TREEBIN_SHIFT - 2
+        => i == NTREEBINS - 1 ? 0 : SIZE_T_BITSIZE - SIZE_T_ONE - ((i >> 1) + TREEBIN_SHIFT - 2)
 
     // The size of the smallest chunk held in bin with index i
     static func minsize_for_tree_index(i xuint) xuint
@@ -1054,7 +1048,8 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
     static func assert(c bool)
     {
-        System.Diagnostics.Debug.Assert(c)
+        if (!c)
+            => throw DlMallocException("Malloc assert failed")
     }
 
     // Check properties of any chunk, whether free, inuse, mmapped etc 
@@ -1079,21 +1074,6 @@ pub unsafe abstract class DlMallocBase : IDisposable
         assert(!pinuse(chunk_plus_offset(p, sz)))
     }
 
-    // Check properties of (inuse) mmapped chunks
-    func do_check_mmapped_chunk(p *mchunk)
-    {
-        @sz = chunksize(p)
-        @len = (sz + (p.prev_foot) + MMAP_FOOT_PAD)
-        assert(is_mmapped(p))
-        assert(use_mmap())
-        assert((is_aligned(chunk2mem(p))) || (p.head == FENCEPOST_HEAD))
-        assert(ok_address(p))
-        assert(!is_small(sz))
-        assert((len & (mparams.page_size - SIZE_T_ONE)) == 0)
-        assert(chunk_plus_offset(p, sz).head == FENCEPOST_HEAD)
-        assert(chunk_plus_offset(p, sz + SIZE_T_SIZE).head == 0)
-    }
-
     // Check properties of inuse chunks
     func do_check_inuse_chunk(p *mchunk)
     {
@@ -1101,9 +1081,8 @@ pub unsafe abstract class DlMallocBase : IDisposable
         assert(is_inuse(p))
         assert(next_pinuse(p))
         // If not pinuse and not mmapped, previous chunk has OK offset
-        assert(is_mmapped(p) || pinuse(p) || next_chunk(prev_chunk(p)) == p)
-        if is_mmapped(p)
-          => do_check_mmapped_chunk(p)
+        assert(pinuse(p) || next_chunk(prev_chunk(p)) == p)
+        assert(!is_mmapped(p))
     }
 
     // Check properties of free chunks
@@ -1144,7 +1123,9 @@ pub unsafe abstract class DlMallocBase : IDisposable
             assert(sz >= MIN_CHUNK_SIZE)
             assert(sz >= s)
             // unless mmapped, size is less than MIN_CHUNK_SIZE more than request
-            assert(is_mmapped(p) || sz < (s + MIN_CHUNK_SIZE))
+            assert(sz < (s + MIN_CHUNK_SIZE))
+            assert(!is_mmapped(p))
+
         }
     }
 
@@ -1292,56 +1273,33 @@ pub unsafe abstract class DlMallocBase : IDisposable
         return false
     }
 
-    // Traverse each chunk and check it; return total
-    func traverse_and_check()
+    pub class HeapStats
     {
-        @sum = 0
-        if is_initialized()
+        pub HeapSize i64
+        pub UsedChunks i64
+        pub UsedBytes i64
+        pub FreeChunks i64
+        pub FreeBytes i64
+
+        pub override func ToStr() string
         {
-            @s = seg
-            sum += topsize + TOP_FOOT_SIZE
-            while s != null
-            {
-                @q = align_as_chunk(s.baseAddr)
-                @lastq = null
-                assert(pinuse(q))
-                while segment_holds(s, q)
-                        && q != top 
-                        && q.head != FENCEPOST_HEAD
-                {
-                    sum += chunksize(q)
-                    if is_inuse(q)
-                    {
-                        assert(!bin_find(q))
-                        do_check_inuse_chunk(q)
-                    }
-                    else
-                    {
-                        assert(q == dv || bin_find(q))
-                        assert(lastq == null || is_inuse(lastq)) // Not 2 consecutive free
-                        do_check_free_chunk(q)
-                    }
-                    lastq = q
-                    q = next_chunk(q)
-                }
-                s = s.next
-            }
+            return "HeapSize=" + HeapSize + ", UB=" + UsedBytes + ", FB=" + FreeBytes
+                + ", UC=" + UsedChunks + ", FC=" + FreeChunks
         }
-        return sum
     }
 
     // Check all properties of malloc_state.
-    func do_check_malloc_state()
+    pub func CheckHeap() HeapStats
     {
-        @i uint
-        @total xuint
+        assert(is_initialized())
+
         // check bins
         for @i in 0..NSMALLBINS
           => do_check_smallbin(i)
         for @i in 0..NTREEBINS
           => do_check_treebin(i)
 
-        if dvsize != 0
+        if (dvsize != 0)
         {
             // check dv chunk
             do_check_any_chunk(dv)
@@ -1350,7 +1308,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
             assert(!bin_find(dv))
         }
 
-        if top != null
+        if (top != null)
         {
             // check top chunk
             do_check_top_chunk(top)
@@ -1358,9 +1316,59 @@ pub unsafe abstract class DlMallocBase : IDisposable
             assert(!bin_find(top))
         }
 
-        total = traverse_and_check()
-        assert(total <= footprint)
+        @usedChunks = 0
+        @freeChunks = 0
+        @freeBytes i64 = 0
+        @usedBytes i64 = 0
+        @heapSize i64 = 0
+        heapSize += #i64(topsize + TOP_FOOT_SIZE)
+
+        // Walk segments
+        @s = seg
+        while (s != null)
+        {
+            @q = align_as_chunk(s->baseAddr)
+            @lastq = null
+            assert(pinuse(q))
+
+            // Walk chunks
+            while (segment_holds(s, q) 
+                    && q != top && q->head != FENCEPOST_HEAD)
+            {
+                @chunkSize = #i64(chunksize(q))
+                heapSize += chunkSize
+                if (is_inuse(q))
+                {
+                    usedBytes += chunkSize
+                    usedChunks += 1
+                    assert(!bin_find(q))
+                    do_check_inuse_chunk(q)
+                }
+                else
+                {
+                    freeBytes += chunkSize
+                    freeChunks += 1
+                    assert(q == dv || bin_find(q))
+                    assert(lastq == null || is_inuse(lastq)) // Not 2 consecutive free
+                    do_check_free_chunk(q)
+                }
+                lastq = q
+                q = next_chunk(q)
+            }
+            s = s->next
+        }
+
+
+        assert(heapSize <= #i64(footprint))
         assert(footprint <= max_footprint)
+
+        @stats = HeapStats()
+        stats.HeapSize = heapSize
+        stats.FreeChunks = freeChunks
+        stats.FreeBytes = freeBytes
+        stats.UsedChunks = usedChunks
+        stats.UsedBytes = usedBytes
+        return stats
     }
 
     // ----------------------- Operations on smallbins -----------------------
@@ -2036,13 +2044,6 @@ pub unsafe abstract class DlMallocBase : IDisposable
         {
             @prev *mchunk
             @prevsize = p.prev_foot
-            if is_mmapped(p)
-            {
-                psize += prevsize + MMAP_FOOT_PAD
-                if CallReleaseCore(#*byte(p) - prevsize, psize)
-                  => footprint -= psize
-                return
-            }
             prev = chunk_minus_offset(p, prevsize)
             psize += prevsize
             p = prev
@@ -2589,44 +2590,34 @@ pub unsafe abstract class DlMallocBase : IDisposable
             CallUsageErrorAction(p)
             return
         }
+        assert(!is_mmapped(p))
 
         @psize = chunksize(p)
         @next = chunk_plus_offset(p, psize)
         if (!pinuse(p))
         {
             @prevsize = p.prev_foot
-            if (is_mmapped(p))
+            @prev = chunk_minus_offset(p, prevsize)
+            psize += prevsize
+            p = prev
+            if (RTCHECK(ok_address(prev)))
             {
-                // NOTE: Direct MMAP was removed, so this never gets called
-                psize += prevsize + MMAP_FOOT_PAD
-                if (CallReleaseCore(#*byte(p) - prevsize, psize))
-                  => footprint -= psize
-                return
+                // consolidate backward
+                if (p != dv)
+                {
+                    unlink_chunk(p, prevsize)
+                }
+                else if ((next.head & INUSE_BITS) == INUSE_BITS)
+                {
+                    dvsize = psize
+                    set_free_with_pinuse(p, psize, next)
+                    return
+                }
             }
             else
             {
-                @prev = chunk_minus_offset(p, prevsize)
-                psize += prevsize
-                p = prev
-                if (RTCHECK(ok_address(prev)))
-                {
-                    // consolidate backward
-                    if (p != dv)
-                    {
-                        unlink_chunk(p, prevsize)
-                    }
-                    else if ((next.head & INUSE_BITS) == INUSE_BITS)
-                    {
-                        dvsize = psize
-                        set_free_with_pinuse(p, psize, next)
-                        return
-                    }
-                }
-                else
-                {
-                    CallUsageErrorAction(p)
-                    return
-                }
+                CallUsageErrorAction(p)
+                return
             }
         }
 
