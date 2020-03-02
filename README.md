@@ -6,25 +6,30 @@ spelled **_ZurFUR_** because our cat has fur.
 
 ## Design Goals
 
-* Fun and easy to use 
-* Become the go-to language for client side programming in the browser
-* Managed code is safe, efficient, and garbage collected
-* Unmanaged code is just as efficient as C++
+* Fun and easy to use (just as easy as C#, avoid C++ complexity)
+* Safe code is more efficient than C# (more value types, less GC, more escape analysis)
+* Unsafe code is just as efficient as C
 * Ahead of time compile to WebAssembly with tiny run-time library
 * Stretch goal: Rewrite compiler and IDE in Zurfur on Node.js
 
 ![](Doc/IDE.png)
 
 Zurfur is similar to C#, but borrows syntax and design concepts from Golang,
-JavaScript, Zig, and others.  Here are some differences between Zurfur and C#:
+Rust, Zig, and many others.  Here are some differences between Zurfur and C#:
 
-* Strings are UTF8 byte arrays, always initialized
-* Reference types are initialized without `new` keyword and are non-nullable by default
+* Strings are UTF8 byte arrays, always initialized to ""
+* Struct and class:
+  * Are immutable by default (can optionally be mutable)  **TBD:** Class not immutable?
+  * Are both value types created on the stack by default
+  * May be put on the garbage collected heap, must explicitly use `box` keyword
+* References are non-nullable by default, may use `?` for nullable
+* Functions pass parameters:
+  * By reference, unless it's more efficient to pass by value, such as `int` or reference `^`
+  * **TBD:** As immutable by default
 * Type declaration syntax and operator precedence is from Golang
-* Interfaces can be created from object with matching signature (structural typing from Golang)
-* Built from the ground up using `ref` returns, slices, and other modern C# constructs
-* Get/set of structs acts like a class, `MyListOfStructPoints[1].X = 5` works like you think it should
-* `==` operator does not default to reference comparison
+* Interfaces have properties of both C# and Rust
+* Get/set of mutable structs acts like you think it should (e.g. `MyListOfStructPoints[1].X = 5`)
+* `==` operator fails if it is not defined on a class
 
 ## Overview
 
@@ -38,7 +43,6 @@ Thoughts about where to go and how to do it: [Internals](Doc/Internals.md).
 
 The syntax is still being developed, nothing is set in stone yet.  Feel
 free to send me comments letting me know what you think should be changed.
-I am currently working on [ZSIL](Doc/Zsil.md) and the build system.
 
 ## Functions
 
@@ -65,8 +69,7 @@ Functions, classes, structs, enums, variables and constants are
 private unless they have the 'pub' qualifier.  Functions are allowed
 at the namespace level, but must be static or extension methods.
 
-TBD: Use `fn`, `fun` or `def` to declare a function?
-
+**TBD:** Use `fun` or `fn` keyword instead of `func`?
 
 ## Local Variables
 
@@ -455,7 +458,12 @@ followed by `type`, just like in Golang:
 
 The `ro` keyword makes a field read only.  A class can be marked `ro` which
 means all fields must be makred `ro` and there can be no properties with
-setters.  
+setters.
+
+**TBD:** All fields and functions could be read only by default, requiring
+`mut` if they can be mutated.  This would be more explicit, but maybe more
+of a pain.  Possibly remove the need for `MutSpan`, `IMutArray`, and all
+other mutable/immutable type differentiation.
 
 The `prop` keyword is used to define a property.  Properties can be given
 a default value by `=` immediately after the type name.  The compiler can
@@ -472,10 +480,17 @@ Sealed generic classes may be inherited to create specializations
 (e.g. `class MyIntList : List<int> { }`, etc), however the virtul functions
 may not be overridden.
 
-TBD: Require `@` for member variables?  This would make it easier to add
+**TBD:** Require `@` for member variables?  This would make it easier to add
 new qualifiers in the future.  It would also be more consistent overall,
 both for the parser and the person looking at variable declarations.
 A struct with fields would look like this: `struct MyPoint { pub @a int; pub @b int}`
+
+**TBD:** Exploring removing "heap only" and have classes on the stack by default.
+An embedded class would be owned by the outer class, and it would be impossible
+to copy the inner class reference.  There would be much less garbage since many
+classes would be stack allocated or embedded directly in an outer class.  It
+would be more painful because the programmer would need to `box` anything going
+on the heap.
 
 ## Structs
 

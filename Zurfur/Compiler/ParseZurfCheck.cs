@@ -17,30 +17,35 @@ namespace Gosub.Zurfur.Compiler
         public Token LastToken;
 
         static WordSet sRequireGlobalFieldQualifiers = new WordSet("const");
-        static WordSet sFuncInInterfaceQualifiersAllowedEmpty = new WordSet("static pub protected");
-        static WordSet sFuncInInterfaceQualifiersAllowedNotEmpty = new WordSet("static pub private protected");
-        static WordSet sGlobalFuncsRequiringStatic = new WordSet("func afunc construct destruct");
+        static WordSet sFuncInInterfaceQualifiersAllowedEmpty = new WordSet("func afunc operator prop static pub protected mut");
+        static WordSet sFuncInInterfaceQualifiersAllowedNotEmpty = new WordSet("func afunc operator prop static pub private protected mut");
+        static WordSet sGlobalFuncsRequiringStatic = new WordSet("func afunc");
         static WordSet sStaticQualifier = new WordSet("static");
         static WordSet sGlobalFuncsNotAllowed = new WordSet("prop this operator");
 
-        static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static");
-        static WordSet sClassQualifiers = new WordSet("pub public protected private internal unsafe unsealed sealed1 abstract ro");
-        static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe ref mut");
-        static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
+        static WordSet sInterfaceQualifiers = new WordSet("interface pub public protected private internal static");
+        static WordSet sClassQualifiers = new WordSet("class pub public protected private internal unsafe unsealed abstract mut");
+        static WordSet sStructQualifiers = new WordSet("struct pub public protected private internal unsafe ref mut");
+        static WordSet sEnumQualifiers = new WordSet("enum pub public protected private internal");
+
         static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static mut const");
-        static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static ro const");
+        static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static mut const");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
-        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe static virtual override new ro mut");
-        static WordSet sFuncOperatorQualifiers = new WordSet("pub public protected private internal unsafe");
+
+        static WordSet sFuncQualifiers = new WordSet("func afunc pub public protected private internal unsafe static virtual override new mut");
+        static WordSet sPropQualifiers = new WordSet("prop pub public protected private internal unsafe static virtual override new");
+        static WordSet sFuncOperatorQualifiers = new WordSet("operator pub public protected private internal unsafe");
 
         static WordMap<int> sClassFuncFieldQualifiersOrder = new WordMap<int>()
         {
             { "pub", 1 }, { "public", 1 }, { "protected", 1 }, { "private", 1 }, { "internal", 1 },
-            { "unsafe", 2 }, { "static", 4 },  {"const", 4 },
-            { "unsealed", 6 }, { "sealed1", 6 },
+            { "unsafe", 2 },
+            { "static", 4 },  {"const", 4 },
+            { "unsealed", 6 },
             { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
-            { "ref", 9},
-            { "mut", 10 }, { "ro", 10}, {"readonly", 10}
+            { "class",9 }, { "struct",9 }, { "enum",9 }, { "interface",9 }, {"operator", 9}, {"func",9}, {"afunc",9},
+            { "ref", 10},
+            { "mut", 11 }, { "ro", 11}, {"readonly", 11}
         };
 
         ParseZurf mParser;
@@ -113,7 +118,7 @@ namespace Gosub.Zurfur.Compiler
                     if (func.Statements == null)
                         RejectQualifiers(func.Qualifiers, sFuncInInterfaceQualifiersAllowedEmpty, "This qualifier may not appear before an empty function defined inside an interface");
                     else
-                        RejectQualifiers(func.Qualifiers, sFuncInInterfaceQualifiersAllowedNotEmpty, "This qualifier may not appear before an empty function defined inside an interface");
+                        RejectQualifiers(func.Qualifiers, sFuncInInterfaceQualifiersAllowedNotEmpty, "This qualifier may not appear before a non-empty function defined inside an interface");
 
                 }
                 if ( (outerKeyword == "" || outerKeyword == "namespace")
@@ -130,12 +135,12 @@ namespace Gosub.Zurfur.Compiler
                     case "operator":
                         RejectQualifiers(func.Qualifiers, sFuncOperatorQualifiers, "Operator may not use this qualifier");
                         break;
-                    case "construct":
+                    case "prop":
+                        RejectQualifiers(func.Qualifiers, sPropQualifiers, "Qualifier does not apply to properties");
+                        break;
                     case "func":
                     case "afunc":
-                    case "this":
-                    case "prop":
-                        RejectQualifiers(func.Qualifiers, sFuncQualifiers, "Qualifier does not apply to this method type");
+                        RejectQualifiers(func.Qualifiers, sFuncQualifiers, "Qualifier does not apply to functions");
                         break;
                 }
             }
@@ -484,6 +489,7 @@ namespace Gosub.Zurfur.Compiler
                 return;
             if (isType && (expr.Token.Type == eTokenType.Identifier
                             || expr.Token == ParseZurf.PTR
+                            || expr.Token == ParseZurf.REFERENCE
                             || expr.Token == "?") )
                 expr.Token.Type = eTokenType.TypeName;
 

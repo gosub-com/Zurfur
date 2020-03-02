@@ -78,7 +78,7 @@ pub class Example2  // YES, errors working
         set { p1 = value }
     }
     
-    pub this[index i] int => i
+    pub operator[](index i) int => i
     
     // Function
     func fun1(a int) f32 => f1 + f2 + a
@@ -284,7 +284,7 @@ pub class MyClass1 : MyInterfaceTest
 }
 
 
-pub static func Sort<T>(s Span<T>, lessThan func(a T, b T) bool)
+pub static func Sort<T>(s MutSpan<T>, lessThan func(a T, b T) bool)
 {
     // Simple selection sort
     for @i in s.Count-1
@@ -311,7 +311,7 @@ pub static func Sort<T>(s Span<T>, lessThan func(a T, b T) bool)
 pub class Matrix2d<t> : VariableSizedObject<T>
 {
     new(len1 int, len2 int) { todo() }
-    pub this[i1 int, i2 int] ref T => todo()
+    pub operator[](i1 int, i2 int) ref T => todo()
 }
 
 // Represents a buffer in un-managed memory.  This class can create and 
@@ -320,9 +320,9 @@ pub class Matrix2d<t> : VariableSizedObject<T>
 pub class UnmanagedMemory<T> : UnmanagedHande 
                 where T : IBlittableStruct
 {
-    pub ro Memory *void
-    pub ro Capacity int
-    pub ro OwnedByGc bool
+    pub Memory *void
+    pub Capacity int
+    pub OwnedByGc bool
     count int
     
     pub prop Count int
@@ -358,7 +358,7 @@ pub class StructObject
 pub class ClassObject
 {
     // The only member
-    protected unsafe ro VT *void
+    protected unsafe VT *void
 
     pub override func GetType() { todo() }
 }

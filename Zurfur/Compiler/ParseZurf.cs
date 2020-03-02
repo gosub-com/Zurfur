@@ -17,6 +17,7 @@ namespace Gosub.Zurfur.Compiler
         public const string VIRTUAL_TOKEN_INITIALIZER = "{}";
 
         public const string PTR = "*";
+        public const string REFERENCE = "^";
         public const string XOR = "~";
         public const string NEWVAR = "@";
         public const string SSEP = "=>";  // Statement separator
@@ -61,7 +62,7 @@ namespace Gosub.Zurfur.Compiler
             + "continue default delegate do else enum event explicit extern false defer use "
             + "finally fixed for goto if implicit in interface internal is lock namespace module include "
             + "new null operator out override pub public private protected readonly ro ref mut "
-            + "return unsealed sealed sealed1 sizeof stackalloc heapalloc static struct switch this throw true try "
+            + "return unsealed sealed sizeof stackalloc heapalloc static struct switch this throw true try "
             + "typeof unsafe using static virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set yield global partial var where nameof of youdo "
             // TBD: Remove these when we are sure we don't want them
@@ -72,8 +73,10 @@ namespace Gosub.Zurfur.Compiler
         static WordMap<eTokenType> sReservedWords = new WordMap<eTokenType>();
         static WordSet sReservedIdentifierVariables = new WordSet("null this true false default");
 
-        static WordSet sClassFuncFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static const unsealed sealed1 abstract virtual override new ref ro mut readonly");
+        static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
+            + "static const unsealed abstract virtual override new ref ro mut readonly "
+            + "class struct enum interface operator func afunc prop");
+        static WordSet sClassFieldKeywords = new WordSet("class struct enum interface operator func afunc prop");
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sFieldDefTypeQualifiers = new WordSet("ref");
@@ -85,12 +88,12 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sAllowConstraintKeywords = new WordSet("class struct unmanaged");
         static WordSet sAutoImplementMethod = new WordSet("default youdo extern");
 
-        public static WordSet sOverloadableOperators = new WordSet("+ - * / % in implicit explicit");
+        public static WordSet sOverloadableOperators = new WordSet("+ - * / % [ in implicit explicit");
         static WordSet sComparisonOperators = new WordSet("== != < <= > >= === !== in"); // For '>=', use VIRTUAL_TOKEN_GE
         static WordSet sAddOperators = new WordSet("+ - | " + XOR);
         static WordSet sMultiplyOperators = new WordSet("* / % & << >>"); // For '>>', use VIRTUAL_TOKEN_SHIFT_RIGHT
         static WordSet sAssignOperators = new WordSet("= += -= *= /= %= |= &= " + XOR + "= <<= >>=");
-        static WordSet sUnaryOperators = new WordSet("- ! & " + XOR + " " + PTR);
+        static WordSet sUnaryOperators = new WordSet("- ! & " + XOR + " " + PTR + " " + REFERENCE);
 
         static WordSet sSeparatorStatements = new WordSet("return break contnue throw sizeof this true false");
 
@@ -106,9 +109,8 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sStatementsDone = new WordSet("} func namespace class struct interface enum", true);
         static WordSet sRejectAnyStop = new WordSet("=> ; { } namespace class struct interface enum if else for while throw switch case func afunc prop get set", true);
         static WordSet sRejectForCondition = new WordSet("in");
-        static WordSet sRejectFuncName = new WordSet("( [");
+        static WordSet sRejectFuncName = new WordSet("(");
         static WordSet sRejectFuncParam = new WordSet(", )");
-        static WordSet sRejectIndexerParams = new WordSet("[");
         static WordSet sRejectUntilOpenBrace = new WordSet("{");
         static WordSet sRejectUntilEq = new WordSet("=");
 
@@ -220,16 +222,24 @@ namespace Gosub.Zurfur.Compiler
 
                 // Read qualifiers
                 qualifiers.Clear();
-                while (sClassFuncFieldQualifiers.Contains(mTokenName))
+                Token keyword = null;
+                while (sClassFieldQualifiers.Contains(mTokenName))
                 {
                     // "new" can be qualifier or constructor
-                    if (mToken == "new" && Peek() == "(")
+                    if (keyword == null && mToken == "new" && Peek() == "(")
+                    {
+                        keyword = Accept();
                         break;
-                    qualifiers.Add(Accept());
+                    }
+                    var token = Accept();
+                    if (sClassFieldKeywords.Contains(token))
+                        keyword = token;
+                    qualifiers.Add(token);
                 }
 
-                var keyword = mToken;
-                switch (mTokenName)
+                if (keyword == null)
+                    keyword = mToken;
+                switch (keyword)
                 {
                     case ";":
                         RejectQualifiers(qualifiers, "Expecting a statement after qualifier");
@@ -238,7 +248,7 @@ namespace Gosub.Zurfur.Compiler
                     case "{":
                     case "=>":
                         RejectQualifiers(qualifiers, "Unexpected qualifiers");
-                        RejectToken(mToken, "Unexpected '" + mTokenName + "'.  Expecting a keyword, such as 'class', 'func', etc. before the start of a new scope.");
+                        RejectToken(keyword, "Unexpected '" + keyword + "'.  Expecting a keyword, such as 'class', 'func', etc. before the start of a new scope.");
                         Accept();
                         break;
 
@@ -262,7 +272,7 @@ namespace Gosub.Zurfur.Compiler
                     case "enum":
                     case "struct":
                     case "class":
-                        ParseClass(parentScope, qualifiers);
+                        ParseClass(keyword, parentScope, qualifiers);
                         break;
 
                     case "operator":
@@ -270,21 +280,17 @@ namespace Gosub.Zurfur.Compiler
                     case "func":
                     case "afunc":
                         keyword.Type = eTokenType.ReservedControl;  // Fix "new" keyword
-                        ParseMethod(parentScope, qualifiers);
-                        break;
-
-                    case "this":
-                        ParseIndexer(parentScope, qualifiers);
+                        ParseMethod(keyword, parentScope, qualifiers);
                         break;
 
                     case "prop":
-                        ParseProperty(parentScope, qualifiers);
+                        ParseProperty(keyword, parentScope, qualifiers);
                         break;
 
                     default:
-                        if (sRejectAnyStop.Contains(mTokenName))
+                        if (sRejectAnyStop.Contains(keyword))
                         {
-                            RejectToken(mToken, "Unexpected token or reserved word");
+                            RejectToken(keyword, "Unexpected token or reserved word");
                             Accept();
                             break;
                         }
@@ -402,13 +408,13 @@ namespace Gosub.Zurfur.Compiler
         }
 
         // Parse class, struct, interface, or enum
-        void ParseClass(SyntaxScope parentScope, List<Token> qualifiers)
+        void ParseClass(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
         {
             var synClass = new SyntaxType();
             synClass.Qualifiers = qualifiers.ToArray();
             synClass.ParentScope = parentScope;
             synClass.Comments = mComments.ToString();
-            synClass.Keyword = Accept();
+            synClass.Keyword = keyword;
 
             // Parse class name and type parameters
             if (!ParseIdentifier("Expecting a type name", out synClass.Name))
@@ -553,28 +559,9 @@ namespace Gosub.Zurfur.Compiler
             return field;
         }
 
-
-        void ParseIndexer(SyntaxScope parentScope, List<Token> qualifiers)
+        private void ParseProperty(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
         {
-            var keyword = Accept();
-            keyword.Type = eTokenType.ReservedControl;
-
-            if (mTokenName != "[")
-            {
-                Reject("Expecting '[' after indexer keyword", sRejectIndexerParams);
-                if (mTokenName != "[")
-                    return;
-            }
-
-            SyntaxExpr parameters = null;
-            parameters = ParseFuncParamsDef();
-            var returnType = ParseTypeDef(sFuncDefReturnTypeQualifiers, sRejectFuncParam);
-            ParsePropertyBody(parentScope, qualifiers, keyword, keyword, parameters, returnType);
-        }
-
-        private void ParseProperty(SyntaxScope parentScope, List<Token> qualifiers)
-        {
-            var propKeyword = Accept();
+            var propKeyword = keyword;
             if (!ParseIdentifier("Error parsing property name", out var name))
                 return;
             var propField = ParseField(parentScope, qualifiers, name);
@@ -637,14 +624,14 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Func, construct, operator
         /// </summary>
-        void ParseMethod(SyntaxScope parentScope, List<Token> qualifiers)
+        void ParseMethod(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
         {
             // Parse func keyword
             var synFunc = new SyntaxFunc();
             synFunc.ParentScope = parentScope;
             synFunc.Comments = mComments.ToString();
             synFunc.Qualifiers = qualifiers.ToArray();
-            synFunc.Keyword = Accept();
+            synFunc.Keyword = keyword;
 
             switch (synFunc.Keyword)
             {
@@ -669,9 +656,16 @@ namespace Gosub.Zurfur.Compiler
                     throw new Exception("Error parsing function def");
             }
 
-            synFunc.Statements = ParseStatements("func", StatementsType.MethodBody);
-            if (synFunc.Name != null)
-                mUnit.Funcs.Add(synFunc);
+            if (synFunc.Keyword == "operator" && synFunc.Name == "[")
+            {
+                ParsePropertyBody(parentScope, qualifiers, synFunc.Keyword, synFunc.Name, synFunc.Params, synFunc.ReturnType);
+            }
+            else
+            {
+                synFunc.Statements = ParseStatements("func", StatementsType.MethodBody);
+                if (synFunc.Name != null)
+                    mUnit.Funcs.Add(synFunc);
+            }
         }
 
         bool ParseFuncNameDef(out SyntaxExpr className, out Token funcName)
@@ -703,15 +697,7 @@ namespace Gosub.Zurfur.Compiler
         private void ParseFuncDef(out SyntaxExpr typeParams, out SyntaxExpr parameters, out SyntaxExpr returnType)
         {
             typeParams = ParseTypeParams(sRejectFuncName);
-
-            // Parse parameters
-            if (mToken != "(" && mToken != "[")
-                Reject("Expecting '(' or '['", sRejectFuncName);
-            parameters = null;
-            if (mToken == "(" || mToken == "[")
-                parameters = ParseFuncParamsDef();
-
-            // Parse return type
+            parameters = ParseFuncParamsDef();
             returnType = null;
             if (BeginsTypeDef(sFuncDefReturnTypeQualifiers, mToken))
                 returnType = ParseTypeDef(sFuncDefReturnTypeQualifiers, sRejectFuncParam);
@@ -725,17 +711,14 @@ namespace Gosub.Zurfur.Compiler
             return token.Type == eTokenType.Identifier
                || qualifiers.Contains(token)
                || token == "func" || token == "afunc"
-               || token == PTR || token == "?";
+               || token == PTR || token == "?" || token == REFERENCE;
         }
 
 
         private void ParseNewDef(SyntaxFunc synFunc)
         {
             synFunc.Name = mPrevToken;
-            if (mToken != "(")
-                Reject("Expecting '(' after '" + synFunc.Keyword + "' token", sRejectFuncName);
-            if (mToken == "(")
-                synFunc.Params = ParseFuncParamsDef();
+            synFunc.Params = ParseFuncParamsDef();
         }
 
         private void ParseOperatorDef(SyntaxFunc synFunc)
@@ -747,26 +730,28 @@ namespace Gosub.Zurfur.Compiler
             else
                 Reject("Expecting an overloadable operator", sRejectFuncName);
 
-            // Parse parameters
-            if (mToken != "(" && mToken != "[")
-                Reject("Expecting '(' or '['", sRejectFuncName);
-            if (mToken == "(" || mToken == "[")
-                synFunc.Params = ParseFuncParamsDef();
+            if (synFunc.Name == "[")
+            {
+                if (mTokenName == "]")
+                    Accept();
+                else
+                    Reject("Expecting ']'", sRejectFuncName);
+            }
 
+            synFunc.Params = ParseFuncParamsDef();
             synFunc.ReturnType = ParseTypeDef(sFuncDefReturnTypeQualifiers, sRejectFuncParam);
         }
 
         SyntaxExpr ParseFuncParamsDef()
         {
-            // Read open token, '(' or '['
-            var openToken = Accept();
-            if (openToken != "(" && openToken != "[")
-                throw new Exception("Compiler error: Expecting '[' or '(' while parsing function parameters");
+            // Read open token, '('
+            if (!AcceptMatchOrReject("("))
+                return new SyntaxError();
 
             // Parse parameters
-            var closeToken = openToken.Name == "(" ? ")" : "]";
+            var openToken = mPrevToken;
             var parameters = NewExprList();
-            if (mTokenName != closeToken)
+            if (mTokenName != ")")
                 parameters.Add(ParseFuncParamDef());
             while (AcceptMatch(","))
             {
@@ -778,7 +763,7 @@ namespace Gosub.Zurfur.Compiler
             if (AcceptMatch("..."))
                 mPrevToken.AddWarning("Repeated parameters not supported yet");
 
-            if (AcceptMatchOrReject(closeToken))
+            if (AcceptMatchOrReject(")"))
                 Connect(openToken, mPrevToken);
 
             return new SyntaxMulti(Token.Empty, FreeExprList(parameters));
@@ -1621,7 +1606,7 @@ namespace Gosub.Zurfur.Compiler
         {
             // Unary operators '^' and '?
             result = null;
-            if (mToken == PTR || mToken == "?")
+            if (mToken == PTR || mToken == "?" || mToken == REFERENCE)
             {
                 var token = Accept();
                 if (!ParseTypeName(out var expr, errorStop))

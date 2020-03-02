@@ -36,7 +36,7 @@ pub static interface IArithmetic<T>
 pub interface IEnumerator<out T>
 {
     func HasNext() bool => youdo
-    func GetNext(item out T) bool => youdo
+    func mut GetNext(item out T) bool => youdo
 }
 
 pub interface IEnumerable<out T>
@@ -53,12 +53,12 @@ pub interface ICollection<T>
 }
 
 /// Base class for all mutable collections.
-pub interface IMutableCollection<T>
+pub interface IMutCollection<T>
     : ICollection<T>
 {
-    func Clear() => youdo
-    func Add(item T) => youdo
-    func Add(items ICollection<T>) => youdo
+    func mut Clear() => youdo
+    func mut Add(item T) => youdo
+    func mut Add(items ICollection<T>) => youdo
     // NOTE: 'Remove' and 'Contains' are not included because
     //      each collection may have a different idea about
     //      how to compare and find objects.  
@@ -66,30 +66,30 @@ pub interface IMutableCollection<T>
     //      func RemoveObject(item T) where T : IEquatable
 }
 
-pub interface IRoArray<T> 
-    : ICollection<T>
-{
-    this[index int] T => youdo get
-}
-
-
 pub interface IArray<T> 
     : ICollection<T>
 {
-    this[index int] T => youdo get set
-    this[range Range] IArray => todo()
+    operator[](index int) T => youdo get
+}
+
+
+pub interface IMutArray<T> 
+    : ICollection<T>
+{
+    operator[](index int) T => youdo get set
+    operator[](range Range) IArray => todo()
 }
 
 pub interface IList<T>
-    : IMutableCollection<T>, IArray<T>, IRoArray<T>
+    : IMutCollection<T>, IArray<T>, IMutArray<T>
 {
-    func Insert(index int, item T) => youdo
-    func Insert(index int, collection ICollection<T>) => youdo
-    func Remove(index int) => youdo
-    func Remove(range Range) => youdo
+    func mut Insert(index int, item T) => youdo
+    func mut Insert(index int, collection ICollection<T>) => youdo
+    func mut Remove(index int) => youdo
+    func mut Remove(range Range) => youdo
 
-    pub func Add(item T) { Insert(Count, item) }
-    pub func Add(items ICollection<T>) { Insert(Count, items) }
+    pub func mut Add(item T) { Insert(Count, item) }
+    pub func mut Add(items ICollection<T>) { Insert(Count, items) }
 }
 
 pub struct KeyValuePair<TKey, TValue>
@@ -99,11 +99,11 @@ pub struct KeyValuePair<TKey, TValue>
     pub Value TValue
 }
 
-pub interface IRoMap<TKey, TValue>
+pub interface IMap<TKey, TValue>
     : ICollection<KeyValuePair<TKey, TValue>>
 {
     operator in(a TKey) bool => youdo
-    this[key TKey] TValue => youdo get
+    operator[](key TKey) TValue => youdo get
     pub func Contains(key TKey) bool => youdo
     func Get(key TKey, defaultValue TValue) TValue => youdo
     func TryGet(key TKey, value out TValue) bool => youdo
@@ -111,13 +111,13 @@ pub interface IRoMap<TKey, TValue>
     prop Values ICollection<TValue> => youdo get
 }
 
-pub interface IMap<TKey, TValue> 
-    : IRoMap<KeyValuePair<TKey, TValue>>,
-      IMutableCollection<KeyValuePair<TKey, TValue>>
+pub interface IMutMap<TKey, TValue> 
+    : IMap<KeyValuePair<TKey, TValue>>,
+      IMutCollection<KeyValuePair<TKey, TValue>>
             
 {
-    this[key TKey] TValue => youdo get set
-    func Remove(TKey key) bool => youdo
+    operator[](key TKey) TValue => youdo get set
+    func mut Remove(TKey key) bool => youdo
 }
 
 /// This is a test

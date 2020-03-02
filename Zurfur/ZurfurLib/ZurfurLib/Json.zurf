@@ -2,7 +2,7 @@
 
 
 // TBD: Todo
-pub unsealed ro class Json
+pub unsealed class Json
 {
     pub static ro default Json = Json()        
 }

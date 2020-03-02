@@ -1,0 +1,36 @@
+﻿namespace Zurfur
+
+
+/// All variable sized objects must inherit from this
+/// class and cannot be unsealed
+[Unsealed1]
+pub class mut ArrayBase<T>
+{
+    default ArrayBase<T>()
+    
+    pub Count int
+        
+    new(count int) => todo() // Allocate object on heap
+        
+    protected prop DataSpan Span<T> => todo()
+        
+    protected unsafe prop DataPointer *T 
+        => #*T(#*byte(this) + Sizeof(ArrayBase))
+}
+
+// Array of constant size
+pub class mut Array<T> 
+    : ArrayBase<T>, IArray<T>, IMutArray<T>
+    where T : struct
+{
+    const MaxSize int = int.MaxInt/2
+    pub static Empty ^Array<T>()
+
+    pub new(count int) => todo()
+    pub new(items ICollection<T>) => todo()
+    
+    pub operator[](index int) T => todo()
+    
+    
+    pub operator[](range Range) MutMemory<T> => todo()
+}

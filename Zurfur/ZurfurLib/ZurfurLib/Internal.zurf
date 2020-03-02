@@ -8,7 +8,7 @@ namespace Zurfur.Internal
 /// a function.  This is required so the GC can pin the object
 /// containing the reference.  Also used when an object returns
 /// a reference to one of its own fields.
-pub ref struct rref<T>
+pub struct ref rref<T>
 {
     pub obj  ?object   // Container object, or null if pointing to non GC memory
     pub r    *T       // The reference
@@ -18,7 +18,7 @@ pub ref struct rref<T>
 /// A forward reference is a reqular pointer passed down the call stack.
 /// The object containing the reference is already stored on the memory
 /// stack, and is therefore GC pinned.
-pub ref struct fref<T>
+pub struct ref fref<T>
 {
     pub r *T
     pub new(reference *T) { r = reference}
@@ -44,10 +44,11 @@ pub struct InterfaceVTable
 
 /// All variable sized objects must inherit from this
 /// class and must be sealed (that's what sealed1 means)
-pub sealed1 class ArrayBase<T>
+[Sealed1]
+pub class ArrayBase<T>
 {
     default ArrayBase<T> = ArrayBase<T>(0)
-    pub ro Count int
+    pub Count int
         
     new(count int) 
         => todo() // Allocate object on heap
