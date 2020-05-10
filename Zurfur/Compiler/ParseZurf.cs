@@ -14,7 +14,6 @@ namespace Gosub.Zurfur.Compiler
     {
         // These tokens are ambiguous, so get replaced while parsing
         public const string VIRTUAL_TOKEN_TYPE_ARG_LIST = "<>";
-        public const string VIRTUAL_TOKEN_INITIALIZER = "{}";
 
         public const string PTR = "*";
         public const string REFERENCE = "^";
@@ -65,18 +64,18 @@ namespace Gosub.Zurfur.Compiler
             + "return unsealed sealed sizeof stackalloc heapalloc static struct switch this throw true try "
             + "typeof unsafe using static virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set yield global partial var where nameof of youdo "
-            // TBD: Remove these when we are sure we don't want them
-            + "trait extends implements implement union type fn fun afn afun def adef yield let init";
+            + "box boxed init dispose "
+            + "trait extends implements implement union type fn fun afn afun def adef yield let";
 
         static readonly string sReservedControlWords = "using namespace module include class struct enum interface "
             + "func afunc prop get set operator if else switch await for while dowhile _";
         static WordMap<eTokenType> sReservedWords = new WordMap<eTokenType>();
-        static WordSet sReservedIdentifierVariables = new WordSet("null this true false default");
+        static WordSet sReservedIdentifierVariables = new WordSet("null this true false default base");
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static const unsealed abstract virtual override new ref ro mut readonly "
-            + "class struct enum interface operator func afunc prop");
-        static WordSet sClassFieldKeywords = new WordSet("class struct enum interface operator func afunc prop");
+            + "static const unsealed abstract virtual override new ref ro mut readonly boxed "
+            + "class struct enum interface operator func afunc prop init dispose");
+        static WordSet sClassFieldKeywords = new WordSet("class struct enum interface operator func afunc prop init dispose");
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sFieldDefTypeQualifiers = new WordSet("ref");
@@ -93,7 +92,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sAddOperators = new WordSet("+ - | " + XOR);
         static WordSet sMultiplyOperators = new WordSet("* / % & << >>"); // For '>>', use VIRTUAL_TOKEN_SHIFT_RIGHT
         static WordSet sAssignOperators = new WordSet("= += -= *= /= %= |= &= " + XOR + "= <<= >>=");
-        static WordSet sUnaryOperators = new WordSet("- ! & " + XOR + " " + PTR + " " + REFERENCE);
+        static WordSet sUnaryOperators = new WordSet("- ! & " + XOR + " " + PTR + " box " + REFERENCE);
 
         static WordSet sSeparatorStatements = new WordSet("return break contnue throw sizeof this true false");
 
@@ -277,9 +276,11 @@ namespace Gosub.Zurfur.Compiler
 
                     case "operator":
                     case "new":
+                    case "init":
+                    case "dispose":
                     case "func":
                     case "afunc":
-                        keyword.Type = eTokenType.ReservedControl;  // Fix "new" keyword
+                        keyword.Type = eTokenType.ReservedControl;  // Fix keyword to make it control
                         ParseMethod(keyword, parentScope, qualifiers);
                         break;
 
@@ -636,7 +637,10 @@ namespace Gosub.Zurfur.Compiler
             switch (synFunc.Keyword)
             {
                 case "new":
-                    ParseNewDef(synFunc);
+                case "init":
+                case "dispose":
+                    synFunc.Name = mPrevToken;
+                    synFunc.Params = ParseFuncParamsDef();
                     synFunc.Constraints = ParseConstraints();
                     break;
                 case "afunc":
@@ -714,13 +718,6 @@ namespace Gosub.Zurfur.Compiler
                || token == PTR || token == "?" || token == REFERENCE;
         }
 
-
-        private void ParseNewDef(SyntaxFunc synFunc)
-        {
-            synFunc.Name = mPrevToken;
-            synFunc.Params = ParseFuncParamsDef();
-        }
-
         private void ParseOperatorDef(SyntaxFunc synFunc)
         {
             // Function name is an operator
@@ -790,7 +787,11 @@ namespace Gosub.Zurfur.Compiler
         private SyntaxExpr ParseStatements(string errorMessage, StatementsType type)
         {
             if (mToken == SSEP)
+            {
+                if (type == StatementsType.Statements)
+                    RejectToken(mToken, "Conjoined statement not allowed");
                 return ParseStatementsSeparator(errorMessage, type);
+            }
 
             // Require '{'
             if (!AcceptMatchOrReject("{", "or '" + SSEP + "'"))
@@ -1004,7 +1005,12 @@ namespace Gosub.Zurfur.Compiler
                     break;
 
                 case "case":
-                    statements.Add(new SyntaxUnary(Accept(), ParseExpr()));
+                    var caseToken = Accept();
+                    var caseExpressions = NewExprList();
+                    caseExpressions.Add(ParseExpr());
+                    while (AcceptMatch(","))
+                        caseExpressions.Add(ParseExpr());
+                    statements.Add(new SyntaxMulti(caseToken, FreeExprList(caseExpressions)));
                     AcceptMatchOrReject(":");
                     requireSemicolon = false;
                     break;
@@ -1056,9 +1062,8 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         SyntaxExpr ParseAssignment()
         {
-            // TBD: Decide if we want this
-            //if (mTokenName == "{")
-            //    return ParseInitializer();
+            if (mTokenName == "{" || mToken == "[")
+                return ParseInitializer();
             return ParseExpr();
         }
 
@@ -1171,17 +1176,26 @@ namespace Gosub.Zurfur.Compiler
 
         SyntaxExpr ParseMultiply()
         {
-            var result = ParseUnary();
+            var result = ParseExponentiation();
             InterceptAndReplaceGT();
             while (sMultiplyOperators.Contains(mTokenName))
             {
-                result = new SyntaxBinary(Accept(), result, ParseUnary());
+                result = new SyntaxBinary(Accept(), result, ParseExponentiation());
                 InterceptAndReplaceGT();
                 if (mTokenName == "<<" || mTokenName == ">>")
-                {
-                    Reject("Shift operators are not associative, must use parentheses");
-                    break;
-                }
+                    RejectToken(mToken, "Shift operators are not associative, must use parentheses");
+            }
+            return result;
+        }
+
+        SyntaxExpr ParseExponentiation()
+        {
+            var result = ParseUnary();
+            if (mTokenName == "^")
+            {
+                result = new SyntaxBinary(Accept(), result, ParseUnary());
+                if (mTokenName == "^")
+                    Reject("Exponentiation operator is not associative, must use parentheses");
             }
             return result;
         }
@@ -1473,7 +1487,7 @@ namespace Gosub.Zurfur.Compiler
 
         SyntaxExpr ParseFuncCallParameter()
         {
-            if (mTokenName == "{")
+            if (mTokenName == "{" || mToken == "[")
                 return ParseInitializer();
 
             // Allow 'ref' or 'out' qualifier
@@ -1495,39 +1509,43 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Initializer, starting with '{' or '[' for attribute
+        /// Initializer, starting with '{' or '['
         /// </summary>
         SyntaxExpr ParseInitializer()
         {
             if (mTokenName != "{" && mTokenName != "[")
                 throw new Exception("Compiler error: Expecting '{' or '[' while parsing initializer");
 
-            var close = mTokenName == "{" ? "}" : "]";
+            var isMap = mTokenName == "{";
+            var close = isMap ? "}" : "]";
             var openToken = Accept();
             var parameters = NewExprList();
             if (mTokenName != close)
+                parameters.Add(ParseInitializerElement(isMap));
+            while (AcceptMatch(","))
             {
-                parameters.Add(ParseInitializerPair());
-                while (AcceptMatch(","))
-                {
-                    Connect(openToken, mPrevToken);
-                    parameters.Add(ParseInitializerPair());
-                }
+                Connect(openToken, mPrevToken);
+                if (mTokenName != close)
+                    parameters.Add(ParseInitializerElement(isMap));
             }
-
             if (AcceptMatchOrReject(close, "or ','"))
                 Connect(openToken, mPrevToken);
-
-            return new SyntaxMulti(CreateInvisible(openToken, VIRTUAL_TOKEN_INITIALIZER), FreeExprList(parameters));
+            return new SyntaxMulti(openToken, FreeExprList(parameters));
         }
 
-        SyntaxExpr ParseInitializerPair()
+        SyntaxExpr ParseInitializerElement(bool isMap)
         {
-            bool isInitializer = mTokenName == "{";
-            var expr = isInitializer ? ParseInitializer() : ParseExpr();
-            if (mTokenName != ":")
-                return expr;
-            return new SyntaxBinary(Accept(), expr, mTokenName == "{" ? ParseInitializer() : ParseExpr());
+            if (mToken == "{" || mToken == "[")
+            {
+                if (isMap)
+                    RejectToken(mToken, "Expecting an expression, the map index must not be an array or map");
+                return ParseInitializer();
+            }
+            var expr = ParseExpr();
+            if (isMap && AcceptMatchOrReject(":", "map index"))
+                return new SyntaxBinary(mPrevToken, expr, mTokenName == "{" || mTokenName == "[" ? ParseInitializer() : ParseExpr());
+
+            return expr;
         }
 
         SyntaxExpr ParseSwitchExpression()

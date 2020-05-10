@@ -16,16 +16,22 @@ static func test_ForSimple()
     for @a in 0..10
     {
         if a == 2
-            => count += 100
+        {
+            count += 100
+        }
         else if a == 3 || a == 4
-            => count += 1000
+        {
+            count += 1000
+        }
         else if a == 5
         {
             count += 10000
             count += 10000
         }
         else
-            => count += 100000
+        {
+            count += 100000
+        }
         count += a
     }
     Console.Log("For loop: " + count == 622145 ? "Pass" : "Fail")
@@ -35,8 +41,8 @@ static func test_ForSimple()
 pub class Example
 {
     mut info str                // Private string initialized to ""
-    f1 Array<int>({1,2,3})              // Initialized array
-    f2 List<str>({"Hello", "World"})    // Initialized list
+    f1 Array<int>([1,2,3])              // Initialized array
+    f2 List<str>(["Hello", "World"])    // Initialized list
     f3 Map<str,int>({"A":1, "B":2})     // Initialized map
     pub Header str("Zurfur")         // Public read only string
     pub func F(a int) str => Header+a   // Member function
@@ -46,6 +52,22 @@ pub func Example::MyExtension() => F()  // Extension method
 
 pub func Example::MyExtension()
 {
-    @a = Map<str,int>({{"A",1},{"B",2},{"C",3}})
-    @b = Map<str,int>({"A":1,"B":2,"C":3})
+    @a = Map<str,int>({"A":1, "B":2, "C":3})
+    @b Map<str,int> = {"A":1, "B":2, "C":3}
+    @c Map<int,PointXY> = {0:(3,4), 1:(5,6)}
+    
+    @d = 3                              // `a` is an int
+    @e = "Hello World"                  // `b` is a str
+    @f = MyFunction()                   // `c` is whatever type is returned by MyFunction
+    @g = List<int>([1,2,3])             // `d` is a list of integers, intialized with {1,2,3}
+    @h = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
+    @i = Json({"A":1,"B":[1,2,3]})      // `f` is a Json object containing a number and an array
+   
+    @j int = MyIntFunc()                // Error if MyIntFunc returns a float
+    @k str                              // `b` is a string, initialized to ""
+    @l List<int>                        // `c` is an empty List<int>
+    @m List<int> = [1, 2, 3]
+    @n Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
+    @o Map<int,str> = {0:"a", 1:"b"}
+    
 }

@@ -24,7 +24,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sGlobalFuncsNotAllowed = new WordSet("prop this operator");
 
         static WordSet sInterfaceQualifiers = new WordSet("interface pub public protected private internal static");
-        static WordSet sClassQualifiers = new WordSet("class pub public protected private internal unsafe unsealed abstract mut");
+        static WordSet sClassQualifiers = new WordSet("class pub pfublic protected private internal unsafe unsealed abstract mut boxed");
         static WordSet sStructQualifiers = new WordSet("struct pub public protected private internal unsafe ref mut");
         static WordSet sEnumQualifiers = new WordSet("enum pub public protected private internal");
 
@@ -45,7 +45,8 @@ namespace Gosub.Zurfur.Compiler
             { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
             { "class",9 }, { "struct",9 }, { "enum",9 }, { "interface",9 }, {"operator", 9}, {"func",9}, {"afunc",9},
             { "ref", 10},
-            { "mut", 11 }, { "ro", 11}, {"readonly", 11}
+            { "mut", 11 }, { "ro", 11}, {"readonly", 11},
+            { "boxed", 12 }
         };
 
         ParseZurf mParser;
@@ -357,38 +358,6 @@ namespace Gosub.Zurfur.Compiler
         {
             switch (expr.Token)
             {
-                case ")": // Lambda parameters
-                    if (expr.Count != 1 && (parent == null || parent.Token != "->"))
-                    {
-                        mParser.RejectToken(expr.Token, expr.Count == 0
-                            ? "Empty expression not allowed unless followed by lambda '->' token"
-                            : "Multi-parameter expression not allowed unless followed by lambda '->' token");
-                        foreach (var e in expr)
-                            Grayout(e);
-                    }
-                    break;
-
-                case ParseZurf.VIRTUAL_TOKEN_INITIALIZER:
-                    foreach (var e in expr)
-                    {
-                        CheckExpr(expr, e);
-                        if (e.Token == ":" && e.Count > 0 && e[0].Token == ParseZurf.VIRTUAL_TOKEN_INITIALIZER)
-                            mParser.RejectToken(e.Token, "Not expecting ':' after object initializer");
-                    }
-
-                    bool isObject1 = expr.Count != 0 && expr[0].Token == ":";
-                    foreach (var e in expr)
-                    {
-                        bool isObject2 = e.Token == ":";
-                        if (isObject1 != isObject2)
-                        {
-                            var errorToken = isObject1 ? expr[0].Token : e.Token;
-                            mParser.RejectToken(errorToken, "Expecting all initializer expressions to have a ':' or none of them to have a ':'");
-                            break;
-                        }
-                    }
-                    break;
-
                 case "switch":
                     // Switch expression (not statement)
                     if (parent != null && parent.Token != "{" && expr.Count >= 2)

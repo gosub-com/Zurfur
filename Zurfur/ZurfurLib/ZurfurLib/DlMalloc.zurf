@@ -35,7 +35,7 @@ namespace Zurfur.Internal.DlMalloc
 
 pub class DlMallocException : Exception
 {
-    pub new(string message) : base(message) { }
+    pub new(string message) { base(message) }
 }
 
 /// <summary>
@@ -191,9 +191,9 @@ pub unsafe abstract class DlMallocBase : IDisposable
     least_addr *byte
     dv mchunk
     top mchunk
-    xuint trim_check
-    xuint release_checks
-    xuint magic
+    trim_check xuint
+    release_checks xuint
+    magic xuint
     smallbins **mchunk
     treebins **tchunk
     footprint xuint
@@ -786,7 +786,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     mparams malloc_params
 
     // Ensure mparams initialized
-    func ensure_initialization() { if mparams.magic == 0 => init_mparams() }
+    func ensure_initialization() { if mparams.magic == 0 { init_mparams() } }
 
     func is_initialized() bool { return top != null }
 
@@ -825,10 +825,10 @@ pub unsafe abstract class DlMallocBase : IDisposable
         while true
         {
             if addr >= sp.baseAddr && addr < sp.baseAddr + sp.size
-                => return sp
+                { return sp }
             sp = sp.next
             if sp == null
-                => return null
+                { return null }
         }
     }
 
@@ -839,14 +839,15 @@ pub unsafe abstract class DlMallocBase : IDisposable
         while true
         {
             if #*byte(sp) >= ss.baseAddr && #*byte(sp) < ss.baseAddr + ss.size
-                => return true
+                { return true }
             sp = sp.next
             if sp == null
-                => return false
+                { return false }
         }
     }
 
-    func should_trim(s xuint) bool => s > trim_check
+    func should_trim(s xuint) bool 
+        => s > trim_check
 
     //  TOP_FOOT_SIZE is padding at the end of a segment, including space
     //  that may be needed to place segment records and fenceposts when new
@@ -877,9 +878,9 @@ pub unsafe abstract class DlMallocBase : IDisposable
     {
         @x = s >> TREEBIN_SHIFT
         if x == 0
-            => return 0
+            { return 0 }
         if x > 0xFFFF
-            => return NTREEBINS - 1
+            { return NTREEBINS - 1 }
         @y = x
         @n = ((y - 0x100) >> 16) & 8
         y <<= n
@@ -1049,7 +1050,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     static func assert(c bool)
     {
         if (!c)
-            => throw DlMallocException("Malloc assert failed")
+            { throw DlMallocException("Malloc assert failed") }
     }
 
     // Check properties of any chunk, whether free, inuse, mmapped etc 
@@ -1107,7 +1108,9 @@ pub unsafe abstract class DlMallocBase : IDisposable
                 assert(p.bk.fd == p)
             }
             else  // markers are always of size SIZE_T_SIZE
-              => assert(sz == SIZE_T_SIZE)
+            {
+                assert(sz == SIZE_T_SIZE)
+            }
         }
     }
 
@@ -1194,9 +1197,9 @@ pub unsafe abstract class DlMallocBase : IDisposable
         @t = *tb
         @empty = (treemap & (1U << i)) == 0
         if t == null
-          => assert(empty)
+            { assert(empty) }
         if !empty
-          => do_check_tree(t)
+            { do_check_tree(t) }
     }
 
     //  Check all the chunks in a smallbin.
@@ -1206,7 +1209,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
         @p = b.bk
         @empty = (smallmap & (1U << i)) == 0
         if p == b
-          => assert(empty)
+             {assert(empty) }
         if !empty
         {
             while p != b
@@ -1221,7 +1224,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                 // chunk is followed by an inuse chunk
                 q = next_chunk(p)
                 if q.head != FENCEPOST_HEAD
-                  => do_check_inuse_chunk(q)
+                  { do_check_inuse_chunk(q) }
                 p = p.bk
             }
         }
@@ -1241,7 +1244,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                 do
                 {
                     if p == x
-                      => return true
+                        { return true }
                     p = p.fd
                 } while p != b
             }
@@ -1264,7 +1267,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                     do
                     {
                         if u == #*tchunk(x)
-                          => return true
+                            { return true }
                         u = u.fd
                     } while u != t
                 }
@@ -1295,9 +1298,9 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
         // check bins
         for @i in 0..NSMALLBINS
-          => do_check_smallbin(i)
+            { do_check_smallbin(i) }
         for @i in 0..NTREEBINS
-          => do_check_treebin(i)
+            { do_check_treebin(i) }
 
         if (dvsize != 0)
         {
@@ -1387,11 +1390,11 @@ pub unsafe abstract class DlMallocBase : IDisposable
         @F = B
         assert(s >= MIN_CHUNK_SIZE)
         if !smallmap_is_marked(I)
-          => mark_smallmap(I)
+            { mark_smallmap(I) }
         else if RTCHECK(ok_address(B.fd))
-          => F = B.fd
+            { F = B.fd }
         else
-          => CallCorruptionErrorAction()
+            { CallCorruptionErrorAction() }
         B.fd = p
         F.bk = p
         p.fd = F
@@ -1411,7 +1414,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
         if RTCHECK(F == smallbin_at(I) || (ok_address(F) && F.bk == p))
         {
             if B == F
-              => clear_smallmap(I)
+                { clear_smallmap(I) }
             else if RTCHECK(B == smallbin_at(I) 
                      || (ok_address(B) && B.fd == p))
             {
@@ -1419,7 +1422,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                 B.fd = F
             }
             else
-              => CallCorruptionErrorAction()
+                { CallCorruptionErrorAction() }
         }
         else
         {
@@ -1436,14 +1439,14 @@ pub unsafe abstract class DlMallocBase : IDisposable
         assert(p != F)
         assert(chunksize(p) == small_index2size(i))
         if b == F
-          => clear_smallmap(i)
+            { clear_smallmap(i) }
         else if RTCHECK(ok_address(F) && F.bk == p)
         {
             F.bk = b
             b.fd = F
         }
         else
-          => CallCorruptionErrorAction()
+            { CallCorruptionErrorAction() }
     }
 
     // Replace dv node, binning the old one
@@ -1492,7 +1495,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                     @C = ((K >> (SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 ? &T.child0 : &T.child1
                     K <<= 1
                     if *C != null
-                      => T = *C
+                        { T = *C }
                     else if RTCHECK(ok_address(C))
                     {
                         *C = x
@@ -1558,7 +1561,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                 R.fd = F
             }
             else
-              => CallCorruptionErrorAction()
+                { CallCorruptionErrorAction() }
         }
         else
         {
@@ -1575,19 +1578,19 @@ pub unsafe abstract class DlMallocBase : IDisposable
                 @CP **tchunk
                 CP = &R.child1
                 if *CP == null
-                  => CP = &R.child0
+                    { CP = &R.child0 }
                 while *CP != null
                 {
                     RP = CP
                     R = *RP
                     CP = &R.child1
                     if *CP == null
-                      => CP = &R.child0
+                        { CP = &R.child0 }
                 }
                 if RTCHECK(ok_address(RP))
-                  => *RP = null
+                    { *RP = null }
                 else
-                  => CallCorruptionErrorAction()
+                    { CallCorruptionErrorAction() }
             }
         }
         if XP != null
@@ -1597,17 +1600,17 @@ pub unsafe abstract class DlMallocBase : IDisposable
             {
                 *H = R
                 if R == null
-                  => clear_treemap(x.index)
+                    { clear_treemap(x.index) }
             }
             else if RTCHECK(ok_address(XP))
             {
                 if (XP.child0 == x)
-                  => XP.child0 = R
+                    { XP.child0 = R }
                 else
-                  => XP.child1 = R
+                    { XP.child1 = R }
             }
             else
-              => CallCorruptionErrorAction()
+                { CallCorruptionErrorAction() }
             if R != null
             {
                 if RTCHECK(ok_address(R))
@@ -1624,7 +1627,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                             C0.parent = R
                         }
                         else
-                          => CallCorruptionErrorAction()
+                            { CallCorruptionErrorAction() }
                     }
                     C1 = x.child1
                     if C1 != null
@@ -1635,11 +1638,11 @@ pub unsafe abstract class DlMallocBase : IDisposable
                             C1.parent = R
                         }
                         else
-                          => CallCorruptionErrorAction()
+                            { CallCorruptionErrorAction() }
                     }
                 }
                 else
-                  => CallCorruptionErrorAction()
+                    { CallCorruptionErrorAction() }
             }
         }
     }
@@ -1650,18 +1653,18 @@ pub unsafe abstract class DlMallocBase : IDisposable
     func insert_chunk(p *mchunk, s xuint)
     {
         if is_small(s)
-          => insert_small_chunk(p, s)
+            { insert_small_chunk(p, s) }
         else
-          => insert_large_chunk(#*tchunk(p), s)
+            { insert_large_chunk(#*tchunk(p), s) }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     func unlink_chunk(p *mchunk, s xuint)
     {
         if is_small(s)
-          => unlink_small_chunk(p, s)
+            { unlink_small_chunk(p, s) }
         else
-          => unlink_large_chunk(#*tchunk(p))
+            { unlink_large_chunk(#*tchunk(p)) }
     }
 
     // -------------------------- mspace management --------------------------
@@ -1713,7 +1716,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
         top = null
         dv = null
         for @i in NTREEBINS
-          => *treebin_at(i) = null
+            { *treebin_at(i) = null }
         init_bins()
     }
 
@@ -1804,9 +1807,9 @@ pub unsafe abstract class DlMallocBase : IDisposable
             p.head = FENCEPOST_HEAD
             nfences += 1
             if #*byte(&(nextp.head_ptr)) < old_end
-              => p = nextp
+                { p = nextp }
             else
-              => break
+                { break }
         }
         assert(nfences >= 2)
 
@@ -1837,7 +1840,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
         asize = granularity_align(nb + SYS_ALLOC_PADDING)
         if asize <= nb
-          => return null // wraparound
+            { return null } // wraparound
 
         // Try getting memory via CallMoreCore
         // In all cases, we need to request enough bytes from system to ensure
@@ -1861,16 +1864,16 @@ pub unsafe abstract class DlMallocBase : IDisposable
         {
             footprint += tsize
             if footprint > max_footprint
-              => max_footprint = footprint
+                { max_footprint = footprint }
 
             if !is_initialized()
-              => throw DlMallocException("Must already be initialized")
+                { throw DlMallocException("Must already be initialized") }
 
             // Try to merge with an existing segment
             // Only consider most recent segment if traversal suppressed 
             @sp = seg
             while sp != null && tbase != sp.baseAddr + sp.size
-              => sp = NO_SEGMENT_TRAVERSAL ? null : sp.next
+                { sp = NO_SEGMENT_TRAVERSAL ? null : sp.next }
 
             if sp != null
                 && !is_extern_segment(sp)
@@ -1884,10 +1887,10 @@ pub unsafe abstract class DlMallocBase : IDisposable
             else
             {
                 if tbase < least_addr
-                  => least_addr = tbase
+                    { least_addr = tbase }
                 sp = seg
                 while sp != null && sp.baseAddr != tbase + tsize
-                  => sp = (NO_SEGMENT_TRAVERSAL) ? null : sp.next
+                    { sp = (NO_SEGMENT_TRAVERSAL) ? null : sp.next }
                 if sp != null
                     && !is_extern_segment(sp)
                     && (sp.sflags & flag_t.USE_MMAP_BIT) == mmap_flag
@@ -1898,7 +1901,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                     return prepend_alloc(tbase, oldbase, nb)
                 }
                 else
-                  => add_segment(tbase, tsize, mmap_flag)
+                    { add_segment(tbase, tsize, mmap_flag) }
             }
 
             if nb < topsize
@@ -1970,7 +1973,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                 }
             }
             if NO_SEGMENT_TRAVERSAL // scan only first segment
-              => break
+              { break }
             pred = sp
             sp = next
         }
@@ -2029,7 +2032,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
             // On failure, disable autotrim to avoid repeated failed future calls
             if released == 0 && topsize > trim_check
-              => trim_check = MAX_SIZE_T
+                { trim_check = MAX_SIZE_T }
         }
 
         return released != 0 ? 1 : 0
@@ -2142,13 +2145,13 @@ pub unsafe abstract class DlMallocBase : IDisposable
                     v = t
                     rsize = trem
                     if rsize == 0
-                      => break
+                      { break }
                 }
                 rt = t.child1
                 t = ((sizebits >> #int(SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 
                         ? t.child0 : t.child1
                 if rt != null && rt != t
-                  => rst = rt
+                    { rst = rt }
                 if t == null
                 {
                     t = rst // set t to least subtree holding sizes > nb
@@ -2193,7 +2196,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                 {
                     unlink_large_chunk(v)
                     if rsize < MIN_CHUNK_SIZE
-                      => set_inuse_and_pinuse(v, (rsize + nb))
+                        { set_inuse_and_pinuse(v, (rsize + nb)) }
                     else
                     {
                         set_size_and_pinuse_of_inuse_chunk(#*mchunk(v), nb)
@@ -2240,7 +2243,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
             {
                 unlink_large_chunk(v)
                 if rsize < MIN_CHUNK_SIZE
-                  => set_inuse_and_pinuse(v, (rsize + nb))
+                    { set_inuse_and_pinuse(v, (rsize + nb)) }
                 else
                 {
                     set_size_and_pinuse_of_inuse_chunk(#*mchunk(v), nb)
@@ -2260,7 +2263,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
         handler func(start *void, end *void, usedBytes ulong))
     {
         if (!is_initialized())
-          => return
+            { return }
 
         @top2 = top
         @s = seg
@@ -2291,9 +2294,9 @@ pub unsafe abstract class DlMallocBase : IDisposable
                     }
                 }
                 if (start < #*void(next))  // skip if all space is bookkeeping
-                  => handler(start, next, used)
+                    { handler(start, next, used) }
                 if (q == top2)
-                  => break
+                    { break }
                 q = next
             }
             s = s.next
@@ -2424,7 +2427,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
         //       5. If available, get memory from system and use it
 
         if (!is_initialized())
-            => Init(0)
+            { Init(0) }
 
         if (!ok_magic())
         {
@@ -2475,7 +2478,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                     rsize = small_index2size(i) - nb
                     // Fit here cannot be remainderless if 4byte sizes
                     if (SIZE_T_SIZE != 4 && rsize < MIN_CHUNK_SIZE)
-                        => set_inuse_and_pinuse(p, small_index2size(i))
+                        { set_inuse_and_pinuse(p, small_index2size(i)) }
                     else
                     {
                         set_size_and_pinuse_of_inuse_chunk(p, nb)
@@ -2502,7 +2505,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
             }
         }
         else if (length >= MAX_REQUEST)
-            => nb = MAX_SIZE_T // Too big to allocate. Force failure (in sys alloc)
+            { nb = MAX_SIZE_T }// Too big to allocate. Force failure (in sys alloc)
         else
         {
             nb = pad_request(length)
@@ -2573,10 +2576,10 @@ pub unsafe abstract class DlMallocBase : IDisposable
         // with special cases for top, dv, mmapped chunks, and usage errors.
 
         if (mem == null)
-            => return
+            { return }
 
         if (!is_initialized())
-            => Init(0)
+            { Init(0) }
 
         @p = mem2chunk(mem)
         if (!ok_magic())
@@ -2638,7 +2641,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                         dvsize = 0
                     }
                     if (should_trim(tsize))
-                      => sys_trim(0)
+                        { sys_trim(0) }
                     return
                 }
                 else if (next == dv)
@@ -2663,7 +2666,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                 }
             }
             else
-              => set_free_with_pinuse(p, psize, next)
+                { set_free_with_pinuse(p, psize, next) }
 
             if (is_small(psize))
             {
@@ -2677,7 +2680,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
                 check_free_chunk(p)
                 release_checks -= 1
                 if (release_checks == 0)
-                  => release_unused_segments()
+                    { release_unused_segments() }
             }
             return
         }

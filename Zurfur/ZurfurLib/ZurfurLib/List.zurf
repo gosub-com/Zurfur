@@ -1,0 +1,24 @@
+﻿namespace Zurfur
+
+pub class List<T> 
+    : IList<T>
+{
+    items ^Array<T> = Array<T>.Empty
+    count int
+
+    pub new() => todo()
+    pub new(capacity int) => todo()
+    pub new(items ICollection<T>) => todo()
+    
+    pub prop Count int => count
+
+    pub operator[](index int) T { get => todo() set => todo() }
+    pub operator[](index Range) Span<T> => items[index]
+    pub func mut Add(item T) => todo()
+    pub func mut Clear() => todo()
+    pub func mut Insert(index int, item T) => todo()
+    pub func mut Insert(index int, items ICollection<T>) => todo()
+    pub func mut Remove(index int) => todo()
+    pub func mut Remove(range Range) => todo()
+    
+}

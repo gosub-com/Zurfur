@@ -4,7 +4,7 @@
 /// All variable sized objects must inherit from this
 /// class and cannot be unsealed
 [Unsealed1]
-pub class mut ArrayBase<T>
+pub class ArrayBase<T>
 {
     default ArrayBase<T>()
     
@@ -19,7 +19,7 @@ pub class mut ArrayBase<T>
 }
 
 // Array of constant size
-pub class mut Array<T> 
+pub class Array<T> 
     : ArrayBase<T>, IArray<T>, IMutArray<T>
     where T : struct
 {

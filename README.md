@@ -4,33 +4,6 @@ Zurfur is is a programming language I'm designing just for fun and enlightenment
 The language is named after our cat, Zurfur, who was named by my son.  It's
 spelled **_ZurFUR_** because our cat has fur.
 
-## Design Goals
-
-* Fun and easy to use (just as easy as C#, avoid C++ complexity)
-* Safe code is more efficient than C# (more value types, less GC, more escape analysis)
-* Unsafe code is just as efficient as C
-* Ahead of time compile to WebAssembly with tiny run-time library
-* Stretch goal: Rewrite compiler and IDE in Zurfur on Node.js
-
-![](Doc/IDE.png)
-
-Zurfur is similar to C#, but borrows syntax and design concepts from Golang,
-Rust, Zig, and many others.  Here are some differences between Zurfur and C#:
-
-* Strings are UTF8 byte arrays, always initialized to ""
-* Struct and class:
-  * Are immutable by default (can optionally be mutable)  **TBD:** Class not immutable?
-  * Are both value types created on the stack by default
-  * May be put on the garbage collected heap, must explicitly use `box` keyword
-* References are non-nullable by default, may use `?` for nullable
-* Functions pass parameters:
-  * By reference, unless it's more efficient to pass by value, such as `int` or reference `^`
-  * **TBD:** As immutable by default
-* Type declaration syntax and operator precedence is from Golang
-* Interfaces have properties of both C# and Rust
-* Get/set of mutable structs acts like you think it should (e.g. `MyListOfStructPoints[1].X = 5`)
-* `==` operator fails if it is not defined on a class
-
 ## Overview
 
 I love C#.  It's my favorite language to program in.  But, I'd like to fix
@@ -38,6 +11,30 @@ some [warts](http://www.informit.com/articles/article.aspx?p=2425867) and have
 some features from other languages built in from the ground up.
 
 Thoughts about where to go and how to do it: [Internals](Doc/Internals.md).
+
+## Design Goals
+
+* Fun and easy to use (almost as easy as C#, avoid C++ complexity)
+* Safe code is more efficient than C# (more value types, less GC)
+* Unsafe code is just as efficient as C (drop down to pointers when necessary)
+* Ahead of time compile to WebAssembly with tiny run-time library
+* Stretch goal: Rewrite compiler and IDE in Zurfur on Node.js
+
+![](Doc/IDE.png)
+
+Zurfur is similar to C#, but borrows syntax and design concepts from Golang,
+Rust, and many other languages.  Here are some differences between Zurfur and C#:
+
+* Strings are UTF8 byte arrays, always initialized to ""
+* Struct and class are both value types created on the stack unless explicitly boxed
+* Stack allocated classes have deterministic finalization (no garbage collection)
+* References are non-nullable by default, may use `?` for nullable
+* Functions pass parameters by reference, unless it's more efficient to pass by value
+* Function parameters are immutable by default, must explicitly be mutable
+* Type declaration syntax and operator precedence is from Golang
+* Interfaces may be implemented by the class (C# style) or externally (Rust style)
+* Get/set of mutable structs acts like you think it should (e.g. `MyListOfStructPoints[1].X = 5`)
+* `==` operator fails if it is not defined on a class
 
 #### Status Update
 
@@ -56,7 +53,7 @@ free to send me comments letting me know what you think should be changed.
 
     // Regular static function
     pub static func add(a int, b int) int
-        => return a + b
+        => a + b
 
     // Extension method for MyClass
     pub func MyClass::MyExtensionFunc(a str) str
@@ -69,7 +66,29 @@ Functions, classes, structs, enums, variables and constants are
 private unless they have the 'pub' qualifier.  Functions are allowed
 at the namespace level, but must be static or extension methods.
 
-**TBD:** Use `fun` or `fn` keyword instead of `func`?
+#### Parameters are passed by reference and immutable by default
+
+Unlike in C#, a `class` is owned by its creator.  Its reference
+cannot be captured when passed to a function.  This allows classes to
+be created on the stack without needing garbage collection. 
+
+By default, functions pass parameters by immutable reference.  The exception
+is that small structs may be passed by value when it is more efficient to do so.
+
+    pub func Test(a      float64,   // Pass by value since that's more efficient
+                  s      MyStruct,  // Pass by value or reference whichever is more efficient
+                  ms mut MyStruct,  // Pass by reference, preserve `ro` fields
+                  rs ref MyStruct,  // Pass by reference, nothing is preserved
+                  os out MyStruct,  // MyStruct is returned by reference
+                  c      MyClass,   // Pass by value or reference, the reference cannot be captured
+                  mc mut MyClass,   // Pass by reference, object is mutable, reference cannot be captured
+                  ic ref MyClass,   // ILLEGAL
+                  oc out MyClass)   // MyClass is returned by reference, object is mutable
+
+If `s` or `c` is big, such as a matrix containing 16 floats, it is passed by
+reference.  If they are small, such as a single float or int, they are passed
+by value.  A struct or class containing two integers might be passed by value or
+by reference depending on the compiler, options, and optimizations.
 
 ## Local Variables
 
@@ -79,20 +98,21 @@ which is similar to `var` in C#.
     @a = 3                              // `a` is an int
     @b = "Hello World"                  // `b` is a str
     @c = MyFunction()                   // `c` is whatever type is returned by MyFunction
-    @d = List<int>({1,2,3})             // `d` is a list of integers, intialized with {1,2,3}
+    @d = List<int>([1,2,3])             // `d` is a list of integers, intialized with {1,2,3}
     @e = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
-    @f = Json({"A":1,"B":{1,2,3}})      // `f` is a Json object containing a number and an array
-
+    @f = Json({"A":1,"B":[1,2,3]})      // `f` is a Json object containing a number and an array
    
 The above form `@variable = expression` creates a variable with the same type as
 the expression.  A second form `@variable type [=expression]` creates an explicitly
 typed variable with optional assignment from an expression.  If the expression
 cannot be converted, an error is generated
 
-    @a int = MyIntFunc()            // Error if MyIntFunc returns a float
-    @b str                          // `b` is a string, initialized to ""
-    @c List<int>                    // `c` is an empty List<int>
-    @d Map<str,int> = MyMapFunc()   // Error if MyMapFunc doesn't return Map<str,int>
+    @a int = MyIntFunc()                // Error if MyIntFunc returns a float
+    @b str                              // `b` is a string, initialized to ""
+    @c List<int>                        // `c` is an empty List<int>
+    @d List<int> = [1, 2, 3]
+    @e Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
+    @f Map<int,str> = {0:"a", 1:"b"}
 
 #### Non-Nullable References
 
@@ -101,11 +121,11 @@ when created.  The optimizer may decide to delay initialization until the
 variable is actually used which could have implications if the constructor
 has side effects.  For instance:
 
-    @myList List<int>()         // Optimizer may remove this constructor call
+    @myList List<int>()             // Optimizer may remove this constructor call
     if MyFunc()
-      => myList = MyListFunc()  // Constructor might not be called above
+        { myList = MyListFunc() }   // Constructor might not be called above
     else
-      => myList.Add(1)          // Optimizer may move constructor call here
+        { myList.Add(1) }           // Optimizer may move constructor call here
 
 It is possible to create a nullable reference.
     
@@ -123,16 +143,15 @@ they are not null before being used.
 
     i8, u8, byte, i16, u16, i32, int, u32, uint, i64, u64, f32, f64
     xint, xuint, decimal, object, str, strs, Array<T>, List<T>, Map<K,V>, Json
-    Span<T>, RoSpan<T>
+    Span<T>
 
 `byte`, `int`, and `uint` are aliases for `u8`, `i32`, and `u32`.
 `xint` and `xuint` are extended integer types, which could be 32 or 64 bits
 depending on run-time architecture.
 
-`str` is an immutable UTF8 byte array.  `strs` is an immutable string span
-which is an alias for `RoSpan<byte>`
+`str` is an immutable UTF8 byte array.`
 
-`Span<T>` and `RoSpan<T>` are slices of an array.
+`Span<T>` is a slice of an array.
 
 **TBD:** Use lower case for `array`, `list`, `map`, `json`, `span`, `roSpan`, and
 others library class types?  Or use upper case for `Str`, `i8`, etc?
@@ -160,30 +179,33 @@ Escape constants are `cr`, `lf`, `crlf`, `tab`, `ff`, `bs`
 #### Array
 
 `Array` is your standard C# fixed sized array.  The constructor takes the count,
-which can never be changed after that:
+which can never be changed after that.  An an array has an immutable `Count` property
+instead of the `Length` property in C#
 
     @a Array<int>               // `a` is an array of length zero
     @b Array<int>(32)           // `b` is an array of length 32
-    @c Array<Array<int>>(10)    // `c` is an array of arrays
+    @c Array<Array<int>>(10)    // `c` is an array of 10 arrays of integer
 
 The C# syntax for creating an array with `[]` has been dropped in
 favor of a generic array class implementing `ICollection`, and support
 for initializer expressions:
 
-    @a = Array<int>({1,2,3})    // Instead of 'var a = new int[]{1,2,3}
+    @a Array<int> = [1,2,3]     // Instead of 'var a = new int[]{1,2,3}
+    @b = Array<int>([1,2,3])    // Alternative way of initializing the array
+    @c Array<Array<int>> = [[1,2,3], [4,5,6], [7,8,9]]  // Jagged matrix
 
 Arrays can be sliced.  See below for more information.
 
 #### List
 
-`List` is a variable sized array with a `Count` and `Capacity`
-that changes as items are added or removed.  In Zurfur, lists act more like
-arrays than they do in C# because setters are automatically used to modify
+`List` is a variable sized array with a `Count` and `Capacity` that
+changes as items are added or removed.  Lists act more like arrays
+than they do in C# because setters are automatically called to modify
 fields when necessary:
 
     struct MyPoint { pub X int;  pub Y int}
-    @a = List<MyPoint>({{1,2},{3,4},{5,6}})
-    a[1].Y = 12    // Now `a` contains {{1,2},{3,12},{5,6}}
+    @a List<MyPoint> = [(1,2),(3,4),(5,6)]
+    a[1].Y = 12    // Now `a` contains [(1,2),(3,12),(5,6)]
 
 See below for information about initializer expressions and slice operator.
 
@@ -191,7 +213,7 @@ See below for information about initializer expressions and slice operator.
 
 `Map` is a hash table and is similar to `Dictionary` in C#.
 
-    @a = Map<str,int>({"Hello":1, "World":2})
+    @a Map<str,int> = {"Hello":1, "World":2}
     @b = a["World"]                             // `b` is 2
     @c = a["not found"]                         // throws exception
     @d = a.Get("not found")                     // `d` is 0
@@ -203,7 +225,7 @@ See below for information about initializer expressions and slice operator.
 Using an invalid index does not throw an exception, but instead returns a default
 empty object.
 
-    @a = Json({"Hello":1, "World":2})
+    @a Json = {"Hello":1, "World":2}
     @b = a["World"]                         // `b` is Json(2), not an int
     @c = a["World"].Int                     // `c` is 2
     @d = a["World"].Str                     // `d` is "2"
@@ -221,7 +243,7 @@ the fastest or most efficient. For efficient memory usage, `Json` will support
 Operator precedence comes from Golang.
 
     Primary: x.y f(x) a[i] #type(expr)
-    Unary: - ! & ~ *
+    Unary: - ! & ~ * box
     Multiplication and bits: * / % << >> & 
     Add and bits: + - | ~
     Range: .. ::
@@ -234,15 +256,23 @@ Operator precedence comes from Golang.
     Assignment Statements: = += -= *= /= %= &= |= ~= <<= >>=
     Statement separator: => (not an operator, not lambda)
 
-`~` is both xor and unary complement. 
+The `*` operator is both multiplication and unary dereference, same as in C.
+When used in type definitions, it means *pointer to*, for example `@a *int`
+means `a` is a pointer to `int`.
 
-The `..` operator takes two `int`s and make a `Range` which is a
-`struct Range { Start int; End int}`.  The `::` operator also
-makes a range, but the second parameter is a count instead of end
-index.  See `For Loop` below for examples.
+The `^` operator means *reference to* object when used in type definitions.
+The `box` operator is used to make a reference to a struct or class.
+**TBD:** Might change unary `box` operator to `^` in the future.
+
+The `~` operator is both xor and unary complement, same as `^` in Golang.
+
+The range operator`..` takes two `int`s and make a `Range` which is a
+`struct Range { Start int; End int}`.  The `::` operator also makes a
+range, but the second parameter is a count instead of end index.  
+See `For Loop` below for examples.
 
 Assignment is a statement, not an expression.  Therefore, expressions like
-`while (a += count) < 20` and `a = b += 1` are not allowed.  Comma is also
+`while (a += count) < 20` and `a = b = 1` are not allowed.  Comma is also
 not an expression, and may only be used where they are expected, such as
 a function call or lambda expession.
 
@@ -266,49 +296,47 @@ Zurfur inherits this from C#, and Eric Lippert
 
 ## Initializer Expressions
 
-An initializer is a Json-like list or map enclosed within `{}` and may be used
-any place a function parameter takes either an `ICollection`, `IRoMap`, or an
-object with a matching constructor:
+An initializer is a Json-like list or map enclosed within `{}` or `[]` and
+may be used any place a function parameter takes either an `ICollection`,
+`IRoMap`, or for `()` an object with a matching constructor:
 
-    @a = Array<int>({1,2,3})                // Array syntax (note lack of `:`)
-    @b = Map<str,int>({"A":1, "B":2})       // Map syntax (note the `:`)
-    @c = Map<str,int>({{"A",1}, {"B", 2}})  // Use ICollection and KeyValuePair constructor
+
+    @a Array<int> = [1,2,3]                 // Array syntax
+    @b Map<str,int> = {"A":1, "B":2}        // Map syntax
+    @c Map<str,int> = [("A",1), ("B", 2)]   // Use ICollection and KeyValuePair constructor
+
+    // Alternative way to initialize (not recommended, but equivalent to `=` format)
+    @a = Array<int>([1,2,3])
+    @b = Map<str,int>({"A":1, "B":2})
+    @c = Map<str,int>([("A",1), ("B", 2)])
 
 The first expression `a` uses array syntax to initialize the array.  The second
 expression `b` uses map syntax to initialize the map.  The third expression, `c`
 is accepted because the `Map` constructor takes an `ICollection<KeyValuePair<str,int>>`
 parameter. The `KeyValuePair` constructor takes `str` and `int` parameters, so
-everything matches up and is accepted.
+everything matches up and is accepted.  
 
 A `Map<str,MyPointXY>` can be initialized like this as long as `MyPointXY` has a
 constructor taking two integers:
 
-    @a = Map<str, MyPointXY>({"A": {1,2}, "B": {3,4}})      // Use map initializer syntax
-    @b = Map<str, MyPointXY>({{"A",{1,2}}, {"B", {3,4}}})   // Use `ICollection` and constructor
+    @a Map<str, MyPointXY> = {"A": (1,2), "B": (3,4)}      // Use map initializer syntax
 
 #### Json Initializer Expressions
 
-The initializer syntax has support for Json, except that curly braces `{}` are
-used for arrays rather than brackets `[]`.  The library will have a class to
+The initializer syntax has support for Json.  The library will have a class to
 support Json objects with syntax something like this:
 
-    @a = Json({
+    @a Json = {
         "Param1" : 23,
-        "Param2" : {1,2,3},
+        "Param2" : [1,2,3],
         "Param3" : {"Hello":12, "World" : "Earth"},
         "Time" : "2019-12-07T14:13:46"
-    })
+    }
     @b = a["Param1"].Int            // `b` is 23
     @c = a["param2"][1].Int         // `c` is 2
     @d = a["Param3"]["World"].Str   // `d` is "Earth"
     @e = a["Time"].DateTime         // `e` is converted to DateTime
     a["Param2"][1].Int = 5          // Set the value
-
-**TBD:** Use `[]` for arrays?  My vote is no.  If a value contains `:`,
-it's a map, otherwise it's an array.  The motivation for this comes
-from when I had it the other way and it was confusing to look at in some
-cases because `[]` could be either an initializer or an indexer, whereas `{}`
-is always an initializer.
 
 ## Statements
 
@@ -324,22 +352,6 @@ of a line prevents a semicolon on that line.
 multiplication cannot be used to continue a line.  This is necessary so a
 dereference statement such as `*a = 3` cannot be continued from the previous line.
 
-All compound statements require either curly braces (e.g. `if expr { statements }`)
-or can use the statement separator `=>` (e.g. `if expr => statement`):
-    
-    if a
-      => DoThis()
-
-The statement separator `=>` never allows a second level of indentation, and there
-cannot be a `;` after the statement.
-
-    if a
-      => if b           // SYNTAX ERROR, compound statement not allowed here
-        => DoThis()     // Second level => is not allowed
-
-    if a
-      => f(x);  f(x+1)  // SYNTAX ERROR, ';' not allowed after '=>' statement.
-
 #### For Loop
 
 For the time being, `for` loops only allow one format: `for @newVariable in expression`. 
@@ -348,32 +360,32 @@ The simplest form of the for loop is when the expression evaluates to an integer
 
     // Print the numbers 0 to 9
     for @i in 10
-      => Console.WriteLine(i)   // `i` is an integer
+        { Console.WriteLine(i) }   // `i` is an integer
 
     // Increment all the numbers in an array
     for @i in array.Count
-      => array[i] += 1
+        { array[i] += 1 }
 
 The range operators can be used as follows:
 
     // Print the numbers from 5 to 49
     for @i in 5..50
-      => Console.WriteLine(i)   // `i` is an integer
+        { Console.WriteLine(i) }   // `i` is an integer
 
     // Print all the numbers in the array except the first and last
     for @i in 1..array.Count-1
-      => Console.WriteLine(array[i])
+        { Console.WriteLine(array[i]) }
 
     // Collect elements 5,6, and 7 into myArray
     for @i in 5::3
-        myList.Add(myArray[i])
+        { myList.Add(myArray[i]) }
 
 Any object that supplies an enumerator (or has a `get` indexer and a `Count` property)
 can be enumerated.  The `Map` enumerator supplies key value pairs:
 
     // Print key value pairs of all elements in a map
     for @kv in map
-      => Console.WriteLine("Key: " + kv.Key.ToString() + " is " + kv.Value.ToString())
+        { Console.WriteLine("Key: " + kv.Key.ToString() + " is " + kv.Value.ToString()) }
 
 The expression after `in` is evaluated at the start of the loop and never
 changes once calculated:
@@ -391,16 +403,16 @@ or remove elements from the collection.  An exception is thrown if
 it is attempted.  Here are two examples of things to avoid:
 
     for @i in myIntList
-      => myIntList.Add(1)   // Exception thrown on next iteration
+        { myIntList.Add(1) }   // Exception thrown on next iteration
 
     // This does not remove 0's and increment the remaining elements
     // The count is evaluated only at the beginning of the loop.
     for @i in myIntList.Count
     {
         if myIntList[i] == 0
-          => RemoveAt(i)        // There are at least two problems with this
+            { RemoveAt(i) }        // There are at least two problems with this
         else
-          => myIntList[i] += 1  // This will throw an exception if any element was removed
+            { myIntList[i] += 1 } // This will throw an exception if any element was removed
     }
     
 
@@ -425,40 +437,94 @@ level as a `case` statement.
 
     switch expression
     {
-    case 0:
+    case 0, 1, 2:
         DoStuff0()  // No fall through here.
-    case 1:
+    case 3:
         DoStuff1()
         break;      // SYNTAX ERROR: Break is illegal here
-    case 2:
+    case 4,5,6:
         DoStuff2()
         if x==y
-          => break  // Exit switch statement early, don't DoStuff3
+            { break }  // Exit switch statement early, don't DoStuff3
         DoStuff3()
     }
 
-## Classes
+## Class, Boxed Class, and Struct
 
-A class is a heap only object, same as in C#.  Field definitions are `field`
-followed by `type`, just like in Golang:
+**TBD:** For now, `^` is used in type names to mean *reference to*, and
+the unary `box` operator is used in expressions to box the value.  Consider
+using `^` for both since it could be confusing to have one thing for type
+names and another for expressions.  Alternatively, `box` could be used for both.
+
+There are three types of objects:
+
+1. `class` - An *owned* object, allocated directly on the stack or inside another class
+2. `class boxed` - A heap object, always allocated on the heap just like in C#
+3. `struct` - A value object, always copied except when passed to functions
+
+The goal is to minimize the number of objects created on the heap without
+overly burdening the programmer.  To accomplish this, classes are *owned*
+by the creator, which means they cannot be copied, nor can they be stored
+in a collection or array unless they are explicitly boxed. 
+
+#### Classes
+
+A class is an owned object that cannot be copied unless it is returned from
+a function that created it, assigned to a class field in a constructor, or
+immediately boxed after being created.
+
+The memory for a class can live directly on the stack or inside another
+class without the need for dynamic memory allocation.  Stack allocated class
+objects have deterministic destruction via `dispose` function.  When boxed,
+they do not have deterministic destruction, but may be disposed manually.
+
+This means that references to a class can never be captured or stored
+in a collection.
+
+    @myList = List<int>([1,2,3])        // My list is a stack local variabe
+    MyFunc(myList)                      // MyFunc can use myList, but not get a reference to it
+    myArrayOfLists[0] = myList          // ILLEGAL since myList is not boxed
+
+    @myListRef = box List<int>([1,2,3]) // Create it in a box
+    myArrayOfLists[0] = myListRef       // OK
+    MyFunc(myListRef)                   // OK, reference is implicitly dereferenced
+    // myList is deterministally destructed at end of scope
+    // myListRef is not deterministacally destructed
+
+This allows memory to be reclaimed and destructors to be called determinstically
+when objects are declared locally on the stack or an async stack frame. Further more,
+objects may be returned from functions:
+
+    @myFileStream = File.Open("Hello.txt")
+    @myList = CallAsyncFuncThatReturnsListOfInt(myFileStream)
+    // myFileStream is closed at end of scope and memory is reclaimed
+    // myList memory is also reclaimed unless it is returned from the function
+
+Objects ownership can be changed in only two cases.  The first case, shown above,
+is when an object is returned from a function.  The second case is when created
+in the constructor and immediately assigned to a field of the class.
+
+    class MyClass
+    {
+        myListField1    List<int>               // Must be assigned in constructor
+        myListField2    List<int>([1,2,3])      // Created here
+        myListField3    ^List<int>              // Not owned, reference must be initialized in constructor
+        myListField4    ^List<int>([1,2,3])     // Created here
+    }
 
     pub class Example
     {        
         F1 str                                      // Private string initialized to ""
         pub F2 Array<int>                           // Array of int, initialized to empty (i.e. Count = 0)
-        pub F4 Array<int>({1,2,3})                  // Array initialized with 1,2,3
-        pub F5 List<str>({"Hello", "World"})        // Initialized list
-        pub F6 Map<str,int>({{"A",1},{"B",2}})      // Initialized map
+        pub F4 Array<int>([1,2,3])                  // Array initialized with 1,2,3
+        pub F5 List<str>(["Hello", "World"])        // Initialized list
+        pub F6 Map<str,int>({"A":1, "B":2})         // Initialized map
         pub ro F7 str("Hello world")                // Initialized read only string
-        pub func Func1(a int) f64 => F1 + " hi"   // Member function
+        pub func Func1(a int) f64 => F1 + " hi"    // Member function
         pub prop Prop1 str => F1                    // Property returning F1
         pub prop ChangedTime DateTime = DateTime.Now // Default value and default get/set
             => default get private set
     }
-
-The `ro` keyword makes a field read only.  A class can be marked `ro` which
-means all fields must be makred `ro` and there can be no properties with
-setters.
 
 **TBD:** All fields and functions could be read only by default, requiring
 `mut` if they can be mutated.  This would be more explicit, but maybe more
@@ -492,11 +558,21 @@ classes would be stack allocated or embedded directly in an outer class.  It
 would be more painful because the programmer would need to `box` anything going
 on the heap.
 
-## Structs
+#### Boxed Class
 
-A struct is a value object (just like C#), and can be used where speed and
-efficiency are desired.  `Struct`'s are immutable by default, but can be
-made immutable using the `mut` keyword.
+A `boxed class` is similar to a C# sealed class in that it is a heap
+reference object and cannot ever be owned. A `str` is a boxed class.
+
+Note that an `Array` is always created on the heap, but since it is not
+a boxed struct, it has an owner and its memory can be deterministically
+reclaimed when it goes out of scope. 
+
+
+#### Struct
+
+A `struct` is a value object (just like C#), and can be used where speed and
+efficiency are desired.  `int`, `byte`, and `float` are structs. They are
+immutable by default, but can be made mutable using the `mut` keyword.
 
     // Immutable point
     pub struct MyPoint
@@ -504,7 +580,6 @@ made immutable using the `mut` keyword.
         pub X int
         pub Y int
         pub new(x int, y int) { X = x; Y = y}
-        pub override func ToString() => "(" + X + "," + Y + ")"
     }
     
     // Mutable point (each mutable field/func must also be marked, but not properties)
@@ -513,21 +588,42 @@ made immutable using the `mut` keyword.
         pub mut X int
         pub mut Y int
         pub new(x int, y int) { X = x; Y = y}
-        pub override func ToString() => "(" + X + "," + Y + ")"
         pub mut func SetY(y int) { Y = y }
     }
 
-When a struct is mutable, Zurfur allows fields in a struct returned from
-a getter to be assigned provided there is a corresponding setter.
+A mutable struct returned from a getter can be mutated in-place provided there is a corresponding setter.
 
     @a = List<MyMutablePoint>({{1,2},{3,4}, {5,6}})
     a[1].X = 23         // `a` contains {{1,2},{23,4}, {5,6}}
     a[1].SetY(24)       // `a` contains {{1,2},{23,24}, {5,6}}
 
-This works because Zurfur knows that `SetY` is mutating so the corresponding
-`List` setter must be called to save the result. Translation: `@temp = a[1];  temp.SetY(24);  a[1] = temp`
+This works because `SetY` is a mutating function so the corresponding
+`List` setter is called to save the result. 
 
-## Enums
+Structs are passed to functions by value or by reference, whichever is more
+efficient.  So, `@a = Multiply(b,c)` would pass `b` and `c` by value
+if they are integers, or by reference if they are large matricies.
+
+A struct may not contain a class, however it may contain a reference to a class.
+
+    struct MyThing
+    {
+        pub myList List<int>()      // ILLEGAL - myList is owned and can't be copied
+        pub myRefList ^List<int>()  // OK, myRefList is not owned
+    }
+
+
+#### Lambdas
+
+Lambdas are also owned by default, but can be boxed as long as they don't
+contain a reference including a reference to `this`. 
+
+**TBD:** Work out how much bad this will be.  Passing local parameters
+and `this` by reference is fine for owned lambdas restricted to function
+call boundaries.  Lambdas that get stored in a collection must
+not 
+
+#### Enums
 
 Enumerations are similar to C# enumerations, in that they are just
 a wrapped `int`.  But they are implemented internally as a `struct`
@@ -585,9 +681,7 @@ error if MyIntFunc() should ever return a float.
 
 ## Interfaces
 
-**TBD:** The keyword will change to `trait`, and some of the documentation
-below will change so it looks a little more like Rust.  We will favor
-static dispatch when possible, but also support dynamic dispatch via fat pointers.
+**TBD:** Change keyword to `trait`?
 
 Interfaces are a cross between C#, GoLang, and Rust, but a little different
 from each.  They are similar to C# 8.0 (including default implementations, etc.)
@@ -605,6 +699,12 @@ Here is `IEquatable<T>` from the standard library:
 Unimplemented functions and properties are explicitly marked with
 `youdo`.   Functions and properties must either have an implementation or
 specify `youdo`, `default`, or `extern`.  
+
+NOTE: The implemntations will use fat pointers.
+
+**TBD:** Describe syntax for creating externally defined traits, like
+in Rust.  For example `implement TRAIT for TYPE`
+
 
 #### Structural Typing
 

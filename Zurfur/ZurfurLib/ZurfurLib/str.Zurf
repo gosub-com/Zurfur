@@ -1,0 +1,23 @@
+﻿namespace Zurfur
+
+/// String is a wrapper for a read only array of bytes
+pub class boxed str
+    : ArrayBase<byte>, IComparable<str>, IRoArray<byte>
+{
+    default str = "";
+    
+    pub new() { todo() }
+    pub new(s str) { todo() }
+    pub new(s Span<byte>) { todo() }
+    pub operator[](index int) byte => todo()
+    pub operator[](range Range) Span<byte> => todo() // Slice
+    
+    pub static func GetHashCode(a str) uint => todo()
+    pub static func Equals(a str, b str) bool => todo()
+    pub static func Compare(a str, b str) int => todo()
+        
+    pub operator+(s1 str, s2 str) str { todo() }   
+    pub operator+(s1 Span<byte>, s2 str) str { todo() }
+    pub operator+(s1 str, s2 Span<byte>) str { todo() }
+    // TBD: Implicit conversion to and from Span?
+}
