@@ -9,7 +9,7 @@
 
 namespace Zurfur.UnitTests.Future
 
-static func test_ForSimple()
+static fun test_ForSimple()
 {
 
     @count int
@@ -40,17 +40,17 @@ static func test_ForSimple()
 
 pub class Example
 {
-    mut info str                // Private string initialized to ""
-    f1 Array<int>([1,2,3])              // Initialized array
-    f2 List<str>(["Hello", "World"])    // Initialized list
-    f3 Map<str,int>({"A":1, "B":2})     // Initialized map
-    pub Header str("Zurfur")         // Public read only string
-    pub func F(a int) str => Header+a   // Member function
+    mut @info str                // Private string initialized to ""
+    @f1 Array<int>([1,2,3])              // Initialized array
+    @f2 List<str>(["Hello", "World"])    // Initialized list
+    @f3 Map<str,int>({"A":1, "B":2})     // Initialized map
+    pub @Header str("Zurfur")         // Public read only string
+    pub fun F(a int) str => Header+a   // Member function
     pub prop P str => Header + info     // Property
 }
-pub func Example::MyExtension() => F()  // Extension method
+pub fun Example::MyExtension() => F()  // Extension method
 
-pub func Example::MyExtension()
+pub fun Example::MyExtension()
 {
     @a = Map<str,int>({"A":1, "B":2, "C":3})
     @b Map<str,int> = {"A":1, "B":2, "C":3}

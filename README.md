@@ -45,22 +45,22 @@ free to send me comments letting me know what you think should be changed.
 
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
-    pub static func Main(args []str)
+    pub static fun Main(args []str)
     {
         // This is a regular private comment
         Console.Log("Hello World, 2+2=" + add(2,2))
     }
 
     // Regular static function
-    pub static func add(a int, b int) int
+    pub static fun add(a int, b int) int
         => a + b
 
     // Extension method for MyClass
-    pub func MyClass::MyExtensionFunc(a str) str
+    pub fun MyClass::MyExtensionFunc(a str) str
         => a + ": " + memberVariable
 
 
-Functions are declared with the `func` keyword. The type names come
+Functions are declared with the `fun` keyword. The type names come
 after each argument, and the return type comes after the parameters.
 Functions, classes, structs, enums, variables and constants are
 private unless they have the 'pub' qualifier.  Functions are allowed
@@ -75,7 +75,7 @@ be created on the stack without needing garbage collection.
 By default, functions pass parameters by immutable reference.  The exception
 is that small structs may be passed by value when it is more efficient to do so.
 
-    pub func Test(a      float64,   // Pass by value since that's more efficient
+    pub fun Test( a      float64,   // Pass by value since that's more efficient
                   s      MyStruct,  // Pass by value or reference whichever is more efficient
                   ms mut MyStruct,  // Pass by reference, preserve `ro` fields
                   rs ref MyStruct,  // Pass by reference, nothing is preserved
@@ -283,9 +283,9 @@ is defined for the given type.  Use `===` and `!==` for object comparison.
 
 `+`, `-`, `*`, `/`, `%`, and `in` are the only operators that may be individually
 defined.  The `==` and `!=` operator may be defined together by implementing
-`static func Equals(a myType, b myType) bool`.  All six comparison operators,
+`static fun Equals(a myType, b myType) bool`.  All six comparison operators,
 `==`, `!=`, `<`, `<=`, `==`, `!=`, `>=`, and `>` can be implemented with just
-one function: `static func Compare(a myType, b myType) int`.  If both functions
+one function: `static fun Compare(a myType, b myType) int`.  If both functions
 are defined, `Equals` is used for equality comparisons, and `Compare` is used
 for the others.
 
@@ -520,7 +520,7 @@ in the constructor and immediately assigned to a field of the class.
         pub F5 List<str>(["Hello", "World"])        // Initialized list
         pub F6 Map<str,int>({"A":1, "B":2})         // Initialized map
         pub ro F7 str("Hello world")                // Initialized read only string
-        pub func Func1(a int) f64 => F1 + " hi"    // Member function
+        pub fun Func1(a int) f64 => F1 + " hi"    // Member function
         pub prop Prop1 str => F1                    // Property returning F1
         pub prop ChangedTime DateTime = DateTime.Now // Default value and default get/set
             => default get private set
@@ -539,7 +539,7 @@ Or you can implement them the regular way `prop GetExpr { get { return expressio
 Extension methods are defined outside the class, always static, and may be
 placed directly in the namespace of the class they are for.
 
-    pub func Example::MyExtension() => Prop1 + ":" + Func1(23)
+    pub fun Example::MyExtension() => Prop1 + ":" + Func1(23)
 
 Classes are sealed by default.  Use the `unsealed` keword to open them up.
 Sealed generic classes may be inherited to create specializations
@@ -582,13 +582,13 @@ immutable by default, but can be made mutable using the `mut` keyword.
         pub new(x int, y int) { X = x; Y = y}
     }
     
-    // Mutable point (each mutable field/func must also be marked, but not properties)
+    // Mutable point (each mutable field/fun must also be marked, but not properties)
     pub mut struct MyMutablePoint
     {
         pub mut X int
         pub mut Y int
         pub new(x int, y int) { X = x; Y = y}
-        pub mut func SetY(y int) { Y = y }
+        pub mut fun SetY(y int) { Y = y }
     }
 
 A mutable struct returned from a getter can be mutated in-place provided there is a corresponding setter.
@@ -637,7 +637,7 @@ and do not use `,` to separate values.
         E           // E is 33
     
         // Enumerations can override ToString
-        override func ToString() => MyConvertToTranslatedName()
+        override fun ToString() => MyConvertToTranslatedName()
     }
 
 The default `ToString` function shows the value as an integer rather
@@ -692,13 +692,13 @@ Here is `IEquatable<T>` from the standard library:
 
     pub static interface IEquatable<T>
     {
-        static func GetHashCode(a T) uint => youdo
-        static func Equals(a T, b T) bool => youdo
+        static fun GetHashCode(a T) uint => imp
+        static fun Equals(a T, b T) bool => imp
     }
 
 Unimplemented functions and properties are explicitly marked with
-`youdo`.   Functions and properties must either have an implementation or
-specify `youdo`, `default`, or `extern`.  
+`imp`.   Functions and properties must either have an implementation or
+specify `imp`, `default`, or `extern`.  
 
 NOTE: The implemntations will use fat pointers.
 
@@ -741,7 +741,7 @@ use of the interface.  For example:
         myStuff List<Stuff>()
         pub ro SeeMyStuff IRoArray<Stuff> = #protected IRoArray<Stuff>(myStuff);
     }
-    pub static func MyFunc(yourStuff MyStuff)
+    pub static fun MyFunc(yourStuff MyStuff)
     {
         // Modify your stuff.  ILLEGAL!
         #List<Stuff>(yourStuff.SeeMyStuf).Add(Stuff());
@@ -764,7 +764,7 @@ base class, not the derived classes.
 function:
 
     // Return `value` if it `low`..`high` otherwise return `low` or `high`.  
-    pub static func BoundValue<T>(value T, low T, high T) T
+    pub static fun BoundValue<T>(value T, low T, high T) T
             where T : IAritmetic
     {
         if value <= low
@@ -808,7 +808,7 @@ If `myArray` is of type `Array<byte>`, a string can be created directly from the
 **TBD:** Allow slicing a `List`?  It is a little unsafe because the slice
 becomes detached from the underlying array whenever the capacity changes.
 
-    pub static func BadSlice()
+    pub static fun BadSlice()
     {
         @s = List<byte>()
         a.Add("Hello Bob")
@@ -857,7 +857,7 @@ There is more info on GC implementation here [Internals](Doc/Internals.md)
 The unary `*` operator dereferences a pointer.  The `.` operator is used to access fields
 or members of a pointer to the struct (so `->` is only used for lambdas). 
  
-    pub static func strcpy(dest *byte, source *byte)
+    pub static fun strcpy(dest *byte, source *byte)
     {
         while *source != 0
             { *dest = *source;  dest += 1;  source += 1 }
@@ -895,7 +895,7 @@ For the time being, async is built into the type system but it looks and
 acts as if it were sync.  Calling an async function from async code blocks
 without using the `await` keyword:
 
-    afunc MySlowIoFunctionAsync(server str) str 
+    afun MySlowIoFunctionAsync(server str) str 
     {
         // In C# `await` would be needed before both function calls, but not in Zurfur
         @a = MakeXhrCallToServerAsync(server)  // Blocks without await keyword
@@ -911,7 +911,7 @@ Async code normally looks and acts as if it were sync.  But, when we want
 to start or wait for multiple tasks, we can also use the `astart` and
 `await` keywords.
 
-    afunc GetStuffFromSeveralServers() str 
+    afun GetStuffFromSeveralServers() str 
     {
         // Start the functions, but do not block
         @a = astart { MySlowIoFunctionAsync("server1") }
@@ -964,7 +964,7 @@ function needs to be async, and can optimize most sync code into sync
 functions.  There are two problems here.
 
 First, the compiler would have trouble optimizing lambda function calls.
-If `List<T>.Sort(compare func(a T, b T) bool)` is compiled
+If `List<T>.Sort(compare fun(a T, b T) bool)` is compiled
 as async, it would be an efficiency disaster.
 
 Second, it would be far to easy for a function to *accidentally* be changed
@@ -973,7 +973,7 @@ to async.  A library that was previously sync and fast could all of a sudden
 become async and slow without even realizing it was happening.
 
 One solution could be to mark functions `sync`, something like
-`List<T>.Sort(compare sfunc(a T, b T) bool)`.  This seems almost as bad
+`List<T>.Sort(compare sfun(a T, b T) bool)`.  This seems almost as bad
 as marking them async.  Are there better solutions?
 
 ## Threading

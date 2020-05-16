@@ -3,8 +3,8 @@
 /// Read only span
 pub struct ref Span<T>
 {
-    data ref T
-    pub Count int
+    @data ref T
+    pub @Count int
     pub operator[](index int) ro ref T => todo()
     pub operator[](index Range) Span<T> => todo()
 }
@@ -12,8 +12,8 @@ pub struct ref Span<T>
 /// Mutable span
 pub struct ref MutSpan<T>
 {
-    data ref T
-    pub Count int
+    @data ref T
+    pub @Count int
     pub operator[](index int) ref T => todo()
     pub operator[](index Range) MutSpan<T> => todo()
     operator implicit(from MutSpan<T>) Span<T> => todo()
@@ -23,9 +23,9 @@ pub struct ref MutSpan<T>
 [NoTear]
 pub struct Memory<T>
 {
-    data        object
-    offset      xint
-    pub Count   int
+    @data        object
+    @offset      xint
+    pub @Count   int
     pub operator[](index int) ro ref T => todo()
     pub operator[](index Range) Memory<T> => todo()
     operator implicit(from Memory<T>) Span<T> => todo()
@@ -35,9 +35,9 @@ pub struct Memory<T>
 [NoTear]
 pub struct MutMemory<T>
 {
-    data        object
-    offset      xint
-    pub Count   int
+    @data        object
+    @offset      xint
+    pub @Count   int
     pub operator[](index int) ref T => todo()
     pub operator[](index Range) MutMemory<T> => todo()
     operator implicit(from MutMemory<T>) Memory<T> => todo()

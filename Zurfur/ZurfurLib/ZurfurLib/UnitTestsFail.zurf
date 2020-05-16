@@ -13,7 +13,7 @@ namespace ZurfTest.UnitTests.Failed
 
 
 
-static func a()
+static fun a()
 {
     @a = switch a+b { }
 
@@ -52,22 +52,22 @@ static func a()
 }
 
 /// Bunch of tests with parse cutoff as user types
-static func a(
-static func a(i
-static func a(i int
-static func a(i int,	// This line bleeds into the next one
+static fun a(
+static fun a(i
+static fun a(i int
+static fun a(i int,	// This line bleeds into the next one
 // TBD: Fix the above by making some reserved words end a statement
 //		`static` at start inserts `;` above.  What about `func`?
-static func a(i int, a
-static func a(i int, a
+static fun a(i int, a
+static fun a(i int, a
 
 
 
-func a() => 3 // Non-static function should fail
+fun a() => 3 // Non-static function should fail
 
 
 ### // We want some syntax to reset the parser to start over
 
 /// Set of tests that pass parsing, but fail compiling
 
-static func a() => 3 //
+static fun a() => 3 //

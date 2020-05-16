@@ -8,20 +8,20 @@ namespace Zurfur.Example
 /// Example class, a test of hover comments and `code` comments
 pub class Example
 {
-    pub field1 f32
-    pub field2 int    
+    pub @field1 f32
+    pub @field2 int    
     pub prop Prop str => Header + info      // Property
-    pub func A(a int) f32 => a+1
-    pub func A(a f32) f32 => a+1
-    pub func B(a f32) f32 => a+1
+    pub fun A(a int) f32 => a+1
+    pub fun A(a f32) f32 => a+1
+    pub fun B(a f32) f32 => a+1
     pub prop ChangedTime DateTime = DateTime.Now
         => default get private set
     
 }
-pub func Example::MyExtension() => Func1(10) // Extension method
+pub fun Example::MyExtension() => Func1(10) // Extension method
 
 
-pub func Example::Extension() 
+pub fun Example::Extension() 
 { 
     for @a in 1..23
     {
@@ -41,31 +41,31 @@ pub class Example2  // YES, errors working
     //    Switch statement
 
     // Fields initialized to zero, null, or "" for string
-    f1 int          // Initialized to 0
-    f2 f32      // Initialized to 0.0
-    f3 str          // Initialized to "", not NULL
+    @f1 int          // Initialized to 0
+    @f2 f32      // Initialized to 0.0
+    @f3 str          // Initialized to "", not NULL
     
     // Fields initialized to null
-    f4 Array<int>
-    f5 Array<Array<int>> 
-    f7 Map<str,List<int>>
-    f8 Pointer<int>
-    f9 *int        // Same as Pointer<int>
+    @f4 Array<int>
+    @f5 Array<Array<int>> 
+    @f7 Map<str,List<int>>
+    @f8 Pointer<int>
+    @f9 *int        // Same as Pointer<int>
     
     // Fields initialized via constructor
-    f10 int(FuncReturnsInt())
-    f11 Array<int>()            // Array, Count=0
-    f12 Array<int>(32)          // Array, Count=32
-    f13 Array<int>([1,2,3])     // Array initialized with 1, 2, 3
-    f13a List<int>(32)          // Empty List, Capacity=32
-    f14 Map<str,str>()          // Empty map
+    @f10 int(FuncReturnsInt())
+    @f11 Array<int>()            // Array, Count=0
+    @f12 Array<int>(32)          // Array, Count=32
+    @f13 Array<int>([1,2,3])     // Array initialized with 1, 2, 3
+    @f13a List<int>(32)          // Empty List, Capacity=32
+    @f14 Map<str,str>()          // Empty map
     
     // Fields initialized via assignment
-    f15 int = 32
-    f16 int = FuncReturnsInt() >> 4
-    f17 f32 = FuncReturnsf32orInt()
-    f18 str = "Hello"
-    f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
+    @f15 int = 32
+    @f16 int = FuncReturnsInt() >> 4
+    @f17 f32 = FuncReturnsf32orInt()
+    @f18 str = "Hello"
+    @f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
     pub prop P1 int => 1
@@ -81,25 +81,25 @@ pub class Example2  // YES, errors working
     pub operator[](index i) int => i
     
     // Function
-    func fun1(a int) f32 => f1 + f2 + a
-    func func1(a int) { }
-    func func2(a out str) bool {}
-    func func4(a ref MyStruct) {}
-    func func5(a Array<Array<int>>) {}
-    func func7(a List<int>) { }
-    func func8(a out List<List<int>>) { }
-    func func10(a Map<str,List<int>>) { }
+    fun fun1(a int) f32 => f1 + f2 + a
+    fun func1(a int) { }
+    fun func2(a out str) bool {}
+    fun func4(a ref MyStruct) {}
+    fun func5(a Array<Array<int>>) {}
+    fun func7(a List<int>) { }
+    fun func8(a out List<List<int>>) { }
+    fun func10(a Map<str,List<int>>) { }
     
-    pub func Sort<T>(greaterThan func(a T, b T) bool) { }
-    pub MyFieldFunc func(sender object, message str)
+    pub fun Sort<T>(greaterThan fun(a T, b T) bool) { }
+    pub @MyFieldFunc fun(sender object, message str)
 
 
-    pub func M<A,B>(a A, b B, c List<int>) List<int> {}
+    pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
     
-    func func8(a out List<List<int>>) { }
-    func func8(a out MyList<int,x,y,z>){ }
+    fun func8(a out List<List<int>>) { }
+    fun func8(a out MyList<int,x,y,z>){ }
     
-    pub func Main(args Array<str>)
+    pub fun Main(args Array<str>)
     {
         use @a = OpenFile("My File");
         defer file.close();
@@ -182,7 +182,7 @@ pub class Example2  // YES, errors working
 }
 
 
-pub func Example::IfTests() 
+pub fun Example::IfTests() 
 { 
     // In operator
     if myStr in myMap || myIn in 1..23
@@ -258,43 +258,43 @@ pub func Example::IfTests()
 
 pub struct MyPoint
 {
-    pub X int
-    pub Y int
-    pub override func ToStr() => "(" + X + "," + Y + ")"
+    pub @X int
+    pub @Y int
+    pub override fun ToStr() => "(" + X + "," + Y + ")"
 }
 
 
 pub enum MyEnum
 {
-    A           // A=0
-    B; C        // B=1, C=2
-    D = 23      // D=23
-    E; F; G     // E=24, F=25, G=26
+    @A          // A=0
+    @B; @C      // B=1, C=2
+    @D = 23     // D=23
+    @E; @F; @G  // E=24, F=25, G=26
 }
 
 
 pub interface MyInterfaceTest
 {
-    func A() int 
-        => youdo
-    protected func C() int
-        => youdo
+    fun A() int 
+        => imp
+    protected fun C() int
+        => imp
         
-    pub func B() int => A() + 1
-    pub struct Astruct { pub a int }
-    pub enum Aenum { a; b; c}
-    pub class Aclass { pub a int  }
+    pub fun B() int => A() + 1
+    pub struct Astruct { pub @a int }
+    pub enum Aenum { @a; @b; @c}
+    pub class Aclass { pub @a int  }
 }
 
 pub class MyClass1 : MyInterfaceTest
 {
-    pub func A() int => 3
-    pub func MyInterfaceTest::C() int => 3
+    pub fun A() int => 3
+    pub fun MyInterfaceTest::C() int => 3
 
 }
 
 
-pub static func Sort<T>(s MutSpan<T>, lessThan func(a T, b T) bool)
+pub static fun Sort<T>(s MutSpan<T>, lessThan fun(a T, b T) bool)
 {
     // Simple selection sort
     for @i in s.Count-1
@@ -330,10 +330,10 @@ pub class Matrix2d<t> : VariableSizedObject<T>
 pub class UnmanagedMemory<T> : UnmanagedHande 
                 where T : IBlittableStruct
 {
-    pub Memory *void
-    pub Capacity int
-    pub OwnedByGc bool
-    count int
+    pub @Memory *void
+    pub @Capacity int
+    pub @OwnedByGc bool
+    @count int
     
     pub prop Count int
     {
@@ -352,7 +352,7 @@ pub class UnmanagedMemory<T> : UnmanagedHande
     // unmanaged code doesn't delete the object while still in use.  
     unsafe new(data *void, sizeOfBufferInBytes int) { todo() }
 
-    pub func CopyTo() { todo() }
+    pub fun CopyTo() { todo() }
 }
 
 
@@ -368,26 +368,26 @@ pub class StructObject
 pub class ClassObject
 {
     // The only member
-    protected unsafe VT *void
+    protected unsafe @VT *void
 
-    pub override func GetType() { todo() }
+    pub override fun GetType() { todo() }
 }
 
 // Base class for all things that need to notify when they are garbage collected
 pub class FinalizedNotify 
 {
-    protected func SetFinalizeNotifier(notifierQueue FinalizedNotifyQueue, token IntPtr, memoryPressure int) { todo() }
-    protected func ClearFinalizeNotifier() { todo() }
+    protected fun SetFinalizeNotifier(notifierQueue FinalizedNotifyQueue, token IntPtr, memoryPressure int) { todo() }
+    protected fun ClearFinalizeNotifier() { todo() }
 }
 
 pub class FinalizedNotifyQueue 
 {
     pub prop Count int => todo()
-    pub func Dequeue() IntPtr { todo() }
-    pub afunc WaitQueueNotEmpty() { todo() }
+    pub fun Dequeue() IntPtr { todo() }
+    pub afun WaitQueueNotEmpty() { todo() }
 }
 
-pub static func MemCopy(dest *void, source *void, length xint)
+pub static fun MemCopy(dest *void, source *void, length xint)
 {
     @to = #xint(dest)
     @from = #xint(source)
@@ -423,7 +423,7 @@ pub static func MemCopy(dest *void, source *void, length xint)
     }
 }
 
-pub static func MemCopy32(dest *void, source *void, length xint)
+pub static fun MemCopy32(dest *void, source *void, length xint)
 {
     @to = #xint(dest)
     @from = #xint(source)
@@ -458,19 +458,19 @@ pub static func MemCopy32(dest *void, source *void, length xint)
 
 namespace ExampleNs1.HelloWorld
 {
-    static func F1() => todo
+    static fun F1() => todo
     
     class ClassEx1
     {
-        a int;
-        b int;
+        @a int;
+        @b int;
     }
 }
 
 
 namespace ExampleNs1
 {
-    static func F1() => todo
+    static fun F1() => todo
     
     namespace InnerEx1
     {
@@ -483,8 +483,8 @@ namespace ExampleNs1
 
     class ClassEx1
     {
-        a int;
-        b int;
+        @a int;
+        @b int;
         class Inner1
         {
         }
@@ -507,12 +507,12 @@ namespace ExampleNs1
 
 namespace ExampleNs2
 {
-    static func F1() => todo
+    static fun F1() => todo
     
     class ClassEx1
     {
-        a int;
-        b int;
+        @a int;
+        @b int;
         class Inner1
         {
         }

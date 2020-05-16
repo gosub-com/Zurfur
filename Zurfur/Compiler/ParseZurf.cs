@@ -65,17 +65,17 @@ namespace Gosub.Zurfur.Compiler
             + "typeof unsafe using static virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set yield global partial var where nameof of youdo "
             + "box boxed init dispose "
-            + "trait extends implements implement union type fn fun afn afun def adef yield let";
+            + "trait extends implements implement union type fn fun afn afun def adef yield let cast imp";
 
         static readonly string sReservedControlWords = "using namespace module include class struct enum interface "
-            + "func afunc prop get set operator if else switch await for while dowhile _";
+            + "func afunc fun afun prop get set operator if else switch await for while dowhile _";
         static WordMap<eTokenType> sReservedWords = new WordMap<eTokenType>();
         static WordSet sReservedIdentifierVariables = new WordSet("null this true false default base");
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static const unsealed abstract virtual override new ref ro mut readonly boxed "
-            + "class struct enum interface operator func afunc prop init dispose");
-        static WordSet sClassFieldKeywords = new WordSet("class struct enum interface operator func afunc prop init dispose");
+            + "static unsealed abstract virtual override new ref ro mut readonly boxed "
+            + "class struct enum interface operator func afunc fun afun prop init dispose");
+        static WordSet sClassFieldKeywords = new WordSet("class struct enum interface operator func afunc fun afun prop init dispose");
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sFieldDefTypeQualifiers = new WordSet("ref");
@@ -85,7 +85,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sFuncCallParamQualifiers = new WordSet("out ref");
 
         static WordSet sAllowConstraintKeywords = new WordSet("class struct unmanaged");
-        static WordSet sAutoImplementMethod = new WordSet("default youdo extern");
+        static WordSet sAutoImplementMethod = new WordSet("default imp extern");
 
         public static WordSet sOverloadableOperators = new WordSet("+ - * / % [ in implicit explicit");
         static WordSet sComparisonOperators = new WordSet("== != < <= > >= === !== in"); // For '>=', use VIRTUAL_TOKEN_GE
@@ -105,8 +105,8 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sTypeArgumentParameterSymbols = new WordSet("( ) .");
 
         static WordSet sStatementEndings = new WordSet("; => }");
-        static WordSet sStatementsDone = new WordSet("} func namespace class struct interface enum", true);
-        static WordSet sRejectAnyStop = new WordSet("=> ; { } namespace class struct interface enum if else for while throw switch case func afunc prop get set", true);
+        static WordSet sStatementsDone = new WordSet("} func afunc fun afun namespace class struct interface enum", true);
+        static WordSet sRejectAnyStop = new WordSet("=> ; { } namespace class struct interface enum if else for while throw switch case func afunc fun afun prop get set", true);
         static WordSet sRejectForCondition = new WordSet("in");
         static WordSet sRejectFuncName = new WordSet("(");
         static WordSet sRejectFuncParam = new WordSet(", )");
@@ -247,7 +247,7 @@ namespace Gosub.Zurfur.Compiler
                     case "{":
                     case "=>":
                         RejectQualifiers(qualifiers, "Unexpected qualifiers");
-                        RejectToken(keyword, "Unexpected '" + keyword + "'.  Expecting a keyword, such as 'class', 'func', etc. before the start of a new scope.");
+                        RejectToken(keyword, "Unexpected '" + keyword + "'.  Expecting a keyword, such as 'class', 'fun', etc. before the start of a new scope.");
                         Accept();
                         break;
 
@@ -278,8 +278,8 @@ namespace Gosub.Zurfur.Compiler
                     case "new":
                     case "init":
                     case "dispose":
-                    case "func":
-                    case "afunc":
+                    case "fun":
+                    case "afun":
                         keyword.Type = eTokenType.ReservedControl;  // Fix keyword to make it control
                         ParseMethod(keyword, parentScope, qualifiers);
                         break;
@@ -288,18 +288,30 @@ namespace Gosub.Zurfur.Compiler
                         ParseProperty(keyword, parentScope, qualifiers);
                         break;
 
-                    default:
-                        if (sRejectAnyStop.Contains(keyword))
-                        {
-                            RejectToken(keyword, "Unexpected token or reserved word");
-                            Accept();
+                    case "const":
+                        qualifiers.Add(Accept());
+                        mPrevToken.Type = eTokenType.ReservedControl;
+                        if (!ParseIdentifier("Expecting a field name identifier", out var constFieldName))
                             break;
-                        }
+                        var constField = ParseField(parentScope, qualifiers, constFieldName);
+                        if (!mToken.Error)
+                            mUnit.Fields.Add(constField);
+                        break;
+
+                    case "default":
+                        var defFieldName = Accept();
+                        mPrevToken.Type = eTokenType.ReservedControl;
+                        var defField = ParseField(parentScope, qualifiers, defFieldName);
+                        if (!mToken.Error)
+                            mUnit.Fields.Add(defField);
+                        break;
+
+                    case NEWVAR: // Parse field
+                        Accept();
+                        mPrevToken.Type = eTokenType.CreateVariable;
 
                         Token fieldName = null;
-                        if (AcceptMatch("default"))
-                            fieldName = mPrevToken;
-                        else if (!ParseIdentifier("Expecting a keyword like class or field name identifier", out fieldName))
+                        if (!ParseIdentifier("Expecting a field name identifier", out fieldName))
                             break;
 
                         SyntaxField field;
@@ -310,6 +322,11 @@ namespace Gosub.Zurfur.Compiler
 
                         if (!mToken.Error)
                             mUnit.Fields.Add(field);
+                        break;
+
+                    default:
+                        if (!Reject("Expecting qualifier, function, property, keyword, or field definition (e.g. 'ro', 'pub', 'struct', 'fun', 'prop', '@', etc.)"))
+                            Accept();
                         break;
                 }
                 AcceptSemicolonOrReject();
@@ -643,8 +660,8 @@ namespace Gosub.Zurfur.Compiler
                     synFunc.Params = ParseFuncParamsDef();
                     synFunc.Constraints = ParseConstraints();
                     break;
-                case "afunc":
-                case "func":
+                case "afun":
+                case "fun":
                     if (!ParseFuncNameDef(out synFunc.ClassName, out synFunc.Name))
                     {
                         synFunc.Name = null;
@@ -666,7 +683,7 @@ namespace Gosub.Zurfur.Compiler
             }
             else
             {
-                synFunc.Statements = ParseStatements("func", StatementsType.MethodBody);
+                synFunc.Statements = ParseStatements("method body", StatementsType.MethodBody);
                 if (synFunc.Name != null)
                     mUnit.Funcs.Add(synFunc);
             }
@@ -715,6 +732,7 @@ namespace Gosub.Zurfur.Compiler
             return token.Type == eTokenType.Identifier
                || qualifiers.Contains(token)
                || token == "func" || token == "afunc"
+               || token == "fun" || token == "afun"
                || token == PTR || token == "?" || token == REFERENCE;
         }
 
@@ -901,7 +919,7 @@ namespace Gosub.Zurfur.Compiler
 
                 case "use":
                     var useToken = Accept();
-                    if (mTokenName != "@")
+                    if (mTokenName != NEWVAR)
                     {
                         Reject("Expecting '@' then a new variable decaration");
                         break;
@@ -1495,15 +1513,14 @@ namespace Gosub.Zurfur.Compiler
             {                 
                 var qualifier = Accept();
                 if (mTokenName == NEWVAR)
-                    return new SyntaxBinary(qualifier, 
-                            new SyntaxToken(Accept()), 
+                {
+                    mToken.Type = eTokenType.CreateVariable;
+                    return new SyntaxBinary(qualifier,
+                            new SyntaxToken(Accept()),
                             new SyntaxToken(ParseIdentifier("Expecting a variable name")));
+                }
                 return new SyntaxUnary(qualifier, new SyntaxToken(Accept()));
             }
-
-            // Allow NEWVAR
-            //if (mTokenName == NEWVAR)
-
 
             return ParseExpr();
         }
@@ -1597,7 +1614,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 return new SyntaxUnary(Accept(), ParseTypeDef(qualifiers, errorStop));
             }
-            else if (mTokenName == "func" || mTokenName == "afunc")
+            else if (mTokenName == "fun" || mTokenName == "afun")
             {
                 return ParseLambdaDef(); 
             }
@@ -1996,6 +2013,14 @@ namespace Gosub.Zurfur.Compiler
             RejectToken(mToken, errorMessage);
             if (extraStops == null)
                 extraStops = sEmptyWordSet;
+
+            // TBD: Force accept here?  In cases where we don't
+            //      accept anything we can hang.  But if we're sitting
+            //      at an important keyword, we don't want to skip it.
+            //      To see where we correct the problem, look for where
+            //      the return value is used.
+            //      Example: `Poperator[](key TKey) TValue => imp get`
+
             bool accepted = false;
             while (!sRejectAnyStop.Contains(mToken) && !extraStops.Contains(mToken))
             {

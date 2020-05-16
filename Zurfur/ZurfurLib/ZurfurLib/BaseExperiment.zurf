@@ -8,7 +8,7 @@ pub class ArrayBase<T>
 {
     default ArrayBase<T>()
     
-    pub Count int
+    pub @Count int
         
     new(count int) => todo() // Allocate object on heap
         
@@ -24,7 +24,7 @@ pub class Array<T>
     where T : struct
 {
     const MaxSize int = int.MaxInt/2
-    pub static Empty ^Array<T>()
+    pub static @Empty ^Array<T>()
 
     pub new(count int) => todo()
     pub new(items ICollection<T>) => todo()

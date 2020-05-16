@@ -3,8 +3,8 @@
 pub class mut Map<TKey, TValue> 
     : IMutMap<TKey, TValue>
 {
-    compareFunc func(a TKey, b TKey) bool;
-    hashFunc func(a TKey) bool;
+    @compareFunc fun(a TKey, b TKey) bool;
+    @hashFunc fun(a TKey) bool;
     
 
     pub new() where TKey : IEquatable<TKey>
@@ -12,8 +12,8 @@ pub class mut Map<TKey, TValue>
         compareFunc = (a, b) -> TKey.Compare(a, b)
         hashFunc = (a) -> TKey.GetHashCode(a)
     }
-    pub new(compare func(a TKey, b TKey) bool, 
-        getHashCode func(a TKey) uint)
+    pub new(compare fun(a TKey, b TKey) bool, 
+        getHashCode fun(a TKey) uint)
     {
         compareFunc = compare;
         hashFunc = getHashCode;
@@ -25,16 +25,16 @@ pub class mut Map<TKey, TValue>
     pub prop Count int => todo()
     pub operator in(a TKey) bool => todo()
     
-    pub func Contains(key TKey) bool => todo()
-    pub func Get(key TKey) TValue => todo()
-    pub func Get(key TKey, defaultValue TValue) TValue => todo()
-    pub func TryGet(key TKey, value out ?TValue) bool => todo()
+    pub fun Contains(key TKey) bool => todo()
+    pub fun Get(key TKey) TValue => todo()
+    pub fun Get(key TKey, defaultValue TValue) TValue => todo()
+    pub fun TryGet(key TKey, value out ?TValue) bool => todo()
     pub prop Keys ICollection<TKey> { get => todo() }
     pub prop Values ICollection<TValue> { get => todo() }
 
     pub operator[](key TKey) TValue { get => todo() set => todo() }
-    pub func mut Clear() => todo()
-    pub func mut Add(item KeyValue<TKey, TValue>) => todo()    
-    pub func mut Add(items ICollection<KeyValue<TKey, TValue>>) => todo()    
-    pub func mut Remove(TKey key) bool => todo()
+    pub fun mut Clear() => todo()
+    pub fun mut Add(item KeyValue<TKey, TValue>) => todo()    
+    pub fun mut Add(items ICollection<KeyValue<TKey, TValue>>) => todo()    
+    pub fun mut Remove(TKey key) bool => todo()
 }

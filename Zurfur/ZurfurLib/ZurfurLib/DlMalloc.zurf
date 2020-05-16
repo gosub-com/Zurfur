@@ -52,8 +52,8 @@ pub unsafe abstract class DlMallocBase : IDisposable
     /// the size of allocated memory if desired  (must be in units of page size).
     /// Returns null when out of memory or on error.
     /// </summary>
-    protected func CallMoreCore(length ref xuint) *void
-        => youdo
+    protected fun CallMoreCore(length ref xuint) *void
+        => imp
 
     /// <summary>
     /// This was originally CALL_MUNMAP and is used to release memory pages
@@ -63,21 +63,21 @@ pub unsafe abstract class DlMallocBase : IDisposable
     /// Return true for success, or false for failure (in which
     /// case the pages are retained and used for future requests)
     /// </summary>
-    protected func CallReleaseCore(address *void, length xuint) bool
-        => youdo
+    protected fun CallReleaseCore(address *void, length xuint) bool
+        => imp
 
     /// <summary>
     /// This is called after DlMalloc has been disposed.  Since CallReleaseCore
     /// works with pages instead of allocation units, it may be more convenient
     /// to cleanup any left over memory allocations here.
     /// </summary>
-    protected virtual func CallDisposeFinal() { }
+    protected virtual fun CallDisposeFinal() { }
 
     /// <summary>
     /// Called when the heap is known to be corrupted.  Throws an exception
     /// and calls ResetOnError by default.
     /// </summary>
-    protected virtual func CallCorruptionErrorAction()
+    protected virtual fun CallCorruptionErrorAction()
     {
         ResetOnError()
         throw DlMallocException("Malloc Corrupted: TBD: Give more info about address")
@@ -87,7 +87,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     /// Called when the malloc is used incorrectly.  Throws an exception
     /// and calls ResetOnError by default.
     /// </summary>
-    protected virtual func CallUsageErrorAction(m2 *void)
+    protected virtual fun CallUsageErrorAction(m2 *void)
     {
         ResetOnError()
         throw DlMallocException("Malloc Usage Error: TBD: Give more info about address")
@@ -96,7 +96,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     /// <summary>
     /// Called before malloc returns NULL.  The default action is to throw an exception
     /// </summary>
-    protected virtual func CallMallocFailureAction()
+    protected virtual fun CallMallocFailureAction()
     {
         throw DlMallocException("Malloc out of memory")
     }
@@ -184,23 +184,23 @@ pub unsafe abstract class DlMallocBase : IDisposable
     static prop MAX_SMALL_REQUEST xuint => MAX_SMALL_SIZE - CHUNK_ALIGN_MASK - CHUNK_OVERHEAD
 
     // Originally called malloc_state, mstate, and mspace
-    smallmap uint
-    treemap uint
-    dvsize xuint
-    topsize xuint
-    least_addr *byte
-    dv mchunk
-    top mchunk
-    trim_check xuint
-    release_checks xuint
-    magic xuint
-    smallbins **mchunk
-    treebins **tchunk
-    footprint xuint
-    max_footprint xuint
-    mflags flag_t
-    seg *msegment
-    malloc_corruption_error_count int
+    @smallmap uint
+    @treemap uint
+    @dvsize xuint
+    @topsize xuint
+    @least_addr *byte
+    @dv mchunk
+    @top mchunk
+    @trim_check xuint
+    @release_checks xuint
+    @magic xuint
+    @smallbins **mchunk
+    @treebins **tchunk
+    @footprint xuint
+    @max_footprint xuint
+    @mflags flag_t
+    @seg *msegment
+    @malloc_corruption_error_count int
 
     /// Returns the number of malloc segments, which represents
     /// the number of discontiguous memory regions. 
@@ -273,7 +273,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     //  merging of segments that are contiguous, and selectively
     //  releasing them to the OS if unused, but bounds execution times.
 
-    protected NO_SEGMENT_TRAVERSAL bool = false
+    protected @NO_SEGMENT_TRAVERSAL bool = false
 
     // DEFAULT_GRANULARITY        default: page size (64K)
     //  The unit for allocating and deallocating memory from the system.  On
@@ -326,7 +326,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     //  rarely trigger versus holding on to unused memory. To effectively
     //  disable, set to MAX_SIZE_T. This may lead to a very slight speed
     //  improvement at the expense of carrying around more memory.
-    protected MAX_RELEASE_CHECK_RATE xuint = 4095
+    protected @MAX_RELEASE_CHECK_RATE xuint = 4095
 
 
     // The maximum possible xuint value has all bits set
@@ -350,11 +350,11 @@ pub unsafe abstract class DlMallocBase : IDisposable
     const CHUNK_ALIGN_MASK xuint = MALLOC_ALIGNMENT - SIZE_T_ONE
 
     // True if address a has acceptable alignment
-    static func is_aligned(a *void) bool 
+    static fun is_aligned(a *void) bool 
         => (#xuint(a) & CHUNK_ALIGN_MASK) == 0
 
     // the number of bytes to offset an address to align it
-    static func align_offset(a *void) xuint
+    static fun align_offset(a *void) xuint
         => (#xuint(a) & CHUNK_ALIGN_MASK) == 0 ? 0
                 : (MALLOC_ALIGNMENT - (#xuint(a) & CHUNK_ALIGN_MASK)) & CHUNK_ALIGN_MASK
 
@@ -495,10 +495,10 @@ pub unsafe abstract class DlMallocBase : IDisposable
     /// Originally malloc_chunk, now mchunk
     pub struct mchunk
     {
-        pub prev_foot_ptr *void // Size of previous chunk (if free).
-        pub head_ptr *void      // Size and inuse bits.
-        pub fd *mchunk          // double links -- used only if free.
-        pub bk *mchunk
+        pub @prev_foot_ptr *void // Size of previous chunk (if free).
+        pub @head_ptr *void      // Size and inuse bits.
+        pub @fd *mchunk          // double links -- used only if free.
+        pub @bk *mchunk
 
         pub prop prev_foot xuint
         {
@@ -512,24 +512,24 @@ pub unsafe abstract class DlMallocBase : IDisposable
         }
     }
 
-    static func cinuse(p *mchunk) bool => (p.head & CINUSE_BIT) != 0
-    static func pinuse(p *mchunk) bool => (p.head & PINUSE_BIT) != 0
-    static func flag4inuse(p *mchunk) bool => (p.head & FLAG4_BIT) != 0
-    static func is_inuse(p *mchunk) bool => (p.head & INUSE_BITS) != PINUSE_BIT
-    static func is_mmapped(p *mchunk) bool => (p.head & INUSE_BITS) == 0
-    static func chunksize(p *mchunk) xuint => p.head & ~FLAG_BITS
-    static func clear_pinuse(p *mchunk) => p.head &= ~PINUSE_BIT
-    static func set_flag4(p *mchunk) => p.head |= FLAG4_BIT
-    static func clear_flag4(p *mchunk) => p.head &= ~FLAG4_BIT
-    static func chunk_plus_offset(p *mchunk, xuint s) *mchunk => #*mchunk(#*byte(p) + s)
-    static func chunk_minus_offset(p *mchunk, xuint s) *mchunk => #*mchunk(#*byte(p) - s)
-    static func next_chunk(p *mchunk) *mchunk => #*mchunk(#*byte(p) + (p.head & ~FLAG_BITS))
-    static func prev_chunk(p *mchunk) *mchunk => #*mchunk(#*byte(p) - (p.prev_foot))
-    static func next_pinuse(p *mchunk) bool => ((next_chunk(p).head) & PINUSE_BIT) != 0
-    static func get_foot(p *mchunk, xuint s) xuint => ((#*mchunk(#*byte(p) + s)).prev_foot)
-    static func set_foot(p *mchunk, xuint s) => (#*mchunk(#*byte(p) + s)).prev_foot = s
-    static func set_size_and_pinuse_of_free_chunk(p *mchunk, s xuint) { p.head = s | PINUSE_BIT; set_foot(p, s) }
-    static func set_free_with_pinuse(p *mchunk, s xuint, n *mchunk) { clear_pinuse(n); set_size_and_pinuse_of_free_chunk(p, s) }
+    static fun cinuse(p *mchunk) bool => (p.head & CINUSE_BIT) != 0
+    static fun pinuse(p *mchunk) bool => (p.head & PINUSE_BIT) != 0
+    static fun flag4inuse(p *mchunk) bool => (p.head & FLAG4_BIT) != 0
+    static fun is_inuse(p *mchunk) bool => (p.head & INUSE_BITS) != PINUSE_BIT
+    static fun is_mmapped(p *mchunk) bool => (p.head & INUSE_BITS) == 0
+    static fun chunksize(p *mchunk) xuint => p.head & ~FLAG_BITS
+    static fun clear_pinuse(p *mchunk) => p.head &= ~PINUSE_BIT
+    static fun set_flag4(p *mchunk) => p.head |= FLAG4_BIT
+    static fun clear_flag4(p *mchunk) => p.head &= ~FLAG4_BIT
+    static fun chunk_plus_offset(p *mchunk, xuint s) *mchunk => #*mchunk(#*byte(p) + s)
+    static fun chunk_minus_offset(p *mchunk, xuint s) *mchunk => #*mchunk(#*byte(p) - s)
+    static fun next_chunk(p *mchunk) *mchunk => #*mchunk(#*byte(p) + (p.head & ~FLAG_BITS))
+    static fun prev_chunk(p *mchunk) *mchunk => #*mchunk(#*byte(p) - (p.prev_foot))
+    static fun next_pinuse(p *mchunk) bool => ((next_chunk(p).head) & PINUSE_BIT) != 0
+    static fun get_foot(p *mchunk, xuint s) xuint => ((#*mchunk(#*byte(p) + s)).prev_foot)
+    static fun set_foot(p *mchunk, xuint s) => (#*mchunk(#*byte(p) + s)).prev_foot = s
+    static fun set_size_and_pinuse_of_free_chunk(p *mchunk, s xuint) { p.head = s | PINUSE_BIT; set_foot(p, s) }
+    static fun set_free_with_pinuse(p *mchunk, s xuint, n *mchunk) { clear_pinuse(n); set_size_and_pinuse_of_free_chunk(p, s) }
 
     // ------------------- Chunks sizes and alignments -----------------------
 
@@ -540,11 +540,11 @@ pub unsafe abstract class DlMallocBase : IDisposable
     static prop MIN_REQUEST xuint => MIN_CHUNK_SIZE - CHUNK_OVERHEAD - SIZE_T_ONE
 
     // conversion from malloc headers to user pointers, and back
-    static func chunk2mem(p *void) *void => (#*void(#*byte(p) + TWO_SIZE_T_SIZES))
-    static func mem2chunk(mem *void) *mchunk => (#*mchunk(#*byte(mem) - TWO_SIZE_T_SIZES))
-    static func align_as_chunk(A *byte) *mchunk => #*mchunk(A + align_offset(chunk2mem(A)))
-    static func pad_request(req xuint) xuint => ((req) + CHUNK_OVERHEAD + CHUNK_ALIGN_MASK) & ~CHUNK_ALIGN_MASK
-    static func request2size(req xuint) xuint => ((req) < MIN_REQUEST) ? MIN_CHUNK_SIZE : pad_request(req)
+    static fun chunk2mem(p *void) *void => (#*void(#*byte(p) + TWO_SIZE_T_SIZES))
+    static fun mem2chunk(mem *void) *mchunk => (#*mchunk(#*byte(mem) - TWO_SIZE_T_SIZES))
+    static fun align_as_chunk(A *byte) *mchunk => #*mchunk(A + align_offset(chunk2mem(A)))
+    static fun pad_request(req xuint) xuint => ((req) + CHUNK_OVERHEAD + CHUNK_ALIGN_MASK) & ~CHUNK_ALIGN_MASK
+    static fun request2size(req xuint) xuint => ((req) < MIN_REQUEST) ? MIN_CHUNK_SIZE : pad_request(req)
 
     // ------------------ Operations on head and foot fields -----------------
 
@@ -659,15 +659,15 @@ pub unsafe abstract class DlMallocBase : IDisposable
     pub struct tchunk
     {
         // The first four fields must be compatible with mchunk
-        pub prev_foot_ptr *void
-        pub head_ptr *void
-        pub fd *tchunk
-        pub bk *tchunk
+        pub @prev_foot_ptr *void
+        pub @head_ptr *void
+        pub @fd *tchunk
+        pub @bk *tchunk
 
-        pub child0 *tchunk
-        pub child1 *tchunk
-        pub parent *tchunk
-        pub index uint
+        pub @child0 *tchunk
+        pub @child1 *tchunk
+        pub @parent *tchunk
+        pub @index uint
 
         pub prop prev_foot xuint
         {
@@ -682,13 +682,13 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
     }
 
-    static func chunk_plus_offset(p *tchunk, s xuint) *mchunk => #*mchunk(#*byte(p) + s)
-    static func is_inuse(p *tchunk) bool => (p.head & INUSE_BITS) != PINUSE_BIT
-    static func chunksize(p *tchunk) xuint => p.head & ~FLAG_BITS
-    static func next_chunk(p *tchunk) *tchunk => #*tchunk(#*byte(p) + (p.head & ~FLAG_BITS))
-    static func prev_chunk(p *tchunk) *tchunk => #*tchunk(#*byte(p) - (p.prev_foot))
-    static func next_pinuse(p *tchunk) bool => ((next_chunk(p).head) & PINUSE_BIT) != 0
-    static func leftmost_child(t *tchunk) *tchunk => t.child0 != null ? t.child0 : t.child1
+    static fun chunk_plus_offset(p *tchunk, s xuint) *mchunk => #*mchunk(#*byte(p) + s)
+    static fun is_inuse(p *tchunk) bool => (p.head & INUSE_BITS) != PINUSE_BIT
+    static fun chunksize(p *tchunk) xuint => p.head & ~FLAG_BITS
+    static fun next_chunk(p *tchunk) *tchunk => #*tchunk(#*byte(p) + (p.head & ~FLAG_BITS))
+    static fun prev_chunk(p *tchunk) *tchunk => #*tchunk(#*byte(p) - (p.prev_foot))
+    static fun next_pinuse(p *tchunk) bool => ((next_chunk(p).head) & PINUSE_BIT) != 0
+    static fun leftmost_child(t *tchunk) *tchunk => t.child0 != null ? t.child0 : t.child1
 
 
     // ----------------------------- Segments --------------------------------
@@ -752,20 +752,20 @@ pub unsafe abstract class DlMallocBase : IDisposable
     /// </summary>
     struct msegment
     {
-        pub baseAddr *byte      // base address
-        pub size      xuint     // allocated size
-        pub next     *msegment  // ptr to next segment
-        pub sflags    flag_t    // mmap and extern flag
+        pub @baseAddr *byte      // base address
+        pub @size      xuint     // allocated size
+        pub @next     *msegment  // ptr to next segment
+        pub @sflags    flag_t    // mmap and extern flag
     }
 
-    static func is_mmapped_segment(s *msegment) bool => (s.sflags & flag_t.USE_MMAP_BIT) != 0
-    static func is_extern_segment(s *msegment) bool => (s.sflags & flag_t.EXTERN_BIT) != 0
+    static fun is_mmapped_segment(s *msegment) bool => (s.sflags & flag_t.USE_MMAP_BIT) != 0
+    static fun is_extern_segment(s *msegment) bool => (s.sflags & flag_t.EXTERN_BIT) != 0
 
     // Everything is mmaped in this malloc, so these flags are mostly unused
     enum flag_t
     {
-        USE_MMAP_BIT = 1
-        EXTERN_BIT = 8
+        @USE_MMAP_BIT = 1
+        @EXTERN_BIT = 8
     }
 
 
@@ -776,50 +776,50 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
     struct malloc_params
     {
-        pub magic xuint
-        pub page_size xuint
-        pub granularity xuint
-        pub trim_threshold xuint
-        pub default_mflags flag_t
+        pub @magic xuint
+        pub @page_size xuint
+        pub @granularity xuint
+        pub @trim_threshold xuint
+        pub @default_mflags flag_t
     }
 
-    mparams malloc_params
+    @mparams malloc_params
 
     // Ensure mparams initialized
-    func ensure_initialization() { if mparams.magic == 0 { init_mparams() } }
+    fun ensure_initialization() { if mparams.magic == 0 { init_mparams() } }
 
-    func is_initialized() bool { return top != null }
+    fun is_initialized() bool { return top != null }
 
     // -------------------------- system alloc setup -------------------------
 
     // Operations on mflags
 
-    func use_mmap() bool => (mflags & flag_t.USE_MMAP_BIT) != 0
-    func enable_mmap() => mflags |= flag_t.USE_MMAP_BIT
+    fun use_mmap() bool => (mflags & flag_t.USE_MMAP_BIT) != 0
+    fun enable_mmap() => mflags |= flag_t.USE_MMAP_BIT
 
     // page-align a size 
-    func page_align(s xuint) xuint
+    fun page_align(s xuint) xuint
         => (s + (mparams.page_size - SIZE_T_ONE)) & ~(mparams.page_size - SIZE_T_ONE)
 
 
     // granularity-align a size
-    func granularity_align(s xuint) xuint
+    fun granularity_align(s xuint) xuint
         => ((s) + (mparams.granularity - SIZE_T_ONE)) & ~(mparams.granularity - SIZE_T_ONE)
 
-    func mmap_align(s xuint) xuint => granularity_align(s)
+    fun mmap_align(s xuint) xuint => granularity_align(s)
 
     // For sys_alloc, enough padding to ensure can malloc request on success
     prop SYS_ALLOC_PADDING xuint => TOP_FOOT_SIZE + MALLOC_ALIGNMENT
 
-    func is_page_aligned(s xuint) bool => (s & (mparams.page_size - SIZE_T_ONE)) == 0
+    fun is_page_aligned(s xuint) bool => (s & (mparams.page_size - SIZE_T_ONE)) == 0
 
-    func is_granularity_aligned(s xuint) bool => (s & (mparams.granularity - SIZE_T_ONE)) == 0
+    fun is_granularity_aligned(s xuint) bool => (s & (mparams.granularity - SIZE_T_ONE)) == 0
 
     //  True if segment S holds address A
-    static func segment_holds(s *msegment, a *void) bool => a >= s.baseAddr && a < s.baseAddr + s.size
+    static fun segment_holds(s *msegment, a *void) bool => a >= s.baseAddr && a < s.baseAddr + s.size
 
     // Return segment holding given address
-    func segment_holding(addr *byte) *msegment
+    fun segment_holding(addr *byte) *msegment
     {
         @sp = seg
         while true
@@ -833,7 +833,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
     // Return true if segment contains a segment link
-    func has_segment_link(ss *msegments) bool
+    fun has_segment_link(ss *msegments) bool
     {
         @sp = seg
         while true
@@ -846,7 +846,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
         }
     }
 
-    func should_trim(s xuint) bool 
+    fun should_trim(s xuint) bool 
         => s > trim_check
 
     //  TOP_FOOT_SIZE is padding at the end of a segment, including space
@@ -857,24 +857,24 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
     // -------------------------- Debugging setup ----------------------------
 
-    [Conditional("DEBUG")] func check_free_chunk(p *mchunk) { do_check_free_chunk(p) }
-    [Conditional("DEBUG")] func check_inuse_chunk(p *mchunk) { do_check_inuse_chunk(p) }
-    [Conditional("DEBUG")] func check_malloced_chunk(mem *void, xuint s) { do_check_malloced_chunk(mem, s) }
-    [Conditional("DEBUG")] func check_top_chunk(p *mchunk) { do_check_top_chunk(p) }
+    [Conditional("DEBUG")] fun check_free_chunk(p *mchunk) { do_check_free_chunk(p) }
+    [Conditional("DEBUG")] fun check_inuse_chunk(p *mchunk) { do_check_inuse_chunk(p) }
+    [Conditional("DEBUG")] fun check_malloced_chunk(mem *void, xuint s) { do_check_malloced_chunk(mem, s) }
+    [Conditional("DEBUG")] fun check_top_chunk(p *mchunk) { do_check_top_chunk(p) }
 
     // ---------------------------- Indexing Bins ----------------------------
 
-    static func is_small(s xuint) bool => (s >> SMALLBIN_SHIFT) < NSMALLBINS
-    static func small_index(s xuint) uint => s >> SMALLBIN_SHIFT
-    static func small_index2size(i xuint) xuint => i << SMALLBIN_SHIFT
+    static fun is_small(s xuint) bool => (s >> SMALLBIN_SHIFT) < NSMALLBINS
+    static fun small_index(s xuint) uint => s >> SMALLBIN_SHIFT
+    static fun small_index2size(i xuint) xuint => i << SMALLBIN_SHIFT
     static prop MIN_SMALL_INDEX xuint => small_index(MIN_CHUNK_SIZE)
 
     // addressing by index. See above about smallbin repositioning
-    func smallbin_at(uint i) *mchunk => #*mchunk(&(smallbins[(i) << 1]))
-    func treebin_at(uint i) *tchunk => #**tchunk(&(treebins[i]))
+    fun smallbin_at(uint i) *mchunk => #*mchunk(&(smallbins[(i) << 1]))
+    fun treebin_at(uint i) *tchunk => #**tchunk(&(treebins[i]))
 
     // Find tree index for size S
-    static func compute_tree_index(s xuint) uint
+    static fun compute_tree_index(s xuint) uint
     {
         @x = s >> TREEBIN_SHIFT
         if x == 0
@@ -896,43 +896,43 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
 
     // Bit representing maximum resolved size in a treebin at i
-    static func bit_for_tree_index(i xuint) xuint
+    static fun bit_for_tree_index(i xuint) xuint
         => i == NTREEBINS - 1 ? SIZE_T_BITSIZE - 1 : (i >> 1) + TREEBIN_SHIFT - 2
 
     // Shift placing maximum resolved bit in a treebin at i as sign bit
-    static func leftshift_for_tree_index(i xuint) int
+    static fun leftshift_for_tree_index(i xuint) int
         => i == NTREEBINS - 1 ? 0 : SIZE_T_BITSIZE - SIZE_T_ONE - ((i >> 1) + TREEBIN_SHIFT - 2)
 
     // The size of the smallest chunk held in bin with index i
-    static func minsize_for_tree_index(i xuint) xuint
+    static fun minsize_for_tree_index(i xuint) xuint
         => SIZE_T_ONE << ((i >> 1) + TREEBIN_SHIFT) | ((i & SIZE_T_ONE)) << ((i >> 1) + TREEBIN_SHIFT - 1)
 
 
     // ------------------------ Operations on bin maps -----------------------
 
     // bit corresponding to given index
-    static func idx2bit(uint i) uint => 1u << i
+    static fun idx2bit(uint i) uint => 1u << i
 
     // Mark/Clear bits with given index
-    static func mark_smallmap(uint i) uint => smallmap |= idx2bit(i)
-    static func clear_smallmap(uint i) uint => smallmap &= ~idx2bit(i)
-    static func smallmap_is_marked(uint i) bool => (smallmap & idx2bit(i)) != 0
+    static fun mark_smallmap(uint i) uint => smallmap |= idx2bit(i)
+    static fun clear_smallmap(uint i) uint => smallmap &= ~idx2bit(i)
+    static fun smallmap_is_marked(uint i) bool => (smallmap & idx2bit(i)) != 0
 
-    static func mark_treemap(uint i) uint => treemap |= idx2bit(i)
-    static func clear_treemap(uint i) uint => treemap &= ~idx2bit(i)
-    static func treemap_is_marked(uint i) bool => (treemap & idx2bit(i)) != 0
+    static fun mark_treemap(uint i) uint => treemap |= idx2bit(i)
+    static fun clear_treemap(uint i) uint => treemap &= ~idx2bit(i)
+    static fun treemap_is_marked(uint i) bool => (treemap & idx2bit(i)) != 0
 
     // isolate the least set bit of a bitmap
-    static func least_bit(x uint) uint => x & (-x)
+    static fun least_bit(x uint) uint => x & (-x)
 
     // mask with all bits to left of least bit of x on
-    static func left_bits(x uint) uint => (x << 1) | (-(x << 1))
+    static fun left_bits(x uint) uint => (x << 1) | (-(x << 1))
 
     // mask with all bits to left of or equal to least bit of x on
-    static func same_or_left_bits(x uint) uint => x | (-x)
+    static fun same_or_left_bits(x uint) uint => x | (-x)
 
     // index corresponding to given bit. 
-    static func compute_bit2idx(x uint) uint
+    static fun compute_bit2idx(x uint) uint
     {
         @y = x - 1
         @k = y >> (16 - 4) & 16
@@ -972,36 +972,36 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
 
     // Check if address a is at least as high as any from MORECORE or MMAP
-    func ok_address(a *void) bool => a >= least_addr
-    static func ok_next(p *tchunk, n *mchunk) bool => #*byte(p) < #*byte(n)
-    static func ok_next(p *mchunk, n *mchunk) bool => #*byte(p) < #*byte(n)
-    static func ok_inuse(p *mchunk) bool => is_inuse(p)
-    static func ok_pinuse(p *mchunk) bool => pinuse(p)
+    fun ok_address(a *void) bool => a >= least_addr
+    static fun ok_next(p *tchunk, n *mchunk) bool => #*byte(p) < #*byte(n)
+    static fun ok_next(p *mchunk, n *mchunk) bool => #*byte(p) < #*byte(n)
+    static fun ok_inuse(p *mchunk) bool => is_inuse(p)
+    static fun ok_pinuse(p *mchunk) bool => pinuse(p)
 
 
-    func ok_magic() bool => magic == mparams.magic
+    fun ok_magic() bool => magic == mparams.magic
 
-    static func RTCHECK(bool e) bool => e
+    static fun RTCHECK(bool e) bool => e
 
-    func set_inuse(p *mchunk, xuint s)
+    fun set_inuse(p *mchunk, xuint s)
     {
         p.head = (p.head & PINUSE_BIT) | s | CINUSE_BIT
         #*mchunk((#*byte(p)) + s).head |= PINUSE_BIT
     }
 
-    func set_inuse_and_pinuse(p *mchunk, s xuint)
+    fun set_inuse_and_pinuse(p *mchunk, s xuint)
     {
         p.head = s | PINUSE_BIT | CINUSE_BIT
         #*mchunk((#*byte(p)) + s).head |= PINUSE_BIT
     }
 
-    func set_inuse_and_pinuse(p *tchunk, s xuint)
+    fun set_inuse_and_pinuse(p *tchunk, s xuint)
     {
         p.head = s | PINUSE_BIT | CINUSE_BIT
         #*mchunk((#*byte(p)) + s).head |= PINUSE_BIT
     }
 
-    func set_size_and_pinuse_of_inuse_chunk(p *mchunk, s xuint)
+    fun set_size_and_pinuse_of_inuse_chunk(p *mchunk, s xuint)
     {
         p.head = s | PINUSE_BIT | CINUSE_BIT
     }
@@ -1009,7 +1009,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // ---------------------------- setting mparams --------------------------
 
     // Initialize mparams
-    func init_mparams() int
+    fun init_mparams() int
     {
         // Sanity-check configuration:
         // xuint must be unsigned and as wide as pointer type.
@@ -1047,21 +1047,21 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
     // ------------------------- Debugging Support ---------------------------
 
-    static func assert(c bool)
+    static fun assert(c bool)
     {
         if (!c)
             { throw DlMallocException("Malloc assert failed") }
     }
 
     // Check properties of any chunk, whether free, inuse, mmapped etc 
-    func do_check_any_chunk(p *mchunk)
+    fun do_check_any_chunk(p *mchunk)
     {
         assert(is_aligned(chunk2mem(p)) || p.head == FENCEPOST_HEAD)
         assert(ok_address(p))
     }
 
     // Check properties of top chunk
-    func do_check_top_chunk(p *mchunk)
+    fun do_check_top_chunk(p *mchunk)
     {
         @sp = segment_holding(#*byte(p))
         @sz = p.head & ~INUSE_BITS // third-lowest bit can be set!
@@ -1076,7 +1076,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
     // Check properties of inuse chunks
-    func do_check_inuse_chunk(p *mchunk)
+    fun do_check_inuse_chunk(p *mchunk)
     {
         do_check_any_chunk(p)
         assert(is_inuse(p))
@@ -1087,7 +1087,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
     // Check properties of free chunks
-    func do_check_free_chunk(p *mchunk)
+    fun do_check_free_chunk(p *mchunk)
     {
         @sz = chunksize(p)
         @next = chunk_plus_offset(p, sz)
@@ -1115,7 +1115,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
     // Check properties of malloced chunks at the point they are malloced
-    func do_check_malloced_chunk(mem *void, s xuint)
+    fun do_check_malloced_chunk(mem *void, s xuint)
     {
         if mem != null
         {
@@ -1133,7 +1133,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
     // Check a tree and its subtrees.
-    func do_check_tree(t *tchunk)
+    fun do_check_tree(t *tchunk)
     {
         @head *tchunk = null
         @u = t
@@ -1191,7 +1191,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
     //  Check all the chunks in a treebin. 
-    func do_check_treebin(i uint)
+    fun do_check_treebin(i uint)
     {
         @tb = treebin_at(i)
         @t = *tb
@@ -1203,7 +1203,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
     //  Check all the chunks in a smallbin.
-    func do_check_smallbin(uint i)
+    fun do_check_smallbin(uint i)
     {
         @b = smallbin_at(i)
         @p = b.bk
@@ -1231,7 +1231,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
     // Find x in a bin. Used in other check functions.
-    func bin_find(x *mchunk)
+    fun bin_find(x *mchunk)
     {
         @size = chunksize(x)
         if is_small(size)
@@ -1278,13 +1278,13 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
     pub class HeapStats
     {
-        pub HeapSize i64
-        pub UsedChunks i64
-        pub UsedBytes i64
-        pub FreeChunks i64
-        pub FreeBytes i64
+        pub @HeapSize i64
+        pub @UsedChunks i64
+        pub @UsedBytes i64
+        pub @FreeChunks i64
+        pub @FreeBytes i64
 
-        pub override func ToStr() string
+        pub override fun ToStr() string
         {
             return "HeapSize=" + HeapSize + ", UB=" + UsedBytes + ", FB=" + FreeBytes
                 + ", UC=" + UsedChunks + ", FC=" + FreeChunks
@@ -1292,7 +1292,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
     // Check all properties of malloc_state.
-    pub func CheckHeap() HeapStats
+    pub fun CheckHeap() HeapStats
     {
         assert(is_initialized())
 
@@ -1383,7 +1383,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
     // Link a free chunk into a smallbin 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    func insert_small_chunk(p *mchunk, s xuint)
+    fun insert_small_chunk(p *mchunk, s xuint)
     {
         @I = small_index(s)
         @B = smallbin_at(I)
@@ -1403,7 +1403,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
     // Unlink a chunk from a smallbin
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    func unlink_small_chunk(p *mchunk, s xuint)
+    fun unlink_small_chunk(p *mchunk, s xuint)
     {
         @F = p.fd
         @B = p.bk
@@ -1432,7 +1432,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
     // Unlink the first chunk from a smallbin
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    func unlink_first_small_chunk(b *mchunk, p *mchunk, i uint)
+    fun unlink_first_small_chunk(b *mchunk, p *mchunk, i uint)
     {
         @F = p.fd
         assert(p != b)
@@ -1452,7 +1452,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // Replace dv node, binning the old one
     // Used only when dvsize known to be small
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    func replace_dv(p *mchunk, s xuint)
+    fun replace_dv(p *mchunk, s xuint)
     {
         @DVS = dvsize
         assert(is_small(DVS))
@@ -1468,7 +1468,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // ------------------------- Operations on trees -------------------------
 
     // Insert chunk into tree
-    func insert_large_chunk(x *tchunk, s xuint)
+    fun insert_large_chunk(x *tchunk, s xuint)
     {
         @H **tchunk
         @I = compute_tree_index(s)
@@ -1547,7 +1547,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     //  3. If x is the base of a chain (i.e., has parent links) relink
     //     x's parent and children to x's replacement (or null if none).
 
-    func unlink_large_chunk(x *tchunk)
+    fun unlink_large_chunk(x *tchunk)
     {
         @XP = x.parent
         @R *tchunk
@@ -1650,7 +1650,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // Relays to large vs small bin operations 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    func insert_chunk(p *mchunk, s xuint)
+    fun insert_chunk(p *mchunk, s xuint)
     {
         if is_small(s)
             { insert_small_chunk(p, s) }
@@ -1659,7 +1659,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    func unlink_chunk(p *mchunk, s xuint)
+    fun unlink_chunk(p *mchunk, s xuint)
     {
         if is_small(s)
             { unlink_small_chunk(p, s) }
@@ -1670,7 +1670,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // -------------------------- mspace management --------------------------
 
     // Initialize top chunk and its size 
-    func init_top(p *mchunk, psize xuint)
+    fun init_top(p *mchunk, psize xuint)
     {
         // Ensure alignment
         @offset = align_offset(chunk2mem(p))
@@ -1686,7 +1686,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
     // Initialize bins for a new mstate that is otherwise zeroed out
-    func init_bins()
+    fun init_bins()
     {
         // Establish circular links for smallbins
         @i uint
@@ -1701,7 +1701,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     /// <summary>
     /// Default corruption action - forget all allocated memory.
     /// </summary>
-    protected func ResetOnError()
+    protected fun ResetOnError()
     {
         @i int
         malloc_corruption_error_count += 1
@@ -1721,7 +1721,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
     // Allocate chunk and prepend remainder with chunk in successor base.
-    func prepend_alloc(newbase *byte,
+    fun prepend_alloc(newbase *byte,
                        oldbase *byte,
                        nb xuint) *void
     {
@@ -1771,7 +1771,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
     // Add a segment to hold a new noncontiguous region
-    func add_segment(tbase *byte, tsize xuint, mmapped flag_t)
+    fun add_segment(tbase *byte, tsize xuint, mmapped flag_t)
     {
         // Determine locations and sizes of segment, fenceposts, old top
         @old_top = #*byte(top)
@@ -1829,7 +1829,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // -------------------------- System allocation --------------------------
 
     // Get memory from system using MMAP
-    func sys_alloc(nb xuint) *void
+    fun sys_alloc(nb xuint) *void
     {
         @tbase *byte = null
         @tsize = 0
@@ -1928,7 +1928,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // -----------------------  system deallocation -------------------------- 
 
     // Unmap and unlink any mmapped segments that don't contain used chunks
-    func release_unused_segments() xuint
+    fun release_unused_segments() xuint
     {
         @released xuint = 0
         @nsegs = 0
@@ -1984,7 +1984,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
         return released
     }
 
-    func sys_trim(pad xuint) int
+    fun sys_trim(pad xuint) int
     {
         @released xuint = 0
         ensure_initialization()
@@ -2040,7 +2040,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
 
     // Consolidate and bin a chunk. Differs from exported versions
     //   of free mainly in that the chunk need not be marked as inuse.
-    func dispose_chunk(p *mchunk, psize xuint)
+    fun dispose_chunk(p *mchunk, psize xuint)
     {
         @next = chunk_plus_offset(p, psize)
         if !pinuse(p)
@@ -2124,7 +2124,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // ---------------------------- malloc ---------------------------
 
     // allocate a large request from the best fitting chunk in a treebin
-    func tmalloc_large(xuint nb) *void
+    fun tmalloc_large(xuint nb) *void
     {
         @v *tchunk = null
         @rsize = #xuint(-#xint(nb)) // Unsigned negation
@@ -2212,7 +2212,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
     // allocate a small request from the best fitting chunk in a treebin
-    func tmalloc_small(nb xuint) *void
+    fun tmalloc_small(nb xuint) *void
     {
         @t *tchunk
         @v *tchunk
@@ -2259,8 +2259,8 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
     // Traversal
-    func internal_inspect_all(
-        handler func(start *void, end *void, usedBytes ulong))
+    fun internal_inspect_all(
+        handler fun(start *void, end *void, usedBytes ulong))
     {
         if (!is_initialized())
             { return }
@@ -2310,14 +2310,14 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // ----------------------------- user mspaces ----------------------------
 
     // TBD: Optimize and move to standard library
-    protected static func MemClear(mem *void, size long)
+    protected static fun MemClear(mem *void, size long)
     {
         @b = #*byte(mem)
         for @s in 0..size
             { *b = 0; b += 1 }
     }
 
-    func init_user_mstate(tbase *byte, tsize xuint)
+    fun init_user_mstate(tbase *byte, tsize xuint)
     {
         @mn mchunk
         @msp = align_as_chunk(tbase)
@@ -2355,7 +2355,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     // control the sizes of incremental increases of this space by
     // compiling with a different DEFAULT_GRANULARITY.
     // Calling this function is optional.
-    pub func Init(xuint capacity)
+    pub fun Init(xuint capacity)
     {
         ensure_initialization()
         @rs = capacity == 0 ? mparams.granularity : capacity + TOP_FOOT_SIZE
@@ -2376,7 +2376,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     //  of its memory back to the system, returning the total number of
     //  bytes freed. After destruction, the results of access to all memory
     //  used by the space become undefined.
-    pub func Dispose()
+    pub fun Dispose()
     {
         @sp = seg
         while (sp != null)
@@ -2405,7 +2405,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     /// <summary>
     /// Malloc can be exposed or used by the inheriting class
     /// </summary>
-    protected func Malloc(length xuint) *void
+    protected fun Malloc(length xuint) *void
     {
         //     Basic algorithm:
         //     If a small request (< 256 bytes minus per-chunk overhead):
@@ -2569,7 +2569,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
     /// <summary>
     /// Free can be exposed or used by the inheriting class
     /// </summary>
-    protected func Free(mem *void)
+    protected fun Free(mem *void)
     {
         // Consolidate freed chunks with preceeding or succeeding bordering
         // free chunks, if they exist, and then place in a bin.  Intermixed
@@ -2688,8 +2688,8 @@ pub unsafe abstract class DlMallocBase : IDisposable
     }
 
 
-    protected func InspectAll(
-        handler func(start *void, end *void, usedBytes ulong))
+    protected fun InspectAll(
+        handler fun(start *void, end *void, usedBytes ulong))
     {
         if (ok_magic())
         {
@@ -2701,7 +2701,7 @@ pub unsafe abstract class DlMallocBase : IDisposable
         }
     }
 
-    protected func Trim(pad xuint) int
+    protected fun Trim(pad xuint) int
     {
         @result = 0
         if (ok_magic())
