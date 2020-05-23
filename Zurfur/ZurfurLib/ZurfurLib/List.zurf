@@ -1,38 +1,24 @@
 ﻿namespace Zurfur
 
-
-struct Range<T>
-    where T : IArithmetic<T>        
+pub class List<T> 
+    implements IList<T>
 {
-    pub @Low T
-    pub @High T
-    
-    
-    pub fun GetIterator() Iterator<T>
-    {
-        return Iterator(Low, High)
-    }
-    
-    struct Iterator<T>
-    {
-        @index T
-        @high T
-        
-        pub new(low T, high T) { index = low;  this.high = high} 
-               
-        pub fun HasNext() bool => index < high
-                
-        pub fun GetNext(item ref T) bool
-        {
-            if HasNext()
-            {
-                item = index
-                index += T.Identity
-                return true
-            }
-            return false
-        }        
-       
-    }
+    @items ^Array<T> = Array<T>.Empty
+    @count int
 
+    pub new() => todo()
+    pub new(capacity int) => todo()
+    pub new(items ICollection<T>) => todo()
+    
+    pub prop Count int => count
+
+    pub operator[](index int) T { get => todo() set => todo() }
+    pub operator[](index Range) Span<T> => items[index]
+    pub fun Add(this mut, item T) => todo()
+    pub fun Clear(this mut) => todo()
+    pub fun Insert(this mut, index int, item T) => todo()
+    pub fun Insert(this mut, index int, items ICollection<T>) => todo()
+    pub fun Remove(this mut, index int) => todo()
+    pub fun Remove(this mut, range Range) => todo()
+    
 }

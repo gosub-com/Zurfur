@@ -11,17 +11,17 @@ pub class Example
     pub @field1 f32
     pub @field2 int    
     pub prop Prop str => Header + info      // Property
-    pub fun A(a int) f32 => a+1
-    pub fun A(a f32) f32 => a+1
-    pub fun B(a f32) f32 => a+1
+    pub fun A(this, a int, b int, c f32) f32 => a+1
+    pub fun A(this, a f32) f32 => a+1
+    pub fun B(this, a f32) f32 => a+1
     pub prop ChangedTime DateTime = DateTime.Now
         => default get private set
     
 }
-pub fun Example::MyExtension() => Func1(10) // Extension method
+pub fun Example::MyExtension(this) => Func1(10) // Extension method
 
 
-pub fun Example::Extension() 
+pub fun Example::Extension(this) 
 { 
     for @a in 1..23
     {
@@ -78,26 +78,26 @@ pub class Example2  // YES, errors working
         set { p1 = value }
     }
     
-    pub operator[](index i) int => i
+    pub operator[](this, index i) int => i
     
     // Function
-    fun fun1(a int) f32 => f1 + f2 + a
-    fun func1(a int) { }
-    fun func2(a out str) bool {}
-    fun func4(a ref MyStruct) {}
-    fun func5(a Array<Array<int>>) {}
-    fun func7(a List<int>) { }
-    fun func8(a out List<List<int>>) { }
-    fun func10(a Map<str,List<int>>) { }
+    fun fun1(this, a int) f32 => f1 + f2 + a
+    fun func1(this, a int) { }
+    fun func2(this, a out str) bool {}
+    fun func4(this, a ref MyStruct) {}
+    fun func5(this, a Array<Array<int>>) {}
+    fun func7(this, a List<int>) { }
+    fun func8(this, a out List<List<int>>) { }
+    fun func10(this, a Map<str,List<int>>) { }
     
     pub fun Sort<T>(greaterThan fun(a T, b T) bool) { }
     pub @MyFieldFunc fun(sender object, message str)
 
 
-    pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
+    pub fun M<A,B>(this, a A, b B, c List<int>) List<int> {}
     
-    fun func8(a out List<List<int>>) { }
-    fun func8(a out MyList<int,x,y,z>){ }
+    fun func8(this, a out List<List<int>>) { }
+    fun func8(this, a out MyList<int,x,y,z>){ }
     
     pub fun Main(args Array<str>)
     {
@@ -260,7 +260,7 @@ pub struct MyPoint
 {
     pub @X int
     pub @Y int
-    pub override fun ToStr() => "(" + X + "," + Y + ")"
+    pub override fun ToStr(this) => "(" + X + "," + Y + ")"
 }
 
 
@@ -275,26 +275,25 @@ pub enum MyEnum
 
 pub interface MyInterfaceTest
 {
-    fun A() int 
-        => imp
-    protected fun C() int
-        => imp
+    fun A(this) int => imp
+    protected fun C(this ) int => imp
         
-    pub fun B() int => A() + 1
+    pub fun B(this) int => A() + 1
     pub struct Astruct { pub @a int }
     pub enum Aenum { @a; @b; @c}
     pub class Aclass { pub @a int  }
 }
 
-pub class MyClass1 : MyInterfaceTest
+pub class MyClass1 
+    implements MyInterfaceTest
 {
     pub fun A() int => 3
-    pub fun MyInterfaceTest::C() int => 3
+    pub fun MyInterfaceTest::C(this) int => 3
 
 }
 
 
-pub static fun Sort<T>(s MutSpan<T>, lessThan fun(a T, b T) bool)
+pub fun Sort<T>(s MutSpan<T>, lessThan fun(a T, b T) bool)
 {
     // Simple selection sort
     for @i in s.Count-1
@@ -318,76 +317,16 @@ pub static fun Sort<T>(s MutSpan<T>, lessThan fun(a T, b T) bool)
 }
 
 // The matrix class is used to implement square 2d arrays
-pub class Matrix2d<t> : VariableSizedObject<T>
+pub class Matrix2d<t>
+    extends VariableSizedObject<T>
 {
     new(len1 int, len2 int) { todo() }
     pub operator[](i1 int, i2 int) ref T => todo()
 }
 
-// Represents a buffer in un-managed memory.  This class can create and 
-// own the memory, or it can be attached to an already existing buffer.
-// The GC knows this class and deletes the memory when necessary.
-pub class UnmanagedMemory<T> : UnmanagedHande 
-                where T : IBlittableStruct
-{
-    pub @Memory *void
-    pub @Capacity int
-    pub @OwnedByGc bool
-    @count int
-    
-    pub prop Count int
-    {
-        get { todo() }
-        set { todo() }
-    }
-        
-    // Create the buffer, the GC owns it and deletes it when there are no more
-    // references to this object.  Be careful that unmanaged code doesn't
-    // hold a reference to the memory beyond the lifetime of this object
-    new(count int) { todo() }
-    new(count int, capacity int) { todo() }
-
-    // Attach this object to a buffer allocated by unmanaged code.  
-    // Lenght and Capacity are set automatically. Be sure that
-    // unmanaged code doesn't delete the object while still in use.  
-    unsafe new(data *void, sizeOfBufferInBytes int) { todo() }
-
-    pub fun CopyTo() { todo() }
-}
 
 
-// This is the base for all struct objects.
-pub class StructObject
-{
-}
-
-// This is the base for all class objects.  Its only field is
-// the vtable pointer, so there is minimal overhead.  All class
-// objects are allocated on the managed heap and are subject
-// to garbage collection.
-pub class ClassObject
-{
-    // The only member
-    protected unsafe @VT *void
-
-    pub override fun GetType() { todo() }
-}
-
-// Base class for all things that need to notify when they are garbage collected
-pub class FinalizedNotify 
-{
-    protected fun SetFinalizeNotifier(notifierQueue FinalizedNotifyQueue, token IntPtr, memoryPressure int) { todo() }
-    protected fun ClearFinalizeNotifier() { todo() }
-}
-
-pub class FinalizedNotifyQueue 
-{
-    pub prop Count int => todo()
-    pub fun Dequeue() IntPtr { todo() }
-    pub afun WaitQueueNotEmpty() { todo() }
-}
-
-pub static fun MemCopy(dest *void, source *void, length xint)
+pub fun MemCopy(dest *void, source *void, length xint)
 {
     @to = #xint(dest)
     @from = #xint(source)
@@ -423,7 +362,7 @@ pub static fun MemCopy(dest *void, source *void, length xint)
     }
 }
 
-pub static fun MemCopy32(dest *void, source *void, length xint)
+pub fun MemCopy32(dest *void, source *void, length xint)
 {
     @to = #xint(dest)
     @from = #xint(source)
@@ -458,7 +397,7 @@ pub static fun MemCopy32(dest *void, source *void, length xint)
 
 namespace ExampleNs1.HelloWorld
 {
-    static fun F1() => todo
+    fun F1() => todo
     
     class ClassEx1
     {
@@ -470,7 +409,7 @@ namespace ExampleNs1.HelloWorld
 
 namespace ExampleNs1
 {
-    static fun F1() => todo
+    fun F1() => todo
     
     namespace InnerEx1
     {
@@ -507,7 +446,7 @@ namespace ExampleNs1
 
 namespace ExampleNs2
 {
-    static fun F1() => todo
+    fun F1() => todo
     
     class ClassEx1
     {

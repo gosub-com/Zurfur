@@ -1,7 +1,7 @@
 ﻿namespace Zurfur
 
-pub class mut Map<TKey, TValue> 
-    : IMutMap<TKey, TValue>
+pub class Map<TKey, TValue> 
+    implements IMutMap<TKey, TValue>
 {
     @compareFunc fun(a TKey, b TKey) bool;
     @hashFunc fun(a TKey) bool;
@@ -33,8 +33,8 @@ pub class mut Map<TKey, TValue>
     pub prop Values ICollection<TValue> { get => todo() }
 
     pub operator[](key TKey) TValue { get => todo() set => todo() }
-    pub fun mut Clear() => todo()
-    pub fun mut Add(item KeyValue<TKey, TValue>) => todo()    
-    pub fun mut Add(items ICollection<KeyValue<TKey, TValue>>) => todo()    
-    pub fun mut Remove(TKey key) bool => todo()
+    pub fun Clear(this mut) => todo()
+    pub fun Add(this mut, item KeyValue<TKey, TValue>) => todo()    
+    pub fun Add(this mut, items ICollection<KeyValue<TKey, TValue>>) => todo()    
+    pub fun Remove(this mut, TKey key) bool => todo()
 }

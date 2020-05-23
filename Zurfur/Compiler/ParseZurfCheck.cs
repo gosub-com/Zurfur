@@ -17,22 +17,20 @@ namespace Gosub.Zurfur.Compiler
         public Token LastToken;
 
         static WordSet sRequireGlobalFieldQualifiers = new WordSet("const");
-        static WordSet sFuncInInterfaceQualifiersAllowedEmpty = new WordSet("func afunc fun afun operator prop static pub protected mut");
-        static WordSet sFuncInInterfaceQualifiersAllowedNotEmpty = new WordSet("func afunc fun afun operator prop static pub private protected mut");
-        static WordSet sGlobalFuncsRequiringStatic = new WordSet("func afunc fun afun");
-        static WordSet sStaticQualifier = new WordSet("static");
+        static WordSet sFuncInInterfaceQualifiersAllowedEmpty = new WordSet("func afunc fun afun operator prop pub protected");
+        static WordSet sFuncInInterfaceQualifiersAllowedNotEmpty = new WordSet("func afunc fun afun operator prop pub private protected");
         static WordSet sGlobalFuncsNotAllowed = new WordSet("prop this operator");
 
         static WordSet sInterfaceQualifiers = new WordSet("interface pub public protected private internal static");
-        static WordSet sClassQualifiers = new WordSet("class pub pfublic protected private internal unsafe unsealed abstract mut boxed");
-        static WordSet sStructQualifiers = new WordSet("struct pub public protected private internal unsafe ref mut");
+        static WordSet sClassQualifiers = new WordSet("class pub pfublic protected private internal unsafe unsealed abstract ro boxed");
+        static WordSet sStructQualifiers = new WordSet("struct pub public protected private internal unsafe ref ro");
         static WordSet sEnumQualifiers = new WordSet("enum pub public protected private internal");
 
-        static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static mut const");
-        static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static mut const");
+        static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static ro const");
+        static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static ro const");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
 
-        static WordSet sFuncQualifiers = new WordSet("func afunc fun afun pub public protected private internal unsafe static virtual override new mut");
+        static WordSet sFuncQualifiers = new WordSet("func afunc fun afun pub public protected private internal unsafe virtual override new");
         static WordSet sPropQualifiers = new WordSet("prop pub public protected private internal unsafe static virtual override new");
         static WordSet sFuncOperatorQualifiers = new WordSet("operator pub public protected private internal unsafe");
 
@@ -123,11 +121,6 @@ namespace Gosub.Zurfur.Compiler
                         RejectQualifiers(func.Qualifiers, sFuncInInterfaceQualifiersAllowedNotEmpty, "This qualifier may not appear before a non-empty function defined inside an interface");
 
                 }
-                if ( (outerKeyword == "" || outerKeyword == "namespace")
-                        && sGlobalFuncsRequiringStatic.Contains(keyword)
-                        && !HasQualifier(func.Qualifiers, sStaticQualifier)
-                        && func.ClassName == null)
-                    mParser.RejectToken(keyword, "Functions at the namespace level must be static or extension methods");
                 if ( (outerKeyword == "" || outerKeyword == "namespace")
                         && sGlobalFuncsNotAllowed.Contains(keyword))
                     mParser.RejectToken(keyword, "Must not be defined at the namespace level");
@@ -419,8 +412,10 @@ namespace Gosub.Zurfur.Compiler
         void ShowTypes(SyntaxType aClass)
         {
             ShowTypes(aClass.Alias, true);
-            if (aClass.BaseClasses != null)
-                foreach (var baseClass in aClass.BaseClasses)
+            if (aClass.Extends != null)
+                ShowTypes(aClass.Extends, true);
+            if (aClass.Implements != null)
+                foreach (var baseClass in aClass.Implements)
                     ShowTypes(baseClass, true);
             aClass.Name.Type = eTokenType.TypeName;
             ShowTypes(aClass.TypeParams, true);
@@ -497,8 +492,10 @@ namespace Gosub.Zurfur.Compiler
 
             foreach (var aClass in unit.Types)
             {
-                if (aClass.BaseClasses != null)
-                    foreach (var baseClass in aClass.BaseClasses)
+                if (aClass.Extends != null)
+                    ShowParseTree(aClass.Extends);
+                if (aClass.Implements != null)
+                    foreach (var baseClass in aClass.Implements)
                         ShowParseTree(baseClass);
                 ShowParseTree(aClass.Alias);
             }

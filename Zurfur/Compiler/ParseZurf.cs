@@ -65,7 +65,7 @@ namespace Gosub.Zurfur.Compiler
             + "typeof unsafe using static virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set yield global partial var where nameof of youdo "
             + "box boxed init dispose "
-            + "trait extends implements implement union type fn fun afn afun def adef yield let cast imp";
+            + "trait extends implements implement union type fn fun afn afun def adef yield let cast impl";
 
         static readonly string sReservedControlWords = "using namespace module include class struct enum interface "
             + "func afunc fun afun prop get set operator if else switch await for while dowhile _";
@@ -79,13 +79,13 @@ namespace Gosub.Zurfur.Compiler
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sFieldDefTypeQualifiers = new WordSet("ref");
-        static WordSet sFuncDefReturnTypeQualifiers = new WordSet("ro ref");
-        static WordSet sFuncDefParamTypeQualifiers = new WordSet("out ref");
-        static WordSet sTypeDefParamQualifiers = new WordSet("in out");
-        static WordSet sFuncCallParamQualifiers = new WordSet("out ref");
+        static WordSet sFuncDefReturnQualifiers = new WordSet("ro ref");
+        static WordSet sFuncDefParamQualifiers = new WordSet("out ref mut"); // define function: fun f(a mut int)
+        static WordSet sFuncCallParamQualifiers = new WordSet("out ref"); // call function: f(a ref int)
+        static WordSet sTypeDefParamQualifiers = new WordSet("in out"); // type parameter IEnumerator<out>
 
         static WordSet sAllowConstraintKeywords = new WordSet("class struct unmanaged");
-        static WordSet sAutoImplementMethod = new WordSet("default imp extern");
+        static WordSet sAutoImplementMethod = new WordSet("default impl extern");
 
         public static WordSet sOverloadableOperators = new WordSet("+ - * / % [ in implicit explicit");
         static WordSet sComparisonOperators = new WordSet("== != < <= > >= === !== in"); // For '>=', use VIRTUAL_TOKEN_GE
@@ -440,8 +440,12 @@ namespace Gosub.Zurfur.Compiler
             synClass.TypeParams = ParseTypeParams(sRejectFuncName);
             mUnit.Types.Add(synClass);
 
-            // Parse base classes
-            if (AcceptMatch(":"))
+            // Parse extends classes
+            if (AcceptMatch("extends"))
+                synClass.Extends = ParseTypeDef(sEmptyWordSet, sEmptyWordSet);
+
+            // Parse implemented classes
+            if (AcceptMatch("implements"))
             {
                 var baseClasses = NewExprList();
                 baseClasses.Add(ParseTypeDef(sEmptyWordSet, sEmptyWordSet));
@@ -449,7 +453,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     baseClasses.Add(ParseTypeDef(sEmptyWordSet, sEmptyWordSet));
                 }
-                synClass.BaseClasses = FreeExprList(baseClasses);
+                synClass.Implements = FreeExprList(baseClasses);
             }
 
             synClass.Constraints = ParseConstraints();
@@ -720,8 +724,8 @@ namespace Gosub.Zurfur.Compiler
             typeParams = ParseTypeParams(sRejectFuncName);
             parameters = ParseFuncParamsDef();
             returnType = null;
-            if (BeginsTypeDef(sFuncDefReturnTypeQualifiers, mToken))
-                returnType = ParseTypeDef(sFuncDefReturnTypeQualifiers, sRejectFuncParam);
+            if (BeginsTypeDef(sFuncDefReturnQualifiers, mToken))
+                returnType = ParseTypeDef(sFuncDefReturnQualifiers, sRejectFuncParam);
         }
 
         bool BeginsTypeDef(WordSet qualifiers, Token token)
@@ -754,7 +758,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             synFunc.Params = ParseFuncParamsDef();
-            synFunc.ReturnType = ParseTypeDef(sFuncDefReturnTypeQualifiers, sRejectFuncParam);
+            synFunc.ReturnType = ParseTypeDef(sFuncDefReturnQualifiers, sRejectFuncParam);
         }
 
         SyntaxExpr ParseFuncParamsDef()
@@ -767,11 +771,11 @@ namespace Gosub.Zurfur.Compiler
             var openToken = mPrevToken;
             var parameters = NewExprList();
             if (mTokenName != ")")
-                parameters.Add(ParseFuncParamDef());
+                parameters.Add(ParseFuncParamDef(true));
             while (AcceptMatch(","))
             {
                 Connect(openToken, mPrevToken);
-                parameters.Add(ParseFuncParamDef());
+                parameters.Add(ParseFuncParamDef(false));
             }
 
             // Ellipse to signify repeated parameters
@@ -784,11 +788,18 @@ namespace Gosub.Zurfur.Compiler
             return new SyntaxMulti(Token.Empty, FreeExprList(parameters));
         }
 
-        SyntaxExpr ParseFuncParamDef()
+        SyntaxExpr ParseFuncParamDef(bool firstParam)
         {
+            if (firstParam && AcceptMatch("this"))
+            {
+                AcceptMatch("mut"); // TBD: Store in parse tree
+                AcceptMatch("ref");
+                return new SyntaxUnary(mPrevToken, new SyntaxToken(new Token()));
+            }
+
             if (!ParseIdentifier("Expecting a variable name", out var name, sRejectFuncParam))
                 return new SyntaxError();
-            var type = ParseTypeDef(sFuncDefParamTypeQualifiers, sRejectFuncParam);
+            var type = ParseTypeDef(sFuncDefParamQualifiers, sRejectFuncParam);
             return new SyntaxUnary(name, type);
         }
 
@@ -2019,7 +2030,7 @@ namespace Gosub.Zurfur.Compiler
             //      at an important keyword, we don't want to skip it.
             //      To see where we correct the problem, look for where
             //      the return value is used.
-            //      Example: `Poperator[](key TKey) TValue => imp get`
+            //      Example: `Poperator[](key TKey) TValue => impl get`
 
             bool accepted = false;
             while (!sRejectAnyStop.Contains(mToken) && !extraStops.Contains(mToken))

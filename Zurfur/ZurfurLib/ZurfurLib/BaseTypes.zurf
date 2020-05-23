@@ -6,15 +6,6 @@
 
 namespace Zurfur
 
-/// Base class for all objects, struct and class alike.
-pub unsealed class object
-{
-    @vtable *VTable
-    pub fun GetType() { todo() }
-    pub virtual fun ToStr(format str) { return "" }
-}
-
-
 pub struct void { }
 pub struct int = i32
 pub struct uint = u32
@@ -30,11 +21,11 @@ pub struct xuint = u32
 
 /// bool (true or false)
 pub struct bool
-    : IEquatable<bool>
+    implements IEquatable<bool>
 {
     pub new (from bool) => extern
-    pub static fun GetHashCode(a bool) uint => extern
-    pub static fun Equals(a bool, b bool) bool => extern
+    pub fun GetHashCode(a bool) uint => extern
+    pub fun Equals(a bool, b bool) bool => extern
 
     // Not overloadable, but these are supplied specially for this type
     //static fun operator!(a bool)
@@ -44,8 +35,13 @@ pub struct bool
 
 /// i8 (-128..127)
 pub struct i8
-    : IComparable<i8>
+    implements IComparable<i8>
 {
+    pub const MaxValue i8 = 127
+    pub const MinValue i8 = -128
+    pub const Origin i8 = 0
+    pub const Identity i8 = 1
+
     pub new (from i8) => extern
 
     operator explicit(from u8) i8 => extern
@@ -66,21 +62,21 @@ pub struct i8
     operator implicit(from i8) f64 => extern
     operator implicit(from i8) decimal => extern
     
-
-    pub const MaxValue i8 = 127
-    pub const MinValue i8 = -128
-    pub static prop Origin i8 => 0
-    pub static prop Identity i8 => 1
-    pub static fun GetHashCode(a i8) uint => extern
-    pub static fun Equals(a i8, b i8) bool => extern
-    pub static fun Compare(a i8, b i8) int => extern
+    pub fun GetHashCode(a i8) uint => extern
+    pub fun Equals(a i8, b i8) bool => extern
+    pub fun Compare(a i8, b i8) int => extern
 }
 
 
 /// u8 (0..255) same as byte
 pub struct u8
-    : IComparable<u8>
+    implements IComparable<u8>
 {
+    pub const MaxValue u8 = 255
+    pub const MinValue u8 = 0
+    pub const Origin i8 = 0
+    pub const Identity i8 = 1
+
     pub new (from u8) => extern
     
     operator explicit(from i8) u8 => extern
@@ -104,19 +100,20 @@ pub struct u8
     operator implicit(from u8) f64 => extern
     operator implicit(from u8) decimal => extern
     
-    pub const MaxValue u8 = 255
-    pub const MinValue u8 = 0
-    pub static prop Origin i8 => 0
-    pub static prop Identity i8 => 1
-    pub static fun GetHashCode(a u8) uint => extern
-    pub static fun Equals(a u8, b u8) bool => extern
-    pub static fun Compare(a u8, b u8) int => extern
+    pub fun GetHashCode(a u8) uint => extern
+    pub fun Equals(a u8, b u8) bool => extern
+    pub fun Compare(a u8, b u8) int => extern
 }
 
 /// i16 (-32768..32768)
 pub struct i16
-    : IComparable<i16>
+    implements IComparable<i16>
 {
+    pub const MaxValue i16 = 32767
+    pub const MinValue i16 = -32768
+    pub const Origin i8 = 0
+    pub const Identity i8 = 1
+
     pub new (from i16) => extern
 
     operator explicit(from u16) i16 => extern
@@ -134,20 +131,21 @@ pub struct i16
     operator implicit(from i16) f64 => extern
     operator implicit(from i16) decimal => extern
 
-    pub const MaxValue i16 = 32767
-    pub const MinValue i16 = -32768
-    pub static prop Origin i8 => 0
-    pub static prop Identity i8 => 1
-    pub static fun GetHashCode(a i16) uint => extern
-    pub static fun Equals(a i16, b i16) bool => extern
-    pub static fun Compare(a i16, b i16) int => extern
+    pub fun GetHashCode(a i16) uint => extern
+    pub fun Equals(a i16, b i16) bool => extern
+    pub fun Compare(a i16, b i16) int => extern
 }
 
 
 /// u16 (0..65535)
 pub struct u16
-    : IComparable<u16>
+    implements IComparable<u16>
 {
+    pub const MaxValue u16 = 65535
+    pub const MinValue u16 = 0
+    pub const Origin i8 = 0
+    pub const Identity i8 = 1
+
     pub new (from u16) => extern
 
     operator explicit(from i8) u16 => extern
@@ -168,19 +166,20 @@ pub struct u16
     operator implicit(from u16) f64 => extern
     operator implicit(from u16) decimal => extern
 
-    pub const MaxValue u16 = 65535
-    pub const MinValue u16 = 0
-    pub static prop Origin i8 => 0
-    pub static prop Identity i8 => 1
-    pub static fun GetHashCode(a u16) uint => extern
-    pub static fun Equals(a u16, b u16) bool => extern
-    pub static fun Compare(a u16, b u16) int => extern
+    pub fun GetHashCode(a u16) uint => extern
+    pub fun Equals(a u16, b u16) bool => extern
+    pub fun Compare(a u16, b u16) int => extern
 }
 
 /// A 32 bit integer (same as int)
 pub struct i32
-    : IArithmetic<i32>
+    implements IArithmetic<i32>, IEnumerable<i32>
 {
+    pub const MaxValue i32 = 2147483647
+    pub const MinValue i32 = -2147483648
+    pub const Origin i8 = 0
+    pub const Identity i8 = 1
+
     pub new (from i32) => extern
 
     operator explicit(from u32) i32 => extern
@@ -195,24 +194,22 @@ pub struct i32
     operator implicit(from i32) f64 => extern
     operator implicit(from i32) decimal => extern
 
-    pub const MaxValue i32 = 2147483647
-    pub const MinValue i32 = -2147483648
-    pub static prop Origin i8 => 0
-    pub static prop Identity i8 => 1
-
     // Comparisons    
-    pub static fun GetHashCode(a i32) uint => extern
-    pub static fun Equals(a i32, b i32) bool => extern
-    pub static fun Compare(a i32, b i32) int => extern
+    pub fun GetHashCode(a i32) uint => extern
+    pub fun Equals(a i32, b i32) bool => extern
+    pub fun Compare(a i32, b i32) int => extern
 
     // Overloadable operators
-    pub operator+(a i32) i32 => extern
-    pub operator-(a i32) i32 => extern
-    pub operator+(a i32, b i32) i32 => extern
-    pub operator-(a i32, b i32) i32 => extern
-    pub operator*(a i32, b i32) i32 => extern
-    pub operator/(a i32, b i32) i32 => extern
-    pub operator%(a i32, b i32) i32 => extern
+    operator+(a i32) i32 => extern
+    operator-(a i32) i32 => extern
+    operator+(a i32, b i32) i32 => extern
+    operator-(a i32, b i32) i32 => extern
+    operator*(a i32, b i32) i32 => extern
+    operator/(a i32, b i32) i32 => extern
+    operator%(a i32, b i32) i32 => extern
+    
+    pub fun GetEnumerator(this) RangeEnumerator<i32> 
+        => RangeEnumerator<i32>(0, this)
     
     // Not overloadable, but these are supplied specially for this type
     //static fun operator~(a i32) i32
@@ -227,8 +224,13 @@ pub struct i32
 
 /// 32 bit unsigned integer (same as uint)
 pub struct u32
-    : IArithmetic<u32>
+    implements IArithmetic<u32>, IEnumerable<u32>
 {
+    pub const MaxValue u32 = 4294967295
+    pub const MinValue u32 = 0
+    pub const Origin i8 = 0
+    pub const Identity i8 = 1
+
     pub new (from u32) => extern
 
     operator explicit(from i8) u32 => extern
@@ -246,25 +248,23 @@ pub struct u32
     operator implicit(from u32) f32 => extern
     operator implicit(from u32) f64 => extern
     
-
-    pub const MaxValue u32 = 4294967295
-    pub const MinValue u32 = 0
-    pub static prop Origin i8 => 0
-    pub static prop Identity i8 => 1
-
     // Comparisons    
-    pub static fun GetHashCode(a u32) uint => extern
-    pub static fun Equals(a u32, b u32) bool => extern
-    pub static fun Compare(a u32, b u32) int => extern
+    pub fun GetHashCode(a u32) uint => extern
+    pub fun Equals(a u32, b u32) bool => extern
+    pub fun Compare(a u32, b u32) int => extern
     
     // Overloadable operators
-    pub operator+(a u32) u32 => extern
-    pub operator-(a u32) u32 => extern
-    pub operator+(a u32, b u32) u32 => extern
-    pub operator-(a u32, b u32) u32 => extern
-    pub operator*(a u32, b u32) u32 => extern
-    pub operator/(a u32, b u32) u32 => extern
-    pub operator%(a u32, b u32) u32 => extern
+    operator+(a u32) u32 => extern
+    operator-(a u32) u32 => extern
+    operator+(a u32, b u32) u32 => extern
+    operator-(a u32, b u32) u32 => extern
+    operator*(a u32, b u32) u32 => extern
+    operator/(a u32, b u32) u32 => extern
+    operator%(a u32, b u32) u32 => extern
+    
+    pub fun GetEnumerator(this) RangeEnumerator<u32> 
+        => RangeEnumerator<u32>(0, this)
+    
 
     // Not overloadable, but these are supplied specially for this type
     //static fun operator~(a u32) u32
@@ -277,8 +277,13 @@ pub struct u32
 
 /// A 64 bit integer
 pub struct i64
-    : IArithmetic<i64>
+    implements IArithmetic<i64>, IEnumerable<i64>
 {
+    pub const MaxValue i64 = 9223372036854775807
+    pub const MinValue i64 = -9223372036854775808
+    pub const Origin i8 = 0
+    pub const Identity i8 = 1
+
     pub new (from i64) => extern
 
     operator explicit(from u64) i64 => extern
@@ -289,24 +294,22 @@ pub struct i64
     operator implicit(from i64) decimal => extern
     operator implicit(from i64) f64 => extern
 
-    pub const MaxValue i64 = 9223372036854775807
-    pub const MinValue i64 = -9223372036854775808
-    pub static prop Origin i8 => 0
-    pub static prop Identity i8 => 1
-
     // Comparisons    
-    pub static fun GetHashCode(a i64) uint => extern
-    pub static fun Equals(a i64, b i64) bool => extern
-    pub static fun Compare(a i64, b i64) int => extern
+    pub fun GetHashCode(a i64) uint => extern
+    pub fun Equals(a i64, b i64) bool => extern
+    pub fun Compare(a i64, b i64) int => extern
 
     // Overloadable operators
-    pub operator+(a i64) i64 => extern
-    pub operator-(a i64) i64 => extern
-    pub operator+(a i64, b i64) i64 => extern
-    pub operator-(a i64, b i64) i64 => extern
-    pub operator*(a i64, b i64) i64 => extern
-    pub operator/(a i64, b i64) i64 => extern
-    pub operator%(a i64, b i64) i64 => extern
+    operator+(a i64) i64 => extern
+    operator-(a i64) i64 => extern
+    operator+(a i64, b i64) i64 => extern
+    operator-(a i64, b i64) i64 => extern
+    operator*(a i64, b i64) i64 => extern
+    operator/(a i64, b i64) i64 => extern
+    operator%(a i64, b i64) i64 => extern
+    
+    pub fun GetEnumerator(this) RangeEnumerator<i64> 
+        => RangeEnumerator<i64>(0, this)    
 
     // Not overloadable, but these are supplied specially for this type
     //static fun operator~(a i64) i64
@@ -321,8 +324,13 @@ pub struct i64
 
 /// 64 bit unsigned integer
 pub struct u64
-    : IArithmetic<u64>
+    implements IArithmetic<u64>, IEnumerable<u64>
 {
+    pub const MaxValue u64 = 18446744073709551615
+    pub const MinValue u64 = 0
+    pub const Origin i8 = 0
+    pub const Identity i8 = 1
+
     pub new (from u64) => extern
 
     operator explicit(from i8) u64 => extern
@@ -334,27 +342,24 @@ pub struct u64
     operator explicit(from decimal) u64 => extern
     
     operator implicit(from u64) decimal => extern
-    operator implicit(from u64) f64 => extern
-    
-
-    pub const MaxValue u64 = 18446744073709551615
-    pub const MinValue u64 = 0
-    pub static prop Origin i8 => 0
-    pub static prop Identity i8 => 1
+    operator implicit(from u64) f64 => extern    
 
     // Comparisons    
-    pub static fun GetHashCode(a u64) uint => extern
-    pub static fun Equals(a u64, b u64) bool => extern
-    pub static fun Compare(a u64, b u64) int => extern
+    pub fun GetHashCode(a u64) uint => extern
+    pub fun Equals(a u64, b u64) bool => extern
+    pub fun Compare(a u64, b u64) int => extern
     
     // Overloadable operators
-    pub operator+(a u64) u64 => extern
-    pub operator-(a u64) u64 => extern
-    pub operator+(a u64, b u64) u64 => extern
-    pub operator-(a u64, b u64) u64 => extern
-    pub operator*(a u64, b u64) u64 => extern
-    pub operator/(a u64, b u64) u64 => extern
-    pub operator%(a u64, b u64) u64 => extern
+    operator+(a u64) u64 => extern
+    operator-(a u64) u64 => extern
+    operator+(a u64, b u64) u64 => extern
+    operator-(a u64, b u64) u64 => extern
+    operator*(a u64, b u64) u64 => extern
+    operator/(a u64, b u64) u64 => extern
+    operator%(a u64, b u64) u64 => extern
+
+    pub fun GetEnumerator(this) RangeEnumerator<u64> 
+        => RangeEnumerator<u64>(0, this)    
 
     // Not overloadable, but these are supplied specially for this type
     //static fun operator~(a u64)
@@ -366,8 +371,17 @@ pub struct u64
 }
 
 pub struct f32
-    : IArithmetic<f32>
+    implements IArithmetic<f32>
 {
+    pub const MaxValue f32 = 3.40282347E+38F
+    pub const MinValue f32 = -3.40282347E+38F
+    pub const Epsilon f32 = 1.401298E-45F
+    pub const PositiveInfinity f32 = 1F/0F
+    pub const NegativeInfinity f32 = -1F/0F
+    pub const NaN f32 = 0F/0F
+    pub const Origin i8 = 0
+    pub const Identity i8 = 1
+
     pub new (from f32) => extern
 
     operator explicit(from f64) f32 => extern
@@ -378,36 +392,27 @@ pub struct f32
 
     // Normal f32 comparisons (NAN==NAN is false)
     // TBD: Maybe we don't need funny NAN comparisons since we're starting fresh?
-    pub static fun Equals(a f32, b f32) bool => extern
-    pub static fun Compare(a f32, b f32) int => extern
+    pub fun Equals(a f32, b f32) bool => extern
+    pub fun Compare(a f32, b f32) int => extern
     
     // Comparisons for sorting (NAN>infinity and NAN==NAN are both true)
-    pub static fun GetHashCode(a f32) uint => extern
-    pub static fun IEquatable<f32>::Equals(a f32, b f32) bool => extern
-    pub static fun IComparable<f32>::Compare(a f32, b f32) int => extern
-
-    pub const MaxValue f32 = 3.40282347E+38F
-    pub const MinValue f32 = -3.40282347E+38F
-    pub const Epsilon f32 = 1.401298E-45F
-    pub const PositiveInfinity f32 = 1F/0F
-    pub const NegativeInfinity f32 = -1F/0F
-    pub const NaN f32 = 0F/0F
-    pub static prop Origin i8 => 0
-    pub static prop Identity i8 => 1
-    pub static prop IsInfinity bool => todo()
-    pub static prop IsNaN bool => todo()
-    pub static prop IsNegativeInfinity bool => todo()
-    pub static prop IsPositiveInfinity bool => todo()
-
+    pub fun GetHashCode(a f32) uint => extern
+    pub fun IEquatable<f32>::Equals(a f32, b f32) bool => extern
+    pub fun IComparable<f32>::Compare(a f32, b f32) int => extern
     
+    pub prop IsInfinity bool => todo()
+    pub prop IsNaN bool => todo()
+    pub prop IsNegativeInfinity bool => todo()
+    pub prop IsPositiveInfinity bool => todo()
+
     // Overloadable operators
-    pub operator+(a f32) f32 => extern
-    pub operator-(a f32) f32 => extern
-    pub operator+(a f32, b f32) f32 => extern
-    pub operator-(a f32, b f32) f32 => extern
-    pub operator*(a f32, b f32) f32 => extern
-    pub operator/(a f32, b f32) f32 => extern
-    pub operator%(a f32, b f32) f32 => extern
+    operator+(a f32) f32 => extern
+    operator-(a f32) f32 => extern
+    operator+(a f32, b f32) f32 => extern
+    operator-(a f32, b f32) f32 => extern
+    operator*(a f32, b f32) f32 => extern
+    operator/(a f32, b f32) f32 => extern
+    operator%(a f32, b f32) f32 => extern
     
     // Not overloadable, but these are supplied specially for this type
     //static fun operator..(a f32, b f32) RangeF32
@@ -416,8 +421,17 @@ pub struct f32
 }
 
 pub struct f64
-    : IArithmetic<f64>
+    implements IArithmetic<f64>
 {
+    pub const MaxValue f64 = 1.7976931348623157E+308
+    pub const MinValue f64 = -1.7976931348623157E+308
+    pub const Epsilon f64 = 4.94065645841247E-324
+    pub const PositiveInfinity f64 = 1.0/0.0
+    pub const NegativeInfinity f64 = -1.0/0.0
+    pub const NaN f64 = 0.0/0.0
+    pub const Origin i8 = 0
+    pub const Identity i8 = 1
+
     pub new (from f64) => extern
 
     operator explicit(from decimal) f64 => extern
@@ -426,35 +440,27 @@ pub struct f64
 
     // Normal f64 comparisons (NAN==NAN is false)
     // TBD: Maybe we don't need funny NAN comparisons since we're starting fresh?
-    pub static fun Equals(a f64, b f64) bool => extern
-    pub static fun Compare(a f64, b f64) int => extern
+    pub fun Equals(a f64, b f64) bool => extern
+    pub fun Compare(a f64, b f64) int => extern
     
     // Comparisons for sorting (NAN>infinity and NAN==NAN are both true)
-    pub static fun GetHashCode(a f64) uint => extern
-    pub static fun IEquatable<f32>::Equals(a f64, b f64) bool => extern
-    pub static fun IComparable<f32>::Compare(a f64, b f64) int => extern
-
-    pub const MaxValue f64 = 1.7976931348623157E+308
-    pub const MinValue f64 = -1.7976931348623157E+308
-    pub const Epsilon f64 = 4.94065645841247E-324
-    pub const PositiveInfinity f64 = 1.0/0.0
-    pub const NegativeInfinity f64 = -1.0/0.0
-    pub const NaN f64 = 0.0/0.0
-    pub static prop Origin i8 => 0
-    pub static prop Identity i8 => 1
-    pub static prop IsInfinity bool => todo()
-    pub static prop IsNaN bool => todo()
-    pub static prop IsNegativeInfinity bool => todo()
-    pub static prop IsPositiveInfinity bool => todo()
+    pub fun GetHashCode(a f64) uint => extern
+    pub fun IEquatable<f32>::Equals(a f64, b f64) bool => extern
+    pub fun IComparable<f32>::Compare(a f64, b f64) int => extern
+    
+    pub prop IsInfinity bool => todo()
+    pub prop IsNaN bool => todo()
+    pub prop IsNegativeInfinity bool => todo()
+    pub prop IsPositiveInfinity bool => todo()
     
     // Overloadable operators
-    pub operator+(a f64) f64 => extern
-    pub operator-(a f64) f64 => extern
-    pub operator+(a f64, b f64) f64 => extern
-    pub operator-(a f64, b f64) f64 => extern
-    pub operator*(a f64, b f64) f64 => extern
-    pub operator/(a f64, b f64) f64 => extern
-    pub operator%(a f64, b f64) f64 => extern
+    operator+(a f64) f64 => extern
+    operator-(a f64) f64 => extern
+    operator+(a f64, b f64) f64 => extern
+    operator-(a f64, b f64) f64 => extern
+    operator*(a f64, b f64) f64 => extern
+    operator/(a f64, b f64) f64 => extern
+    operator%(a f64, b f64) f64 => extern
     
     // Not overloadable, but these are supplied specially for this type
     //static fun operator..(a f64, b f64) RangeF64
@@ -464,7 +470,7 @@ pub struct f64
 /// 128 bit decimal integer.  This will support NAN, infinity, and
 /// exponents covering the entire range of f64 with more precision.
 pub struct decimal
-    : IArithmetic<decimal>
+    implements IArithmetic<decimal>
 {
     pub new (from decimal) => extern
 
@@ -473,26 +479,27 @@ pub struct decimal
     pub const PositiveInfinity decimal = 1.0/0.0
     pub const NegativeInfinity decimal = -1.0/0.0
     pub const NaN decimal = 0.0/0.0
-    pub static prop Origin i8 => 0
-    pub static prop Identity i8 => 1
-    pub static prop IsInfinity bool => todo()
-    pub static prop IsNaN bool => todo()
-    pub static prop IsNegativeInfinity bool => todo()
-    pub static prop IsPositiveInfinity bool => todo()
+    pub const Origin i8 = 0
+    pub const Identity i8 = 1
+    
+    pub prop IsInfinity bool => todo()
+    pub prop IsNaN bool => todo()
+    pub prop IsNegativeInfinity bool => todo()
+    pub prop IsPositiveInfinity bool => todo()
 
     // Comparisons.  NOTE: NaN > infinity, and NaN==NaN is true
-    pub static fun GetHashCode(a decimal) uint => extern
-    pub static fun Equals(a decimal, b decimal) bool => extern
-    pub static fun Compare(a decimal, b decimal) int => extern
+    pub fun GetHashCode(a decimal) uint => extern
+    pub fun Equals(a decimal, b decimal) bool => extern
+    pub fun Compare(a decimal, b decimal) int => extern
     
     // Overloadable operators
-    pub operator+(a decimal) decimal => extern
-    pub operator-(a decimal) decimal => extern
-    pub operator+(a decimal, b decimal) decimal => extern
-    pub operator-(a decimal, b decimal) decimal => extern
-    pub operator*(a decimal, b decimal) decimal => extern
-    pub operator/(a decimal, b decimal) decimal => extern
-    pub operator%(a decimal, b decimal) decimal => extern
+    operator+(a decimal) decimal => extern
+    operator-(a decimal) decimal => extern
+    operator+(a decimal, b decimal) decimal => extern
+    operator-(a decimal, b decimal) decimal => extern
+    operator*(a decimal, b decimal) decimal => extern
+    operator/(a decimal, b decimal) decimal => extern
+    operator%(a decimal, b decimal) decimal => extern
     
     // Not overloadable, but these are supplied specially for this type
     //static fun operator..(a decimal, b decimal) RangeDecimal

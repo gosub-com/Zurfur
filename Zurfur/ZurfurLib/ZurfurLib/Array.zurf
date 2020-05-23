@@ -1,16 +1,17 @@
 ﻿namespace Zurfur
 
 // Array of constant size
-pub class Array<T> 
-    : ArrayBase<T>, IArray<T>, IMutArray<T>
+pub class Array<T>
+    extends ArrayBase<T>
+    implements IArray<T>, IMutArray<T>
 {
-    const MaxSize int = int.MaxInt/2
+    pub const MaxSize int = int.MaxInt/2
     pub static @Empty Array<T>()
 
     pub new(count int) => todo()
     pub new(items ICollection<T>) => todo()
         
-    pub operator[](index int) T { get => todo() set => todo() }
-    pub operator[](index Range) Span<T> => todo()
+    pub operator[](this, index int) T { get => todo() set => todo() }
+    pub operator[](this, index Range) Span<T> => todo()
     
 }

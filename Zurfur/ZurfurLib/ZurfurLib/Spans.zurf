@@ -1,19 +1,19 @@
 ﻿namespace Zurfur
 
 /// Read only span
-pub struct ref Span<T>
+pub struct ref ro Span<T>
 {
-    @data ref T
-    pub @Count int
+    ro @data ref T
+    pub ro @Count int
     pub operator[](index int) ro ref T => todo()
     pub operator[](index Range) Span<T> => todo()
 }
 
 /// Mutable span
-pub struct ref MutSpan<T>
+pub struct ref ro MutSpan<T>
 {
-    @data ref T
-    pub @Count int
+    ro @data ref T
+    pub ro @Count int
     pub operator[](index int) ref T => todo()
     pub operator[](index Range) MutSpan<T> => todo()
     operator implicit(from MutSpan<T>) Span<T> => todo()
@@ -21,11 +21,11 @@ pub struct ref MutSpan<T>
 
 /// Read only memory span
 [NoTear]
-pub struct Memory<T>
+pub struct ro Memory<T>
 {
-    @data        object
-    @offset      xint
-    pub @Count   int
+    ro @data        object
+    ro @offset      xint
+    pub ro @Count   int
     pub operator[](index int) ro ref T => todo()
     pub operator[](index Range) Memory<T> => todo()
     operator implicit(from Memory<T>) Span<T> => todo()
@@ -33,11 +33,11 @@ pub struct Memory<T>
 
 /// Mutable memory span
 [NoTear]
-pub struct MutMemory<T>
+pub struct ro MutMemory<T>
 {
-    @data        object
-    @offset      xint
-    pub @Count   int
+    ro @data        object
+    ro @offset      xint
+    pub ro @Count   int
     pub operator[](index int) ref T => todo()
     pub operator[](index Range) MutMemory<T> => todo()
     operator implicit(from MutMemory<T>) Memory<T> => todo()

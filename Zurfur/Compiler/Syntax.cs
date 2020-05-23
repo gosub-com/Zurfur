@@ -57,7 +57,8 @@ namespace Gosub.Zurfur.Compiler
     class SyntaxType : SyntaxScope
     {
         public override bool IsType => true;
-        public SyntaxExpr []BaseClasses;
+        public SyntaxExpr Extends;
+        public SyntaxExpr []Implements;
         public SyntaxExpr TypeParams;
         public SyntaxExpr Alias;
         public SyntaxConstraint []Constraints;

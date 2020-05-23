@@ -75,7 +75,7 @@ be created on the stack without needing garbage collection.
 By default, functions pass parameters by immutable reference.  The exception
 is that small structs may be passed by value when it is more efficient to do so.
 
-    pub fun Test( a      float64,   // Pass by value since that's more efficient
+    pub fun Test( a      f64,       // Pass by value since that's more efficient
                   s      MyStruct,  // Pass by value or reference whichever is more efficient
                   ms mut MyStruct,  // Pass by reference, preserve `ro` fields
                   rs ref MyStruct,  // Pass by reference, nothing is preserved

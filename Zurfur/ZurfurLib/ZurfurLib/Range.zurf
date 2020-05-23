@@ -2,37 +2,32 @@
 
 
 struct Range<T>
+    implements IEquatable<T>, IEnumerable<T>
     where T : IArithmetic<T>        
 {
     pub @Low T
     pub @High T
     
+    pub fun Equals(a T, b T) bool
+        => a.Low == b.Low && a.High == b.High
+    pub fun GetHashCode(a T) uint
+        => HashMix(a.Low.GetHashCode(), a.High.GetHashCode())
+    pub fun GetEnumerator(this) RangeEnumerator<T>
+        => RangeEnumerator<T>(Low, High)
     
-    pub fun GetIterator() Iterator<T>
-    {
-        return Iterator(Low, High)
-    }
-    
-    struct Iterator<T>
-    {
-        @index T
-        @high T
-        
-        pub new(low T, high T) { index = low;  this.high = high} 
-               
-        pub fun HasNext() bool => index < high
-                
-        pub fun GetNext(item ref T) bool
-        {
-            if HasNext()
-            {
-                item = index
-                index += T.Identity
-                return true
-            }
-            return false
-        }        
-       
-    }
-
 }
+
+struct RangeEnumerator<T>
+    implements IFastEnumerator<T>
+{
+    @index T
+    @high T
+    
+    pub new(low T, high T) { index = low;  this.high = high}
+                   
+    fun HasNext(this) bool => index < high
+    fun Advance(this mut) => index += T.Identiry
+    prop Current T => index
+}
+
+    

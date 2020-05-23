@@ -2,7 +2,8 @@
 
 /// String is a wrapper for a read only array of bytes
 pub class boxed str
-    : ArrayBase<byte>, IComparable<str>, IRoArray<byte>
+    extends ArrayBase<byte>
+    implements IComparable<str>, IRoArray<byte>
 {
     default str = "";
     
@@ -12,9 +13,9 @@ pub class boxed str
     pub operator[](index int) byte => todo()
     pub operator[](range Range) Span<byte> => todo() // Slice
     
-    pub static fun GetHashCode(a str) uint => todo()
-    pub static fun Equals(a str, b str) bool => todo()
-    pub static fun Compare(a str, b str) int => todo()
+    pub fun GetHashCode(a str) uint => todo()
+    pub fun Equals(a str, b str) bool => todo()
+    pub fun Compare(a str, b str) int => todo()
         
     pub operator+(s1 str, s2 str) str { todo() }   
     pub operator+(s1 Span<byte>, s2 str) str { todo() }

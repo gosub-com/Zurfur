@@ -19,18 +19,19 @@ pub class ArrayBase<T>
 }
 
 // Array of constant size
-pub class Array<T> 
-    : ArrayBase<T>, IArray<T>, IMutArray<T>
+pub class Array<T>
+    extends ArrayBase<T>
+    implements IArray<T>, IMutArray<T>
     where T : struct
 {
-    const MaxSize int = int.MaxInt/2
+    pub const MaxSize int = int.MaxInt/2
     pub static @Empty ^Array<T>()
 
     pub new(count int) => todo()
     pub new(items ICollection<T>) => todo()
     
-    pub operator[](index int) T => todo()
+    pub operator[](this, index int) T => todo()
     
     
-    pub operator[](range Range) MutMemory<T> => todo()
+    pub operator[](this, range Range) MutMemory<T> => todo()
 }
