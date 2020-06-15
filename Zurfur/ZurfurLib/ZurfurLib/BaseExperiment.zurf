@@ -8,9 +8,9 @@ pub class ArrayBase<T>
 {
     default ArrayBase<T>()
     
-    pub @Count int
+    pub var Count int
         
-    new(count int) => todo() // Allocate object on heap
+    func new(count int) => todo() // Allocate object on heap
         
     protected prop DataSpan Span<T> => todo()
         
@@ -22,16 +22,14 @@ pub class ArrayBase<T>
 pub class Array<T>
     extends ArrayBase<T>
     implements IArray<T>, IMutArray<T>
-    where T : struct
+    where T is struct
 {
     pub const MaxSize int = int.MaxInt/2
-    pub static @Empty ^Array<T>()
+    pub static var Empty ^Array<T>()
 
-    pub new(count int) => todo()
-    pub new(items ICollection<T>) => todo()
+    pub func new(count int) => todo()
+    pub func new(items ICollection<T>) => todo()
     
-    pub operator[](this, index int) T => todo()
-    
-    
-    pub operator[](this, range Range) MutMemory<T> => todo()
+    pub func operator[](this, index int) T => todo()
+    pub func operator[](this, range Range) MutMemory<T> => todo()
 }

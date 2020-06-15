@@ -26,8 +26,8 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sStructQualifiers = new WordSet("struct pub public protected private internal unsafe ref ro");
         static WordSet sEnumQualifiers = new WordSet("enum pub public protected private internal");
 
-        static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static ro const");
-        static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static ro const");
+        static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static ro const var mut");
+        static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static ro const var mut");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
 
         static WordSet sFuncQualifiers = new WordSet("func afunc fun afun pub public protected private internal unsafe virtual override new");
@@ -42,7 +42,7 @@ namespace Gosub.Zurfur.Compiler
             { "unsealed", 6 },
             { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
             { "class",9 }, { "struct",9 }, { "enum",9 }, { "interface",9 }, {"operator", 9},
-            { "func",9}, {"afunc",9}, { "fun", 9}, { "afun", 9},
+            { "func",9}, {"afunc",9},
             { "ref", 10},
             { "mut", 11 }, { "ro", 11}, {"readonly", 11},
             { "boxed", 12 }
@@ -133,8 +133,6 @@ namespace Gosub.Zurfur.Compiler
                     case "prop":
                         RejectQualifiers(func.Qualifiers, sPropQualifiers, "Qualifier does not apply to properties");
                         break;
-                    case "fun":
-                    case "afun":
                     case "func":
                     case "afunc":
                         RejectQualifiers(func.Qualifiers, sFuncQualifiers, "Qualifier does not apply to functions");
@@ -296,6 +294,10 @@ namespace Gosub.Zurfur.Compiler
                         CheckExpr(expr, expr[0]);
                     break;
 
+                case "const":
+                case "var":
+                case "let":
+                case "mut":
                 case "@":
                     if (expr.Count > 2)
                         CheckExpr(expr, expr[2]);
@@ -461,7 +463,7 @@ namespace Gosub.Zurfur.Compiler
                 expr.Token.Type = eTokenType.TypeName;
 
             // New variable
-            if (expr.Token == ParseZurf.NEWVAR)
+            if (expr.Token == "let" || expr.Token == "mut" || expr.Token == "var")
             {
                 if (expr.Count >= 2)
                     ShowTypes(expr[1], true);

@@ -9,11 +9,22 @@
 
 namespace Zurfur.UnitTests.Future
 
-fun test_ForSimple()
+pub class Example
+{
+    var info str                    // Private string initialized to ""
+    var f1 Array<int> = [1,2,3]             // Initialized array
+    var f2 List<str> = ["Hello", "World"]   // Initialized list
+    ro  f3 Map<str,int> = {"A":1, "B":2}    // Initialized immutable map
+    pub ro Header str = "Zurfur"            // Public read only string
+    pub func F(this, a int) str => Header+a // Public member function
+    pub prop P str => Header + info         // Public property
+}
+
+func test_ForSimple()
 {
 
-    @count int
-    for @a in 0..10
+    var count int
+    for a in 0..10
     {
         if a == 2
         {
@@ -38,36 +49,26 @@ fun test_ForSimple()
 }
 
 
-pub class Example
-{
-    mut @info str                // Private string initialized to ""
-    @f1 Array<int>([1,2,3])              // Initialized array
-    @f2 List<str>(["Hello", "World"])    // Initialized list
-    @f3 Map<str,int>({"A":1, "B":2})     // Initialized map
-    pub @Header str("Zurfur")         // Public read only string
-    pub fun F(this, a int) str => Header+a   // Member function
-    pub prop P str => Header + info     // Property
-}
-pub fun Example::MyExtension() => F()  // Extension method
+pub func Example::MyExtension() => F()  // Extension method
 
-pub fun Example::MyExtension()
+pub func Example::MyExtension()
 {
-    @a = Map<str,int>({"A":1, "B":2, "C":3})
-    @b Map<str,int> = {"A":1, "B":2, "C":3}
-    @c Map<int,PointXY> = {0:(3,4), 1:(5,6)}
+    var a = Map<str,int>({"A":1, "B":2, "C":3})
+    var b Map<str,int> = {"A":1, "B":2, "C":3}
+    var c Map<int,PointXY> = {0:(3,4), 1:(5,6)}
     
-    @d = 3                              // `a` is an int
-    @e = "Hello World"                  // `b` is a str
-    @f = MyFunction()                   // `c` is whatever type is returned by MyFunction
-    @g = List<int>([1,2,3])             // `d` is a list of integers, intialized with {1,2,3}
-    @h = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
-    @i = Json({"A":1,"B":[1,2,3]})      // `f` is a Json object containing a number and an array
+    var d = 3                              // `a` is an int
+    var e = "Hello World"                  // `b` is a str
+    var f = MyFunction()                   // `c` is whatever type is returned by MyFunction
+    var g = List<int>([1,2,3])             // `d` is a list of integers, intialized with {1,2,3}
+    var h = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
+    var i = Json({"A":1,"B":[1,2,3]})      // `f` is a Json object containing a number and an array
    
-    @j int = MyIntFunc()                // Error if MyIntFunc returns a float
-    @k str                              // `b` is a string, initialized to ""
-    @l List<int>                        // `c` is an empty List<int>
-    @m List<int> = [1, 2, 3]
-    @n Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
-    @o Map<int,str> = {0:"a", 1:"b"}
+    var j int = MyIntFunc()                // Error if MyIntFunc returns a float
+    var k str                              // `b` is a string, initialized to ""
+    var l List<int>                        // `c` is an empty List<int>
+    var m List<int> = [1, 2, 3]
+    var n Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
+    var o Map<int,str> = {0:"a", 1:"b"}
     
 }

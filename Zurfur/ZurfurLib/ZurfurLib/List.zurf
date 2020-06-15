@@ -3,22 +3,23 @@
 pub class List<T> 
     implements IList<T>
 {
-    @items ^Array<T> = Array<T>.Empty
-    @count int
+    var items ^Array<T> = Array<T>.Empty
+    var count int
 
-    pub new() => todo()
-    pub new(capacity int) => todo()
-    pub new(items ICollection<T>) => todo()
+    pub func new() => todo()
+    pub func new(capacity int) => todo()
+    pub func new(items ICollection<T>) => todo()
     
     pub prop Count int => count
 
-    pub operator[](index int) T { get => todo() set => todo() }
-    pub operator[](index Range) Span<T> => items[index]
-    pub fun Add(this mut, item T) => todo()
-    pub fun Clear(this mut) => todo()
-    pub fun Insert(this mut, index int, item T) => todo()
-    pub fun Insert(this mut, index int, items ICollection<T>) => todo()
-    pub fun Remove(this mut, index int) => todo()
-    pub fun Remove(this mut, range Range) => todo()
+    pub func operator[](index int) T { get => todo() set => todo() }
+    pub func operator[](index Range) Span<T> => items[index]
+
+    pub func Add(this mut, item T) => todo()
+    pub func Clear(this mut) => todo()
+    pub func Insert(this mut, index int, item T) => todo()
+    pub func Insert(this mut, index int, items ICollection<T>) => todo()
+    pub func Remove(this mut, index int) => todo()
+    pub func Remove(this mut, range Range) => todo()
     
 }

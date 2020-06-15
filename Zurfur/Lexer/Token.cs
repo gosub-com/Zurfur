@@ -18,7 +18,10 @@ namespace Gosub.Zurfur.Lex
         Quote,
         Comment,
         PublicComment,
-        CreateVariable,
+        DefineField,
+        DefineMethod,
+        DefineParam,
+        DefineLocal,
         TypeName
     }
 

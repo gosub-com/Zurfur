@@ -3,44 +3,42 @@
 /// Read only span
 pub struct ref ro Span<T>
 {
-    ro @data ref T
-    pub ro @Count int
-    pub operator[](index int) ro ref T => todo()
-    pub operator[](index Range) Span<T> => todo()
+    ro data ref T
+    pub ro Count int
+    pub func operator[](index int) ro ref T => todo()
+    pub func operator[](index Range) Span<T> => todo()
 }
 
 /// Mutable span
 pub struct ref ro MutSpan<T>
 {
-    ro @data ref T
-    pub ro @Count int
-    pub operator[](index int) ref T => todo()
-    pub operator[](index Range) MutSpan<T> => todo()
-    operator implicit(from MutSpan<T>) Span<T> => todo()
+    ro data ref T
+    pub ro Count int
+    pub func operator[](index int) ref T => todo()
+    pub func operator[](index Range) MutSpan<T> => todo()
+    pub func operator implicit(a MutSpan<T>) Span<T> => todo()
 }
 
 /// Read only memory span
-[NoTear]
 pub struct ro Memory<T>
 {
-    ro @data        object
-    ro @offset      xint
-    pub ro @Count   int
-    pub operator[](index int) ro ref T => todo()
-    pub operator[](index Range) Memory<T> => todo()
-    operator implicit(from Memory<T>) Span<T> => todo()
+    var data        object
+    var offset      xint
+    pub var Count   int
+    pub func operator[](index int) ro ref T => todo()
+    pub func operator[](index Range) Memory<T> => todo()
+    pub func operator implicit(a Memory<T>) Span<T> => todo()
 }
 
 /// Mutable memory span
-[NoTear]
 pub struct ro MutMemory<T>
 {
-    ro @data        object
-    ro @offset      xint
-    pub ro @Count   int
-    pub operator[](index int) ref T => todo()
-    pub operator[](index Range) MutMemory<T> => todo()
-    operator implicit(from MutMemory<T>) Memory<T> => todo()
-    operator implicit(from MutMemory<T>) Span<T> => todo()
-    operator implicit(from MutMemory<T>) MutSpan<T> => todo()
+    ro data        object
+    ro offset      xint
+    pub ro Count   int
+    pub func operator[](index int) ref T => todo()
+    pub func operator[](index Range) MutMemory<T> => todo()
+    pub func operator implicit(a MutMemory<T>) Memory<T> => todo()
+    pub func operator implicit(a MutMemory<T>) Span<T> => todo()
+    pub func operator implicit(a MutMemory<T>) MutSpan<T> => todo()
 }
