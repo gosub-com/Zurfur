@@ -6,16 +6,16 @@
 [Unsealed1]
 pub class ArrayBase<T>
 {
-    default ArrayBase<T>()
+    static func default() => ArrayBase<T>()
     
-    pub var Count int
+    pub Count int
         
     func new(count int) => todo() // Allocate object on heap
         
     protected prop DataSpan Span<T> => todo()
         
     protected unsafe prop DataPointer *T 
-        => #*T(#*byte(this) + Sizeof(ArrayBase))
+        => cast<*T>(cast<*byte>(this) + Sizeof(ArrayBase))
 }
 
 // Array of constant size
@@ -25,7 +25,7 @@ pub class Array<T>
     where T is struct
 {
     pub const MaxSize int = int.MaxInt/2
-    pub static var Empty ^Array<T>()
+    pub static Empty ^Array<T>()
 
     pub func new(count int) => todo()
     pub func new(items ICollection<T>) => todo()

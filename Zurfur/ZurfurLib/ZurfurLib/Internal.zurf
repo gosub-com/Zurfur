@@ -47,7 +47,7 @@ pub struct ro InterfaceVTable
 [Sealed1]
 pub class ArrayBase<T>
 {
-    default ArrayBase<T> = ArrayBase<T>(0)
+    static func default() => ArrayBase<T>(0)
     pub ro Count int
         
     func new(count int) 
@@ -56,5 +56,5 @@ pub class ArrayBase<T>
     protected prop DataSpan Span<T> 
         => todo()
     protected unsafe prop DataPointer *T 
-        => #*T(#*byte(this) + Sizeof(ArrayBase))
+        => cast<*T>(cast<*byte>(this) + Sizeof(ArrayBase))
 }

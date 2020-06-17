@@ -1,3 +1,13 @@
+
+// TODO:
+//  1) make static apply to func
+//  2) Add `mut` qualifier before func
+//  3) remove this as first parameter, allow mut before func
+//  4) allow default as name of property
+//  5) cast should require `(` after type name
+//  5) Change lambda to use `=>`
+
+
 use a.b.c
 use system.gosub.p
 
@@ -7,29 +17,40 @@ namespace Zurfur.Example
 
 pub class Example
 {
-    var info str                    // Private string initialized to ""
-    var f1 Array<int> = [1,2,3]             // Initialized array
-    var f2 List<str> = ["Hello", "World"]   // Initialized list
+    info str                    // Private string initialized to ""
+    f1 Array<int> = [1,2,3]             // Initialized array
+    f2 List<str> = ["Hello", "World"]   // Initialized list
     ro  f3 Map<str,int> = {"A":1, "B":2}    // Initialized immutable map
     pub ro Header str = "Zurfur"            // Public read only string
-    pub func F(this, a int) str => Header+a // Public member function
+    pub fun F(this, a int) str => Header+a  // Public member function
     pub prop P str => Header + info         // Public property
 }
+
+// Mutable point (each mutable func must also be marked)
+pub struct MyMutablePoint
+{
+    pub X int
+    pub Y int
+    pub func new(x int, y int) { X = x; Y = y}
+    pub mut func SetY(y int) { Y = y }
+    pub prop PropX int { get => X; set { X = value } }
+}
+
 
 /// Example class, a test of hover comments and `code` comments
 pub class Example_x
 {
     pub const CONST_FIELD int = 234
-    pub var field1 f32
-    pub var field2 int    
+    pub field1 f32
+    pub field2 int    
     pub prop Prop str => Header + info      // Property
-    pub func A(this, a int, b int, c f32) f32 => a+1
-    pub func A(this, a f32) f32 => a+1
-    pub func B(this, a f32) f32 => a+1
+    pub fun A(this, a int, b int, c f32) f32 => a+1
+    pub fun A(this, a f32) f32 => a+1
+    pub fun B(this, a f32) f32 => a+1
     pub prop ChangedTime DateTime = DateTime.Now
         => default get private set
         
-    pub func E()
+    pub fun E()
     {
         const MY_CONST = 23
         var a = f(x)
@@ -37,20 +58,20 @@ pub class Example_x
     }
     
 }
-pub func Example::MyExtension(this) => Func1(10) // Extension method
+pub fun Example::MyExtension(this) => Func1(10) // Extension method
 
 
 pub struct PointXY<T>
     implements IArithmetic<T>
     where f is IAritmetic<T>
 {
-    pub var x int
-    pub var y int
+    pub x int
+    pub y int
     
-    pub func operator+(a PointXY<T>, b PointXY<T>) PointXY<T> => todo()
+    pub fun operator+(a PointXY<T>, b PointXY<T>) PointXY<T> => todo()
 }
 
-pub func Example::Extension(this) 
+pub fun Example::Extension(this) 
 { 
     for a in 1..23
     {
@@ -74,31 +95,31 @@ pub class Example2  // YES, errors working
     //    Switch statement
 
     // Fields initialized to zero, null, or "" for string
-    var f1 int          // Initialized to 0
-    var f2 f32      // Initialized to 0.0
-    var f3 str          // Initialized to "", not NULL
+    f1 int          // Initialized to 0
+    f2 f32      // Initialized to 0.0
+    f3 str          // Initialized to "", not NULL
     
     // Fields initialized to null
-    var f4 Array<int> = [1,2,3,4]
-    var f5 Array<Array<int>> 
-    var f7 Map<str,List<int>>
-    var f8 Pointer<int>
-    var f9 *int        // Same as Pointer<int>
+    f4 Array<int> = [1,2,3,4]
+    f5 Array<Array<int>> 
+    f7 Map<str,List<int>>
+    f8 Pointer<int>
+    f9 *int        // Same as Pointer<int>
     
     // Fields initialized via constructor
-    var f10 int(FuncReturnsInt())
-    var f11 Array<int>()            // Array, Count=0
-    var f12 Array<int>(32)          // Array, Count=32
-    var f13 Array<int>([1,2,3])     // Array initialized with 1, 2, 3
-    var f13a List<int>(32)          // Empty List, Capacity=32
-    var f14 Map<str,str>()          // Empty map
+    f10 int(FuncReturnsInt())
+    f11 Array<int>()            // Array, Count=0
+    f12 Array<int>(32)          // Array, Count=32
+    f13 Array<int>([1,2,3])     // Array initialized with 1, 2, 3
+    f13a List<int>(32)          // Empty List, Capacity=32
+    f14 Map<str,str>()          // Empty map
     
     // Fields initialized via assignment
-    var f15 int = 32
-    var f16 int = FuncReturnsInt() >> 4
-    var f17 f32 = FuncReturnsf32orInt()
-    var f18 str = "Hello"
-    var f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
+    f15 int = 32
+    f16 int = FuncReturnsInt() >> 4
+    f17 f32 = FuncReturnsf32orInt()
+    f18 str = "Hello"
+    f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
     pub prop P1 int => 1
@@ -111,28 +132,28 @@ pub class Example2  // YES, errors working
         set { p1 = value }
     }
     
-    pub func operator[](this, index i) int => i
+    pub fun operator[](this, index i) int => i
     
     // Function
-    func fun1(this, a int) f32 => f1 + f2 + a
-    func func1(this, a int) { }
-    func func2(this, a out str) bool {}
-    func func4(this, a ref MyStruct) {}
-    func func5(this, a Array<Array<int>>) {}
-    func func7(this, a List<int>) { }
-    func func8(this, a out List<List<int>>) { }
-    func func10(this, a Map<str,List<int>>) { }
+    fun fun1(this, a int) f32 => f1 + f2 + a
+    fun func1(this, a int) { }
+    fun func2(this, a out str) bool {}
+    fun func4(this, a ref MyStruct) {}
+    fun func5(this, a Array<Array<int>>) {}
+    fun func7(this, a List<int>) { }
+    fun func8(this, a out List<List<int>>) { }
+    fun func10(this, a Map<str,List<int>>) { }
     
-    pub func Sort<T>(greaterThan func(a T, b T) bool) { }
-    pub var MyFieldFunc func(sender object, message str)
+    pub fun Sort<T>(greaterThan fun(a T, b T) bool) { }
+    pub MyFieldFunc fun(sender object, message str)
 
 
-    pub func M<A,B>(this, a A, b B, c List<int>) List<int> {}
+    pub fun M<A,B>(this, a A, b B, c List<int>) List<int> {}
     
-    func func8(this, a out List<List<int>>) { }
-    func func8(this, a out MyList<int,x,y,z>){ }
+    fun func8(this, a out List<List<int>>) { }
+    fun func8(this, a out MyList<int,x,y,z>){ }
     
-    pub func Main(args Array<str>)
+    pub fun Main(args Array<str>)
     {
         use mut a = OpenFile("My File");
         defer file.close();
@@ -147,17 +168,17 @@ pub class Example2  // YES, errors working
         var a7 = f(f<a>())(a+b)
 
         // Casts
-        var a = #int(a+b+myFloat32)*23+4        // Prefix, operator
-        var a = #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())    // Prefix
-        var b = *#*int(myVoidPointer)      // Prefix
-        var c1 = #M<str,int.x<T>.y>.Hello2(A)
-        var c2 = #M<str,int.x<T>.y>.Hello2<x.x>(A)
-        var c3 = #List<int,y,z>(A)
-        var a = #int(a+b+myFloat32)
-        var a = #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
-        var a = (#List<Stuff>(yourStuff.SeeMyStuff)).Add(Stuff())
-        var b = *#*int(myVoidPointer)
-        #List<Stuff>(yourStuff.SeeMyStuff)[23] = 4
+        var a = cast<int>(a+b+myFloat32)*23+4        // Prefix, operator
+        var a = cast<List<Stuff>>(yourStuff.SeeMyStuff).Add(Stuff())    // Prefix
+        var b = *cast<*int>(myVoidPointer)      // Prefix
+        var c1 = cast<M<str,int.x<T>.y>.Hello2>(A)
+        var c2 = cast<M<str,int.x<T>.y>.Hello2<x.x>>(A)
+        var c3 = cast<List<int,y,z>>(A)
+        var a = cast<int>(a+b+myFloat32)
+        var a = cast<List<Stuff>>(yourStuff.SeeMyStuff).Add(Stuff())
+        var a = (cast<List<Stuff>>(yourStuff.SeeMyStuff)).Add(Stuff())
+        var b = *cast<*int>(myVoidPointer)
+        cast<List<Stuff>>(yourStuff.SeeMyStuff)[23] = 4
 
 
         // Local variables declared in a function
@@ -205,8 +226,7 @@ pub class Example2  // YES, errors working
         {
         case 1:
             DoIt(1) // No break necessary         
-        case 2: // Empty case is the only time it falls through
-        case 3:
+        case 2, 3:
             DoIt2()
         default: doit3();
         }
@@ -215,7 +235,7 @@ pub class Example2  // YES, errors working
 }
 
 
-pub func Example::IfTests() 
+pub fun Example::IfTests() 
 { 
     // In operator
     if myStr in myMap || myIn in 1..23
@@ -291,9 +311,9 @@ pub func Example::IfTests()
 
 pub struct MyPoint
 {
-    pub var X int
-    pub var Y int
-    pub override func ToStr(this) => "(" + X + "," + Y + ")"
+    pub X int
+    pub Y int
+    pub override fun ToStr(this) => "(" + X + "," + Y + ")"
 }
 
 
@@ -309,25 +329,25 @@ pub enum MyEnum
 
 pub interface MyInterfaceTest
 {
-    func A(this) int => imp
-    protected func C(this ) int => imp
+    fun A(this) int => imp
+    protected fun C(this ) int => imp
         
-    pub func B(this) int => A() + 1
-    pub struct Astruct { pub var a int }
+    pub fun B(this) int => A() + 1
+    pub struct Astruct { pub a int }
     pub enum Aenum { a; b; c}
-    pub class Aclass { pub var a int  }
+    pub class Aclass { pub a int  }
 }
 
 pub class MyClass1 
     implements MyInterfaceTest
 {
-    pub func A() int => 3
-    pub func MyInterfaceTest::C(this) int => 3
+    pub fun A() int => 3
+    pub fun MyInterfaceTest::C(this) int => 3
 
 }
 
 
-pub func Sort<T>(s MutSpan<T>, lessThan func(a T, b T) bool)
+pub fun Sort<T>(s MutSpan<T>, lessThan fun(a T, b T) bool)
 {
     // Simple selection sort
     for i in s.Count-1
@@ -354,16 +374,16 @@ pub func Sort<T>(s MutSpan<T>, lessThan func(a T, b T) bool)
 pub class Matrix2d<t>
     extends VariableSizedObject<T>
 {
-    func new(len1 int, len2 int) { todo() }
-    pub func operator[](i1 int, i2 int) ref T => todo()
+    fun new(len1 int, len2 int) { todo() }
+    pub fun operator[](i1 int, i2 int) ref T => todo()
 }
 
 
 
-pub func MemCopy(dest *void, source *void, length xint)
+pub fun MemCopy(dest *void, source *void, length xint)
 {
-    var d = #xint(dest)
-    var s = #xint(source)
+    var d = cast<xint>(dest)
+    var s = cast<xint>(source)
     
     if length <= 0
     {
@@ -372,12 +392,12 @@ pub func MemCopy(dest *void, source *void, length xint)
     // Align `d` on i32
     while d & 3 != 0 && length != 0
     {
-        *#*byte(d) = *#*byte(s); d+=1; s+=1; length-=1
+        *cast<*byte>(d) = *cast<*byte>(s); d+=1; s+=1; length-=1
     }
     
     if s & 3 == 0
     {
-        MemCopy32(#*void(d), #*void(s), length)
+        MemCopy32(cast<*void>(d), cast<*void>(s), length)
         return
     }
     
@@ -385,21 +405,21 @@ pub func MemCopy(dest *void, source *void, length xint)
     var end = d + length
     while end-d >= 4
     {
-        *#*byte(d) = *#*byte(s); d+=1; s+=1
-        *#*byte(d) = *#*byte(s); d+=1; s+=1
-        *#*byte(d) = *#*byte(s); d+=1; s+=1
-        *#*byte(d) = *#*byte(s); d+=1; s+=1
+        *cast<*byte>(d) = *cast<*byte>(s); d+=1; s+=1
+        *cast<*byte>(d) = *cast<*byte>(s); d+=1; s+=1
+        *cast<*byte>(d) = *cast<*byte>(s); d+=1; s+=1
+        *cast<*byte>(d) = *cast<*byte>(s); d+=1; s+=1
     } 
     while d != end
     {
-        *#*byte(d) = *#*byte(s); d+=1; s+=1
+        *cast<*byte>(d) = *cast<*byte>(s); d+=1; s+=1
     }
 }
 
-pub func MemCopy32(dest *void, source *void, length xint)
+pub fun MemCopy32(dest *void, source *void, length xint)
 {
-    var d = #xint(dest)
-    var s = #xint(source)
+    var d = cast<xint>(dest)
+    var s = cast<xint>(source)
 
     if length <= 0
     {
@@ -412,38 +432,38 @@ pub func MemCopy32(dest *void, source *void, length xint)
     {
         if d & 4 != 0
         {
-            *#*i32(d) = *#*i32(s); d+=4; s+=4
+            *cast<*i32>(d) = *cast<*i32>(s); d+=4; s+=4
         }
         while end - d >= 8  
         {
-            *#*i64(d) = *#*i64(s); d+=8; s+=8
+            *cast<*i64>(d) = *cast<*i64>(s); d+=8; s+=8
         }
     }
     while end-d >= 4
     {
-        *#*i32(d) = *#*i32(s); d+=4; s+=4
+        *cast<*i32>(d) = *cast<*i32>(s); d+=4; s+=4
     }
     while d != end
     {
-        *#*byte(d) = *#*byte(s); d+=1; s+=1
+        *cast<*byte>(d) = *cast<*byte>(s); d+=1; s+=1
     }
 }
 
 namespace ExampleNs1.HelloWorld
 {
-    func F1() => todo
+    fun F1() => todo
     
     class ClassEx1
     {
-        var a int;
-        var b int;
+        a int;
+        b int;
     }
 }
 
 
 namespace ExampleNs1
 {
-    func F1() => todo
+    fun F1() => todo
     
     namespace InnerEx1
     {
@@ -456,8 +476,8 @@ namespace ExampleNs1
 
     class ClassEx1
     {
-        var a int;
-        var b int;
+        a int;
+        b int;
         class Inner1
         {
         }
@@ -480,12 +500,12 @@ namespace ExampleNs1
 
 namespace ExampleNs2
 {
-    func F1() => todo
+    fun F1() => todo
     
     class ClassEx1
     {
-        var a int
-        var b int
+        a int
+        b int
         class Inner1
         {
         }

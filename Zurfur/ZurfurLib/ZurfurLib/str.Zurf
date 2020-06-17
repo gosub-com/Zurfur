@@ -5,7 +5,7 @@ pub class ro str
     extends ArrayBase<byte>
     implements IComparable<str>, IRoArray<byte>
 {
-    default str = "";
+    fun default() => "";
     
     pub func new() { todo() }
     pub func new(s str) { todo() }

@@ -3,8 +3,8 @@
 pub class List<T> 
     implements IList<T>
 {
-    var items ^Array<T> = Array<T>.Empty
-    var count int
+    items ^Array<T> = Array<T>.default
+    count int
 
     pub func new() => todo()
     pub func new(capacity int) => todo()
@@ -22,4 +22,8 @@ pub class List<T>
     pub func Remove(this mut, index int) => todo()
     pub func Remove(this mut, range Range) => todo()
     
+    pub func Convert<Tout>(this, c func(input T) Tout) => todo() 
+    pub func ForEach(this, r func(input T)) => todo()
+    pub func Find(this, p func(input T)) => todo()
+        
 }

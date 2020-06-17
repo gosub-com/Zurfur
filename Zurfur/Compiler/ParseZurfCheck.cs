@@ -26,8 +26,8 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sStructQualifiers = new WordSet("struct pub public protected private internal unsafe ref ro");
         static WordSet sEnumQualifiers = new WordSet("enum pub public protected private internal");
 
-        static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static ro const var mut");
-        static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static ro const var mut");
+        static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static ro const var mut @");
+        static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static ro const var mut @");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
 
         static WordSet sFuncQualifiers = new WordSet("func afunc fun afun pub public protected private internal unsafe virtual override new");
@@ -42,7 +42,7 @@ namespace Gosub.Zurfur.Compiler
             { "unsealed", 6 },
             { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
             { "class",9 }, { "struct",9 }, { "enum",9 }, { "interface",9 }, {"operator", 9},
-            { "func",9}, {"afunc",9},
+            { "func",9}, {"afunc",9},{"fun",9},{"afun",9},
             { "ref", 10},
             { "mut", 11 }, { "ro", 11}, {"readonly", 11},
             { "boxed", 12 }
@@ -59,8 +59,6 @@ namespace Gosub.Zurfur.Compiler
         {
             LastToken = null;
             CheckParseTree(unit);
-            LastToken = null;
-            ShowTypes(unit); // TBD: This is temporary until type analysis is complete
             LastToken = null;
             ShowParseTree(unit);
         }
@@ -133,6 +131,8 @@ namespace Gosub.Zurfur.Compiler
                     case "prop":
                         RejectQualifiers(func.Qualifiers, sPropQualifiers, "Qualifier does not apply to properties");
                         break;
+                    case "fun":
+                    case "afun":
                     case "func":
                     case "afunc":
                         RejectQualifiers(func.Qualifiers, sFuncQualifiers, "Qualifier does not apply to functions");
@@ -385,106 +385,6 @@ namespace Gosub.Zurfur.Compiler
                         CheckExpr(expr, e);
                     break;
             }
-        }
-
-        void Grayout(SyntaxExpr expr)
-        {
-            expr.Token.Grayed = true;
-            var connectors = expr.Token.GetInfo<Token[]>();
-            if (connectors != null)
-                foreach (var t in connectors)
-                    t.Grayed = true;
-            foreach (var e in expr)
-                Grayout(e);
-        }
-
-        public void ShowTypes(SyntaxUnit unit)
-        {
-            foreach (var aClass in unit.Types)
-                ShowTypes(aClass);
-            foreach (var func in unit.Funcs)
-                ShowTypes(func);
-            foreach (var field in unit.Fields)
-            {
-                ShowTypes(field.TypeName, true);
-                ShowTypes(field.InitExpr, false);
-            }
-        }
-
-        void ShowTypes(SyntaxType aClass)
-        {
-            ShowTypes(aClass.Alias, true);
-            if (aClass.Extends != null)
-                ShowTypes(aClass.Extends, true);
-            if (aClass.Implements != null)
-                foreach (var baseClass in aClass.Implements)
-                    ShowTypes(baseClass, true);
-            aClass.Name.Type = eTokenType.TypeName;
-            ShowTypes(aClass.TypeParams, true);
-            ShowTypes(aClass.Constraints);
-        }
-
-        void ShowTypes(SyntaxConstraint []constraints)
-        {
-            if (constraints == null)
-                return;
-            foreach (var constraint in constraints)
-            {
-                if (constraint.GenericTypeName != null)
-                    constraint.GenericTypeName.Type = eTokenType.TypeName;
-                if (constraint.TypeNames != null)
-                    foreach (var typeName in constraint.TypeNames)
-                        ShowTypes(typeName, true);
-            }
-        }
-
-        void ShowTypes(SyntaxFunc func)
-        {
-            ShowTypes(func.ClassName, true);
-            ShowTypes(func.TypeParams, true);
-            ShowTypes(func.ReturnType, true);
-            ShowTypes(func.Statements, false);
-            ShowTypes(func.Constraints);
-            if (func.Params != null)
-                foreach (var param in func.Params)
-                    if (param.Count >= 1)
-                        ShowTypes(param[0], true);
-
-        }
-
-        void ShowTypes(SyntaxExpr expr, bool isType)
-        {
-            if (expr == null)
-                return;
-            if (isType && (expr.Token.Type == eTokenType.Identifier
-                            || expr.Token == ParseZurf.PTR
-                            || expr.Token == ParseZurf.REFERENCE
-                            || expr.Token == "?") )
-                expr.Token.Type = eTokenType.TypeName;
-
-            // New variable
-            if (expr.Token == "let" || expr.Token == "mut" || expr.Token == "var")
-            {
-                if (expr.Count >= 2)
-                    ShowTypes(expr[1], true);
-                for (int i = 2; i < expr.Count; i++)
-                    ShowTypes(expr[i], isType);
-                return;
-            }
-
-            // Cast
-            if (expr.Token == "#" || expr.Token == "sizeof")
-            {
-                if (expr.Count >= 1)
-                    ShowTypes(expr[0], true);
-                if (expr.Count >= 2)
-                    ShowTypes(expr[1], false);
-            }
-
-            if (expr.Token == ParseZurf.VIRTUAL_TOKEN_TYPE_ARG_LIST)
-                isType = true;
-            foreach (var e in expr)
-                ShowTypes(e, isType);
         }
 
         public void ShowParseTree(SyntaxUnit unit)

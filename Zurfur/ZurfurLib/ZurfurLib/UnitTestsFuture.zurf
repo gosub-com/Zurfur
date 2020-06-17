@@ -11,13 +11,13 @@ namespace Zurfur.UnitTests.Future
 
 pub class Example
 {
-    var info str                    // Private string initialized to ""
-    var f1 Array<int> = [1,2,3]             // Initialized array
-    var f2 List<str> = ["Hello", "World"]   // Initialized list
-    ro  f3 Map<str,int> = {"A":1, "B":2}    // Initialized immutable map
-    pub ro Header str = "Zurfur"            // Public read only string
-    pub func F(this, a int) str => Header+a // Public member function
-    pub prop P str => Header + info         // Public property
+    info str                    // Private string initialized to ""
+    f1 Array<int> = [1,2,3]             // Initialized array
+    f2 List<str> = ["Hello", "World"]   // Initialized list
+    ro f3 Map<str,int> = {"A":1, "B":2} // Initialized immutable map
+    pub ro Header str = "Zurfur"        // Public read only string
+    pub func F(a int) str => Header+a   // Public member function
+    pub prop P str => Header + info     // Public property
 }
 
 func test_ForSimple()
@@ -46,6 +46,14 @@ func test_ForSimple()
         count += a
     }
     Console.Log("For loop: " + count == 622145 ? "Pass" : "Fail")
+}
+
+
+pub func test_Convert()
+{
+    var a = List<float>()
+    var b = List<int>()
+    var c = a.Convert((i) -> cast<int>(i))
 }
 
 

@@ -116,8 +116,8 @@ pub interface IList<T>
 
 pub struct KeyValuePair<TKey, TValue>
 {
-    pub var Key TKey
-    pub var Value TValue
+    pub Key TKey
+    pub Value TValue
 
     pub func new(key TKey, value TValue) { Key = key; Value = value }
 }

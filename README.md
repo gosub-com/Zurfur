@@ -15,9 +15,8 @@ Thoughts about where to go and how to do it: [Internals](Doc/Internals.md).
 ## Design Goals
 
 * Fun and easy to use
-* Safe code is just as efficient than C#
-* Unsafe code is just as efficient as C
-* Ahead of time compile to WebAssembly with tiny run-time library
+* Faster than C# and unsafe code just as fast as C
+* Target WebAssembly with ahead of time compilation
 * Stretch goal: Rewrite compiler and IDE in Zurfur on Node.js
 
 ![](Doc/IDE.png)
@@ -34,7 +33,7 @@ Here are some differences between Zurfur and C#:
 * Type declaration syntax and operator precedence is from Golang
 * Interfaces may be implemented by the class (C# style) or externally (Rust trait style)
 * Get/set of mutable structs acts like you think it should (e.g. `MyListOfStructPoints[1].X = 5`)
-* `==` operator fails if it is not defined on a class
+* `==` operator fails if it is not defined on a class (does not default to object comparison)
 * Async blocks the calling function by default (ideal for Javascript callbacks)
 
 #### Status Update
@@ -56,9 +55,9 @@ make memory management faster and less complex.
 
 #### Inspirations
 
-* [Lobster](http://strlen.com/lobster/) - A really cool language the uses reference counting GC
+* [Lobster](http://strlen.com/lobster/) - A really cool language that uses reference counting GC
 * [Zig](https://ziglang.org/) - A better and safer C
-* [Pinecone](https://github.com/wmww/Pinecone/blob/master/readme.md) - Inspiration to keep plugging away.
+* [Pinecone](https://github.com/wmww/Pinecone/blob/master/readme.md) - Inspiration to keep plugging away
 
 ## Functions
 
@@ -74,6 +73,7 @@ make memory management faster and less complex.
     pub static func add(a int, b int) int
         => a + b
 
+**TBD:** Use `fun` instead of `func`?
 
 Functions are declared with the `func` keyword. The type names come
 after each argument, and the return type comes after the parameters.
@@ -107,21 +107,7 @@ or `out`.
 
 ## Local Variables
 
-**I have changed the language to use** `var` **instead of** `@`.  I think
-`var` is so common that it deserves a special operator.  But, this might
-turn people off since everyone is used to `var`.  I am still very undecided on this point.
-
-Within a function, variables are declared and initialized with the `@` symbol,
-which is similar to `var` in C#.  
-
-    @a = 3                              // `a` is an int
-    @b = "Hello World"                  // `b` is a str
-    @c = MyFunction()                   // `c` is whatever type is returned by MyFunction
-    @d = List<int>([1,2,3])             // `d` is a list of integers, intialized with {1,2,3}
-    @e = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
-    @f = Json({"A":1,"B":[1,2,3]})      // `f` is a Json object containing a number and an array
-
-Or, do you like this better?
+Within a function, variables are declared and initialized with the `var` keyword:  
 
     var a = 3                              // `a` is an int
     var b = "Hello World"                  // `b` is a str
@@ -130,20 +116,22 @@ Or, do you like this better?
     var e = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
     var f = Json({"A":1,"B":[1,2,3]})      // `f` is a Json object containing a number and an array
 
+**I have changed the language to use** `var` **instead of** `@`.  I think
+`var` is so common that it deserves a special operator.  But, this might
+turn people off since everyone is used to `var`.  I am still undecided on this point.
+This is what it would like like using `@`:
+
+    @a = 3                              // `a` is an int
+    @b = "Hello World"                  // `b` is a str
+    @c = MyFunction()                   // `c` is whatever type is returned by MyFunction
+    @d = List<int>([1,2,3])             // `d` is a list of integers, intialized with {1,2,3}
+    @e = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
+    @f = Json({"A":1,"B":[1,2,3]})      // `f` is a Json object containing a number and an array
    
 The above form `@variable = expression` creates a variable with the same type as
 the expression.  A second form `@variable type [=expression]` creates an explicitly
 typed variable with optional assignment from an expression.  If the expression
 cannot be converted, an error is generated
-
-    @a int = MyIntFunc()                // Error if MyIntFunc returns a float
-    @b str                              // `b` is a string, initialized to ""
-    @c List<int>                        // `c` is an empty List<int>
-    @d List<int> = [1, 2, 3]
-    @e Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
-    @f Map<int,str> = {0:"a", 1:"b"}
-
-Or do you like this better?
 
     var a int = MyIntFunc()                // Error if MyIntFunc returns a float
     var b str                              // `b` is a string, initialized to ""
@@ -152,6 +140,14 @@ Or do you like this better?
     var e Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
     var f Map<int,str> = {0:"a", 1:"b"}
 
+Or do you like this better?
+
+    @a int = MyIntFunc()                // Error if MyIntFunc returns a float
+    @b str                              // `b` is a string, initialized to ""
+    @c List<int>                        // `c` is an empty List<int>
+    @d List<int> = [1, 2, 3]
+    @e Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
+    @f Map<int,str> = {0:"a", 1:"b"}
 
 #### Non-Nullable References
 
@@ -246,7 +242,11 @@ fields when necessary:
     var a List<MyPoint> = [(1,2),(3,4),(5,6)]
     a[1].Y = 12    // Now `a` contains [(1,2),(3,12),(5,6)]
 
-See below for information about initializer expressions and slice operator.
+**TBD:** Lists can be sliced.  This is very useful, so a `list` can
+double as a string builder.  The downside is that if an element
+is added to the list, the slice can point to a stale copy of
+the array backing.  This is not memory un-safe since the old
+array is still there, but it is a bit user un-friendly.
 
 #### Map
 
@@ -282,7 +282,7 @@ the fastest or most efficient. For efficient memory usage, `Json` will support
 Operator precedence comes from Golang.
 
     Primary: x.y f(x) a[i] #type(expr)
-    Unary: - ! & ~ * box
+    Unary: - ! & ~ * cast
     Multiplication and bits: * / % << >> & 
     Add and bits: + - | ~
     Range: .. ::
@@ -293,15 +293,10 @@ Operator precedence comes from Golang.
     Lambda: ->
     Comma Separator: ,
     Assignment Statements: = += -= *= /= %= &= |= ~= <<= >>=
-    Statement separator: => (not an operator, not lambda)
 
 The `*` operator is both multiplication and unary dereference, same as in C.
 When used in type definitions, it means *pointer to*, for example `var a *int`
 means `a` is a pointer to `int`.
-
-The `^` operator means *reference to* object when used in type definitions.
-The `box` operator is used to make a reference to a struct or class.
-**TBD:** Might change unary `box` operator to `^` in the future.
 
 The `~` operator is both xor and unary complement, same as `^` in Golang.
 
@@ -338,7 +333,6 @@ Zurfur inherits this from C#, and Eric Lippert
 An initializer is a Json-like list or map enclosed within `{}` or `[]` and
 may be used any place a function parameter takes either an `ICollection`,
 `IRoMap`, or for `()` an object with a matching constructor:
-
 
     var a Array<int> = [1,2,3]                 // Array syntax
     var b Map<str,int> = {"A":1, "B":2}        // Map syntax
@@ -488,41 +482,33 @@ level as a `case` statement.
         DoStuff3()
     }
 
-## Class, Boxed Class, and Struct
+Switch can also be used as an expression:
 
-**TBD:** For now, `^` is used in type names to mean *reference to*, and
-the unary `box` operator is used in expressions to box the value.  Consider
-using `^` for both since it could be confusing to have one thing for type
-names and another for expressions.  Alternatively, `box` could be used for both.
+    var num = switch myConstant { 23 => a, 27 => b, default => 0}
 
-There are three types of objects:
+## Classes
 
-1. `class` - An *owned* object, allocated directly on the stack or inside another class
-2. `class boxed` - A heap object, always allocated on the heap just like in C#
-3. `struct` - A value object, always copied except when passed to functions
-
-The goal is to minimize the number of objects created on the heap without
-overly burdening the programmer.  To accomplish this, classes are *owned*
-by the creator, which means they cannot be copied, nor can they be stored
-in a collection or array unless they are explicitly boxed. 
-
-#### Classes
-
-Classes are always alocated on the heap, reference counted, and destroyed
-when the count drops to zero.  Because of this, classes have deterministic
+Classes are always allocated on the heap, reference counted, and destroyed
+when the count drops to zero.  Because of this, classes can have deterministic
 finalization via `dispose` method.
 
     var myFileStream = File.Open("Hello.txt")
     // myFileStream is closed at end of scope unless it is stored somewhere
 
+**TBD:** Is deterministic finalization wise?  I love being able to use a
+file and have it close automatically when it goes out of scope.  But, if
+the object is captured, then it would close when the final reference
+becomes `null` opening up the possibility of an exception being
+thrown wherever a reference cont drops to zero.  C# has a similar problem.
+
     pub class Example
     {   
         // Mutable fields
-        var F1 str                                   // Private string initialized to ""
-        pub var F2 Array<int>                        // Array initialized to empty (i.e. Count = 0)
-        pub var F4 Array<int> = [1,2,3]              // Array initialized with 1,2,3
-        pub var F5 List<str> = ["Hello", "World"]    // Initialized list
-        pub var F6 Map<str,int> = {"A":1, "B":2}     // Initialized map
+        F1 str                                  // Private string initialized to ""
+        pub F2 Array<int>                       // Array initialized to empty (i.e. Count = 0)
+        pub F4 Array<int> = [1,2,3]             // Array initialized with 1,2,3
+        pub F5 List<str> = ["Hello", "World"]   // Initialized list
+        pub F6 Map<str,int> = {"A":1, "B":2}    // Initialized map
 
         // Immutable fields
         pub ro F7 str = "Hello world"                // Initialized read only string
@@ -536,9 +522,8 @@ finalization via `dispose` method.
             => default get private set
     }
 
-Class fields need to be preceded either with `var` for regular fields, or
-`ro` for immutable fields, or `const`.  Unlike in C#, When `ro` is used, it
-is read only all the way (e.g. `points[1].x = 0` is illegal)
+Class fields can use `ro` to indicate read only.  Unlike in C#, When `ro`
+is used, it is read only all the way (e.g. `points[1].x = 0` is illegal)
 
 The `prop` keyword is used to define a property.  Properties can be given
 a default value by `=` immediately after the type name.  The compiler can
@@ -550,32 +535,19 @@ Sealed generic classes may be inherited to create specializations
 (e.g. `class MyIntList : List<int> { }`, etc), however the virtul functions
 may not be overridden.
 
-**TBD:** Use `@` instead of `var` for member variables?  
-A struct with fields would look like this: `struct MyPoint { pub @a int; pub @b int}`
-or `struct MyImmutablePoint { pub ro @a int; pub ro @b int}`
-
 #### Struct
 
 A `struct` is a value object (just like C#), and can be used where speed and
-efficiency are desired.  `int`, `byte`, and `float` are structs. They are
-mutable by default, but can be made immutable using the `ro` keyword.
+efficiency are desired.  `int`, `byte`, and `float` are structs. 
 
     // Mutable point (each mutable func must also be marked)
     pub struct MyMutablePoint
     {
-        pub var X int
-        pub var Y int
-        pub new(x int, y int) { X = x; Y = y}
-        pub func SetY(this mut, y int) { Y = y }
-    }
-
-
-    // Immutable point (use `ro` on the `struct`)
-    pub struct ro MyPoint
-    {
-        pub ro X int
-        pub ro Y int
-        pub new(x int, y int) { X = x; Y = y}
+        pub X int
+        pub Y int
+        pub func new(x int, y int) { X = x; Y = y}
+        pub mut func SetY(y int) { Y = y }
+        pub prop PropX int { get => X; set { X = value } }
     }
     
 
@@ -584,32 +556,24 @@ A mutable struct returned from a getter can be mutated in-place provided there i
     var a = List<MyMutablePoint> = [(1,2), (3,4), (5,6)]
     a[1].X = 23         // `a` contains [(1,2),(23,4), (5,6)]
     a[1].SetY(24)       // `a` contains [(1,2),(23,24), (5,6)]
+    a[1].PropX = 0      // `a` contains [(1,2),(0,24), (5,6)]
 
 This works because `SetY` is a mutating function so the corresponding
 `List` setter is called to save the result. 
 
+Structs are mutable by default, but can be made immutable using the `ro` keyword:
+
+    // Immutable point (use `ro` on the `struct`)
+    pub struct ro MyPoint
+    {
+        pub ro X int
+        pub ro Y int
+        pub new(x int, y int) { X = x; Y = y}
+    }
+
 Structs are passed to functions by value or by reference, whichever is more
 efficient.  So, `var a = Multiply(b,c)` would pass `b` and `c` by value
 if they are integers, or by reference if they are large matricies.
-
-A struct may not contain a class, however it may contain a reference to a class.
-
-    struct MyThing
-    {
-        pub myList List<int>()      // ILLEGAL - myList is owned and can't be copied
-        pub myRefList ^List<int>()  // OK, myRefList is not owned
-    }
-
-
-#### Lambdas
-
-Lambdas are also owned by default, but can be boxed as long as they don't
-contain a reference including a reference to `this`. 
-
-**TBD:** Work out how much bad this will be.  Passing local parameters
-and `this` by reference is fine for owned lambdas restricted to function
-call boundaries.  Lambdas that get stored in a collection must
-not 
 
 #### Enums
 
@@ -638,23 +602,12 @@ The one with flags allows `|` and `&`, etc but the other doesn't.
 
 ## Casting
 
-The cast as we know it from C and C# has a couple of problems.  First, the parser
-doesn't know a type name is expected until after it has been parsed, meaning
-the IDE can't show a list filtered by type name while you are typing.  Second,
-the syntax for cast looks strange for simple types `var myInt = (int)(a+b*myFloat)`
-when you'd much rather see it like a function call `var myInt = int(a+b*myFloat)`.
-
-Zurfur uses `#` to cast from one type to another.  It looks like this `#type(expression)`:
-
-    var a = (int)(a+myFloat)       // C# (not allowed in Zurfur)
-    var a = #int(a+myFloat)        // Zurfur style
-
-    ((List<Stuff>)yourStuff.SeeMyStuff).Add(Stuff())    // C# (not allowed in Zurfur)
-    #List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())     // Zurfur style
-
 A cast is used when a type conversion should be explicit, including
 conversion from a base class to a derived class, conversion between
 pointer types, and conversion of integer types that may lose precision.
+
+    var a = cast<int>(a+myFloat)    // Cast a float to an int
+    var b = cast<*int>(myPtr)       // Cast myPtr to *int
 
 A constructor can be used to convert types that don't lose precision,
 like `byte` to `int`, but a cast must be used to convert `int` to `byte`
@@ -665,7 +618,7 @@ error if MyIntFunc() should ever return a float.
     a int(MyByteFunc())         // Ok, no loss of precision
     a int(MyIntFunc())          // Ok, but fails if MyIntFunc returns a float
     a int(MyFloatFunc())        // Fail, constructor won't risk losing precision
-    a int(#int(MyFloatFunc()))  // Ok, explicit cast
+    a int(cast<int>(MyFloatFunc()))  // Ok, explicit cast
 
 ## Interfaces
 
@@ -756,9 +709,9 @@ function:
             where T is IAritmetic
     {
         if value <= low
-          => return low;
+            { return low }
         if value >= high
-          => return high;
+            { return high }
         return value;
     }
 
@@ -790,8 +743,6 @@ If `myArray` is of type `Array<byte>`, a string can be created directly from the
 
     var s = str(myArray[2::5])     // Create a string
     MyStrFunc(myArray[2::5])    // Convert slice to string, pass to function
-
-#### List Slice
 
 **TBD:** Allow slicing a `List`?  It is a little unsafe because the slice
 becomes detached from the underlying array whenever the capacity changes.

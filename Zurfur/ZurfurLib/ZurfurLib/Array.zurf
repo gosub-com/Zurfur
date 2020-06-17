@@ -6,7 +6,7 @@ pub class Array<T>
     implements IArray<T>, IMutArray<T>
 {
     pub const MaxSize int = int.MaxInt/2
-    pub static ro Empty Array<T>()
+    pub static func default() => Array<T>()
 
     pub func new(count int) => todo()
     pub func new(items ICollection<T>) => todo()
