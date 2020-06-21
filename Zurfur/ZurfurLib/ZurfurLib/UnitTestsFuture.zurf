@@ -16,11 +16,11 @@ pub class Example
     f2 List<str> = ["Hello", "World"]   // Initialized list
     ro f3 Map<str,int> = {"A":1, "B":2} // Initialized immutable map
     pub ro Header str = "Zurfur"        // Public read only string
-    pub func F(a int) str => Header+a   // Public member function
+    pub fun F(a int) str => Header+a   // Public member function
     pub prop P str => Header + info     // Public property
 }
 
-func test_ForSimple()
+static fun test_ForSimple()
 {
 
     var count int
@@ -49,7 +49,7 @@ func test_ForSimple()
 }
 
 
-pub func test_Convert()
+pub static fun test_Convert()
 {
     var a = List<float>()
     var b = List<int>()
@@ -57,9 +57,9 @@ pub func test_Convert()
 }
 
 
-pub func Example::MyExtension() => F()  // Extension method
+pub fun Example::MyExtension() => F()  // Extension method
 
-pub func Example::MyExtension()
+pub fun Example::MyExtension()
 {
     var a = Map<str,int>({"A":1, "B":2, "C":3})
     var b Map<str,int> = {"A":1, "B":2, "C":3}

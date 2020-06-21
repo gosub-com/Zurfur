@@ -1,13 +1,4 @@
 
-// TODO:
-//  1) make static apply to func
-//  2) Add `mut` qualifier before func
-//  3) remove this as first parameter, allow mut before func
-//  4) allow default as name of property
-//  5) cast should require `(` after type name
-//  5) Change lambda to use `=>`
-
-
 use a.b.c
 use system.gosub.p
 
@@ -19,20 +10,20 @@ pub class Example
 {
     info str                    // Private string initialized to ""
     f1 Array<int> = [1,2,3]             // Initialized array
-    f2 List<str> = ["Hello", "World"]   // Initialized list
-    ro  f3 Map<str,int> = {"A":1, "B":2}    // Initialized immutable map
-    pub ro Header str = "Zurfur"            // Public read only string
-    pub fun F(this, a int) str => Header+a  // Public member function
-    pub prop P str => Header + info         // Public property
+    f2 List<str> = ["Hello", "World"]     // Initialized list
+    ro f3 Map<str,int> = {"A":1, "B":2}   // Initialized immutable map
+    pub ro Header str = "Zurfur"          // Public read only string
+    pub fun F(a int) str => Header+a      // Public member function
+    pub prop P str => Header + info       // Public property
 }
 
-// Mutable point (each mutable func must also be marked)
+// Mutable point (each mutable function must also be marked)
 pub struct MyMutablePoint
 {
     pub X int
     pub Y int
-    pub func new(x int, y int) { X = x; Y = y}
-    pub mut func SetY(y int) { Y = y }
+    pub fun new(x int, y int) { X = x; Y = y}
+    pub mut fun SetY(y int) { Y = y }
     pub prop PropX int { get => X; set { X = value } }
 }
 
@@ -44,21 +35,22 @@ pub class Example_x
     pub field1 f32
     pub field2 int    
     pub prop Prop str => Header + info      // Property
-    pub fun A(this, a int, b int, c f32) f32 => a+1
-    pub fun A(this, a f32) f32 => a+1
-    pub fun B(this, a f32) f32 => a+1
+    pub fun A(a int, b int, c f32) f32 => a+1
+    pub fun A(a f32) f32 => a+1
+    pub fun B(a f32) f32 => a+1
     pub prop ChangedTime DateTime = DateTime.Now
         => default get private set
         
     pub fun E()
     {
+        list.binarysearch(1,23)(a,b) ->   {  a.compare(b) }
         const MY_CONST = 23
         var a = f(x)
-        mut b = f(MY_CONST)
+        var b = f(MY_CONST)
     }
     
 }
-pub fun Example::MyExtension(this) => Func1(10) // Extension method
+pub fun Example::MyExtension() => Func1(10) // Extension method
 
 
 pub struct PointXY<T>
@@ -71,7 +63,7 @@ pub struct PointXY<T>
     pub fun operator+(a PointXY<T>, b PointXY<T>) PointXY<T> => todo()
 }
 
-pub fun Example::Extension(this) 
+pub fun Example::Extension() 
 { 
     for a in 1..23
     {
@@ -79,8 +71,8 @@ pub fun Example::Extension(this)
         F(out mut y, a)
     }
     var i = 32
-    mut j = 15
-    mut k int = 64
+    var j = 15
+    var k int = 64
 }
 
 // Test class
@@ -132,28 +124,28 @@ pub class Example2  // YES, errors working
         set { p1 = value }
     }
     
-    pub fun operator[](this, index i) int => i
+    pub fun operator[](index i) int => i
     
     // Function
-    fun fun1(this, a int) f32 => f1 + f2 + a
-    fun func1(this, a int) { }
-    fun func2(this, a out str) bool {}
-    fun func4(this, a ref MyStruct) {}
-    fun func5(this, a Array<Array<int>>) {}
-    fun func7(this, a List<int>) { }
-    fun func8(this, a out List<List<int>>) { }
-    fun func10(this, a Map<str,List<int>>) { }
+    fun fun1(a int) f32 => f1 + f2 + a
+    fun func1(a int) { }
+    fun func2(a out str) bool {}
+    fun func4(a ref MyStruct) {}
+    fun func5(a Array<Array<int>>) {}
+    fun func7(a List<int>) { }
+    fun func8(a out List<List<int>>) { }
+    fun func10(a Map<str,List<int>>) { }
     
     pub fun Sort<T>(greaterThan fun(a T, b T) bool) { }
     pub MyFieldFunc fun(sender object, message str)
 
 
-    pub fun M<A,B>(this, a A, b B, c List<int>) List<int> {}
+    pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
     
-    fun func8(this, a out List<List<int>>) { }
-    fun func8(this, a out MyList<int,x,y,z>){ }
+    fun func8(a out List<List<int>>) { }
+    fun func8(a out MyList<int,x,y,z>){ }
     
-    pub fun Main(args Array<str>)
+    pub static fun Main(args Array<str>)
     {
         use mut a = OpenFile("My File");
         defer file.close();
@@ -313,7 +305,7 @@ pub struct MyPoint
 {
     pub X int
     pub Y int
-    pub override fun ToStr(this) => "(" + X + "," + Y + ")"
+    pub override fun ToStr() => "(" + X + "," + Y + ")"
 }
 
 
@@ -329,10 +321,10 @@ pub enum MyEnum
 
 pub interface MyInterfaceTest
 {
-    fun A(this) int => imp
-    protected fun C(this ) int => imp
+    fun A() int => imp
+    protected fun C() int => imp
         
-    pub fun B(this) int => A() + 1
+    pub fun B() int => A() + 1
     pub struct Astruct { pub a int }
     pub enum Aenum { a; b; c}
     pub class Aclass { pub a int  }
@@ -342,18 +334,18 @@ pub class MyClass1
     implements MyInterfaceTest
 {
     pub fun A() int => 3
-    pub fun MyInterfaceTest::C(this) int => 3
+    pub fun MyInterfaceTest::C() int => 3
 
 }
 
 
-pub fun Sort<T>(s MutSpan<T>, lessThan fun(a T, b T) bool)
+pub static fun Sort<T>(s MutSpan<T>, lessThan fun(a T, b T) bool)
 {
     // Simple selection sort
     for i in s.Count-1
     {
-        mut lowElem = s[i]
-        mut lowIndex = i
+        var lowElem = s[i]
+        var lowIndex = i
         for j in i+1..s.Count
         {
             if lessThan(s[j], lowElem)
@@ -380,10 +372,10 @@ pub class Matrix2d<t>
 
 
 
-pub fun MemCopy(dest *void, source *void, length xint)
+pub static fun MemCopy(dest *void, source *void, length xint)
 {
-    var d = cast<xint>(dest)
-    var s = cast<xint>(source)
+    var d = cast<xint>dest
+    var s = cast<xint>source
     
     if length <= 0
     {
@@ -392,12 +384,12 @@ pub fun MemCopy(dest *void, source *void, length xint)
     // Align `d` on i32
     while d & 3 != 0 && length != 0
     {
-        *cast<*byte>(d) = *cast<*byte>(s); d+=1; s+=1; length-=1
+        *cast<*byte>d = *cast<*byte>s; d+=1; s+=1; length-=1
     }
     
     if s & 3 == 0
     {
-        MemCopy32(cast<*void>(d), cast<*void>(s), length)
+        MemCopy32(cast<*void>d, cast<*void>s, length)
         return
     }
     
@@ -405,21 +397,21 @@ pub fun MemCopy(dest *void, source *void, length xint)
     var end = d + length
     while end-d >= 4
     {
-        *cast<*byte>(d) = *cast<*byte>(s); d+=1; s+=1
-        *cast<*byte>(d) = *cast<*byte>(s); d+=1; s+=1
-        *cast<*byte>(d) = *cast<*byte>(s); d+=1; s+=1
-        *cast<*byte>(d) = *cast<*byte>(s); d+=1; s+=1
+        *cast<*byte>d = *cast<*byte>s; d+=1; s+=1
+        *cast<*byte>d = *cast<*byte>s; d+=1; s+=1
+        *cast<*byte>d = *cast<*byte>s; d+=1; s+=1
+        *cast<*byte>d = *cast<*byte>s; d+=1; s+=1
     } 
     while d != end
     {
-        *cast<*byte>(d) = *cast<*byte>(s); d+=1; s+=1
+        *cast<*byte>d = *cast<*byte>s; d+=1; s+=1
     }
 }
 
-pub fun MemCopy32(dest *void, source *void, length xint)
+pub static fun MemCopy32(dest *void, source *void, length xint)
 {
-    var d = cast<xint>(dest)
-    var s = cast<xint>(source)
+    var d = cast<xint>dest
+    var s = cast<xint>source
 
     if length <= 0
     {
@@ -432,26 +424,26 @@ pub fun MemCopy32(dest *void, source *void, length xint)
     {
         if d & 4 != 0
         {
-            *cast<*i32>(d) = *cast<*i32>(s); d+=4; s+=4
+            *cast<*i32>d = *cast<*i32>s; d+=4; s+=4
         }
         while end - d >= 8  
         {
-            *cast<*i64>(d) = *cast<*i64>(s); d+=8; s+=8
+            *cast<*i64>d = *cast<*i64>s; d+=8; s+=8
         }
     }
     while end-d >= 4
     {
-        *cast<*i32>(d) = *cast<*i32>(s); d+=4; s+=4
+        *cast<*i32>d = *cast<*i32>s; d+=4; s+=4
     }
     while d != end
     {
-        *cast<*byte>(d) = *cast<*byte>(s); d+=1; s+=1
+        *cast<*byte>d = *cast<*byte>s; d+=1; s+=1
     }
 }
 
 namespace ExampleNs1.HelloWorld
 {
-    fun F1() => todo
+    static fun F1() => todo
     
     class ClassEx1
     {
@@ -463,7 +455,7 @@ namespace ExampleNs1.HelloWorld
 
 namespace ExampleNs1
 {
-    fun F1() => todo
+    static fun F1() => todo
     
     namespace InnerEx1
     {
@@ -500,7 +492,7 @@ namespace ExampleNs1
 
 namespace ExampleNs2
 {
-    fun F1() => todo
+    static fun F1() => todo
     
     class ClassEx1
     {

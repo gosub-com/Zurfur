@@ -7,8 +7,6 @@ namespace Gosub.Zurfur.Compiler
 {
     class ParseJson
     {
-        const bool SHOW_PARSE_TREE = true;
-
         Lexer mLexer;			// Lexer to be paresed
         Lexer.Enumerator mLexerEnum;		// Enumerator for the Lexer
         string mTokenName = "*"; // Skipped by first accept

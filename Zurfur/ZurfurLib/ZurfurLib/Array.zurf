@@ -6,11 +6,11 @@ pub class Array<T>
     implements IArray<T>, IMutArray<T>
 {
     pub const MaxSize int = int.MaxInt/2
-    pub static func default() => Array<T>()
+    pub static fun default() => Array<T>()
 
-    pub func new(count int) => todo()
-    pub func new(items ICollection<T>) => todo()
+    pub fun new(count int) => todo()
+    pub fun new(items ICollection<T>) => todo()
         
-    pub func operator[](this, index int) T { get => todo() set => todo() }
-    pub func operator[](this, index Range) Span<T> => todo()   
+    pub fun operator[](index int) T { get => todo() set => todo() }
+    pub fun operator[](index Range) Span<T> => todo()   
 }

@@ -16,10 +16,10 @@ namespace Gosub.Zurfur.Compiler
 
         public Token LastToken;
 
-        static WordSet sRequireGlobalFieldQualifiers = new WordSet("const");
-        static WordSet sFuncInInterfaceQualifiersAllowedEmpty = new WordSet("func afunc fun afun operator prop pub protected");
-        static WordSet sFuncInInterfaceQualifiersAllowedNotEmpty = new WordSet("func afunc fun afun operator prop pub private protected");
-        static WordSet sGlobalFuncsNotAllowed = new WordSet("prop this operator");
+        static WordSet sRequireGlobalFieldQualifiers = new WordSet("const static");
+        static WordSet sRequireGlobalFuncQualifiers = new WordSet("static");
+        static WordSet sFuncInInterfaceQualifiersAllowed = new WordSet("pub private protected static mut");
+        static WordSet sGlobalFuncsNotAllowed = new WordSet("prop");
 
         static WordSet sInterfaceQualifiers = new WordSet("interface pub public protected private internal static");
         static WordSet sClassQualifiers = new WordSet("class pub pfublic protected private internal unsafe unsealed abstract ro boxed");
@@ -30,7 +30,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static ro const var mut @");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
 
-        static WordSet sFuncQualifiers = new WordSet("func afunc fun afun pub public protected private internal unsafe virtual override new");
+        static WordSet sFuncQualifiers = new WordSet("func afunc fun afun pub public protected private internal unsafe virtual override new mut static");
         static WordSet sPropQualifiers = new WordSet("prop pub public protected private internal unsafe static virtual override new");
         static WordSet sFuncOperatorQualifiers = new WordSet("operator pub public protected private internal unsafe");
 
@@ -102,26 +102,24 @@ namespace Gosub.Zurfur.Compiler
                 CheckQualifiers(func.ParentScope, func.Name, func.Qualifiers);
 
                 CheckStatements(null, func.Statements);
+                if (func.Statements == null)
+                {
+                    mParser.RejectToken(func.Keyword, "Missing body");
+                }
 
                 var keyword = func.Keyword;
                 var outerKeyword = func.ParentScope == null ? "" : func.ParentScope.Keyword;
                 if (outerKeyword == "")
                     mParser.RejectToken(keyword, "The namespace must be defined before method");
-                if (func.Statements == null)
+                if ((outerKeyword == "" || outerKeyword == "namespace") && func.ClassName == null)
                 {
-                    mParser.RejectToken(func.Keyword, "Missing body");
+                    if (!HasQualifier(func.Qualifiers, sRequireGlobalFuncQualifiers))
+                        mParser.RejectToken(keyword, "Methods at the namespace level must be 'static' or an extension method");
                 }
                 if (outerKeyword == "interface")
                 {
-                    if (func.Statements == null)
-                        RejectQualifiers(func.Qualifiers, sFuncInInterfaceQualifiersAllowedEmpty, "This qualifier may not appear before an empty function defined inside an interface");
-                    else
-                        RejectQualifiers(func.Qualifiers, sFuncInInterfaceQualifiersAllowedNotEmpty, "This qualifier may not appear before a non-empty function defined inside an interface");
-
+                    RejectQualifiers(func.Qualifiers, sFuncInInterfaceQualifiersAllowed, "This qualifier may not appear before a function defined inside an interface");
                 }
-                if ( (outerKeyword == "" || outerKeyword == "namespace")
-                        && sGlobalFuncsNotAllowed.Contains(keyword))
-                    mParser.RejectToken(keyword, "Must not be defined at the namespace level");
 
                 switch (keyword)
                 {
@@ -148,15 +146,12 @@ namespace Gosub.Zurfur.Compiler
 
                 var outerKeyword = field.ParentScope == null ? "" : field.ParentScope.Keyword;
 
-                var quals = outerKeyword == "class" ? sFieldInClassQualifiers : sFieldInStructQualifiers;
-                if (outerKeyword == "enum")
-                    quals = sFieldInEnumQualifiers;
                 switch (outerKeyword)
                 {
                     case "":
                     case "namespace":
                         if (!HasQualifier(field.Qualifiers, sRequireGlobalFieldQualifiers))
-                            mParser.RejectToken(field.Name, "Fields at the namespace level must be const");
+                            mParser.RejectToken(field.Name, "Fields at the namespace level must be 'const' or 'static'");
                         break;
                     case "interface":
                         mParser.RejectToken(field.Name, "Fields are not allowed inside an interface");
@@ -249,9 +244,6 @@ namespace Gosub.Zurfur.Compiler
             if (expr == null)
                 return;
 
-            //            static WordSet sStatements = new WordSet("if return while for switch case default throw defer break continue do use "
-            //                                             + "{ = ( += -= *= /= %= &= |= ~= <<= >>= @");
-
             // TBD: This will be generalized when generating code
             WordSet sInvalidLeftAssignments = new WordSet("+ - * / % & | == != < <= > >=");
 
@@ -293,6 +285,11 @@ namespace Gosub.Zurfur.Compiler
                     if (expr.Count != 0)
                         CheckExpr(expr, expr[0]);
                     break;
+
+                case "->": // Lambda
+                    // TBD: Check lambda
+                    break;
+
 
                 case "const":
                 case "var":
@@ -340,10 +337,6 @@ namespace Gosub.Zurfur.Compiler
                 case "return":
                     if (expr.Count != 0)
                         CheckExpr(expr, expr[0]);
-                    break;
-
-                case "->": // Lambda
-                    // TBD: Check lambda
                     break;
 
                 default:

@@ -6,24 +6,24 @@ pub class List<T>
     items ^Array<T> = Array<T>.default
     count int
 
-    pub func new() => todo()
-    pub func new(capacity int) => todo()
-    pub func new(items ICollection<T>) => todo()
+    pub fun new() => todo()
+    pub fun new(capacity int) => todo()
+    pub fun new(items ICollection<T>) => todo()
     
     pub prop Count int => count
 
-    pub func operator[](index int) T { get => todo() set => todo() }
-    pub func operator[](index Range) Span<T> => items[index]
+    pub fun operator[](index int) T { get => todo() set => todo() }
+    pub fun operator[](index Range) Span<T> => items[index]
 
-    pub func Add(this mut, item T) => todo()
-    pub func Clear(this mut) => todo()
-    pub func Insert(this mut, index int, item T) => todo()
-    pub func Insert(this mut, index int, items ICollection<T>) => todo()
-    pub func Remove(this mut, index int) => todo()
-    pub func Remove(this mut, range Range) => todo()
+    pub mut fun Add(item T) => todo()
+    pub mut fun Clear() => todo()
+    pub mut fun Insert(index int, item T) => todo()
+    pub mut fun Insert(index int, items ICollection<T>) => todo()
+    pub mut fun Remove(index int) => todo()
+    pub mut fun Remove(range Range) => todo()
     
-    pub func Convert<Tout>(this, c func(input T) Tout) => todo() 
-    pub func ForEach(this, r func(input T)) => todo()
-    pub func Find(this, p func(input T)) => todo()
+    pub fun Convert<Tout>(c fun(input T) Tout) => todo() 
+    pub fun ForEach(r fun(input T)) => todo()
+    pub fun Find(p fun(input T)) => todo()
         
 }

@@ -28,30 +28,20 @@ Here are some differences between Zurfur and C#:
 * Strings are UTF8 byte arrays, always initialized to ""
 * Classes are reference counted (finalized when count goes to zero)
 * References are non-nullable by default, may use `?` for nullable
-* Function parameters are immutable by default, must explicitly be mutable
-* Functions pass `struct` parameters by reference or value, whichever is more efficient
+* Mutability is part of the type system:
+    * Mutable function parameters must be explicitly marked `mut`
+    * Children of read only fields (i.e. `ro` fields) are also read only
+    * Functions pass `struct` parameters by reference or value, whichever is more efficient
+    * Get/set of mutable a struct acts as if it were a reference (e.g. `MyListOfStructPoints[1].X = 5`)
 * Type declaration syntax and operator precedence is from Golang
 * Interfaces may be implemented by the class (C# style) or externally (Rust trait style)
-* Get/set of mutable structs acts like you think it should (e.g. `MyListOfStructPoints[1].X = 5`)
 * `==` operator fails if it is not defined on a class (does not default to object comparison)
-* Async blocks the calling function by default (ideal for Javascript callbacks)
+* Async acts like a blocking call without the `await` keyword (ideal for Javascript callbacks)
 
 #### Status Update
 
 The syntax is still being developed, nothing is set in stone yet.  Feel
 free to send me comments letting me know what you think should be changed.
-
-For a while I was held up thinking about how garbage collection should
-work.  Mark and sweep is really *really* tough to do efficiently, and
-even more so when targeting WebAssembly since there is an execution
-stack and lack of write barriers.
-
-Thanks to [Lobster](https://aardappel.github.io/lobster/memory_management.html)
-and the single threaded nature of Javascript, I have decided to go with
-reference counting.  In a single threaded environment, it's fast, efficient,
-and most count adjustments can be removed at compile time. With reference
-counting, you avoid the long pauses, get deterministic finalization, and
-make memory management faster and less complex.
 
 #### Inspirations
 
@@ -63,19 +53,19 @@ make memory management faster and less complex.
 
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
-    pub static func Main(args []str)
+    pub static fun Main(args []str)
     {
         // This is a regular private comment
         Console.Log("Hello World, 2+2=" + add(2,2))
     }
 
     // Regular static function
-    pub static func add(a int, b int) int
+    pub static fun add(a int, b int) int
         => a + b
 
-**TBD:** Use `fun` instead of `func`?
+**TBD:** Use `func` instead of `fun`?
 
-Functions are declared with the `func` keyword. The type names come
+Functions are declared with the `fun` keyword. The type names come
 after each argument, and the return type comes after the parameters.
 Functions, classes, structs, enums, variables and constants are
 private unless they have the 'pub' qualifier.  Functions are allowed
@@ -86,15 +76,15 @@ at the namespace level, but must be static or extension methods.
 By default, functions pass parameters by immutable reference.  The exception
 is that small structs may be passed by value when it is more efficient to do so.
 
-    pub func Test(a      f64,       // Pass by value since that's more efficient
-                  s      MyStruct,  // Pass by value or reference whichever is more efficient
-                  ms mut MyStruct,  // Pass by reference, preserve `ro` fields
-                  rs ref MyStruct,  // Pass by reference, nothing is preserved
-                  os out MyStruct,  // MyStruct is returned by reference
-                  c      MyClass,   // Pass reference, the class is immutable inside the function
-                  mc mut MyClass,   // Pass by reference, object is mutable, reference cannot be changed
-                  ic ref MyClass,   // Pass by reference, object is mutable, reference can be changed
-                  oc out MyClass)   // MyClass is returned by reference
+    pub fun Test(a      f64,       // Pass by value since that's more efficient
+                 s      MyStruct,  // Pass by value or reference whichever is more efficient
+                 ms mut MyStruct,  // Pass by reference, preserve `ro` fields
+                 rs ref MyStruct,  // Pass by reference, nothing is preserved
+                 os out MyStruct,  // MyStruct is returned by reference
+                 c      MyClass,   // Pass reference, the object is immutable
+                 mc mut MyClass,   // Pass by reference, object is mutable, reference cannot be changed
+                 ic ref MyClass,   // Pass by reference, object is mutable, reference can be changed
+                 oc out MyClass)   // MyClass is returned by reference
 
 If `s` is big, such as a matrix containing 16 floats, it is passed by
 reference.  If it is small, such as a single float or int, it is passed
@@ -102,8 +92,8 @@ by value.  A struct containing two integers might be passed by value or
 by reference depending on the compiler, options, and optimizations.
 
 Even if `MyStruct` or `MyClass` is mutable, `s` and `c` cannot be mutated.
-The only parameters that can be mutated are always marked with `mut`, `ref`,
-or `out`. 
+Only parameters marked with `mut` or `ref` can be mutated.  `out` parameters
+must be assigned, never read.
 
 ## Local Variables
 
@@ -112,24 +102,12 @@ Within a function, variables are declared and initialized with the `var` keyword
     var a = 3                              // `a` is an int
     var b = "Hello World"                  // `b` is a str
     var c = MyFunction()                   // `c` is whatever type is returned by MyFunction
-    var d = List<int>([1,2,3])             // `d` is a list of integers, intialized with {1,2,3}
+    var d = List<int>([1,2,3])             // `d` is a list of integers, initialized with {1,2,3}
     var e = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
     var f = Json({"A":1,"B":[1,2,3]})      // `f` is a Json object containing a number and an array
 
-**I have changed the language to use** `var` **instead of** `@`.  I think
-`var` is so common that it deserves a special operator.  But, this might
-turn people off since everyone is used to `var`.  I am still undecided on this point.
-This is what it would like like using `@`:
-
-    @a = 3                              // `a` is an int
-    @b = "Hello World"                  // `b` is a str
-    @c = MyFunction()                   // `c` is whatever type is returned by MyFunction
-    @d = List<int>([1,2,3])             // `d` is a list of integers, intialized with {1,2,3}
-    @e = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
-    @f = Json({"A":1,"B":[1,2,3]})      // `f` is a Json object containing a number and an array
-   
-The above form `@variable = expression` creates a variable with the same type as
-the expression.  A second form `@variable type [=expression]` creates an explicitly
+The above form `var variable = expression` creates a variable with the same type as
+the expression.  A second form `var variable type [=expression]` creates an explicitly
 typed variable with optional assignment from an expression.  If the expression
 cannot be converted, an error is generated
 
@@ -140,7 +118,21 @@ cannot be converted, an error is generated
     var e Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
     var f Map<int,str> = {0:"a", 1:"b"}
 
-Or do you like this better?
+Variables declared with `var` may be re-assigned or modified by the function
+they are declared in, but may not be mutated by a function call.  Use the
+`mut` keyword to allow functions to mutate them. 
+
+**I have changed the language to use** `var` **instead of** `@`.  I think
+`var` is so common that it deserves a special operator.  But, this might
+turn people off since everyone is used to `var`.  I am still undecided on this point.
+This is what it would like like using `@`:
+
+    @a = 3                              // `a` is an int
+    @b = "Hello World"                  // `b` is a str
+    @c = MyFunction()                   // `c` is whatever type is returned by MyFunction
+    @d = List<int>([1,2,3])             // `d` is a list of integers, initialized with {1,2,3}
+    @e = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
+    @f = Json({"A":1,"B":[1,2,3]})      // `f` is a Json object containing a number and an array
 
     @a int = MyIntFunc()                // Error if MyIntFunc returns a float
     @b str                              // `b` is a string, initialized to ""
@@ -221,11 +213,9 @@ instead of the `Length` property in C#
     var b Array<int>(32)           // `b` is an array of length 32
     var c Array<Array<int>>(10)    // `c` is an array of 10 arrays of integer
 
-The C# syntax for creating an array with `[]` has been dropped in
-favor of a generic array class implementing `ICollection`, and support
-for initializer expressions:
+Arrays can be initialized when created:
 
-    var a Array<int> = [1,2,3]     // Instead of 'var a = new int[]{1,2,3}
+    var a Array<int> = [1,2,3]
     var b = Array<int>([1,2,3])    // Alternative way of initializing the array
     var c Array<Array<int>> = [[1,2,3], [4,5,6], [7,8,9]]  // Jagged matrix
 
@@ -261,7 +251,7 @@ array is still there, but it is a bit user un-friendly.
 #### Json
 
 `Json` is the built in Json object with support communication with JavaScript.  
-Using an invalid index does not throw an exception, but instead returns a default
+Using an invalid key does not throw an exception, but instead returns a default
 empty object.
 
     var a Json = {"Hello":1, "World":2}
@@ -281,8 +271,8 @@ the fastest or most efficient. For efficient memory usage, `Json` will support
 
 Operator precedence comes from Golang.
 
-    Primary: x.y f(x) a[i] #type(expr)
-    Unary: - ! & ~ * cast
+    Primary: x.y f(x) a[i]  f<type>()
+    Unary: - ! & ~ * cast<type> switch sizeof
     Multiplication and bits: * / % << >> & 
     Add and bits: + - | ~
     Range: .. ::
@@ -293,6 +283,7 @@ Operator precedence comes from Golang.
     Lambda: ->
     Comma Separator: ,
     Assignment Statements: = += -= *= /= %= &= |= ~= <<= >>=
+    Statement Separator: =>
 
 The `*` operator is both multiplication and unary dereference, same as in C.
 When used in type definitions, it means *pointer to*, for example `var a *int`
@@ -308,7 +299,7 @@ See `For Loop` below for examples.
 Assignment is a statement, not an expression.  Therefore, expressions like
 `while (a += count) < 20` and `a = b = 1` are not allowed.  Comma is also
 not an expression, and may only be used where they are expected, such as
-a function call or lambda expession.
+a function call or lambda expression.
 
 Operator `==` does not default to object comparison, and only works when it
 is defined for the given type.  Use `===` and `!==` for object comparison. 
@@ -317,9 +308,9 @@ is defined for the given type.  Use `===` and `!==` for object comparison.
 
 `+`, `-`, `*`, `/`, `%`, and `in` are the only operators that may be individually
 defined.  The `==` and `!=` operator may be defined together by implementing
-`static func Equals(a myType, b myType) bool`.  All six comparison operators,
+`static fun Equals(a myType, b myType) bool`.  All six comparison operators,
 `==`, `!=`, `<`, `<=`, `==`, `!=`, `>=`, and `>` can be implemented with just
-one function: `static func Compare(a myType, b myType) int`.  If both functions
+one function: `static fun Compare(a myType, b myType) int`.  If both functions
 are defined, `Equals` is used for equality comparisons, and `Compare` is used
 for the others.
 
@@ -381,7 +372,7 @@ The general rule is that any line beginning with a binary operator does not put
 a semicolon on the previous line.  Additionally, `{`, `[`, `(`, or `,` at the end
 of a line prevents a semicolon on that line.
 
-**Excepton:** A line beginning with an `*` always has a semicolon before it, so
+**Exception:** A line beginning with an `*` always has a semicolon before it, so
 multiplication cannot be used to continue a line.  This is necessary so a
 dereference statement such as `*a = 3` cannot be continued from the previous line.
 
@@ -484,7 +475,7 @@ level as a `case` statement.
 
 Switch can also be used as an expression:
 
-    var num = switch myConstant { 23 => a, 27 => b, default => 0}
+    var num = switch expression { 23 => a, 27 => b, default => 0}
 
 ## Classes
 
@@ -499,7 +490,7 @@ finalization via `dispose` method.
 file and have it close automatically when it goes out of scope.  But, if
 the object is captured, then it would close when the final reference
 becomes `null` opening up the possibility of an exception being
-thrown wherever a reference cont drops to zero.  C# has a similar problem.
+thrown wherever a reference count drops to zero.  C# has a similar problem.
 
     pub class Example
     {   
@@ -514,8 +505,8 @@ thrown wherever a reference cont drops to zero.  C# has a similar problem.
         pub ro F7 str = "Hello world"                // Initialized read only string
         pub ro points Array<MutablePointXY> = [(1,2),(3,4),(5,6)]
         
-        pub func Func1(this, a int) f64 => F1 + " hi"   // Member function
-        pub func Func2(this mut, a int) { F1 = "x"}     // Member function that mutates
+        pub fun Func1(this, a int) f64 => F1 + " hi"   // Member function
+        pub fun Func2(this mut, a int) { F1 = "x"}     // Member function that mutates
 
         pub prop Prop1 str => F1                     // Property returning F1
         pub prop ChangedTime DateTime = DateTime.Now // Default value and default get/set
@@ -523,7 +514,7 @@ thrown wherever a reference cont drops to zero.  C# has a similar problem.
     }
 
 Class fields can use `ro` to indicate read only.  Unlike in C#, When `ro`
-is used, it is read only all the way (e.g. `points[1].x = 0` is illegal)
+is used, the children are also read onyl (e.g. `points[1].x = 0` is illegal)
 
 The `prop` keyword is used to define a property.  Properties can be given
 a default value by `=` immediately after the type name.  The compiler can
@@ -531,22 +522,21 @@ auto implement them with `=> default` followed by `get` and optionally `set`.
 Or you can implement them the regular way `prop GetExpr { get { return expressio } }`
 
 Classes are sealed by default.  Use the `unsealed` keword to open them up.
-Sealed generic classes may be inherited to create specializations
-(e.g. `class MyIntList : List<int> { }`, etc), however the virtul functions
-may not be overridden.
+Sealed classes may be extended but no functions may be overridden.
+**TBD:** Require `extends unseal` to extend sealed classes?
 
 #### Struct
 
 A `struct` is a value object (just like C#), and can be used where speed and
 efficiency are desired.  `int`, `byte`, and `float` are structs. 
 
-    // Mutable point (each mutable func must also be marked)
+    // Mutable point (each mutable function must also be marked)
     pub struct MyMutablePoint
     {
         pub X int
         pub Y int
-        pub func new(x int, y int) { X = x; Y = y}
-        pub mut func SetY(y int) { Y = y }
+        pub fun new(x int, y int) { X = x; Y = y}
+        pub mut fun SetY(y int) { Y = y }
         pub prop PropX int { get => X; set { X = value } }
     }
     
@@ -589,7 +579,7 @@ and do not use `,` to separate values.
         E           // E is 33
     
         // Enumerations can override ToString
-        override func ToString() => MyConvertToTranslatedName()
+        override fun ToString() => MyConvertToTranslatedName()
     }
 
 The default `ToString` function shows the value as an integer rather
@@ -633,15 +623,15 @@ Here is `IEquatable<T>` from the standard library:
 
     pub static interface IEquatable<T>
     {
-        static func GetHashCode(a T) uint => imp
-        static func Equals(a T, b T) bool => imp
+        static fun GetHashCode(a T) uint => imp
+        static fun Equals(a T, b T) bool => imp
     }
 
 Unimplemented functions and properties are explicitly marked with
 `imp`.   Functions and properties must either have an implementation or
 specify `imp`, `default`, or `extern`.  
 
-NOTE: The implemntations will use fat pointers.
+NOTE: The implementation will use fat pointers.
 
 **TBD:** Describe syntax for creating externally defined traits, like
 in Rust.  For example `implement TRAIT for TYPE`
@@ -682,7 +672,7 @@ use of the interface.  For example:
         myStuff List<Stuff>()
         pub ro SeeMyStuff IRoArray<Stuff> = #protected IRoArray<Stuff>(myStuff);
     }
-    pub static func MyFunc(yourStuff MyStuff)
+    pub static fun MyFunc(yourStuff MyStuff)
     {
         // Modify your stuff.  ILLEGAL!
         #List<Stuff>(yourStuff.SeeMyStuf).Add(Stuff());
@@ -705,7 +695,7 @@ base class, not the derived classes.
 function:
 
     // Return `value` if it `low`..`high` otherwise return `low` or `high`.  
-    pub static func BoundValue<T>(value T, low T, high T) T
+    pub static fun BoundValue<T>(value T, low T, high T) T
             where T is IAritmetic
     {
         if value <= low
@@ -744,20 +734,27 @@ If `myArray` is of type `Array<byte>`, a string can be created directly from the
     var s = str(myArray[2::5])     // Create a string
     MyStrFunc(myArray[2::5])    // Convert slice to string, pass to function
 
-**TBD:** Allow slicing a `List`?  It is a little unsafe because the slice
-becomes detached from the underlying array whenever the capacity changes.
+A `List` can be sliced, but the slice to becomes detached from the underlying
+array when the capacity changes.  
 
-    pub static func BadSlice()
+    pub static fun BadSlice()
     {
         var s = List<byte>()
         a.Add("Hello Bob")
-        var slice = a[6::3]        // slice is "Bob"
-        a[6] = "R"[0]           // slice is "Rob"
-        a.Add(", we are happy") // slice is now detached from the original array
-        a[6] = "B"[0]           // slice is still "Rob"
+        var slice = a[6::3]         // slice is "Bob"
+        a[6] = "R"[0]               // slice is "Rob"
+        a.Add(", we are happy")     // slice is now detached from the original array
+        a[6] = "B"[0]               // slice is still "Rob"
     }
 
+While it is a little unsafe (not memory unsafe) to allow Lists to be sliced,
+the convenience outweighs the bad.  **TBD:** Maybe not allow since we
+are using reference counted GC?
+
 #### ASpan, Span, Forward References, Return References
+
+**TBD:** This proably all gets removed.  A `Span` would contain a reference
+to the object, and mutability is built into the type system.
 
 Arrays have implicit conversion to `ASpan`, `Span`, and `RoSpan`.  `ASpan` is used for async
 functions, and `Span` for sync functions, such as `str` class. A lot needs to be said here,
@@ -767,7 +764,7 @@ but the condensed version is:
 * Span: A memory slice that cannot be stored on the heap or passed to async functions
 * Forward Reference: A pointer to an interior struct passed **into** a function
 * Return Reference: A pointer to an interior struct passed **out of** a function,
-implmeneted as a fat pointer (pointer to object and pointer to interior struct)
+implemeneted as a fat pointer (pointer to object and pointer to interior struct)
 
 
 A distinction is made between forward references and return references because the GC needs
@@ -780,14 +777,27 @@ Describe more here...
 
 ## Garbage Collection
 
-Zurfur uses reference counting. 
+For a while I was held up thinking about how garbage collection should
+work.  Mark and sweep is really *really* tough to do efficiently, and
+even more so when targeting WebAssembly since there is an execution
+stack and lack of write barriers.
+
+Thanks to [Lobster](https://aardappel.github.io/lobster/memory_management.html)
+and the single threaded nature of Javascript, I have decided to go with
+reference counting.  In a single threaded environment, it's fast, efficient,
+and most count adjustments can be removed at compile time. With reference
+counting, you avoid the long pauses, get deterministic finalization, and
+make memory management faster and less complex.
+
+For now, object graph cycles will be considered an error or memory leak.
+Eventually, there may be a garbage collector to detect and cleanup cycles.
 
 ## Pointers
 
 The unary `*` operator dereferences a pointer.  The `.` operator is used to access fields
 or members of a pointer to the struct (so `->` is only used for lambdas). 
  
-    pub static func strcpy(dest *byte, source *byte)
+    pub static fun strcpy(dest *byte, source *byte)
     {
         while *source != 0
             { *dest = *source;  dest += 1;  source += 1 }
@@ -825,7 +835,7 @@ For the time being, async is built into the type system but it looks and
 acts as if it were sync.  Calling an async function from async code blocks
 without using the `await` keyword:
 
-    afunc MySlowIoFunctionAsync(server str) str 
+    afun MySlowIoFunctionAsync(server str) str 
     {
         // In C# `await` would be needed before both function calls, but not in Zurfur
         var a = MakeXhrCallToServerAsync(server)  // Blocks without await keyword
@@ -841,7 +851,7 @@ Async code normally looks and acts as if it were sync.  But, when we want
 to start or wait for multiple tasks, we can also use the `astart` and
 `await` keywords.
 
-    afunc GetStuffFromSeveralServers() str 
+    afun GetStuffFromSeveralServers() str 
     {
         // Start the functions, but do not block
         var a = astart { MySlowIoFunctionAsync("server1") }
@@ -877,7 +887,7 @@ to start or wait for multiple tasks, we can also use the `astart` and
     }
 
 A sync function cannot implicitly call an async function, but it can start it
-using the `astart` keyword, like this: `func MySyncFunction() { astart MyAsyncFunction() }`
+using the `astart` keyword, like this: `fun MySyncFunction() { astart MyAsyncFunction() }`
 
 #### Async Implementation 
 
@@ -889,7 +899,7 @@ GC objects.  Instead there will be a reusable list of stack arrays.
 
 #### Async by Default?
 
-Should everything be async by defualt? The compiler can figure out if a
+Should everything be async by default? The compiler can figure out if a
 function needs to be async, and can optimize most sync code into sync
 functions.  There are two problems here.
 
@@ -912,6 +922,21 @@ The first version of Zurfur is targeted at replacing JavaScript, and
 will not support multi-threading. The `lock` keyword is reserved for
 future use.  One thing that won't ever be supported is locking on any
 random object.
+
+#### Discussion
+
+It's hard to do multi-threading with speed and memory safety.
+Once we drop multi-threading, we can make things fast and
+memory safe:
+
+* Interfaces can be implemented with fat pointers that won't tear
+* Span can be stored on the heap, also without tearing
+* Garbage collection can use reference counting without an interlock
+
+Javascript has done pretty well with the single threaded model.
+IO is async and doesn't block.  Long CPU bound tasks can be
+offloaded to a web worker.  Zurfur will stick to the single-threaded
+model for now.
 
 ## Open Questions
 

@@ -6,11 +6,11 @@
 [Unsealed1]
 pub class ArrayBase<T>
 {
-    static func default() => ArrayBase<T>()
+    static fun default() => ArrayBase<T>()
     
     pub Count int
         
-    func new(count int) => todo() // Allocate object on heap
+    fun new(count int) => todo() // Allocate object on heap
         
     protected prop DataSpan Span<T> => todo()
         
@@ -27,9 +27,9 @@ pub class Array<T>
     pub const MaxSize int = int.MaxInt/2
     pub static Empty ^Array<T>()
 
-    pub func new(count int) => todo()
-    pub func new(items ICollection<T>) => todo()
+    pub fun new(count int) => todo()
+    pub fun new(items ICollection<T>) => todo()
     
-    pub func operator[](this, index int) T => todo()
-    pub func operator[](this, range Range) MutMemory<T> => todo()
+    pub fun operator[](index int) T => todo()
+    pub fun operator[](range Range) MutMemory<T> => todo()
 }

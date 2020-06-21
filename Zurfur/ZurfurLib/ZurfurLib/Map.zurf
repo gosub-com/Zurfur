@@ -3,41 +3,44 @@
 pub class Map<TKey, TValue> 
     implements IMutMap<TKey, TValue>
 {
-    ro compareFunc func(a TKey, b TKey) bool;
-    ro hashFunc func(a TKey) bool;
+    ro compareFunc fun(a TKey, b TKey) bool;
+    ro hashFunc fun(a TKey) bool;
     
 
-    pub func new()
+    pub fun new()
         where TKey is IEquatable<TKey>
     {
         compareFunc = (a, b) -> TKey.Compare(a, b)
         hashFunc = (a) -> TKey.GetHashCode(a)
     }
-    pub func new(compare func(a TKey, b TKey) bool, 
-        getHashCode func(a TKey) uint)
+    
+    pub fun new(compare fun(a TKey, b TKey) bool, 
+        getHashCode fun(a TKey) uint)
     {
         compareFunc = compare;
         hashFunc = getHashCode;
     }
-    pub func new(capacity int) 
+    
+    pub fun new(capacity int) 
         where TKey is IEquatable
         => todo()
-    pub func new(keyValues ICollection<KeyValuePair<TKey, TValue>>) => todo()
+        
+    pub fun new(keyValues ICollection<KeyValuePair<TKey, TValue>>) => todo()
     
     pub prop Count int => todo()
 
-    pub func operator in(a TKey) bool => todo()
-    pub func operator[](key TKey) TValue { get => todo() set => todo() }
+    pub fun operator in(a TKey) bool => todo()
+    pub fun operator[](key TKey) TValue { get => todo() set => todo() }
     
-    pub func Contains(key TKey) bool => todo()
-    pub func Get(key TKey) TValue => todo()
-    pub func Get(key TKey, defaultValue TValue) TValue => todo()
-    pub func TryGet(key TKey, value out ?TValue) bool => todo()
+    pub fun Contains(key TKey) bool => todo()
+    pub fun Get(key TKey) TValue => todo()
+    pub fun Get(key TKey, defaultValue TValue) TValue => todo()
+    pub fun TryGet(key TKey, value out ?TValue) bool => todo()
     pub prop Keys ICollection<TKey> { get => todo() }
     pub prop Values ICollection<TValue> { get => todo() }
 
-    pub func Clear(this mut) => todo()
-    pub func Add(this mut, item KeyValue<TKey, TValue>) => todo()    
-    pub func Add(this mut, items ICollection<KeyValue<TKey, TValue>>) => todo()    
-    pub func Remove(this mut, TKey key) bool => todo()
+    pub mut fun Clear() => todo()
+    pub mut fun Add(item KeyValue<TKey, TValue>) => todo()    
+    pub mut fun Add(items ICollection<KeyValue<TKey, TValue>>) => todo()    
+    pub mut fun Remove(TKey key) bool => todo()
 }

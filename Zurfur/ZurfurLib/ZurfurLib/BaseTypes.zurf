@@ -23,14 +23,14 @@ pub struct xuint = u32
 pub struct ro bool
     implements IEquatable<bool>
 {
-    pub func new(a bool) => extern
-    pub func GetHashCode(a bool) uint => extern
-    pub func Equals(a bool, b bool) bool => extern
+    pub static fun new(a bool) => extern
+    pub static fun GetHashCode(a bool) uint => extern
+    pub static fun Equals(a bool, b bool) bool => extern
 
     // Not overloadable, but these are supplied specially for this type
-    // func operator!(a bool)
-    // func operator||(a bool, b bool)
-    // func operator&&(a bool, b bool)
+    // fun static operator!(a bool)
+    // fun static operator||(a bool, b bool)
+    // fun static operator&&(a bool, b bool)
 }
 
 /// i8 (-128..127)
@@ -42,29 +42,29 @@ pub struct ro i8
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub func new(a i8) => extern
+    pub fun new(a i8) => extern
 
-    pub func operator explicit(a u8) i8 => extern
-    pub func operator explicit(a i16) i8 => extern
-    pub func operator explicit(a u16) i8 => extern
-    pub func operator explicit(a i32) i8 => extern
-    pub func operator explicit(a u32) i8 => extern
-    pub func operator explicit(a i64) i8 => extern
-    pub func operator explicit(a u64) i8 => extern
-    pub func operator explicit(a f32) i8 => extern
-    pub func operator explicit(a f64) i8 => extern
-    pub func operator explicit(a decimal) i8 => extern
+    pub fun operator explicit(a u8) i8 => extern
+    pub fun operator explicit(a i16) i8 => extern
+    pub fun operator explicit(a u16) i8 => extern
+    pub fun operator explicit(a i32) i8 => extern
+    pub fun operator explicit(a u32) i8 => extern
+    pub fun operator explicit(a i64) i8 => extern
+    pub fun operator explicit(a u64) i8 => extern
+    pub fun operator explicit(a f32) i8 => extern
+    pub fun operator explicit(a f64) i8 => extern
+    pub fun operator explicit(a decimal) i8 => extern
     
-    pub func operator implicit(a i8) i16 => extern
-    pub func operator implicit(a i8) i32 => extern
-    pub func operator implicit(a i8) i64 => extern
-    pub func operator implicit(a i8) f32 => extern
-    pub func operator implicit(a i8) f64 => extern
-    pub func operator implicit(a i8) decimal => extern
+    pub fun operator implicit(a i8) i16 => extern
+    pub fun operator implicit(a i8) i32 => extern
+    pub fun operator implicit(a i8) i64 => extern
+    pub fun operator implicit(a i8) f32 => extern
+    pub fun operator implicit(a i8) f64 => extern
+    pub fun operator implicit(a i8) decimal => extern
     
-    pub func GetHashCode(a i8) uint => extern
-    pub func Equals(a i8, b i8) bool => extern
-    pub func Compare(a i8, b i8) int => extern
+    pub static fun GetHashCode(a i8) uint => extern
+    pub static fun Equals(a i8, b i8) bool => extern
+    pub static fun Compare(a i8, b i8) int => extern
 }
 
 
@@ -77,32 +77,32 @@ pub struct ro u8
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub func new(a u8) => extern
+    pub fun new(a u8) => extern
     
-    pub func operator explicit(a i8) u8 => extern
-    pub func operator explicit(a i16) u8 => extern
-    pub func operator explicit(a u16) u8 => extern
-    pub func operator explicit(a i32) u8 => extern
-    pub func operator explicit(a u32) u8 => extern
-    pub func operator explicit(a i64) u8 => extern
-    pub func operator explicit(a u64) u8 => extern
-    pub func operator explicit(a f32) u8 => extern
-    pub func operator explicit(a f64) u8 => extern
-    pub func operator explicit(a decimal) u8 => extern
+    pub fun operator explicit(a i8) u8 => extern
+    pub fun operator explicit(a i16) u8 => extern
+    pub fun operator explicit(a u16) u8 => extern
+    pub fun operator explicit(a i32) u8 => extern
+    pub fun operator explicit(a u32) u8 => extern
+    pub fun operator explicit(a i64) u8 => extern
+    pub fun operator explicit(a u64) u8 => extern
+    pub fun operator explicit(a f32) u8 => extern
+    pub fun operator explicit(a f64) u8 => extern
+    pub fun operator explicit(a decimal) u8 => extern
 
-    pub func operator implicit(a u8) i16 => extern
-    pub func operator implicit(a u8) u16 => extern
-    pub func operator implicit(a u8) i32 => extern
-    pub func operator implicit(a u8) u32 => extern
-    pub func operator implicit(a u8) i64=> extern
-    pub func operator implicit(a u8) u64 => extern
-    pub func operator implicit(a u8) f32 => extern
-    pub func operator implicit(a u8) f64 => extern
-    pub func operator implicit(a u8) decimal => extern
+    pub fun operator implicit(a u8) i16 => extern
+    pub fun operator implicit(a u8) u16 => extern
+    pub fun operator implicit(a u8) i32 => extern
+    pub fun operator implicit(a u8) u32 => extern
+    pub fun operator implicit(a u8) i64=> extern
+    pub fun operator implicit(a u8) u64 => extern
+    pub fun operator implicit(a u8) f32 => extern
+    pub fun operator implicit(a u8) f64 => extern
+    pub fun operator implicit(a u8) decimal => extern
     
-    pub func GetHashCode(a u8) uint => extern
-    pub func Equals(a u8, b u8) bool => extern
-    pub func Compare(a u8, b u8) int => extern
+    pub static fun GetHashCode(a u8) uint => extern
+    pub static fun Equals(a u8, b u8) bool => extern
+    pub static fun Compare(a u8, b u8) int => extern
 }
 
 /// i16 (-32768..32768)
@@ -114,26 +114,26 @@ pub struct ro i16
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub func new(a i16) => extern
+    pub fun new(a i16) => extern
 
-    pub func operator explicit(a u16) i16 => extern
-    pub func operator explicit(a i32) i16 => extern
-    pub func operator explicit(a u32) i16 => extern
-    pub func operator explicit(a i64) i16 => extern
-    pub func operator explicit(a u64) i16 => extern
-    pub func operator explicit(a f32) i16 => extern
-    pub func operator explicit(a f64) i16 => extern
-    pub func operator explicit(a decimal) i16 => extern
+    pub fun operator explicit(a u16) i16 => extern
+    pub fun operator explicit(a i32) i16 => extern
+    pub fun operator explicit(a u32) i16 => extern
+    pub fun operator explicit(a i64) i16 => extern
+    pub fun operator explicit(a u64) i16 => extern
+    pub fun operator explicit(a f32) i16 => extern
+    pub fun operator explicit(a f64) i16 => extern
+    pub fun operator explicit(a decimal) i16 => extern
 
-    pub func operator implicit(a i16) i32 => extern
-    pub func operator implicit(a i16) i64 => extern
-    pub func operator implicit(a i16) f32 => extern
-    pub func operator implicit(a i16) f64 => extern
-    pub func operator implicit(a i16) decimal => extern
+    pub fun operator implicit(a i16) i32 => extern
+    pub fun operator implicit(a i16) i64 => extern
+    pub fun operator implicit(a i16) f32 => extern
+    pub fun operator implicit(a i16) f64 => extern
+    pub fun operator implicit(a i16) decimal => extern
 
-    pub func GetHashCode(a i16) uint => extern
-    pub func Equals(a i16, b i16) bool => extern
-    pub func Compare(a i16, b i16) int => extern
+    pub static fun GetHashCode(a i16) uint => extern
+    pub static fun Equals(a i16, b i16) bool => extern
+    pub static fun Compare(a i16, b i16) int => extern
 }
 
 
@@ -146,29 +146,29 @@ pub struct ro u16
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub func new(a u16) => extern
+    pub fun new(a u16) => extern
 
-    pub func operator explicit(a i8) u16 => extern
-    pub func operator explicit(a i16) u16 => extern
-    pub func operator explicit(a i32) u16 => extern
-    pub func operator explicit(a u32) u16 => extern
-    pub func operator explicit(a i64) u16 => extern
-    pub func operator explicit(a u64) u16 => extern
-    pub func operator explicit(a f32) u16 => extern
-    pub func operator explicit(a f64) u16 => extern
-    pub func operator explicit(a decimal) u16 => extern
+    pub fun operator explicit(a i8) u16 => extern
+    pub fun operator explicit(a i16) u16 => extern
+    pub fun operator explicit(a i32) u16 => extern
+    pub fun operator explicit(a u32) u16 => extern
+    pub fun operator explicit(a i64) u16 => extern
+    pub fun operator explicit(a u64) u16 => extern
+    pub fun operator explicit(a f32) u16 => extern
+    pub fun operator explicit(a f64) u16 => extern
+    pub fun operator explicit(a decimal) u16 => extern
 
-    pub func operator implicit(a u16) i32 => extern
-    pub func operator implicit(a u16) u32 => extern
-    pub func operator implicit(a u16) i64 => extern
-    pub func operator implicit(a u16) u64 => extern
-    pub func operator implicit(a u16) f32 => extern
-    pub func operator implicit(a u16) f64 => extern
-    pub func operator implicit(a u16) decimal => extern
+    pub fun operator implicit(a u16) i32 => extern
+    pub fun operator implicit(a u16) u32 => extern
+    pub fun operator implicit(a u16) i64 => extern
+    pub fun operator implicit(a u16) u64 => extern
+    pub fun operator implicit(a u16) f32 => extern
+    pub fun operator implicit(a u16) f64 => extern
+    pub fun operator implicit(a u16) decimal => extern
 
-    pub func GetHashCode(a u16) uint => extern
-    pub func Equals(a u16, b u16) bool => extern
-    pub func Compare(a u16, b u16) int => extern
+    pub static fun GetHashCode(a u16) uint => extern
+    pub static fun Equals(a u16, b u16) bool => extern
+    pub static fun Compare(a u16, b u16) int => extern
 }
 
 /// A 32 bit integer (same as int)
@@ -180,46 +180,46 @@ pub struct ro i32
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub func new(a i32) => extern
+    pub fun new(a i32) => extern
 
-    pub func operator explicit(a u32) i32 => extern
-    pub func operator explicit(a i64) i32 => extern
-    pub func operator explicit(a u64) i32 => extern
-    pub func operator explicit(a f32) i32 => extern
-    pub func operator explicit(a f64) i32 => extern
-    pub func operator explicit(a decimal) i32 => extern
+    pub fun operator explicit(a u32) i32 => extern
+    pub fun operator explicit(a i64) i32 => extern
+    pub fun operator explicit(a u64) i32 => extern
+    pub fun operator explicit(a f32) i32 => extern
+    pub fun operator explicit(a f64) i32 => extern
+    pub fun operator explicit(a decimal) i32 => extern
     
-    pub func operator implicit(a i32) i64 => extern
-    pub func operator implicit(a i32) f32 => extern
-    pub func operator implicit(a i32) f64 => extern
-    pub func operator implicit(a i32) decimal => extern
+    pub fun operator implicit(a i32) i64 => extern
+    pub fun operator implicit(a i32) f32 => extern
+    pub fun operator implicit(a i32) f64 => extern
+    pub fun operator implicit(a i32) decimal => extern
 
     // Comparisons    
-    pub func GetHashCode(a i32) uint => extern
-    pub func Equals(a i32, b i32) bool => extern
-    pub func Compare(a i32, b i32) int => extern
+    pub static fun GetHashCode(a i32) uint => extern
+    pub static fun Equals(a i32, b i32) bool => extern
+    pub static fun Compare(a i32, b i32) int => extern
 
     // Overloadable operators
-    pub func operator+(a i32) i32 => extern
-    pub func operator-(a i32) i32 => extern
-    pub func operator+(a i32, b i32) i32 => extern
-    pub func operator-(a i32, b i32) i32 => extern
-    pub func operator*(a i32, b i32) i32 => extern
-    pub func operator/(a i32, b i32) i32 => extern
-    pub func operator%(a i32, b i32) i32 => extern
+    pub fun operator+(a i32) i32 => extern
+    pub fun operator-(a i32) i32 => extern
+    pub fun operator+(a i32, b i32) i32 => extern
+    pub fun operator-(a i32, b i32) i32 => extern
+    pub fun operator*(a i32, b i32) i32 => extern
+    pub fun operator/(a i32, b i32) i32 => extern
+    pub fun operator%(a i32, b i32) i32 => extern
     
-    pub func GetEnumerator(this) RangeEnumerator<i32> 
+    pub fun GetEnumerator() RangeEnumerator<i32> 
         => RangeEnumerator<i32>(0, this)
     
     // Not overloadable, but these are supplied specially for this type
-    // func operator~(a i32) i32
-    // func operator~(a i32, b i32) i32
-    // func operator|(a i32, b i32) i32
-    // func operator&(a i32, b i32) i32
-    // func operator<<(a i32, b i32) i32
-    // func operator>>(a i32, b i32) i32
-    // func operator..(a i32, b i32) Range
-    // func operator::(a i32, b i32) Range
+    // fun operator~(a i32) i32
+    // fun operator~(a i32, b i32) i32
+    // fun operator|(a i32, b i32) i32
+    // fun operator&(a i32, b i32) i32
+    // fun operator<<(a i32, b i32) i32
+    // fun operator>>(a i32, b i32) i32
+    // fun operator..(a i32, b i32) Range
+    // fun operator::(a i32, b i32) Range
 }
 
 /// 32 bit unsigned integer (same as uint)
@@ -231,48 +231,48 @@ pub struct ro u32
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub func new(a u32) => extern
+    pub fun new(a u32) => extern
 
-    pub func operator explicit(a i8) u32 => extern
-    pub func operator explicit(a i16) u32 => extern
-    pub func operator explicit(a i32) u32 => extern
-    pub func operator explicit(a i64) u32 => extern
-    pub func operator explicit(a u64) u32 => extern
-    pub func operator explicit(a f32) u32 => extern
-    pub func operator explicit(a f64) u32 => extern
-    pub func operator explicit(a decimal) u32 => extern
+    pub fun operator explicit(a i8) u32 => extern
+    pub fun operator explicit(a i16) u32 => extern
+    pub fun operator explicit(a i32) u32 => extern
+    pub fun operator explicit(a i64) u32 => extern
+    pub fun operator explicit(a u64) u32 => extern
+    pub fun operator explicit(a f32) u32 => extern
+    pub fun operator explicit(a f64) u32 => extern
+    pub fun operator explicit(a decimal) u32 => extern
     
-    pub func operator implicit(a u32) i64 => extern
-    pub func operator implicit(a u32) u64 => extern
-    pub func operator implicit(a u32) decimal => extern
-    pub func operator implicit(a u32) f32 => extern
-    pub func operator implicit(a u32) f64 => extern
+    pub fun operator implicit(a u32) i64 => extern
+    pub fun operator implicit(a u32) u64 => extern
+    pub fun operator implicit(a u32) decimal => extern
+    pub fun operator implicit(a u32) f32 => extern
+    pub fun operator implicit(a u32) f64 => extern
     
     // Comparisons    
-    pub func GetHashCode(a u32) uint => extern
-    pub func Equals(a u32, b u32) bool => extern
-    pub func Compare(a u32, b u32) int => extern
+    pub static fun GetHashCode(a u32) uint => extern
+    pub static fun Equals(a u32, b u32) bool => extern
+    pub static fun Compare(a u32, b u32) int => extern
     
     // Overloadable operators
-    pub func operator+(a u32) u32 => extern
-    pub func operator-(a u32) u32 => extern
-    pub func operator+(a u32, b u32) u32 => extern
-    pub func operator-(a u32, b u32) u32 => extern
-    pub func operator*(a u32, b u32) u32 => extern
-    pub func operator/(a u32, b u32) u32 => extern
-    pub func operator%(a u32, b u32) u32 => extern
+    pub fun operator+(a u32) u32 => extern
+    pub fun operator-(a u32) u32 => extern
+    pub fun operator+(a u32, b u32) u32 => extern
+    pub fun operator-(a u32, b u32) u32 => extern
+    pub fun operator*(a u32, b u32) u32 => extern
+    pub fun operator/(a u32, b u32) u32 => extern
+    pub fun operator%(a u32, b u32) u32 => extern
     
-    pub func GetEnumerator(this) RangeEnumerator<u32> 
+    pub fun GetEnumerator() RangeEnumerator<u32> 
         => RangeEnumerator<u32>(0, this)
     
 
     // Not overloadable, but these are supplied specially for this type
-    // func operator~(a u32) u32
-    // func operator~(a u32, b u32) u32
-    // func operator|(a u32, b u32) u32
-    // func operator&(a u32, b u32) u32
-    // func operator<<(a u32, b i32) u32
-    // func operator>>(a u32, b i32) u32
+    // fun operator~(a u32) u32
+    // fun operator~(a u32, b u32) u32
+    // fun operator|(a u32, b u32) u32
+    // fun operator&(a u32, b u32) u32
+    // fun operator<<(a u32, b i32) u32
+    // fun operator>>(a u32, b i32) u32
 }
 
 /// A 64 bit integer
@@ -284,42 +284,42 @@ pub struct ro i64
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub func new(a i64) => extern
+    pub fun new(a i64) => extern
 
-    pub func operator explicit(a u64) i64 => extern
-    pub func operator explicit(a f32) i64 => extern
-    pub func operator explicit(a f64) i64 => extern
-    pub func operator explicit(a decimal) i64 => extern
+    pub fun operator explicit(a u64) i64 => extern
+    pub fun operator explicit(a f32) i64 => extern
+    pub fun operator explicit(a f64) i64 => extern
+    pub fun operator explicit(a decimal) i64 => extern
     
-    pub func operator implicit(a i64) decimal => extern
-    pub func operator implicit(a i64) f64 => extern
+    pub fun operator implicit(a i64) decimal => extern
+    pub fun operator implicit(a i64) f64 => extern
 
     // Comparisons    
-    pub func GetHashCode(a i64) uint => extern
-    pub func Equals(a i64, b i64) bool => extern
-    pub func Compare(a i64, b i64) int => extern
+    pub static fun GetHashCode(a i64) uint => extern
+    pub static fun Equals(a i64, b i64) bool => extern
+    pub static fun Compare(a i64, b i64) int => extern
 
     // Overloadable operators
-    pub func operator+(a i64) i64 => extern
-    pub func operator-(a i64) i64 => extern
-    pub func operator+(a i64, b i64) i64 => extern
-    pub func operator-(a i64, b i64) i64 => extern
-    pub func operator*(a i64, b i64) i64 => extern
-    pub func operator/(a i64, b i64) i64 => extern
-    pub func operator%(a i64, b i64) i64 => extern
+    pub fun operator+(a i64) i64 => extern
+    pub fun operator-(a i64) i64 => extern
+    pub fun operator+(a i64, b i64) i64 => extern
+    pub fun operator-(a i64, b i64) i64 => extern
+    pub fun operator*(a i64, b i64) i64 => extern
+    pub fun operator/(a i64, b i64) i64 => extern
+    pub fun operator%(a i64, b i64) i64 => extern
     
-    pub func GetEnumerator(this) RangeEnumerator<i64> 
+    pub fun GetEnumerator() RangeEnumerator<i64> 
         => RangeEnumerator<i64>(0, this)    
 
     // Not overloadable, but these are supplied specially for this type
-    // func operator~(a i64) i64
-    // func operator~(a i64, b i64) i64
-    // func operator|(a i64, b i64) i64
-    // func operator&(a i64, b i64) i64
-    // func operator<<(a i64, b i32) i64
-    // func operator>>(a i64, b i32) i64
-    // func operator..(a i64, b i64) Range64
-    // func operator::(a i64, b i64) Range64    
+    // fun operator~(a i64) i64
+    // fun operator~(a i64, b i64) i64
+    // fun operator|(a i64, b i64) i64
+    // fun operator&(a i64, b i64) i64
+    // fun operator<<(a i64, b i32) i64
+    // fun operator>>(a i64, b i32) i64
+    // fun operator..(a i64, b i64) Range64
+    // fun operator::(a i64, b i64) Range64    
 }
 
 /// 64 bit unsigned integer
@@ -331,43 +331,43 @@ pub struct ro u64
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub func new(a u64) => extern
+    pub fun new(a u64) => extern
 
-    pub func operator explicit(a i8) u64 => extern
-    pub func operator explicit(a i16) u64 => extern
-    pub func operator explicit(a i32) u64 => extern
-    pub func operator explicit(a i64) u64 => extern
-    pub func operator explicit(a f32) u64 => extern
-    pub func operator explicit(a f64) u64 => extern
-    pub func operator explicit(a decimal) u64 => extern
+    pub fun operator explicit(a i8) u64 => extern
+    pub fun operator explicit(a i16) u64 => extern
+    pub fun operator explicit(a i32) u64 => extern
+    pub fun operator explicit(a i64) u64 => extern
+    pub fun operator explicit(a f32) u64 => extern
+    pub fun operator explicit(a f64) u64 => extern
+    pub fun operator explicit(a decimal) u64 => extern
     
-    pub func operator implicit(a u64) decimal => extern
-    pub func operator implicit(a u64) f64 => extern    
+    pub fun operator implicit(a u64) decimal => extern
+    pub fun operator implicit(a u64) f64 => extern    
 
     // Comparisons    
-    pub func GetHashCode(a u64) uint => extern
-    pub func Equals(a u64, b u64) bool => extern
-    pub func Compare(a u64, b u64) int => extern
+    pub static fun GetHashCode(a u64) uint => extern
+    pub static fun Equals(a u64, b u64) bool => extern
+    pub static fun Compare(a u64, b u64) int => extern
     
     // Overloadable operators
-    pub func operator+(a u64) u64 => extern
-    pub func operator-(a u64) u64 => extern
-    pub func operator+(a u64, b u64) u64 => extern
-    pub func operator-(a u64, b u64) u64 => extern
-    pub func operator*(a u64, b u64) u64 => extern
-    pub func operator/(a u64, b u64) u64 => extern
-    pub func operator%(a u64, b u64) u64 => extern
+    pub fun operator+(a u64) u64 => extern
+    pub fun operator-(a u64) u64 => extern
+    pub fun operator+(a u64, b u64) u64 => extern
+    pub fun operator-(a u64, b u64) u64 => extern
+    pub fun operator*(a u64, b u64) u64 => extern
+    pub fun operator/(a u64, b u64) u64 => extern
+    pub fun operator%(a u64, b u64) u64 => extern
 
-    pub func GetEnumerator(this) RangeEnumerator<u64> 
+    pub fun GetEnumerator() RangeEnumerator<u64> 
         => RangeEnumerator<u64>(0, this)    
 
     // Not overloadable, but these are supplied specially for this type
-    // func operator~(a u64)
-    // func operator~(a u64, b u64)
-    // func operator|(a u64, b u64)
-    // func operator&(a u64, b u64)
-    // func operator<<(a u64, b i32)
-    // func operator>>(a u64, b i32)
+    // fun operator~(a u64)
+    // fun operator~(a u64, b u64)
+    // fun operator|(a u64, b u64)
+    // fun operator&(a u64, b u64)
+    // fun operator<<(a u64, b i32)
+    // fun operator>>(a u64, b i32)
 }
 
 pub struct ro f32
@@ -382,23 +382,23 @@ pub struct ro f32
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub func new(a f32) => extern
+    pub fun new(a f32) => extern
 
-    pub func operator explicit(a f64) f32 => extern
-    pub func operator explicit(a decimal) f32 => extern
+    pub fun operator explicit(a f64) f32 => extern
+    pub fun operator explicit(a decimal) f32 => extern
     
-    pub func operator implicit(a f32) f64 => extern
-    pub func operator implicit(a f32) decimal => extern
+    pub fun operator implicit(a f32) f64 => extern
+    pub fun operator implicit(a f32) decimal => extern
 
     // Normal f32 comparisons (NAN==NAN is false)
     // TBD: Maybe we don't need funny NAN comparisons since we're starting fresh?
-    pub func Equals(a f32, b f32) bool => extern
-    pub func Compare(a f32, b f32) int => extern
+    pub static fun Equals(a f32, b f32) bool => extern
+    pub static fun Compare(a f32, b f32) int => extern
     
     // Comparisons for sorting (NAN>infinity and NAN==NAN are both true)
-    pub func GetHashCode(a f32) uint => extern
-    pub func IEquatable<f32>::Equals(a f32, b f32) bool => extern
-    pub func IComparable<f32>::Compare(a f32, b f32) int => extern
+    pub static fun GetHashCode(a f32) uint => extern
+    pub fun IEquatable<f32>::Equals(a f32, b f32) bool => extern
+    pub fun IComparable<f32>::Compare(a f32, b f32) int => extern
     
     pub prop IsInfinity bool => todo()
     pub prop IsNaN bool => todo()
@@ -406,17 +406,17 @@ pub struct ro f32
     pub prop IsPositiveInfinity bool => todo()
 
     // Overloadable operators
-    pub func operator+(a f32) f32 => extern
-    pub func operator-(a f32) f32 => extern
-    pub func operator+(a f32, b f32) f32 => extern
-    pub func operator-(a f32, b f32) f32 => extern
-    pub func operator*(a f32, b f32) f32 => extern
-    pub func operator/(a f32, b f32) f32 => extern
-    pub func operator%(a f32, b f32) f32 => extern
+    pub fun operator+(a f32) f32 => extern
+    pub fun operator-(a f32) f32 => extern
+    pub fun operator+(a f32, b f32) f32 => extern
+    pub fun operator-(a f32, b f32) f32 => extern
+    pub fun operator*(a f32, b f32) f32 => extern
+    pub fun operator/(a f32, b f32) f32 => extern
+    pub fun operator%(a f32, b f32) f32 => extern
     
     // Not overloadable, but these are supplied specially for this type
-    // func operator..(a f32, b f32) RangeF32
-    // func operator::(a f32, b f32) RangeF32   
+    // fun operator..(a f32, b f32) RangeF32
+    // fun operator::(a f32, b f32) RangeF32   
       
 }
 
@@ -432,21 +432,21 @@ pub struct ro f64
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub func new(a f64) => extern
+    pub fun new(a f64) => extern
 
-    pub func operator explicit(a decimal) f64 => extern
+    pub fun operator explicit(a decimal) f64 => extern
     
-    pub func operator implicit(a f64) decimal => extern
+    pub fun operator implicit(a f64) decimal => extern
 
     // Normal f64 comparisons (NAN==NAN is false)
     // TBD: Maybe we don't need funny NAN comparisons since we're starting fresh?
-    pub func Equals(a f64, b f64) bool => extern
-    pub func Compare(a f64, b f64) int => extern
+    pub static fun Equals(a f64, b f64) bool => extern
+    pub static fun Compare(a f64, b f64) int => extern
     
     // Comparisons for sorting (NAN>infinity and NAN==NAN are both true)
-    pub func GetHashCode(a f64) uint => extern
-    pub func IEquatable<f32>::Equals(a f64, b f64) bool => extern
-    pub func IComparable<f32>::Compare(a f64, b f64) int => extern
+    pub static fun GetHashCode(a f64) uint => extern
+    pub fun IEquatable<f32>::Equals(a f64, b f64) bool => extern
+    pub fun IComparable<f32>::Compare(a f64, b f64) int => extern
     
     pub prop IsInfinity bool => todo()
     pub prop IsNaN bool => todo()
@@ -454,17 +454,17 @@ pub struct ro f64
     pub prop IsPositiveInfinity bool => todo()
     
     // Overloadable operators
-    pub func operator+(a f64) f64 => extern
-    pub func operator-(a f64) f64 => extern
-    pub func operator+(a f64, b f64) f64 => extern
-    pub func operator-(a f64, b f64) f64 => extern
-    pub func operator*(a f64, b f64) f64 => extern
-    pub func operator/(a f64, b f64) f64 => extern
-    pub func operator%(a f64, b f64) f64 => extern
+    pub fun operator+(a f64) f64 => extern
+    pub fun operator-(a f64) f64 => extern
+    pub fun operator+(a f64, b f64) f64 => extern
+    pub fun operator-(a f64, b f64) f64 => extern
+    pub fun operator*(a f64, b f64) f64 => extern
+    pub fun operator/(a f64, b f64) f64 => extern
+    pub fun operator%(a f64, b f64) f64 => extern
     
     // Not overloadable, but these are supplied specially for this type
-    // func operator..(a f64, b f64) RangeF64
-    // func operator::(a f64, b f64) RangeF64       
+    // fun operator..(a f64, b f64) RangeF64
+    // fun operator::(a f64, b f64) RangeF64       
 }
 
 /// 128 bit decimal integer.  This will support NAN, infinity, and
@@ -472,7 +472,7 @@ pub struct ro f64
 pub struct ro decimal
     implements IArithmetic<decimal>
 {
-    pub func new(a decimal) => extern
+    pub fun new(a decimal) => extern
 
     pub const MaxValue decimal = 1E+1000M
     pub const MinValue decimal = -1E+1000M
@@ -488,21 +488,21 @@ pub struct ro decimal
     pub prop IsPositiveInfinity bool => todo()
 
     // Comparisons.  NOTE: NaN > infinity, and NaN==NaN is true
-    pub func GetHashCode(a decimal) uint => extern
-    pub func Equals(a decimal, b decimal) bool => extern
-    pub func Compare(a decimal, b decimal) int => extern
+    pub static fun GetHashCode(a decimal) uint => extern
+    pub static fun Equals(a decimal, b decimal) bool => extern
+    pub static fun Compare(a decimal, b decimal) int => extern
     
     // Overloadable operators
-    pub func operator+(a decimal) decimal => extern
-    pub func operator-(a decimal) decimal => extern
-    pub func operator+(a decimal, b decimal) decimal => extern
-    pub func operator-(a decimal, b decimal) decimal => extern
-    pub func operator*(a decimal, b decimal) decimal => extern
-    pub func operator/(a decimal, b decimal) decimal => extern
-    pub func operator%(a decimal, b decimal) decimal => extern
+    pub fun operator+(a decimal) decimal => extern
+    pub fun operator-(a decimal) decimal => extern
+    pub fun operator+(a decimal, b decimal) decimal => extern
+    pub fun operator-(a decimal, b decimal) decimal => extern
+    pub fun operator*(a decimal, b decimal) decimal => extern
+    pub fun operator/(a decimal, b decimal) decimal => extern
+    pub fun operator%(a decimal, b decimal) decimal => extern
     
     // Not overloadable, but these are supplied specially for this type
-    // func operator..(a decimal, b decimal) RangeDecimal
-    // func operator::(a decimal, b decimal) RangeDecimal
+    // fun operator..(a decimal, b decimal) RangeDecimal
+    // fun operator::(a decimal, b decimal) RangeDecimal
     
 }

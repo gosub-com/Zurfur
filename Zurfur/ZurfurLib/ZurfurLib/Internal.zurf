@@ -12,7 +12,7 @@ pub struct ref ro rref<T>
 {
     pub ro obj  ?object   // Container object, or null if pointing to non GC memory
     pub ro r    *T       // The reference
-    pub func new(obj ?obj, reference *T) { this.obj = obj;  r = reference}
+    pub fun new(obj ?obj, reference *T) { this.obj = obj;  r = reference}
 }
 
 /// A forward reference is a reqular pointer passed down the call stack.
@@ -21,7 +21,7 @@ pub struct ref ro rref<T>
 pub struct ref ro fref<T>
 {
     pub ro r *T
-    pub func new(reference *T) { r = reference}
+    pub fun new(reference *T) { r = reference}
 }
 
 /// Interfaces are implemented as two pointers, one to a `vtable`, and
@@ -31,15 +31,15 @@ pub struct ro InterfacePointer
 {
     pub ro vtable *InterfaceVTable;
     pub ro obj *void;
-    pub func new(vtable *InterfaceVTable, obj *void) { this.vtable = vtable;  this.obj = obj}
+    pub fun new(vtable *InterfaceVTable, obj *void) { this.vtable = vtable;  this.obj = obj}
 }
 
 /// Base for all compiler generated interface vtables
 pub struct ro InterfaceVTable
 {
     pub ro vtable *void // TBD: Common 
-    pub ro IsProtected func() bool
-    pub ro GetObject func() *void
+    pub ro IsProtected fun() bool
+    pub ro GetObject fun() *void
 }
 
 /// All variable sized objects must inherit from this
@@ -47,10 +47,10 @@ pub struct ro InterfaceVTable
 [Sealed1]
 pub class ArrayBase<T>
 {
-    static func default() => ArrayBase<T>(0)
+    static fun default() => ArrayBase<T>(0)
     pub ro Count int
         
-    func new(count int) 
+    fun new(count int) 
         => todo() // Allocate object on heap
         
     protected prop DataSpan Span<T> 
