@@ -15,7 +15,7 @@ pub class ArrayBase<T>
     protected prop DataSpan Span<T> => todo()
         
     protected unsafe prop DataPointer *T 
-        => cast<*T>(cast<*byte>(this) + Sizeof(ArrayBase))
+        => cast *T(cast *byte(this) + Sizeof(ArrayBase))
 }
 
 // Array of constant size

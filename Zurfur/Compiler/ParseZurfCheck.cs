@@ -18,21 +18,20 @@ namespace Gosub.Zurfur.Compiler
 
         static WordSet sRequireGlobalFieldQualifiers = new WordSet("const static");
         static WordSet sRequireGlobalFuncQualifiers = new WordSet("static");
-        static WordSet sFuncInInterfaceQualifiersAllowed = new WordSet("pub private protected static mut");
+        static WordSet sFuncInInterfaceQualifiersAllowed = new WordSet("pub private protected static mut async");
         static WordSet sGlobalFuncsNotAllowed = new WordSet("prop");
 
-        static WordSet sInterfaceQualifiers = new WordSet("interface pub public protected private internal static");
-        static WordSet sClassQualifiers = new WordSet("class pub pfublic protected private internal unsafe unsealed abstract ro boxed");
-        static WordSet sStructQualifiers = new WordSet("struct pub public protected private internal unsafe ref ro");
-        static WordSet sEnumQualifiers = new WordSet("enum pub public protected private internal");
+        static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static");
+        static WordSet sClassQualifiers = new WordSet("pub pfublic protected private internal unsafe unsealed abstract ro boxed");
+        static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe ref ro");
+        static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
 
         static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static ro const var mut @");
         static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static ro const var mut @");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
 
-        static WordSet sFuncQualifiers = new WordSet("func afunc fun afun pub public protected private internal unsafe virtual override new mut static");
-        static WordSet sPropQualifiers = new WordSet("prop pub public protected private internal unsafe static virtual override new");
-        static WordSet sFuncOperatorQualifiers = new WordSet("operator pub public protected private internal unsafe");
+        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe virtual override new mut static async");
+        static WordSet sPropQualifiers = new WordSet("pub public protected private internal unsafe static virtual override new");
 
         static WordMap<int> sClassFuncFieldQualifiersOrder = new WordMap<int>()
         {
@@ -41,11 +40,9 @@ namespace Gosub.Zurfur.Compiler
             { "static", 4 },  {"const", 4 },
             { "unsealed", 6 },
             { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
-            { "class",9 }, { "struct",9 }, { "enum",9 }, { "interface",9 }, {"operator", 9},
-            { "func",9}, {"afunc",9},{"fun",9},{"afun",9},
             { "ref", 10},
             { "mut", 11 }, { "ro", 11}, {"readonly", 11},
-            { "boxed", 12 }
+            { "async", 12 }
         };
 
         ParseZurf mParser;
@@ -123,16 +120,11 @@ namespace Gosub.Zurfur.Compiler
 
                 switch (keyword)
                 {
-                    case "operator":
-                        RejectQualifiers(func.Qualifiers, sFuncOperatorQualifiers, "Operator may not use this qualifier");
-                        break;
                     case "prop":
                         RejectQualifiers(func.Qualifiers, sPropQualifiers, "Qualifier does not apply to properties");
                         break;
                     case "fun":
-                    case "afun":
                     case "func":
-                    case "afunc":
                         RejectQualifiers(func.Qualifiers, sFuncQualifiers, "Qualifier does not apply to functions");
                         break;
                 }

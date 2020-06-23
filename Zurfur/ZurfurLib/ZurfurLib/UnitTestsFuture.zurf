@@ -53,7 +53,7 @@ pub static fun test_Convert()
 {
     var a = List<float>()
     var b = List<int>()
-    var c = a.Convert((i) -> cast<int>(i))
+    var c = a.Convert((i) -> cast int(i))
 }
 
 

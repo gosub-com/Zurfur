@@ -63,16 +63,16 @@ namespace Gosub.Zurfur.Compiler
             + "typeof unsafe using static virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set yield global partial var where nameof youdo "
             + "box boxed init dispose "
-            + "trait extends implements implement impl union type fn fun afn afun def adef yield let cast "
-            + "any dyn loop match event from to of on cofun cofunc global local val it @";
+            + "trait extends implements implement impl union type fun afun def yield let cast "
+            + "any dyn loop match event from to of on cofun cofunc global local val it throws atask";
 
         static readonly string sReservedControlWords = "using namespace module include class struct enum interface "
             + "func afunc fun afun prop get set if else switch await for while dowhile _";
         static WordMap<eTokenType> sReservedWords = new WordMap<eTokenType>();
-        static WordSet sReservedIdentifierVariables = new WordSet("null this true false default base");
+        static WordSet sReservedIdentifierVariables = new WordSet("null this true false default base cast");
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static unsealed abstract virtual override new ro mut const");
+            + "static unsealed abstract virtual override new ro mut const async");
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sFieldDefTypeQualifiers = new WordSet("ref");
@@ -84,7 +84,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sAllowConstraintKeywords = new WordSet("class struct unmanaged");
         static WordSet sAutoImplementMethod = new WordSet("default impl extern");
 
-        public static WordSet sOverloadableOperators = new WordSet("+ - * / % [ in implicit explicit");
+        public static WordSet sOverloadableOperators = new WordSet("+ - * / % [ in implicit cast");
         static WordSet sComparisonOperators = new WordSet("== != < <= > >= === !== in"); // For '>=', use VIRTUAL_TOKEN_GE
         static WordSet sAddOperators = new WordSet("+ - | " + XOR);
         static WordSet sMultiplyOperators = new WordSet("* / % & << >>"); // For '>>', use VIRTUAL_TOKEN_SHIFT_RIGHT
@@ -99,8 +99,8 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sTypeArgumentParameterSymbols = new WordSet("( ) .");
 
         static WordSet sStatementEndings = new WordSet("; => }");
-        static WordSet sStatementsDone = new WordSet("} func afunc fun afun namespace class struct interface enum", true);
-        static WordSet sRejectAnyStop = new WordSet("=> ; { } namespace class struct interface enum if else for while throw switch case func afunc fun afun prop get set", true);
+        static WordSet sStatementsDone = new WordSet("} func fun namespace class struct interface enum", true);
+        static WordSet sRejectAnyStop = new WordSet("=> ; { } namespace class struct interface enum if else for while throw switch case func fun prop get set", true);
         static WordSet sRejectForCondition = new WordSet("in");
         static WordSet sRejectFuncName = new WordSet("(");
         static WordSet sRejectFuncParam = new WordSet(", )");
@@ -262,7 +262,6 @@ namespace Gosub.Zurfur.Compiler
                         break;
 
                     case "fun":
-                    case "afun":
                         keyword.Type = eTokenType.ReservedControl;  // Fix keyword to make it control
                         ParseMethod(keyword, parentScope, qualifiers);
                         break;
@@ -647,7 +646,6 @@ namespace Gosub.Zurfur.Compiler
             switch (synFunc.Keyword)
             {
                 case "fun":
-                case "afun":
                     if (ParseFuncNameDef(out synFunc.ClassName, out synFunc.Name))
                     {
                         ParseFuncDef(out synFunc.TypeParams, out synFunc.Params, out synFunc.ReturnType);
@@ -736,7 +734,7 @@ namespace Gosub.Zurfur.Compiler
             //        && token != "}" && token != "=>" && token != "{";
             return token.Type == eTokenType.Identifier
                || qualifiers.Contains(token)
-               || token == "fun" || token == "afun"
+               || token == "fun"
                || token == PTR || token == "?" || token == REFERENCE;
         }
 
@@ -1209,20 +1207,6 @@ namespace Gosub.Zurfur.Compiler
             {
                 return new SyntaxUnary(Accept(), ParseUnary());
             }
-            if (mTokenName == "cast")
-            {
-                var castToken = Accept();
-                if (mToken != "<")
-                {
-                    RejectToken(mToken, "Expecting '<', start of 'cast' type name");
-                    return new SyntaxError(mToken);
-                }
-                var openTypeToken = mToken;
-                var typeArgs = NewExprList();
-                ParseTypeArgumentList(typeArgs, sEmptyWordSet);
-                var typeParams = new SyntaxMulti(openTypeToken, FreeExprList(typeArgs));
-                return new SyntaxBinary(castToken, typeParams, ParseUnary());
-            }
 
             if (mTokenName == "switch")
                 return ParseSwitchExpression();
@@ -1252,6 +1236,15 @@ namespace Gosub.Zurfur.Compiler
         {
             var result = ParseAtom();
 
+            if (result.Token == "cast")
+            {
+                if (!ParseTypeName(out var castType, sEmptyWordSet))
+                    return new SyntaxError(result.Token);
+                if (mTokenName != "(")
+                    RejectToken(mToken, "Expecting '('");
+                result = new SyntaxUnary(result.Token, castType);
+            }
+
             // Primary: function call 'f()', array 'a[]', member access 'x.y', type argument f<type>
             bool accepted;
             do
@@ -1274,7 +1267,7 @@ namespace Gosub.Zurfur.Compiler
                     result = new SyntaxBinary(mPrevToken, result,
                         new SyntaxToken(ParseIdentifier("Expecting identifier")));
                 }
-                else if (mTokenName == "<" && mPrevToken.Type == eTokenType.Identifier)
+                else if (mTokenName == "<")
                 {
                     // Possibly a type argument list.  Let's try it and find out.
                     var typeArgIdentifier = mPrevToken;
@@ -1565,7 +1558,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 return new SyntaxUnary(Accept(), ParseTypeDef(qualifiers, errorStop));
             }
-            else if (mTokenName == "fun" || mTokenName == "afun")
+            else if (mTokenName == "fun")
             {
                 return ParseLambdaDef(); 
             }

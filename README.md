@@ -122,24 +122,15 @@ Variables declared with `var` may be re-assigned or modified by the function
 they are declared in, but may not be mutated by a function call.  Use the
 `mut` keyword to allow functions to mutate them. 
 
-**I have changed the language to use** `var` **instead of** `@`.  I think
-`var` is so common that it deserves a special operator.  But, this might
-turn people off since everyone is used to `var`.  I am still undecided on this point.
-This is what it would like like using `@`:
+**TBD: Should I add an operator?** I think `var` is so common that it
+deserves a special operator.  But, this might turn people off since everyone
+is used to `var`.  This is what it would like like using `@`:
 
-    @a = 3                              // `a` is an int
-    @b = "Hello World"                  // `b` is a str
-    @c = MyFunction()                   // `c` is whatever type is returned by MyFunction
-    @d = List<int>([1,2,3])             // `d` is a list of integers, initialized with {1,2,3}
-    @e = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
-    @f = Json({"A":1,"B":[1,2,3]})      // `f` is a Json object containing a number and an array
-
-    @a int = MyIntFunc()                // Error if MyIntFunc returns a float
-    @b str                              // `b` is a string, initialized to ""
-    @c List<int>                        // `c` is an empty List<int>
+    @a = "Hello World"                  // `b` is a str
+    @b = List<int>([1,2,3])             // `d` is a list of integers, initialized with {1,2,3}
+    @c = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
     @d List<int> = [1, 2, 3]
-    @e Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
-    @f Map<int,str> = {0:"a", 1:"b"}
+    @e Map<int,str> = {0:"a", 1:"b"}
 
 #### Non-Nullable References
 
@@ -271,8 +262,8 @@ the fastest or most efficient. For efficient memory usage, `Json` will support
 
 Operator precedence comes from Golang.
 
-    Primary: x.y f(x) a[i]  f<type>()
-    Unary: - ! & ~ * cast<type> switch sizeof
+    Primary: x.y  f<type>(x)  a[i]  cast
+    Unary: - ! & ~ * switch sizeof
     Multiplication and bits: * / % << >> & 
     Add and bits: + - | ~
     Range: .. ::
@@ -318,6 +309,40 @@ Overloads using the `operator` keyword are static.  Only static
 versions of `Equals` and `Compare` are used for the comparison operators.
 Zurfur inherits this from C#, and Eric Lippert
 [gives a great explanation of why](https://blogs.msdn.microsoft.com/ericlippert/2007/05/14/why-are-overloaded-operators-always-static-in-c).
+
+## Mutability
+
+I have some info sprinkled around, but this is where I will consolidate.
+The short version: More explicit than C#, easier than Rust.
+
+Read only `ro` means children classes are also read only.  A `ro`
+return from a function prevents the calling function from mutating.
+`var` locals can be re-assigned in the function, but not mutated
+by a function call.  `mut` locals can be mutated by a function call,
+but only if the function parameter is explcitly marked `mut`.
+
+**TBD:** Add more info here.
+
+## Exceptions and Errors
+
+[Midori](http://joeduffyblog.com/2016/02/07/the-error-model/) has some good
+ideas that I will look into soon.
+
+**TBD:** Describe error model.  In short, errors are return codes that
+get checked by the calling function.  Exceptions immediately end
+all synchronous calls up the stack frame.
+
+Exceptions (i.e. programming errors) in sync code cannot be "swallowed".
+The `finally` block can perform cleanup, but at the end of the cleanup,
+it always throws all the way up the sync stack.  The reasons for this are
+1) Errors (not exceptions) should be used for predictable errors that
+need recovery, 2) WebAssembly can't efficiently catch and resume execution
+after dumping the stack frame
+
+Exceptions can be caught and continued (or "swallowed") in async code.
+Since async calls are not on the execution stack, it is possible to
+efficiently continue after the exception. This also makes it possible
+to recover (and log an error) after a programing error.
 
 ## Initializer Expressions
 
@@ -596,8 +621,8 @@ A cast is used when a type conversion should be explicit, including
 conversion from a base class to a derived class, conversion between
 pointer types, and conversion of integer types that may lose precision.
 
-    var a = cast<int>(a+myFloat)    // Cast a float to an int
-    var b = cast<*int>(myPtr)       // Cast myPtr to *int
+    var a = cast int(a+myFloat)    // Cast (a+myFloat) from float to int
+    var b = cast *int(myFloatPtr)       // Cast myFloatPtr to *int
 
 A constructor can be used to convert types that don't lose precision,
 like `byte` to `int`, but a cast must be used to convert `int` to `byte`
@@ -605,10 +630,20 @@ because precision can be lost.  In the definitions below, we want an
 error if MyIntFunc() should ever return a float.
 
     // Field definitions
-    a int(MyByteFunc())         // Ok, no loss of precision
-    a int(MyIntFunc())          // Ok, but fails if MyIntFunc returns a float
-    a int(MyFloatFunc())        // Fail, constructor won't risk losing precision
-    a int(cast<int>(MyFloatFunc()))  // Ok, explicit cast
+    a int = MyByteFunc()            // Ok, no loss of precision
+    b int = MyIntFunc()             // Ok, but fails if MyIntFunc returns a float
+    c int = MyFloatFunc()           // Fail, constructor won't risk losing precision
+    d int = cast int(MyFloatFunc()) // Ok, explicit cast
+
+Point conversion casts never throw an exception.  Numeric conversions
+should not throw exceptions.  Conversion from base class to derived
+class might throw an exception.
+
+
+**TBD**: I'm considering adding a cast operator:
+    var a = #int(a+myFloat)         // Cast (a+myFloat) from float to int
+    var b = #*int(myFloatPtr)       // Cast myFloatPtr to *int
+    d int = #int(MyFloatFunc())     // Ok, explicit cast
 
 ## Interfaces
 
@@ -652,31 +687,14 @@ the class implements all the functions.  The explicit cast is to remind us
 that the class does not necessarily support the interface, and it's on the
 user (not the library writer) to make sure it's all kosher.
 
-#### Optional Conversion Back to the Concrete Class
+#### Conversion Back to the Concrete Class
 
-**TBD:** The default will be that the interface cannot be cast back
-to the original class.  The documentation below will be updated.
+A base class can be cast to a derived class, but it is impossible* to cast
+an interface back to its concrete class.  This prevents people from "fishing"
+around to get at the concrete class.  Can you believe people actually do that?
+Please don't look at my code :)
 
-An interface can optionally be `protected`.  A protected interface
-cannot be converted back to the original class or any other concrete
-class, including `object`.  It can be implicitly converted to a base
-interface or explicitly converted to any interface that implements a
-subset of its methods.
-
-This prevents people from using a cast to bypass the intended
-use of the interface.  For example:
-
-    pub class MyStuff
-    {
-        // Nobody should modify my stuff, but it's ok if they look at it
-        myStuff List<Stuff>()
-        pub ro SeeMyStuff IRoArray<Stuff> = #protected IRoArray<Stuff>(myStuff);
-    }
-    pub static fun MyFunc(yourStuff MyStuff)
-    {
-        // Modify your stuff.  ILLEGAL!
-        #List<Stuff>(yourStuff.SeeMyStuf).Add(Stuff());
-    }
+* Impossible in safe code that is.  Unsafe code can get at the underlying pointer.
 
 #### Static Interfaces and Functions
 
@@ -751,30 +769,6 @@ While it is a little unsafe (not memory unsafe) to allow Lists to be sliced,
 the convenience outweighs the bad.  **TBD:** Maybe not allow since we
 are using reference counted GC?
 
-#### ASpan, Span, Forward References, Return References
-
-**TBD:** This proably all gets removed.  A `Span` would contain a reference
-to the object, and mutability is built into the type system.
-
-Arrays have implicit conversion to `ASpan`, `Span`, and `RoSpan`.  `ASpan` is used for async
-functions, and `Span` for sync functions, such as `str` class. A lot needs to be said here,
-but the condensed version is:
-
-* ASpan: An array segment that can be stored on the heap or passed to async functions
-* Span: A memory slice that cannot be stored on the heap or passed to async functions
-* Forward Reference: A pointer to an interior struct passed **into** a function
-* Return Reference: A pointer to an interior struct passed **out of** a function,
-implemeneted as a fat pointer (pointer to object and pointer to interior struct)
-
-
-A distinction is made between forward references and return references because the GC needs
-to be aware of (and pin) all references on the stack.  Once a reference is stored on the
-memory stack, it is pinned and held in memory so that it can be passed forward on the
-execution stack without ever being looked at again.  When a reference is returned, there
-must be a way to pin the object that holds the reference.
-
-Describe more here...
-
 ## Garbage Collection
 
 For a while I was held up thinking about how garbage collection should
@@ -835,9 +829,9 @@ For the time being, async is built into the type system but it looks and
 acts as if it were sync.  Calling an async function from async code blocks
 without using the `await` keyword:
 
-    afun MySlowIoFunctionAsync(server str) str 
+    async fun MySlowIoFunctionAsync(server str) str 
     {
-        // In C# `await` would be needed before both function calls, but not in Zurfur
+        // In C# `await` would be needed before both function calls
         var a = MakeXhrCallToServerAsync(server)  // Blocks without await keyword
         Task.Delay(100);                       // Also blocks without a keyword
         return a;
@@ -851,7 +845,7 @@ Async code normally looks and acts as if it were sync.  But, when we want
 to start or wait for multiple tasks, we can also use the `astart` and
 `await` keywords.
 
-    afun GetStuffFromSeveralServers() str 
+    async fun GetStuffFromSeveralServers() str 
     {
         // Start the functions, but do not block
         var a = astart { MySlowIoFunctionAsync("server1") }

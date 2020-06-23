@@ -160,17 +160,17 @@ pub class Example2  // YES, errors working
         var a7 = f(f<a>())(a+b)
 
         // Casts
-        var a = cast<int>(a+b+myFloat32)*23+4        // Prefix, operator
-        var a = cast<List<Stuff>>(yourStuff.SeeMyStuff).Add(Stuff())    // Prefix
-        var b = *cast<*int>(myVoidPointer)      // Prefix
-        var c1 = cast<M<str,int.x<T>.y>.Hello2>(A)
-        var c2 = cast<M<str,int.x<T>.y>.Hello2<x.x>>(A)
-        var c3 = cast<List<int,y,z>>(A)
-        var a = cast<int>(a+b+myFloat32)
-        var a = cast<List<Stuff>>(yourStuff.SeeMyStuff).Add(Stuff())
-        var a = (cast<List<Stuff>>(yourStuff.SeeMyStuff)).Add(Stuff())
-        var b = *cast<*int>(myVoidPointer)
-        cast<List<Stuff>>(yourStuff.SeeMyStuff)[23] = 4
+        var a = cast int(a+b+myFloat32)*23+4
+        var a = cast List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
+        var b = *cast *int(myVoidPointer)      // Prefix
+        var c1 = cast M<str,int.x<T>.y>.Hello2(A)
+        var c2 = cast M<str,int.x<T>.y>.Hello2<x.x>(A)
+        var c3 = cast List<int,y,z>(A)
+        var a = cast int(a+b+myFloat32)
+        var a = cast List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
+        var a = (cast List<Stuff>(yourStuff.SeeMyStuff)).Add(Stuff())
+        var b = *cast *int(myVoidPointer)
+        cast List<Stuff>(yourStuff.SeeMyStuff)[23] = 4
 
 
         // Local variables declared in a function
@@ -374,8 +374,8 @@ pub class Matrix2d<t>
 
 pub static fun MemCopy(dest *void, source *void, length xint)
 {
-    var d = cast<xint>dest
-    var s = cast<xint>source
+    var d = cast xint(dest)
+    var s = cast xint(source)
     
     if length <= 0
     {
@@ -384,12 +384,12 @@ pub static fun MemCopy(dest *void, source *void, length xint)
     // Align `d` on i32
     while d & 3 != 0 && length != 0
     {
-        *cast<*byte>d = *cast<*byte>s; d+=1; s+=1; length-=1
+        *cast *byte(d) = *cast *byte(s); d+=1; s+=1; length-=1
     }
     
     if s & 3 == 0
     {
-        MemCopy32(cast<*void>d, cast<*void>s, length)
+        MemCopy32(cast *void(d), cast *void(s), length)
         return
     }
     
@@ -397,21 +397,21 @@ pub static fun MemCopy(dest *void, source *void, length xint)
     var end = d + length
     while end-d >= 4
     {
-        *cast<*byte>d = *cast<*byte>s; d+=1; s+=1
-        *cast<*byte>d = *cast<*byte>s; d+=1; s+=1
-        *cast<*byte>d = *cast<*byte>s; d+=1; s+=1
-        *cast<*byte>d = *cast<*byte>s; d+=1; s+=1
+        *cast *byte(d) = *cast *byte(s); d+=1; s+=1
+        *cast *byte(d) = *cast *byte(s); d+=1; s+=1
+        *cast *byte(d) = *cast *byte(s); d+=1; s+=1
+        *cast *byte(d) = *cast *byte(s); d+=1; s+=1
     } 
     while d != end
     {
-        *cast<*byte>d = *cast<*byte>s; d+=1; s+=1
+        *cast *byte(d) = *cast *byte(s); d+=1; s+=1
     }
 }
 
 pub static fun MemCopy32(dest *void, source *void, length xint)
 {
-    var d = cast<xint>dest
-    var s = cast<xint>source
+    var d = cast xint(dest)
+    var s = cast xint(source)
 
     if length <= 0
     {
@@ -424,20 +424,20 @@ pub static fun MemCopy32(dest *void, source *void, length xint)
     {
         if d & 4 != 0
         {
-            *cast<*i32>d = *cast<*i32>s; d+=4; s+=4
+            *cast *i32(d) = *cast *i32(s); d+=4; s+=4
         }
         while end - d >= 8  
         {
-            *cast<*i64>d = *cast<*i64>s; d+=8; s+=8
+            *cast *i64(d) = *cast *i64(s); d+=8; s+=8
         }
     }
     while end-d >= 4
     {
-        *cast<*i32>d = *cast<*i32>s; d+=4; s+=4
+        *cast *i32(d) = *cast *i32(s); d+=4; s+=4
     }
     while d != end
     {
-        *cast<*byte>d = *cast<*byte>s; d+=1; s+=1
+        *cast *byte(d) = *cast *byte(s); d+=1; s+=1
     }
 }
 

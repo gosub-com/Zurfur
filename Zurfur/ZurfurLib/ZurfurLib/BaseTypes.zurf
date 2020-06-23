@@ -44,16 +44,16 @@ pub struct ro i8
 
     pub fun new(a i8) => extern
 
-    pub fun operator explicit(a u8) i8 => extern
-    pub fun operator explicit(a i16) i8 => extern
-    pub fun operator explicit(a u16) i8 => extern
-    pub fun operator explicit(a i32) i8 => extern
-    pub fun operator explicit(a u32) i8 => extern
-    pub fun operator explicit(a i64) i8 => extern
-    pub fun operator explicit(a u64) i8 => extern
-    pub fun operator explicit(a f32) i8 => extern
-    pub fun operator explicit(a f64) i8 => extern
-    pub fun operator explicit(a decimal) i8 => extern
+    pub fun operator cast(a u8) i8 => extern
+    pub fun operator cast(a i16) i8 => extern
+    pub fun operator cast(a u16) i8 => extern
+    pub fun operator cast(a i32) i8 => extern
+    pub fun operator cast(a u32) i8 => extern
+    pub fun operator cast(a i64) i8 => extern
+    pub fun operator cast(a u64) i8 => extern
+    pub fun operator cast(a f32) i8 => extern
+    pub fun operator cast(a f64) i8 => extern
+    pub fun operator cast(a decimal) i8 => extern
     
     pub fun operator implicit(a i8) i16 => extern
     pub fun operator implicit(a i8) i32 => extern
@@ -79,16 +79,16 @@ pub struct ro u8
 
     pub fun new(a u8) => extern
     
-    pub fun operator explicit(a i8) u8 => extern
-    pub fun operator explicit(a i16) u8 => extern
-    pub fun operator explicit(a u16) u8 => extern
-    pub fun operator explicit(a i32) u8 => extern
-    pub fun operator explicit(a u32) u8 => extern
-    pub fun operator explicit(a i64) u8 => extern
-    pub fun operator explicit(a u64) u8 => extern
-    pub fun operator explicit(a f32) u8 => extern
-    pub fun operator explicit(a f64) u8 => extern
-    pub fun operator explicit(a decimal) u8 => extern
+    pub fun operator cast(a i8) u8 => extern
+    pub fun operator cast(a i16) u8 => extern
+    pub fun operator cast(a u16) u8 => extern
+    pub fun operator cast(a i32) u8 => extern
+    pub fun operator cast(a u32) u8 => extern
+    pub fun operator cast(a i64) u8 => extern
+    pub fun operator cast(a u64) u8 => extern
+    pub fun operator cast(a f32) u8 => extern
+    pub fun operator cast(a f64) u8 => extern
+    pub fun operator cast(a decimal) u8 => extern
 
     pub fun operator implicit(a u8) i16 => extern
     pub fun operator implicit(a u8) u16 => extern
@@ -116,14 +116,14 @@ pub struct ro i16
 
     pub fun new(a i16) => extern
 
-    pub fun operator explicit(a u16) i16 => extern
-    pub fun operator explicit(a i32) i16 => extern
-    pub fun operator explicit(a u32) i16 => extern
-    pub fun operator explicit(a i64) i16 => extern
-    pub fun operator explicit(a u64) i16 => extern
-    pub fun operator explicit(a f32) i16 => extern
-    pub fun operator explicit(a f64) i16 => extern
-    pub fun operator explicit(a decimal) i16 => extern
+    pub fun operator cast(a u16) i16 => extern
+    pub fun operator cast(a i32) i16 => extern
+    pub fun operator cast(a u32) i16 => extern
+    pub fun operator cast(a i64) i16 => extern
+    pub fun operator cast(a u64) i16 => extern
+    pub fun operator cast(a f32) i16 => extern
+    pub fun operator cast(a f64) i16 => extern
+    pub fun operator cast(a decimal) i16 => extern
 
     pub fun operator implicit(a i16) i32 => extern
     pub fun operator implicit(a i16) i64 => extern
@@ -148,15 +148,15 @@ pub struct ro u16
 
     pub fun new(a u16) => extern
 
-    pub fun operator explicit(a i8) u16 => extern
-    pub fun operator explicit(a i16) u16 => extern
-    pub fun operator explicit(a i32) u16 => extern
-    pub fun operator explicit(a u32) u16 => extern
-    pub fun operator explicit(a i64) u16 => extern
-    pub fun operator explicit(a u64) u16 => extern
-    pub fun operator explicit(a f32) u16 => extern
-    pub fun operator explicit(a f64) u16 => extern
-    pub fun operator explicit(a decimal) u16 => extern
+    pub fun operator cast(a i8) u16 => extern
+    pub fun operator cast(a i16) u16 => extern
+    pub fun operator cast(a i32) u16 => extern
+    pub fun operator cast(a u32) u16 => extern
+    pub fun operator cast(a i64) u16 => extern
+    pub fun operator cast(a u64) u16 => extern
+    pub fun operator cast(a f32) u16 => extern
+    pub fun operator cast(a f64) u16 => extern
+    pub fun operator cast(a decimal) u16 => extern
 
     pub fun operator implicit(a u16) i32 => extern
     pub fun operator implicit(a u16) u32 => extern
@@ -182,12 +182,12 @@ pub struct ro i32
 
     pub fun new(a i32) => extern
 
-    pub fun operator explicit(a u32) i32 => extern
-    pub fun operator explicit(a i64) i32 => extern
-    pub fun operator explicit(a u64) i32 => extern
-    pub fun operator explicit(a f32) i32 => extern
-    pub fun operator explicit(a f64) i32 => extern
-    pub fun operator explicit(a decimal) i32 => extern
+    pub fun operator cast(a u32) i32 => extern
+    pub fun operator cast(a i64) i32 => extern
+    pub fun operator cast(a u64) i32 => extern
+    pub fun operator cast(a f32) i32 => extern
+    pub fun operator cast(a f64) i32 => extern
+    pub fun operator cast(a decimal) i32 => extern
     
     pub fun operator implicit(a i32) i64 => extern
     pub fun operator implicit(a i32) f32 => extern
@@ -233,14 +233,14 @@ pub struct ro u32
 
     pub fun new(a u32) => extern
 
-    pub fun operator explicit(a i8) u32 => extern
-    pub fun operator explicit(a i16) u32 => extern
-    pub fun operator explicit(a i32) u32 => extern
-    pub fun operator explicit(a i64) u32 => extern
-    pub fun operator explicit(a u64) u32 => extern
-    pub fun operator explicit(a f32) u32 => extern
-    pub fun operator explicit(a f64) u32 => extern
-    pub fun operator explicit(a decimal) u32 => extern
+    pub fun operator cast(a i8) u32 => extern
+    pub fun operator cast(a i16) u32 => extern
+    pub fun operator cast(a i32) u32 => extern
+    pub fun operator cast(a i64) u32 => extern
+    pub fun operator cast(a u64) u32 => extern
+    pub fun operator cast(a f32) u32 => extern
+    pub fun operator cast(a f64) u32 => extern
+    pub fun operator cast(a decimal) u32 => extern
     
     pub fun operator implicit(a u32) i64 => extern
     pub fun operator implicit(a u32) u64 => extern
@@ -286,10 +286,10 @@ pub struct ro i64
 
     pub fun new(a i64) => extern
 
-    pub fun operator explicit(a u64) i64 => extern
-    pub fun operator explicit(a f32) i64 => extern
-    pub fun operator explicit(a f64) i64 => extern
-    pub fun operator explicit(a decimal) i64 => extern
+    pub fun operator cast(a u64) i64 => extern
+    pub fun operator cast(a f32) i64 => extern
+    pub fun operator cast(a f64) i64 => extern
+    pub fun operator cast(a decimal) i64 => extern
     
     pub fun operator implicit(a i64) decimal => extern
     pub fun operator implicit(a i64) f64 => extern
@@ -333,13 +333,13 @@ pub struct ro u64
 
     pub fun new(a u64) => extern
 
-    pub fun operator explicit(a i8) u64 => extern
-    pub fun operator explicit(a i16) u64 => extern
-    pub fun operator explicit(a i32) u64 => extern
-    pub fun operator explicit(a i64) u64 => extern
-    pub fun operator explicit(a f32) u64 => extern
-    pub fun operator explicit(a f64) u64 => extern
-    pub fun operator explicit(a decimal) u64 => extern
+    pub fun operator cast(a i8) u64 => extern
+    pub fun operator cast(a i16) u64 => extern
+    pub fun operator cast(a i32) u64 => extern
+    pub fun operator cast(a i64) u64 => extern
+    pub fun operator cast(a f32) u64 => extern
+    pub fun operator cast(a f64) u64 => extern
+    pub fun operator cast(a decimal) u64 => extern
     
     pub fun operator implicit(a u64) decimal => extern
     pub fun operator implicit(a u64) f64 => extern    
@@ -384,8 +384,8 @@ pub struct ro f32
 
     pub fun new(a f32) => extern
 
-    pub fun operator explicit(a f64) f32 => extern
-    pub fun operator explicit(a decimal) f32 => extern
+    pub fun operator cast(a f64) f32 => extern
+    pub fun operator cast(a decimal) f32 => extern
     
     pub fun operator implicit(a f32) f64 => extern
     pub fun operator implicit(a f32) decimal => extern
@@ -434,7 +434,7 @@ pub struct ro f64
 
     pub fun new(a f64) => extern
 
-    pub fun operator explicit(a decimal) f64 => extern
+    pub fun operator cast(a decimal) f64 => extern
     
     pub fun operator implicit(a f64) decimal => extern
 
