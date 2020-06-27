@@ -6,8 +6,8 @@ namespace Zurfur.Collections;
 /// in that NAN must compare to itself as true.
 pub static interface IEquatable<T>
 {
-    static fun GetHashCode(a T) uint => impl
-    static fun Equals(a T, b T) bool => impl
+    static func GetHashCode(a T) uint => impl
+    static func Equals(a T, b T) bool => impl
 }
 
 /// Implement IComparable on any object that can be sorted.
@@ -16,31 +16,31 @@ pub static interface IEquatable<T>
 pub static interface IComparable<T>
     implements IEquatable<T>
 {
-    static fun Compare(a T, b T) int  => impl
+    static func Compare(a T, b T) int  => impl
 }
 
 pub static interface IArithmetic<T>
     implements IComparable<T>
 {
-    fun operator-(a T) T => impl
-    fun operator-(a T, b T) T => impl
-    fun operator+(a T, b T) T => impl
-    fun operator*(a T, b T) T => impl
-    fun operator/(a T, b T) T => impl
-    fun operator%(a T, b T) T => impl
+    func operator-(a T) T => impl
+    func operator-(a T, b T) T => impl
+    func operator+(a T, b T) T => impl
+    func operator*(a T, b T) T => impl
+    func operator/(a T, b T) T => impl
+    func operator%(a T, b T) T => impl
     static prop Identity T => impl get
     static prop Origin T => impl get
 }
 
 pub interface IEnumerable<out T>
 {
-    fun GetEnumerator() IEnumerator<T> => impl
+    func GetEnumerator() IEnumerator<T> => impl
 }
 
 /// This is the only function needed for standard iterators
 pub interface IEnumerator<T>
 {
-    mut fun GetNext(item ref T) bool => impl
+    mut func GetNext(item ref T) bool => impl
 }
 
 /// This should only be defined for simple types
@@ -49,12 +49,12 @@ pub interface IEnumerator<T>
 pub interface IFastEnumerator<T>
     implements IEnumerator<T>
 {
-    fun HasNext() bool => impl
+    func HasNext() bool => impl
     prop Current T => impl get
 
-    mut fun Advance() => impl
+    mut func Advance() => impl
     
-    mut fun GetNext(item ref T) bool
+    mut func GetNext(item ref T) bool
     {
         if HasNext()
         {
@@ -79,40 +79,40 @@ pub interface ICollection<T>
 pub interface IMutCollection<T>
     implements ICollection<T>
 {
-    mut fun Clear() => impl
-    mut fun Add(item T) => impl
-    mut fun Add(items ICollection<T>) => impl
+    mut func Clear() => impl
+    mut func Add(item T) => impl
+    mut func Add(items ICollection<T>) => impl
     // NOTE: 'Remove' and 'Contains' are not included because
     //      each collection may have a different idea about
     //      how to compare and find objects.  
     //      TBD: Consider adding them back in.  With constraint?
-    //      fun RemoveObject(item T) where T : IEquatable
+    //      func RemoveObject(item T) where T : IEquatable
 }
 
 pub interface IArray<T> 
     implements ICollection<T>
 {
-    fun operator[](index int) T => impl get
+    func operator[](index int) T => impl get
 }
 
 
 pub interface IMutArray<T> 
     implements ICollection<T>
 {
-    fun operator[](index int) T => impl get set
-    fun operator[](range Range) IArray => todo()
+    func operator[](index int) T => impl get set
+    func operator[](range Range) IArray => todo()
 }
 
 pub interface IList<T>
     implements IMutCollection<T>, IArray<T>, IMutArray<T>
 {
-    mut fun Insert(index int, item T) => impl
-    mut fun Insert(index int, collection ICollection<T>) => impl
-    mut fun Remove(index int) => impl
-    mut fun Remove(range Range) => impl
+    mut func Insert(index int, item T) => impl
+    mut func Insert(index int, collection ICollection<T>) => impl
+    mut func Remove(index int) => impl
+    mut func Remove(range Range) => impl
 
-    mut fun Add(item T) { Insert(Count, item) }
-    mut fun Add(items ICollection<T>) { Insert(Count, items) }
+    mut func Add(item T) { Insert(Count, item) }
+    mut func Add(items ICollection<T>) { Insert(Count, items) }
 }
 
 pub struct KeyValuePair<TKey, TValue>
@@ -120,17 +120,17 @@ pub struct KeyValuePair<TKey, TValue>
     pub Key TKey
     pub Value TValue
 
-    pub fun new(key TKey, value TValue) { Key = key; Value = value }
+    pub func new(key TKey, value TValue) { Key = key; Value = value }
 }
 
 pub interface IMap<TKey, TValue>
     implements ICollection<KeyValuePair<TKey, TValue>>
 {
-    fun operator in(a TKey) bool => impl
-    fun operator[](key TKey) TValue => impl get
-    fun Contains(key TKey) bool => impl
-    fun Get(key TKey, defaultValue TValue) TValue => impl
-    fun TryGet(key TKey, value out TValue) bool => impl
+    func operator in(a TKey) bool => impl
+    func operator[](key TKey) TValue => impl get
+    func Contains(key TKey) bool => impl
+    func Get(key TKey, defaultValue TValue) TValue => impl
+    func TryGet(key TKey, value out TValue) bool => impl
     prop Keys ICollection<TKey> => impl get
     prop Values ICollection<TValue> => impl get
 }
@@ -140,21 +140,21 @@ pub interface IMutMap<TKey, TValue>
       IMutCollection<KeyValuePair<TKey, TValue>>
             
 {
-    fun operator[](key TKey) TValue => impl get set
-    mut fun Remove(TKey key) bool => impl
+    func operator[](key TKey) TValue => impl get set
+    mut func Remove(TKey key) bool => impl
 }
 
 /// This is a test
 pub interface IGeneric<Q>
 {
-    fun A<T>(Q m) int => test()
+    func A<T>(Q m) int => test()
 }
 
 // Test generic class
 pub class MyGeneric<QQ>
     implements IGeneric<QQ>
 {
-    pub fun IGeneric<QQ>::A<T>(QQ a) int { }
+    pub func IGeneric<QQ>::A<T>(QQ a) int { }
 }
 
 /// Compiler implemented interface created for all structs that are blittable.

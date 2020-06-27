@@ -53,19 +53,19 @@ free to send me comments letting me know what you think should be changed.
 
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
-    pub static fun Main(args []str)
+    pub static func Main(args []str)
     {
         // This is a regular private comment
         Console.Log("Hello World, 2+2=" + add(2,2))
     }
 
     // Regular static function
-    pub static fun add(a int, b int) int
+    pub static func add(a int, b int) int
         => a + b
 
-**TBD:** Use `func` instead of `fun`?
+**TBD:** Use `fun` instead of `func`?
 
-Functions are declared with the `fun` keyword. The type names come
+Functions are declared with the `func` keyword. The type names come
 after each argument, and the return type comes after the parameters.
 Functions, classes, structs, enums, variables and constants are
 private unless they have the 'pub' qualifier.  Functions are allowed
@@ -76,15 +76,15 @@ at the namespace level, but must be static or extension methods.
 By default, functions pass parameters by immutable reference.  The exception
 is that small structs may be passed by value when it is more efficient to do so.
 
-    pub fun Test(a      f64,       // Pass by value since that's more efficient
-                 s      MyStruct,  // Pass by value or reference whichever is more efficient
-                 ms mut MyStruct,  // Pass by reference, preserve `ro` fields
-                 rs ref MyStruct,  // Pass by reference, nothing is preserved
-                 os out MyStruct,  // MyStruct is returned by reference
-                 c      MyClass,   // Pass reference, the object is immutable
-                 mc mut MyClass,   // Pass by reference, object is mutable, reference cannot be changed
-                 ic ref MyClass,   // Pass by reference, object is mutable, reference can be changed
-                 oc out MyClass)   // MyClass is returned by reference
+    pub func Test(a      f64,       // Pass by value since that's more efficient
+                  s      MyStruct,  // Pass by value or reference whichever is more efficient
+                  ms mut MyStruct,  // Pass by reference, preserve `ro` fields
+                  rs ref MyStruct,  // Pass by reference, nothing is preserved
+                  os out MyStruct,  // MyStruct is returned by reference
+                  c      MyClass,   // Pass reference, the object is immutable
+                  mc mut MyClass,   // Pass by reference, object is mutable, reference cannot be changed
+                  ic ref MyClass,   // Pass by reference, object is mutable, reference can be changed
+                  oc out MyClass)   // MyClass is returned by reference
 
 If `s` is big, such as a matrix containing 16 floats, it is passed by
 reference.  If it is small, such as a single float or int, it is passed
@@ -148,7 +148,6 @@ has side effects.  For instance:
 It is possible to create a nullable reference.
     
     var myNullStr ?str         // String is null
-    var myEmptyStr ?str()      // String is ""
 
 A non-nullable reference can be assigned to a nullable, but a cast
 or conditional test must be used to convert nullable to non-nullable.  
@@ -200,15 +199,15 @@ Escape constants are `cr`, `lf`, `crlf`, `tab`, `ff`, `bs`
 which can never be changed after that.  An an array has an immutable `Count` property
 instead of the `Length` property in C#
 
-    var a Array<int>               // `a` is an array of length zero
-    var b Array<int>(32)           // `b` is an array of length 32
-    var c Array<Array<int>>(10)    // `c` is an array of 10 arrays of integer
+    var a Array<int>                // `a` is an array of length zero
+    var b = Array<int>(32)          // `b` is an array of length 32
+    var c = Array<Array<int>>(10)   // `c` is an array of 10 arrays of integer
 
 Arrays can be initialized when created:
 
     var a Array<int> = [1,2,3]
-    var b = Array<int>([1,2,3])    // Alternative way of initializing the array
     var c Array<Array<int>> = [[1,2,3], [4,5,6], [7,8,9]]  // Jagged matrix
+    var b = Array<int>([1,2,3])    // Alternative way of initializing the array
 
 Arrays can be sliced.  See below for more information.
 
@@ -263,7 +262,7 @@ the fastest or most efficient. For efficient memory usage, `Json` will support
 Operator precedence comes from Golang.
 
     Primary: x.y  f<type>(x)  a[i]  cast
-    Unary: - ! & ~ * switch sizeof
+    Unary: - ! & ~ * switch sizeof use
     Multiplication and bits: * / % << >> & 
     Add and bits: + - | ~
     Range: .. ::
@@ -299,9 +298,9 @@ is defined for the given type.  Use `===` and `!==` for object comparison.
 
 `+`, `-`, `*`, `/`, `%`, and `in` are the only operators that may be individually
 defined.  The `==` and `!=` operator may be defined together by implementing
-`static fun Equals(a myType, b myType) bool`.  All six comparison operators,
+`static func Equals(a myType, b myType) bool`.  All six comparison operators,
 `==`, `!=`, `<`, `<=`, `==`, `!=`, `>=`, and `>` can be implemented with just
-one function: `static fun Compare(a myType, b myType) int`.  If both functions
+one function: `static func Compare(a myType, b myType) int`.  If both functions
 are defined, `Equals` is used for equality comparisons, and `Compare` is used
 for the others.
 
@@ -343,6 +342,7 @@ Exceptions can be caught and continued (or "swallowed") in async code.
 Since async calls are not on the execution stack, it is possible to
 efficiently continue after the exception. This also makes it possible
 to recover (and log an error) after a programing error.
+
 
 ## Initializer Expressions
 
@@ -400,6 +400,78 @@ of a line prevents a semicolon on that line.
 **Exception:** A line beginning with an `*` always has a semicolon before it, so
 multiplication cannot be used to continue a line.  This is necessary so a
 dereference statement such as `*a = 3` cannot be continued from the previous line.
+
+#### While and Do Statements
+
+The `while` loop is the same as C#.  The `do` loop is also the same as C#
+except that the condition executes inside the scope of the loop:
+
+    do
+    {
+        var accepted = SomeBooleanFunc()
+        DoSomethingElse()
+    } while accepted
+
+#### Scope Statement
+
+The `scope` statement creates a new scope:
+
+    scope
+    {
+        var file = use File.Open("My File")
+        DoStuff(file)
+    }
+    // File variable is out of scope here
+
+
+The `scope` statement can be turned into a loop using the `continue` statement:
+
+    scope
+    {
+        DoSomething()
+        if WeWantToRepeat()
+            { continue }
+    }
+
+Likewise, `break` can be used to exit early.
+
+#### Catch and Finally
+
+Any scope can be used to catch an exception, there is no need for a `try` statement.
+Exceptions are automatically re-thrown unless there is an explicit `break` or
+`return` keyword. 
+
+    afunc F()
+    {
+        var a = DoStuff()
+    catch SpecialError:
+        SpecialCleanup()
+    catch Error:
+        GeneralCleanup()
+    finally:
+        DoStuffNoMatterWhat()
+    }
+
+The exception handling code doesn't have access to any variables in the local scope.
+The `scope` keyword can be used for that purpose.
+
+    afunc F() int
+    {
+        var a = 0
+        scope
+        {
+            a = DoStuff()
+        catch SpecialError1:
+            return -1
+        catch SpecialError2:
+            break;
+        }
+        return a
+    }
+
+
+
+
 
 #### For Loop
 
@@ -469,15 +541,6 @@ it is attempted.  Here are two examples of things to avoid:
 like `for newVar in expression : stepExpression` where `stepExpression` is a
 positive compile time constant.
 
-#### While and Do Loops
-
-Same as C#.
-
-**TBD:** Explore syntax to allow post increment statement to make up
-for the `for` loop not allowing it.  Perhaps something like
-`while treePointer != null, treePointer = treePointer.Next {statements}`
-From what I've seen, this is not necessary and would be abused too often.
-
 #### Switch
 
 The switch statement is mostly the same as C#, except that a `case` statement
@@ -530,8 +593,8 @@ thrown wherever a reference count drops to zero.  C# has a similar problem.
         pub ro F7 str = "Hello world"                // Initialized read only string
         pub ro points Array<MutablePointXY> = [(1,2),(3,4),(5,6)]
         
-        pub fun Func1(this, a int) f64 => F1 + " hi"   // Member function
-        pub fun Func2(this mut, a int) { F1 = "x"}     // Member function that mutates
+        pub func Func1(this, a int) f64 => F1 + " hi"   // Member function
+        pub func Func2(this mut, a int) { F1 = "x"}     // Member function that mutates
 
         pub prop Prop1 str => F1                     // Property returning F1
         pub prop ChangedTime DateTime = DateTime.Now // Default value and default get/set
@@ -560,8 +623,8 @@ efficiency are desired.  `int`, `byte`, and `float` are structs.
     {
         pub X int
         pub Y int
-        pub fun new(x int, y int) { X = x; Y = y}
-        pub mut fun SetY(y int) { Y = y }
+        pub func new(x int, y int) { X = x; Y = y}
+        pub mut func SetY(y int) { Y = y }
         pub prop PropX int { get => X; set { X = value } }
     }
     
@@ -604,7 +667,7 @@ and do not use `,` to separate values.
         E           // E is 33
     
         // Enumerations can override ToString
-        override fun ToString() => MyConvertToTranslatedName()
+        override func ToString() => MyConvertToTranslatedName()
     }
 
 The default `ToString` function shows the value as an integer rather
@@ -658,8 +721,8 @@ Here is `IEquatable<T>` from the standard library:
 
     pub static interface IEquatable<T>
     {
-        static fun GetHashCode(a T) uint => imp
-        static fun Equals(a T, b T) bool => imp
+        static func GetHashCode(a T) uint => imp
+        static func Equals(a T, b T) bool => imp
     }
 
 Unimplemented functions and properties are explicitly marked with
@@ -713,7 +776,7 @@ base class, not the derived classes.
 function:
 
     // Return `value` if it `low`..`high` otherwise return `low` or `high`.  
-    pub static fun BoundValue<T>(value T, low T, high T) T
+    pub static func BoundValue<T>(value T, low T, high T) T
             where T is IAritmetic
     {
         if value <= low
@@ -755,7 +818,7 @@ If `myArray` is of type `Array<byte>`, a string can be created directly from the
 A `List` can be sliced, but the slice to becomes detached from the underlying
 array when the capacity changes.  
 
-    pub static fun BadSlice()
+    pub static func BadSlice()
     {
         var s = List<byte>()
         a.Add("Hello Bob")
@@ -791,7 +854,7 @@ Eventually, there may be a garbage collector to detect and cleanup cycles.
 The unary `*` operator dereferences a pointer.  The `.` operator is used to access fields
 or members of a pointer to the struct (so `->` is only used for lambdas). 
  
-    pub static fun strcpy(dest *byte, source *byte)
+    pub static func strcpy(dest *byte, source *byte)
     {
         while *source != 0
             { *dest = *source;  dest += 1;  source += 1 }
@@ -829,23 +892,21 @@ For the time being, async is built into the type system but it looks and
 acts as if it were sync.  Calling an async function from async code blocks
 without using the `await` keyword:
 
-    async fun MySlowIoFunctionAsync(server str) str 
+    afunc MySlowIoFunctionAsync(server str) str 
     {
         // In C# `await` would be needed before both function calls
-        var a = MakeXhrCallToServerAsync(server)  // Blocks without await keyword
-        Task.Delay(100);                       // Also blocks without a keyword
+        var a = MakeXhrCallToServerAsync(server)    // Blocks without await keyword
+        Task.Delay(100);                            // Also blocks without a keyword
         return a;
     }
 
-[What color is your function?](https://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/)
-In Zurfur, functions do have a color but function call syntax is colorless.  
-When running from async code, `F(X)` may or may not be async.
+Notice that async functions are defined with the `afunc` keyword.
 
 Async code normally looks and acts as if it were sync.  But, when we want
 to start or wait for multiple tasks, we can also use the `astart` and
 `await` keywords.
 
-    async fun GetStuffFromSeveralServers() str 
+    afunc GetStuffFromSeveralServers() str 
     {
         // Start the functions, but do not block
         var a = astart { MySlowIoFunctionAsync("server1") }
@@ -881,7 +942,7 @@ to start or wait for multiple tasks, we can also use the `astart` and
     }
 
 A sync function cannot implicitly call an async function, but it can start it
-using the `astart` keyword, like this: `fun MySyncFunction() { astart MyAsyncFunction() }`
+using the `astart` keyword, like this: `func MySyncFunction() { astart MyAsyncFunction() }`
 
 #### Async Implementation 
 
@@ -898,7 +959,7 @@ function needs to be async, and can optimize most sync code into sync
 functions.  There are two problems here.
 
 First, the compiler would have trouble optimizing lambda function calls.
-If `List<T>.Sort(compare fun(a T, b T) bool)` is compiled
+If `List<T>.Sort(compare func(a T, b T) bool)` is compiled
 as async, it would be an efficiency disaster.
 
 Second, it would be far to easy for a function to *accidentally* be changed
@@ -907,7 +968,7 @@ to async.  A library that was previously sync and fast could all of a sudden
 become async and slow without even realizing it was happening.
 
 One solution could be to mark functions `sync`, something like
-`List<T>.Sort(compare sfun(a T, b T) bool)`.  This seems almost as bad
+`List<T>.Sort(compare sfunc(a T, b T) bool)`.  This seems almost as bad
 as marking them async.  Are there better solutions?
 
 ## Threading

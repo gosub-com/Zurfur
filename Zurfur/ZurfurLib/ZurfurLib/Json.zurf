@@ -4,5 +4,5 @@
 // TBD: Todo
 pub unsealed class Json
 {
-    pub fun default() Json => Json()        
+    pub func default() Json => Json()        
 }

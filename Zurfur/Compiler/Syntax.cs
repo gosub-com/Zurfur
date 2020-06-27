@@ -74,7 +74,6 @@ namespace Gosub.Zurfur.Compiler
     class SyntaxField : SyntaxScope
     {
         public SyntaxExpr TypeName;
-        public SyntaxExpr InitExpr;
         public override string FullName => base.FullName + "::" + Name;
 
         public SyntaxField()

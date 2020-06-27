@@ -125,6 +125,8 @@ namespace Gosub.Zurfur.Compiler
                         break;
                     case "fun":
                     case "func":
+                    case "afun":
+                    case "afunc":
                         RejectQualifiers(func.Qualifiers, sFuncQualifiers, "Qualifier does not apply to functions");
                         break;
                 }
@@ -299,6 +301,11 @@ namespace Gosub.Zurfur.Compiler
                         CheckStatements(expr, e);
                     break;
 
+                case "scope":
+                    if (expr.Count != 0)
+                        CheckStatements(expr, expr[0]);
+                    break;
+
                 case "switch":
                 case "while":
                 case "do":
@@ -324,6 +331,8 @@ namespace Gosub.Zurfur.Compiler
                 case "continue":
                 case "break":
                 case "default":
+                case "catch":
+                case "finally":
                     break;
 
                 case "return":
@@ -399,7 +408,6 @@ namespace Gosub.Zurfur.Compiler
             }
             foreach (var field in unit.Fields)
             {
-                ShowParseTree(field.InitExpr);
                 ShowParseTree(field.TypeName);
             }
         }

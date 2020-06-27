@@ -16,11 +16,11 @@ pub class Example
     f2 List<str> = ["Hello", "World"]   // Initialized list
     ro f3 Map<str,int> = {"A":1, "B":2} // Initialized immutable map
     pub ro Header str = "Zurfur"        // Public read only string
-    pub fun F(a int) str => Header+a   // Public member function
+    pub func F(a int) str => Header+a   // Public member function
     pub prop P str => Header + info     // Public property
 }
 
-static fun test_ForSimple()
+static func test_ForSimple()
 {
 
     var count int
@@ -49,7 +49,7 @@ static fun test_ForSimple()
 }
 
 
-pub static fun test_Convert()
+pub static func test_Convert()
 {
     var a = List<float>()
     var b = List<int>()
@@ -57,9 +57,9 @@ pub static fun test_Convert()
 }
 
 
-pub fun Example::MyExtension() => F()  // Extension method
+pub func Example::MyExtension() => F()  // Extension method
 
-pub fun Example::MyExtension()
+pub func Example::MyExtension()
 {
     var a = Map<str,int>({"A":1, "B":2, "C":3})
     var b Map<str,int> = {"A":1, "B":2, "C":3}
@@ -79,4 +79,39 @@ pub fun Example::MyExtension()
     var n Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
     var o Map<int,str> = {0:"a", 1:"b"}
     
+}
+
+
+static afunc F()
+{
+    switch a
+    {
+        case 1, 2, 3:
+    }
+}
+
+
+static afunc F()
+{
+catch SpecialError:
+    SpecialCleanup()
+catch Error:
+    GeneralCleanup()
+finally:
+    DoStuffNoMatterWhat()
+}
+
+
+static afunc F() int
+{
+    var a = 0
+    scope
+    {
+        a = DoStuff()
+    catch SpecialError1:
+        return -1
+    catch SpecialError2:
+        break;
+    }
+    return a
 }
