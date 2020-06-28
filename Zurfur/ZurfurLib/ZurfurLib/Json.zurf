@@ -1,8 +1,0 @@
-﻿namespace Zurfur
-
-
-// TBD: Todo
-pub unsealed class Json
-{
-    pub func default() Json => Json()        
-}

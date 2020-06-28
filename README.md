@@ -17,6 +17,7 @@ Thoughts about where to go and how to do it: [Internals](Doc/Internals.md).
 * Fun and easy to use
 * Faster than C# and unsafe code just as fast as C
 * Target WebAssembly with ahead of time compilation
+* Typesafe replacement for JavaScript
 * Stretch goal: Rewrite compiler and IDE in Zurfur on Node.js
 
 ![](Doc/IDE.png)
@@ -25,18 +26,18 @@ Zurfur takes its main inspiration from C#, but borrows syntax and design
 concepts from Golang, Rust, Zig, Lobster, and many other languages.
 Here are some differences between Zurfur and C#:
 
-* Strings are UTF8 byte arrays, always initialized to ""
-* Classes are reference counted (finalized when count goes to zero)
-* References are non-nullable by default, may use `?` for nullable
-* Mutability is part of the type system:
+* Mutability and nullabilty are part of the type system:
+    * References are non-nullable by default, may use `?` for nullable
     * Mutable function parameters must be explicitly marked `mut`
     * Children of read only fields (i.e. `ro` fields) are also read only
-    * Functions pass `struct` parameters by reference or value, whichever is more efficient
     * Get/set of mutable a struct acts as if it were a reference (e.g. `MyListOfStructPoints[1].X = 5`)
+    * Functions pass `struct` parameters by reference or value, whichever is more efficient
 * Type declaration syntax and operator precedence is from Golang
 * Interfaces may be implemented by the class (C# style) or externally (Rust trait style)
+* Strings are UTF8 byte arrays, always initialized to ""
+* Classes are reference counted (finalized when count goes to zero)
 * `==` operator fails if it is not defined on a class (does not default to object comparison)
-* Async acts like a blocking call without the `await` keyword (ideal for Javascript callbacks)
+* Async acts like a blocking call without the `await` keyword (ideal for JavaScript callbacks)
 
 #### Status Update
 
@@ -53,19 +54,19 @@ free to send me comments letting me know what you think should be changed.
 
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
-    pub static func Main(args []str)
+    pub static fun Main(args []str)
     {
         // This is a regular private comment
         Console.Log("Hello World, 2+2=" + add(2,2))
     }
 
     // Regular static function
-    pub static func add(a int, b int) int
+    pub static fun add(a int, b int) int
         => a + b
 
-**TBD:** Use `fun` instead of `func`?
+**TBD:** Use `func` instead of `fun`?
 
-Functions are declared with the `func` keyword. The type names come
+Functions are declared with the `fun` keyword. The type names come
 after each argument, and the return type comes after the parameters.
 Functions, classes, structs, enums, variables and constants are
 private unless they have the 'pub' qualifier.  Functions are allowed
@@ -76,15 +77,15 @@ at the namespace level, but must be static or extension methods.
 By default, functions pass parameters by immutable reference.  The exception
 is that small structs may be passed by value when it is more efficient to do so.
 
-    pub func Test(a      f64,       // Pass by value since that's more efficient
-                  s      MyStruct,  // Pass by value or reference whichever is more efficient
-                  ms mut MyStruct,  // Pass by reference, preserve `ro` fields
-                  rs ref MyStruct,  // Pass by reference, nothing is preserved
-                  os out MyStruct,  // MyStruct is returned by reference
-                  c      MyClass,   // Pass reference, the object is immutable
-                  mc mut MyClass,   // Pass by reference, object is mutable, reference cannot be changed
-                  ic ref MyClass,   // Pass by reference, object is mutable, reference can be changed
-                  oc out MyClass)   // MyClass is returned by reference
+    pub fun Test(a      f64,       // Pass by value since that's more efficient
+                 s      MyStruct,  // Pass by value or reference whichever is more efficient
+                 ms mut MyStruct,  // Pass by reference, preserve `ro` fields
+                 rs ref MyStruct,  // Pass by reference, nothing is preserved
+                 os out MyStruct,  // MyStruct is returned by reference
+                 c      MyClass,   // Pass reference, the object is immutable
+                 mc mut MyClass,   // Pass by reference, object is mutable, reference cannot be changed
+                 ic ref MyClass,   // Pass by reference, object is mutable, reference can be changed
+                 oc out MyClass)   // MyClass is returned by reference
 
 If `s` is big, such as a matrix containing 16 floats, it is passed by
 reference.  If it is small, such as a single float or int, it is passed
@@ -126,9 +127,9 @@ they are declared in, but may not be mutated by a function call.  Use the
 deserves a special operator.  But, this might turn people off since everyone
 is used to `var`.  This is what it would like like using `@`:
 
-    @a = "Hello World"                  // `b` is a str
-    @b = List<int>([1,2,3])             // `d` is a list of integers, initialized with {1,2,3}
-    @c = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
+    @a = "Hello World"
+    @b = List<int>([1,2,3])
+    @c = Map<str,int>({"A":1,"B":2})
     @d List<int> = [1, 2, 3]
     @e Map<int,str> = {0:"a", 1:"b"}
 
@@ -298,9 +299,9 @@ is defined for the given type.  Use `===` and `!==` for object comparison.
 
 `+`, `-`, `*`, `/`, `%`, and `in` are the only operators that may be individually
 defined.  The `==` and `!=` operator may be defined together by implementing
-`static func Equals(a myType, b myType) bool`.  All six comparison operators,
+`static fun Equals(a myType, b myType) bool`.  All six comparison operators,
 `==`, `!=`, `<`, `<=`, `==`, `!=`, `>=`, and `>` can be implemented with just
-one function: `static func Compare(a myType, b myType) int`.  If both functions
+one function: `static fun Compare(a myType, b myType) int`.  If both functions
 are defined, `Equals` is used for equality comparisons, and `Compare` is used
 for the others.
 
@@ -441,7 +442,7 @@ Any scope can be used to catch an exception, there is no need for a `try` statem
 Exceptions are automatically re-thrown unless there is an explicit `break` or
 `return` keyword. 
 
-    afunc F()
+    afun F()
     {
         var a = DoStuff()
     catch SpecialError:
@@ -455,7 +456,7 @@ Exceptions are automatically re-thrown unless there is an explicit `break` or
 The exception handling code doesn't have access to any variables in the local scope.
 The `scope` keyword can be used for that purpose.
 
-    afunc F() int
+    afun F() int
     {
         var a = 0
         scope
@@ -593,8 +594,8 @@ thrown wherever a reference count drops to zero.  C# has a similar problem.
         pub ro F7 str = "Hello world"                // Initialized read only string
         pub ro points Array<MutablePointXY> = [(1,2),(3,4),(5,6)]
         
-        pub func Func1(this, a int) f64 => F1 + " hi"   // Member function
-        pub func Func2(this mut, a int) { F1 = "x"}     // Member function that mutates
+        pub fun Func1(this, a int) f64 => F1 + " hi"   // Member function
+        pub fun Func2(this mut, a int) { F1 = "x"}     // Member function that mutates
 
         pub prop Prop1 str => F1                     // Property returning F1
         pub prop ChangedTime DateTime = DateTime.Now // Default value and default get/set
@@ -623,8 +624,8 @@ efficiency are desired.  `int`, `byte`, and `float` are structs.
     {
         pub X int
         pub Y int
-        pub func new(x int, y int) { X = x; Y = y}
-        pub mut func SetY(y int) { Y = y }
+        pub fun new(x int, y int) { X = x; Y = y}
+        pub mut fun SetY(y int) { Y = y }
         pub prop PropX int { get => X; set { X = value } }
     }
     
@@ -667,7 +668,7 @@ and do not use `,` to separate values.
         E           // E is 33
     
         // Enumerations can override ToString
-        override func ToString() => MyConvertToTranslatedName()
+        override fun ToString() => MyConvertToTranslatedName()
     }
 
 The default `ToString` function shows the value as an integer rather
@@ -721,8 +722,8 @@ Here is `IEquatable<T>` from the standard library:
 
     pub static interface IEquatable<T>
     {
-        static func GetHashCode(a T) uint => imp
-        static func Equals(a T, b T) bool => imp
+        static fun GetHashCode(a T) uint => imp
+        static fun Equals(a T, b T) bool => imp
     }
 
 Unimplemented functions and properties are explicitly marked with
@@ -776,7 +777,7 @@ base class, not the derived classes.
 function:
 
     // Return `value` if it `low`..`high` otherwise return `low` or `high`.  
-    pub static func BoundValue<T>(value T, low T, high T) T
+    pub static fun BoundValue<T>(value T, low T, high T) T
             where T is IAritmetic
     {
         if value <= low
@@ -818,7 +819,7 @@ If `myArray` is of type `Array<byte>`, a string can be created directly from the
 A `List` can be sliced, but the slice to becomes detached from the underlying
 array when the capacity changes.  
 
-    pub static func BadSlice()
+    pub static fun BadSlice()
     {
         var s = List<byte>()
         a.Add("Hello Bob")
@@ -840,7 +841,7 @@ even more so when targeting WebAssembly since there is an execution
 stack and lack of write barriers.
 
 Thanks to [Lobster](https://aardappel.github.io/lobster/memory_management.html)
-and the single threaded nature of Javascript, I have decided to go with
+and the single threaded nature of JavaScript, I have decided to go with
 reference counting.  In a single threaded environment, it's fast, efficient,
 and most count adjustments can be removed at compile time. With reference
 counting, you avoid the long pauses, get deterministic finalization, and
@@ -854,7 +855,7 @@ Eventually, there may be a garbage collector to detect and cleanup cycles.
 The unary `*` operator dereferences a pointer.  The `.` operator is used to access fields
 or members of a pointer to the struct (so `->` is only used for lambdas). 
  
-    pub static func strcpy(dest *byte, source *byte)
+    pub static fun strcpy(dest *byte, source *byte)
     {
         while *source != 0
             { *dest = *source;  dest += 1;  source += 1 }
@@ -892,7 +893,7 @@ For the time being, async is built into the type system but it looks and
 acts as if it were sync.  Calling an async function from async code blocks
 without using the `await` keyword:
 
-    afunc MySlowIoFunctionAsync(server str) str 
+    afun MySlowIoFunctionAsync(server str) str 
     {
         // In C# `await` would be needed before both function calls
         var a = MakeXhrCallToServerAsync(server)    // Blocks without await keyword
@@ -900,13 +901,13 @@ without using the `await` keyword:
         return a;
     }
 
-Notice that async functions are defined with the `afunc` keyword.
+Notice that async functions are defined with the `afun` keyword.
 
 Async code normally looks and acts as if it were sync.  But, when we want
 to start or wait for multiple tasks, we can also use the `astart` and
 `await` keywords.
 
-    afunc GetStuffFromSeveralServers() str 
+    afun GetStuffFromSeveralServers() str 
     {
         // Start the functions, but do not block
         var a = astart { MySlowIoFunctionAsync("server1") }
@@ -942,7 +943,7 @@ to start or wait for multiple tasks, we can also use the `astart` and
     }
 
 A sync function cannot implicitly call an async function, but it can start it
-using the `astart` keyword, like this: `func MySyncFunction() { astart MyAsyncFunction() }`
+using the `astart` keyword, like this: `fun MySyncFunction() { astart MyAsyncFunction() }`
 
 #### Async Implementation 
 
@@ -959,7 +960,7 @@ function needs to be async, and can optimize most sync code into sync
 functions.  There are two problems here.
 
 First, the compiler would have trouble optimizing lambda function calls.
-If `List<T>.Sort(compare func(a T, b T) bool)` is compiled
+If `List<T>.Sort(compare fun(a T, b T) bool)` is compiled
 as async, it would be an efficiency disaster.
 
 Second, it would be far to easy for a function to *accidentally* be changed
@@ -968,7 +969,7 @@ to async.  A library that was previously sync and fast could all of a sudden
 become async and slow without even realizing it was happening.
 
 One solution could be to mark functions `sync`, something like
-`List<T>.Sort(compare sfunc(a T, b T) bool)`.  This seems almost as bad
+`List<T>.Sort(compare sfun(a T, b T) bool)`.  This seems almost as bad
 as marking them async.  Are there better solutions?
 
 ## Threading
@@ -988,7 +989,7 @@ memory safe:
 * Span can be stored on the heap, also without tearing
 * Garbage collection can use reference counting without an interlock
 
-Javascript has done pretty well with the single threaded model.
+JavaScript has done pretty well with the single threaded model.
 IO is async and doesn't block.  Long CPU bound tasks can be
 offloaded to a web worker.  Zurfur will stick to the single-threaded
 model for now.

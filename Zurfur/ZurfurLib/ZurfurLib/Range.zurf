@@ -8,11 +8,11 @@ struct Range<T>
     pub Low T
     pub High T
     
-    pub static func Equals(a T, b T) bool
+    pub static fun Equals(a T, b T) bool
         => a.Low == b.Low && a.High == b.High
-    pub static func GetHashCode(a T) uint
+    pub static fun GetHashCode(a T) uint
         => HashMix(a.Low.GetHashCode(), a.High.GetHashCode())
-    pub func GetEnumerator() RangeEnumerator<T>
+    pub fun GetEnumerator() RangeEnumerator<T>
         => RangeEnumerator<T>(Low, High)
     
 }
@@ -23,12 +23,12 @@ struct RangeEnumerator<T>
     index T
     ro high T
     
-    pub func new(low T, high T) 
+    pub fun new(low T, high T) 
         { index = low;  this.high = high}                   
 
     prop Current T => index
-    func HasNext() bool => index < high
-    mut func Advance() { index += T.Identiry }
+    fun HasNext() bool => index < high
+    mut fun Advance() { index += T.Identiry }
 }
 
     

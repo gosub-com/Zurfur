@@ -13,7 +13,7 @@ pub class Example
     f2 List<str> = ["Hello", "World"]     // Initialized list
     ro f3 Map<str,int> = {"A":1, "B":2}   // Initialized immutable map
     pub ro Header str = "Zurfur"          // Public read only string
-    pub func F(a int) str => Header+a      // Public member function
+    pub fun F(a int) str => Header+a      // Public member function
     pub prop P str => Header + info       // Public property
 }
 
@@ -22,8 +22,8 @@ pub struct MyMutablePoint
 {
     pub X int
     pub Y int
-    pub func new(x int, y int) { X = x; Y = y}
-    pub mut func SetY(y int) { Y = y }
+    pub fun new(x int, y int) { X = x; Y = y}
+    pub mut fun SetY(y int) { Y = y }
     pub prop PropX int { get => X; set { X = value } }
 }
 
@@ -35,13 +35,13 @@ pub class Example_x
     pub field1 f32
     pub field2 int    
     pub prop Prop str => Header + info      // Property
-    pub func A(a int, b int, c f32) f32 => a+1
-    pub func A(a f32) f32 => a+1
-    pub func B(a f32) f32 => a+1
+    pub fun A(a int, b int, c f32) f32 => a+1
+    pub fun A(a f32) f32 => a+1
+    pub fun B(a f32) f32 => a+1
     pub prop ChangedTime DateTime = DateTime.Now
         => default get private set
         
-    pub func E()
+    pub fun E()
     {
         list.binarysearch(1,23)(a,b) ->   {  a.compare(b) }
         const MY_CONST = 23
@@ -50,7 +50,30 @@ pub class Example_x
     }
     
 }
-pub func Example::MyExtension() => Func1(10) // Extension method
+pub fun Example::MyExtension() => Func1(10) // Extension method
+
+
+pub fun Example::MyExtension()
+{
+    var a = Map<str,int>({"A":1, "B":2, "C":3})
+    var b Map<str,int> = {"A":1, "B":2, "C":3}
+    var c Map<int,PointXY> = {0:(3,4), 1:(5,6)}
+    
+    var d = 3                              // `a` is an int
+    var e = "Hello World"                  // `b` is a str
+    var f = MyFunction()                   // `c` is whatever type is returned by MyFunction
+    var g = List<int>([1,2,3])             // `d` is a list of integers, intialized with {1,2,3}
+    var h = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
+    var i = Json({"A":1,"B":[1,2,3]})      // `f` is a Json object containing a number and an array
+   
+    var j int = MyIntFunc()                // Error if MyIntFunc returns a float
+    var k str                              // `b` is a string, initialized to ""
+    var l List<int>                        // `c` is an empty List<int>
+    var m List<int> = [1, 2, 3]
+    var n Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
+    var o Map<int,str> = {0:"a", 1:"b"}
+    
+}
 
 
 pub struct PointXY<T>
@@ -60,10 +83,10 @@ pub struct PointXY<T>
     pub x int
     pub y int
     
-    pub func operator+(a PointXY<T>, b PointXY<T>) PointXY<T> => todo()
+    pub fun operator+(a PointXY<T>, b PointXY<T>) PointXY<T> => todo()
 }
 
-pub func Example::Extension() 
+pub fun Example::Extension() 
 { 
     for a in 1..23
     {
@@ -122,28 +145,28 @@ pub class Example2  // YES, errors working
         set { p1 = value }
     }
     
-    pub func operator[](index i) int => i
+    pub fun operator[](index i) int => i
     
     // Function
-    func fun1(a int) f32 => f1 + f2 + a
-    func func1(a int) { }
-    func func2(a out str) bool {}
-    func func4(a ref MyStruct) {}
-    func func5(a Array<Array<int>>) {}
-    func func7(a List<int>) { }
-    func func8(a out List<List<int>>) { }
-    func func10(a Map<str,List<int>>) { }
+    fun fun1(a int) f32 => f1 + f2 + a
+    fun fun2(a int) { }
+    fun fun3(a out str) bool {}
+    fun fun4(a ref MyStruct) {}
+    fun fun5(a Array<Array<int>>) {}
+    fun fun6(a List<int>) { }
+    fun fun7(a out List<List<int>>) { }
+    fun fun8(a Map<str,List<int>>) { }
     
-    pub func Sort<T>(greaterThan func(a T, b T) bool) { }
-    pub MyFieldFunc func(sender object, message str)
+    pub fun Sort<T>(greaterThan fun(a T, b T) bool) { }
+    pub MyFieldFunc fun(sender object, message str)
 
 
-    pub func M<A,B>(a A, b B, c List<int>) List<int> {}
+    pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
     
-    func func8(a out List<List<int>>) { }
-    func func8(a out MyList<int,x,y,z>){ }
+    fun fun9(a out List<List<int>>) { }
+    fun fun10(a out MyList<int,x,y,z>){ }
     
-    pub static func Main(args Array<str>)
+    pub static fun Main(args Array<str>)
     {
         mut a = use OpenFile("My File");
         defer file.close();
@@ -225,7 +248,7 @@ pub class Example2  // YES, errors working
 }
 
 
-pub func Example::IfTests() 
+pub fun Example::IfTests() 
 { 
     // In operator
     if myStr in myMap || myIn in 1..23
@@ -303,7 +326,7 @@ pub struct MyPoint
 {
     pub X int
     pub Y int
-    pub override func ToStr() => "(" + X + "," + Y + ")"
+    pub override fun ToStr() => "(" + X + "," + Y + ")"
 }
 
 
@@ -319,10 +342,10 @@ pub enum MyEnum
 
 pub interface MyInterfaceTest
 {
-    func A() int => imp
-    protected func C() int => imp
+    fun A() int => imp
+    protected fun C() int => imp
         
-    pub func B() int => A() + 1
+    pub fun B() int => A() + 1
     pub struct Astruct { pub a int }
     pub enum Aenum { a; b; c}
     pub class Aclass { pub a int  }
@@ -331,13 +354,13 @@ pub interface MyInterfaceTest
 pub class MyClass1 
     implements MyInterfaceTest
 {
-    pub func A() int => 3
-    pub func MyInterfaceTest::C() int => 3
+    pub fun A() int => 3
+    pub fun MyInterfaceTest::C() int => 3
 
 }
 
 
-pub static func Sort<T>(s MutSpan<T>, lessThan func(a T, b T) bool)
+pub static fun Sort<T>(s MutSpan<T>, lessThan fun(a T, b T) bool)
 {
     // Simple selection sort
     for i in s.Count-1
@@ -364,13 +387,13 @@ pub static func Sort<T>(s MutSpan<T>, lessThan func(a T, b T) bool)
 pub class Matrix2d<t>
     extends VariableSizedObject<T>
 {
-    func new(len1 int, len2 int) { todo() }
-    pub func operator[](i1 int, i2 int) ref T => todo()
+    fun new(len1 int, len2 int) { todo() }
+    pub fun operator[](i1 int, i2 int) ref T => todo()
 }
 
 
 
-pub static func MemCopy(dest *void, source *void, length xint)
+pub static fun MemCopy(dest *void, source *void, length xint)
 {
     var d = cast xint(dest)
     var s = cast xint(source)
@@ -406,7 +429,7 @@ pub static func MemCopy(dest *void, source *void, length xint)
     }
 }
 
-pub static func MemCopy32(dest *void, source *void, length xint)
+pub static fun MemCopy32(dest *void, source *void, length xint)
 {
     var d = cast xint(dest)
     var s = cast xint(source)
@@ -441,7 +464,7 @@ pub static func MemCopy32(dest *void, source *void, length xint)
 
 namespace ExampleNs1.HelloWorld
 {
-    static func F1() => todo
+    static fun F1() => todo
     
     class ClassEx1
     {
@@ -453,7 +476,7 @@ namespace ExampleNs1.HelloWorld
 
 namespace ExampleNs1
 {
-    static func F1() => todo
+    static fun F1() => todo
     
     namespace InnerEx1
     {
@@ -490,7 +513,7 @@ namespace ExampleNs1
 
 namespace ExampleNs2
 {
-    static func F1() => todo
+    static fun F1() => todo
     
     class ClassEx1
     {

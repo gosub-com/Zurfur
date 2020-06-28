@@ -5,7 +5,58 @@
 
 namespace Zurfur.UnitTests
 
-static func test_HelloWorld()
+static fun test_HelloWorld()
 {
-    Console.Log("Hello World, 2+2=" + 4);
+    Console.Log("Hello World.  Let's count to 10.")
+    for a in 1..11
+    {
+        Console.Log("Count=" + a) 
+    }
+}
+
+pub class Example
+{
+    info str                  // Private string initialized to ""
+    array Array<int> = [1,2,3]          // Private mutable array
+    list List<str> = ["Hello", "World"] // Private mutable list
+    ro m Map<str,int> = {"A":1, "B":2}  // Private immutable map
+    pub ro Header str = "Zurfur"        // Public immutable string
+    pub fun F(a int) int => m["A"]+10   // Public function
+    pub prop P str => Header + info     // Public property
+}
+
+static fun test_ForSimple()
+{
+
+    var count int
+    for a in 0..10
+    {
+        if a == 2
+        {
+            count += 100
+        }
+        else if a == 3 || a == 4
+        {
+            count += 1000
+        }
+        else if a == 5
+        {
+            count += 10000
+            count += 10000
+        }
+        else
+        {
+            count += 100000
+        }
+        count += a
+    }
+    Console.Log("For loop: " + count == 622145 ? "Pass" : "Fail")
+}
+
+
+pub static fun test_Convert()
+{
+    var a = List<float>()
+    var b = List<int>()
+    var c = a.Convert((i) -> cast int(i))
 }

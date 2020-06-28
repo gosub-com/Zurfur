@@ -5,20 +5,20 @@ pub class ro str
     extends ArrayBase<byte>
     implements IComparable<str>, IRoArray<byte>
 {
-    func default() => "";
+    fun default() => "";
     
-    pub func new() { todo() }
-    pub func new(s str) { todo() }
-    pub func new(s Span<byte>) { todo() }
-    pub func operator[](index int) byte => todo()
-    pub func operator[](range Range) Span<byte> => todo() // Slice
+    pub fun new() { todo() }
+    pub fun new(s str) { todo() }
+    pub fun new(s Span<byte>) { todo() }
+    pub fun operator[](index int) byte => todo()
+    pub fun operator[](range Range) Span<byte> => todo() // Slice
     
-    pub static func GetHashCode(a str) uint => todo()
-    pub static func Equals(a str, b str) bool => todo()
-    pub static func Compare(a str, b str) int => todo()
+    pub static fun GetHashCode(a str) uint => todo()
+    pub static fun Equals(a str, b str) bool => todo()
+    pub static fun Compare(a str, b str) int => todo()
         
-    pub func operator+(s1 str, s2 str) str { todo() }   
-    pub func operator+(s1 Span<byte>, s2 str) str { todo() }
-    pub func operator+(s1 str, s2 Span<byte>) str { todo() }
+    pub fun operator+(s1 str, s2 str) str { todo() }   
+    pub fun operator+(s1 Span<byte>, s2 str) str { todo() }
+    pub fun operator+(s1 str, s2 Span<byte>) str { todo() }
     // TBD: Implicit conversion to and from Span?
 }

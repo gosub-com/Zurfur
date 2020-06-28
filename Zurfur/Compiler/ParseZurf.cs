@@ -266,10 +266,10 @@ namespace Gosub.Zurfur.Compiler
                         ParseClass(keyword, parentScope, qualifiers);
                         break;
 
-                    //case "fun":
-                    //case "afun":
-                    case "func":
-                    case "afunc":
+                    case "fun":
+                    case "afun":
+                    //case "func":
+                    //case "afunc":
                         Accept();
                         keyword.Type = eTokenType.ReservedControl;  // Fix keyword to make it control
                         ParseMethod(keyword, parentScope, qualifiers);
@@ -634,10 +634,10 @@ namespace Gosub.Zurfur.Compiler
 
             switch (synFunc.Keyword)
             {
-                //case "fun":
-                //case "afun":
-                case "func":
-                case "afunc":
+                case "fun":
+                case "afun":
+                //case "func":
+                //case "afunc":
                     if (ParseFuncNameDef(out synFunc.ClassName, out synFunc.Name))
                     {
                         ParseFuncDef(out synFunc.TypeParams, out synFunc.Params, out synFunc.ReturnType);
@@ -726,8 +726,8 @@ namespace Gosub.Zurfur.Compiler
             //        && token != "}" && token != "=>" && token != "{";
             return token.Type == eTokenType.Identifier
                || qualifiers.Contains(token)
-               //|| token == "fun" || token == "afun" 
-               || token == "func" || token == "afunc"
+               || token == "fun" || token == "afun" 
+               //|| token == "func" || token == "afunc"
                || token == PTR || token == "?" || token == REFERENCE;
         }
 
@@ -1534,9 +1534,8 @@ namespace Gosub.Zurfur.Compiler
             {
                 return new SyntaxUnary(Accept(), ParseTypeDef(qualifiers, errorStop));
             }
-            else if (
-                //mTokenName == "fun" || mTokenName == "afun" ||
-                mTokenName == "func" || mTokenName == "afunc")
+            else if (mTokenName == "fun" || mTokenName == "afun")
+                // mTokenName == "func" || mTokenName == "afunc")                
             {
                 return ParseLambdaDef(); 
             }

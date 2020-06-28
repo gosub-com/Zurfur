@@ -137,9 +137,6 @@
     <None Include="ZurfurLib\ZurfurLib\Array.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\BaseExperiment.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <EmbeddedResource Include="Ide\ImageEditor.resx">
       <DependentUpon>ImageEditor.cs</DependentUpon>
     </EmbeddedResource>
@@ -203,9 +200,6 @@
     <None Include="ZurfurLib\ZurfurLib\Internal.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Json.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="ZurfurLib\ZurfurLib\List.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -225,12 +219,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="ZurfurLib\ZurfurLib\Test.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="ZurfurLib\ZurfurLib\UnitTestsFail.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="ZurfurLib\ZurfurLib\UnitTestsFuture.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
