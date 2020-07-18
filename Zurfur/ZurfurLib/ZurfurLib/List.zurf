@@ -3,7 +3,7 @@
 pub class List<T> 
     implements IList<T>
 {
-    items ^Array<T> = Array<T>.default
+    items Array<T> // TBD: Verify this uses `default` doesn't create new arrays
     count int
 
     pub fun new() => todo()
@@ -22,8 +22,8 @@ pub class List<T>
     pub mut fun Remove(index int) => todo()
     pub mut fun Remove(range Range) => todo()
     
-    pub fun Convert<Tout>(c fun(input T) Tout) => todo() 
-    pub fun ForEach(r fun(input T)) => todo()
-    pub fun Find(p fun(input T)) => todo()
+    pub fun Convert<Tout>(c fun<T, Tout>) => todo() 
+    pub fun ForEach(r fun<T>) => todo()
+    pub fun Find(p fun<T>) => todo()
         
 }

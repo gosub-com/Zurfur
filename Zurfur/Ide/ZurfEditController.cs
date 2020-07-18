@@ -273,7 +273,6 @@ namespace Gosub.Zurfur.Ide
             }
 
             // Update the editor with new build info
-            editor.ExtraTokens = buildFile.ExtraTokens;
             var marks = new List<VerticalMarkInfo>();
             int lastMark = -1;
             foreach (var token in editor.Lexer)
@@ -295,7 +294,7 @@ namespace Gosub.Zurfur.Ide
                     marks.Add(new VerticalMarkInfo { Color = Color.Red, Length = 1, Start = lastMark });
                 }
             }
-            foreach (var token in editor.ExtraTokens)
+            foreach (var token in editor.Lexer.MetaTokens)
             {
                 // ERRORS
                 if (token.Error && token.Location.Y != lastMark)

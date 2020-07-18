@@ -103,9 +103,9 @@ Within a function, variables are declared and initialized with the `var` keyword
     var a = 3                              // `a` is an int
     var b = "Hello World"                  // `b` is a str
     var c = MyFunction()                   // `c` is whatever type is returned by MyFunction
-    var d = List<int>([1,2,3])             // `d` is a list of integers, initialized with {1,2,3}
-    var e = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
-    var f = Json({"A":1,"B":[1,2,3]})      // `f` is a Json object containing a number and an array
+    var d = List<int>([1,2,3])             // `d` is a list of integers, initialized with [1,2,3]
+    var e = Map<str,int>(["A":1,"B":2])    // `e` is a map of <str, int>
+    var f = Json(["A":1,"B":[1,2,3]])      // `f` is a Json object containing a number and an array
 
 The above form `var variable = expression` creates a variable with the same type as
 the expression.  A second form `var variable type [=expression]` creates an explicitly
@@ -117,7 +117,7 @@ cannot be converted, an error is generated
     var c List<int>                        // `c` is an empty List<int>
     var d List<int> = [1, 2, 3]
     var e Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
-    var f Map<int,str> = {0:"a", 1:"b"}
+    var f Map<int,str> = [0:"a", 1:"b"]
 
 Variables declared with `var` may be re-assigned or modified by the function
 they are declared in, but may not be mutated by a function call.  Use the
@@ -129,9 +129,9 @@ is used to `var`.  This is what it would like like using `@`:
 
     @a = "Hello World"
     @b = List<int>([1,2,3])
-    @c = Map<str,int>({"A":1,"B":2})
+    @c = Map<str,int>(["A":1,"B":2])
     @d List<int> = [1, 2, 3]
-    @e Map<int,str> = {0:"a", 1:"b"}
+    @e Map<int,str> = [0:"a", 1:"b"]
 
 #### Non-Nullable References
 
@@ -182,17 +182,16 @@ However, there is no rule enforcing the UTF8 encoding so they may hold any binar
 String literals in source code can start with either a quote `"` or a backtick
 `` ` ``, which is useful if the string conains a quote.  They can be translated
 using `tr"string"` syntax, and may be followed by an escape constant such as
-`crlf` or an `{interpolation-expression}`.
+`crlf` or an `(interpolation-expression)`.
 
     var a = "Regular string literal"
-    var b = "Column1" tab "Column2" tab "Column3" crlf     // Containing tabs and crlf
-    var c = tr"Translated string"
-    var d = "Hello world, 2+2="{2+2}"!"crlf                // Interpolated with crlf at end
-    var e = `Jack says "Hello World!"`                     // Include quote character
+    var b = "Column1" tab "Column2" tab "Column3" crlf  // Containing tabs and crlf
+    var c = tr"Translated string"                       // Translated string
+    var d = "Hello world, 2+2="(2+2)"!"crlf             // Interpolated with crlf at end
+    var e = tr"Hello world, 2+2="(2+2)"!"crlf           // Translated and interpolated with crlf at end
+    var f = `Jack says "Hello World!"`                  // Include quote character
 
 Escape constants are `cr`, `lf`, `crlf`, `tab`, `ff`, `bs`
-
-**TBD:** Remove quote strings and use only backtick?
 
 #### Array
 
@@ -233,7 +232,7 @@ array is still there, but it is a bit user un-friendly.
 
 `Map` is a hash table and is similar to `Dictionary` in C#.
 
-    var a Map<str,int> = {"Hello":1, "World":2}
+    var a Map<str,int> = ["Hello":1, "World":2]
     var b = a["World"]                             // `b` is 2
     var c = a["not found"]                         // throws exception
     var d = a.Get("not found")                     // `d` is 0
@@ -245,7 +244,7 @@ array is still there, but it is a bit user un-friendly.
 Using an invalid key does not throw an exception, but instead returns a default
 empty object.
 
-    var a Json = {"Hello":1, "World":2}
+    var a Json = ["Hello":1, "World":2]
     var b = a["World"]                         // `b` is Json(2), not an int
     var c = a["World"].Int                     // `c` is 2
     var d = a["World"].Str                     // `d` is "2"
@@ -258,23 +257,70 @@ the fastest or most efficient. For efficient memory usage, `Json` will support
     var a = Json.Serialize(object)                 // `a` is a Json `str`
     var b = Json.Deserialize<MyObject>(jsonStr)    // `b` is a `MyObject`
 
+
+#### Initializers
+
+An array of expressions `[e1,e2,e3...]` is used to initialize arrays and lists,
+and an array of pairs `[K1:V1,K2:V2...]` is used to initialize a map.  Notice
+that array syntax is used for both arrays and maps. Curly braces are reserved
+for statement level constructs.  Constructors can be called with `()`.
+
+    var a Array<int> = [1,2,3]                 // Array syntax
+    var b Map<str,int> = ["A":1, "B":2]        // Map syntax
+    var c Map<str,int> = [("A",1), ("B", 2)]   // Use ICollection and KeyValuePair constructor
+
+    // Alternative way to initialize (not recommended, but equivalent to `=` format)
+    var a = Array<int>([1,2,3])
+    var b = Map<str,int>(["A":1, "B":2])
+    var c = Map<str,int>([("A",1), ("B", 2)])
+
+The first expression `a` uses array syntax to initialize the array.  The second
+expression `b` uses map syntax to initialize the map.  The third expression, `c`
+is accepted because the `Map` constructor takes an `ICollection<KeyValuePair<str,int>>`
+parameter. The `KeyValuePair` constructor takes `str` and `int` parameters, so
+everything matches up and is accepted.  
+
+A `Map<str,MyPointXY>` can be initialized like this as long as `MyPointXY` has a
+constructor taking two integers:
+
+    var a Map<str, MyPointXY> = ["A": (1,2), "B": (3,4)]      // Use map initializer syntax
+
+The initializer syntax has support for Json.  The library will have a class to
+support Json objects with syntax something like this:
+
+    var a Json = [
+        "Param1" : 23,
+        "Param2" : [1,2,3],
+        "Param3" : ["Hello":12, "World" : "Earth"],
+        "Time" : "2019-12-07T14:13:46"
+    ]
+    var b = a["Param1"].Int            // `b` is 23
+    var c = a["param2"][1].Int         // `c` is 2
+    var d = a["Param3"]["World"].Str   // `d` is "Earth"
+    var e = a["Time"].DateTime         // `e` is converted to DateTime
+    a["Param2"][1].Int = 5          // Set the value
+
+
 ## Operator Precedence
 
 Operator precedence comes from Golang.
 
-    Primary: x.y  f<type>(x)  a[i]  cast
-    Unary: - ! & ~ * switch sizeof use
-    Multiplication and bits: * / % << >> & 
-    Add and bits: + - | ~
-    Range: .. ::
-    Comparison: == != < <= > >= === !== in
-    Conditional: &&
-    Conditional: ||
-    Ternary: a ? b : c
-    Lambda: ->
-    Comma Separator: ,
-    Assignment Statements: = += -= *= /= %= &= |= ~= <<= >>=
-    Statement Separator: =>
+| Type      |  Operators at precedence level
+| :--- | :--- 
+| Primary|  x.y  f<type>(x)  a[i]  cast
+|Unary| - ! & ~ * switch sizeof use unsafe
+|Multiplication and bits| * / % << >> & 
+|Addition and bits| + - ~ &#124;
+|Range| low..high low::count
+|Comparison| == != < <= > >= === !== in
+|Conditional| &&
+|Conditional| &#124;&#124;
+|Ternary| a ? b : c
+|Lambda| ->
+|Pair|  key: value
+|Comma Separator| ,
+|Assignment Statements| = += -= *= /= %= &= |= ~= <<= >>=
+|Statement Separator| =>
 
 The `*` operator is both multiplication and unary dereference, same as in C.
 When used in type definitions, it means *pointer to*, for example `var a *int`
@@ -283,9 +329,12 @@ means `a` is a pointer to `int`.
 The `~` operator is both xor and unary complement, same as `^` in Golang.
 
 The range operator`..` takes two `int`s and make a `Range` which is a
-`struct Range { Start int; End int}`.  The `::` operator also makes a
+`struct Range { High int; Low int}`.  The `::` operator also makes a
 range, but the second parameter is a count instead of end index.  
 See `For Loop` below for examples.
+
+The pair operator `:` makes a key/value pair which can be used
+in an array to initialize a map.
 
 Assignment is a statement, not an expression.  Therefore, expressions like
 `while (a += count) < 20` and `a = b = 1` are not allowed.  Comma is also
@@ -344,50 +393,6 @@ Since async calls are not on the execution stack, it is possible to
 efficiently continue after the exception. This also makes it possible
 to recover (and log an error) after a programing error.
 
-
-## Initializer Expressions
-
-An initializer is a Json-like list or map enclosed within `{}` or `[]` and
-may be used any place a function parameter takes either an `ICollection`,
-`IRoMap`, or for `()` an object with a matching constructor:
-
-    var a Array<int> = [1,2,3]                 // Array syntax
-    var b Map<str,int> = {"A":1, "B":2}        // Map syntax
-    var c Map<str,int> = [("A",1), ("B", 2)]   // Use ICollection and KeyValuePair constructor
-
-    // Alternative way to initialize (not recommended, but equivalent to `=` format)
-    var a = Array<int>([1,2,3])
-    var b = Map<str,int>({"A":1, "B":2})
-    var c = Map<str,int>([("A",1), ("B", 2)])
-
-The first expression `a` uses array syntax to initialize the array.  The second
-expression `b` uses map syntax to initialize the map.  The third expression, `c`
-is accepted because the `Map` constructor takes an `ICollection<KeyValuePair<str,int>>`
-parameter. The `KeyValuePair` constructor takes `str` and `int` parameters, so
-everything matches up and is accepted.  
-
-A `Map<str,MyPointXY>` can be initialized like this as long as `MyPointXY` has a
-constructor taking two integers:
-
-    var a Map<str, MyPointXY> = {"A": (1,2), "B": (3,4)}      // Use map initializer syntax
-
-#### Json Initializer Expressions
-
-The initializer syntax has support for Json.  The library will have a class to
-support Json objects with syntax something like this:
-
-    var a Json = {
-        "Param1" : 23,
-        "Param2" : [1,2,3],
-        "Param3" : {"Hello":12, "World" : "Earth"},
-        "Time" : "2019-12-07T14:13:46"
-    }
-    var b = a["Param1"].Int            // `b` is 23
-    var c = a["param2"][1].Int         // `c` is 2
-    var d = a["Param3"]["World"].Str   // `d` is "Earth"
-    var e = a["Time"].DateTime         // `e` is converted to DateTime
-    a["Param2"][1].Int = 5          // Set the value
-
 ## Statements
 
 Like Golang, semicolons are required between statements but they are automatically
@@ -407,7 +412,7 @@ dereference statement such as `*a = 3` cannot be continued from the previous lin
 The `while` loop is the same as C#.  The `do` loop is also the same as C#
 except that the condition executes inside the scope of the loop:
 
-    do
+    do 
     {
         var accepted = SomeBooleanFunc()
         DoSomethingElse()
@@ -469,9 +474,6 @@ The `scope` keyword can be used for that purpose.
         }
         return a
     }
-
-
-
 
 
 #### For Loop
@@ -564,7 +566,7 @@ level as a `case` statement.
 
 Switch can also be used as an expression:
 
-    var num = switch expression { 23 => a, 27 => b, default => 0}
+    var num =  unaryExpression switch(23: a, 27: b, default: 0}
 
 ## Classes
 
@@ -588,7 +590,7 @@ thrown wherever a reference count drops to zero.  C# has a similar problem.
         pub F2 Array<int>                       // Array initialized to empty (i.e. Count = 0)
         pub F4 Array<int> = [1,2,3]             // Array initialized with 1,2,3
         pub F5 List<str> = ["Hello", "World"]   // Initialized list
-        pub F6 Map<str,int> = {"A":1, "B":2}    // Initialized map
+        pub F6 Map<str,int> = ["A":1, "B":2]    // Initialized map
 
         // Immutable fields
         pub ro F7 str = "Hello world"                // Initialized read only string
@@ -608,7 +610,7 @@ is used, the children are also read onyl (e.g. `points[1].x = 0` is illegal)
 The `prop` keyword is used to define a property.  Properties can be given
 a default value by `=` immediately after the type name.  The compiler can
 auto implement them with `=> default` followed by `get` and optionally `set`.
-Or you can implement them the regular way `prop GetExpr { get { return expressio } }`
+Or you can implement them the regular way `prop GetExpr { get { return expression } }`
 
 Classes are sealed by default.  Use the `unsealed` keword to open them up.
 Sealed classes may be extended but no functions may be overridden.
@@ -653,6 +655,11 @@ Structs are mutable by default, but can be made immutable using the `ro` keyword
 Structs are passed to functions by value or by reference, whichever is more
 efficient.  So, `var a = Multiply(b,c)` would pass `b` and `c` by value
 if they are integers, or by reference if they are large matricies.
+
+Structs can be initialized by a constructor or using named field parameters:
+
+    var a = MyPoint(1,2)
+    var b = MyPoint(X: 3, Y: 4)
 
 #### Enums
 

@@ -19,7 +19,7 @@ pub class Example
     info str                  // Private string initialized to ""
     array Array<int> = [1,2,3]          // Private mutable array
     list List<str> = ["Hello", "World"] // Private mutable list
-    ro m Map<str,int> = {"A":1, "B":2}  // Private immutable map
+    ro m Map<str,int> = ["A":1, "B":2]  // Private immutable map
     pub ro Header str = "Zurfur"        // Public immutable string
     pub fun F(a int) int => m["A"]+10   // Public function
     pub prop P str => Header + info     // Public property

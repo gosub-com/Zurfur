@@ -2298,8 +2298,7 @@ pub unsafe abstract class DlMalloc
     }
 
     // Traversal
-    fun internal_inspect_all(
-        handler fun(start *void, end *void, usedBytes ulong))
+    fun internal_inspect_all(handler fun<*void,*void,ulong,void>)
     {
         if (!is_initialized())
             { return }
@@ -2696,8 +2695,7 @@ pub unsafe abstract class DlMalloc
     }
 
 
-    pub fun InspectAll(
-        handler fun(start *void, end *void, usedBytes ulong))
+    pub fun InspectAll(handler fun<*void,*void,ulong,void>)
     {
         if (ok_magic())
         {

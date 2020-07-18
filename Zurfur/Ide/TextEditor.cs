@@ -77,7 +77,6 @@ namespace Gosub.Zurfur
         Brush       mCodeInCommentColor = new SolidBrush(Color.FromArgb(208, 255, 208));
         static Token sNormalToken = new Token();
 
-        Token[] mExtraTokens;
         TokenColorOverride[]mTokenColorOverrides;
 
         // Internal quick access to mLexer
@@ -302,16 +301,6 @@ namespace Gosub.Zurfur
             set
             {
                 mTokenColorOverrides = value;
-                Invalidate();
-            }
-        }
-
-        public Token []ExtraTokens
-        {
-            get { return mExtraTokens; }
-            set
-            {
-                mExtraTokens = value;
                 Invalidate();
             }
         }
@@ -1318,9 +1307,8 @@ namespace Gosub.Zurfur
                 DrawToken(gr, token, background);
             }
 
-            if (ExtraTokens != null)
-                foreach (Token token in ExtraTokens)
-                    DrawToken(gr, token, background);
+            foreach (Token token in Lexer.MetaTokens)
+                DrawToken(gr, token, background);
         }
 
         /// <summary>

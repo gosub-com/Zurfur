@@ -38,8 +38,8 @@ pub struct ro InterfacePointer
 pub struct ro InterfaceVTable
 {
     pub ro vtable *void // TBD: Common 
-    pub ro IsProtected fun() bool
-    pub ro GetObject fun() *void
+    pub ro IsProtected *fun<bool>
+    pub ro GetObject *fun<*void>
 }
 
 /// All variable sized objects must inherit from this
@@ -56,5 +56,5 @@ pub class ArrayBase<T>
     protected prop DataSpan Span<T> 
         => todo()
     protected unsafe prop DataPointer *T 
-        => cast<*T>(cast<*byte>(this) + Sizeof(ArrayBase))
+        => cast *T(cast *byte(this) + Sizeof(ArrayBase))
 }

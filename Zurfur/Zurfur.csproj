@@ -212,9 +212,6 @@
     <None Include="ZurfurLib\ZurfurLib\Range.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Spans.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="ZurfurLib\ZurfurLib\str.Zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -240,6 +237,10 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
+    <None Include="ZurfurLib\ZurfurLib\Span.zurf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Resources\ZurfurIcon.png" />
     <Content Include="ZurfurLib\www\index.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

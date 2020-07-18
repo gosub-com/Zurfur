@@ -1,3 +1,8 @@
+// TBD:
+// Investigate adding ":" operator
+//      var a = PointXY(x:3, y:4)
+//      Use [a:b] instead of { }
+
 
 use a.b.c
 use system.gosub.p
@@ -11,10 +16,36 @@ pub class Example
     info str                    // Private string initialized to ""
     f1 Array<int> = [1,2,3]             // Initialized array
     f2 List<str> = ["Hello", "World"]     // Initialized list
-    ro f3 Map<str,int> = {"A":1, "B":2}   // Initialized immutable map
+    ro f3 Map<str,int> = ["A":1, "B":2]   // Initialized immutable map
     pub ro Header str = "Zurfur"          // Public read only string
     pub fun F(a int) str => Header+a      // Public member function
     pub prop P str => Header + info       // Public property
+}
+
+
+pub class MutableTest
+{
+    a MyObject
+    b List<MyObject>
+
+    ro c mut MyObject
+    ro d mut List<MyObject>
+    ro e mut List<mut MyObject>
+
+
+    mut i mut MyObject
+    mut f mut List<MyObject>
+
+
+    pub fun getMyObjectAt(i index) mut MyObject => todo()
+    pub fun getMyObjects() List<mut MyObject> => todo()
+    pub fun getMyObjects() mut List<MyObject> => todo()
+    pub prop P1 MyObject => i
+    pub prop P2 mut MyObject => i
+    
+    pub prop P mut str => Header + info       // Public property
+    fun getListObject(i mut index) mut MyObject => a[i]
+
 }
 
 // Mutable point (each mutable function must also be marked)
@@ -55,23 +86,23 @@ pub fun Example::MyExtension() => Func1(10) // Extension method
 
 pub fun Example::MyExtension()
 {
-    var a = Map<str,int>({"A":1, "B":2, "C":3})
-    var b Map<str,int> = {"A":1, "B":2, "C":3}
-    var c Map<int,PointXY> = {0:(3,4), 1:(5,6)}
+    var a = Map<str,int>(["A":1, "B":2, "C":3])
+    var b Map<str,int> = ["A":1, "B":2, "C":3]
+    var c Map<int,PointXY> = [0:(3,4), 1:(5,6)]
     
     var d = 3                              // `a` is an int
     var e = "Hello World"                  // `b` is a str
     var f = MyFunction()                   // `c` is whatever type is returned by MyFunction
     var g = List<int>([1,2,3])             // `d` is a list of integers, intialized with {1,2,3}
-    var h = Map<str,int>({"A":1,"B":2})    // `e` is a map of <str, int>
-    var i = Json({"A":1,"B":[1,2,3]})      // `f` is a Json object containing a number and an array
+    var h = Map<str,int>(["A":1,"B":2])    // `e` is a map of <str, int>
+    var i = Json(["A":1,"B":[1,2,3]])      // `f` is a Json object containing a number and an array
    
     var j int = MyIntFunc()                // Error if MyIntFunc returns a float
     var k str                              // `b` is a string, initialized to ""
     var l List<int>                        // `c` is an empty List<int>
     var m List<int> = [1, 2, 3]
     var n Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
-    var o Map<int,str> = {0:"a", 1:"b"}
+    var o Map<int,str> = [0:"a", 1:"b"]
     
 }
 
@@ -157,8 +188,8 @@ pub class Example2  // YES, errors working
     fun fun7(a out List<List<int>>) { }
     fun fun8(a Map<str,List<int>>) { }
     
-    pub fun Sort<T>(greaterThan fun(a T, b T) bool) { }
-    pub MyFieldFunc fun(sender object, message str)
+    pub fun Sort<T>(greaterThan fun<T,T,bool>) { }
+    pub MyFieldFunc fun<object,str,void>
 
 
     pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
@@ -198,7 +229,7 @@ pub class Example2  // YES, errors working
         var myString = "Hello World"
         var myInt = 3
         var myList = List<int>([1,2,3])
-        var myMap = Map<str,int>({"A":1,"B":2})
+        var myMap = Map<str,int>(["A":1,"B":2])
         var myOtherMap = MyMapReturningFunction()
        
         var myStr str = MyStrFunc()    // Error if MyStrFunc returns an int
@@ -232,7 +263,7 @@ pub class Example2  // YES, errors working
         }
 
         // Switch expressions
-        var num = switch myConstant { 23 => a, 27 => b, default => 0}
+        var num = 3 + myConstant switch(23: a, 27: b, default: 0 )
 
         // Switch statement
         switch a
@@ -241,8 +272,25 @@ pub class Example2  // YES, errors working
             DoIt(1) // No break necessary         
         case 2, 3:
             DoIt2()
-        default: doit3();
+        default:
+            doit3();
         }
+        
+        var a json = [
+             "TestArray": [
+                 [
+                     "Field1": "A",
+                     "Field2": "B",
+                     "Field3": "C"
+                 ],
+                 [
+                     "Field1": "A",
+                     "Field2": "B",
+                     "Field3": "C"
+                 ]
+             ]
+         ]        
+        
                 
     }
 }
@@ -360,7 +408,7 @@ pub class MyClass1
 }
 
 
-pub static fun Sort<T>(s MutSpan<T>, lessThan fun(a T, b T) bool)
+pub static fun Sort<T>(s MutSpan<T>, lessThan fun<T,T,bool>)
 {
     // Simple selection sort
     for i in s.Count-1

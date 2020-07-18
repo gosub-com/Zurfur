@@ -36,6 +36,21 @@ namespace Gosub.Zurfur.Build
         }
 
         /// <summary>
+        /// Returns a file in the build system, or NULL if it is not already there.
+        /// `LoadFile` should be used the first time, then GetFile since it
+        /// is already loaded.
+        /// </summary>
+        public BuildFile GetFile(string fileName)
+        {
+            lock (mLock)
+            {
+                mFiles.TryGetValue(fileName, out var file);
+                return file;
+            }
+        }
+
+
+        /// <summary>
         /// Loads a file into the build system if it is not already there.
         /// Re-loads the file if it is stale.  Returns NULL if this isn't
         /// a file the build system cares about.
@@ -92,7 +107,7 @@ namespace Gosub.Zurfur.Build
                         mFiles[path] = buildFile2;
                     }
 
-                    buildFile2.Lexer = lex;
+                    buildFile2.Lexer = lex; // No need for clone, lexer is transferred to UI thread
                     buildFile2.LastWriteTimeUtc = fi.LastWriteTimeUtc;
                     return buildFile2;
                 }
@@ -118,20 +133,6 @@ namespace Gosub.Zurfur.Build
                                 di.Parent.GetFileSystemInfos(di.Name)[0].Name);
         }
 
-
-        /// <summary>
-        /// Returns a file in the build system, or NULL if it is not already there.
-        /// `LoadFile` should be used the first time, then GetFile since it
-        /// is already loaded.
-        /// </summary>
-        public BuildFile GetFile(string fileName)
-        {
-            lock (mLock)
-            {
-                mFiles.TryGetValue(fileName, out var file);
-                return file;
-            }
-        }
 
         /// <summary>
         /// Closes the file being edited
@@ -221,30 +222,36 @@ namespace Gosub.Zurfur.Build
             if (!mFiles.TryGetValue(file, out var buildFile))
                 return;
 
+            // Allow safe parsing in a backgroudn thread
+            var lexer = buildFile.Lexer.Clone();
+
             if (Debugger.IsAttached)
             {
                 // Reset the lexer, re-parse, and compile
-                ParseText(buildFile);
+                ParseText(buildFile, lexer);
             }
             else
             {
                 try
                 {
                     // Reset the lexer, re-parse, and compile
-                    ParseText(buildFile);
+                    ParseText(buildFile, lexer);
                 }
                 catch (Exception ex)
                 {
                     // Go crazy, mark them all
-                    foreach (var token in buildFile.Lexer)
+                    foreach (var token in lexer)
                         if (token.Boln)
                             token.AddError("Compiler error: " + ex.Message);
                 }
                 buildFile.FileBuildVersion++;
             }
+
+            // Send meta tokens back to original lexer
+            buildFile.Lexer.MetaTokens = lexer.MetaTokens;
         }
 
-        void ParseText(BuildFile buildFile)
+        void ParseText(BuildFile buildFile, Lexer lexer)
         {
             // For the time being, we'll use the extension to decide
             // which parser to use.  TBD: This will be fixed later
@@ -253,7 +260,7 @@ namespace Gosub.Zurfur.Build
             {
                 // Parse text
                 var t1 = DateTime.Now;
-                var parser = new ParseZurf(buildFile.Lexer);
+                var parser = new ParseZurf(lexer);
                 var program = parser.Parse();
 
                 // Generate Sil
@@ -271,14 +278,10 @@ namespace Gosub.Zurfur.Build
                 }
                 var t2 = DateTime.Now;
                 var parseTime = t2 - t1;
-
-
-                // Save parser generated tokens
-                buildFile.SetExtraErrorTokensInternal(parser.ExtraTokens());
             }
             else if (ext == ".json")
             {
-                var parser = new ParseJson(buildFile.Lexer);
+                var parser = new ParseJson(lexer);
                 parser.Parse();
             }
         }

@@ -29,6 +29,7 @@
 		private void InitializeComponent()
 		{
             this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormMain));
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.mainMenu = new System.Windows.Forms.MenuStrip();
             this.menuFile = new System.Windows.Forms.ToolStripMenuItem();
@@ -52,15 +53,20 @@
             this.menuHelpLicense = new System.Windows.Forms.ToolStripMenuItem();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
-            this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
+            this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.projectTree = new Gosub.Zurfur.ProjectTree();
             this.mvEditors = new Gosub.Zurfur.MultiViewEditor();
+            this.buttonMax = new System.Windows.Forms.Button();
+            this.buttonMin = new System.Windows.Forms.Button();
+            this.buttonClose = new System.Windows.Forms.Button();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.mainMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
             // timer1
@@ -71,14 +77,16 @@
             // 
             // mainMenu
             // 
+            this.mainMenu.Dock = System.Windows.Forms.DockStyle.None;
             this.mainMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.menuFile,
             this.menuEdit,
             this.menuDebug,
             this.menuHelp});
-            this.mainMenu.Location = new System.Drawing.Point(0, 0);
+            this.mainMenu.Location = new System.Drawing.Point(22, 1);
             this.mainMenu.Name = "mainMenu";
-            this.mainMenu.Size = new System.Drawing.Size(979, 24);
+            this.mainMenu.RenderMode = System.Windows.Forms.ToolStripRenderMode.Professional;
+            this.mainMenu.Size = new System.Drawing.Size(302, 24);
             this.mainMenu.TabIndex = 16;
             this.mainMenu.Text = "menuStrip1";
             // 
@@ -102,59 +110,59 @@
             // menuFileNewProject
             // 
             this.menuFileNewProject.Name = "menuFileNewProject";
-            this.menuFileNewProject.Size = new System.Drawing.Size(152, 22);
+            this.menuFileNewProject.Size = new System.Drawing.Size(180, 22);
             this.menuFileNewProject.Text = "New Project...";
             this.menuFileNewProject.Click += new System.EventHandler(this.menuFileNewProject_Click);
             // 
             // menuFileNewFile
             // 
             this.menuFileNewFile.Name = "menuFileNewFile";
-            this.menuFileNewFile.Size = new System.Drawing.Size(152, 22);
+            this.menuFileNewFile.Size = new System.Drawing.Size(180, 22);
             this.menuFileNewFile.Text = "New File";
             this.menuFileNewFile.Click += new System.EventHandler(this.menuFileNewFile_Click);
             // 
             // toolStripMenuItem2
             // 
             this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-            this.toolStripMenuItem2.Size = new System.Drawing.Size(149, 6);
+            this.toolStripMenuItem2.Size = new System.Drawing.Size(177, 6);
             // 
             // menuFileOpenProject
             // 
             this.menuFileOpenProject.Name = "menuFileOpenProject";
-            this.menuFileOpenProject.Size = new System.Drawing.Size(152, 22);
+            this.menuFileOpenProject.Size = new System.Drawing.Size(180, 22);
             this.menuFileOpenProject.Text = "Open Project...";
             this.menuFileOpenProject.Click += new System.EventHandler(this.menuFileOpenProject_Click);
             // 
             // menuFileOpenFile
             // 
             this.menuFileOpenFile.Name = "menuFileOpenFile";
-            this.menuFileOpenFile.Size = new System.Drawing.Size(152, 22);
+            this.menuFileOpenFile.Size = new System.Drawing.Size(180, 22);
             this.menuFileOpenFile.Text = "Open File...";
             this.menuFileOpenFile.Click += new System.EventHandler(this.menuFileOpenFile_Click);
             // 
             // toolStripMenuItem1
             // 
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            this.toolStripMenuItem1.Size = new System.Drawing.Size(149, 6);
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(177, 6);
             // 
             // menuFileSave
             // 
             this.menuFileSave.Name = "menuFileSave";
-            this.menuFileSave.Size = new System.Drawing.Size(152, 22);
+            this.menuFileSave.Size = new System.Drawing.Size(180, 22);
             this.menuFileSave.Text = "Save";
             this.menuFileSave.Click += new System.EventHandler(this.menuFileSave_Click);
             // 
             // menuFileSaveAll
             // 
             this.menuFileSaveAll.Name = "menuFileSaveAll";
-            this.menuFileSaveAll.Size = new System.Drawing.Size(152, 22);
+            this.menuFileSaveAll.Size = new System.Drawing.Size(180, 22);
             this.menuFileSaveAll.Text = "Save All";
             this.menuFileSaveAll.Click += new System.EventHandler(this.menuFileSaveAll_Click);
             // 
             // menuFileSaveAs
             // 
             this.menuFileSaveAs.Name = "menuFileSaveAs";
-            this.menuFileSaveAs.Size = new System.Drawing.Size(152, 22);
+            this.menuFileSaveAs.Size = new System.Drawing.Size(180, 22);
             this.menuFileSaveAs.Text = "Save As...";
             this.menuFileSaveAs.Click += new System.EventHandler(this.menuFileSaveAs_Click);
             // 
@@ -172,21 +180,21 @@
             // menuEditFind
             // 
             this.menuEditFind.Name = "menuEditFind";
-            this.menuEditFind.Size = new System.Drawing.Size(156, 22);
+            this.menuEditFind.Size = new System.Drawing.Size(157, 22);
             this.menuEditFind.Text = "Find... (CTRL-F)";
             this.menuEditFind.Click += new System.EventHandler(this.menuEditFind_Click);
             // 
             // menuEditFindNext
             // 
             this.menuEditFindNext.Name = "menuEditFindNext";
-            this.menuEditFindNext.Size = new System.Drawing.Size(156, 22);
+            this.menuEditFindNext.Size = new System.Drawing.Size(157, 22);
             this.menuEditFindNext.Text = "Find Next... (F3)";
             this.menuEditFindNext.Click += new System.EventHandler(this.menuEditFindNext_Click);
             // 
             // viewRTFToolStripMenuItem
             // 
             this.viewRTFToolStripMenuItem.Name = "viewRTFToolStripMenuItem";
-            this.viewRTFToolStripMenuItem.Size = new System.Drawing.Size(156, 22);
+            this.viewRTFToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
             this.viewRTFToolStripMenuItem.Text = "View HTML...";
             this.viewRTFToolStripMenuItem.Click += new System.EventHandler(this.viewRTFToolStripMenuItem_Click);
             // 
@@ -235,7 +243,9 @@
             // 
             // splitContainer1
             // 
-            this.splitContainer1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.splitContainer1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.splitContainer1.Location = new System.Drawing.Point(0, 24);
             this.splitContainer1.Name = "splitContainer1";
             // 
@@ -246,8 +256,8 @@
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.mvEditors);
-            this.splitContainer1.Size = new System.Drawing.Size(979, 607);
-            this.splitContainer1.SplitterDistance = 152;
+            this.splitContainer1.Size = new System.Drawing.Size(984, 608);
+            this.splitContainer1.SplitterDistance = 156;
             this.splitContainer1.TabIndex = 20;
             // 
             // projectTree
@@ -256,7 +266,7 @@
             this.projectTree.Location = new System.Drawing.Point(0, 0);
             this.projectTree.Name = "projectTree";
             this.projectTree.RootDir = "";
-            this.projectTree.Size = new System.Drawing.Size(152, 607);
+            this.projectTree.Size = new System.Drawing.Size(156, 608);
             this.projectTree.TabIndex = 20;
             this.projectTree.FileDoubleClicked += new Gosub.Zurfur.ProjectTree.FileInfoDelegate(this.projectTree_FileDoubleClicked);
             this.projectTree.FileMoved += new Gosub.Zurfur.ProjectTree.FileMovedDelegate(this.projectTree_FileMoved);
@@ -267,20 +277,75 @@
             this.mvEditors.EditorViewActive = null;
             this.mvEditors.Location = new System.Drawing.Point(0, 0);
             this.mvEditors.Name = "mvEditors";
-            this.mvEditors.Size = new System.Drawing.Size(823, 607);
+            this.mvEditors.Size = new System.Drawing.Size(824, 608);
             this.mvEditors.TabIndex = 19;
             this.mvEditors.EditorAdded += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorAdded);
             this.mvEditors.EditorRemoved += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorRemoved);
             this.mvEditors.EditorActiveViewChanged += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorActiveViewChanged);
             this.mvEditors.EditorCanClose += new Gosub.Zurfur.MultiViewEditor.EditorCanCloseDelegate(this.mvEditors_EditorCanClose);
             // 
+            // buttonMax
+            // 
+            this.buttonMax.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.buttonMax.Font = new System.Drawing.Font("Wingdings", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(2)));
+            this.buttonMax.Location = new System.Drawing.Point(915, 2);
+            this.buttonMax.Name = "buttonMax";
+            this.buttonMax.Size = new System.Drawing.Size(32, 23);
+            this.buttonMax.TabIndex = 21;
+            this.buttonMax.TabStop = false;
+            this.buttonMax.Text = "o";
+            this.buttonMax.UseVisualStyleBackColor = true;
+            this.buttonMax.Click += new System.EventHandler(this.buttonMax_Click);
+            // 
+            // buttonMin
+            // 
+            this.buttonMin.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.buttonMin.Font = new System.Drawing.Font("Arial Narrow", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.buttonMin.Location = new System.Drawing.Point(881, 2);
+            this.buttonMin.Name = "buttonMin";
+            this.buttonMin.Size = new System.Drawing.Size(32, 23);
+            this.buttonMin.TabIndex = 22;
+            this.buttonMin.TabStop = false;
+            this.buttonMin.Text = "─";
+            this.buttonMin.UseVisualStyleBackColor = true;
+            this.buttonMin.Click += new System.EventHandler(this.buttonMin_Click);
+            // 
+            // buttonClose
+            // 
+            this.buttonClose.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.buttonClose.Location = new System.Drawing.Point(949, 2);
+            this.buttonClose.Name = "buttonClose";
+            this.buttonClose.Size = new System.Drawing.Size(32, 23);
+            this.buttonClose.TabIndex = 24;
+            this.buttonClose.TabStop = false;
+            this.buttonClose.Text = "X";
+            this.buttonClose.UseVisualStyleBackColor = true;
+            this.buttonClose.Click += new System.EventHandler(this.buttonClose_Click);
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
+            this.pictureBox1.Location = new System.Drawing.Point(2, 0);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(24, 24);
+            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox1.TabIndex = 25;
+            this.pictureBox1.TabStop = false;
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(979, 631);
+            this.ClientSize = new System.Drawing.Size(984, 631);
+            this.Controls.Add(this.pictureBox1);
+            this.Controls.Add(this.buttonClose);
+            this.Controls.Add(this.buttonMin);
+            this.Controls.Add(this.buttonMax);
             this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.mainMenu);
+            this.Cursor = System.Windows.Forms.Cursors.Default;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.KeyPreview = true;
             this.MainMenuStrip = this.mainMenu;
             this.Name = "FormMain";
@@ -290,12 +355,18 @@
             this.Load += new System.EventHandler(this.FormMain_Load);
             this.Shown += new System.EventHandler(this.FormMain_Shown);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FormMain_KeyDown);
+            this.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.FormMain_MouseDoubleClick);
+            this.MouseCaptureChanged += new System.EventHandler(this.FormMain_MouseCaptureChanged);
+            this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.FormMain_MouseDown);
+            this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.FormMain_MouseMove);
+            this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.FormMain_MouseUp);
             this.mainMenu.ResumeLayout(false);
             this.mainMenu.PerformLayout();
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
             this.splitContainer1.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -329,6 +400,10 @@
         private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog1;
         private System.Windows.Forms.ToolStripMenuItem menuDebug;
         private System.Windows.Forms.ToolStripMenuItem menuDebugRun;
+        private System.Windows.Forms.Button buttonMax;
+        private System.Windows.Forms.Button buttonMin;
+        private System.Windows.Forms.Button buttonClose;
+        private System.Windows.Forms.PictureBox pictureBox1;
     }
 }
 

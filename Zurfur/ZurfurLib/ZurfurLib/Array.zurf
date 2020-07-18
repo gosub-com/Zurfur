@@ -3,7 +3,7 @@
 // Array of constant size
 pub class Array<T>
     extends ArrayBase<T>
-    implements IArray<T>, IMutArray<T>
+    implements IArray<T>
 {
     pub const MaxSize int = int.MaxInt/2
     pub static fun default() => Array<T>()
@@ -11,24 +11,9 @@ pub class Array<T>
     pub fun new(count int) => todo()
     pub fun new(items ICollection<T>) => todo()
         
-    pub fun operator[](index int) T { get => todo() set => todo() }
-    pub fun operator[](index Range) Span<T> => todo()   
-}
-
-/// All variable sized objects must inherit from this
-/// class and cannot be unsealed
-[Unsealed1]
-pub class ArrayBase<T>
-{
-    static fun default() => ArrayBase<T>()
-    
-    pub Count int
-        
-    fun new(count int) => todo() // Allocate object on heap
-        
-    protected prop DataSpan Span<T> => todo()
-        
-    protected unsafe prop DataPointer *T 
-        => cast *T(cast *byte(this) + Sizeof(ArrayBase))
+    pub fun operator[](index int) ref T 
+        { get { todo() } }
+    pub fun operator[](index Range<int>) MutSpan<T>
+        { get { todo() } }
 }
 

@@ -43,6 +43,12 @@ pub interface IEnumerator<T>
     mut fun GetNext(item ref T) bool => impl
 }
 
+pub interface ICollection<T>
+    implements IEnumerable<T>
+{
+    prop Count int => impl get
+}
+
 /// This should only be defined for simple types
 /// that get inlined, such as int, Range, etc..
 /// Otherwise, only define IEnumerator
@@ -67,50 +73,21 @@ pub interface IFastEnumerator<T>
 }
 
 
-/// Base class for all collections.
-/// Collections are immutable until proven otherwise.
-pub interface ICollection<T>
-    implements IEnumerable<T>
-{
-    prop Count int => impl get
-}
-
-/// Base class for all mutable collections.
-pub interface IMutCollection<T>
-    implements ICollection<T>
-{
-    mut fun Clear() => impl
-    mut fun Add(item T) => impl
-    mut fun Add(items ICollection<T>) => impl
-    // NOTE: 'Remove' and 'Contains' are not included because
-    //      each collection may have a different idea about
-    //      how to compare and find objects.  
-    //      TBD: Consider adding them back in.  With constraint?
-    //      fun RemoveObject(item T) where T : IEquatable
-}
-
 pub interface IArray<T> 
     implements ICollection<T>
 {
-    fun operator[](index int) T => impl get
-}
-
-
-pub interface IMutArray<T> 
-    implements ICollection<T>
-{
     fun operator[](index int) T => impl get set
-    fun operator[](range Range) IArray => todo()
 }
+
 
 pub interface IList<T>
-    implements IMutCollection<T>, IArray<T>, IMutArray<T>
+    implements IArray<T>
 {
+    fun operator[](index int) T => impl get set
     mut fun Insert(index int, item T) => impl
     mut fun Insert(index int, collection ICollection<T>) => impl
     mut fun Remove(index int) => impl
     mut fun Remove(range Range) => impl
-
     mut fun Add(item T) { Insert(Count, item) }
     mut fun Add(items ICollection<T>) { Insert(Count, items) }
 }
@@ -127,20 +104,12 @@ pub interface IMap<TKey, TValue>
     implements ICollection<KeyValuePair<TKey, TValue>>
 {
     fun operator in(a TKey) bool => impl
-    fun operator[](key TKey) TValue => impl get
+    fun operator[](key TKey) TValue => impl get set
     fun Contains(key TKey) bool => impl
     fun Get(key TKey, defaultValue TValue) TValue => impl
     fun TryGet(key TKey, value out TValue) bool => impl
     prop Keys ICollection<TKey> => impl get
     prop Values ICollection<TValue> => impl get
-}
-
-pub interface IMutMap<TKey, TValue> 
-    implements IMap<KeyValuePair<TKey, TValue>>,
-      IMutCollection<KeyValuePair<TKey, TValue>>
-            
-{
-    fun operator[](key TKey) TValue => impl get set
     mut fun Remove(TKey key) bool => impl
 }
 

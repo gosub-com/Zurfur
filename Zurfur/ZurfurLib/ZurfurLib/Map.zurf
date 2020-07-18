@@ -3,8 +3,8 @@
 pub class Map<TKey, TValue> 
     implements IMutMap<TKey, TValue>
 {
-    ro compareFunc fun(a TKey, b TKey) bool;
-    ro hashFunc fun(a TKey) bool;
+    ro compareFunc fun<TKey, TKey, bool>
+    ro hashFunc fun<TKey, bool>
     
 
     pub fun new()
@@ -14,11 +14,11 @@ pub class Map<TKey, TValue>
         hashFunc = (a) -> TKey.GetHashCode(a)
     }
     
-    pub fun new(compare fun(a TKey, b TKey) bool, 
-        getHashCode fun(a TKey) uint)
+    pub fun new(compare fun<TKey, TKey, bool>, 
+                hash fun<TKey, unit>)
     {
         compareFunc = compare;
-        hashFunc = getHashCode;
+        hashFunc = hash;
     }
     
     pub fun new(capacity int) 

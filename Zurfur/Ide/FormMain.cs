@@ -9,6 +9,8 @@ using Gosub.Zurfur.Compiler;
 using Gosub.Zurfur.Ide;
 using Gosub.Zurfur.Lex;
 using Gosub.Zurfur.Build;
+using System.Diagnostics;
+using System.Threading;
 
 namespace Gosub.Zurfur
 {
@@ -17,6 +19,11 @@ namespace Gosub.Zurfur
         bool                mInActivatedEvent;
         BuildManager        mBuilderMan;
         ZurfEditController  mEditController;
+
+        // Move when clicking menu
+        bool mMouseDown;
+        Point mMouseDownPos;
+        Point mMouseDownForm;
 
         static readonly WordSet sTextEditorExtensions = new WordSet(".txt .json .md .htm .html .css");
         static readonly WordSet sImageEditorExtensions = new WordSet(".jpg .jpeg .png .bmp");
@@ -37,7 +44,47 @@ namespace Gosub.Zurfur
 
         private void FormMain_Load(object sender, EventArgs e)
         {
-            Text += " - " + "V" + App.Version;
+        }
+
+        private void buttonClose_Click(object sender, EventArgs e)
+        {
+            mvEditors.Focus();
+            Application.Exit();
+        }
+
+        private void buttonMax_Click(object sender, EventArgs e)
+        {
+            mvEditors.Focus();
+            WindowState = FormWindowState.Maximized;
+        }
+
+        private void buttonMin_Click(object sender, EventArgs e)
+        {
+            mvEditors.Focus();
+            WindowState = FormWindowState.Minimized;
+        }
+
+        protected override void OnResize(EventArgs e)
+        {
+            ControlBox = WindowState != FormWindowState.Minimized; // Force CreateParams
+
+            // Hide buttons when maximized
+            buttonClose.Visible = WindowState != FormWindowState.Maximized;
+            buttonMax.Visible = WindowState != FormWindowState.Maximized;
+            buttonMin.Visible = WindowState != FormWindowState.Maximized;
+            base.OnResize(e);
+        }
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                const int WS_CAPTION = 0xC00000;
+                var cp = base.CreateParams;
+                if (WindowState == FormWindowState.Normal)
+                    cp.Style &= ~WS_CAPTION;
+                return cp;
+            }
         }
 
         private async void FormMain_Shown(object sender, EventArgs e)
@@ -514,6 +561,52 @@ namespace Gosub.Zurfur
         {
             if (e.KeyCode == Keys.F5)
                 menuDebugRun_Click(null, null);
+            
+            if (e.KeyCode == Keys.Escape && mMouseDown)
+            {
+                mMouseDown = false;
+                Location = mMouseDownForm;
+            }
         }
+
+        private void FormMain_MouseDown(object sender, MouseEventArgs e)
+        {
+            mMouseDown = true;
+            mMouseDownPos = MousePosition;
+            mMouseDownForm = Location;
+            Capture = true;
+        }
+
+        private void FormMain_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (mMouseDown)
+            {
+                Point p = new Point(mMouseDownForm.X + MousePosition.X - mMouseDownPos.X,
+                                    mMouseDownForm.Y + MousePosition.Y - mMouseDownPos.Y);
+                Location = p;
+            }
+        }
+
+        private void FormMain_MouseUp(object sender, MouseEventArgs e)
+        {
+            mMouseDown = false;
+            Capture = false;
+        }
+
+        private void FormMain_MouseCaptureChanged(object sender, EventArgs e)
+        {
+            // Restore position if someone steels the focus
+            if (mMouseDown)
+            {
+                mMouseDown = false;
+                Location = mMouseDownForm;
+            }
+        }
+
+        private void FormMain_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            WindowState = WindowState == FormWindowState.Normal ? FormWindowState.Maximized : FormWindowState.Normal;
+        }
+
     }
 }
