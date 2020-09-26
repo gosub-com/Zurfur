@@ -40,7 +40,7 @@ pub interface IEnumerable<out T>
 /// This is the only function needed for standard iterators
 pub interface IEnumerator<T>
 {
-    mut fun GetNext(item ref T) bool => impl
+    fun mut GetNext(item ref T) bool => impl
 }
 
 pub interface ICollection<T>
@@ -58,9 +58,9 @@ pub interface IFastEnumerator<T>
     fun HasNext() bool => impl
     prop Current T => impl get
 
-    mut fun Advance() => impl
+    fun mut Advance() => impl
     
-    mut fun GetNext(item ref T) bool
+    fun mut GetNext(item ref T) bool
     {
         if HasNext()
         {
@@ -84,18 +84,21 @@ pub interface IList<T>
     implements IArray<T>
 {
     fun operator[](index int) T => impl get set
-    mut fun Insert(index int, item T) => impl
-    mut fun Insert(index int, collection ICollection<T>) => impl
-    mut fun Remove(index int) => impl
-    mut fun Remove(range Range) => impl
-    mut fun Add(item T) { Insert(Count, item) }
-    mut fun Add(items ICollection<T>) { Insert(Count, items) }
+    fun mut Insert(index int, item T) => impl
+    fun mut Insert(index int, collection ICollection<T>) => impl
+    fun mut Remove(index int) => impl
+    fun mut Remove(range Range<int>) => impl
+    
+    fun mut Clear() { Remove(0..Count) }
+    fun mut Add(item T) { Insert(Count, item) }
+    fun mut Add(items ICollection<T>) { Insert(Count, items) }
+    fun mut Pop() { var item = this[Count-1]; Remove(Count-1);  return item }    
 }
 
 pub struct KeyValuePair<TKey, TValue>
 {
-    pub Key TKey
-    pub Value TValue
+    pub var Key TKey
+    pub var Value TValue
 
     pub fun new(key TKey, value TValue) { Key = key; Value = value }
 }
@@ -110,7 +113,7 @@ pub interface IMap<TKey, TValue>
     fun TryGet(key TKey, value out TValue) bool => impl
     prop Keys ICollection<TKey> => impl get
     prop Values ICollection<TValue> => impl get
-    mut fun Remove(TKey key) bool => impl
+    fun mut Remove(TKey key) bool => impl
 }
 
 /// This is a test

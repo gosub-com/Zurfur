@@ -5,8 +5,8 @@ struct Range<T>
     implements IEquatable<T>, IEnumerable<T>
     where T is IArithmetic<T>        
 {
-    pub Low T
-    pub High T
+    pub var Low T
+    pub var High T
     
     pub static fun Equals(a T, b T) bool
         => a.Low == b.Low && a.High == b.High
@@ -20,15 +20,15 @@ struct Range<T>
 struct RangeEnumerator<T>
     implements IFastEnumerator<T>
 {
-    index T
-    ro high T
+    var index T
+    var ro high T
     
     pub fun new(low T, high T) 
         { index = low;  this.high = high}                   
 
     prop Current T => index
     fun HasNext() bool => index < high
-    mut fun Advance() { index += T.Identiry }
+    fun mut Advance() { index += T.Identiry }
 }
 
     

@@ -10,8 +10,8 @@ namespace Zurfur.Internal
 /// a reference to one of its own fields.
 pub struct ref ro rref<T>
 {
-    pub ro obj  ?object   // Container object, or null if pointing to non GC memory
-    pub ro r    *T       // The reference
+    pub var ro obj  ?object   // Container object, or null if pointing to non GC memory
+    pub var ro r    *T       // The reference
     pub fun new(obj ?obj, reference *T) { this.obj = obj;  r = reference}
 }
 
@@ -20,7 +20,7 @@ pub struct ref ro rref<T>
 /// stack, and is therefore GC pinned.
 pub struct ref ro fref<T>
 {
-    pub ro r *T
+    pub var ro r *T
     pub fun new(reference *T) { r = reference}
 }
 
@@ -29,17 +29,17 @@ pub struct ref ro fref<T>
 /// would need to be read and written to memory as an automic operation.
 pub struct ro InterfacePointer
 {
-    pub ro vtable *InterfaceVTable;
-    pub ro obj *void;
+    pub var ro vtable *InterfaceVTable;
+    pub var ro obj *void;
     pub fun new(vtable *InterfaceVTable, obj *void) { this.vtable = vtable;  this.obj = obj}
 }
 
 /// Base for all compiler generated interface vtables
 pub struct ro InterfaceVTable
 {
-    pub ro vtable *void // TBD: Common 
-    pub ro IsProtected *fun<bool>
-    pub ro GetObject *fun<*void>
+    pub var ro vtable *void // TBD: Common 
+    pub var ro IsProtected *fun<bool>
+    pub var ro GetObject *fun<*void>
 }
 
 /// All variable sized objects must inherit from this
@@ -48,7 +48,7 @@ pub struct ro InterfaceVTable
 pub class ArrayBase<T>
 {
     static fun default() => ArrayBase<T>(0)
-    pub ro Count int
+    pub var ro Count int
         
     fun new(count int) 
         => todo() // Allocate object on heap

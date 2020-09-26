@@ -52,7 +52,7 @@ namespace Gosub.Zurfur.Compiler
             mParser = parser;
         }
 
-        public void Check(SyntaxUnit unit)
+        public void Check(SyntaxFile unit)
         {
             LastToken = null;
             CheckParseTree(unit);
@@ -60,7 +60,7 @@ namespace Gosub.Zurfur.Compiler
             ShowParseTree(unit);
         }
 
-        void CheckParseTree(SyntaxUnit unit)
+        void CheckParseTree(SyntaxFile unit)
         {
             LastToken = null;
             foreach (var aClass in unit.Types)
@@ -381,7 +381,7 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
-        public void ShowParseTree(SyntaxUnit unit)
+        public void ShowParseTree(SyntaxFile unit)
         {
             if (!mShowParseTree)
                 return;

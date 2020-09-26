@@ -32,12 +32,9 @@ namespace Gosub.Zurfur.Compiler
         // Be kind to GC
         Queue<List<SyntaxExpr>>   mExprCache = new Queue<List<SyntaxExpr>>();
 
-        SyntaxUnit mUnit;
+        SyntaxFile mUnit;
 
         public bool ParseError => mParseError;
-
-        // NOTE: >=, >>, and >>= are omitted and handled at parser level.
-        public const string MULTI_CHAR_TOKENS = "<< <= == != && || += -= *= /= %= &= |= " + XOR + "= <<= => -> !== === :: .. ... ++ -- ";
 
         // Add semicolons to all lines, except for:
         static WordSet sEndLineSkipSemicolon = new WordSet("; { [ ( ,");
@@ -66,7 +63,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sReservedIdentifierVariables = new WordSet("null this true false default base cast");
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static unsealed abstract virtual override new ro mut const");
+            + "static unsealed abstract virtual override new");
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sEndsFuncDef = new WordSet("; { => where"); // Functions without return type
@@ -128,9 +125,9 @@ namespace Gosub.Zurfur.Compiler
             return array;
         }
 
-        public SyntaxUnit Parse()
+        public SyntaxFile Parse()
         {
-            mUnit = new SyntaxUnit();
+            mUnit = new SyntaxFile();
 
             if (Debugger.IsAttached)
             {
@@ -176,7 +173,7 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         void ParseCompilationUnit()
         {
-            mUnit = new SyntaxUnit();
+            mUnit = new SyntaxFile();
             var qualifiers = new List<Token>();
 
             while (mTokenName != "")
@@ -265,6 +262,8 @@ namespace Gosub.Zurfur.Compiler
                     //case "afunc":
                         Accept();
                         keyword.Type = eTokenType.ReservedControl;  // Fix keyword to make it control
+                        if (mTokenName == "mut")
+                            qualifiers.Add(Accept());
                         ParseMethod(keyword, parentScope, qualifiers);
                         break;
 
@@ -273,16 +272,21 @@ namespace Gosub.Zurfur.Compiler
                         ParseProperty(keyword, parentScope, qualifiers);
                         break;
 
+                    case "const":
+                    case "var":
+                        mToken.Type = eTokenType.ReservedControl;
+                        qualifiers.Add(Accept());
+                        if (mTokenName == "ro")
+                            qualifiers.Add(Accept());
+                        var classFieldVarName = ParseField(parentScope, qualifiers);
+                        if (!mToken.Error)
+                            mUnit.Fields.Add(classFieldVarName);
+                        break;
+
                     default:
-                        if (keyword.Type != eTokenType.Identifier)
+                        if (parentScope != null && parentScope.Keyword == "enum" && keyword.Type == eTokenType.Identifier)
                         {
-                            Accept();
-                            RejectToken(keyword, "Expecting an identifier or keyword, qualifier ('pub', etc.), or reserved word such as 'class', 'enum', 'fun', etc.");
-                            break;
-                        }
-                        if (parentScope != null && parentScope.Keyword == "enum")
-                        {
-                            // Enum field
+                            // For enum, assume the first identifier is a field
                             Accept();
                             var enumFieldName = ParseEnumField(parentScope, qualifiers, keyword);
                             if (!mToken.Error)
@@ -290,10 +294,8 @@ namespace Gosub.Zurfur.Compiler
                         }
                         else
                         {
-                            // Class, struct, interface, or gloabal
-                            var classFieldName = ParseField(parentScope, qualifiers);
-                            if (!mToken.Error)
-                                mUnit.Fields.Add(classFieldName);
+                            Accept();
+                            RejectToken(keyword, "Expecting a qualifier ('pub', etc.), or reserved word such as 'var', 'fun', 'class', etc.");
                         }
                         break;
                 }
@@ -353,7 +355,7 @@ namespace Gosub.Zurfur.Compiler
             return synUsing;
         }
 
-        SyntaxNamespace ParseNamespaceStatement(Token keyword, SyntaxScope parentScope, SyntaxUnit unit)
+        SyntaxNamespace ParseNamespaceStatement(Token keyword, SyntaxScope parentScope, SyntaxFile unit)
         {
             SyntaxNamespace newNs = null;
             SyntaxScope parentNs = parentScope;

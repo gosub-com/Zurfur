@@ -4,13 +4,15 @@ using System.Text.RegularExpressions;
 
 using Gosub.Zurfur.Lex;
 
-namespace Gosub.Zurfur.Compiler
+namespace Gosub.Zurfur.Lex
 {
     /// <summary>
     /// Lexer used for Zurfur and Json
     /// </summary>
-    class LexZurf : Lexer
+    sealed class ScanZurf : Scanner
     {
+        // NOTE: >=, >>, and >>= are omitted and handled at parser level.
+        public const string MULTI_CHAR_TOKENS = "<< <= == != && || += -= *= /= %= &= |= ~= <<= => -> !== === :: .. ... ++ -- ";
         static Regex sFindUrl = new Regex(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
         List<Token> mTokenBuffer = new List<Token>();  // Be kind to the GC
         Dictionary<long, bool> mSpecialSymbols = new Dictionary<long, bool>();
@@ -18,21 +20,25 @@ namespace Gosub.Zurfur.Compiler
 
         public MinTern Mintern { get; set; }
 
+        public ScanZurf()
+        {
+            SetSpecialSymbols(MULTI_CHAR_TOKENS);
+            TokenizeComments = true;
+        }
 
         /// <summary>
         /// Set to true to process `//` style comments
         /// </summary>
         public bool TokenizeComments { get; set; }
 
-        protected override Lexer CloneInternal()
+        public override Scanner Clone()
         {
-            var lex = new LexZurf();
-            lex.TokenizeComments = TokenizeComments;
-            lex.mSpecialSymbols = new Dictionary<long, bool>(mSpecialSymbols);
-            lex.mSpecialSymbolsHas3Chars = mSpecialSymbolsHas3Chars;
-            return lex;
+            var scanner = new ScanZurf();
+            scanner.TokenizeComments = TokenizeComments;
+            scanner.mSpecialSymbols = new Dictionary<long, bool>(mSpecialSymbols);
+            scanner.mSpecialSymbolsHas3Chars = mSpecialSymbolsHas3Chars;
+            return scanner;
         }
-
 
         /// <summary>
         /// Set special symbols that should always be interpreted as a group (e.g. >=, etc.)
@@ -56,11 +62,10 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
-
         /// <summary>
         /// Scan a line
         /// </summary>
-        protected override Token[] ScanLine(string line, int lineIndex)
+        public override Token[] ScanLine(string line, int lineIndex)
         {
             int charIndex = 0;
             if (Mintern == null)

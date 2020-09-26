@@ -33,6 +33,7 @@ namespace Gosub.Zurfur
         static readonly string EXE_DIR = Path.GetDirectoryName(Application.ExecutablePath);
         static readonly string LICENSE_FILE_NAME = Path.Combine(EXE_DIR, "License.txt");
         static readonly string EXAMPLE_PROJECT = Path.Combine(EXE_DIR, "ZurfurLib\\ZurfurLib.zurfproj");
+        static readonly string EXAMPLE_PROJECT_DIR = Path.Combine(EXE_DIR, "ZurfurLib");
         static readonly string DEFAULT_NEW_FILE_NAME = "(new file)";
 
         public FormMain()
@@ -45,6 +46,31 @@ namespace Gosub.Zurfur
         private void FormMain_Load(object sender, EventArgs e)
         {
         }
+
+        private async void FormMain_Shown(object sender, EventArgs e)
+        {
+            var build = new BuildPackage();
+            if (System.Diagnostics.Debugger.IsAttached)
+            {
+                // This will be removed
+                await LoadProjectAsync(EXAMPLE_PROJECT);
+                await build.Build(EXAMPLE_PROJECT_DIR);
+                return;
+            }
+            try
+            {
+                // This will be removed
+                await LoadProjectAsync(EXAMPLE_PROJECT);
+                await build.Build(EXAMPLE_PROJECT_DIR);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Error loading example: " + ex.Message, App.Name);
+            }
+
+
+        }
+
 
         private void buttonClose_Click(object sender, EventArgs e)
         {
@@ -84,25 +110,6 @@ namespace Gosub.Zurfur
                 if (WindowState == FormWindowState.Normal)
                     cp.Style &= ~WS_CAPTION;
                 return cp;
-            }
-        }
-
-        private async void FormMain_Shown(object sender, EventArgs e)
-        {
-            if (System.Diagnostics.Debugger.IsAttached)
-            {
-                // This will be removed
-                await LoadProjectAsync(EXAMPLE_PROJECT);
-                return;
-            }
-            try
-            {
-                // This will be removed
-                await LoadProjectAsync(EXAMPLE_PROJECT);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, "Error loading example: " + ex.Message, App.Name);
             }
         }
 
@@ -230,13 +237,13 @@ namespace Gosub.Zurfur
             projectTree.RootDir = project.ProjectDirectory;
 
             // For the time being, we'll open the default file.
-            foreach (var file in projectTree)
+            /*foreach (var file in projectTree)
                 if (file.FileName.ToLower() == ZURFUR_SRC_MAIN.ToLower())
                 {
                     projectTree.OpenAndSelect(file.Path);
                     await LoadFileAsync(file.Path);
                     break;
-                }
+                }*/
         }
 
         async Task LoadFileAsync(string path)

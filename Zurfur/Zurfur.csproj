@@ -54,10 +54,8 @@
     <Compile Include="Build\BuildFile.cs" />
     <Compile Include="Build\BuildPackage.cs" />
     <Compile Include="Build\BuildManager.cs" />
-    <Compile Include="Compiler\LexZurf.cs" />
+    <Compile Include="Lexer\ScanZurf.cs" />
     <Compile Include="Compiler\SilGenHeader.cs" />
-    <Compile Include="Compiler\SilGenJson.cs" />
-    <Compile Include="Compiler\SilJson.cs" />
     <Compile Include="Compiler\Symbols.cs" />
     <Compile Include="Compiler\ParseZurfCheck.cs" />
     <Compile Include="Ide\IEditor.cs" />
@@ -109,7 +107,7 @@
     <Compile Include="Ide\VerticalMarks.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Lexer\LexText.cs" />
+    <Compile Include="Lexer\ScanText.cs" />
     <Compile Include="Lexer\MinTern.cs" />
     <Compile Include="Compiler\ParseJson.cs" />
     <Compile Include="Compiler\SyntaxExpr.cs" />
@@ -127,6 +125,7 @@
     </Compile>
     <Compile Include="Compiler\ParseZurf.cs" />
     <Compile Include="Compiler\Syntax.cs" />
+    <Compile Include="Lexer\Scanner.cs" />
     <Compile Include="Lexer\WordMap.cs" />
     <Compile Include="Lexer\WordSet.cs" />
     <Compile Include="Ide\ZurfEditController.cs" />

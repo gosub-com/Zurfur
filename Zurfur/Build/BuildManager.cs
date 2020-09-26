@@ -79,16 +79,7 @@ namespace Gosub.Zurfur.Build
             // Load and lex in background thread
             var buildFile = await Task.Run(() =>
             {
-                var lex = new LexZurf();
-                if (ext == ".zurf")
-                {
-                    lex.SetSpecialSymbols(ParseZurf.MULTI_CHAR_TOKENS);
-                    lex.TokenizeComments = true;
-                }
-                else if (ext == ".json")
-                {
-                    lex.TokenizeComments = true;
-                }
+                var lex = new Lexer(new ScanZurf());
 
                 lex.ScanLines(File.ReadAllLines(path));
 
@@ -272,9 +263,6 @@ namespace Gosub.Zurfur.Build
                     sil.MergeTypeDefinitions();
                     sil.GenerateHeader();
                     sil.GenerateCode();
-
-                    var silJson = new SilGenJson(sil.Package);
-                    silJson.GenerateJson();
                 }
                 var t2 = DateTime.Now;
                 var parseTime = t2 - t1;

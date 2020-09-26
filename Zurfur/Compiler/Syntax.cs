@@ -6,7 +6,7 @@ using Gosub.Zurfur.Lex;
 
 namespace Gosub.Zurfur.Compiler
 {
-    class SyntaxUnit
+    class SyntaxFile
     {
         public List<SyntaxUsing> Using = new List<SyntaxUsing>();
         public SyntaxNamespace CurrentNamespace { get { return Namespaces.Count == 0 ? null : Namespaces[Namespaces.Count - 1]; } }

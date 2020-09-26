@@ -189,25 +189,25 @@ pub unsafe abstract class DlMalloc
     const MAX_SMALL_SIZE xuint = MIN_LARGE_SIZE - SIZE_T_ONE
     static prop MAX_SMALL_REQUEST xuint => MAX_SMALL_SIZE - CHUNK_ALIGN_MASK - CHUNK_OVERHEAD
 
-    memMan DlMallocMem
-    smallmap uint
-    treemap uint
-    dvsize xuint
-    topsize xuint
-    least_addr *byte
-    dv mchunk
-    top mchunk
-    trim_check xuint
-    release_checks xuint
-    magic xuint
-    smallbins **mchunk
-    treebins **tchunk
-    footprint xuint
-    max_footprint xuint
-    mflags flag_t
-    seg *msegment
-    malloc_corruption_error_count int
-    mparams malloc_params
+    var memMan DlMallocMem
+    var smallmap uint
+    var treemap uint
+    var dvsize xuint
+    var topsize xuint
+    var least_addr *byte
+    var dv mchunk
+    var top mchunk
+    var trim_check xuint
+    var release_checks xuint
+    var magic xuint
+    var smallbins **mchunk
+    var treebins **tchunk
+    var footprint xuint
+    var max_footprint xuint
+    var mflags flag_t
+    var seg *msegment
+    var malloc_corruption_error_count int
+    var mparams malloc_params
 
 
     fun new(memoryManager DlMallocMem, capacity xint)
@@ -524,10 +524,10 @@ pub unsafe abstract class DlMalloc
     /// Originally malloc_chunk, now mchunk
     pub struct mchunk
     {
-        pub prev_foot_ptr *void // Size of previous chunk (if free).
-        pub head_ptr *void      // Size and inuse bits.
-        pub fd *mchunk          // double links -- used only if free.
-        pub bk *mchunk
+        pub var prev_foot_ptr *void // Size of previous chunk (if free).
+        pub var head_ptr *void      // Size and inuse bits.
+        pub var fd *mchunk          // double links -- used only if free.
+        pub var bk *mchunk
 
         pub prop prev_foot xuint
         {
@@ -688,15 +688,15 @@ pub unsafe abstract class DlMalloc
     pub struct tchunk
     {
         // The first four fields must be compatible with mchunk
-        pub prev_foot_ptr *void
-        pub head_ptr *void
-        pub fd *tchunk
-        pub bk *tchunk
+        pub var prev_foot_ptr *void
+        pub var head_ptr *void
+        pub var fd *tchunk
+        pub var bk *tchunk
 
-        pub child0 *tchunk
-        pub child1 *tchunk
-        pub parent *tchunk
-        pub index uint
+        pub var child0 *tchunk
+        pub var child1 *tchunk
+        pub var parent *tchunk
+        pub var index uint
 
         pub prop prev_foot xuint
         {
@@ -781,10 +781,10 @@ pub unsafe abstract class DlMalloc
     /// </summary>
     struct msegment
     {
-        pub baseAddr *byte      // base address
-        pub size      xuint     // allocated size
-        pub next     *msegment  // ptr to next segment
-        pub sflags    flag_t    // mmap and extern flag
+        pub var baseAddr *byte      // base address
+        pub var size      xuint     // allocated size
+        pub var next     *msegment  // ptr to next segment
+        pub var sflags    flag_t    // mmap and extern flag
     }
 
     static fun is_mmapped_segment(s *msegment) bool => (s.sflags & flag_t.USE_MMAP_BIT) != 0
@@ -805,11 +805,11 @@ pub unsafe abstract class DlMalloc
 
     struct malloc_params
     {
-        pub magic xuint
-        pub page_size xuint
-        pub granularity xuint
-        pub trim_threshold xuint
-        pub default_mflags flag_t
+        pub var magic xuint
+        pub var page_size xuint
+        pub var granularity xuint
+        pub var trim_threshold xuint
+        pub var default_mflags flag_t
     }
 
 
@@ -946,20 +946,20 @@ pub unsafe abstract class DlMalloc
     // ------------------------ Operations on bin maps -----------------------
 
     // bit corresponding to given index
-    static fun idx2bit(uint i) uint => 1u << i
+    static fun idx2bit(i uint) uint => 1u << i
 
     // Mark/Clear bits with given index
-    mut fun mark_smallmap(uint i) uint
+    fun mut mark_smallmap(i uint) uint
         { smallmap |= idx2bit(i); return smallmap }
-    mut fun clear_smallmap(uint i) uint 
+    fun mut clear_smallmap(i uint) uint 
         { smallmap &= ~idx2bit(i); return smallmap }
-    mut fun smallmap_is_marked(uint i) bool 
+    fun smallmap_is_marked(i uint) bool 
         => (smallmap & idx2bit(i)) != 0
-    mut fun mark_treemap(uint i) uint
+    fun mut mark_treemap(i uint) uint
         { treemap |= idx2bit(i);  return treemap }
-    mut fun clear_treemap(uint i) uint 
+    fun mut clear_treemap(i uint) uint 
         { treemap &= ~idx2bit(i);  return treemap }
-    fun treemap_is_marked(uint i) bool 
+    fun treemap_is_marked(i uint) bool 
         => (treemap & idx2bit(i)) != 0
 
     // isolate the least set bit of a bitmap
@@ -1049,7 +1049,7 @@ pub unsafe abstract class DlMalloc
     // ---------------------------- setting mparams --------------------------
 
     // Initialize mparams
-    static mut fun init_mparams() int
+    static fun mut init_mparams() int
     {
         // Sanity-check configuration:
         // xuint must be unsigned and as wide as pointer type.
@@ -1318,11 +1318,11 @@ pub unsafe abstract class DlMalloc
 
     pub class HeapStats
     {
-        pub HeapSize i64
-        pub UsedChunks i64
-        pub UsedBytes i64
-        pub FreeChunks i64
-        pub FreeBytes i64
+        pub var HeapSize i64
+        pub var UsedChunks i64
+        pub var UsedBytes i64
+        pub var FreeChunks i64
+        pub var FreeBytes i64
 
         pub fun ToStr() string
         {
@@ -1423,7 +1423,7 @@ pub unsafe abstract class DlMalloc
 
     // Link a free chunk into a smallbin 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    mut fun insert_small_chunk(p ref mut mchunk, s xuint)
+    fun mut insert_small_chunk(p ref mut mchunk, s xuint)
     {
         var I = small_index(s)
         var B = smallbin_at(I)
@@ -1443,7 +1443,7 @@ pub unsafe abstract class DlMalloc
 
     // Unlink a chunk from a smallbin
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    mut fun unlink_small_chunk(p ref mut mchunk, s xuint)
+    fun mut unlink_small_chunk(p ref mut mchunk, s xuint)
     {
         var F = p.fd
         var B = p.bk
@@ -1472,7 +1472,7 @@ pub unsafe abstract class DlMalloc
 
     // Unlink the first chunk from a smallbin
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    mut fun unlink_first_small_chunk(b ref mut mchunk, p ref mut mchunk, i uint)
+    fun mut unlink_first_small_chunk(b ref mut mchunk, p ref mut mchunk, i uint)
     {
         var F = p.fd
         assert(p != b)
@@ -1492,7 +1492,7 @@ pub unsafe abstract class DlMalloc
     // Replace dv node, binning the old one
     // Used only when dvsize known to be small
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    mut fun replace_dv(p ref mut mchunk, s xuint)
+    fun mut replace_dv(p ref mut mchunk, s xuint)
     {
         var DVS = dvsize
         assert(is_small(DVS))
@@ -1690,7 +1690,7 @@ pub unsafe abstract class DlMalloc
     // Relays to large vs small bin operations 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    mut fun insert_chunk(p ref mut mchunk, s xuint)
+    fun mut insert_chunk(p ref mut mchunk, s xuint)
     {
         if is_small(s)
             { insert_small_chunk(p, s) }
@@ -1699,7 +1699,7 @@ pub unsafe abstract class DlMalloc
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    mut fun unlink_chunk(p ref mut mchunk, s xuint)
+    fun mut unlink_chunk(p ref mut mchunk, s xuint)
     {
         if is_small(s)
             { unlink_small_chunk(p, s) }
@@ -1710,7 +1710,7 @@ pub unsafe abstract class DlMalloc
     // -------------------------- mspace management --------------------------
 
     // Initialize top chunk and its size 
-    mut fun init_top(p ref mut mchunk, psize xuint)
+    fun mut init_top(p ref mut mchunk, psize xuint)
     {
         // Ensure alignment
         var offset = align_offset(chunk2mem(p))
@@ -1726,7 +1726,7 @@ pub unsafe abstract class DlMalloc
     }
 
     // Initialize bins for a new mstate that is otherwise zeroed out
-    mut fun init_bins()
+    fun mut init_bins()
     {
         // Establish circular links for smallbins
         for i in NSMALLBINS
@@ -1740,7 +1740,7 @@ pub unsafe abstract class DlMalloc
     /// <summary>
     /// Default corruption action - forget all allocated memory.
     /// </summary>
-    protected mut fun ResetOnError()
+    protected fun mut ResetOnError()
     {
         var i int
         malloc_corruption_error_count += 1
@@ -1760,7 +1760,7 @@ pub unsafe abstract class DlMalloc
     }
 
     // Allocate chunk and prepend remainder with chunk in successor base.
-    mut fun prepend_alloc(newbase *byte,
+    fun mut prepend_alloc(newbase *byte,
                            oldbase *byte,
                            nb xuint) *void
     {
@@ -1810,7 +1810,7 @@ pub unsafe abstract class DlMalloc
     }
 
     // Add a segment to hold a new noncontiguous region
-    mut fun add_segment(tbase *byte, tsize xuint, mmapped flag_t)
+    fun mut add_segment(tbase *byte, tsize xuint, mmapped flag_t)
     {
         // Determine locations and sizes of segment, fenceposts, old top
         var old_top = cast *byte(top)
@@ -1868,7 +1868,7 @@ pub unsafe abstract class DlMalloc
     // -------------------------- System allocation --------------------------
 
     // Get memory from system using MMAP
-    mut fun sys_alloc(nb xuint) *void
+    fun mut sys_alloc(nb xuint) *void
     {
         var tbase *byte = null
         var tsize = 0
@@ -1967,7 +1967,7 @@ pub unsafe abstract class DlMalloc
     // -----------------------  system deallocation -------------------------- 
 
     // Unmap and unlink any mmapped segments that don't contain used chunks
-    mut fun release_unused_segments() xuint
+    fun mut release_unused_segments() xuint
     {
         var released xuint = 0
         var nsegs = 0
@@ -2023,7 +2023,7 @@ pub unsafe abstract class DlMalloc
         return released
     }
 
-    mut fun sys_trim(pad xuint) int
+    fun mut sys_trim(pad xuint) int
     {
         var released xuint = 0
         ensure_initialization()
@@ -2079,7 +2079,7 @@ pub unsafe abstract class DlMalloc
 
     // Consolidate and bin a chunk. Differs from exported versions
     //   of free mainly in that the chunk need not be marked as inuse.
-    mut fun dispose_chunk(p ref mut mchunk, psize xuint)
+    fun mut dispose_chunk(p ref mut mchunk, psize xuint)
     {
         var next = chunk_plus_offset(p, psize)
         if !pinuse(p)
@@ -2163,7 +2163,7 @@ pub unsafe abstract class DlMalloc
     // ---------------------------- malloc ---------------------------
 
     // allocate a large request from the best fitting chunk in a treebin
-    mut fun tmalloc_large(xuint nb) *void
+    fun mut tmalloc_large(xuint nb) *void
     {
         var v *tchunk = null
         var rsize = cast xuint(-cast xint(nb)) // Unsigned negation
@@ -2251,7 +2251,7 @@ pub unsafe abstract class DlMalloc
     }
 
     // allocate a small request from the best fitting chunk in a treebin
-    mut fun tmalloc_small(nb xuint) *void
+    fun mut tmalloc_small(nb xuint) *void
     {
         var t *tchunk
         var v *tchunk
@@ -2355,7 +2355,7 @@ pub unsafe abstract class DlMalloc
             { *b = 0; b += 1 }
     }
 
-    mut fun init_user_mstate(tbase *byte, tsize xuint)
+    fun mut init_user_mstate(tbase *byte, tsize xuint)
     {
         var mn mchunk
         var msp = align_as_chunk(tbase)
@@ -2389,7 +2389,7 @@ pub unsafe abstract class DlMalloc
     //  of its memory back to the system, returning the total number of
     //  bytes freed. After destruction, the results of access to all memory
     //  used by the space become undefined.
-    pub mut fun Dispose()
+    pub fun mut Dispose()
     {
         var sp = seg
         while (sp != null)
@@ -2418,7 +2418,7 @@ pub unsafe abstract class DlMalloc
     /// <summary>
     /// Malloc can be exposed or used by the inheriting class
     /// </summary>
-    pub mut fun Malloc(length xuint) *void
+    pub fun mut Malloc(length xuint) *void
     {
         //     Basic algorithm:
         //     If a small request (< 256 bytes minus per-chunk overhead):
@@ -2579,7 +2579,7 @@ pub unsafe abstract class DlMalloc
     /// <summary>
     /// Free can be exposed or used by the inheriting class
     /// </summary>
-    pub mut fun Free(mem *void)
+    pub fun mut Free(mem *void)
     {
         // Consolidate freed chunks with preceeding or succeeding bordering
         // free chunks, if they exist, and then place in a bin.  Intermixed
@@ -2707,7 +2707,7 @@ pub unsafe abstract class DlMalloc
         }
     }
 
-    pub mut fun Trim(pad xuint) int
+    pub fun mut Trim(pad xuint) int
     {
         var result = 0
         if (ok_magic())

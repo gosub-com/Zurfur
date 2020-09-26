@@ -566,7 +566,7 @@ level as a `case` statement.
 
 Switch can also be used as an expression:
 
-    var num =  unaryExpression switch(23: a, 27: b, default: 0}
+    var num =  unaryExpression switch(23: a, 27: b, default: 0)
 
 ## Classes
 
@@ -982,9 +982,7 @@ as marking them async.  Are there better solutions?
 ## Threading
 
 The first version of Zurfur is targeted at replacing JavaScript, and
-will not support multi-threading. The `lock` keyword is reserved for
-future use.  One thing that won't ever be supported is locking on any
-random object.
+will not support multi-threading except through web workers.
 
 #### Discussion
 
@@ -993,13 +991,17 @@ Once we drop multi-threading, we can make things fast and
 memory safe:
 
 * Interfaces can be implemented with fat pointers that won't tear
-* Span can be stored on the heap, also without tearing
+* Spans can be stored on the heap, also without tearing
 * Garbage collection can use reference counting without an interlock
 
 JavaScript has done pretty well with the single threaded model.
 IO is async and doesn't block.  Long CPU bound tasks can be
-offloaded to a web worker.  Zurfur will stick to the single-threaded
-model for now.
+offloaded to a web worker.  Even Windows uses a single threaded
+model for user interface objects.
+
+TBD: Mutable static data is not allowed.  This allows us to safely
+add threads in the future since there won't be any way for a function
+to have access to mutable data used by another thread.
 
 ## Open Questions
 

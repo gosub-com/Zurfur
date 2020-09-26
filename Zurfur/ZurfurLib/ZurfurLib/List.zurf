@@ -3,27 +3,28 @@
 pub class List<T> 
     implements IList<T>
 {
-    items Array<T> // TBD: Verify this uses `default` doesn't create new arrays
-    count int
+    var items Array<T>
+    var count int
 
     pub fun new() => todo()
     pub fun new(capacity int) => todo()
+    pub fun new(items Span<T>) => todo()
     pub fun new(items ICollection<T>) => todo()
     
     pub prop Count int => count
 
     pub fun operator[](index int) T { get => todo() set => todo() }
-    pub fun operator[](index Range) Span<T> => items[index]
+    pub fun operator[](range Range) Span<T> => items[range]
 
-    pub mut fun Add(item T) => todo()
-    pub mut fun Clear() => todo()
-    pub mut fun Insert(index int, item T) => todo()
-    pub mut fun Insert(index int, items ICollection<T>) => todo()
-    pub mut fun Remove(index int) => todo()
-    pub mut fun Remove(range Range) => todo()
+    pub fun mut Insert(index int, item T) => todo()
+    pub fun mut Insert(index int, items Span<T>) => todo()
+    pub fun mut Insert(index int, items ICollection<T>) => todo()
+    pub fun mut Remove(index int) => todo()
+    pub fun mut Remove(range Range<int>) => todo()
     
     pub fun Convert<Tout>(c fun<T, Tout>) => todo() 
-    pub fun ForEach(r fun<T>) => todo()
-    pub fun Find(p fun<T>) => todo()
-        
+    pub fun ForEach(r fun<T,void>) => todo()
+    pub fun Find(p fun<T,void>) => todo()
+    pub fun mut Sort(compare fun<T,T,bool>) => todo()
+    pub fun mut Sort(compare fun<T,T,bool>, range Range<int>) => todo()        
 }

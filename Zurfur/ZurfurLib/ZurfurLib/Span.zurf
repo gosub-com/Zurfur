@@ -3,9 +3,9 @@
 /// Span (TBD: Ensure type system doesn't need both MutSpan and RoSpan)
 pub struct ref ro Span<T>
 {
-    ro owner ?object
-    ro data *T
-    pub ro Count int
+    var ro owner ?object
+    var ro data *T
+    pub var ro Count int
     pub fun operator[](index int) ref T 
     {
         get

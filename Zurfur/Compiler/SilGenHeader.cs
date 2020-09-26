@@ -8,9 +8,9 @@ namespace Gosub.Zurfur.Compiler
 
     class SilGenHeader
     {
-        SyntaxUnit mUnit;
+        SyntaxFile mUnit;
         SymPackage mPackage = new SymPackage();
-        SymFile mFile = new SymFile();
+        SymFile mFileSym = new SymFile();
         bool mError;
 
         public bool GenError => mError;
@@ -22,10 +22,10 @@ namespace Gosub.Zurfur.Compiler
         /// Step 2: GenerateHeader, requires type definitions from all other packages.
         /// Step 3: GenerateCode, requires header of all other packages.
         /// </summary>
-        public SilGenHeader(string fileName, SyntaxUnit unit)
+        public SilGenHeader(string fileName, SyntaxFile unit)
         {
             mUnit = unit;
-            mFile.FileName = fileName;
+            mFileSym.FileName = fileName;
         }
 
         /// <summary>
@@ -100,7 +100,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 newSymbol = new Symbol(SymbolTypeEnum.Namespace, ns.Name, parentSymbol);
                 parentSymbol.Symbols[ns.Name] = newSymbol;
-                newSymbol.File = mFile;
+                newSymbol.File = mFileSym;
             }
             ns.Name.SetInfo(newSymbol);
             if (newSymbol.Type != SymbolTypeEnum.Namespace)
@@ -162,7 +162,7 @@ namespace Gosub.Zurfur.Compiler
             if (newFunc == null)
             {
                 newFunc = new SymFuncs(func.Name, parentSymbol);
-                newFunc.File = mFile;
+                newFunc.File = mFileSym;
                 newFunc.Name.SetInfo(newFunc);
                 newFunc.Comments = func.Comments;
                 newFunc.Symbols[func.Name] = newFunc;
@@ -190,7 +190,7 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         private bool AddSymbol(Symbol parentSymbol, Symbol newSymbol)
         {
-            newSymbol.File = mFile;
+            newSymbol.File = mFileSym;
             newSymbol.Name.SetInfo(newSymbol);
 
             if (!parentSymbol.Symbols.TryGetValue(newSymbol.Name, out var remoteSymbol))

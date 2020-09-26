@@ -7,22 +7,22 @@ using System.Threading.Tasks;
 namespace Gosub.Zurfur.Lex
 {
     /// <summary>
-    /// Default lexer for a generic text file.  Just split it by white space, nothing else.
+    /// Default scanner for a generic text file.  Just split it by white space, nothing else.
     /// </summary>
-    class LexText : Lexer
+    public sealed class ScanText : Scanner
     {
         List<Token> mTokenBuffer = new List<Token>();  // Be kind to the GC
         public MinTern Mintern { get; set; }
 
-        protected override Lexer CloneInternal()
+        public override Scanner Clone()
         {
-            return new LexText();
+            return new ScanText();
         }
 
         /// <summary>
         /// Scan a line
         /// </summary>
-        protected override Token[] ScanLine(string line, int lineIndex)
+        public override Token[] ScanLine(string line, int lineIndex)
         {
             if (Mintern == null)
                 Mintern = new MinTern();

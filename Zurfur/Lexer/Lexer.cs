@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Gosub.Zurfur.Lex
 {
@@ -8,30 +9,39 @@ namespace Gosub.Zurfur.Lex
     /// Provide services for the editor to modify the text and re-tokenize
     /// whenever it changes.  Tokens never cross line boundaries.
     /// </summary>
-    abstract public class Lexer
+    sealed public class Lexer
     {
         // Strings and tokens buffer
         List<string> mLines = new List<string>();
         List<Token[]> mTokens = new List<Token[]>();
-        Token[] mMetaTokens = new Token[0];
-
-        /// <summary>
-        /// Logic to tokenize text based on the language
-        /// </summary>
-        protected abstract Token[] ScanLine(string line, int lineIndex);
-
-        /// <summary>
-        /// This must be overridden by the inheriting class to create the same
-        /// type of lexer and clone anything that is mutable.
-        /// </summary>
-        protected abstract Lexer CloneInternal();
+        Token[] mMetaTokens = Array.Empty<Token>();
+        Scanner mScanner;
 
         /// <summary>
         /// Create an empty lexer
         /// </summary>
         public Lexer()
         {
-            ScanLines(new string[] { "" });
+            mLines.Add("");
+            mTokens.Add(new Token[0]);
+        }
+
+        public Lexer(Scanner scanner)
+        {
+            mScanner = scanner;
+            mLines.Add("");
+            mTokens.Add(new Token[0]);
+        }
+
+        public Scanner Scanner
+        {
+            set { mScanner = value; }
+            get
+            {
+                if (mScanner == null)
+                    mScanner = new ScanText();
+                return mScanner;
+            }
         }
 
         /// <summary>
@@ -40,10 +50,12 @@ namespace Gosub.Zurfur.Lex
         /// </summary>
         public Lexer Clone()
         {
-            var lex = CloneInternal();
+            var lex = new Lexer();
             lex.mLines = new List<string>(mLines);
             lex.mTokens = new List<Token[]>(mTokens);
             lex.mMetaTokens = (Token[])mMetaTokens.Clone();
+            if (mScanner != null)
+                lex.mScanner = mScanner.Clone();
             return lex;
         }
 
@@ -63,12 +75,6 @@ namespace Gosub.Zurfur.Lex
                 Array.Sort(mMetaTokens, (a, b) => a.Location < b.Location ? -1 : (a.Location == b.Location ? 0 : 1) );
             }
         }
-
-        public static bool IsAsciiDigit(char ch)
-        {
-            return ch >= '0' && ch <= '9';
-        }
-
 
         /// <summary>
         /// Returns the number of lines of text
@@ -199,7 +205,7 @@ namespace Gosub.Zurfur.Lex
 
             // Re-scan the updated text lines
             for (int i = start.Y; i <= end.Y; i++)
-                mTokens[i] = ScanLine(mLines[i], i);
+                mTokens[i] = Scanner.ScanLine(mLines[i], i);
 
             // Re-adjust token line positions
             for (int i = start.Y; i < mTokens.Count; i++)
@@ -228,7 +234,19 @@ namespace Gosub.Zurfur.Lex
             for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++)
             {
                 mLines.Add(lines[lineIndex]);
-                mTokens.Add(ScanLine(lines[lineIndex], lineIndex));
+                mTokens.Add(Scanner.ScanLine(lines[lineIndex], lineIndex));
+            }
+        }
+        public void ScanLines(Stream s)
+        {
+            mTokens.Clear();
+            mLines.Clear();
+            var tr = new StreamReader(s);
+            while (!tr.EndOfStream)
+            {
+                var line = tr.ReadLine();
+                mLines.Add(line);
+                mTokens.Add(Scanner.ScanLine(line, mTokens.Count));
             }
         }
 

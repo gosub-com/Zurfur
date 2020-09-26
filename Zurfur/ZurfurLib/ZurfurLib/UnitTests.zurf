@@ -16,11 +16,11 @@ static fun test_HelloWorld()
 
 pub class Example
 {
-    info str                  // Private string initialized to ""
-    array Array<int> = [1,2,3]          // Private mutable array
-    list List<str> = ["Hello", "World"] // Private mutable list
-    ro m Map<str,int> = ["A":1, "B":2]  // Private immutable map
-    pub ro Header str = "Zurfur"        // Public immutable string
+    var info str                  // Private string initialized to ""
+    var array Array<int> = [1,2,3]          // Private mutable array
+    var list List<str> = ["Hello", "World"] // Private mutable list
+    var ro m Map<str,int> = ["A":1, "B":2]  // Private immutable map
+    pub var ro Header str = "Zurfur"        // Public immutable string
     pub fun F(a int) int => m["A"]+10   // Public function
     pub prop P str => Header + info     // Public property
 }
@@ -59,4 +59,44 @@ pub static fun test_Convert()
     var a = List<float>()
     var b = List<int>()
     var c = a.Convert((i) -> cast int(i))
+}
+
+
+pub unsealed class TestGuiForm extends Form
+{
+    pub var Message1 Label
+    pub var Message2 Label
+    pub var Message3 Label
+
+
+    fun new()
+    {
+        InitializeComponent()
+    }
+   
+   
+    [NewCallableAttribute()]
+    fun InitializeComponent()
+    {
+    
+        Message1 = Label(Text: "Message 1",
+                        Location: Point(X:4, Y:4),
+                        Size: Size(Width:100,Height:24))
+        Message2 = Label(Text: "Message 2",
+                        Location: Point(100, 4),
+                        Size: Size(100,24))
+        Message3 = Label(Text: "Message 3",
+                        Location.X: 200,
+                        Size: Size(100,24))
+                       
+        var x Json = ["Hello":"a",
+                      "World":"b",
+                      "List":[1,2,3]]
+    }
+    
+    pub static fun Create(message1 str, message2 str) TestGuiForm
+    {
+        return TestGuiForm(Message1.Text: message1,
+                           Message2.Text: message2)
+    }
 }

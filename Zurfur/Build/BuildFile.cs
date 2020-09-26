@@ -13,7 +13,7 @@ namespace Gosub.Zurfur.Build
     {
         public readonly string FileName = "";
         BuildManager mPackage;
-        Lexer mLexer = new LexZurf();
+        Lexer mLexer = new Lexer(new ScanZurf());
         public DateTime LastWriteTimeUtc;
 
         public BuildFile(string fileName, BuildManager package)

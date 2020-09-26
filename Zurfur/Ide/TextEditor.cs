@@ -120,7 +120,7 @@ namespace Gosub.Zurfur
 
         public TextEditor()
         {
-            mLexer = new LexText();
+            mLexer = new Lexer();
             InitializeComponent();
         }
 
