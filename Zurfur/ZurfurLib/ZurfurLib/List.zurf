@@ -3,8 +3,8 @@
 pub class List<T> 
     implements IList<T>
 {
-    var items Array<T>
-    var count int
+    @items Array<T>
+    @count int
 
     pub fun new() => todo()
     pub fun new(capacity int) => todo()

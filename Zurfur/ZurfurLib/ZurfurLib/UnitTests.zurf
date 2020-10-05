@@ -7,8 +7,8 @@ namespace Zurfur.UnitTests
 
 static fun test_HelloWorld()
 {
-    Console.Log("Hello World.  Let's count to 10.")
-    for a in 1..11
+    Console.Log("Hello World.  Let's count from 1 to 10.")
+    for @a in 1..11
     {
         Console.Log("Count=" + a) 
     }
@@ -16,11 +16,11 @@ static fun test_HelloWorld()
 
 pub class Example
 {
-    var info str                  // Private string initialized to ""
-    var array Array<int> = [1,2,3]          // Private mutable array
-    var list List<str> = ["Hello", "World"] // Private mutable list
-    var ro m Map<str,int> = ["A":1, "B":2]  // Private immutable map
-    pub var ro Header str = "Zurfur"        // Public immutable string
+    @info str                  // Private string initialized to ""
+    @array Array<int> = [1,2,3]         // Private mutable array
+    @list List<str> = ["Hello", "World"]// Private mutable list
+    ro @m Map<str,int> = ["A":1, "B":2] // Private immutable map
+    pub ro @Header str = "Zurfur"       // Public immutable string
     pub fun F(a int) int => m["A"]+10   // Public function
     pub prop P str => Header + info     // Public property
 }
@@ -28,8 +28,8 @@ pub class Example
 static fun test_ForSimple()
 {
 
-    var count int
-    for a in 0..10
+    @count int
+    for @a in 0..10
     {
         if a == 2
         {
@@ -56,17 +56,17 @@ static fun test_ForSimple()
 
 pub static fun test_Convert()
 {
-    var a = List<float>()
-    var b = List<int>()
-    var c = a.Convert((i) -> cast int(i))
+    @a = List<float>()
+    @b = List<int>()
+    @c = a.Convert((i) -> cast int(i))
 }
 
 
 pub unsealed class TestGuiForm extends Form
 {
-    pub var Message1 Label
-    pub var Message2 Label
-    pub var Message3 Label
+    pub @Message1 Label
+    pub @Message2 Label
+    pub @Message3 Label
 
 
     fun new()
@@ -89,7 +89,7 @@ pub unsealed class TestGuiForm extends Form
                         Location.X: 200,
                         Size: Size(100,24))
                        
-        var x Json = ["Hello":"a",
+        @x Json = ["Hello":"a",
                       "World":"b",
                       "List":[1,2,3]]
     }

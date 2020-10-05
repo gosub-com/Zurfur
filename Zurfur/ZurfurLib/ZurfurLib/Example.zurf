@@ -7,11 +7,11 @@ namespace Zurfur.Example
 
 pub class Example
 {
-    var info str                    // Private string initialized to ""
-    var f1 Array<int> = [1,2,3]             // Initialized array
-    var f2 List<str> = ["Hello", "World"]   // Initialized list
-    var ro f3 Map<str,int> = ["A":1, "B":2] // Initialized immutable map
-    pub var ro Header str = "Zurfur"        // Public read only string
+    @info str                    // Private string initialized to ""
+    @f1 Array<int> = [1,2,3]             // Initialized array
+    @f2 List<str> = ["Hello", "World"]   // Initialized list
+    ro @f3 Map<str,int> = ["A":1, "B":2] // Initialized immutable map
+    pub ro @Header str = "Zurfur"        // Public read only string
     pub fun F(a int) str => Header + a      // Public member function
     pub prop P str => Header + info         // Public property
 }
@@ -19,12 +19,12 @@ pub class Example
 
 pub class MutableTest
 {
-    var a MyObject
-    var b List<MyObject>
+    @a MyObject
+    @b List<MyObject>
 
-    var ro c mut MyObject
-    var ro d mut List<MyObject>
-    var ro e mut List<MyObject>
+    ro @c mut MyObject
+    ro @d mut List<MyObject>
+    ro @e mut List<MyObject>
 
 
     pub fun getMyObjectAt(i index) mut MyObject => todo()
@@ -41,8 +41,8 @@ pub class MutableTest
 // Mutable point (each mutable function must also be marked)
 pub struct MyMutablePoint
 {
-    pub var X int
-    pub var Y int
+    pub @X int
+    pub @Y int
     pub fun new(x int, y int) { X = x; Y = y}
     pub fun mut SetY(y int) { Y = y }
     pub prop PropX int { get => X; set { X = value } }
@@ -53,8 +53,8 @@ pub struct MyMutablePoint
 pub class Example_x
 {
     pub const CONST_FIELD int = 234
-    pub var field1 f32
-    pub var field2 int    
+    pub @field1 f32
+    pub @field2 int    
     pub prop Prop str => Header + info      // Property
     pub fun A(a int, b int, c f32) f32 => a+1
     pub fun A(a f32) f32 => a+1
@@ -66,8 +66,8 @@ pub class Example_x
     {
         list.binarysearch(1,23)(a,b) ->   {  a.compare(b) }
         const MY_CONST = 23
-        var a = f(x)
-        var b = f(MY_CONST)
+        @a = f(x)
+        @b = f(MY_CONST)
     }
     
 }
@@ -76,23 +76,23 @@ pub fun Example::MyExtension() => Func1(10) // Extension method
 
 pub fun Example::MyExtension()
 {
-    var a = Map<str,int>(["A":1, "B":2, "C":3])
-    var b Map<str,int> = ["A":1, "B":2, "C":3]
-    var c Map<int,PointXY> = [0:(3,4), 1:(5,6)]
+    @a = Map<str,int>(["A":1, "B":2, "C":3])
+    @b Map<str,int> = ["A":1, "B":2, "C":3]
+    @c Map<int,PointXY> = [0:(3,4), 1:(5,6)]
     
-    var d = 3                              // `a` is an int
-    var e = "Hello World"                  // `b` is a str
-    var f = MyFunction()                   // `c` is whatever type is returned by MyFunction
-    var g = List<int>([1,2,3])             // `d` is a list of integers, intialized with {1,2,3}
-    var h = Map<str,int>(["A":1,"B":2])    // `e` is a map of <str, int>
-    var i = Json(["A":1,"B":[1,2,3]])      // `f` is a Json object containing a number and an array
+    @d = 3                              // `a` is an int
+    @e = "Hello World"                  // `b` is a str
+    @f = MyFunction()                   // `c` is whatever type is returned by MyFunction
+    @g = List<int>([1,2,3])             // `d` is a list of integers, intialized with {1,2,3}
+    @h = Map<str,int>(["A":1,"B":2])    // `e` is a map of <str, int>
+    @i = Json(["A":1,"B":[1,2,3]])      // `f` is a Json object containing a number and an array
    
-    var j int = MyIntFunc()                // Error if MyIntFunc returns a float
-    var k str                              // `b` is a string, initialized to ""
-    var l List<int>                        // `c` is an empty List<int>
-    var m List<int> = [1, 2, 3]
-    var n Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
-    var o Map<int,str> = [0:"a", 1:"b"]
+    @j int = MyIntFunc()                // Error if MyIntFunc returns a float
+    @k str                              // `b` is a string, initialized to ""
+    @l List<int>                        // `c` is an empty List<int>
+    @m List<int> = [1, 2, 3]
+    @n Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
+    @o Map<int,str> = [0:"a", 1:"b"]
     
 }
 
@@ -101,22 +101,22 @@ pub struct PointXY<T>
     implements IArithmetic<T>
     where f is IAritmetic<T>
 {
-    pub var x int
-    pub var y int
+    pub @x int
+    pub @y int
     
     pub fun operator+(a PointXY<T>, b PointXY<T>) PointXY<T> => todo()
 }
 
 pub fun Example::Extension() 
 { 
-    for a in 1..23
+    for @a in 1..23
     {
-        F(out var x, a)
-        F(out mut y, a)
+        F(out @x, a)
+        F(out mut @y, a)
     }
-    var i = 32
-    var j = 15
-    var k int = 64
+    @i = 32
+    @j = 15
+    @k int = 64
 }
 
 // Test class
@@ -131,28 +131,28 @@ pub class Example2  // YES, errors working
     //    Switch statement
 
     // Fields initialized to zero, null, or "" for string
-    var f1 int          // Initialized to 0
-    var f2 f32      // Initialized to 0.0
-    var f3 str          // Initialized to "", not NULL
+    @f1 int          // Initialized to 0
+    @f2 f32      // Initialized to 0.0
+    @f3 str          // Initialized to "", not NULL
     
-    var f4 Array<int> = [1,2,3,4]
-    var f5 Array<Array<int>> 
-    var f7 Map<str,List<int>>
-    var f8 Pointer<int>
-    var f9 *int        // Same as Pointer<int>
+    @f4 Array<int> = [1,2,3,4]
+    @f5 Array<Array<int>> 
+    @f7 Map<str,List<int>>
+    @f8 Pointer<int>
+    @f9 *int        // Same as Pointer<int>
     
-    var f10 = int(FuncReturnsInt())
-    var f11 = Array<int>()            // Array, Count=0
-    var f12 = Array<int>(32)          // Array, Count=32
-    var f13 = Array<int>([1,2,3])     // Array initialized with 1, 2, 3
-    var f13a = List<int>(32)          // Empty List, Capacity=32
-    var f14 = Map<str,str>()          // Empty map
+    @f10 = int(FuncReturnsInt())
+    @f11 = Array<int>()            // Array, Count=0
+    @f12 = Array<int>(32)          // Array, Count=32
+    @f13 = Array<int>([1,2,3])     // Array initialized with 1, 2, 3
+    @f13a = List<int>(32)          // Empty List, Capacity=32
+    @f14 = Map<str,str>()          // Empty map
     
-    var f15 int = 32
-    var f16 int = FuncReturnsInt() >> 4
-    var f17 f32 = FuncReturnsf32orInt()
-    var f18 str = "Hello"
-    var f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
+    @f15 int = 32
+    @f16 int = FuncReturnsInt() >> 4
+    @f17 f32 = FuncReturnsf32orInt()
+    @f18 str = "Hello"
+    @f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
     pub prop P1 int => 1
@@ -179,7 +179,7 @@ pub class Example2  // YES, errors working
     fun fun8(a Map<str,List<int>>) { }
     
     pub fun Sort<T>(greaterThan fun<T,T,bool>) { }
-    pub var MyFieldFunc fun<object,str,void>
+    pub @MyFieldFunc fun<object,str,void>
 
 
     pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
@@ -189,60 +189,60 @@ pub class Example2  // YES, errors working
     
     pub static fun Main(args Array<str>)
     {
-        mut a = use OpenFile("My File");
+        @a = use OpenFile("My File");
         defer file.close();
         
         // Function calls vs parameter lists
-        var a1 = MyType<a,b,c>()
-        mut a2 = MyType(a,b,c)()
-        var a3 = List<List<int>>()
-        var a4 = List(List(int))()
-        var a5 = M<str,int.x<T>.y>.Hello2<x.x>()
-        var a6 = M(str,int.x(T).y).Hello2(x.x)()     
-        var a7 = f(f<a>())(a+b)
+        @a1 = MyType<a,b,c>()
+        @a2 = MyType(a,b,c)()
+        @a3 = List<List<int>>()
+        @a4 = List(List(int))()
+        @a5 = M<str,int.x<T>.y>.Hello2<x.x>()
+        @a6 = M(str,int.x(T).y).Hello2(x.x)()     
+        @a7 = f(f<a>())(a+b)
 
         // Casts
-        var a = cast int(a+b+myFloat32)*23+4
-        var a = cast List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
-        var b = *cast *int(myVoidPointer)      // Prefix
-        var c1 = cast M<str,int.x<T>.y>.Hello2(A)
-        var c2 = cast M<str,int.x<T>.y>.Hello2<x.x>(A)
-        var c3 = cast List<int,y,z>(A)
-        var a = cast int(a+b+myFloat32)
-        var a = cast List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
-        var a = (cast List<Stuff>(yourStuff.SeeMyStuff)).Add(Stuff())
-        var b = *cast *int(myVoidPointer)
+        @a = cast int(a+b+myFloat32)*23+4
+        @a = cast List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
+        @b = *cast *int(myVoidPointer)      // Prefix
+        @c1 = cast M<str,int.x<T>.y>.Hello2(A)
+        @c2 = cast M<str,int.x<T>.y>.Hello2<x.x>(A)
+        @c3 = cast List<int,y,z>(A)
+        @a = cast int(a+b+myFloat32)
+        @a = cast List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
+        @a = (cast List<Stuff>(yourStuff.SeeMyStuff)).Add(Stuff())
+        @b = *cast *int(myVoidPointer)
         cast List<Stuff>(yourStuff.SeeMyStuff)[23] = 4
 
 
         // Local variables declared in a function
-        var myString = "Hello World"
-        var myInt = 3
-        var myList = List<int>([1,2,3])
-        var myMap = Map<str,int>(["A":1,"B":2])
-        var myOtherMap = MyMapReturningFunction()
+        @myString = "Hello World"
+        @myInt = 3
+        @myList = List<int>([1,2,3])
+        @myMap = Map<str,int>(["A":1,"B":2])
+        @myOtherMap = MyMapReturningFunction()
        
-        var myStr str = MyStrFunc()    // Error if MyStrFunc returns an int
-        var myInt int = MyIntFunc()    // Error if MyIntFunc returns a f32
-        var a str                      // `a` is a string, initialized to ""
-        var b List<int>                // `b` is a List<int>, initialized to empty
+        @myStr str = MyStrFunc()    // Error if MyStrFunc returns an int
+        @myInt int = MyIntFunc()    // Error if MyIntFunc returns a f32
+        @a str                      // `a` is a string, initialized to ""
+        @b List<int>                // `b` is a List<int>, initialized to empty
     
-        var myNullStr ?str         // String is null
-        var myEmptyStr ?str = ""   // String is ""
+        @myNullStr ?str         // String is null
+        @myEmptyStr ?str = ""   // String is ""
         
-        var myTranslation = tr"jeremy"
+        @myTranslation = tr"jeremy"
 
         // Static assigments
         M<str>.Hello = 6
         M<str,int.x<T>.y>.Hello2 = f(1, 2, "Jeremy")
         M<str,int>.Hello2 = f(1, 2, (x, y) -> x < y)
         
-        var a = x>y
+        @a = x>y
         if MyFieldFunc != null
             { MyFieldFunc(this, "hello") }
 
-        var l1 = (a) -> { return 23 }
-        var l2 = (a) -> 23
+        @l1 = (a) -> { return 23 }
+        @l2 = (a) -> 23
         list.Sort((a, b) -> a < b)
         list.Sort((a, b) -> { return a < b })
 
@@ -253,7 +253,7 @@ pub class Example2  // YES, errors working
         }
 
         // Switch expressions
-        var num = 3 + myConstant switch(23: a, 27: b, default: 0 )
+        @num = 3 + myConstant switch(23: a, 27: b, default: 0 )
 
         // Switch statement
         switch a
@@ -266,7 +266,7 @@ pub class Example2  // YES, errors working
             doit3();
         }
         
-        var a json = [
+        @a json = [
              "TestArray": [
                  [
                      "Field1": "A",
@@ -348,22 +348,22 @@ pub fun Example::IfTests()
     }
         
 
-    for a in 1..23
+    for @a in 1..23
     {
-      F(out var b, c)
+      F(out @b, c)
     }
 
 
-    for a in 1..23
+    for @a in 1..23
     {
-        F(out mut b, c)
+        F(out mut @b, c)
     }
 }
 
 pub struct MyPoint
 {
-    pub var X int
-    pub var Y int
+    pub @X int
+    pub @Y int
     pub override fun ToStr() => "(" + X + "," + Y + ")"
 }
 
@@ -384,9 +384,9 @@ pub interface MyInterfaceTest
     protected fun C() int => imp
         
     pub fun B() int => A() + 1
-    pub struct Astruct { pub var a int }
+    pub struct Astruct { pub @a int }
     pub enum Aenum { a; b; c}
-    pub class Aclass { pub var a int  }
+    pub class Aclass { pub @a int  }
 }
 
 pub class MyClass1 
@@ -401,11 +401,11 @@ pub class MyClass1
 pub static fun Sort<T>(s MutSpan<T>, lessThan fun<T,T,bool>)
 {
     // Simple selection sort
-    for i in s.Count-1
+    for @i in s.Count-1
     {
-        var lowElem = s[i]
-        var lowIndex = i
-        for j in i+1..s.Count
+        @lowElem = s[i]
+        @lowIndex = i
+        for @j in i+1..s.Count
         {
             if lessThan(s[j], lowElem)
             {
@@ -433,8 +433,8 @@ pub class Matrix2d<t>
 
 pub static fun MemCopy(dest *void, source *void, length xint)
 {
-    var d = cast xint(dest)
-    var s = cast xint(source)
+    @d = cast xint(dest)
+    @s = cast xint(source)
     
     if length <= 0
     {
@@ -453,7 +453,7 @@ pub static fun MemCopy(dest *void, source *void, length xint)
     }
     
     // Byte copy
-    var end = d + length
+    @end = d + length
     while end-d >= 4
     {
         *cast *byte(d) = *cast *byte(s); d+=1; s+=1
@@ -469,8 +469,8 @@ pub static fun MemCopy(dest *void, source *void, length xint)
 
 pub static fun MemCopy32(dest *void, source *void, length xint)
 {
-    var d = cast xint(dest)
-    var s = cast xint(source)
+    @d = cast xint(dest)
+    @s = cast xint(source)
 
     if length <= 0
     {
@@ -478,7 +478,7 @@ pub static fun MemCopy32(dest *void, source *void, length xint)
     }
 
     // Try 64 bit copy first
-    var end = d + length
+    @end = d + length
     if (d~s) & 4 == 0 && length >= 8
     {
         if d & 4 != 0
@@ -506,8 +506,8 @@ namespace ExampleNs1.HelloWorld
     
     class ClassEx1
     {
-        var a int;
-        var b int;
+        @a int;
+        @b int;
     }
 }
 
@@ -527,8 +527,8 @@ namespace ExampleNs1
 
     class ClassEx1
     {
-        var a int;
-        var b int;
+        @a int;
+        @b int;
         class Inner1
         {
         }
@@ -555,8 +555,8 @@ namespace ExampleNs2
     
     class ClassEx1
     {
-        var a int
-        var b int
+        @a int
+        @b int
         class Inner1
         {
         }

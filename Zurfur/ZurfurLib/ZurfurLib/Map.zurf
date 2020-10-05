@@ -3,8 +3,8 @@
 pub class Map<TKey, TValue> 
     implements IMutMap<TKey, TValue>
 {
-    var ro compareFunc fun<TKey, TKey, bool>
-    var ro hashFunc fun<TKey, bool>
+    ro @compareFunc fun<TKey, TKey, bool>
+    ro @hashFunc fun<TKey, bool>
     
 
     pub fun new()

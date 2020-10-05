@@ -517,7 +517,7 @@ namespace Gosub.Zurfur
                     { eTokenType.PublicComment, new FontInfo(boldFont, Color.Green) },
                     { eTokenType.DefineField, new FontInfo(boldFont, Color.Black) },
                     { eTokenType.DefineMethod, new FontInfo(boldFont, Color.Black) },
-                    { eTokenType.DefineParam, new FontInfo(normalFont, Color.Black) },
+                    { eTokenType.DefineParam, new FontInfo(boldFont, Color.Black) },
                     { eTokenType.DefineLocal, new FontInfo(boldFont, Color.Black) },
                     { eTokenType.TypeName, new FontInfo(normalFont, Color.FromArgb(20,125,160)) }
                 };

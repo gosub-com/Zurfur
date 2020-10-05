@@ -55,7 +55,7 @@ namespace Gosub.Zurfur.Compiler
             + "box boxed init dispose "
             + "trait extends implements implement impl union type fun afun def yield let cast "
             + "any dyn loop match event from to of on cofun cofunc global local val it throws atask "
-            + "scope assign ";
+            + "scope assign @";
 
         static readonly string sReservedControlWords = "using namespace module include class struct enum interface "
             + "func afunc fun afun prop get set if else switch await for while dowhile scope _";
@@ -63,7 +63,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sReservedIdentifierVariables = new WordSet("null this true false default base cast");
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static unsealed abstract virtual override new");
+            + "static unsealed abstract virtual override new ro");
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sEndsFuncDef = new WordSet("; { => where"); // Functions without return type
@@ -273,11 +273,11 @@ namespace Gosub.Zurfur.Compiler
                         break;
 
                     case "const":
-                    case "var":
-                        mToken.Type = eTokenType.ReservedControl;
+                    case "@":
+                        //case "var":
+                        if (mTokenName != "@")
+                            mToken.Type = eTokenType.ReservedControl;
                         qualifiers.Add(Accept());
-                        if (mTokenName == "ro")
-                            qualifiers.Add(Accept());
                         var classFieldVarName = ParseField(parentScope, qualifiers);
                         if (!mToken.Error)
                             mUnit.Fields.Add(classFieldVarName);
@@ -845,10 +845,8 @@ namespace Gosub.Zurfur.Compiler
 
                 case "@": // TBD: See if we like this syntax
                 case "const":
-                case "var":
-                case "mut":
-                    if (mTokenName == "@")
-                        mToken.Type = eTokenType.Reserved;
+                //case "var":
+                //case "mut":
                     statements.Add(new SyntaxUnary(Accept(), ParseNewVarStatment()));
                     break;
 
@@ -911,7 +909,8 @@ namespace Gosub.Zurfur.Compiler
                 case "for":
                     // FOR (variable) (condition) (statements)
                     Accept();
-                    AcceptMatch("@");  // TBD: See if we like this syntax
+                    if (!AcceptMatch("@"))
+                        RejectToken(mToken, "Expecting '@'");
                     var forVariable = new SyntaxToken(ParseIdentifier("Expecting a loop variable", sRejectForCondition));
                     forVariable.Token.Type = eTokenType.DefineLocal;
 
@@ -1472,9 +1471,14 @@ namespace Gosub.Zurfur.Compiler
             if (mTokenName == "out" || mTokenName == "ref")
             {                 
                 var qualifier = Accept();
-                if (mTokenName == "mut" || mTokenName == "var" || mToken == "@")
+                if (mTokenName == "mut" /* || mTokenName == "var" */ || mToken == "@")
                 {
                     var keyword = Accept();
+                    if (keyword == "mut")
+                    {
+                        if (!AcceptMatch("@"))
+                            RejectToken(mToken, "Expecting '@'");
+                    }
                     var identifier = ParseIdentifier("Expecting a variable name");
                     identifier.Type = eTokenType.DefineLocal;
                     return new SyntaxBinary(qualifier,

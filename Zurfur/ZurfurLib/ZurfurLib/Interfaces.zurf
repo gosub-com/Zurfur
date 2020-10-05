@@ -92,13 +92,13 @@ pub interface IList<T>
     fun mut Clear() { Remove(0..Count) }
     fun mut Add(item T) { Insert(Count, item) }
     fun mut Add(items ICollection<T>) { Insert(Count, items) }
-    fun mut Pop() { var item = this[Count-1]; Remove(Count-1);  return item }    
+    fun mut Pop() { @item = this[Count-1]; Remove(Count-1);  return item }    
 }
 
 pub struct KeyValuePair<TKey, TValue>
 {
-    pub var Key TKey
-    pub var Value TValue
+    pub @Key TKey
+    pub @Value TValue
 
     pub fun new(key TKey, value TValue) { Key = key; Value = value }
 }

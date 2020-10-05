@@ -189,25 +189,25 @@ pub unsafe abstract class DlMalloc
     const MAX_SMALL_SIZE xuint = MIN_LARGE_SIZE - SIZE_T_ONE
     static prop MAX_SMALL_REQUEST xuint => MAX_SMALL_SIZE - CHUNK_ALIGN_MASK - CHUNK_OVERHEAD
 
-    var memMan DlMallocMem
-    var smallmap uint
-    var treemap uint
-    var dvsize xuint
-    var topsize xuint
-    var least_addr *byte
-    var dv mchunk
-    var top mchunk
-    var trim_check xuint
-    var release_checks xuint
-    var magic xuint
-    var smallbins **mchunk
-    var treebins **tchunk
-    var footprint xuint
-    var max_footprint xuint
-    var mflags flag_t
-    var seg *msegment
-    var malloc_corruption_error_count int
-    var mparams malloc_params
+    @memMan DlMallocMem
+    @smallmap uint
+    @treemap uint
+    @dvsize xuint
+    @topsize xuint
+    @least_addr *byte
+    @dv mchunk
+    @top mchunk
+    @trim_check xuint
+    @release_checks xuint
+    @magic xuint
+    @smallbins **mchunk
+    @treebins **tchunk
+    @footprint xuint
+    @max_footprint xuint
+    @mflags flag_t
+    @seg *msegment
+    @malloc_corruption_error_count int
+    @mparams malloc_params
 
 
     fun new(memoryManager DlMallocMem, capacity xint)
@@ -215,9 +215,9 @@ pub unsafe abstract class DlMalloc
         memMan = memoryManager
         
         ensure_initialization()
-        var rs = capacity == 0 ? mparams.granularity : capacity + TOP_FOOT_SIZE
-        var tsize = granularity_align(rs)
-        var tbase = cast *byte(memMan.CallMoreCore(ref tsize))
+        @rs = capacity == 0 ? mparams.granularity : capacity + TOP_FOOT_SIZE
+        @tsize = granularity_align(rs)
+        @tbase = cast *byte(memMan.CallMoreCore(ref tsize))
         if (tbase != null)
         {
             init_user_mstate(tbase, tsize)
@@ -237,8 +237,8 @@ pub unsafe abstract class DlMalloc
     {
         get
         {
-            var count = 0
-            var segment = seg
+            @count = 0
+            @segment = seg
             while segment != null
             {
                 count += 1
@@ -524,10 +524,10 @@ pub unsafe abstract class DlMalloc
     /// Originally malloc_chunk, now mchunk
     pub struct mchunk
     {
-        pub var prev_foot_ptr *void // Size of previous chunk (if free).
-        pub var head_ptr *void      // Size and inuse bits.
-        pub var fd *mchunk          // double links -- used only if free.
-        pub var bk *mchunk
+        pub @prev_foot_ptr *void // Size of previous chunk (if free).
+        pub @head_ptr *void      // Size and inuse bits.
+        pub @fd *mchunk          // double links -- used only if free.
+        pub @bk *mchunk
 
         pub prop prev_foot xuint
         {
@@ -688,15 +688,15 @@ pub unsafe abstract class DlMalloc
     pub struct tchunk
     {
         // The first four fields must be compatible with mchunk
-        pub var prev_foot_ptr *void
-        pub var head_ptr *void
-        pub var fd *tchunk
-        pub var bk *tchunk
+        pub @prev_foot_ptr *void
+        pub @head_ptr *void
+        pub @fd *tchunk
+        pub @bk *tchunk
 
-        pub var child0 *tchunk
-        pub var child1 *tchunk
-        pub var parent *tchunk
-        pub var index uint
+        pub @child0 *tchunk
+        pub @child1 *tchunk
+        pub @parent *tchunk
+        pub @index uint
 
         pub prop prev_foot xuint
         {
@@ -781,10 +781,10 @@ pub unsafe abstract class DlMalloc
     /// </summary>
     struct msegment
     {
-        pub var baseAddr *byte      // base address
-        pub var size      xuint     // allocated size
-        pub var next     *msegment  // ptr to next segment
-        pub var sflags    flag_t    // mmap and extern flag
+        pub @baseAddr *byte      // base address
+        pub @size      xuint     // allocated size
+        pub @next     *msegment  // ptr to next segment
+        pub @sflags    flag_t    // mmap and extern flag
     }
 
     static fun is_mmapped_segment(s *msegment) bool => (s.sflags & flag_t.USE_MMAP_BIT) != 0
@@ -805,11 +805,11 @@ pub unsafe abstract class DlMalloc
 
     struct malloc_params
     {
-        pub var magic xuint
-        pub var page_size xuint
-        pub var granularity xuint
-        pub var trim_threshold xuint
-        pub var default_mflags flag_t
+        pub @magic xuint
+        pub @page_size xuint
+        pub @granularity xuint
+        pub @trim_threshold xuint
+        pub @default_mflags flag_t
     }
 
 
@@ -856,7 +856,7 @@ pub unsafe abstract class DlMalloc
     // Return segment holding given address
     fun segment_holding(addr *byte) *msegment
     {
-        var sp = seg
+        @sp = seg
         while true
         {
             if addr >= sp.baseAddr && addr < sp.baseAddr + sp.size
@@ -870,7 +870,7 @@ pub unsafe abstract class DlMalloc
     // Return true if segment contains a segment link
     fun has_segment_link(ss *msegments) bool
     {
-        var sp = seg
+        @sp = seg
         while true
         {
             if cast *byte(sp) >= ss.baseAddr && cast *byte(sp) < ss.baseAddr + ss.size
@@ -911,15 +911,15 @@ pub unsafe abstract class DlMalloc
     // Find tree index for size S
     static fun compute_tree_index(s xuint) uint
     {
-        var x = s >> TREEBIN_SHIFT
+        @x = s >> TREEBIN_SHIFT
         if x == 0
             { return 0 }
         if x > 0xFFFF
             { return NTREEBINS - 1 }
-        var y = x
-        var n = ((y - 0x100) >> 16) & 8
+        @y = x
+        @n = ((y - 0x100) >> 16) & 8
         y <<= n
-        var k = ((y - 0x1000) >> 16) & 4
+        @k = ((y - 0x1000) >> 16) & 4
         n += k
         y <<= k
         k = ((y - 0x4000) >> 16) & 2
@@ -974,9 +974,9 @@ pub unsafe abstract class DlMalloc
     // index corresponding to given bit. 
     static fun compute_bit2idx(x uint) uint
     {
-        var y = x - 1
-        var k = y >> (16 - 4) & 16
-        var n = k
+        @y = x - 1
+        @k = y >> (16 - 4) & 16
+        @n = k
         y >>= k
         k = y >> (8 - 3) & 8
         n += k
@@ -1056,8 +1056,8 @@ pub unsafe abstract class DlMalloc
         // ints must be at least 4 bytes.
         // alignment must be at least 8.
         // Alignment, min chunk size, and page size must all be powers of 2.
-        var psize = Environment.SystemPageSize
-        var gsize = DEFAULT_GRANULARITY != 0 ? DEFAULT_GRANULARITY : psize // dwAllocationGranularity
+        @psize = Environment.SystemPageSize
+        @gsize = DEFAULT_GRANULARITY != 0 ? DEFAULT_GRANULARITY : psize // dwAllocationGranularity
         if (sizeof(size_t) < sizeof(*byte))
             || (MAX_SIZE_T < MIN_CHUNK_SIZE)
             || (sizeof(int) < 4)
@@ -1077,7 +1077,7 @@ pub unsafe abstract class DlMalloc
             mparams.trim_threshold = DEFAULT_TRIM_THRESHOLD
             mparams.default_mflags = flag_t.USE_MMAP_BIT
 
-            var magic = cast xuint(Environment.TickCount + DateTime.Now.Ticks + 0x55555555U)
+            @magic = cast xuint(Environment.TickCount + DateTime.Now.Ticks + 0x55555555U)
             magic |= 8U    // ensure nonzero
             magic &= ~7U   // improve chances of fault for bad values
             mparams.magic = magic
@@ -1103,8 +1103,8 @@ pub unsafe abstract class DlMalloc
     // Check properties of top chunk
     fun do_check_top_chunk(p *mchunk)
     {
-        var sp = segment_holding(cast *byte(p))
-        var sz = p.head & ~INUSE_BITS // third-lowest bit can be set!
+        @sp = segment_holding(cast *byte(p))
+        @sz = p.head & ~INUSE_BITS // third-lowest bit can be set!
         assert(sp != null)
         assert(is_aligned(chunk2mem(p)) || p.head == FENCEPOST_HEAD)
         assert(ok_address(p))
@@ -1129,8 +1129,8 @@ pub unsafe abstract class DlMalloc
     // Check properties of free chunks
     fun do_check_free_chunk(p *mchunk)
     {
-        var sz = chunksize(p)
-        var next = chunk_plus_offset(p, sz)
+        @sz = chunksize(p)
+        @next = chunk_plus_offset(p, sz)
         do_check_any_chunk(p)
         assert(!is_inuse(p))
         assert(!next_pinuse(p))
@@ -1159,8 +1159,8 @@ pub unsafe abstract class DlMalloc
     {
         if mem != null
         {
-            var p = mem2chunk(mem)
-            var sz = p.head & ~INUSE_BITS
+            @p = mem2chunk(mem)
+            @sz = p.head & ~INUSE_BITS
             do_check_inuse_chunk(p)
             assert((sz & CHUNK_ALIGN_MASK) == 0)
             assert(sz >= MIN_CHUNK_SIZE)
@@ -1175,11 +1175,11 @@ pub unsafe abstract class DlMalloc
     // Check a tree and its subtrees.
     fun do_check_tree(t *tchunk)
     {
-        var head *tchunk = null
-        var u = t
-        var tindex = t.index
-        var tsize = chunksize(t)
-        var idx = compute_tree_index(tsize)
+        @head *tchunk = null
+        @u = t
+        @tindex = t.index
+        @tsize = chunksize(t)
+        @idx = compute_tree_index(tsize)
         assert(tindex == idx)
         assert(tsize >= MIN_LARGE_SIZE)
         assert(tsize >= minsize_for_tree_index(idx))
@@ -1233,9 +1233,9 @@ pub unsafe abstract class DlMalloc
     //  Check all the chunks in a treebin. 
     fun do_check_treebin(i uint)
     {
-        var tb = treebin_at(i)
-        var t = *tb
-        var empty = (treemap & (1U << i)) == 0
+        @tb = treebin_at(i)
+        @t = *tb
+        @empty = (treemap & (1U << i)) == 0
         if t == null
             { assert(empty) }
         if !empty
@@ -1245,17 +1245,17 @@ pub unsafe abstract class DlMalloc
     //  Check all the chunks in a smallbin.
     fun do_check_smallbin(uint i)
     {
-        var b = smallbin_at(i)
-        var p = b.bk
-        var empty = (smallmap & (1U << i)) == 0
+        @b = smallbin_at(i)
+        @p = b.bk
+        @empty = (smallmap & (1U << i)) == 0
         if p == b
              {assert(empty) }
         if !empty
         {
             while p != b
             {
-                var size = chunksize(p)
-                var q *mchunk
+                @size = chunksize(p)
+                @q *mchunk
                 // each chunk claims to be free
                 do_check_free_chunk(p)
                 // chunk belongs in bin
@@ -1273,14 +1273,14 @@ pub unsafe abstract class DlMalloc
     // Find x in a bin. Used in other check functions.
     fun bin_find(x *mchunk)
     {
-        var size = chunksize(x)
+        @size = chunksize(x)
         if is_small(size)
         {
-            var sidx = small_index(size)
-            var b = smallbin_at(sidx)
+            @sidx = small_index(size)
+            @b = smallbin_at(sidx)
             if smallmap_is_marked(sidx)
             {
-                var p = b
+                @p = b
                 do
                 {
                     if p == x
@@ -1291,11 +1291,11 @@ pub unsafe abstract class DlMalloc
         }
         else
         {
-            var tidx = compute_tree_index(size)
+            @tidx = compute_tree_index(size)
             if treemap_is_marked(tidx)
             {
-                var t = *treebin_at(tidx)
-                var sizebits = size << leftshift_for_tree_index(tidx)
+                @t = *treebin_at(tidx)
+                @sizebits = size << leftshift_for_tree_index(tidx)
                 while t != null && chunksize(t) != size
                 {
                     t = ((sizebits >> (SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 ? t.child0 : t.child1
@@ -1303,7 +1303,7 @@ pub unsafe abstract class DlMalloc
                 }
                 if t != null
                 {
-                    var u = t
+                    @u = t
                     do
                     {
                         if u == cast *tchunk(x)
@@ -1318,11 +1318,11 @@ pub unsafe abstract class DlMalloc
 
     pub class HeapStats
     {
-        pub var HeapSize i64
-        pub var UsedChunks i64
-        pub var UsedBytes i64
-        pub var FreeChunks i64
-        pub var FreeBytes i64
+        pub @HeapSize i64
+        pub @UsedChunks i64
+        pub @UsedBytes i64
+        pub @FreeChunks i64
+        pub @FreeBytes i64
 
         pub fun ToStr() string
         {
@@ -1337,9 +1337,9 @@ pub unsafe abstract class DlMalloc
         assert(is_initialized())
 
         // check bins
-        for i in 0..NSMALLBINS
+        for @i in 0..NSMALLBINS
             { do_check_smallbin(i) }
-        for i in 0..NTREEBINS
+        for @i in 0..NTREEBINS
             { do_check_treebin(i) }
 
         if (dvsize != 0)
@@ -1359,26 +1359,26 @@ pub unsafe abstract class DlMalloc
             assert(!bin_find(top))
         }
 
-        var usedChunks = 0
-        var freeChunks = 0
-        var freeBytes i64 = 0
-        var usedBytes i64 = 0
-        var heapSize i64 = 0
+        @usedChunks = 0
+        @freeChunks = 0
+        @freeBytes i64 = 0
+        @usedBytes i64 = 0
+        @heapSize i64 = 0
         heapSize += cast i64(topsize + TOP_FOOT_SIZE)
 
         // Walk segments
-        var s = seg
+        @s = seg
         while (s != null)
         {
-            var q = align_as_chunk(s->baseAddr)
-            var lastq = null
+            @q = align_as_chunk(s->baseAddr)
+            @lastq = null
             assert(pinuse(q))
 
             // Walk chunks
             while (segment_holds(s, q) 
                     && q != top && q->head != FENCEPOST_HEAD)
             {
-                var chunkSize = cast i64(chunksize(q))
+                @chunkSize = cast i64(chunksize(q))
                 heapSize += chunkSize
                 if (is_inuse(q))
                 {
@@ -1405,7 +1405,7 @@ pub unsafe abstract class DlMalloc
         assert(heapSize <= cast i64(footprint))
         assert(footprint <= max_footprint)
 
-        var stats = HeapStats()
+        @stats = HeapStats()
         stats.HeapSize = heapSize
         stats.FreeChunks = freeChunks
         stats.FreeBytes = freeBytes
@@ -1425,9 +1425,9 @@ pub unsafe abstract class DlMalloc
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     fun mut insert_small_chunk(p ref mut mchunk, s xuint)
     {
-        var I = small_index(s)
-        var B = smallbin_at(I)
-        var F = B
+        @I = small_index(s)
+        @B = smallbin_at(I)
+        @F = B
         assert(s >= MIN_CHUNK_SIZE)
         if !smallmap_is_marked(I)
             { mark_smallmap(I) }
@@ -1445,9 +1445,9 @@ pub unsafe abstract class DlMalloc
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     fun mut unlink_small_chunk(p ref mut mchunk, s xuint)
     {
-        var F = p.fd
-        var B = p.bk
-        var I = small_index(s)
+        @F = p.fd
+        @B = p.bk
+        @I = small_index(s)
         assert(p != B)
         assert(p != F)
         assert(chunksize(p) == small_index2size(I))
@@ -1474,7 +1474,7 @@ pub unsafe abstract class DlMalloc
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     fun mut unlink_first_small_chunk(b ref mut mchunk, p ref mut mchunk, i uint)
     {
-        var F = p.fd
+        @F = p.fd
         assert(p != b)
         assert(p != F)
         assert(chunksize(p) == small_index2size(i))
@@ -1494,11 +1494,11 @@ pub unsafe abstract class DlMalloc
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     fun mut replace_dv(p ref mut mchunk, s xuint)
     {
-        var DVS = dvsize
+        @DVS = dvsize
         assert(is_small(DVS))
         if DVS != 0
         {
-            var DV = dv
+            @DV = dv
             insert_small_chunk(DV, DVS)
         }
         dvsize = s
@@ -1510,8 +1510,8 @@ pub unsafe abstract class DlMalloc
     // Insert chunk into tree
     fun insert_large_chunk(x ref mut tchunk, s xuint)
     {
-        var H **tchunk
-        var I = compute_tree_index(s)
+        @H **tchunk
+        @I = compute_tree_index(s)
         H = treebin_at(I)
         x.index = I
         x.child0 = null
@@ -1526,13 +1526,13 @@ pub unsafe abstract class DlMalloc
         }
         else
         {
-            var T = *H
-            var K = s << leftshift_for_tree_index(I)
+            @T = *H
+            @K = s << leftshift_for_tree_index(I)
             while true
             {
                 if chunksize(T) != s
                 {
-                    var C = ((K >> (SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 ? &T.child0 : &T.child1
+                    @C = ((K >> (SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 ? &T.child0 : &T.child1
                     K <<= 1
                     if *C != null
                         { T = *C }
@@ -1552,7 +1552,7 @@ pub unsafe abstract class DlMalloc
                 }
                 else
                 {
-                    var F = T.fd
+                    @F = T.fd
                     if RTCHECK(ok_address(T) && ok_address(F))
                     {
                         T.fd = x
@@ -1589,11 +1589,11 @@ pub unsafe abstract class DlMalloc
 
     fun unlink_large_chunk(x ref mut tchunk)
     {
-        var XP = x.parent
-        var R *tchunk
+        @XP = x.parent
+        @R *tchunk
         if x.bk != x
         {
-            var F = x.fd
+            @F = x.fd
             R = x.bk
             if RTCHECK(ok_address(F) && F.bk == x && R.fd == x)
             {
@@ -1605,7 +1605,7 @@ pub unsafe abstract class DlMalloc
         }
         else
         {
-            var RP **tchunk
+            @RP **tchunk
             RP = &x.child1
             R = *RP
             if R == null
@@ -1615,7 +1615,7 @@ pub unsafe abstract class DlMalloc
             }
             if R != null
             {
-                var CP **tchunk
+                @CP **tchunk
                 CP = &R.child1
                 if *CP == null
                     { CP = &R.child0 }
@@ -1635,7 +1635,7 @@ pub unsafe abstract class DlMalloc
         }
         if XP != null
         {
-            var H = treebin_at(x.index)
+            @H = treebin_at(x.index)
             if x == *H
             {
                 *H = R
@@ -1655,8 +1655,8 @@ pub unsafe abstract class DlMalloc
             {
                 if RTCHECK(ok_address(R))
                 {
-                    var C0 *tchunk
-                    var C1 *tchunk
+                    @C0 *tchunk
+                    @C1 *tchunk
                     R.parent = XP
                     C0 = x.child0
                     if C0 != null
@@ -1713,7 +1713,7 @@ pub unsafe abstract class DlMalloc
     fun mut init_top(p ref mut mchunk, psize xuint)
     {
         // Ensure alignment
-        var offset = align_offset(chunk2mem(p))
+        @offset = align_offset(chunk2mem(p))
         p = cast *mchunk(cast *byte(p) + offset)
         psize -= offset
 
@@ -1729,9 +1729,9 @@ pub unsafe abstract class DlMalloc
     fun mut init_bins()
     {
         // Establish circular links for smallbins
-        for i in NSMALLBINS
+        for @i in NSMALLBINS
         {
-            var bin = smallbin_at(i)
+            @bin = smallbin_at(i)
             bin.bk = bin
             bin.fd = bin
         }
@@ -1742,7 +1742,7 @@ pub unsafe abstract class DlMalloc
     /// </summary>
     protected fun mut ResetOnError()
     {
-        var i int
+        @i int
         malloc_corruption_error_count += 1
         // Reinitialize fields to forget about all memory
         smallmap = 0
@@ -1754,7 +1754,7 @@ pub unsafe abstract class DlMalloc
         seg.next = null
         top = null
         dv = null
-        for i in NTREEBINS
+        for @i in NTREEBINS
             { *treebin_at(i) = null }
         init_bins()
     }
@@ -1764,11 +1764,11 @@ pub unsafe abstract class DlMalloc
                            oldbase *byte,
                            nb xuint) *void
     {
-        var p = align_as_chunk(newbase)
-        var oldfirst = align_as_chunk(oldbase)
-        var psize = cast xuint(cast *byte(oldfirst) - cast *byte(p))
-        var q = chunk_plus_offset(p, nb)
-        var qsize = psize - nb
+        @p = align_as_chunk(newbase)
+        @oldfirst = align_as_chunk(oldbase)
+        @psize = cast xuint(cast *byte(oldfirst) - cast *byte(p))
+        @q = chunk_plus_offset(p, nb)
+        @qsize = psize - nb
         set_size_and_pinuse_of_inuse_chunk(p, nb)
 
         assert(cast *byte(oldfirst) > cast *byte(q))
@@ -1779,7 +1779,7 @@ pub unsafe abstract class DlMalloc
         if oldfirst == top
         {
             topsize += qsize
-            var tsize = topsize
+            @tsize = topsize
             top = q
             q.head = tsize | PINUSE_BIT
             check_top_chunk(q)
@@ -1787,7 +1787,7 @@ pub unsafe abstract class DlMalloc
         else if oldfirst == dv
         {
             dvsize += qsize
-            var dsize = dvsize
+            @dsize = dvsize
             dv = q
             set_size_and_pinuse_of_free_chunk(q, dsize)
         }
@@ -1795,7 +1795,7 @@ pub unsafe abstract class DlMalloc
         {
             if !is_inuse(oldfirst)
             {
-                var nsize = chunksize(oldfirst)
+                @nsize = chunksize(oldfirst)
                 unlink_chunk(oldfirst, nsize)
                 oldfirst = chunk_plus_offset(oldfirst, nsize)
                 qsize += nsize
@@ -1813,19 +1813,19 @@ pub unsafe abstract class DlMalloc
     fun mut add_segment(tbase *byte, tsize xuint, mmapped flag_t)
     {
         // Determine locations and sizes of segment, fenceposts, old top
-        var old_top = cast *byte(top)
-        var oldsp = segment_holding(old_top)
-        var old_end = oldsp.baseAddr + oldsp.size
-        var ssize = pad_request(sizeof(msegment))
-        var rawsp = old_end - (ssize + FOUR_SIZE_T_SIZES + CHUNK_ALIGN_MASK)
-        var offset = align_offset(chunk2mem(rawsp))
-        var asp = rawsp + offset
-        var csp = (asp < (old_top + MIN_CHUNK_SIZE)) ? old_top : asp
-        var sp = cast *mchunk(csp)
-        var ss = cast *msegment(chunk2mem(sp))
-        var tnext = chunk_plus_offset(sp, ssize)
-        var p = tnext
-        var nfences = 0
+        @old_top = cast *byte(top)
+        @oldsp = segment_holding(old_top)
+        @old_end = oldsp.baseAddr + oldsp.size
+        @ssize = pad_request(sizeof(msegment))
+        @rawsp = old_end - (ssize + FOUR_SIZE_T_SIZES + CHUNK_ALIGN_MASK)
+        @offset = align_offset(chunk2mem(rawsp))
+        @asp = rawsp + offset
+        @csp = (asp < (old_top + MIN_CHUNK_SIZE)) ? old_top : asp
+        @sp = cast *mchunk(csp)
+        @ss = cast *msegment(chunk2mem(sp))
+        @tnext = chunk_plus_offset(sp, ssize)
+        @p = tnext
+        @nfences = 0
 
         // reset top to new space
         init_top(cast *mchunk(tbase), tsize - TOP_FOOT_SIZE)
@@ -1842,7 +1842,7 @@ pub unsafe abstract class DlMalloc
         // Insert trailing fenceposts
         while true
         {
-            var nextp = chunk_plus_offset(p, SIZE_T_SIZE)
+            @nextp = chunk_plus_offset(p, SIZE_T_SIZE)
             p.head = FENCEPOST_HEAD
             nfences += 1
             if cast *byte(&nextp.head_ptr) < old_end
@@ -1855,9 +1855,9 @@ pub unsafe abstract class DlMalloc
         // Insert the rest of old top into a bin as an ordinary free chunk
         if csp != old_top
         {
-            var q = cast *mchunk(old_top)
-            var psize = cast xuint(csp - old_top)
-            var tn = chunk_plus_offset(q, psize)
+            @q = cast *mchunk(old_top)
+            @psize = cast xuint(csp - old_top)
+            @tn = chunk_plus_offset(q, psize)
             set_free_with_pinuse(q, psize, tn)
             insert_chunk(q, psize)
         }
@@ -1870,10 +1870,10 @@ pub unsafe abstract class DlMalloc
     // Get memory from system using MMAP
     fun mut sys_alloc(nb xuint) *void
     {
-        var tbase *byte = null
-        var tsize = 0
-        var mmap_flag flag_t = 0
-        var asize xuint // allocation size
+        @tbase *byte = null
+        @tsize = 0
+        @mmap_flag flag_t = 0
+        @asize xuint // allocation size
 
         ensure_initialization()
 
@@ -1890,7 +1890,7 @@ pub unsafe abstract class DlMalloc
         if tbase == null
         {
             // Try MMAP
-            var mp = cast *byte(memMan.CallMoreCore(ref asize))
+            @mp = cast *byte(memMan.CallMoreCore(ref asize))
             if mp != null
             {
                 tbase = mp
@@ -1910,7 +1910,7 @@ pub unsafe abstract class DlMalloc
 
             // Try to merge with an existing segment
             // Only consider most recent segment if traversal suppressed 
-            var sp = seg
+            @sp = seg
             while sp != null && tbase != sp.baseAddr + sp.size
                 { sp = NO_SEGMENT_TRAVERSAL ? null : sp.next }
 
@@ -1934,7 +1934,7 @@ pub unsafe abstract class DlMalloc
                     && !is_extern_segment(sp)
                     && (sp.sflags & flag_t.USE_MMAP_BIT) == mmap_flag
                 {
-                    var oldbase = sp.baseAddr
+                    @oldbase = sp.baseAddr
                     sp.baseAddr = tbase
                     sp.size += tsize
                     return prepend_alloc(tbase, oldbase, nb)
@@ -1947,10 +1947,10 @@ pub unsafe abstract class DlMalloc
             {
                 // Allocate from new or extended top space
                 topsize -= nb
-                var rsize = topsize
-                var p = top
+                @rsize = topsize
+                @p = top
                 top = chunk_plus_offset(p, nb)
-                var r = top
+                @r = top
                 r.head = rsize | PINUSE_BIT
                 set_size_and_pinuse_of_inuse_chunk(p, nb)
                 check_top_chunk(top)
@@ -1969,24 +1969,24 @@ pub unsafe abstract class DlMalloc
     // Unmap and unlink any mmapped segments that don't contain used chunks
     fun mut release_unused_segments() xuint
     {
-        var released xuint = 0
-        var nsegs = 0
-        var pred = seg
-        var sp = pred.next
+        @released xuint = 0
+        @nsegs = 0
+        @pred = seg
+        @sp = pred.next
         while sp != null
         {
-            var baseAddr = sp.baseAddr
-            var size = sp.size
-            var next = sp.next
+            @baseAddr = sp.baseAddr
+            @size = sp.size
+            @next = sp.next
             nsegs += 1
             if is_mmapped_segment(sp) && !is_extern_segment(sp)
             {
-                var p = align_as_chunk(baseAddr)
-                var psize = chunksize(p)
+                @p = align_as_chunk(baseAddr)
+                @psize = chunksize(p)
                 // Can unmap if first chunk holds entire segment and not pinned
                 if !is_inuse(p) && cast *byte(p) + psize >= baseAddr + size - TOP_FOOT_SIZE
                 {
-                    var tp = cast *tchunk(p)
+                    @tp = cast *tchunk(p)
                     assert(segment_holds(sp, cast *byte(sp)))
                     if p == dv
                     {
@@ -2025,7 +2025,7 @@ pub unsafe abstract class DlMalloc
 
     fun mut sys_trim(pad xuint) int
     {
-        var released xuint = 0
+        @released xuint = 0
         ensure_initialization()
         if pad < MAX_REQUEST && is_initialized()
         {
@@ -2034,10 +2034,10 @@ pub unsafe abstract class DlMalloc
             if topsize > pad
             {
                 // Shrink top space in granularity-size units, keeping at least one
-                var unit = mparams.granularity
-                var extra = ((topsize - pad + (unit - SIZE_T_ONE)) / unit
+                @unit = mparams.granularity
+                @extra = ((topsize - pad + (unit - SIZE_T_ONE)) / unit
                                 - SIZE_T_ONE) * unit
-                var sp = segment_holding(cast *byte(top))
+                @sp = segment_holding(cast *byte(top))
 
                 if !is_extern_segment(sp)
                 {
@@ -2047,7 +2047,7 @@ pub unsafe abstract class DlMalloc
                             && !has_segment_link(sp)
                         {
                             // can't shrink if pinned
-                            var newsize = sp.size - extra
+                            @newsize = sp.size - extra
 
                             if memMan.CallReleaseCore(sp.baseAddr + newsize, extra)
                             {
@@ -2081,11 +2081,11 @@ pub unsafe abstract class DlMalloc
     //   of free mainly in that the chunk need not be marked as inuse.
     fun mut dispose_chunk(p ref mut mchunk, psize xuint)
     {
-        var next = chunk_plus_offset(p, psize)
+        @next = chunk_plus_offset(p, psize)
         if !pinuse(p)
         {
-            var prev *mchunk
-            var prevsize = p.prev_foot
+            @prev *mchunk
+            @prevsize = p.prev_foot
             prev = chunk_minus_offset(p, prevsize)
             psize += prevsize
             p = prev
@@ -2117,7 +2117,7 @@ pub unsafe abstract class DlMalloc
                 if next == top
                 {
                     topsize += psize
-                    var tsize = topsize
+                    @tsize = topsize
                     top = p
                     p.head = tsize | PINUSE_BIT
                     if p == dv
@@ -2130,14 +2130,14 @@ pub unsafe abstract class DlMalloc
                 else if next == dv
                 {
                     dvsize += psize
-                    var dsize = dvsize
+                    @dsize = dvsize
                     dv = p
                     set_size_and_pinuse_of_free_chunk(p, dsize)
                     return
                 }
                 else
                 {
-                    var nsize = chunksize(next)
+                    @nsize = chunksize(next)
                     psize += nsize
                     unlink_chunk(next, nsize)
                     set_size_and_pinuse_of_free_chunk(p, psize)
@@ -2165,20 +2165,20 @@ pub unsafe abstract class DlMalloc
     // allocate a large request from the best fitting chunk in a treebin
     fun mut tmalloc_large(xuint nb) *void
     {
-        var v *tchunk = null
-        var rsize = cast xuint(-cast xint(nb)) // Unsigned negation
-        var t *tchunk
-        var idx = compute_tree_index(nb)
+        @v *tchunk = null
+        @rsize = cast xuint(-cast xint(nb)) // Unsigned negation
+        @t *tchunk
+        @idx = compute_tree_index(nb)
         t = *treebin_at(idx)
         if t != null
         {
             // Traverse tree for this bin looking for node with size == nb
-            var sizebits = nb << leftshift_for_tree_index(idx)
-            var rst = null  // The deepest untaken right subtree
+            @sizebits = nb << leftshift_for_tree_index(idx)
+            @rst = null  // The deepest untaken right subtree
             while true
             {
-                var rt *tchunk
-                var trem = chunksize(t) - nb
+                @rt *tchunk
+                @trem = chunksize(t) - nb
                 if trem < rsize
                 {
                     v = t
@@ -2202,11 +2202,11 @@ pub unsafe abstract class DlMalloc
         if t == null && v == null
         {
             // set t to root of next non-empty treebin
-            var leftbits = left_bits(idx2bit(idx)) & treemap
+            @leftbits = left_bits(idx2bit(idx)) & treemap
             if leftbits != 0
             {
-                var leastbit = least_bit(leftbits)
-                var i = compute_bit2idx(leastbit)
+                @leastbit = least_bit(leftbits)
+                @i = compute_bit2idx(leastbit)
                 t = *treebin_at(i)
             }
         }
@@ -2214,7 +2214,7 @@ pub unsafe abstract class DlMalloc
         while t != null
         {
             // find smallest of tree or subtree
-            var trem = chunksize(t) - nb
+            @trem = chunksize(t) - nb
             if trem < rsize
             {
                 rsize = trem
@@ -2229,7 +2229,7 @@ pub unsafe abstract class DlMalloc
             if RTCHECK(ok_address(v))
             {
                 // split
-                var r = chunk_plus_offset(v, nb)
+                @r = chunk_plus_offset(v, nb)
                 assert(chunksize(v) == rsize + nb)
                 if RTCHECK(ok_next(v, r))
                 {
@@ -2253,11 +2253,11 @@ pub unsafe abstract class DlMalloc
     // allocate a small request from the best fitting chunk in a treebin
     fun mut tmalloc_small(nb xuint) *void
     {
-        var t *tchunk
-        var v *tchunk
-        var rsize xuint
-        var leastbit = least_bit(treemap)
-        var i = compute_bit2idx(leastbit)
+        @t *tchunk
+        @v *tchunk
+        @rsize xuint
+        @leastbit = least_bit(treemap)
+        @i = compute_bit2idx(leastbit)
         t = *treebin_at(i)
         v = t
         rsize = chunksize(t) - nb
@@ -2265,7 +2265,7 @@ pub unsafe abstract class DlMalloc
         t = leftmost_child(t)
         while t != null
         {
-            var trem = chunksize(t) - nb
+            @trem = chunksize(t) - nb
             if trem < rsize
             {
                 rsize = trem
@@ -2276,7 +2276,7 @@ pub unsafe abstract class DlMalloc
 
         if RTCHECK(ok_address(v))
         {
-            var r = chunk_plus_offset(v, nb)
+            @r = chunk_plus_offset(v, nb)
             assert(chunksize(v) == rsize + nb)
             if RTCHECK(ok_next(v, r))
             {
@@ -2303,17 +2303,17 @@ pub unsafe abstract class DlMalloc
         if (!is_initialized())
             { return }
 
-        var top2 = top
-        var s = seg
+        @top2 = top
+        @s = seg
         while s != null
         {
-            var q = align_as_chunk(s.baseAddr)
+            @q = align_as_chunk(s.baseAddr)
             while segment_holds(s, q) && q.head != FENCEPOST_HEAD
             {
-                var next = next_chunk(q)
-                var sz = chunksize(q)
-                var used xuint
-                var start *void
+                @next = next_chunk(q)
+                @sz = chunksize(q)
+                @used xuint
+                @start *void
                 if (is_inuse(q))
                 {
                     used = sz - CHUNK_OVERHEAD // must not be mmapped
@@ -2350,16 +2350,16 @@ pub unsafe abstract class DlMalloc
     // TBD: Optimize and move to standard library
     fun MemClear(mem *void, size long)
     {
-        var b = cast *byte(mem)
-        for s in 0..size
+        @b = cast *byte(mem)
+        for @s in 0..size
             { *b = 0; b += 1 }
     }
 
     fun mut init_user_mstate(tbase *byte, tsize xuint)
     {
-        var mn mchunk
-        var msp = align_as_chunk(tbase)
-        var m *void = chunk2mem(msp)
+        @mn mchunk
+        @msp = align_as_chunk(tbase)
+        @m *void = chunk2mem(msp)
 
         smallbins = cast **mchunk(Marshal.AllocHGlobal(sizeof(*mchunk) * (((NSMALLBINS + 1) * 2))))
         treebins = cast **tchunk(Marshal.AllocHGlobal(sizeof(*tchunk) * (NTREEBINS)))
@@ -2368,7 +2368,7 @@ pub unsafe abstract class DlMalloc
         MemClear(treebins, sizeof(*tchunk) * (NTREEBINS))
         MemClear(seg, sizeof(msegment))
 
-        var msize xuint = 0
+        @msize xuint = 0
         msp.head = (msize | INUSE_BITS)
         seg.baseAddr = tbase
         least_addr = tbase
@@ -2391,12 +2391,12 @@ pub unsafe abstract class DlMalloc
     //  used by the space become undefined.
     pub fun mut Dispose()
     {
-        var sp = seg
+        @sp = seg
         while (sp != null)
         {
-            var baseAddr = sp.baseAddr
-            var size = sp.size
-            var flag = sp.sflags
+            @baseAddr = sp.baseAddr
+            @size = sp.size
+            @flag = sp.sflags
             sp = sp.next
             if ((flag & flag_t.USE_MMAP_BIT) != 0 
                 && (flag & flag_t.EXTERN_BIT) == 0
@@ -2444,12 +2444,12 @@ pub unsafe abstract class DlMalloc
             memMan.CallUsageErrorAction(null)
             return null
         }
-        var mem *void
-        var nb xuint
+        @mem *void
+        @nb xuint
         if (length <= MAX_SMALL_REQUEST)
         {
-            var idx uint
-            var smallbits uint
+            @idx uint
+            @smallbits uint
             nb = (length < MIN_REQUEST) ? MIN_CHUNK_SIZE : pad_request(length)
             idx = small_index(nb)
             smallbits = smallmap >> idx
@@ -2457,8 +2457,8 @@ pub unsafe abstract class DlMalloc
             if ((smallbits & 0x3U) != 0)
             {
                 // Remainderless fit to a smallbin.
-                var b *mchunk
-                var p *mchunk
+                @b *mchunk
+                @p *mchunk
                 idx += ~smallbits & 1       // Uses next bin if idx empty
                 b = smallbin_at(idx)
                 p = b.fd
@@ -2474,13 +2474,13 @@ pub unsafe abstract class DlMalloc
                 if (smallbits != 0)
                 {
                     // Use chunk in next nonempty smallbin
-                    var b *mchunk
-                    var p *mchunk
-                    var r *mchunk
-                    var rsize xuint
-                    var leftbits = (smallbits << idx) & left_bits(idx2bit(idx))
-                    var leastbit = least_bit(leftbits)
-                    var i = compute_bit2idx(leastbit)
+                    @b *mchunk
+                    @p *mchunk
+                    @r *mchunk
+                    @rsize xuint
+                    @leftbits = (smallbits << idx) & left_bits(idx2bit(idx))
+                    @leastbit = least_bit(leftbits)
+                    @i = compute_bit2idx(leastbit)
                     b = smallbin_at(i)
                     p = b.fd
                     assert(chunksize(p) == small_index2size(i))
@@ -2532,13 +2532,13 @@ pub unsafe abstract class DlMalloc
 
         if (nb <= dvsize)
         {
-            var rsize = dvsize - nb
-            var p = dv
+            @rsize = dvsize - nb
+            @p = dv
             if (rsize >= MIN_CHUNK_SIZE)
             {
                 // split dv
                 dv = chunk_plus_offset(p, nb)
-                var r = dv
+                @r = dv
                 dvsize = rsize
                 set_size_and_pinuse_of_free_chunk(r, rsize)
                 set_size_and_pinuse_of_inuse_chunk(p, nb)
@@ -2546,7 +2546,7 @@ pub unsafe abstract class DlMalloc
             else
             {
                 // exhaust dv
-                var dvs = dvsize
+                @dvs = dvsize
                 dvsize = 0
                 dv = null
                 set_inuse_and_pinuse(p, dvs)
@@ -2559,10 +2559,10 @@ pub unsafe abstract class DlMalloc
         {
             // Split top
             topsize -= nb
-            var rsize = topsize
-            var p = top
+            @rsize = topsize
+            @p = top
             top = chunk_plus_offset(p, nb)
-            var r = top
+            @r = top
             r.head = rsize | PINUSE_BIT
             set_size_and_pinuse_of_inuse_chunk(p, nb)
             mem = chunk2mem(p)
@@ -2588,7 +2588,7 @@ pub unsafe abstract class DlMalloc
         if (mem == null)
             { return }
 
-        var p = mem2chunk(mem)
+        @p = mem2chunk(mem)
         if (!ok_magic())
         {
             memMan.CallUsageErrorAction(p)
@@ -2602,12 +2602,12 @@ pub unsafe abstract class DlMalloc
         }
         assert(!is_mmapped(p))
 
-        var psize = chunksize(p)
-        var next = chunk_plus_offset(p, psize)
+        @psize = chunksize(p)
+        @next = chunk_plus_offset(p, psize)
         if (!pinuse(p))
         {
-            var prevsize = p.prev_foot
-            var prev = chunk_minus_offset(p, prevsize)
+            @prevsize = p.prev_foot
+            @prev = chunk_minus_offset(p, prevsize)
             psize += prevsize
             p = prev
             if (RTCHECK(ok_address(prev)))
@@ -2639,7 +2639,7 @@ pub unsafe abstract class DlMalloc
                 if (next == top)
                 {
                     topsize += psize
-                    var tsize = topsize
+                    @tsize = topsize
                     top = p
                     p.head = tsize | PINUSE_BIT
                     if (p == dv)
@@ -2654,14 +2654,14 @@ pub unsafe abstract class DlMalloc
                 else if (next == dv)
                 {
                     dvsize += psize
-                    var dsize = dvsize
+                    @dsize = dvsize
                     dv = p
                     set_size_and_pinuse_of_free_chunk(p, dsize)
                     return
                 }
                 else
                 {
-                    var nsize = chunksize(next)
+                    @nsize = chunksize(next)
                     psize += nsize
                     unlink_chunk(next, nsize)
                     set_size_and_pinuse_of_free_chunk(p, psize)
@@ -2682,7 +2682,7 @@ pub unsafe abstract class DlMalloc
             }
             else
             {
-                var tp = cast *tchunk(p)
+                @tp = cast *tchunk(p)
                 insert_large_chunk(tp, psize)
                 check_free_chunk(p)
                 release_checks -= 1
@@ -2709,7 +2709,7 @@ pub unsafe abstract class DlMalloc
 
     pub fun mut Trim(pad xuint) int
     {
-        var result = 0
+        @result = 0
         if (ok_magic())
         {
             result = sys_trim(pad)

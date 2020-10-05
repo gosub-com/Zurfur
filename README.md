@@ -64,8 +64,6 @@ free to send me comments letting me know what you think should be changed.
     pub static fun add(a int, b int) int
         => a + b
 
-**TBD:** Use `func` instead of `fun`?
-
 Functions are declared with the `fun` keyword. The type names come
 after each argument, and the return type comes after the parameters.
 Functions, classes, structs, enums, variables and constants are
@@ -98,40 +96,29 @@ must be assigned, never read.
 
 ## Local Variables
 
-Within a function, variables are declared and initialized with the `var` keyword:  
+Within a function, variables are declared and initialized with the `@` 
+operator (i.e. the `var` keyword from C#):
 
-    var a = 3                              // `a` is an int
-    var b = "Hello World"                  // `b` is a str
-    var c = MyFunction()                   // `c` is whatever type is returned by MyFunction
-    var d = List<int>([1,2,3])             // `d` is a list of integers, initialized with [1,2,3]
-    var e = Map<str,int>(["A":1,"B":2])    // `e` is a map of <str, int>
-    var f = Json(["A":1,"B":[1,2,3]])      // `f` is a Json object containing a number and an array
+    @a = 3                              // `a` is an int
+    @b = "Hello World"                  // `b` is a str
+    @c = MyFunction()                   // `c` is whatever type is returned by MyFunction
+    @d = List<int>([1,2,3])             // `d` is a list of integers, initialized with [1,2,3]
+    @e = Map<str,int>(["A":1,"B":2])    // `e` is a map of <str, int>
 
-The above form `var variable = expression` creates a variable with the same type as
-the expression.  A second form `var variable type [=expression]` creates an explicitly
+The above form `@variable = expression` creates a variable with the same type as
+the expression.  A second form `@variable type [=expression]` creates an explicitly
 typed variable with optional assignment from an expression.  If the expression
 cannot be converted, an error is generated
 
-    var a int = MyIntFunc()                // Error if MyIntFunc returns a float
-    var b str                              // `b` is a string, initialized to ""
-    var c List<int>                        // `c` is an empty List<int>
-    var d List<int> = [1, 2, 3]
-    var e Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
-    var f Map<int,str> = [0:"a", 1:"b"]
+    @a int = MyIntFunc()                // Error if MyIntFunc returns a float
+    @b str                              // `b` is a string, initialized to ""
+    @c List<int>                        // `c` is an empty List<int>
+    @d List<int> = [1, 2, 3]            // Preferred over @d = List<int>([1,2,3])
+    @e Map<int,str> = [0:"a", 1:"b"]    // Preferred over @e = Map<int,str>([0:"a", 1:"b"])
+    @f Json = ["A":1,"B":[1,2,3]]       // `f` is a Json object
 
-Variables declared with `var` may be re-assigned or modified by the function
-they are declared in, but may not be mutated by a function call.  Use the
-`mut` keyword to allow functions to mutate them. 
-
-**TBD: Should I add an operator?** I think `var` is so common that it
-deserves a special operator.  But, this might turn people off since everyone
-is used to `var`.  This is what it would like like using `@`:
-
-    @a = "Hello World"
-    @b = List<int>([1,2,3])
-    @c = Map<str,int>(["A":1,"B":2])
-    @d List<int> = [1, 2, 3]
-    @e Map<int,str> = [0:"a", 1:"b"]
+In general, `@` is used to introduce a variable into the scope of a function,
+class, or struct.
 
 #### Non-Nullable References
 
@@ -140,7 +127,7 @@ when created.  The optimizer may decide to delay initialization until the
 variable is actually used which could have implications if the constructor
 has side effects.  For instance:
 
-    var myList List<int>()             // Optimizer may remove this constructor call
+    @myList List<int>               // Optimizer may remove this constructor call
     if MyFunc()
         { myList = MyListFunc() }   // Constructor might not be called above
     else
@@ -148,31 +135,30 @@ has side effects.  For instance:
 
 It is possible to create a nullable reference.
     
-    var myNullStr ?str         // String is null
+    @myNullStr ?str         // String is null
 
 A non-nullable reference can be assigned to a nullable, but a cast
 or conditional test must be used to convert nullable to non-nullable.  
 
-Pointers are always nullable and they default to null.  Pointers can
-only be used in an unsafe context, and it is up to you to make sure
-they are not null before being used.
-
 ## Basic types
 
     i8, u8, byte, i16, u16, i32, int, u32, uint, i64, u64, f32, f64
-    xint, xuint, decimal, object, str, strs, Array<T>, List<T>, Map<K,V>, Json
-    Span<T>
+    xint, xuint, decimal, object, str, strs, Array<T>, List<T>, Map<K,V>,
+    Span<T>, Json, OrderedMap<K,V>
 
 `byte`, `int`, and `uint` are aliases for `u8`, `i32`, and `u32`.
 `xint` and `xuint` are extended integer types, which could be 32 or 64 bits
 depending on run-time architecture.
 
-`str` is an immutable UTF8 byte array.`
+`str` is an immutable UTF8 byte array.
 
 `Span<T>` is a slice of an array.
 
-**TBD:** Use lower case for `array`, `list`, `map`, `json`, `span`, `roSpan`, and
-others library class types?  Or use upper case for `Str`, `i8`, etc?
+`Json` is json data.  `@a Json = ["Num":1, "Str":"Hello", "List":[1,2,3]]
+
+
+**TBD:** Use lower case for `array`, `list`, `map`, `json`, `span`, and
+other common library class types?  
 
 #### Strings
 
@@ -181,15 +167,15 @@ However, there is no rule enforcing the UTF8 encoding so they may hold any binar
 
 String literals in source code can start with either a quote `"` or a backtick
 `` ` ``, which is useful if the string conains a quote.  They can be translated
-using `tr"string"` syntax, and may be followed by an escape constant such as
-`crlf` or an `(interpolation-expression)`.
+using `tr"string"` syntax.  They may be interpolated when followed by unary expression
+starting with an indentifier or parenthisis.
 
-    var a = "Regular string literal"
-    var b = "Column1" tab "Column2" tab "Column3" crlf  // Containing tabs and crlf
-    var c = tr"Translated string"                       // Translated string
-    var d = "Hello world, 2+2="(2+2)"!"crlf             // Interpolated with crlf at end
-    var e = tr"Hello world, 2+2="(2+2)"!"crlf           // Translated and interpolated with crlf at end
-    var f = `Jack says "Hello World!"`                  // Include quote character
+    @a = "Regular string literal"
+    @b = "Column1" str.Tab "Column2" str.CrLf       // Containing tabs and crlf
+    @c = tr"Translated string"                      // Translated string
+    @d = "Hello world, 2+2="(2+2)"!" str.CrLf       // Interpolated with crlf at end
+    @e = tr"Hello world, 2+2=" X "!" str.CrLf       // Translated and interpolated variable with crlf at end
+    @f = `Jack says "Hello World!"`                 // Include quote character
 
 Escape constants are `cr`, `lf`, `crlf`, `tab`, `ff`, `bs`
 
@@ -199,15 +185,15 @@ Escape constants are `cr`, `lf`, `crlf`, `tab`, `ff`, `bs`
 which can never be changed after that.  An an array has an immutable `Count` property
 instead of the `Length` property in C#
 
-    var a Array<int>                // `a` is an array of length zero
-    var b = Array<int>(32)          // `b` is an array of length 32
-    var c = Array<Array<int>>(10)   // `c` is an array of 10 arrays of integer
+    @a Array<int>                // `a` is an array of length zero
+    @b = Array<int>(32)          // `b` is an array of length 32
+    @c = Array<Array<int>>(10)   // `c` is an array of 10 arrays of integer
 
 Arrays can be initialized when created:
 
-    var a Array<int> = [1,2,3]
-    var c Array<Array<int>> = [[1,2,3], [4,5,6], [7,8,9]]  // Jagged matrix
-    var b = Array<int>([1,2,3])    // Alternative way of initializing the array
+    @a Array<int> = [1,2,3]
+    @c Array<Array<int>> = [[1,2,3], [4,5,6], [7,8,9]]  // Jagged matrix
+    @b = Array<int>([1,2,3])    // Alternative way of initializing the array
 
 Arrays can be sliced.  See below for more information.
 
@@ -218,11 +204,11 @@ changes as items are added or removed.  Lists act more like arrays
 than they do in C# because setters are automatically called to modify
 fields when necessary:
 
-    struct MyPoint { pub X int;  pub Y int}
-    var a List<MyPoint> = [(1,2),(3,4),(5,6)]
+    struct MyPoint { pub @X int;  pub @Y int}
+    @a List<MyPoint> = [(1,2),(3,4),(5,6)]
     a[1].Y = 12    // Now `a` contains [(1,2),(3,12),(5,6)]
 
-**TBD:** Lists can be sliced.  This is very useful, so a `list` can
+**TBD:** Lists can be sliced.  This is very useful, so a `List` can
 double as a string builder.  The downside is that if an element
 is added to the list, the slice can point to a stale copy of
 the array backing.  This is not memory un-safe since the old
@@ -232,11 +218,11 @@ array is still there, but it is a bit user un-friendly.
 
 `Map` is a hash table and is similar to `Dictionary` in C#.
 
-    var a Map<str,int> = ["Hello":1, "World":2]
-    var b = a["World"]                             // `b` is 2
-    var c = a["not found"]                         // throws exception
-    var d = a.Get("not found")                     // `d` is 0
-    var e = a.Get("not found", -1)                 // `e` is -1
+    @a Map<str,int> = ["Hello":1, "World":2]
+    @b = a["World"]                             // `b` is 2
+    @c = a["not found"]                         // throws exception
+    @d = a.Get("not found")                     // `d` is 0
+    @e = a.Get("not found", -1)                 // `e` is -1
 
 #### Json
 
@@ -244,18 +230,18 @@ array is still there, but it is a bit user un-friendly.
 Using an invalid key does not throw an exception, but instead returns a default
 empty object.
 
-    var a Json = ["Hello":1, "World":2]
-    var b = a["World"]                         // `b` is Json(2), not an int
-    var c = a["World"].Int                     // `c` is 2
-    var d = a["World"].Str                     // `d` is "2"
-    var e = a["not found"]["?"].int            // `e` is 0
+    @a Json = ["Hello":1, "World":2]
+    @b = a["World"]                         // `b` is Json(2), not an int
+    @c = a["World"].Int                     // `c` is 2
+    @d = a["World"].Str                     // `d` is "2"
+    @e = a["not found"]["?"].int            // `e` is 0
 
 The `Json` data structure is meant to be quick and easy to use, not necessarily
 the fastest or most efficient. For efficient memory usage, `Json` will support
 [Newtonsoft](https://www.newtonsoft.com/json) style serialization:
 
-    var a = Json.Serialize(object)                 // `a` is a Json `str`
-    var b = Json.Deserialize<MyObject>(jsonStr)    // `b` is a `MyObject`
+    @a = Json.Serialize(object)                 // `a` is a Json `str`
+    @b = Json.Deserialize<MyObject>(jsonStr)    // `b` is a `MyObject`
 
 
 #### Initializers
@@ -265,14 +251,14 @@ and an array of pairs `[K1:V1,K2:V2...]` is used to initialize a map.  Notice
 that array syntax is used for both arrays and maps. Curly braces are reserved
 for statement level constructs.  Constructors can be called with `()`.
 
-    var a Array<int> = [1,2,3]                 // Array syntax
-    var b Map<str,int> = ["A":1, "B":2]        // Map syntax
-    var c Map<str,int> = [("A",1), ("B", 2)]   // Use ICollection and KeyValuePair constructor
+    @a Array<int> = [1,2,3]                 // Array syntax
+    @b Map<str,int> = ["A":1, "B":2]        // Map syntax
+    @c Map<str,int> = [("A",1), ("B", 2)]   // Use ICollection and KeyValuePair constructor
 
     // Alternative way to initialize (not recommended, but equivalent to `=` format)
-    var a = Array<int>([1,2,3])
-    var b = Map<str,int>(["A":1, "B":2])
-    var c = Map<str,int>([("A",1), ("B", 2)])
+    @a = Array<int>([1,2,3])
+    @b = Map<str,int>(["A":1, "B":2])
+    @c = Map<str,int>([("A",1), ("B", 2)])
 
 The first expression `a` uses array syntax to initialize the array.  The second
 expression `b` uses map syntax to initialize the map.  The third expression, `c`
@@ -283,21 +269,21 @@ everything matches up and is accepted.
 A `Map<str,MyPointXY>` can be initialized like this as long as `MyPointXY` has a
 constructor taking two integers:
 
-    var a Map<str, MyPointXY> = ["A": (1,2), "B": (3,4)]      // Use map initializer syntax
+    @a Map<str, MyPointXY> = ["A": (1,2), "B": (3,4)]      // Use map initializer syntax
 
 The initializer syntax has support for Json.  The library will have a class to
 support Json objects with syntax something like this:
 
-    var a Json = [
+    @a Json = [
         "Param1" : 23,
         "Param2" : [1,2,3],
         "Param3" : ["Hello":12, "World" : "Earth"],
         "Time" : "2019-12-07T14:13:46"
     ]
-    var b = a["Param1"].Int            // `b` is 23
-    var c = a["param2"][1].Int         // `c` is 2
-    var d = a["Param3"]["World"].Str   // `d` is "Earth"
-    var e = a["Time"].DateTime         // `e` is converted to DateTime
+    @b = a["Param1"].Int            // `b` is 23
+    @c = a["param2"][1].Int         // `c` is 2
+    @d = a["Param3"]["World"].Str   // `d` is "Earth"
+    @e = a["Time"].DateTime         // `e` is converted to DateTime
     a["Param2"][1].Int = 5          // Set the value
 
 
@@ -323,7 +309,7 @@ Operator precedence comes from Golang.
 |Statement Separator| =>
 
 The `*` operator is both multiplication and unary dereference, same as in C.
-When used in type definitions, it means *pointer to*, for example `var a *int`
+When used in type definitions, it means *pointer to*, for example `@a *int`
 means `a` is a pointer to `int`.
 
 The `~` operator is both xor and unary complement, same as `^` in Golang.
@@ -366,7 +352,7 @@ The short version: More explicit than C#, easier than Rust.
 
 Read only `ro` means children classes are also read only.  A `ro`
 return from a function prevents the calling function from mutating.
-`var` locals can be re-assigned in the function, but not mutated
+`@` locals can be re-assigned in the function, but not mutated
 by a function call.  `mut` locals can be mutated by a function call,
 but only if the function parameter is explcitly marked `mut`.
 
@@ -414,7 +400,7 @@ except that the condition executes inside the scope of the loop:
 
     do 
     {
-        var accepted = SomeBooleanFunc()
+        @accepted = SomeBooleanFunc()
         DoSomethingElse()
     } while accepted
 
@@ -424,7 +410,7 @@ The `scope` statement creates a new scope:
 
     scope
     {
-        var file = use File.Open("My File")
+        @file = use File.Open("My File")
         DoStuff(file)
     }
     // File variable is out of scope here
@@ -449,7 +435,7 @@ Exceptions are automatically re-thrown unless there is an explicit `break` or
 
     afun F()
     {
-        var a = DoStuff()
+        @a = DoStuff()
     catch SpecialError:
         SpecialCleanup()
     catch Error:
@@ -463,7 +449,7 @@ The `scope` keyword can be used for that purpose.
 
     afun F() int
     {
-        var a = 0
+        @a = 0
         scope
         {
             a = DoStuff()
@@ -478,45 +464,45 @@ The `scope` keyword can be used for that purpose.
 
 #### For Loop
 
-For the time being, `for` loops only allow one format: `for newVariable in expression`. 
+For the time being, `for` loops only allow one format: `for @newVariable in expression`. 
 The new variable is read-only and its scope is limited to within the `for` loop block.
 The simplest form of the for loop is when the expression evaluates to an integer:
 
     // Print the numbers 0 to 9
-    for i in 10
+    for @i in 10
         { Console.WriteLine(i) }   // `i` is an integer
 
     // Increment all the numbers in an array
-    for i in array.Count
+    for @i in array.Count
         { array[i] += 1 }
 
 The range operators can be used as follows:
 
     // Print the numbers from 5 to 49
-    for i in 5..50
+    for @i in 5..50
         { Console.WriteLine(i) }   // `i` is an integer
 
     // Print all the numbers in the array except the first and last
-    for i in 1..array.Count-1
+    for @i in 1..array.Count-1
         { Console.WriteLine(array[i]) }
 
     // Collect elements 5,6, and 7 into myArray
-    for i in 5::3
+    for @i in 5::3
         { myList.Add(myArray[i]) }
 
 Any object that supplies an enumerator (or has a `get` indexer and a `Count` property)
 can be enumerated.  The `Map` enumerator supplies key value pairs:
 
     // Print key value pairs of all elements in a map
-    for kv in map
+    for @kv in map
         { Console.WriteLine("Key: " + kv.Key.ToString() + " is " + kv.Value.ToString()) }
 
 The expression after `in` is evaluated at the start of the loop and never
 changes once calculated:
 
     // Print the numbers from 1 to 9
-    var x = 10
-    for i in 1..x
+    @x = 10
+    for @i in 1..x
     {
         x = x + 5               // This does not affect the loop bounds 
         Console.WriteLine(i)
@@ -526,12 +512,12 @@ When iterating over a collection, just like in C#, it is illegal to add
 or remove elements from the collection.  An exception is thrown if
 it is attempted.  Here are two examples of things to avoid:
 
-    for i in myIntList
+    for @i in myIntList
         { myIntList.Add(1) }   // Exception thrown on next iteration
 
     // This does not remove 0's and increment the remaining elements
     // The count is evaluated only at the beginning of the loop.
-    for i in myIntList.Count
+    for @i in myIntList.Count
     {
         if myIntList[i] == 0
             { RemoveAt(i) }        // There are at least two problems with this
@@ -541,7 +527,7 @@ it is attempted.  Here are two examples of things to avoid:
     
 
 **TBD:** Explore syntax to iterate with different count steps.  Perhaps something
-like `for newVar in expression : stepExpression` where `stepExpression` is a
+like `for @newVar in expression : stepExpression` where `stepExpression` is a
 positive compile time constant.
 
 #### Switch
@@ -566,35 +552,24 @@ level as a `case` statement.
 
 Switch can also be used as an expression:
 
-    var num =  unaryExpression switch(23: a, 27: b, default: 0)
+    @num =  unaryExpression switch(23: a, 27: b, default: 0)
 
 ## Classes
 
-Classes are always allocated on the heap, reference counted, and destroyed
-when the count drops to zero.  Because of this, classes can have deterministic
-finalization via `dispose` method.
-
-    var myFileStream = File.Open("Hello.txt")
-    // myFileStream is closed at end of scope unless it is stored somewhere
-
-**TBD:** Is deterministic finalization wise?  I love being able to use a
-file and have it close automatically when it goes out of scope.  But, if
-the object is captured, then it would close when the final reference
-becomes `null` opening up the possibility of an exception being
-thrown wherever a reference count drops to zero.  C# has a similar problem.
+Classes are always allocated on the heap. 
 
     pub class Example
     {   
         // Mutable fields
-        F1 str                                  // Private string initialized to ""
-        pub F2 Array<int>                       // Array initialized to empty (i.e. Count = 0)
-        pub F4 Array<int> = [1,2,3]             // Array initialized with 1,2,3
-        pub F5 List<str> = ["Hello", "World"]   // Initialized list
-        pub F6 Map<str,int> = ["A":1, "B":2]    // Initialized map
+        @F1 str                                  // Private string initialized to ""
+        pub @F2 Array<int>                       // Array initialized to empty (i.e. Count = 0)
+        pub @F4 Array<int> = [1,2,3]             // Array initialized with 1,2,3
+        pub @F5 List<str> = ["Hello", "World"]   // Initialized list
+        pub @F6 Map<str,int> = ["A":1, "B":2]    // Initialized map
 
         // Immutable fields
-        pub ro F7 str = "Hello world"                // Initialized read only string
-        pub ro points Array<MutablePointXY> = [(1,2),(3,4),(5,6)]
+        pub ro @F7 str = "Hello world"                // Initialized read only string
+        pub ro @points Array<MutablePointXY> = [(1,2),(3,4),(5,6)]
         
         pub fun Func1(this, a int) f64 => F1 + " hi"   // Member function
         pub fun Func2(this mut, a int) { F1 = "x"}     // Member function that mutates
@@ -624,8 +599,8 @@ efficiency are desired.  `int`, `byte`, and `float` are structs.
     // Mutable point (each mutable function must also be marked)
     pub struct MyMutablePoint
     {
-        pub X int
-        pub Y int
+        pub @X int
+        pub @Y int
         pub fun new(x int, y int) { X = x; Y = y}
         pub mut fun SetY(y int) { Y = y }
         pub prop PropX int { get => X; set { X = value } }
@@ -634,7 +609,7 @@ efficiency are desired.  `int`, `byte`, and `float` are structs.
 
 A mutable struct returned from a getter can be mutated in-place provided there is a corresponding setter.
 
-    var a = List<MyMutablePoint> = [(1,2), (3,4), (5,6)]
+    @a = List<MyMutablePoint> = [(1,2), (3,4), (5,6)]
     a[1].X = 23         // `a` contains [(1,2),(23,4), (5,6)]
     a[1].SetY(24)       // `a` contains [(1,2),(23,24), (5,6)]
     a[1].PropX = 0      // `a` contains [(1,2),(0,24), (5,6)]
@@ -647,19 +622,19 @@ Structs are mutable by default, but can be made immutable using the `ro` keyword
     // Immutable point (use `ro` on the `struct`)
     pub struct ro MyPoint
     {
-        pub ro X int
-        pub ro Y int
+        pub ro @X int
+        pub ro @Y int
         pub new(x int, y int) { X = x; Y = y}
     }
 
 Structs are passed to functions by value or by reference, whichever is more
-efficient.  So, `var a = Multiply(b,c)` would pass `b` and `c` by value
+efficient.  So, `@a = Multiply(b,c)` would pass `b` and `c` by value
 if they are integers, or by reference if they are large matricies.
 
 Structs can be initialized by a constructor or using named field parameters:
 
-    var a = MyPoint(1,2)
-    var b = MyPoint(X: 3, Y: 4)
+    @a = MyPoint(1,2)
+    @b = MyPoint(X: 3, Y: 4)
 
 #### Enums
 
@@ -692,8 +667,8 @@ A cast is used when a type conversion should be explicit, including
 conversion from a base class to a derived class, conversion between
 pointer types, and conversion of integer types that may lose precision.
 
-    var a = cast int(a+myFloat)    // Cast (a+myFloat) from float to int
-    var b = cast *int(myFloatPtr)       // Cast myFloatPtr to *int
+    @a = cast int(a+myFloat)    // Cast (a+myFloat) from float to int
+    @b = cast *int(myFloatPtr)       // Cast myFloatPtr to *int
 
 A constructor can be used to convert types that don't lose precision,
 like `byte` to `int`, but a cast must be used to convert `int` to `byte`
@@ -701,10 +676,10 @@ because precision can be lost.  In the definitions below, we want an
 error if MyIntFunc() should ever return a float.
 
     // Field definitions
-    a int = MyByteFunc()            // Ok, no loss of precision
-    b int = MyIntFunc()             // Ok, but fails if MyIntFunc returns a float
-    c int = MyFloatFunc()           // Fail, constructor won't risk losing precision
-    d int = cast int(MyFloatFunc()) // Ok, explicit cast
+    @a int = MyByteFunc()            // Ok, no loss of precision
+    @b int = MyIntFunc()             // Ok, but fails if MyIntFunc returns a float
+    @c int = MyFloatFunc()           // Fail, constructor won't risk losing precision
+    @d int = cast int(MyFloatFunc()) // Ok, explicit cast
 
 Point conversion casts never throw an exception.  Numeric conversions
 should not throw exceptions.  Conversion from base class to derived
@@ -712,13 +687,11 @@ class might throw an exception.
 
 
 **TBD**: I'm considering adding a cast operator:
-    var a = #int(a+myFloat)         // Cast (a+myFloat) from float to int
-    var b = #*int(myFloatPtr)       // Cast myFloatPtr to *int
-    d int = #int(MyFloatFunc())     // Ok, explicit cast
+    @a = #int(a+myFloat)         // Cast (a+myFloat) from float to int
+    @b = #*int(myFloatPtr)       // Cast myFloatPtr to *int
+    @c int = #int(MyFloatFunc())     // Ok, explicit cast
 
 ## Interfaces
-
-**TBD:** Change keyword to `trait`?
 
 Interfaces are a cross between C#, GoLang, and Rust, but a little different
 from each.  They are similar to C# 8.0 (including default implementations, etc.)
@@ -815,12 +788,12 @@ a thin pointer.
 
 Given a range, arrays can be sliced:
 
-    var a = myArray[2..32]     // Elements starting at 2 ending at 31 (excludes element 32)
-    var b = myArray[2::5]      // Elements 2..7 (length 5, excludes element 7)
+    @a = myArray[2..32]     // Elements starting at 2 ending at 31 (excludes element 32)
+    @b = myArray[2::5]      // Elements 2..7 (length 5, excludes element 7)
 
 If `myArray` is of type `Array<byte>`, a string can be created directly from the slice:
 
-    var s = str(myArray[2::5])     // Create a string
+    @s = str(myArray[2::5])     // Create a string
     MyStrFunc(myArray[2::5])    // Convert slice to string, pass to function
 
 A `List` can be sliced, but the slice to becomes detached from the underlying
@@ -828,9 +801,9 @@ array when the capacity changes.
 
     pub static fun BadSlice()
     {
-        var s = List<byte>()
+        @s = List<byte>()
         a.Add("Hello Bob")
-        var slice = a[6::3]         // slice is "Bob"
+        @slice = a[6::3]            // slice is "Bob"
         a[6] = "R"[0]               // slice is "Rob"
         a.Add(", we are happy")     // slice is now detached from the original array
         a[6] = "B"[0]               // slice is still "Rob"
@@ -903,7 +876,7 @@ without using the `await` keyword:
     afun MySlowIoFunctionAsync(server str) str 
     {
         // In C# `await` would be needed before both function calls
-        var a = MakeXhrCallToServerAsync(server)    // Blocks without await keyword
+        @a = MakeXhrCallToServerAsync(server)    // Blocks without await keyword
         Task.Delay(100);                            // Also blocks without a keyword
         return a;
     }
@@ -917,18 +890,18 @@ to start or wait for multiple tasks, we can also use the `astart` and
     afun GetStuffFromSeveralServers() str 
     {
         // Start the functions, but do not block
-        var a = astart { MySlowIoFunctionAsync("server1") }
-        var b = astart { MySlowIoFunctionAsync("server2") }
-        var c = astart { MySlowIoFunctionAsync("server3") }
+        @a = astart { MySlowIoFunctionAsync("server1") }
+        @b = astart { MySlowIoFunctionAsync("server2") }
+        @c = astart { MySlowIoFunctionAsync("server3") }
 
         // The timeout cancels the task after 10 seconds, but we'll hand
         // the task to the user who may push a button to cancel early
         // TBD: Timeouts and cancellation are still TBD
-        var timeout = astart Task.Delay(10000); 
+        @timeout = astart Task.Delay(10000); 
         GiveThisTaskToAUserWhoCancelTheOperationEarly(timeout)
 
         // Collect the results in the order they complete order
-        var sum = new list<str>()
+        @sum = new list<str>()
         await a, b, c, timeout
         {
             case a.HasResult: sum += a.Result
