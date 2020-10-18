@@ -14,6 +14,12 @@ pub class Example
     pub ro @Header str = "Zurfur"        // Public read only string
     pub fun F(a int) str => Header + a      // Public member function
     pub prop P str => Header + info         // Public property
+    
+    pub fun Test()
+    {
+        @a = tr"Column 1"\tab"Column 2"\crlf
+        @data = "Name:"name\tab"Occupation:"lastName\crlf
+    }
 }
 
 
@@ -44,7 +50,7 @@ pub struct MyMutablePoint
     pub @X int
     pub @Y int
     pub fun new(x int, y int) { X = x; Y = y}
-    pub fun mut SetY(y int) { Y = y }
+    pub mut fun SetY(y int) { Y = y }
     pub prop PropX int { get => X; set { X = value } }
 }
 
@@ -178,8 +184,8 @@ pub class Example2  // YES, errors working
     fun fun7(a out List<List<int>>) { }
     fun fun8(a Map<str,List<int>>) { }
     
-    pub fun Sort<T>(greaterThan fun<T,T,bool>) { }
-    pub @MyFieldFunc fun<object,str,void>
+    pub fun Sort<T>(greaterThan fun<T,T><bool>) { }
+    pub @MyFieldFunc fun<object,str><void>
 
 
     pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
@@ -204,14 +210,14 @@ pub class Example2  // YES, errors working
         // Casts
         @a = cast int(a+b+myFloat32)*23+4
         @a = cast List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
-        @b = *cast *int(myVoidPointer)      // Prefix
+        @b = *cast(*int)myVoidPointer      // Prefix
         @c1 = cast M<str,int.x<T>.y>.Hello2(A)
         @c2 = cast M<str,int.x<T>.y>.Hello2<x.x>(A)
         @c3 = cast List<int,y,z>(A)
         @a = cast int(a+b+myFloat32)
         @a = cast List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
         @a = (cast List<Stuff>(yourStuff.SeeMyStuff)).Add(Stuff())
-        @b = *cast *int(myVoidPointer)
+        @b = *cast(*int)myVoidPointer
         cast List<Stuff>(yourStuff.SeeMyStuff)[23] = 4
 
 
@@ -364,7 +370,7 @@ pub struct MyPoint
 {
     pub @X int
     pub @Y int
-    pub override fun ToStr() => "(" + X + "," + Y + ")"
+    pub override fun ToStr() => "(" X ", " Y ")"
 }
 
 
@@ -398,7 +404,7 @@ pub class MyClass1
 }
 
 
-pub static fun Sort<T>(s MutSpan<T>, lessThan fun<T,T,bool>)
+pub static fun Sort<T>(s MutSpan<T>, lessThan fun<T,T><bool>)
 {
     // Simple selection sort
     for @i in s.Count-1
@@ -443,12 +449,12 @@ pub static fun MemCopy(dest *void, source *void, length xint)
     // Align `d` on i32
     while d & 3 != 0 && length != 0
     {
-        *cast *byte(d) = *cast *byte(s); d+=1; s+=1; length-=1
+        *cast(*byte)d = *cast(*byte)s; d+=1; s+=1; length-=1
     }
     
     if s & 3 == 0
     {
-        MemCopy32(cast *void(d), cast *void(s), length)
+        MemCopy32(cast(*void)d, cast(*void)s, length)
         return
     }
     
@@ -456,14 +462,14 @@ pub static fun MemCopy(dest *void, source *void, length xint)
     @end = d + length
     while end-d >= 4
     {
-        *cast *byte(d) = *cast *byte(s); d+=1; s+=1
-        *cast *byte(d) = *cast *byte(s); d+=1; s+=1
-        *cast *byte(d) = *cast *byte(s); d+=1; s+=1
-        *cast *byte(d) = *cast *byte(s); d+=1; s+=1
+        *cast(*byte)d = *cast(*byte)s; d+=1; s+=1
+        *cast(*byte)d = *cast(*byte)s; d+=1; s+=1
+        *cast(*byte)d = *cast(*byte)s; d+=1; s+=1
+        *cast(*byte)d = *cast(*byte)s; d+=1; s+=1
     } 
     while d != end
     {
-        *cast *byte(d) = *cast *byte(s); d+=1; s+=1
+        *cast(*byte)d = *cast(*byte)s; d+=1; s+=1
     }
 }
 
@@ -483,20 +489,20 @@ pub static fun MemCopy32(dest *void, source *void, length xint)
     {
         if d & 4 != 0
         {
-            *cast *i32(d) = *cast *i32(s); d+=4; s+=4
+            *cast(*i32)d = *cast(*i32)s; d+=4; s+=4
         }
         while end - d >= 8  
         {
-            *cast *i64(d) = *cast *i64(s); d+=8; s+=8
+            *cast(*i64)d = *cast(*i64)s; d+=8; s+=8
         }
     }
     while end-d >= 4
     {
-        *cast *i32(d) = *cast *i32(s); d+=4; s+=4
+        *cast(*i32)d = *cast(*i32)s; d+=4; s+=4
     }
     while d != end
     {
-        *cast *byte(d) = *cast *byte(s); d+=1; s+=1
+        *cast(*byte)d = *cast(*byte)s; d+=1; s+=1
     }
 }
 

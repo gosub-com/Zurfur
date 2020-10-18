@@ -133,9 +133,6 @@
     <Compile Include="Ide\ZurfProjectData.cs" />
     <Compile Include="Ide\ZurfProject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <None Include="ZurfurLib\ZurfurLib\Array.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <EmbeddedResource Include="Ide\ImageEditor.resx">
       <DependentUpon>ImageEditor.cs</DependentUpon>
     </EmbeddedResource>
@@ -196,7 +193,7 @@
     <None Include="ZurfurLib\ZurfurLib\BaseTypes.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Internal.zurf">
+    <None Include="ZurfurLib\ZurfurLib\Io.Zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="ZurfurLib\ZurfurLib\List.zurf">
@@ -214,7 +211,7 @@
     <None Include="ZurfurLib\ZurfurLib\str.Zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Test.json">
+    <None Include="ZurfurLib\www\Test.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

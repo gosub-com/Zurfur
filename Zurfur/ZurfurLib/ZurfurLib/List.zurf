@@ -1,30 +1,144 @@
-﻿namespace Zurfur
+﻿use Zurfur.Unsafe.Memory
 
-pub class List<T> 
-    implements IList<T>
+namespace Zurfur
+
+
+// Base for all heap objects
+pub unsafe struct GcMemory<T>
 {
-    @items Array<T>
-    @count int
+    pub ro @TypeInfo  *GcTypeInfo<T> = GcMemory<T>.GetPointer
+}
 
-    pub fun new() => todo()
-    pub fun new(capacity int) => todo()
-    pub fun new(items Span<T>) => todo()
-    pub fun new(items ICollection<T>) => todo()
+// Base for all array heap objects
+pub unsafe struct GcMemoryArray<T>
+{
+    pub ro @TypeInfo  *GcTypeInfo<T> = GcMemory<T>.GetPointer
+    pub ro @Count      uint
+}
+
+// Very unsafe class to manage an array of objects.
+// Defaults to null (i.e. crash), no bounds checking.
+// This is infrastructure for List
+pub unsafe struct UnsafePointerToArray<T>
+{
+    pub const uint MAX_ITEMS = int.MaxValue/2/sizeof(T)
+
+    // This is null or points directly to the array.
+    // Immediately preceding this is GcMemoryArray.
+    // The GC knows this layout, which is different
+    // than all non-array objets.  This is done for
+    // efficiency so arrays can be very fast.
+    @data *void
+    
+    pub fun new(count int)
+    {
+        Debug.Assert(cast unit(count) < MAX_ITEMS)
+        data = calloc<T>(sizeof(GcMemoryArray) + sizeof(T)*count)
+        *cast(*GcMemoryArray)(data) = GcMemoryArray<T>()
+        data = cast(*GcMemoryArray<T>)data + 1
+    }
+    
+    pub fun dispose()
+    {
+        todo()
+    }    
+    
+    pub fun GetRef(index int) ref T
+    {
+        Debug.Assert(data != null
+            && (cast(*GcMemoryArray<T>)(data)-1).Count < cast uint(index))
+        return cast(ref T)(cast(*T)(data) + index)
+    }
+    
+    pub fun GetSpan(index int, count int) ref Span<T>
+    {
+        todo()
+    }
+   
+}
+
+
+// This is pretty much the only array class you need.
+pub class List<T> 
+{
+    pub const uint MAX_ITEMS = int.MaxValue/2/sizeof(T)
+
+    @items UnsafePointerToArray<T>
+    @count int
+    @capacity int
+    @version int
+                
+    pub fun new(capacity int)
+    {
+        Debug.BoundCheck(capacity, MAX_ITEMS)
+        items = GcCalloc<T>(capacity)
+        this.capacity = capacity
+    }
+
+    // TBD: The compiler could call dispose early if
+    // it can prove the List isn't going to be used again
+    pub fun dispose()
+    {
+        // TBD: If we own the array, we can delete it immediately.
+    }
+
+    
+    pub fun new(items Span<T>)
+    {
+    }
+    
+    pub fun new(items ICollection<T>)
+    {
+    }
     
     pub prop Count int => count
 
-    pub fun operator[](index int) T { get => todo() set => todo() }
-    pub fun operator[](range Range) Span<T> => items[range]
+    pub fun operator[](index int) ref T
+    {
+        get
+        {
+            Debug.BoundCheck(index, count)
+            return items.GetRef(index)
+        }
+    }
+    pub fun operator[](range Range) ref Span<T>
+    {
+        get
+        {
+            Debug.BoundCheck(range.Low, count)
+        }
+    }
 
-    pub fun mut Insert(index int, item T) => todo()
-    pub fun mut Insert(index int, items Span<T>) => todo()
-    pub fun mut Insert(index int, items ICollection<T>) => todo()
-    pub fun mut Remove(index int) => todo()
-    pub fun mut Remove(range Range<int>) => todo()
+    pub mut fun Insert(index int, item T) => todo()
+    pub mut fun Insert(index int, items Span<T>) => todo()
+    pub mut fun Insert(index int, items ICollection<T>) => todo()
+    pub mut fun Remove(index int) => todo()
+    pub mut fun Remove(range Range<int>) => todo()
     
-    pub fun Convert<Tout>(c fun<T, Tout>) => todo() 
-    pub fun ForEach(r fun<T,void>) => todo()
-    pub fun Find(p fun<T,void>) => todo()
-    pub fun mut Sort(compare fun<T,T,bool>) => todo()
-    pub fun mut Sort(compare fun<T,T,bool>, range Range<int>) => todo()        
+    pub fun Convert<Tout>(c fun<T><Tout>) => todo() 
+    pub fun ForEach(r fun<T>) => todo()
+    pub fun Find(p fun<T>) => todo()
+    pub mut fun Sort(compare fun<T,T><bool>) => todo()
+    pub mut fun Sort(compare fun<T,T><bool>, range Range<int>) => todo() 
+    
+    
+    pub struct Enumerator
+    {
+        @index int
+        @version int
+        pub fun new(list List<T>) { count = list.Count }
+        pub mut fun GetNext(list List<T>, item ref T) bool
+        {
+            if version != list.version
+                { throw InvalidEnumeratorException() }
+            if index < list.Count
+            {
+                item = List[index]
+                index += 1
+                return true
+            }
+            return false
+        }  
+    }
+               
 }

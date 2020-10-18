@@ -3,8 +3,8 @@
 pub class Map<TKey, TValue> 
     implements IMutMap<TKey, TValue>
 {
-    ro @compareFunc fun<TKey, TKey, bool>
-    ro @hashFunc fun<TKey, bool>
+    ro @compareFunc fun<TKey, TKey><bool>
+    ro @hashFunc fun<TKey><uint>
     
 
     pub fun new()
@@ -14,8 +14,8 @@ pub class Map<TKey, TValue>
         hashFunc = (a) -> TKey.GetHashCode(a)
     }
     
-    pub fun new(compare fun<TKey, TKey, bool>, 
-                hash fun<TKey, unit>)
+    pub fun new(compare fun<TKey, TKey><bool>, 
+                hash fun<TKey><uint>)
     {
         compareFunc = compare;
         hashFunc = hash;
@@ -39,8 +39,8 @@ pub class Map<TKey, TValue>
     pub prop Keys ICollection<TKey> { get => todo() }
     pub prop Values ICollection<TValue> { get => todo() }
 
-    pub fun mut Clear() => todo()
-    pub fun mut Add(item KeyValue<TKey, TValue>) => todo()    
-    pub fun mut Add(items ICollection<KeyValue<TKey, TValue>>) => todo()    
-    pub fun mut Remove(TKey key) bool => todo()
+    pub mut fun Clear() => todo()
+    pub mut fun Add(item KeyValue<TKey, TValue>) => todo()    
+    pub mut fun Add(items ICollection<KeyValue<TKey, TValue>>) => todo()    
+    pub mut fun Remove(TKey key) bool => todo()
 }

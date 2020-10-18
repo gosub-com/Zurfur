@@ -28,7 +28,7 @@ struct RangeEnumerator<T>
 
     prop Current T => index
     fun HasNext() bool => index < high
-    fun mut Advance() { index += T.Identiry }
+    mut fun Advance() { index += T.Identiry }
 }
 
     

@@ -1,0 +1,57 @@
+﻿
+
+namespace Zurfur.Io
+
+
+// TBD: Break this up into two different interfaces,
+// ReadStream and WriteStream, or even smaller as in Golang?
+interface Stream
+{
+    /// Quickly gets last known length of stream.
+    /// Might become stale if the file is written
+    /// after being open, or if more data becomes
+    /// available from the device.
+    prop Length i64 => impl get
+    
+    /// Quickly gets/sets stream position.  When setting,
+    /// the position is cached, then set before the next
+    /// read or write.
+    prop Position i64 => impl get set
+
+    /// Returns the number of bytes available
+    /// immediately without needing an async read.
+    prop AvailableNow int => impl get
+    
+    /// Quickly returns bytes from the buffer (if any)
+    /// Returns zero bytes if there is no more sync
+    /// data in the stream or there is any kind of
+    /// error.
+    mut fun ReadNow(data span<byte>) int => impl
+    
+    /// Quickly reads the next byte, returns -1
+    /// if there is no more sync data in the stream
+    /// or if there is any kind of error
+    mut fun ReadByteNow() int => impl
+    
+    aprop Eof bool error => impl get    
+    mut afun Seek(offset i64, origin SeekOrigin) error => impl
+    mut afun Read(data mut span<byte>) int error  => impl
+    mut afun Write(data span<byte>) int error => impl
+    mut afun Flush() error => impl
+    mut afun Close() error => impl
+    
+    /// NOTE: It is an error for a stream to be left open.
+    /// In debug mode, execution stops to allow the programmer
+    /// to fix the bug.  In production environments, the file
+    /// is closed and an error is logged.
+    fun dispose() => impl
+}
+
+interface FileStream
+{
+}
+
+class File
+{
+    pub static fun Open(file str) FileStream error => todo()
+}

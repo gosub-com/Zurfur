@@ -19,7 +19,6 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sRequireGlobalFieldQualifiers = new WordSet("const static");
         static WordSet sRequireGlobalFuncQualifiers = new WordSet("static");
         static WordSet sFuncInInterfaceQualifiersAllowed = new WordSet("pub private protected static mut async");
-        static WordSet sGlobalFuncsNotAllowed = new WordSet("prop");
 
         static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static");
         static WordSet sClassQualifiers = new WordSet("pub pfublic protected private internal unsafe unsealed abstract ro boxed");
@@ -356,10 +355,6 @@ namespace Gosub.Zurfur.Compiler
                     {
                         if (expr[1].Count == 0)
                             mParser.RejectToken(expr[1].Token, "Switch expression list may not be empty");                       
-                        // All cases should have "=>"
-                        foreach (var e in expr[1])
-                            if (e.Token != "=>")
-                                mParser.RejectToken(e.Token, "Expecting switch expression to contain '=>'");
                     }
 
                     if (expr.Count == 2)

@@ -50,23 +50,24 @@ namespace Gosub.Zurfur.Compiler
             + "finally fixed for goto if implicit in interface internal is lock namespace module include "
             + "new null operator out override pub public private protected readonly ro ref mut "
             + "return unsealed unseal sealed sizeof stackalloc heapalloc static struct switch this throw true try "
-            + "typeof unsafe using static virtual while dowhile asm managed unmanaged "
-            + "async await astart func afunc get set yield global partial var where nameof "
-            + "box boxed init dispose "
+            + "typeof type unsafe using static virtual while dowhile asm managed unmanaged "
+            + "async await astart func afunc get set aset aget yield global partial var where nameof "
+            + "box boxed init move copy clone drop error dispose "
             + "trait extends implements implement impl union type fun afun def yield let cast "
             + "any dyn loop match event from to of on cofun cofunc global local val it throws atask "
             + "scope assign @";
 
         static readonly string sReservedControlWords = "using namespace module include class struct enum interface "
-            + "func afunc fun afun prop get set if else switch await for while dowhile scope _";
+            + "func afunc fun afun prop aprop get set if else switch await for while dowhile scope _";
         static WordMap<eTokenType> sReservedWords = new WordMap<eTokenType>();
-        static WordSet sReservedIdentifierVariables = new WordSet("null this true false default base cast");
+        static WordSet sReservedFuncNames = new WordSet("new init drop copy move clone dispose");
+        static WordSet sReservedIdentifierVariables = new WordSet("null this true false default base");
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static unsealed abstract virtual override new ro");
+            + "static unsealed abstract virtual override new ro boxed mut");
 
         static WordSet sEmptyWordSet = new WordSet("");
-        static WordSet sEndsFuncDef = new WordSet("; { => where"); // Functions without return type
+        static WordSet sEndsFuncDef = new WordSet("; { => where error"); // Functions without return type
         static WordSet sAllowConstraintKeywords = new WordSet("class struct unmanaged");
         static WordSet sAutoImplementMethod = new WordSet("default impl extern");
 
@@ -86,10 +87,14 @@ namespace Gosub.Zurfur.Compiler
 
         static WordSet sStatementEndings = new WordSet("; => }");
         static WordSet sStatementsDone = new WordSet("} func fun namespace class struct interface enum", true);
-        static WordSet sRejectAnyStop = new WordSet("=> ; { } namespace class struct interface enum if else for while throw switch case func fun prop get set", true);
+        static WordSet sRejectAnyStop = new WordSet("=> ; { } namespace class struct interface enum if else for while throw switch case func fun prop aprop get set", true);
         static WordSet sRejectForCondition = new WordSet("in");
         static WordSet sRejectFuncName = new WordSet("(");
         static WordSet sRejectFuncParam = new WordSet(", )");
+
+        static WordMap<string> sStringLiterals = new WordMap<string>()
+            { { "lf", "\n" }, { "cr", "\r"}, {"crlf", "\r\n"}, {"tab", "\t"} };
+
 
         static ParseZurf()
         {
@@ -262,12 +267,11 @@ namespace Gosub.Zurfur.Compiler
                     //case "afunc":
                         Accept();
                         keyword.Type = eTokenType.ReservedControl;  // Fix keyword to make it control
-                        if (mTokenName == "mut")
-                            qualifiers.Add(Accept());
                         ParseMethod(keyword, parentScope, qualifiers);
                         break;
 
                     case "prop":
+                    case "aprop":
                         Accept();
                         ParseProperty(keyword, parentScope, qualifiers);
                         break;
@@ -559,6 +563,8 @@ namespace Gosub.Zurfur.Compiler
         {
             var propKeyword = keyword;
             var propField = ParseField(parentScope, qualifiers);
+            if (mTokenName == "error")
+                Accept();  // TBD: Add to attributes
             if (!mToken.Error)
                 ParsePropertyBody(parentScope, qualifiers, propKeyword, propField.Name, null, propField.TypeName);
         }
@@ -639,6 +645,8 @@ namespace Gosub.Zurfur.Compiler
                         synFunc.ReturnType = null;
                         if (!sEndsFuncDef.Contains(mTokenName))
                             synFunc.ReturnType = ParseTypeName(sRejectFuncParam);
+                        if (mTokenName == "error")
+                            Accept();  // TBD: Add to attributes
 
                         synFunc.Constraints = ParseConstraints();
                     }
@@ -695,9 +703,9 @@ namespace Gosub.Zurfur.Compiler
 
             }
 
-            if (AcceptMatch("new") || AcceptMatch("init") || AcceptMatch("dispose") || AcceptMatch("default"))
+            if (sReservedFuncNames.Contains(mTokenName))
             {
-                funcName = mPrevToken;
+                funcName = Accept();
                 return true;
             }
 
@@ -843,10 +851,8 @@ namespace Gosub.Zurfur.Compiler
                     statements.Add(new SyntaxUnary(Accept(), ParseExpr()));
                     break;
 
-                case "@": // TBD: See if we like this syntax
+                case "@":
                 case "const":
-                //case "var":
-                //case "mut":
                     statements.Add(new SyntaxUnary(Accept(), ParseNewVarStatment()));
                     break;
 
@@ -1123,26 +1129,14 @@ namespace Gosub.Zurfur.Compiler
 
         SyntaxExpr ParseMultiply()
         {
-            var result = ParseExponentiation();
+            var result = ParseSwitch();
             InterceptAndReplaceGT();
             while (sMultiplyOperators.Contains(mTokenName))
             {
-                result = new SyntaxBinary(Accept(), result, ParseExponentiation());
+                result = new SyntaxBinary(Accept(), result, ParseSwitch());
                 InterceptAndReplaceGT();
                 if (mTokenName == "<<" || mTokenName == ">>")
                     RejectToken(mToken, "Shift operators are not associative, must use parentheses");
-            }
-            return result;
-        }
-
-        SyntaxExpr ParseExponentiation()
-        {
-            var result = ParseSwitch();
-            if (mTokenName == "^")
-            {
-                result = new SyntaxBinary(Accept(), result, ParseSwitch());
-                if (mTokenName == "^")
-                    Reject("Exponentiation operator is not associative, must use parentheses");
             }
             return result;
         }
@@ -1202,6 +1196,23 @@ namespace Gosub.Zurfur.Compiler
                 return new SyntaxUnary(Accept(), ParseUnary());
             }
 
+            if (mTokenName == "cast")
+            {
+                var castToken = Accept();
+                if (mTokenName == "*" || mTokenName == "ref")
+                    RejectToken(mToken, "Expecting '(', casting pointers or references requires parentheses around the type name, e.g. use the form 'cast(*type)expression'");
+                bool hasParen = false;
+                if (AcceptMatch("("))
+                    hasParen = true;
+                if (hasParen && mTokenName != "*" && mTokenName != "ref")
+                    RejectToken(mToken, "Expecting '(', casting types cannot have parentheses around the type name, e.g. use the form 'cast type(expression)'");
+                if (!ParseTypeName(out var castType, sEmptyWordSet))
+                    return new SyntaxError(castToken);
+                if (hasParen)
+                    AcceptMatchOrReject(")");
+                return new SyntaxBinary(castToken, castType, ParseUnary());
+            }
+
             if (mTokenName == "unsafe")
             {
                 var unsafeToken = Accept();
@@ -1214,11 +1225,10 @@ namespace Gosub.Zurfur.Compiler
                         return new SyntaxUnary(unsafeToken, result);
                     }
                 }
-
                 return new SyntaxError(unsafeToken);
             }
 
-            if (mTokenName == "sizeof")
+            if (mTokenName == "sizeof" || mTokenName == "typeof")
             {
                 var sizeofToken = Accept();
                 if (AcceptMatchOrReject("("))
@@ -1242,15 +1252,6 @@ namespace Gosub.Zurfur.Compiler
         SyntaxExpr ParsePrimary()
         {
             var result = ParseAtom();
-
-            if (result.Token == "cast")
-            {
-                if (!ParseTypeName(out var castType, sEmptyWordSet))
-                    return new SyntaxError(result.Token);
-                if (mTokenName != "(")
-                    RejectToken(mToken, "Expecting '('");
-                result = new SyntaxUnary(result.Token, castType);
-            }
 
             // Primary: function call 'f()', array 'a[]', member access 'x.y', type argument f<type>
             bool accepted;
@@ -1319,12 +1320,10 @@ namespace Gosub.Zurfur.Compiler
                 var result = ParseParen(NewVirtualToken(mToken, endToken));
 
                 // Disallow old style casts (and other)
-                if (mTokenName == "(" || mTokenName == "[" || mToken.Type == eTokenType.Identifier)
+                if (mTokenName == "(" || mToken.Type == eTokenType.Identifier)
                 {
                     if (endToken == ")" && (mTokenName == "(" || mToken.Type == eTokenType.Identifier))
                         RejectToken(mToken, "Old style cast not allowed");
-                    else
-                        RejectToken(mToken, "Index or function call not allowed here");
                 }
 
                 return result;
@@ -1362,68 +1361,88 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Prefix may be null, or 'tr'.  Next token must be quoted string
+        /// Parse interpolated string: "string" expr "continue"
+        /// Prefix may be null, or 'tr'.  Next token must be quoted string.
         /// </summary>
         SyntaxExpr ParseStringLiteral(Token prefix)
         {
-            const string STR_REPLACE1 = "{$}";
-            const string STR_REPLACE2 = "{#}";
+            const string STR_REPLACE = "`~";
 
-            if (prefix != null)
-                prefix.AddWarning("Not stored in parse tree");
             var quote = mToken;
             var str = "";
+            bool isInterpolated = false;
             while (mToken.Type == eTokenType.Quote
                    || mToken.Type == eTokenType.Identifier
-                   || mToken == "(")
+                   || mToken == "("
+                   || mToken == "\\")
             {
-                if (mToken.Type == eTokenType.Identifier)
-                {
-                    var word = Accept();
-                    word.Type = eTokenType.Reserved;
-                    switch (word.Name)
-                    {
-                        case "tab":  str += "\t";  break;
-                        case "cr": str += "\r"; break;
-                        case "lf": str += "\n";  break;
-                        case "crlf": str += "\r\n";  break;
-                        case "bs": str += "\b"; break;
-                        case "ff": str += "\f";  break;
-                        default:
-                            word.Type = eTokenType.Identifier;
-                            RejectToken(word, "Unexpected token after string literal");
-                            break;
-                    }
-                }
-                else if (mToken == "(")
-                {
-                    mToken.AddWarning("Interpolated strings not stored in parse tree");
-                    str += STR_REPLACE1;
-                    Accept();
-                    ParseExpr();
-                    AcceptMatchOrReject(")");
-                }
-                else
+                if (mToken.Type == eTokenType.Quote)
                 {
                     // Quoted string
                     var s = mTokenName.Substring(1, Math.Max(0, mTokenName.Length - 2));
                     str += s;
-                    if (s.Contains(STR_REPLACE1) || s.Contains(STR_REPLACE2))
+                    if (s.Contains(STR_REPLACE))
                     {
                         // TBD: Only do this when string is interpolated
-                        mToken.AddError($"Interpolated string literals may not contain {STR_REPLACE1} or {STR_REPLACE2}");
+                        mToken.AddError($"Interpolated string literals may not contain {STR_REPLACE}");
                     }
                     Accept();
                 }
+                else if (mToken == "(" || mToken.Type == eTokenType.Identifier)
+                {
+                    isInterpolated = true;
+                    str += STR_REPLACE;
+                    ParsePrimary();
+                }
+                else if (mToken == "\\")
+                {
+                    // cr, lf, crlf, tab, etc.
+                    mToken.Type = eTokenType.Reserved;
+                    Accept();
+                    if (sStringLiterals.Contains(mTokenName))
+                    {
+                        mToken.Type = eTokenType.Reserved;
+                        str += sStringLiterals[mTokenName];
+                        Accept();
+                    }
+                    else if (mToken.Type == eTokenType.Number)
+                    {
+                        // Decimal escape
+                        mToken.Type = eTokenType.Reserved;
+                        Accept();
+                        // TBD: Add decimal escape sequence
+                    }
+                    else if (mToken.Type == eTokenType.Identifier && mTokenName[0] == 'x')
+                    {
+                        // Hexadecimal escape
+                        mToken.Type = eTokenType.Reserved;
+                        Accept();
+                        // TBD: Add hex escape sequence
+                    }
+                    else
+                    {
+                        RejectToken(mToken, "Expecting string literal escape, 'lf', 'cr', 'tab', etc.");
+                    }
+                }
+                else
+                {
+                    throw new Exception("Error parsing '" + mTokenName + "' in string literal");
+                }
             }
-            quote.AddInfo(str.Replace("\r\n", "{crlf}")
-                             .Replace("\r", "{cr}")
-                             .Replace("\n", "{lf}")
-                             .Replace("\t", "{tab}")
-                             .Replace("\f", "{ff}")
-                             .Replace("\b", "{bs}"));
+            // TBD: Show escape sequences, etc.
+            quote.AddInfo(str.Replace(STR_REPLACE, "{}")
+                .Replace("\r\n", "{\\crlf}")
+                .Replace("\r", "{\\cf}")
+                .Replace("\n", "{\\lf}")
+                .Replace("\t", "{\\tab}"));
 
-
+            if (isInterpolated)
+            {
+                if (mTokenName == "+")
+                    RejectToken(mToken, "Cannot use '+' to append to an interpolated string literal, must add panentheses");
+                else if (sComparisonOperators.Contains(mTokenName))
+                    RejectToken(mToken, "Cannot directly compare interpolated string, must add parentheses");
+            }
 
             return new SyntaxUnary(NewVirtualToken(quote, "\""), new SyntaxToken(new Token(str)));
         }
@@ -1533,20 +1552,22 @@ namespace Gosub.Zurfur.Compiler
             {
                 var tokenFun = Accept();
                 tokenFun.Type = eTokenType.Reserved;
-                if (mTokenName != "<")
-                {
-                    if (errorStop != null)
-                        Reject("Expecting '<'", errorStop);
-                    return false;
-                }
-                var openTypeToken = mToken;
                 var typeArgs = NewExprList();
                 if (!ParseTypeArgumentList(typeArgs, errorStop))
                 {
                     FreeExprList(typeArgs);
                     return false;
                 }
-                result = new SyntaxMulti(tokenFun, FreeExprList(typeArgs));
+                var returnArgs = NewExprList();
+                if (mTokenName == "<" && !ParseTypeArgumentList(returnArgs, errorStop))
+                {
+                    FreeExprList(typeArgs);
+                    FreeExprList(returnArgs);
+                }
+
+                result = new SyntaxBinary(tokenFun,
+                                new SyntaxMulti(Token.Empty, FreeExprList(typeArgs)),
+                                new SyntaxMulti(Token.Empty, FreeExprList(returnArgs)));
                 return true;
             }
 
@@ -1592,10 +1613,9 @@ namespace Gosub.Zurfur.Compiler
         /// in which case error checking is not performed. 
         bool ParseTypeArgumentList(List<SyntaxExpr> typeArgs, WordSet errorStop)
         {
-            var openToken = Accept();
-            if (openToken.Name != "<")
-                throw new Exception("Compiler error: Expecting '<' while parsing type argument list");
-
+            if (!AcceptMatchOrReject("<"))
+                return false;
+            var openToken = mPrevToken;
             do
             {
                 Connect(openToken, mPrevToken);

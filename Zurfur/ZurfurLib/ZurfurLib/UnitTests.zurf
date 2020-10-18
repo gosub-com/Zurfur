@@ -10,7 +10,7 @@ static fun test_HelloWorld()
     Console.Log("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
     {
-        Console.Log("Count=" + a) 
+        Console.Log("Count=" a) 
     }
 }
 
@@ -50,7 +50,7 @@ static fun test_ForSimple()
         }
         count += a
     }
-    Console.Log("For loop: " + count == 622145 ? "Pass" : "Fail")
+    Console.Log("For loop: "(count == 622145 ? "Pass" : "Fail"))
 }
 
 

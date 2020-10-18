@@ -70,6 +70,8 @@ Functions, classes, structs, enums, variables and constants are
 private unless they have the 'pub' qualifier.  Functions are allowed
 at the namespace level, but must be static or extension methods.
 
+TBD: Still thinking about using the Golang `func` keyword to define functions.
+
 #### Parameters are passed by reference and immutable by default
 
 By default, functions pass parameters by immutable reference.  The exception
@@ -142,60 +144,59 @@ or conditional test must be used to convert nullable to non-nullable.
 
 ## Basic types
 
-    i8, u8, byte, i16, u16, i32, int, u32, uint, i64, u64, f32, f64
-    xint, xuint, decimal, object, str, strs, Array<T>, List<T>, Map<K,V>,
-    Span<T>, Json, OrderedMap<K,V>
+    i8, u8, byte, i16, u16, i32, int, u32, uint, i64, u64, f32, f64, xint, xuint,
+    decimal, object, str, List<T>, Map<K,V>, Span<T>, Json, OrderedMap<K,V>
 
 `byte`, `int`, and `uint` are aliases for `u8`, `i32`, and `u32`.
 `xint` and `xuint` are extended integer types, which could be 32 or 64 bits
 depending on run-time architecture.
 
-`str` is an immutable UTF8 byte array.
-
-`Span<T>` is a slice of an array.
-
-`Json` is json data.  `@a Json = ["Num":1, "Str":"Hello", "List":[1,2,3]]
-
-
-**TBD:** Use lower case for `array`, `list`, `map`, `json`, `span`, and
+**TBD:** Use lower case for `list`, `map`, `json`, `span`, and
 other common library class types?  
 
 #### Strings
 
-Strings are immutable byte arrays, generally assumed to hold UTF8 encoded characters.
-However, there is no rule enforcing the UTF8 encoding so they may hold any binary data.
+Strings (i.e. `str`) are immutable byte arrays, generally assumed to hold
+UTF8 encoded characters.  However, there is no rule enforcing the UTF8 encoding
+so they may hold any binary data.
 
 String literals in source code can start with either a quote `"` or a backtick
-`` ` ``, which is useful if the string conains a quote.  They can be translated
-using `tr"string"` syntax.  They may be interpolated when followed by unary expression
-starting with an indentifier or parenthisis.
+`` ` ``, which should only be used when the string contains a quote `"`.  They
+can be translated using `tr"string"` syntax.
+
+They may contain escape constants when they are immediately followed
+by `\` and a recognized constant.  For example `"Column 1"\tab"Column 2"`
+contains a `\tab` character. Valid escape constants are `\lf` (i.e. `\n` in C),
+`\cr` (i.e. `\r` in C), `\crlf`, `\tab`, and others.  Unicode numbers may be
+encoded in decimal (e.g. `\127`) or in hexadecimal (e.g. `\x1F600` is the
+unicode smiley face).  A `\` inside the quotes is not an escape character.
+TBD: Do we want to stick with `\n` and `\r` out of tradition?  I find them
+confusing, especially since they aren't marked that way on most ASCII charts.
+
+Strings are interpolated when when followed by parenthesis `"Example:"(expression)`,
+or an identifier beginning a primary expression `"Example:"X[0]`.  
 
     @a = "Regular string literal"
-    @b = "Column1" str.Tab "Column2" str.CrLf       // Containing tabs and crlf
+    @b = "Column 1"\tab"Column 2"\crlf              // Containing a tab, ending with \r\n
     @c = tr"Translated string"                      // Translated string
-    @d = "Hello world, 2+2="(2+2)"!" str.CrLf       // Interpolated with crlf at end
-    @e = tr"Hello world, 2+2=" X "!" str.CrLf       // Translated and interpolated variable with crlf at end
+    @d = "Hello world, 2+2="(2+2)"!"\crlf           // Interpolated with crlf at end
+    @e = tr"Hello world, 2+2=" X "!"\crlf           // Translated and interpolated variable with crlf at end
     @f = `Jack says "Hello World!"`                 // Include quote character
 
-Escape constants are `cr`, `lf`, `crlf`, `tab`, `ff`, `bs`
+TBD: Make it illegal to use `+` after interpolated string literals since the
+end result is identical?  Note that the the translation file would be different.
 
-#### Array
+    @a = tr"Hello "name", what's up?"       // Translation file contains one string
+    @b = tr"Hello "name + tr", what's up?"  // Translation file contains two strings
 
-`Array` is your standard C# fixed sized array.  The constructor takes the count,
-which can never be changed after that.  An an array has an immutable `Count` property
-instead of the `Length` property in C#
+There is no `StringBuilder` class.  Instead, use `List<byte>`.  There will be
+overloads to allow converting to and from `str`:
 
-    @a Array<int>                // `a` is an array of length zero
-    @b = Array<int>(32)          // `b` is an array of length 32
-    @c = Array<Array<int>>(10)   // `c` is an array of 10 arrays of integer
-
-Arrays can be initialized when created:
-
-    @a Array<int> = [1,2,3]
-    @c Array<Array<int>> = [[1,2,3], [4,5,6], [7,8,9]]  // Jagged matrix
-    @b = Array<int>([1,2,3])    // Alternative way of initializing the array
-
-Arrays can be sliced.  See below for more information.
+    @sb = List<byte>()
+    sb.Append("Count to 10: ")
+    for @count in 1::10
+        { sb.Append(" " + count) }
+    return str(sb)
 
 #### List
 
@@ -204,15 +205,9 @@ changes as items are added or removed.  Lists act more like arrays
 than they do in C# because setters are automatically called to modify
 fields when necessary:
 
-    struct MyPoint { pub @X int;  pub @Y int}
+    struct MyPoint { pub @X int;  pub @Y int; fun new(x int, y int) {todo()} }
     @a List<MyPoint> = [(1,2),(3,4),(5,6)]
     a[1].Y = 12    // Now `a` contains [(1,2),(3,12),(5,6)]
-
-**TBD:** Lists can be sliced.  This is very useful, so a `List` can
-double as a string builder.  The downside is that if an element
-is added to the list, the slice can point to a stale copy of
-the array backing.  This is not memory un-safe since the old
-array is still there, but it is a bit user un-friendly.
 
 #### Map
 
@@ -251,12 +246,12 @@ and an array of pairs `[K1:V1,K2:V2...]` is used to initialize a map.  Notice
 that array syntax is used for both arrays and maps. Curly braces are reserved
 for statement level constructs.  Constructors can be called with `()`.
 
-    @a Array<int> = [1,2,3]                 // Array syntax
+    @a List<int> = [1,2,3]                 // Array syntax
     @b Map<str,int> = ["A":1, "B":2]        // Map syntax
     @c Map<str,int> = [("A",1), ("B", 2)]   // Use ICollection and KeyValuePair constructor
 
-    // Alternative way to initialize (not recommended, but equivalent to `=` format)
-    @a = Array<int>([1,2,3])
+    // Alternative way to initialize
+    @a = List<int>([1,2,3])
     @b = Map<str,int>(["A":1, "B":2])
     @c = Map<str,int>([("A",1), ("B", 2)])
 
@@ -293,8 +288,8 @@ Operator precedence comes from Golang.
 
 | Type      |  Operators at precedence level
 | :--- | :--- 
-| Primary|  x.y  f<type>(x)  a[i]  cast
-|Unary| - ! & ~ * switch sizeof use unsafe
+| Primary|  x.y  f<type>(x)  a[i]
+|Unary| - ! & ~ * switch sizeof use unsafe cast
 |Multiplication and bits| * / % << >> & 
 |Addition and bits| + - ~ &#124;
 |Range| low..high low::count
@@ -472,9 +467,9 @@ The simplest form of the for loop is when the expression evaluates to an integer
     for @i in 10
         { Console.WriteLine(i) }   // `i` is an integer
 
-    // Increment all the numbers in an array
-    for @i in array.Count
-        { array[i] += 1 }
+    // Increment all the numbers in an list
+    for @i in list.Count
+        { list[i] += 1 }
 
 The range operators can be used as follows:
 
@@ -482,9 +477,9 @@ The range operators can be used as follows:
     for @i in 5..50
         { Console.WriteLine(i) }   // `i` is an integer
 
-    // Print all the numbers in the array except the first and last
-    for @i in 1..array.Count-1
-        { Console.WriteLine(array[i]) }
+    // Print all the numbers in the list except the first and last
+    for @i in 1..list.Count-1
+        { Console.WriteLine(list[i]) }
 
     // Collect elements 5,6, and 7 into myArray
     for @i in 5::3
@@ -562,14 +557,14 @@ Classes are always allocated on the heap.
     {   
         // Mutable fields
         @F1 str                                  // Private string initialized to ""
-        pub @F2 Array<int>                       // Array initialized to empty (i.e. Count = 0)
-        pub @F4 Array<int> = [1,2,3]             // Array initialized with 1,2,3
+        pub @F2 List<int>                        // List initialized to empty (i.e. Count = 0)
+        pub @F4 List<int> = [1,2,3]              // List initialized with 1,2,3
         pub @F5 List<str> = ["Hello", "World"]   // Initialized list
         pub @F6 Map<str,int> = ["A":1, "B":2]    // Initialized map
 
         // Immutable fields
         pub ro @F7 str = "Hello world"                // Initialized read only string
-        pub ro @points Array<MutablePointXY> = [(1,2),(3,4),(5,6)]
+        pub ro @points List<MutablePointXY> = [(1,2),(3,4),(5,6)]
         
         pub fun Func1(this, a int) f64 => F1 + " hi"   // Member function
         pub fun Func2(this mut, a int) { F1 = "x"}     // Member function that mutates
@@ -667,8 +662,16 @@ A cast is used when a type conversion should be explicit, including
 conversion from a base class to a derived class, conversion between
 pointer types, and conversion of integer types that may lose precision.
 
+There are two different syntaxes, one for base class and precison
+conversions `cast type(expression)`, for example `cast int(myFloat)`.
+The second form is only for pointers `cast(type)expression` and is
+designed to look like the old style C pointer casts, for example
+`cast(*int)myVoidPointer`.  Pointers can only be used in an
+unsafe context, but a pointer cast would be considered very
+very unsafe.
+
     @a = cast int(a+myFloat)    // Cast (a+myFloat) from float to int
-    @b = cast *int(myFloatPtr)       // Cast myFloatPtr to *int
+    @b = cast(*int)myFloatPtr   // Cast myFloatPtr to *int
 
 A constructor can be used to convert types that don't lose precision,
 like `byte` to `int`, but a cast must be used to convert `int` to `byte`
@@ -681,14 +684,14 @@ error if MyIntFunc() should ever return a float.
     @c int = MyFloatFunc()           // Fail, constructor won't risk losing precision
     @d int = cast int(MyFloatFunc()) // Ok, explicit cast
 
-Point conversion casts never throw an exception.  Numeric conversions
-should not throw exceptions.  Conversion from base class to derived
+Pointer casts never throw an exception.  Zurfur numeric conversions never thow
+exceptions, nor should user defined casts.  Conversion from base class to derived
 class might throw an exception.
 
 
 **TBD**: I'm considering adding a cast operator:
     @a = #int(a+myFloat)         // Cast (a+myFloat) from float to int
-    @b = #*int(myFloatPtr)       // Cast myFloatPtr to *int
+    @b = #(*int)myFloatPtr       // Cast myFloatPtr to *int
     @c int = #int(MyFloatFunc())     // Ok, explicit cast
 
 ## Interfaces
