@@ -13,7 +13,7 @@ pub struct byte = u8
 
 // TBD: Needs to be an actual struct to enforce proper typing and casting rules
 /// 32 bit or 64 bit integer depending on the platform
-pub struct xint = i32 
+pub struct xint = i32
 
 // TBD: Needs to be an actual struct to enforce proper typing and casting rules
 /// 32 bit or 64 bit integer depending on the platform
@@ -37,30 +37,30 @@ pub struct ro bool
 pub struct ro i8
     implements IComparable<i8>
 {
-    pub const MaxValue i8 = 127
-    pub const MinValue i8 = -128
+    pub const Max i8 = 127
+    pub const Min i8 = -128
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
     pub fun new(a i8) => extern
 
-    pub fun operator cast(a u8) i8 => extern
-    pub fun operator cast(a i16) i8 => extern
-    pub fun operator cast(a u16) i8 => extern
-    pub fun operator cast(a i32) i8 => extern
-    pub fun operator cast(a u32) i8 => extern
-    pub fun operator cast(a i64) i8 => extern
-    pub fun operator cast(a u64) i8 => extern
-    pub fun operator cast(a f32) i8 => extern
-    pub fun operator cast(a f64) i8 => extern
-    pub fun operator cast(a decimal) i8 => extern
+    pub fun cast(a u8) i8 => extern
+    pub fun cast(a i16) i8 => extern
+    pub fun cast(a u16) i8 => extern
+    pub fun cast(a i32) i8 => extern
+    pub fun cast(a u32) i8 => extern
+    pub fun cast(a i64) i8 => extern
+    pub fun cast(a u64) i8 => extern
+    pub fun cast(a f32) i8 => extern
+    pub fun cast(a f64) i8 => extern
+    pub fun cast(a decimal) i8 => extern
     
-    pub fun operator implicit(a i8) i16 => extern
-    pub fun operator implicit(a i8) i32 => extern
-    pub fun operator implicit(a i8) i64 => extern
-    pub fun operator implicit(a i8) f32 => extern
-    pub fun operator implicit(a i8) f64 => extern
-    pub fun operator implicit(a i8) decimal => extern
+    pub fun implicit(a i8) i16 => extern
+    pub fun implicit(a i8) i32 => extern
+    pub fun implicit(a i8) i64 => extern
+    pub fun implicit(a i8) f32 => extern
+    pub fun implicit(a i8) f64 => extern
+    pub fun implicit(a i8) decimal => extern
     
     pub static fun GetHashCode(a i8) uint => extern
     pub static fun Equals(a i8, b i8) bool => extern
@@ -72,33 +72,33 @@ pub struct ro i8
 pub struct ro u8
     implements IComparable<u8>
 {
-    pub const MaxValue u8 = 255
-    pub const MinValue u8 = 0
+    pub const Max u8 = 255
+    pub const Min u8 = 0
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
     pub fun new(a u8) => extern
     
-    pub fun operator cast(a i8) u8 => extern
-    pub fun operator cast(a i16) u8 => extern
-    pub fun operator cast(a u16) u8 => extern
-    pub fun operator cast(a i32) u8 => extern
-    pub fun operator cast(a u32) u8 => extern
-    pub fun operator cast(a i64) u8 => extern
-    pub fun operator cast(a u64) u8 => extern
-    pub fun operator cast(a f32) u8 => extern
-    pub fun operator cast(a f64) u8 => extern
-    pub fun operator cast(a decimal) u8 => extern
+    pub fun cast(a i8) u8 => extern
+    pub fun cast(a i16) u8 => extern
+    pub fun cast(a u16) u8 => extern
+    pub fun cast(a i32) u8 => extern
+    pub fun cast(a u32) u8 => extern
+    pub fun cast(a i64) u8 => extern
+    pub fun cast(a u64) u8 => extern
+    pub fun cast(a f32) u8 => extern
+    pub fun cast(a f64) u8 => extern
+    pub fun cast(a decimal) u8 => extern
 
-    pub fun operator implicit(a u8) i16 => extern
-    pub fun operator implicit(a u8) u16 => extern
-    pub fun operator implicit(a u8) i32 => extern
-    pub fun operator implicit(a u8) u32 => extern
-    pub fun operator implicit(a u8) i64=> extern
-    pub fun operator implicit(a u8) u64 => extern
-    pub fun operator implicit(a u8) f32 => extern
-    pub fun operator implicit(a u8) f64 => extern
-    pub fun operator implicit(a u8) decimal => extern
+    pub fun implicit(a u8) i16 => extern
+    pub fun implicit(a u8) u16 => extern
+    pub fun implicit(a u8) i32 => extern
+    pub fun implicit(a u8) u32 => extern
+    pub fun implicit(a u8) i64=> extern
+    pub fun implicit(a u8) u64 => extern
+    pub fun implicit(a u8) f32 => extern
+    pub fun implicit(a u8) f64 => extern
+    pub fun implicit(a u8) decimal => extern
     
     pub static fun GetHashCode(a u8) uint => extern
     pub static fun Equals(a u8, b u8) bool => extern
@@ -109,27 +109,27 @@ pub struct ro u8
 pub struct ro i16
     implements IComparable<i16>
 {
-    pub const MaxValue i16 = 32767
-    pub const MinValue i16 = -32768
+    pub const Max i16 = 32767
+    pub const Min i16 = -32768
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
     pub fun new(a i16) => extern
 
-    pub fun operator cast(a u16) i16 => extern
-    pub fun operator cast(a i32) i16 => extern
-    pub fun operator cast(a u32) i16 => extern
-    pub fun operator cast(a i64) i16 => extern
-    pub fun operator cast(a u64) i16 => extern
-    pub fun operator cast(a f32) i16 => extern
-    pub fun operator cast(a f64) i16 => extern
-    pub fun operator cast(a decimal) i16 => extern
+    pub fun cast(a u16) i16 => extern
+    pub fun cast(a i32) i16 => extern
+    pub fun cast(a u32) i16 => extern
+    pub fun cast(a i64) i16 => extern
+    pub fun cast(a u64) i16 => extern
+    pub fun cast(a f32) i16 => extern
+    pub fun cast(a f64) i16 => extern
+    pub fun cast(a decimal) i16 => extern
 
-    pub fun operator implicit(a i16) i32 => extern
-    pub fun operator implicit(a i16) i64 => extern
-    pub fun operator implicit(a i16) f32 => extern
-    pub fun operator implicit(a i16) f64 => extern
-    pub fun operator implicit(a i16) decimal => extern
+    pub fun implicit(a i16) i32 => extern
+    pub fun implicit(a i16) i64 => extern
+    pub fun implicit(a i16) f32 => extern
+    pub fun implicit(a i16) f64 => extern
+    pub fun implicit(a i16) decimal => extern
 
     pub static fun GetHashCode(a i16) uint => extern
     pub static fun Equals(a i16, b i16) bool => extern
@@ -141,30 +141,30 @@ pub struct ro i16
 pub struct ro u16
     implements IComparable<u16>
 {
-    pub const MaxValue u16 = 65535
-    pub const MinValue u16 = 0
+    pub const Max u16 = 65535
+    pub const Min u16 = 0
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
     pub fun new(a u16) => extern
 
-    pub fun operator cast(a i8) u16 => extern
-    pub fun operator cast(a i16) u16 => extern
-    pub fun operator cast(a i32) u16 => extern
-    pub fun operator cast(a u32) u16 => extern
-    pub fun operator cast(a i64) u16 => extern
-    pub fun operator cast(a u64) u16 => extern
-    pub fun operator cast(a f32) u16 => extern
-    pub fun operator cast(a f64) u16 => extern
-    pub fun operator cast(a decimal) u16 => extern
+    pub fun cast(a i8) u16 => extern
+    pub fun cast(a i16) u16 => extern
+    pub fun cast(a i32) u16 => extern
+    pub fun cast(a u32) u16 => extern
+    pub fun cast(a i64) u16 => extern
+    pub fun cast(a u64) u16 => extern
+    pub fun cast(a f32) u16 => extern
+    pub fun cast(a f64) u16 => extern
+    pub fun cast(a decimal) u16 => extern
 
-    pub fun operator implicit(a u16) i32 => extern
-    pub fun operator implicit(a u16) u32 => extern
-    pub fun operator implicit(a u16) i64 => extern
-    pub fun operator implicit(a u16) u64 => extern
-    pub fun operator implicit(a u16) f32 => extern
-    pub fun operator implicit(a u16) f64 => extern
-    pub fun operator implicit(a u16) decimal => extern
+    pub fun implicit(a u16) i32 => extern
+    pub fun implicit(a u16) u32 => extern
+    pub fun implicit(a u16) i64 => extern
+    pub fun implicit(a u16) u64 => extern
+    pub fun implicit(a u16) f32 => extern
+    pub fun implicit(a u16) f64 => extern
+    pub fun implicit(a u16) decimal => extern
 
     pub static fun GetHashCode(a u16) uint => extern
     pub static fun Equals(a u16, b u16) bool => extern
@@ -175,26 +175,26 @@ pub struct ro u16
 pub struct ro i32
     implements IArithmetic<i32>, IEnumerable<i32>
 {
-    pub const MaxValue i32 = 2147483647
-    pub const MinValue i32 = -2147483648
+    pub const Max i32 = 2147483647
+    pub const Min i32 = -2147483648
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
     pub fun new(a i32) => extern
 
-    pub fun operator cast(a u32) i32 => extern
-    pub fun operator cast(a i64) i32 => extern
-    pub fun operator cast(a u64) i32 => extern
-    pub fun operator cast(a f32) i32 => extern
-    pub fun operator cast(a f64) i32 => extern
-    pub fun operator cast(a decimal) i32 => extern
+    pub fun cast(a u32) i32 => extern
+    pub fun cast(a i64) i32 => extern
+    pub fun cast(a u64) i32 => extern
+    pub fun cast(a f32) i32 => extern
+    pub fun cast(a f64) i32 => extern
+    pub fun cast(a decimal) i32 => extern
     
-    pub fun operator implicit(a i32) i64 => extern
-    pub fun operator implicit(a i32) f32 => extern
-    pub fun operator implicit(a i32) f64 => extern
-    pub fun operator implicit(a i32) decimal => extern
+    pub fun implicit(a i32) i64 => extern
+    pub fun implicit(a i32) f32 => extern
+    pub fun implicit(a i32) f64 => extern
+    pub fun implicit(a i32) decimal => extern
 
-    // Comparisons    
+    // Comparisons
     pub static fun GetHashCode(a i32) uint => extern
     pub static fun Equals(a i32, b i32) bool => extern
     pub static fun Compare(a i32, b i32) int => extern
@@ -208,7 +208,7 @@ pub struct ro i32
     pub fun operator/(a i32, b i32) i32 => extern
     pub fun operator%(a i32, b i32) i32 => extern
     
-    pub fun GetEnumerator() RangeEnumerator<i32> 
+    pub fun GetEnumerator() RangeEnumerator<i32>
         => RangeEnumerator<i32>(0, this)
     
     // Not overloadable, but these are supplied specially for this type
@@ -226,29 +226,29 @@ pub struct ro i32
 pub struct ro u32
     implements IArithmetic<u32>, IEnumerable<u32>
 {
-    pub const MaxValue u32 = 4294967295
-    pub const MinValue u32 = 0
+    pub const Max u32 = 4294967295
+    pub const Min u32 = 0
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
     pub fun new(a u32) => extern
 
-    pub fun operator cast(a i8) u32 => extern
-    pub fun operator cast(a i16) u32 => extern
-    pub fun operator cast(a i32) u32 => extern
-    pub fun operator cast(a i64) u32 => extern
-    pub fun operator cast(a u64) u32 => extern
-    pub fun operator cast(a f32) u32 => extern
-    pub fun operator cast(a f64) u32 => extern
-    pub fun operator cast(a decimal) u32 => extern
+    pub fun cast(a i8) u32 => extern
+    pub fun cast(a i16) u32 => extern
+    pub fun cast(a i32) u32 => extern
+    pub fun cast(a i64) u32 => extern
+    pub fun cast(a u64) u32 => extern
+    pub fun cast(a f32) u32 => extern
+    pub fun cast(a f64) u32 => extern
+    pub fun cast(a decimal) u32 => extern
     
-    pub fun operator implicit(a u32) i64 => extern
-    pub fun operator implicit(a u32) u64 => extern
-    pub fun operator implicit(a u32) decimal => extern
-    pub fun operator implicit(a u32) f32 => extern
-    pub fun operator implicit(a u32) f64 => extern
+    pub fun implicit(a u32) i64 => extern
+    pub fun implicit(a u32) u64 => extern
+    pub fun implicit(a u32) decimal => extern
+    pub fun implicit(a u32) f32 => extern
+    pub fun implicit(a u32) f64 => extern
     
-    // Comparisons    
+    // Comparisons
     pub static fun GetHashCode(a u32) uint => extern
     pub static fun Equals(a u32, b u32) bool => extern
     pub static fun Compare(a u32, b u32) int => extern
@@ -262,7 +262,7 @@ pub struct ro u32
     pub fun operator/(a u32, b u32) u32 => extern
     pub fun operator%(a u32, b u32) u32 => extern
     
-    pub fun GetEnumerator() RangeEnumerator<u32> 
+    pub fun GetEnumerator() RangeEnumerator<u32>
         => RangeEnumerator<u32>(0, this)
     
 
@@ -279,22 +279,22 @@ pub struct ro u32
 pub struct ro i64
     implements IArithmetic<i64>, IEnumerable<i64>
 {
-    pub const MaxValue i64 = 9223372036854775807
-    pub const MinValue i64 = -9223372036854775808
+    pub const Max i64 = 9223372036854775807
+    pub const Min i64 = -9223372036854775808
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
     pub fun new(a i64) => extern
 
-    pub fun operator cast(a u64) i64 => extern
-    pub fun operator cast(a f32) i64 => extern
-    pub fun operator cast(a f64) i64 => extern
-    pub fun operator cast(a decimal) i64 => extern
+    pub fun cast(a u64) i64 => extern
+    pub fun cast(a f32) i64 => extern
+    pub fun cast(a f64) i64 => extern
+    pub fun cast(a decimal) i64 => extern
     
-    pub fun operator implicit(a i64) decimal => extern
-    pub fun operator implicit(a i64) f64 => extern
+    pub fun implicit(a i64) decimal => extern
+    pub fun implicit(a i64) f64 => extern
 
-    // Comparisons    
+    // Comparisons
     pub static fun GetHashCode(a i64) uint => extern
     pub static fun Equals(a i64, b i64) bool => extern
     pub static fun Compare(a i64, b i64) int => extern
@@ -308,8 +308,8 @@ pub struct ro i64
     pub fun operator/(a i64, b i64) i64 => extern
     pub fun operator%(a i64, b i64) i64 => extern
     
-    pub fun GetEnumerator() RangeEnumerator<i64> 
-        => RangeEnumerator<i64>(0, this)    
+    pub fun GetEnumerator() RangeEnumerator<i64>
+        => RangeEnumerator<i64>(0, this)
 
     // Not overloadable, but these are supplied specially for this type
     // fun operator~(a i64) i64
@@ -319,32 +319,32 @@ pub struct ro i64
     // fun operator<<(a i64, b i32) i64
     // fun operator>>(a i64, b i32) i64
     // fun operator..(a i64, b i64) Range64
-    // fun operator::(a i64, b i64) Range64    
+    // fun operator::(a i64, b i64) Range64
 }
 
 /// 64 bit unsigned integer
 pub struct ro u64
     implements IArithmetic<u64>, IEnumerable<u64>
 {
-    pub const MaxValue u64 = 18446744073709551615
-    pub const MinValue u64 = 0
+    pub const Max u64 = 18446744073709551615
+    pub const Min u64 = 0
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
     pub fun new(a u64) => extern
 
-    pub fun operator cast(a i8) u64 => extern
-    pub fun operator cast(a i16) u64 => extern
-    pub fun operator cast(a i32) u64 => extern
-    pub fun operator cast(a i64) u64 => extern
-    pub fun operator cast(a f32) u64 => extern
-    pub fun operator cast(a f64) u64 => extern
-    pub fun operator cast(a decimal) u64 => extern
+    pub fun cast(a i8) u64 => extern
+    pub fun cast(a i16) u64 => extern
+    pub fun cast(a i32) u64 => extern
+    pub fun cast(a i64) u64 => extern
+    pub fun cast(a f32) u64 => extern
+    pub fun cast(a f64) u64 => extern
+    pub fun cast(a decimal) u64 => extern
     
-    pub fun operator implicit(a u64) decimal => extern
-    pub fun operator implicit(a u64) f64 => extern    
+    pub fun implicit(a u64) decimal => extern
+    pub fun implicit(a u64) f64 => extern
 
-    // Comparisons    
+    // Comparisons
     pub static fun GetHashCode(a u64) uint => extern
     pub static fun Equals(a u64, b u64) bool => extern
     pub static fun Compare(a u64, b u64) int => extern
@@ -358,8 +358,8 @@ pub struct ro u64
     pub fun operator/(a u64, b u64) u64 => extern
     pub fun operator%(a u64, b u64) u64 => extern
 
-    pub fun GetEnumerator() RangeEnumerator<u64> 
-        => RangeEnumerator<u64>(0, this)    
+    pub fun GetEnumerator() RangeEnumerator<u64>
+        => RangeEnumerator<u64>(0, this)
 
     // Not overloadable, but these are supplied specially for this type
     // fun operator~(a u64)
@@ -373,8 +373,8 @@ pub struct ro u64
 pub struct ro f32
     implements IArithmetic<f32>
 {
-    pub const MaxValue f32 = 3.40282347E+38F
-    pub const MinValue f32 = -3.40282347E+38F
+    pub const Max f32 = 3.40282347E+38F
+    pub const Min f32 = -3.40282347E+38F
     pub const Epsilon f32 = 1.401298E-45F
     pub const PositiveInfinity f32 = 1F/0F
     pub const NegativeInfinity f32 = -1F/0F
@@ -384,11 +384,11 @@ pub struct ro f32
 
     pub fun new(a f32) => extern
 
-    pub fun operator cast(a f64) f32 => extern
-    pub fun operator cast(a decimal) f32 => extern
+    pub fun cast(a f64) f32 => extern
+    pub fun cast(a decimal) f32 => extern
     
-    pub fun operator implicit(a f32) f64 => extern
-    pub fun operator implicit(a f32) decimal => extern
+    pub fun implicit(a f32) f64 => extern
+    pub fun implicit(a f32) decimal => extern
 
     // Normal f32 comparisons (NAN==NAN is false)
     // TBD: Maybe we don't need funny NAN comparisons since we're starting fresh?
@@ -416,15 +416,15 @@ pub struct ro f32
     
     // Not overloadable, but these are supplied specially for this type
     // fun operator..(a f32, b f32) RangeF32
-    // fun operator::(a f32, b f32) RangeF32   
+    // fun operator::(a f32, b f32) RangeF32
       
 }
 
 pub struct ro f64
     implements IArithmetic<f64>
 {
-    pub const MaxValue f64 = 1.7976931348623157E+308
-    pub const MinValue f64 = -1.7976931348623157E+308
+    pub const Max f64 = 1.7976931348623157E+308
+    pub const Min f64 = -1.7976931348623157E+308
     pub const Epsilon f64 = 4.94065645841247E-324
     pub const PositiveInfinity f64 = 1.0/0.0
     pub const NegativeInfinity f64 = -1.0/0.0
@@ -433,10 +433,9 @@ pub struct ro f64
     pub const Identity i8 = 1
 
     pub fun new(a f64) => extern
-
-    pub fun operator cast(a decimal) f64 => extern
+    pub fun cast(a decimal) f64 => extern
     
-    pub fun operator implicit(a f64) decimal => extern
+    pub fun implicit(a f64) decimal => extern
 
     // Normal f64 comparisons (NAN==NAN is false)
     // TBD: Maybe we don't need funny NAN comparisons since we're starting fresh?
@@ -464,7 +463,7 @@ pub struct ro f64
     
     // Not overloadable, but these are supplied specially for this type
     // fun operator..(a f64, b f64) RangeF64
-    // fun operator::(a f64, b f64) RangeF64       
+    // fun operator::(a f64, b f64) RangeF64
 }
 
 /// 128 bit decimal integer.  This will support NAN, infinity, and
@@ -474,8 +473,8 @@ pub struct ro decimal
 {
     pub fun new(a decimal) => extern
 
-    pub const MaxValue decimal = 1E+1000M
-    pub const MinValue decimal = -1E+1000M
+    pub const Max decimal = 1E+1000M
+    pub const Min decimal = -1E+1000M
     pub const PositiveInfinity decimal = 1.0/0.0
     pub const NegativeInfinity decimal = -1.0/0.0
     pub const NaN decimal = 0.0/0.0

@@ -17,7 +17,6 @@ namespace Gosub.Zurfur
         readonly float SHRUNK_TEXT_LINE_SCALE = 0.5f;
         readonly float SHRUNK_FONT_SCALE = 0.65f;
         readonly PointF SHRUNK_FONT_OFFSET = new PointF(0.2f, -0.12f); // Scaled by font size
-        static WordSet sShrinkTokens = new WordSet("[ ] { }");
 
         // Lexer and text
         Lexer           mLexer;
@@ -235,6 +234,12 @@ namespace Gosub.Zurfur
             UpdateMouseHoverToken();
         }
 
+        public void InvalidateAll()
+        {
+            RecalcLineTops();
+            UpdateMouseHoverToken();
+            Invalidate();
+        }
 
         /// <summary>
         /// Read only mode - Do not allow user to change text
@@ -506,6 +511,8 @@ namespace Gosub.Zurfur
                 Font boldFont = new Font(Font, FontStyle.Bold);
                 mShrunkFont = new Font(Font.Name, Font.Size*SHRUNK_FONT_SCALE, FontStyle.Bold);
 
+                // TBD: These should come from a Json config file, and
+                //      eTokenType should be an open ended index (i.e. integer)
                 mTokenFonts = new Dictionary<eTokenType, FontInfo>()
                 {
                     { eTokenType.Normal, new FontInfo(normalFont, Color.Black) },
@@ -519,7 +526,8 @@ namespace Gosub.Zurfur
                     { eTokenType.DefineMethod, new FontInfo(boldFont, Color.Black) },
                     { eTokenType.DefineParam, new FontInfo(boldFont, Color.Black) },
                     { eTokenType.DefineLocal, new FontInfo(boldFont, Color.Black) },
-                    { eTokenType.TypeName, new FontInfo(normalFont, Color.FromArgb(20,125,160)) }
+                    { eTokenType.TypeName, new FontInfo(normalFont, Color.FromArgb(20,125,160)) },
+                    { eTokenType.BoldSymbol, new FontInfo(boldFont, Color.Black) },
                 };
 
                 foreach (var font in mTokenFonts)
@@ -1403,9 +1411,15 @@ namespace Gosub.Zurfur
                     mLineTops[index++] = top;
                     top += (int)(mFontSize.Height * SHRUNK_EMPTY_LINE_SCALE);
                 }
-                else if (e.CurrentLineTokenCount == 1 && sShrinkTokens.Contains(e.Current.Name))
+                else if (e.CurrentLineTokenCount == 1 // && e.Current.Shrink) *** TBD: See comment below
+                            && (e.Current.Name == "{" || e.Current.Name == "}"))
                 {
-                    // Shrunk, curly brance
+                    // *** TBD: Shrink should come from the token, not be hard coded here.
+                    // Problem is that a change un-shrinks the symbol, then it gets re-shrunk
+                    // during parsing.  There is a delay and it becomes overly annoying when
+                    // lines shrink and un-shrink.  So leave this for now and fix later.
+
+                    // Shrink entire line only if there is one symbol on line
                     mLineShrunk[index] = true;
                     mLineTops[index++] = top;
                     top += (int)(mFontSize.Height * SHRUNK_TEXT_LINE_SCALE);

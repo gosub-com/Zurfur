@@ -28,6 +28,7 @@ namespace Gosub.Zurfur.Compiler
         StringBuilder       mComments = new StringBuilder();
         SyntaxField         mLastField;
         List<Token>         mExtraTokens = new List<Token>();
+        int                 mTernaryLevel;
 
         // Be kind to GC
         Queue<List<SyntaxExpr>>   mExprCache = new Queue<List<SyntaxExpr>>();
@@ -38,30 +39,28 @@ namespace Gosub.Zurfur.Compiler
 
         // Add semicolons to all lines, except for:
         static WordSet sEndLineSkipSemicolon = new WordSet("; { [ ( ,");
-        static WordSet sBeginLineSkipSemicolon = new WordSet("{ } ] ) + - / % | & " + XOR + " || && == != = "
-                                                + ": ? . , > << <= < => -> .. :: !== === += -= *= /= %= &= |= "
-                                                + XOR + "= "
-                                                // TBD: Should probably eat virtual semicolons in the parser
-                                                + "where is in as extends implements implement impl");
+        static WordSet sBeginLineSkipSemicolon = new WordSet("{ } ] ) + - / % | & || && == != = "
+                                                + ": ? . , > << <= < => -> .. :: !== === += -= *= /= %= &= |= = "
+                                                + " where is in as extends implements implement impl else then");
         Token mInsertedToken;
 
         static readonly string sReservedWordsList = "abstract as base break case catch class const "
-            + "continue default delegate do else enum event explicit extern false defer use "
+            + "continue default delegate do then else enum event explicit extern false defer use "
             + "finally fixed for goto if implicit in interface internal is lock namespace module include "
             + "new null operator out override pub public private protected readonly ro ref mut "
             + "return unsealed unseal sealed sizeof stackalloc heapalloc static struct switch this throw true try "
             + "typeof type unsafe using static virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget yield global partial var where nameof "
-            + "box boxed init move copy clone drop error dispose "
-            + "trait extends implements implement impl union type fun afun def yield let cast "
+            + "box boxed init move copy clone drop error dispose own owned "
+            + "trait extends implements implement impl union fun afun def yield let cast "
             + "any dyn loop match event from to of on cofun cofunc global local val it throws atask "
             + "scope assign @";
 
         static readonly string sReservedControlWords = "using namespace module include class struct enum interface "
             + "func afunc fun afun prop aprop get set if else switch await for while dowhile scope _";
         static WordMap<eTokenType> sReservedWords = new WordMap<eTokenType>();
-        static WordSet sReservedFuncNames = new WordSet("new init drop copy move clone dispose");
-        static WordSet sReservedIdentifierVariables = new WordSet("null this true false default base");
+        static WordSet sReservedFuncNames = new WordSet("new init drop copy move clone dispose match cast default implicit");
+        static WordSet sReservedIdentifierVariables = new WordSet("null this true false default base match");
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
             + "static unsealed abstract virtual override new ro boxed mut");
@@ -71,12 +70,12 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sAllowConstraintKeywords = new WordSet("class struct unmanaged");
         static WordSet sAutoImplementMethod = new WordSet("default impl extern");
 
-        public static WordSet sOverloadableOperators = new WordSet("+ - * / % [ in implicit cast");
+        public static WordSet sOverloadableOperators = new WordSet("+ - * / % [ in");
         static WordSet sComparisonOperators = new WordSet("== != < <= > >= === !== in"); // For '>=', use VIRTUAL_TOKEN_GE
         static WordSet sAddOperators = new WordSet("+ - | " + XOR);
         static WordSet sMultiplyOperators = new WordSet("* / % & << >>"); // For '>>', use VIRTUAL_TOKEN_SHIFT_RIGHT
         static WordSet sAssignOperators = new WordSet("= += -= *= /= %= |= &= " + XOR + "= <<= >>=");
-        static WordSet sUnaryOperators = new WordSet("- ! & use " + XOR + " " + PTR);
+        static WordSet sUnaryOperators = new WordSet("- ! & use unsafe " + XOR + " " + PTR);
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
         // This seems stange because something like `a = F<T1,T2>;` is not a valid expression
@@ -532,7 +531,7 @@ namespace Gosub.Zurfur.Compiler
             mLastField = field; // Allow us to pick up comments on this line
 
             // Parse type name
-            field.TypeName = ParseNewVarStatment();
+            field.TypeName = ParseNewVarStatment(false);
 
             return field;
         }
@@ -750,7 +749,13 @@ namespace Gosub.Zurfur.Compiler
                 return new SyntaxError();
             name.Type = eTokenType.DefineParam;
             var type = ParseTypeName(sRejectFuncParam);
-            return new SyntaxUnary(name, type);
+
+            // Default parameter
+            if (mTokenName != "=")
+                return new SyntaxUnary(name, type);
+            Accept();
+            return new SyntaxBinary(name, type, ParseExpr());
+
         }
 
         enum StatementsType
@@ -853,7 +858,8 @@ namespace Gosub.Zurfur.Compiler
 
                 case "@":
                 case "const":
-                    statements.Add(new SyntaxUnary(Accept(), ParseNewVarStatment()));
+                    bool allowUnderscore = mTokenName == "@";
+                    statements.Add(new SyntaxUnary(Accept(), ParseNewVarStatment(allowUnderscore)));
                     break;
 
                 case "while":
@@ -880,7 +886,6 @@ namespace Gosub.Zurfur.Compiler
                     Accept();
                     var ifCondition = ParseExpr();
                     var ifBody = ParseStatements("if");
-                    AcceptSemicolonOrReject();
                     requireSemicolon = false;
                     if (mToken != "else")
                     {
@@ -982,12 +987,47 @@ namespace Gosub.Zurfur.Compiler
                 AcceptSemicolonOrReject();
         }
 
-
-        SyntaxExpr ParseNewVarStatment()
+        /// <summary>
+        /// Combine >=, >>, and >>= into one token
+        /// </summary>
+        void InterceptAndReplaceGT()
         {
-            if (!ParseIdentifier("Expecting variable name", out var newVarName))
+            if (mTokenName != ">")
+                return;
+            var peek = mLexerEnum.PeekOnLine();
+            if (peek.X != mToken.X + mTokenName.Length)
+                return;
+            if (peek != "=" && peek != ">")
+                return;
+            var token = mToken;
+            Accept();
+            var virtualToken = mTokenName + peek;
+            if (virtualToken == ">>")
+            {
+                peek = mLexerEnum.PeekOnLine();
+                if (peek.X == token.X + virtualToken.Length && peek == "=")
+                {
+                    Accept();
+                    virtualToken = ">>=";
+                }
+            }
+            // Replace with a virtual token
+            mToken = NewVirtualToken(mToken, virtualToken);
+            mTokenName = mToken.Name;
+        }
+
+
+
+        SyntaxExpr ParseNewVarStatment(bool allowUnderscore)
+        {
+            Token newVarName;
+            if (allowUnderscore && mTokenName == "_")
+                newVarName = Accept();
+            else if (!ParseIdentifier("Expecting variable name", out newVarName))
                 return new SyntaxError();
-            newVarName.Type = eTokenType.DefineLocal;
+
+            if (newVarName.Name != "_")
+                newVarName.Type = eTokenType.DefineLocal;
 
             SyntaxExpr typeName;
             if (mTokenName != "=")
@@ -1060,22 +1100,33 @@ namespace Gosub.Zurfur.Compiler
         SyntaxExpr ParseTernary()
         {
             var result = ParseConditionalOr();
-            if (mTokenName == "?")
+            while (mTokenName == "?")
             {
+                if (mTernaryLevel != 0)
+                    RejectToken(mToken, "Ternary expressions may not be nested");
+                mTernaryLevel++;
+                mToken.Type = eTokenType.BoldSymbol;
                 var operatorToken = Accept();
                 var firstConditional = ParseRange();
                 if (mTokenName != ":")
                 {
+                    mTernaryLevel--;
                     Reject("Expecting a ':' to separate expression for the ternary '?' operator");
                     return result;
                 }
+                mToken.Type = eTokenType.BoldSymbol;
                 Connect(mToken, operatorToken);
                 Accept();
                 result = new SyntaxMulti(operatorToken, result, firstConditional, ParseRange());
+                mTernaryLevel--;
+
+                if (mTokenName == "?")
+                    RejectToken(mToken, "Ternary operator is not associative");
+                else if (mTokenName == ":")
+                    RejectToken(mToken, "Ternary operator already has an else clause.");
             }
             return result;
         }
-
 
         SyntaxExpr ParseConditionalOr()
         {
@@ -1129,11 +1180,11 @@ namespace Gosub.Zurfur.Compiler
 
         SyntaxExpr ParseMultiply()
         {
-            var result = ParseSwitch();
+            var result = ParseIsAs();
             InterceptAndReplaceGT();
             while (sMultiplyOperators.Contains(mTokenName))
             {
-                result = new SyntaxBinary(Accept(), result, ParseSwitch());
+                result = new SyntaxBinary(Accept(), result, ParseIsAs());
                 InterceptAndReplaceGT();
                 if (mTokenName == "<<" || mTokenName == ">>")
                     RejectToken(mToken, "Shift operators are not associative, must use parentheses");
@@ -1141,52 +1192,27 @@ namespace Gosub.Zurfur.Compiler
             return result;
         }
 
-        SyntaxExpr ParseSwitch()
+        SyntaxExpr ParseIsAs()
         {
-            var result = ParseUnary();
-            if (mTokenName == "switch")
-            {
-                mToken.Type = eTokenType.Reserved;
-                var keyword = Accept();
-                if (mToken == "(")
-                {
-                    return ParseParen(keyword);
-                }
-                else
-                {
-                    Reject("Expecting '('");
-                }
-            }
+            var result = ParseNewVar();
+            if (mTokenName == "is" || mTokenName == "as")
+                result = new SyntaxBinary(Accept(), result, ParseTypeName());
             return result;
         }
 
-        /// <summary>
-        /// Combine >=, >>, and >>= into one token
-        /// </summary>
-        void InterceptAndReplaceGT()
+        SyntaxExpr ParseNewVar()
         {
-            if (mTokenName != ">")
-                return;
-            var peek = mLexerEnum.PeekOnLine();
-            if (peek.X != mToken.X + mTokenName.Length)
-                return;
-            if (peek != "=" && peek != ">")
-                return;
-            var token = mToken;
-            Accept();
-            var virtualToken = mTokenName + peek;
-            if (virtualToken == ">>")
+            var result = ParseUnary();
+            if (mTokenName == "@")
             {
-                peek = mLexerEnum.PeekOnLine();
-                if (peek.X == token.X + virtualToken.Length && peek == "=")
+                var varOp = Accept();
+                if (ParseIdentifier("", out var varName))
                 {
-                    Accept();
-                    virtualToken = ">>=";
-                }                    
+                    varName.Type = eTokenType.DefineLocal;
+                    result = new SyntaxBinary(varOp, result, new SyntaxToken(varName));
+                }
             }
-            // Replace with a virtual token
-            mToken = NewVirtualToken(mToken, virtualToken);
-            mTokenName = mToken.Name;
+            return result;
         }
 
         SyntaxExpr ParseUnary()
@@ -1199,33 +1225,13 @@ namespace Gosub.Zurfur.Compiler
             if (mTokenName == "cast")
             {
                 var castToken = Accept();
-                if (mTokenName == "*" || mTokenName == "ref")
-                    RejectToken(mToken, "Expecting '(', casting pointers or references requires parentheses around the type name, e.g. use the form 'cast(*type)expression'");
-                bool hasParen = false;
-                if (AcceptMatch("("))
-                    hasParen = true;
-                if (hasParen && mTokenName != "*" && mTokenName != "ref")
-                    RejectToken(mToken, "Expecting '(', casting types cannot have parentheses around the type name, e.g. use the form 'cast type(expression)'");
-                if (!ParseTypeName(out var castType, sEmptyWordSet))
-                    return new SyntaxError(castToken);
-                if (hasParen)
-                    AcceptMatchOrReject(")");
-                return new SyntaxBinary(castToken, castType, ParseUnary());
-            }
-
-            if (mTokenName == "unsafe")
-            {
-                var unsafeToken = Accept();
                 if (AcceptMatchOrReject("("))
                 {
-                    var unsafeOpen = mPrevToken;
-                    var result = ParseAssignmentStatement();
-                    if (AcceptMatchOrReject(")"))
-                    {
-                        return new SyntaxUnary(unsafeToken, result);
-                    }
+                    if (!ParseTypeName(out var castType, sEmptyWordSet))
+                        return new SyntaxError(castToken);
+                    AcceptMatchOrReject(")");
+                    return new SyntaxBinary(castToken, castType, ParseUnary());
                 }
-                return new SyntaxError(unsafeToken);
             }
 
             if (mTokenName == "sizeof" || mTokenName == "typeof")
@@ -1765,7 +1771,7 @@ namespace Gosub.Zurfur.Compiler
 
         // Accept the current token and advance to the next, skipping all comments.
         // The new token is saved in mToken and the token name is saved in mTokenName.
-        // Returns the token that was accepted.  Token is pre-maked with token type
+        // Returns the token that was accepted.  Token type is set.
         Token Accept()
         {
             // Already at end of file?
@@ -1791,6 +1797,7 @@ namespace Gosub.Zurfur.Compiler
             if (mTokenName != "")
                 mLastVisibleToken = mToken;
 
+            // Set token type
             if (mTokenName.Length == 0)
                 mToken.Type = eTokenType.Normal;
             else if (mTokenName[0] == '\"' || mTokenName[0] == '`')
@@ -1807,6 +1814,9 @@ namespace Gosub.Zurfur.Compiler
                 mToken.Type = eTokenType.Identifier;
             else
                 mToken.Type = eTokenType.Normal;
+
+            if (mToken.OnlyTokenOnLine && (mTokenName == "{" || mTokenName == "}"))
+                mToken.Shrink = true;
 
             if (mTokenName.Length != 0 &&  (mTokenName[0] == '_' || mTokenName[mTokenName.Length-1] == '_') && mTokenName != "_")
                 RejectToken(mToken, "Identifiers may not begin or end with '_'");
@@ -1825,35 +1835,10 @@ namespace Gosub.Zurfur.Compiler
                 int x = prevToken.X + prevToken.Name.Length;
 
                 mInsertedToken = mToken;
-                mToken = new Token(";", x, prevToken.Y);
-                mToken.Invisible = true;
+                mToken = new Token(";", x, prevToken.Y, eTokenBits.Invisible);
                 mTokenName = ";";
             }
             return mPrevToken;
-        }
-
-        void GetNextToken()
-        {
-            if (mLexerEnum.MoveNext())
-                mToken = mLexerEnum.Current;
-            else
-                mToken = new Token("");
-            mToken.Clear();
-            mTokenName = mToken.Name;
-
-            // Check for tabs
-            if (mToken.Boln)
-            {
-                var line = mLexer.GetLine(mToken.Y);
-                var i = line.IndexOf('\t');
-                while (i >= 0)
-                {
-                    var tabToken = new Token(" ",i, mToken.Y);
-                    tabToken.Invisible = true;
-                    RejectToken(tabToken, "Illegal tab");
-                    i = line.IndexOf('\t', i + 1);
-                }
-            }
         }
 
         void ParseComments()
@@ -1899,9 +1884,45 @@ namespace Gosub.Zurfur.Compiler
                     }
                     GetNextToken();
                 }
-
             }
+        }
 
+        // Lowest level function for getting the next token.  Ensure there are
+        // no tabs and no space or `;` at then end of the line.
+        void GetNextToken()
+        {
+            if (mLexerEnum.MoveNext())
+                mToken = mLexerEnum.Current;
+            else
+                mToken = new Token("");
+            mToken.Clear();
+            mTokenName = mToken.Name;
+
+            // Check for tabs or white space at end of line
+            if (mToken.Boln)
+            {
+                // Illegal tabs
+                var line = mLexer.GetLine(mToken.Y);
+                var i = line.IndexOf('\t');
+                while (i >= 0)
+                {
+                    RejectToken(new Token(" ", i, mToken.Y, eTokenBits.Invisible),
+                        "Illegal tab");
+                    i = line.IndexOf('\t', i + 1);
+                }
+                // ; at end of line
+                if (line.Length != 0 && line[line.Length - 1] == ';')
+                {
+                    RejectToken(new Token(" ", line.Length - 1, mToken.Y, eTokenBits.Invisible),
+                        "Illegal semi-colon at end of line");
+                }
+                // Space at end of line
+                if (line.Length != 0 && char.IsWhiteSpace(line[line.Length - 1]))
+                {
+                    RejectToken(new Token(" ", line.Length - 1, mToken.Y, eTokenBits.Invisible),
+                        "Illegal white space at end of line");
+                }
+            }
         }
 
 
@@ -1911,6 +1932,7 @@ namespace Gosub.Zurfur.Compiler
             mParseError = true;
             token.AddError(errorMessage);
 
+            // Make sure invisible tokens with errors are recorded
             if (token.Invisible)
             {
                 if (!mExtraTokens.Contains(token))
@@ -1954,8 +1976,7 @@ namespace Gosub.Zurfur.Compiler
 
         Token NewVirtualToken(Token connectedToken, string text)
         {
-            var virtualToken = new Token(text, connectedToken.X, connectedToken.Y, eTokenType.Normal);
-            virtualToken.Invisible = true;
+            var virtualToken = new Token(text, connectedToken.X, connectedToken.Y, eTokenBits.Invisible);
             Connect(connectedToken, virtualToken);
             return virtualToken;
         }

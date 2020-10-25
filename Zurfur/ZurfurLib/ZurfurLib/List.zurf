@@ -3,123 +3,156 @@
 namespace Zurfur
 
 
-// Base for all heap objects
-pub unsafe struct GcMemory<T>
+// TBD: This will contain compiler generated metadata for each type
+pub struct GcType { }
+
+// This is at the front of all objects on the heap,
+// similar to the vtable pointer in C++
+pub struct GcObject<T>
 {
-    pub ro @TypeInfo  *GcTypeInfo<T> = GcMemory<T>.GetPointer
+    pub ro @Type *GcType
 }
 
-// Base for all array heap objects
-pub unsafe struct GcMemoryArray<T>
+// This is at the front of all array objects on the heap.
+// NOTE: The pointer points to the data, not to this object.
+pub struct GcObjectArray<T>
 {
-    pub ro @TypeInfo  *GcTypeInfo<T> = GcMemory<T>.GetPointer
-    pub ro @Count      uint
+    pub ro @Type *GcType
+    pub ro @Count xuint // Data is 64 bit aligned for 32/64 bit machines
+    // Array data follows this
 }
 
-// Very unsafe class to manage an array of objects.
-// Defaults to null (i.e. crash), no bounds checking.
-// This is infrastructure for List
-pub unsafe struct UnsafePointerToArray<T>
+// This is a raw pointer to an array on the GC heap.
+// NOTE: For speed, the pointer points to the data
+// instead of the GcObjectArray.
+pub struct GcArrayPointer<T>
 {
-    pub const uint MAX_ITEMS = int.MaxValue/2/sizeof(T)
-
-    // This is null or points directly to the array.
-    // Immediately preceding this is GcMemoryArray.
-    // The GC knows this layout, which is different
-    // than all non-array objets.  This is done for
-    // efficiency so arrays can be very fast.
-    @data *void
-    
-    pub fun new(count int)
-    {
-        Debug.Assert(cast unit(count) < MAX_ITEMS)
-        data = calloc<T>(sizeof(GcMemoryArray) + sizeof(T)*count)
-        *cast(*GcMemoryArray)(data) = GcMemoryArray<T>()
-        data = cast(*GcMemoryArray<T>)data + 1
-    }
-    
-    pub fun dispose()
-    {
-        todo()
-    }    
-    
-    pub fun GetRef(index int) ref T
-    {
-        Debug.Assert(data != null
-            && (cast(*GcMemoryArray<T>)(data)-1).Count < cast uint(index))
-        return cast(ref T)(cast(*T)(data) + index)
-    }
-    
-    pub fun GetSpan(index int, count int) ref Span<T>
-    {
-        todo()
-    }
-   
+    pub @Data *T
+    prop Type ro *GcType
+        => unsafe (cast(*GcObjectArray)Data)[-1].Type
+    prop Count xuint
+        => unsafe (cast(*GcObjectArray)Data)[-1].Count
+    prop TypePointer ro *GcType
+        => unsafe (cast(*GcObjectArray)Data)[-1]
 }
 
 
-// This is pretty much the only array class you need.
-pub class List<T> 
+/// This is the lowest level array type in Zurfur.
+/// All dynamically sized objects should build from this.
+pub class List<T>
 {
-    pub const uint MAX_ITEMS = int.MaxValue/2/sizeof(T)
+    pub const MaxItems uint = uint.Max/4/Math.Max(1,sizeof(t))
 
-    @items UnsafePointerToArray<T>
-    @count int
-    @capacity int
-    @version int
-                
+    // The GC will know the layout of this class
+    // and follow the items pointer accordingly.
+    //
+    // spanCount is currenty held here, but could be
+    // moved to the array memory in the future.
+    // This would allow Span<T>'s drop to also free the
+    // memory.  It should be rare to detach and need
+    // GC, so doing that might actually be slower
+    // in the normal case.
+
+    @items  GcArrayPointer<T>
+    @capacity int       // CapacSize of the items array (GC uses this)
+    @count int          // Current size of the list
+    @spanCount int
+    
     pub fun new(capacity int)
     {
-        Debug.BoundCheck(capacity, MAX_ITEMS)
-        items = GcCalloc<T>(capacity)
-        this.capacity = capacity
+        SetCapacity(capacity)
     }
 
-    // TBD: The compiler could call dispose early if
-    // it can prove the List isn't going to be used again
-    pub fun dispose()
+    pub fun drop()
     {
-        // TBD: If we own the array, we can delete it immediately.
+        count = 0 // Flag to drop
+        SetCapacity(0)
+    }
+    
+    /// Grow the capacity to be at least minCount size.
+    /// If minCount is <= capacity nothing happens,
+    /// otherwise the list is expanded exponentially.
+    pub fun Grow(minCapacity int)
+    {
+        if minCapacity <= capacity
+            { return }
+        @newCap = Math.Max(capacity*2, minCount)
+        if sizeof(T) == 1
+            { newCap = Math.Max(newCap, 12) }
+        else if sizeof(T) <= 64
+            { newCap = Math.Max(newCap, 4) }
+        else
+            { newCap = Math.Max(newCap, 1) }
+        SetCapacity(newCap)
+    }
+    
+    pub fun Trim(extra int = 0)
+    {
+        SetCapacity(count + extra)
+    }
+    
+    // Set the capacity, won't shrink below count
+    fun SetCapacity(capacity int)
+    {
+        capacity = Math.Max(capacity, count)
+        Debug.PanicIf(uint(capacity) > MaxItems)
+        
+        // Copy old items into new array
+        @oldItems = items
+        items = capacity == 0 ? null : unsafe cast(*T)DlMalloc.Calloc(sizeof(T)*capacity:2)
+        this.capacity = capacity
+        unsafe MemCopy32(items, oldItems, sizeof(T)*count)
+        
+        // When spanCout is zero, we own it and can delete it.
+        // Oterwise, it becomes garbage
+        if spanCount == 0
+            { unsafe dlMalloc.Free(oldItems) }
+        spanCount = 0
+        
     }
 
     
     pub fun new(items Span<T>)
     {
+        // TBD: Clone here?
     }
     
     pub fun new(items ICollection<T>)
     {
     }
-    
-    pub prop Count int => count
 
-    pub fun operator[](index int) ref T
+
+    pub fun operator[](index int) ref mut T
     {
         get
         {
             Debug.BoundCheck(index, count)
-            return items.GetRef(index)
+            // TBD
         }
     }
-    pub fun operator[](range Range) ref Span<T>
+    pub fun operator[](range Range<int>) ref mut Span<T>
     {
         get
         {
             Debug.BoundCheck(range.Low, count)
+            // TBD
         }
     }
-
+    
+    pub prop Count int => count
+    pub mut fun Push(item T) => todo()
+    pub mut fun Pop() ?T => todo()
     pub mut fun Insert(index int, item T) => todo()
     pub mut fun Insert(index int, items Span<T>) => todo()
     pub mut fun Insert(index int, items ICollection<T>) => todo()
     pub mut fun Remove(index int) => todo()
     pub mut fun Remove(range Range<int>) => todo()
     
-    pub fun Convert<Tout>(c fun<T><Tout>) => todo() 
+    pub fun Convert<Tout>(c fun<T><Tout>) => todo()
     pub fun ForEach(r fun<T>) => todo()
     pub fun Find(p fun<T>) => todo()
     pub mut fun Sort(compare fun<T,T><bool>) => todo()
-    pub mut fun Sort(compare fun<T,T><bool>, range Range<int>) => todo() 
+    pub mut fun Sort(compare fun<T,T><bool>, range Range<int>) => todo()
     
     
     pub struct Enumerator

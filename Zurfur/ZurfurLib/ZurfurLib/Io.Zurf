@@ -10,7 +10,8 @@ interface Stream
     /// Quickly gets last known length of stream.
     /// Might become stale if the file is written
     /// after being open, or if more data becomes
-    /// available from the device.
+    /// available from the device.  Is always valid
+    /// when backed by memory
     prop Length i64 => impl get
     
     /// Quickly gets/sets stream position.  When setting,
@@ -18,33 +19,40 @@ interface Stream
     /// read or write.
     prop Position i64 => impl get set
 
-    /// Returns the number of bytes available
-    /// immediately without needing an async read.
-    prop AvailableNow int => impl get
+    /// Gets the number of bytes that can be read now (sync)
+    prop ReadableNow int => impl get
     
-    /// Quickly returns bytes from the buffer (if any)
-    /// Returns zero bytes if there is no more sync
-    /// data in the stream or there is any kind of
-    /// error.
-    mut fun ReadNow(data span<byte>) int => impl
+    /// Gets number of bytes that can be written now (sync)
+    prop WritableNow int => impl get
+    
+
+    /// Synchronously read bytes from the buffer.
+    /// Never blocks, just returns 0 if there aren't any
+    mut fun ReadNow(data mut Span<byte>) int => impl
+    
+    /// Synchronously write bytes to the buffer.
+    /// Never blocks, just returns 0 if there isn't any space
+    mut fun WriteNow(data Span<byte>) int => impl
     
     /// Quickly reads the next byte, returns -1
     /// if there is no more sync data in the stream
     /// or if there is any kind of error
     mut fun ReadByteNow() int => impl
     
-    aprop Eof bool error => impl get    
     mut afun Seek(offset i64, origin SeekOrigin) error => impl
-    mut afun Read(data mut span<byte>) int error  => impl
-    mut afun Write(data span<byte>) int error => impl
+    mut afun Read(data mut Span<byte>) int error  => impl
+    mut afun Write(data Span<byte>) int error => impl
     mut afun Flush() error => impl
     mut afun Close() error => impl
     
-    /// NOTE: It is an error for a stream to be left open.
-    /// In debug mode, execution stops to allow the programmer
-    /// to fix the bug.  In production environments, the file
-    /// is closed and an error is logged.
-    fun dispose() => impl
+    /// NOTE: It is an error for a stream to be left open
+    /// when dropped. In debug mode, execution stops to
+    /// allow the programmer to fix the bug.  In production
+    /// environments, the file is closed and an error is logged.
+    fun drop() => impl
+    
+    // Illegal to clone or copy the stream
+    fun copy() => null
 }
 
 interface FileStream

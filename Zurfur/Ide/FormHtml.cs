@@ -42,16 +42,19 @@ namespace Gosub.Zurfur
         {
             Show();
             Refresh();
+            webBrowser1.DocumentText = GetHtml();
+        }
 
+        private string GetHtml()
+        {
             if (mText != null)
             {
                 // Show the text in mText
                 StringBuilder html = new StringBuilder();
                 foreach (string s in mText)
-                    html.Append(System.Security.SecurityElement.Escape(s)  + "<br>");
+                    html.Append(System.Security.SecurityElement.Escape(s) + "<br>");
                 html.Append("</pre>");
-
-                webBrowser1.DocumentText = html.ToString();
+                return html.ToString();
             }
 
             if (mLexer != null)
@@ -59,26 +62,33 @@ namespace Gosub.Zurfur
                 StringBuilder html = new StringBuilder();
 
                 // These should come from the text editor, which should eventually come from settings
+                const int SHRINK_TEXT = 14;  // See table below
+                const int SHRINK_SPACE = 15;
                 html.Append(""
                     + "<style>"
-                    + ".s0 { color:black }" // Normal
-                    + ".s1 { color:blue }" // Reserved
-                    + ".s2 { color:blue; font-weight: bold }" // Reserved Control
-                    + ".s3 { color:black }" // Identifier
-                    + ".s4 { color:black }" // Number
-                    + ".s5 { color:brown }" // Quote
-                    + ".s6 { color:green }" // Comment
-                    + ".s7 { color:#147DA0 }" // TypeName
-                    + ".s8 { color:red }" // Unknown
-                    + ".s9 { color:red }" // Unknown
-                    + ".s10 { color:red }" // Unknown
-                    + "</style>");
+                    + ".s0{color:black}" // Normal
+                    + ".s1{color:blue}" // Reserved
+                    + ".s2{color:blue;font-weight: bold}" // Reserved Control
+                    + ".s3{color:black}" // Identifier
+                    + ".s4{colot:black}" // Number
+                    + ".s5{color:brown}" // Quote
+                    + ".s6{color:green}" // Comment
+                    + ".s7{color:green;font-weight:bold}" // Public comment
+                    + ".s8{color:black;font-weight:bold}" // Define field
+                    + ".s9{color:black;font-weight:bold}" // Define method
+                    + ".s10{color:black;font-weight:bold}" // Define param
+                    + ".s11{color:black;font-weight:bold}" // Define local
+                    + ".s12{color:#147DA0}" // TypeName
+                    + ".s13{color:black;font-weight:bold}" // Bold symbol
+                    + ".s14{color:black;font-weight:900;font-size: 0.5vw;line-height:50%}"
+                    + ".s15{line-height:50%}"
+                    + "</style>\r\n");
                 html.Append("<pre>");
 
                 int line = mLineCount == 0 ? 0 : mLineStart;
                 int endLine = mLineCount == 0 ? int.MaxValue : mLineStart + mLineCount;
                 int column = 0;
-                eTokenType tokenType = eTokenType.Normal;
+                int tokenType = (int)eTokenType.Normal;
                 html.Append("<span class=s0>");
                 foreach (var token in mLexer.GetEnumeratorStartAtLine(line))
                 {
@@ -86,12 +96,21 @@ namespace Gosub.Zurfur
                         break;
 
                     // Append new line when moving to next line
+                    bool alreadyHasLine = false;
                     while (line < token.Y)
                     {
-                        html.Append("\r\n");
+                        html.Append(alreadyHasLine ? "<br>" : "\r\n");
+                        alreadyHasLine = true;
                         line++;
                         column = 0;
                     }
+
+                    // Shrink space before shrunken symbol
+                    if (token.Shrink)
+                    {
+                        html.Append("</span><span class=s" + SHRINK_SPACE + ">");
+                    }
+
                     // Prepend white space
                     int tokenColumn = IndexToCol(mLexer.GetLine(token.Y), token.X);
                     while (column < tokenColumn)
@@ -99,23 +118,32 @@ namespace Gosub.Zurfur
                         html.Append(" ");
                         column++;
                     }
+                    var newTokenType = (int)token.Type;
+                    if (token.Shrink)
+                        newTokenType = SHRINK_TEXT;
+
                     // Begin span if necessary
-                    if (tokenType != token.Type)
+                    if (tokenType != newTokenType)
                     {
-                        html.Append("</span>");
-                        tokenType = token.Type;
-                        html.Append("<span class=s" + (int)tokenType + ">");
+                        tokenType = newTokenType;
+                        html.Append("</span><span class=s" + tokenType + ">");
                     }
                     // Append token
                     html.Append(System.Security.SecurityElement.Escape(token.Name));
                     column += token.Name.Length;
+
+                    // Shrunken space after shrunken symbol
+                    if (tokenType == SHRINK_TEXT)
+                    {
+                        html.Append("</span><span class=s" + SHRINK_SPACE + ">");
+                        tokenType = 0;
+                    }
                 }
                 html.Append("</span>");
-                tokenType = eTokenType.Normal;
                 html.Append("</pre>");
-                webBrowser1.DocumentText = html.ToString();
-
+                return html.ToString();
             }
+            return "";
         }
 
         /// <summary>
@@ -136,6 +164,11 @@ namespace Gosub.Zurfur
         {
             mText = text;
             Show();
+        }
+
+        private void buttonCopyHtmlAsText_Click(object sender, EventArgs e)
+        {
+            Clipboard.SetText(GetHtml());
         }
     }
 }
