@@ -1,5 +1,5 @@
 ﻿
-namespace Zurfur.Collections;
+namespace Zurfur.Collections
 
 /// Implement IEquatable on any object that can be stored in a Map.
 /// This is different than implementing just Equals
@@ -64,7 +64,7 @@ pub interface IFastEnumerator<T>
     {
         if HasNext()
         {
-            item = Current;
+            item = Current
             Advance()
             return true
         }
@@ -73,7 +73,7 @@ pub interface IFastEnumerator<T>
 }
 
 
-pub interface IArray<T> 
+pub interface IArray<T>
     implements ICollection<T>
 {
     fun operator[](index int) T => impl get set
@@ -92,7 +92,7 @@ pub interface IList<T>
     mut fun Clear() { Remove(0..Count) }
     mut fun Add(item T) { Insert(Count, item) }
     mut fun Add(items ICollection<T>) { Insert(Count, items) }
-    mut fun Pop() { @item = this[Count-1]; Remove(Count-1);  return item }    
+    mut fun Pop() { @item = this[Count-1]; Remove(Count-1);  return item }
 }
 
 pub struct KeyValuePair<TKey, TValue>

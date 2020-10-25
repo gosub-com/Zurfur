@@ -22,7 +22,8 @@ namespace Gosub.Zurfur.Lex
         DefineMethod,
         DefineParam,
         DefineLocal,
-        TypeName
+        TypeName,
+        BoldSymbol
     }
 
     public enum eTokenSubtype : byte
@@ -35,12 +36,13 @@ namespace Gosub.Zurfur.Lex
 
     public enum eTokenBits : short
     {
-        Eoln = 1, // Read only
-        Boln = 2, // Read only
+        Eoln = 1, // Read only (set only once by lexer)
+        Boln = 2, // Read only (set only once by lexer)
         Grayed = 4,
         Invisible = 8,
         Underline = 16,
-        ReadOnlyMask = Eoln | Boln
+        ReadOnlyMask = Eoln | Boln,
+        Shrink = 32
     }
 
     /// <summary>
@@ -87,6 +89,14 @@ namespace Gosub.Zurfur.Lex
             X = x;
             Y = y;
             Type = tokenType;
+        }
+
+        public Token(string name, int x, int y, eTokenBits tokenBits)
+        {
+            Name = name;
+            X = x;
+            Y = y;
+            mBits = tokenBits;
         }
 
         public int Y
@@ -138,13 +148,20 @@ namespace Gosub.Zurfur.Lex
             get => (mBits & eTokenBits.Underline) != 0;
             set { mBits = mBits & ~eTokenBits.Underline | (value ? eTokenBits.Underline : 0); }
         }
+
         public bool Eoln
-        {
-            get => (mBits & eTokenBits.Eoln) != 0;
-        }
+            => (mBits & eTokenBits.Eoln) != 0;
+
         public bool Boln
+            => (mBits & eTokenBits.Boln) != 0;
+
+        public bool OnlyTokenOnLine
+            => (~mBits & (eTokenBits.Boln | eTokenBits.Eoln)) == 0;
+
+        public bool Shrink
         {
-            get => (mBits & eTokenBits.Boln) != 0;
+            get => (mBits & eTokenBits.Shrink) != 0;
+            set { mBits = mBits & ~eTokenBits.Shrink | (value ? eTokenBits.Shrink : 0); }
         }
 
         public void SetEolnByLexerOnly()

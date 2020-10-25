@@ -32,7 +32,7 @@ Here are some differences between Zurfur and C#:
     * Children of read only fields (i.e. `ro` fields) are also read only
     * Get/set of mutable a struct acts as if it were a reference (e.g. `MyListOfStructPoints[1].X = 5`)
     * Functions pass `struct` parameters by reference or value, whichever is more efficient
-* Type declaration syntax and operator precedence is from Golang
+* Type declaration syntax is from Golang
 * Interfaces may be implemented by the class (C# style) or externally (Rust trait style)
 * Strings are UTF8 byte arrays, always initialized to ""
 * Classes are reference counted (finalized when count goes to zero)
@@ -72,7 +72,27 @@ at the namespace level, but must be static or extension methods.
 
 TBD: Still thinking about using the Golang `func` keyword to define functions.
 
-#### Parameters are passed by reference and immutable by default
+<style>.s0{color:black}.s1{color:blue}.s2{color:blue;font-weight: bold}.s3{color:black}.s4{colot:black}.s5{color:brown}.s6{color:green}.s7{color:green;font-weight:bold}.s8{color:black;font-weight:bold}.s9{color:black;font-weight:bold}.s10{color:black;font-weight:bold}.s11{color:black;font-weight:bold}.s12{color:#147DA0}.s13{color:black;font-weight:bold}.s14{color:black;font-weight:900;font-size: 0.5vw;line-height:50%}.s15{line-height:50%}</style>
+<pre><span class=s0></span><span class=s1>pub </span><span class=s2>class </span><span class=s12>Example
+</span><span class=s15></span><span class=s14>{</span><span class=s15>
+    </span><span class=s1>@</span><span class=s11>info </span><span class=s12>str                    </span><span class=s6>// Private string initialized to &quot;&quot;
+    </span><span class=s1>@</span><span class=s11>f1 </span><span class=s12>Array</span><span class=s0>&lt;</span><span class=s12>int</span><span class=s0>&gt; = [</span><span class=s4>1</span><span class=s0>,</span><span class=s4>2</span><span class=s0>,</span><span class=s4>3</span><span class=s0>]             </span><span class=s6>// Initialized array
+    </span><span class=s1>@</span><span class=s11>f2 </span><span class=s12>List</span><span class=s0>&lt;</span><span class=s12>str</span><span class=s0>&gt; = [</span><span class=s5>&quot;Hello&quot;</span><span class=s0>, </span><span class=s5>&quot;World&quot;</span><span class=s0>]   </span><span class=s6>// Initialized list
+    </span><span class=s1>ro @</span><span class=s11>f3 </span><span class=s12>Map</span><span class=s0>&lt;</span><span class=s12>str</span><span class=s0>,</span><span class=s12>int</span><span class=s0>&gt; = [</span><span class=s5>&quot;A&quot;</span><span class=s0>:</span><span class=s4>1</span><span class=s0>, </span><span class=s5>&quot;B&quot;</span><span class=s0>:</span><span class=s4>2</span><span class=s0>] </span><span class=s6>// Initialized immutable map
+    </span><span class=s1>pub ro @</span><span class=s11>Header </span><span class=s12>str </span><span class=s0>= </span><span class=s5>&quot;Zurfur&quot;        </span><span class=s6>// Public read only string
+    </span><span class=s1>pub </span><span class=s2>fun </span><span class=s9>F</span><span class=s0>(</span><span class=s10>a </span><span class=s12>int</span><span class=s0>) </span><span class=s12>str </span><span class=s0>=&gt; </span><span class=s3>Header </span><span class=s0>+ </span><span class=s3>a      </span><span class=s6>// Public member function
+    </span><span class=s1>pub </span><span class=s2>prop </span><span class=s11>P </span><span class=s12>str </span><span class=s0>=&gt; </span><span class=s3>Header </span><span class=s0>+ </span><span class=s3>info         </span><span class=s6>// Public property
+<br>    </span><span class=s1>pub </span><span class=s2>fun </span><span class=s9>Test</span><span class=s0>()
+</span><span class=s15>    </span><span class=s14>{</span><span class=s15>
+        </span><span class=s1>@</span><span class=s11>a </span><span class=s0>= </span><span class=s1>tr</span><span class=s5>&quot;Column 1&quot;</span><span class=s1>\tab</span><span class=s5>&quot;Column 2&quot;</span><span class=s1>\crlf
+        @</span><span class=s11>data </span><span class=s0>= </span><span class=s5>&quot;Name:&quot;</span><span class=s3>name</span><span class=s1>\tab</span><span class=s5>&quot;Occupation:&quot;</span><span class=s3>lastName</span><span class=s1>\crlf
+<br>        </span><span class=s2>while </span><span class=s3>stream</span><span class=s0>.</span><span class=s3>Read</span><span class=s0>(</span><span class=s3>buffer</span><span class=s0>)</span><span class=s1>@</span><span class=s11>size </span><span class=s0>!= </span><span class=s4>0
+</span><span class=s15>        </span><span class=s14>{</span><span class=s15>
+            </span><span class=s1>@</span><span class=s11>a </span><span class=s0>= </span><span class=s3>MyFun </span><span class=s1>as </span><span class=s12>Hello
+</span><span class=s15>        </span><span class=s14>}</span><span class=s15>
+</span><span class=s15>    </span><span class=s14>}</span><span class=s15>
+</span><span class=s15></span><span class=s14>}</span><span class=s15></span></pre>
+
 
 By default, functions pass parameters by immutable reference.  The exception
 is that small structs may be passed by value when it is more efficient to do so.
@@ -101,11 +121,12 @@ must be assigned, never read.
 Within a function, variables are declared and initialized with the `@` 
 operator (i.e. the `var` keyword from C#):
 
-    @a = 3                              // `a` is an int
-    @b = "Hello World"                  // `b` is a str
-    @c = MyFunction()                   // `c` is whatever type is returned by MyFunction
-    @d = List<int>([1,2,3])             // `d` is a list of integers, initialized with [1,2,3]
-    @e = Map<str,int>(["A":1,"B":2])    // `e` is a map of <str, int>
+    @a = 3                          // a is an int
+    @b = "Hello World"              // b is a str
+    @c = MyFunction()               // c is whatever type is returned by MyFunction
+    @d = [1,2,3]                    // d is List<int>, initialized with [1,2,3]
+    @e = ["A":1.0, "B":2.0]         // e is Map<str,f64>
+    @f = [[1.0,2.0],[3.0,4.0]]      // f is List<List<f64>>
 
 The above form `@variable = expression` creates a variable with the same type as
 the expression.  A second form `@variable type [=expression]` creates an explicitly
@@ -113,133 +134,16 @@ typed variable with optional assignment from an expression.  If the expression
 cannot be converted, an error is generated
 
     @a int = MyIntFunc()                // Error if MyIntFunc returns a float
-    @b str                              // `b` is a string, initialized to ""
-    @c List<int>                        // `c` is an empty List<int>
-    @d List<int> = [1, 2, 3]            // Preferred over @d = List<int>([1,2,3])
-    @e Map<int,str> = [0:"a", 1:"b"]    // Preferred over @e = Map<int,str>([0:"a", 1:"b"])
-    @f Json = ["A":1,"B":[1,2,3]]       // `f` is a Json object
+    @b str                              // b is a string, initialized to ""
+    @c List<int>                        // c is an empty List<int>
+    @d List<f64> = [1, 2, 3]            // Create List<f64>, elements are converted
+    @e Map<str,f32> = ["A":1, "B:1.2]   // Create Map<str,f32>
+    @f Json = ["A":1,"B":[1,2,3.5]]     // Create a Json
 
 In general, `@` is used to introduce a variable into the scope of a function,
 class, or struct.
 
-#### Non-Nullable References
-
-References are non-nullable (i.e. may never be `null`) and are initialized
-when created.  The optimizer may decide to delay initialization until the
-variable is actually used which could have implications if the constructor
-has side effects.  For instance:
-
-    @myList List<int>               // Optimizer may remove this constructor call
-    if MyFunc()
-        { myList = MyListFunc() }   // Constructor might not be called above
-    else
-        { myList.Add(1) }           // Optimizer may move constructor call here
-
-It is possible to create a nullable reference.
-    
-    @myNullStr ?str         // String is null
-
-A non-nullable reference can be assigned to a nullable, but a cast
-or conditional test must be used to convert nullable to non-nullable.  
-
-## Basic types
-
-    i8, u8, byte, i16, u16, i32, int, u32, uint, i64, u64, f32, f64, xint, xuint,
-    decimal, object, str, List<T>, Map<K,V>, Span<T>, Json, OrderedMap<K,V>
-
-`byte`, `int`, and `uint` are aliases for `u8`, `i32`, and `u32`.
-`xint` and `xuint` are extended integer types, which could be 32 or 64 bits
-depending on run-time architecture.
-
-**TBD:** Use lower case for `list`, `map`, `json`, `span`, and
-other common library class types?  
-
-#### Strings
-
-Strings (i.e. `str`) are immutable byte arrays, generally assumed to hold
-UTF8 encoded characters.  However, there is no rule enforcing the UTF8 encoding
-so they may hold any binary data.
-
-String literals in source code can start with either a quote `"` or a backtick
-`` ` ``, which should only be used when the string contains a quote `"`.  They
-can be translated using `tr"string"` syntax.
-
-They may contain escape constants when they are immediately followed
-by `\` and a recognized constant.  For example `"Column 1"\tab"Column 2"`
-contains a `\tab` character. Valid escape constants are `\lf` (i.e. `\n` in C),
-`\cr` (i.e. `\r` in C), `\crlf`, `\tab`, and others.  Unicode numbers may be
-encoded in decimal (e.g. `\127`) or in hexadecimal (e.g. `\x1F600` is the
-unicode smiley face).  A `\` inside the quotes is not an escape character.
-TBD: Do we want to stick with `\n` and `\r` out of tradition?  I find them
-confusing, especially since they aren't marked that way on most ASCII charts.
-
-Strings are interpolated when when followed by parenthesis `"Example:"(expression)`,
-or an identifier beginning a primary expression `"Example:"X[0]`.  
-
-    @a = "Regular string literal"
-    @b = "Column 1"\tab"Column 2"\crlf              // Containing a tab, ending with \r\n
-    @c = tr"Translated string"                      // Translated string
-    @d = "Hello world, 2+2="(2+2)"!"\crlf           // Interpolated with crlf at end
-    @e = tr"Hello world, 2+2=" X "!"\crlf           // Translated and interpolated variable with crlf at end
-    @f = `Jack says "Hello World!"`                 // Include quote character
-
-TBD: Make it illegal to use `+` after interpolated string literals since the
-end result is identical?  Note that the the translation file would be different.
-
-    @a = tr"Hello "name", what's up?"       // Translation file contains one string
-    @b = tr"Hello "name + tr", what's up?"  // Translation file contains two strings
-
-There is no `StringBuilder` class.  Instead, use `List<byte>`.  There will be
-overloads to allow converting to and from `str`:
-
-    @sb = List<byte>()
-    sb.Append("Count to 10: ")
-    for @count in 1::10
-        { sb.Append(" " + count) }
-    return str(sb)
-
-#### List
-
-`List` is a variable sized array with a `Count` and `Capacity` that
-changes as items are added or removed.  Lists act more like arrays
-than they do in C# because setters are automatically called to modify
-fields when necessary:
-
-    struct MyPoint { pub @X int;  pub @Y int; fun new(x int, y int) {todo()} }
-    @a List<MyPoint> = [(1,2),(3,4),(5,6)]
-    a[1].Y = 12    // Now `a` contains [(1,2),(3,12),(5,6)]
-
-#### Map
-
-`Map` is a hash table and is similar to `Dictionary` in C#.
-
-    @a Map<str,int> = ["Hello":1, "World":2]
-    @b = a["World"]                             // `b` is 2
-    @c = a["not found"]                         // throws exception
-    @d = a.Get("not found")                     // `d` is 0
-    @e = a.Get("not found", -1)                 // `e` is -1
-
-#### Json
-
-`Json` is the built in Json object with support communication with JavaScript.  
-Using an invalid key does not throw an exception, but instead returns a default
-empty object.
-
-    @a Json = ["Hello":1, "World":2]
-    @b = a["World"]                         // `b` is Json(2), not an int
-    @c = a["World"].Int                     // `c` is 2
-    @d = a["World"].Str                     // `d` is "2"
-    @e = a["not found"]["?"].int            // `e` is 0
-
-The `Json` data structure is meant to be quick and easy to use, not necessarily
-the fastest or most efficient. For efficient memory usage, `Json` will support
-[Newtonsoft](https://www.newtonsoft.com/json) style serialization:
-
-    @a = Json.Serialize(object)                 // `a` is a Json `str`
-    @b = Json.Deserialize<MyObject>(jsonStr)    // `b` is a `MyObject`
-
-
-#### Initializers
+**TBD:** Some of the info below is redundant, remove
 
 An array of expressions `[e1,e2,e3...]` is used to initialize arrays and lists,
 and an array of pairs `[K1:V1,K2:V2...]` is used to initialize a map.  Notice
@@ -275,55 +179,240 @@ support Json objects with syntax something like this:
         "Param3" : ["Hello":12, "World" : "Earth"],
         "Time" : "2019-12-07T14:13:46"
     ]
-    @b = a["Param1"].Int            // `b` is 23
-    @c = a["param2"][1].Int         // `c` is 2
-    @d = a["Param3"]["World"].Str   // `d` is "Earth"
-    @e = a["Time"].DateTime         // `e` is converted to DateTime
+    @b = a["Param1"].Int            // b is 23
+    @c = a["param2"][1].Int         // c is 2
+    @d = a["Param3"]["World"].Str   // d is "Earth"
+    @e = a["Time"].DateTime         // e is converted to DateTime
     a["Param2"][1].Int = 5          // Set the value
+
+
+#### Non-Nullable References
+
+References are non-nullable (i.e. may never be `null`) and are initialized
+when created.  The optimizer may decide to delay initialization until the
+variable is actually used which could have implications if the constructor
+has side effects.  For instance:
+
+    @myList List<int>               // Optimizer may remove this constructor call
+    if MyFunc()
+        { myList = MyListFunc() }   // Constructor might not be called above
+    else
+        { myList.Add(1) }           // Optimizer may move constructor call here
+
+It is possible to create a nullable reference.
+    
+    @myNullStr ?str         // String is null
+
+A non-nullable reference can be assigned to a nullable, but a
+conditional test must be used to convert nullable to non-nullable. 
+
+
+## Basic types
+
+    i8, u8, byte, i16, u16, i32, int, u32, uint, i64, u64, f32, f64, xint, xuint,
+    decimal, object, str, Array<T>, List<T>, Map<K,V>, Span<T>, Json, OrderedMap<K,V>
+
+`byte`, `int`, and `uint` are aliases for `u8`, `i32`, and `u32`.
+`xint` and `xuint` are extended integer types, which could be 32 or 64 bits
+depending on run-time architecture.
+
+**TBD:** Use lower case for `list`, `map`, `json`, `span`, and
+other common library class types?  
+
+#### Strings
+
+Strings (i.e. `str`) are immutable byte arrays, generally assumed to hold
+UTF8 encoded characters.  However, there is no rule enforcing the UTF8 encoding
+so they may hold any binary data.
+
+String literals in source code can start with either a quote `"` or a backtick
+`` ` ``, which should only be used when the string literal contains a quote `"`.
+They can be translated using `tr"string"` syntax.
+
+They may contain escape constants when they are immediately followed
+by `\` and a recognized constant.  For example `"Column 1"\tab"Column 2"`
+contains a `\tab` character. Valid escape constants are `\lf` (i.e. `\n` in C),
+`\cr` (i.e. `\r` in C), `\crlf`, `\tab`, and others.  Unicode numbers may be
+encoded in decimal (e.g. `\127`) or in hexadecimal (e.g. `\x1F600` is the
+unicode smiley face).  A `\` inside the quotes is not an escape character.
+TBD: Do we want to stick with `\n` and `\r` out of tradition?  I find them
+confusing, especially since they aren't marked that way on most ASCII charts.
+
+Strings are interpolated when when followed by parenthesis `"Example:"(expression)`,
+or an identifier beginning a primary expression `"Item #" i "=" X[i]`.  
+
+    @a = "Regular string literal"               // No interpolation
+    @b = "Column 1"\tab"Column 2"\crlf          // Containing a tab, ending with \r\n
+    @c = tr"Translated string"                  // Translated string
+    @d = "Hello world, 2+2="(2+2)"!"\crlf       // Interpolated with crlf at end
+    @e = tr"Hello world, X=" X "!"\crlf         // Translated and interpolated variable with crlf at end
+    @f = `Jack says "Hello World!"`             // Include quote character
+
+TBD: Make it illegal to use `+` after interpolated string literals since the
+end result is identical?  Note that the the translation file would be different.
+
+    @a = tr"Hello "name", what's up?"       // Translation file contains one string
+    @b = tr"Hello "name + tr", what's up?"  // Translation file contains two strings
+
+There is no `StringBuilder` class.  Instead, use `List<byte>`. 
+
+    @sb = List<byte>()
+    sb.Append("Count to 10: ")
+    for @count in 1::10
+        { sb.Append(" " + count) }
+    return str(sb)
+
+Strings can be sliced.  See `List` (below)
+
+#### Array
+
+Zurfur arrays are immutable.  They may contain only immutable classes
+explicitly marked with `ro`.  Mutable struct elements are allowed; however,
+they are copied into the array and become immutable therever after.
+Structs containing mutable classes, such as `List` are not allowed.
+
+Arrays, like strings, should be used to hold data that never changes
+after it has been created.  In fact, string  is the same as `Array<byte>`
+with some extra functionality.  Use `List` to build and hold mutable data,
+use `Array` to store immutable data.
+
+    struct MutStruct {pub @value int}
+    class ro ImmutClassGood { pub ro @value int}
+    class ImmutClassBad { pub ro @value int }
+    a = [1,2,3]                             // mutable List<int>
+    b = Array(a)                            // Array<int>, immutable elements copied from a
+    c = Array([MutStruct(value:1)])         // Array<MutSruct>, elements are copied then become immutable
+    d = Array([ImmutClassGood(value:1)])    // Immutable classes are allowed in an array
+    e = Array([ImmutClassBad(value:1)])     // Illegal, class must marked `ro`
+
+Arrays can be sliced.  See `List`
+
+#### Span
+
+Span is a view into a string, array, or list.  They are `ref` structs
+and may never be put on the heap.  Elements are immutable or mutable
+depending on what creates them (immutable for `str` and `Array`,
+mutable for `List`)
+
+See `List` (below) for more info on slicing
+
+#### List
+
+`List` is a variable sized array with a `Count` and `Capacity` that
+changes as items are added or removed.  Lists use `ref` returns and act
+exactly like a dynamically sized mutable array.  A field of a mutable struct
+can be modified, like so:
+
+    struct MyPoint { pub @X int;  pub @Y int; fun new(x int, y int) {todo()} }
+    @a List<MyPoint> = [(1,2),(3,4),(5,6)]  // Use array intializer with MyPoint constructor
+    a[1].Y = 12                             // Now a contains [(1,2),(3,12),(5,6)]
+
+Given a range, the index operator can be used to slice the List.  A slice is a view
+into the list.  A change to the list is a change to the span and a change to the
+span is a change to the list.
+
+    @a = ["a","b","c","d","e"]  // a is List<str>
+    @b = a[1..4]                // b is a span, with b[0] == "b" (b aliases ["b","c","d"])
+    @c = a[2::2]                // c is a span, with c[0] == "c" (c aliases ["c","d"])
+    c[0] = "hello"              // now a = ["a","b","hello","d","e"], and b=["b","hello","d"]
+
+When the count or capaicty of a list changes, all spans pointing into it become detached.
+A new list is created and used by the list, but the old spans continue aliasing the old
+data.  In general, this should be very rare for most programs, however it is necessary
+for memory safety, efficiency, and programmers should be aware.
+
+        @list List<byte>
+        list.Append("Hello Pat")    // list is "Hello Pat"
+        @slice = a[6::3]            // slice is "Pat"
+        slice[0] = "M"[0]           // slice is "Mat", list is "Hello Mat"
+        list.Append("!")            // slice is now detached, list is "Hello Mat!"
+        slice[0] = "C"[0]           // slice is "Cat", list is still "Hello Mat!"
+
+
+#### Map
+
+`Map` is a hash table and is similar to `Dictionary` in C#.
+
+    @a Map<str,int> = ["Hello":1, "World":2]
+    @b = a["World"]                             // b is 2
+    @c = a["not found"]                         // throws exception
+    @d = a.Get("not found")                     // d is 0
+    @e = a.Get("not found", -1)                 // e is -1
+
+#### Json
+
+`Json` is the built in Json object with support communication with JavaScript.  
+Using an invalid key does not throw an exception, but instead returns a default
+empty object.
+
+    @a Json = ["Hello":1, "World":2]
+    @b = a["World"]                         // b is Json(2), not an int
+    @c = a["World"].Int                     // c is 2
+    @d = a["World"].Str                     // d is "2"
+    @e = a["not found"]["?"].int            // e is 0
+
+The `Json` data structure is meant to be quick and easy to use, not necessarily
+the fastest or most efficient. For efficient memory usage, `Json` will support
+[Newtonsoft](https://www.newtonsoft.com/json) style serialization:
+
+    @a = Json.Serialize(object)                 // a is a Json `str`
+    @b = Json.Deserialize<MyObject>(jsonStr)    // b is a `MyObject`
 
 
 ## Operator Precedence
 
 Operator precedence comes from Golang.
 
-| Type      |  Operators at precedence level
-| :--- | :--- 
-| Primary|  x.y  f<type>(x)  a[i]
-|Unary| - ! & ~ * switch sizeof use unsafe cast
-|Multiplication and bits| * / % << >> & 
-|Addition and bits| + - ~ &#124;
-|Range| low..high low::count
-|Comparison| == != < <= > >= === !== in
-|Conditional| &&
-|Conditional| &#124;&#124;
-|Ternary| a ? b : c
-|Lambda| ->
-|Pair|  key: value
-|Comma Separator| ,
-|Assignment Statements| = += -= *= /= %= &= |= ~= <<= >>=
-|Statement Separator| =>
-
-The `*` operator is both multiplication and unary dereference, same as in C.
-When used in type definitions, it means *pointer to*, for example `@a *int`
-means `a` is a pointer to `int`.
+|Operators | Notes
+| :--- | :---
+|x.y  f<type>(x)  a[i] | Primary
+|- ! & ~ * sizeof use unsafe cast| Unary
+|@|Capture new variable
+|as is | Type conversion and comparison
+|* / % & << >>| Multiply/Bits
+|+ - &#124; ~| Add/Bits
+|Low..High, Low::Count|Range (inclusive of low, exclusive of high)
+|== != < <= > >= === !== in|Not associative
+|&&|Conditional
+|&#124;&#124;|Conditional
+|a ? b : c| Not associative (see below for restrictions)
+|->|Lambda
+|key:Value|Pair
+|,|Comma Separator (not an expression)
+|= += -= *= /= %= &= |= ~= <<= >>=|Assignment Statements (not an expression)
+|=>|Statement Separator
 
 The `~` operator is both xor and unary complement, same as `^` in Golang.
 
+The `@` operator captures the expression into a new variable.
+For instance `while stream.Read(buffer)@length != 0 {...}`
+captures the value returned by `Read` into the new variable `length`.
+Or, `if maybeNullObjectFunc()@nonNullObject { }` can be used to
+convert `?Object` into `Object` inside of the braces. 
+
 The range operator`..` takes two `int`s and make a `Range` which is a
-`struct Range { High int; Low int}`.  The `::` operator also makes a
-range, but the second parameter is a count instead of end index.  
-See `For Loop` below for examples.
+`struct Range{ @High int; @Low int}`.  The `::` operator also makes a
+range, but the second parameter is a count (`High = Low + Count`).  
 
 The pair operator `:` makes a key/value pair which can be used
 in an array to initialize a map.
 
 Assignment is a statement, not an expression.  Therefore, expressions like
-`while (a += count) < 20` and `a = b = 1` are not allowed.  Comma is also
-not an expression, and may only be used where they are expected, such as
-a function call or lambda expression.
+`a = b = 1` and `while (a = count) < 20` are not allowed. In the latter
+case, use `while count@a < 20`.  Comma is also not an expression and may
+only be used where they are expected, such as a function call or lambda.
 
 Operator `==` does not default to object comparison, and only works when it
 is defined for the given type.  Use `===` and `!==` for object comparison. 
+Comparisons are not associative, so `a == b == c` is illegal.
+
+The ternary operator is not associative and cannot be nested.  Examples
+of illegal expresions are `c1 ? x : c2 ? y : z` (not associative),
+`c1 ? x : (c2 ? y : z)` (no nesting).  The result expressions may not
+directly contain an operator with lower precedence than range.
+For example, `a==b ? x==3 : y==4` is  illegal.  Parnethesis can be
+used to override that behavior, `a==b ? (x==3) : (y==4)` and
+`a==b ? (p-> p==3) : (p-> p==4)` are acceptable.
 
 #### Operator Overloading
 
@@ -347,46 +436,14 @@ The short version: More explicit than C#, easier than Rust.
 
 Read only `ro` means children classes are also read only.  A `ro`
 return from a function prevents the calling function from mutating.
-`@` locals can be re-assigned in the function, but not mutated
-by a function call.  `mut` locals can be mutated by a function call,
-but only if the function parameter is explcitly marked `mut`.
 
 **TBD:** Add more info here.
-
-## Exceptions and Errors
-
-[Midori](http://joeduffyblog.com/2016/02/07/the-error-model/) has some good
-ideas that I will look into soon.
-
-**TBD:** Describe error model.  In short, errors are return codes that
-get checked by the calling function.  Exceptions immediately end
-all synchronous calls up the stack frame.
-
-Exceptions (i.e. programming errors) in sync code cannot be "swallowed".
-The `finally` block can perform cleanup, but at the end of the cleanup,
-it always throws all the way up the sync stack.  The reasons for this are
-1) Errors (not exceptions) should be used for predictable errors that
-need recovery, 2) WebAssembly can't efficiently catch and resume execution
-after dumping the stack frame
-
-Exceptions can be caught and continued (or "swallowed") in async code.
-Since async calls are not on the execution stack, it is possible to
-efficiently continue after the exception. This also makes it possible
-to recover (and log an error) after a programing error.
 
 ## Statements
 
 Like Golang, semicolons are required between statements but they are automatically
 inserted at the end of lines based on the last non-comment token and the first token
-of the next line.
-
-The general rule is that any line beginning with a binary operator does not put
-a semicolon on the previous line.  Additionally, `{`, `[`, `(`, or `,` at the end
-of a line prevents a semicolon on that line.
-
-**Exception:** A line beginning with an `*` always has a semicolon before it, so
-multiplication cannot be used to continue a line.  This is necessary so a
-dereference statement such as `*a = 3` cannot be continued from the previous line.
+of the next line.  See "Coding Standards" (below) for more info about semi-colons.
 
 #### While and Do Statements
 
@@ -519,12 +576,7 @@ it is attempted.  Here are two examples of things to avoid:
         else
             { myIntList[i] += 1 } // This will throw an exception if any element was removed
     }
-    
-
-**TBD:** Explore syntax to iterate with different count steps.  Perhaps something
-like `for @newVar in expression : stepExpression` where `stepExpression` is a
-positive compile time constant.
-
+ 
 #### Switch
 
 The switch statement is mostly the same as C#, except that a `case` statement
@@ -543,11 +595,47 @@ level as a `case` statement.
         if x==y
             { break }  // Exit switch statement early, don't DoStuff3
         DoStuff3()
+    default:
     }
 
-Switch can also be used as an expression:
+**TBD:** `default` required unless all cases covered.
 
-    @num =  unaryExpression switch(23: a, 27: b, default: 0)
+#### Match
+
+The `match` keyword is reserved, but the syntax is identical to a regular function call.
+
+    @num = 3 + match(myConstant)[1:a, 2..5:b, 6:myFunc(), default: 0]
+
+## Coding Standards
+
+Zurfur enforces a few coding standards, but one style it does **not** enforce
+where your curly brace goes.  Both end-of-line and beginning-of-next-line are
+acceptable.  By convention, all code in the Zurfur code base uses curly brace
+on beginning-of-next-line style.  The Zurfur IDE shrinks curly brace only lines
+so they take the same space as the brace-at-end style as in a regular IDE.
+
+Here are the enforced coding standards:
+
+1. No tabs in the source code
+2. No white space at end of line
+3. No semi-colons at the end of lines
+4. Split lines require a binary operator at the beginning of the next line
+5. Or split lines require `[`, `(`, or `,`, on the previous line
+
+
+Like Golang, semicolons are required between statements but they are automatically
+inserted at the end of lines based on the last non-comment token and the first token
+of the next line.
+
+The general rule is that any line beginning with a binary operator does not put
+a semicolon on the previous line.  Additionally, `{`, `[`, `(`, or `,` at the end
+of a line prevents a semicolon on that line.
+
+
+**Exception:** A line beginning with an `*` always has a semicolon before it, so
+multiplication cannot be used to continue a line.  This is necessary so a
+dereference statement such as `*a = 3` cannot be continued from the previous line.
+
 
 ## Classes
 
@@ -605,9 +693,9 @@ efficiency are desired.  `int`, `byte`, and `float` are structs.
 A mutable struct returned from a getter can be mutated in-place provided there is a corresponding setter.
 
     @a = List<MyMutablePoint> = [(1,2), (3,4), (5,6)]
-    a[1].X = 23         // `a` contains [(1,2),(23,4), (5,6)]
-    a[1].SetY(24)       // `a` contains [(1,2),(23,24), (5,6)]
-    a[1].PropX = 0      // `a` contains [(1,2),(0,24), (5,6)]
+    a[1].X = 23         // a contains [(1,2),(23,4), (5,6)]
+    a[1].SetY(24)       // a contains [(1,2),(23,24), (5,6)]
+    a[1].PropX = 0      // a contains [(1,2),(0,24), (5,6)]
 
 This works because `SetY` is a mutating function so the corresponding
 `List` setter is called to save the result. 
@@ -655,44 +743,6 @@ weight as an integer and need no metadata in the compiled executable.
 
 **TBD:** Differentiate an enum having only scalar values vs one with flags?
 The one with flags allows `|` and `&`, etc but the other doesn't.
-
-## Casting
-
-A cast is used when a type conversion should be explicit, including
-conversion from a base class to a derived class, conversion between
-pointer types, and conversion of integer types that may lose precision.
-
-There are two different syntaxes, one for base class and precison
-conversions `cast type(expression)`, for example `cast int(myFloat)`.
-The second form is only for pointers `cast(type)expression` and is
-designed to look like the old style C pointer casts, for example
-`cast(*int)myVoidPointer`.  Pointers can only be used in an
-unsafe context, but a pointer cast would be considered very
-very unsafe.
-
-    @a = cast int(a+myFloat)    // Cast (a+myFloat) from float to int
-    @b = cast(*int)myFloatPtr   // Cast myFloatPtr to *int
-
-A constructor can be used to convert types that don't lose precision,
-like `byte` to `int`, but a cast must be used to convert `int` to `byte`
-because precision can be lost.  In the definitions below, we want an
-error if MyIntFunc() should ever return a float.
-
-    // Field definitions
-    @a int = MyByteFunc()            // Ok, no loss of precision
-    @b int = MyIntFunc()             // Ok, but fails if MyIntFunc returns a float
-    @c int = MyFloatFunc()           // Fail, constructor won't risk losing precision
-    @d int = cast int(MyFloatFunc()) // Ok, explicit cast
-
-Pointer casts never throw an exception.  Zurfur numeric conversions never thow
-exceptions, nor should user defined casts.  Conversion from base class to derived
-class might throw an exception.
-
-
-**TBD**: I'm considering adding a cast operator:
-    @a = #int(a+myFloat)         // Cast (a+myFloat) from float to int
-    @b = #(*int)myFloatPtr       // Cast myFloatPtr to *int
-    @c int = #int(MyFloatFunc())     // Ok, explicit cast
 
 ## Interfaces
 
@@ -786,35 +836,26 @@ the work on the type conversion is actually quite cheap.*"
 Note that an interface containing only static functions can be implemented using
 a thin pointer.
 
+## Exceptions and Errors
 
-## Arrays and Slicing
+[Midori](http://joeduffyblog.com/2016/02/07/the-error-model/) has some good
+ideas that I will look into soon.
 
-Given a range, arrays can be sliced:
+**TBD:** Describe error model.  In short, errors are return codes that
+get checked by the calling function.  Exceptions immediately end
+all synchronous calls up the stack frame.
 
-    @a = myArray[2..32]     // Elements starting at 2 ending at 31 (excludes element 32)
-    @b = myArray[2::5]      // Elements 2..7 (length 5, excludes element 7)
+Exceptions (i.e. programming errors) in sync code cannot be "swallowed".
+The `finally` block can perform cleanup, but at the end of the cleanup,
+it always throws all the way up the sync stack.  The reasons for this are
+1) Errors (not exceptions) should be used for predictable errors that
+need recovery, 2) WebAssembly can't efficiently catch and resume execution
+after dumping the stack frame
 
-If `myArray` is of type `Array<byte>`, a string can be created directly from the slice:
-
-    @s = str(myArray[2::5])     // Create a string
-    MyStrFunc(myArray[2::5])    // Convert slice to string, pass to function
-
-A `List` can be sliced, but the slice to becomes detached from the underlying
-array when the capacity changes.  
-
-    pub static fun BadSlice()
-    {
-        @s = List<byte>()
-        a.Add("Hello Bob")
-        @slice = a[6::3]            // slice is "Bob"
-        a[6] = "R"[0]               // slice is "Rob"
-        a.Add(", we are happy")     // slice is now detached from the original array
-        a[6] = "B"[0]               // slice is still "Rob"
-    }
-
-While it is a little unsafe (not memory unsafe) to allow Lists to be sliced,
-the convenience outweighs the bad.  **TBD:** Maybe not allow since we
-are using reference counted GC?
+Exceptions can be caught and continued (or "swallowed") in async code.
+Since async calls are not on the execution stack, it is possible to
+efficiently continue after the exception. This also makes it possible
+to recover (and log an error) after a programing error.
 
 ## Garbage Collection
 
@@ -836,7 +877,7 @@ Eventually, there may be a garbage collector to detect and cleanup cycles.
 ## Pointers
 
 The unary `*` operator dereferences a pointer.  The `.` operator is used to access fields
-or members of a pointer to the struct (so `->` is only used for lambdas). 
+or members of a pointer to the struct (so `->` is not used for pointers, it is only for lambdas). 
  
     pub static fun strcpy(dest *byte, source *byte)
     {
@@ -845,8 +886,35 @@ or members of a pointer to the struct (so `->` is only used for lambdas).
         *dest = 0
     }
 
+#### Pointer Safety
+
+For now...
+
+Pointers are not safe.  They act axactly as they do in C.  You can corrupt
+memory and crash your application.  They can be null, and the compiler
+does not add run time null checks.  There are three reasons for this.
+
+First, it makes porting from C easier.  I need to port DlMalloc without
+worrying about pointer type safety.  Second, they are fast.  It is
+necessary to have low level libraries and infrustructure running
+fast and efficiently.  Third, without pointers, Zurfur is a type
+safe language.  Pointers should only be used where necessary.
+
+Perhaps, after Zurfur is running, I might add a few things from
+[Zig](https://ziglang.org/).  Among them is null safety (e.g. `*?int`)
+and requiring an array type to allow array access (i.e. `*[]int`).
+That would be a major breaking change, which might be acceptable if
+done before version 1.0.  But, speed cannot be sacrificed.
+
 Pointers are never tracked by the GC.  Any object that may have a
-pointer pointing into it must be pinned (or covered, see GC section below)
+pointer pointing into it must be pinned.
+
+In an unsafe context, pointers can be cast from one type to another
+using the `cast` operator.  The format is `cast(type)expression`.
+For those coming directly from C, it will look almost the same
+as an old C style cast, except the keyword `cast` must be used.
+
+    @b = cast(*int)myFloatPtr   // Cast myFloatPtr to *int
 
 ## Namespaces
 

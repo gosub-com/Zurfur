@@ -6,11 +6,11 @@ pub struct ref ro Span<T>
     ro @owner ?object
     ro @data *T
     pub ro @Count int
-    pub fun operator[](index int) ref T 
+    pub fun operator[](index int) ref T
     {
         get
         {
-            if cast uint(index) >= cast uint(Count)
+            if cast(uint)index >= cast(uint)Count
                 { throw IndexOutOfRangeException() }
             return unsafe(cast(ref T)(data + index))
         }
@@ -21,7 +21,7 @@ pub struct ref ro Span<T>
         get
         {
             if r.Low < 0 || r.High < r.Low
-                || cast uint(r.High) > cast uint(Count)
+                || cast(uint)r.High > cast(uint)Count
             {
                 throw IndexOutOfRangeException()
             }

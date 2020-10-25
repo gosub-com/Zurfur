@@ -304,7 +304,7 @@ namespace Gosub.Zurfur.Ide
                 }
             }
             editor.SetMarks(marks.ToArray());
-            editor.Invalidate();
+            editor.InvalidateAll();
         }
 
 

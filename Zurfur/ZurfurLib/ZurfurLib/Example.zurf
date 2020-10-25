@@ -5,20 +5,32 @@ use system.gosub.p
 // http://zurfur.com
 namespace Zurfur.Example
 
+static fun test_HelloWorld()
+{
+    Console.Log("Hello World.  Let's count from 1 to 10.")
+    for @a in 1..11
+    {
+        Console.Log("Count=" a)
+    }
+}
+
 pub class Example
 {
-    @info str                    // Private string initialized to ""
-    @f1 Array<int> = [1,2,3]             // Initialized array
-    @f2 List<str> = ["Hello", "World"]   // Initialized list
-    ro @f3 Map<str,int> = ["A":1, "B":2] // Initialized immutable map
-    pub ro @Header str = "Zurfur"        // Public read only string
-    pub fun F(a int) str => Header + a      // Public member function
-    pub prop P str => Header + info         // Public property
+    @info str                            // Initialized string
+    @list List<str> = ["Hello", "World"] // Mutable list
+    ro @map Map<str,int> = ["A":1,"B":2] // Immutable map
+    pub fun GetInfo(a int) str => info+a // Public member function
+    pub prop Info str => info            // Public property
     
     pub fun Test()
     {
         @a = tr"Column 1"\tab"Column 2"\crlf
         @data = "Name:"name\tab"Occupation:"lastName\crlf
+        
+        while stream.Read(buffer)@size != 0
+        {
+            @a = MyFun as Hello
+        }
     }
 }
 
@@ -60,7 +72,7 @@ pub class Example_x
 {
     pub const CONST_FIELD int = 234
     pub @field1 f32
-    pub @field2 int    
+    pub @field2 int
     pub prop Prop str => Header + info      // Property
     pub fun A(a int, b int, c f32) f32 => a+1
     pub fun A(a f32) f32 => a+1
@@ -113,8 +125,8 @@ pub struct PointXY<T>
     pub fun operator+(a PointXY<T>, b PointXY<T>) PointXY<T> => todo()
 }
 
-pub fun Example::Extension() 
-{ 
+pub fun Example::Extension()
+{
     for @a in 1..23
     {
         F(out @x, a)
@@ -127,7 +139,7 @@ pub fun Example::Extension()
 
 // Test class
 pub class Example2  // YES, errors working
-{ 
+{
     // Todo List:
     //    .. operator doesn't need parameters at beginning or end
     //    Support for :: operator (start::count)
@@ -142,7 +154,7 @@ pub class Example2  // YES, errors working
     @f3 str          // Initialized to "", not NULL
     
     @f4 Array<int> = [1,2,3,4]
-    @f5 Array<Array<int>> 
+    @f5 Array<Array<int>>
     @f7 Map<str,List<int>>
     @f8 Pointer<int>
     @f9 *int        // Same as Pointer<int>
@@ -168,7 +180,7 @@ pub class Example2  // YES, errors working
         => default get set // Initialized to 3
     pub prop P5 int = 3
     {
-        get { return p1 } 
+        get { return p1 }
         set { p1 = value }
     }
     
@@ -195,8 +207,8 @@ pub class Example2  // YES, errors working
     
     pub static fun Main(args Array<str>)
     {
-        @a = use OpenFile("My File");
-        defer file.close();
+        @a = use OpenFile("My File")
+        defer file.close()
         
         // Function calls vs parameter lists
         @a1 = MyType<a,b,c>()
@@ -204,27 +216,19 @@ pub class Example2  // YES, errors working
         @a3 = List<List<int>>()
         @a4 = List(List(int))()
         @a5 = M<str,int.x<T>.y>.Hello2<x.x>()
-        @a6 = M(str,int.x(T).y).Hello2(x.x)()     
+        @a6 = M(str,int.x(T).y).Hello2(x.x)()
         @a7 = f(f<a>())(a+b)
 
         // Casts
-        @a = cast int(a+b+myFloat32)*23+4
-        @a = cast List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
-        @b = *cast(*int)myVoidPointer      // Prefix
-        @c1 = cast M<str,int.x<T>.y>.Hello2(A)
-        @c2 = cast M<str,int.x<T>.y>.Hello2<x.x>(A)
-        @c3 = cast List<int,y,z>(A)
-        @a = cast int(a+b+myFloat32)
-        @a = cast List<Stuff>(yourStuff.SeeMyStuff).Add(Stuff())
-        @a = (cast List<Stuff>(yourStuff.SeeMyStuff)).Add(Stuff())
         @b = *cast(*int)myVoidPointer
-        cast List<Stuff>(yourStuff.SeeMyStuff)[23] = 4
 
 
         // Local variables declared in a function
         @myString = "Hello World"
         @myInt = 3
-        @myList = List<int>([1,2,3])
+        @myList1 = [1,2,3]
+        @myMap1 = ["A":1,"B":2]
+        @myList2 = List<int>([1,2,3])
         @myMap = Map<str,int>(["A":1,"B":2])
         @myOtherMap = MyMapReturningFunction()
        
@@ -255,21 +259,21 @@ pub class Example2  // YES, errors working
         // In operator
         if myStr in myMap || myIn in 1..23
         {
-            DoSomething();
+            DoSomething()
         }
 
         // Switch expressions
-        @num = 3 + myConstant switch(23: a, 27: b, default: 0 )
+        @num = 3 + match(myConstant)[1:a, 2..5:b, 6:myFunc(), default: 0]
 
         // Switch statement
         switch a
         {
         case 1:
-            DoIt(1) // No break necessary         
+            DoIt(1) // No break necessary
         case 2, 3:
             DoIt2()
         default:
-            doit3();
+            doit3()
         }
         
         @a json = [
@@ -285,15 +289,15 @@ pub class Example2  // YES, errors working
                      "Field3": "C"
                  ]
              ]
-         ]        
+         ]
         
                 
     }
 }
 
 
-pub fun Example::IfTests() 
-{ 
+pub fun Example::IfTests()
+{
     // In operator
     if myStr in myMap || myIn in 1..23
     {
@@ -348,7 +352,7 @@ pub fun Example::IfTests()
         DoSomething()
         hello()
     }
-    else 
+    else
     {
         f(a)
     }
@@ -395,7 +399,7 @@ pub interface MyInterfaceTest
     pub class Aclass { pub @a int  }
 }
 
-pub class MyClass1 
+pub class MyClass1
     implements MyInterfaceTest
 {
     pub fun A() int => 3
@@ -439,8 +443,8 @@ pub class Matrix2d<t>
 
 pub static fun MemCopy(dest *void, source *void, length xint)
 {
-    @d = cast xint(dest)
-    @s = cast xint(source)
+    @d = cast(xint)dest
+    @s = cast(xint)source
     
     if length <= 0
     {
@@ -466,7 +470,7 @@ pub static fun MemCopy(dest *void, source *void, length xint)
         *cast(*byte)d = *cast(*byte)s; d+=1; s+=1
         *cast(*byte)d = *cast(*byte)s; d+=1; s+=1
         *cast(*byte)d = *cast(*byte)s; d+=1; s+=1
-    } 
+    }
     while d != end
     {
         *cast(*byte)d = *cast(*byte)s; d+=1; s+=1
@@ -475,8 +479,8 @@ pub static fun MemCopy(dest *void, source *void, length xint)
 
 pub static fun MemCopy32(dest *void, source *void, length xint)
 {
-    @d = cast xint(dest)
-    @s = cast xint(source)
+    @d = cast (xint)dest
+    @s = cast (xint)source
 
     if length <= 0
     {
@@ -491,7 +495,7 @@ pub static fun MemCopy32(dest *void, source *void, length xint)
         {
             *cast(*i32)d = *cast(*i32)s; d+=4; s+=4
         }
-        while end - d >= 8  
+        while end - d >= 8
         {
             *cast(*i64)d = *cast(*i64)s; d+=8; s+=8
         }
@@ -512,8 +516,8 @@ namespace ExampleNs1.HelloWorld
     
     class ClassEx1
     {
-        @a int;
-        @b int;
+        @a int
+        @b int
     }
 }
 
@@ -533,8 +537,8 @@ namespace ExampleNs1
 
     class ClassEx1
     {
-        @a int;
-        @b int;
+        @a int
+        @b int
         class Inner1
         {
         }

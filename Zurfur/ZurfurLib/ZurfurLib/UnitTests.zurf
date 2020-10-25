@@ -10,7 +10,7 @@ static fun test_HelloWorld()
     Console.Log("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
     {
-        Console.Log("Count=" a) 
+        Console.Log("Count=" a)
     }
 }
 
@@ -58,7 +58,7 @@ pub static fun test_Convert()
 {
     @a = List<float>()
     @b = List<int>()
-    @c = a.Convert((i) -> cast int(i))
+    @c = a.Convert((i) -> int(i))
 }
 
 
