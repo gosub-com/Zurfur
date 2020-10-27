@@ -141,6 +141,7 @@ pub class List<T>
     
     pub prop Count int => count
     pub mut fun Push(item T) => todo()
+    pub mut fun Push(items Span<T>) => todo()
     pub mut fun Pop() ?T => todo()
     pub mut fun Insert(index int, item T) => todo()
     pub mut fun Insert(index int, items Span<T>) => todo()
