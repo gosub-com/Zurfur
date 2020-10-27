@@ -448,41 +448,6 @@ The `scope` statement can be turned into a loop using the `continue` statement:
 
 Likewise, `break` can be used to exit early.
 
-#### Catch and Finally
-
-Any scope can be used to catch an exception, there is no need for a `try` statement.
-Exceptions are automatically re-thrown unless there is an explicit `break` or
-`return` keyword. 
-
-    afun F()
-    {
-        @a = DoStuff()
-    catch SpecialError:
-        SpecialCleanup()
-    catch Error:
-        GeneralCleanup()
-    finally:
-        DoStuffNoMatterWhat()
-    }
-
-The exception handling code doesn't have access to any variables in the local scope.
-The `scope` keyword can be used for that purpose.
-
-    afun F() int
-    {
-        @a = 0
-        scope
-        {
-            a = DoStuff()
-        catch SpecialError1:
-            return -1
-        catch SpecialError2:
-            break;
-        }
-        return a
-    }
-
-
 #### For Loop
 
 For the time being, `for` loops only allow one format: `for @newVariable in expression`. 
@@ -805,10 +770,93 @@ the work on the type conversion is actually quite cheap.*"
 Note that an interface containing only static functions can be implemented using
 a thin pointer.
 
-## Exceptions and Errors
+## Errors and Exceptions
 
-[Midori](http://joeduffyblog.com/2016/02/07/the-error-model/) has some good
-ideas that I will look into soon.
+Errors are return values which can be caught, stored, or explicity ignored.
+Exceptions are programming errors that stop the debugger and complain loudly.
+They cannot be caught, however, they are memory safe and do enough cleanup
+so that a production system can log the error and continue running. (i.e.
+they actually can be caught in special places, but never in synchronous code)
+
+A function marked with `error` may either return a result or return an error.
+If the result is used without error checking, either 1) the function must have
+an error handler, or 2) the function must have an error return value, or 3) both.
+
+Any scope can catch an error.
+
+Given the following definitions:
+
+    pub fun afun Open(name str, mode FileMode) File error => impl
+    pub mut afun Read(data mut Span<byte>) int error  => impl
+    pub mut afun Close() error => impl
+
+We may decide to let errors percolate up:
+
+<pre>
+    pub afun ReadFileIntoString(name str) str
+    {
+        @result = List<byte>()
+        @buffer = List<byte>(256, byte(0)) // Fill with 256 0 bytes
+        @stream = <b><u>use</u></b> File.<b><u>Open</u></b>(name, FileMode.ReadOnly)
+        while stream.<b><u>Read</u></b>(buffer)@count != 0
+            { result.Push(buffer[0::count]) }
+        return str(result)
+    }
+</pre>
+    
+There are 3 functions that can generate an error, `use`, `Open`, and `Read`.
+They are highlighted by the IDE to let you know each one could immediately
+generate an error and exit the function.  If the function were not marked
+`error`, the code would fail to compile.  But we could handle those errors
+in the function instead percolating them up.
+
+<pre>
+    // This is not an example of something that should be done
+    pub afun ReadFileOrErrorIntoString(name str) str
+    {
+        @result = List<byte>();
+        @buffer = List<byte>(256, byte(0))
+        @stream = <b><u>use</u></b> File.<b><u>Open</u></b>(name, FileMode.ReadOnly)
+        while stream.<b><u>Read</u></b>(buffer)@count != 0
+            { result.Push(buffer[0::count]) }
+        return str(result);
+    error e FileNotFound:
+        return "ERROR: Can`t even open the file, " e.Message
+    error e:
+        return "ERROR: Can't read the file, " e.Message ", here is part of it: " str(result)
+    }
+</pre>
+
+A scope can have only one error handler at the end of it, but it may have
+multiple error cases.  Any un-tested error jumps directly to it.  It has
+access to only the variables declared before the first un-caught error.
+In this case it has access to `result` and `buffer`, but not `stream`.
+
+An error handler at the end of a function requires the use of `return` above
+it, even if the function is void.  Each case of the error handler must terminate
+with either `return` to suppress the error or with `raise` to percolate the
+error up.  Only when the final error case catches all errors (i.e. `error e:`)
+and also `returns`, then can the the error be fully suppressed and the
+function won't need to be marked with `error`.
+
+Error handlers nested inside a scope must use `return`, `break`, or `continue`
+
+**TBD:** Figure out how to test for an error instead of catching it.
+Maybe `if try(File.Open(...)@stream) { use stream... }
+
+
+
+
+
+
+
+**TBD:** The above is still a WIP
+[Midori](http://joeduffyblog.com/2016/02/07/the-error-model/)
+
+
+
+
+
 
 **TBD:** Describe error model.  In short, errors are return codes that
 get checked by the calling function.  Exceptions immediately end
