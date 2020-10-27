@@ -123,34 +123,32 @@ An array of expressions `[e1,e2,e3...]` is used to initialize a list and
 an array of pairs `[K1:V1,K2:V2...]` is used to initialize a map.  Notice
 that brackets `[]` are used for both arrays and maps. Curly braces are reserved
 for statement level constructs.  Constructors can be called with `()`.  
-The following are identical, although, the simplest is preferred:
+The following are identical, although, the simplest form is preferred:
 
     @a = ["A":1, "B":2]                     // Map<str,int> implied from context
     @b Map<str,int> = ["A":1, "B":2]        // Type name is specified
     @c Map<str,int> = [("A",1), ("B", 2)]   // Use ICollection and KeyValuePair constructor
-    @d Map<str, MyPointXY> = ["A": (1,2), "B": (3,4)]
 
-`a` is prefered for local variables.  Class fields require the type to be
-specified, so `b` is the preferred method. `c` is not preferred, but is
-accepted because the `Map` constructor takes an `ICollection<KeyValuePair<str,int>>`
-parameter. The `KeyValuePair` constructor takes `str` and `int`, so everything
-matches up and is accepted. A `Map<str,MyPointXY>` can be initialized as shown
-above as long as `MyPointXY` has a constructor taking two integers.
+`a` is prefered for local variables, but can't be used to declare class
+variables, so `b` is preferred for creating fields. `c` is not preferred,
+but is accepted because the `Map` constructor takes an
+`ICollection<KeyValuePair<str,int>>` parameter. The `KeyValuePair` constructor
+takes `str` and `int`, so everything matches up and is accepted.
 
-Example of initializing Json:
+Assuming a `MyPointXY` has a constructor taking two integers and public
+mutable fileds named `X` and `Y`, any of these forms could be used.
 
-    @a Json = [
-        "Param1" : 23,
-        "Param2" : [1,2,3],
-        "Param3" : ["Hello":12, "World" : "Earth"],
-        "Time" : "2019-12-07T14:13:46"
-    ]
-    @b = a["Param1"].Int            // b is 23
-    @c = a["param2"][1].Int         // c is 2
-    @d = a["Param3"]["World"].Str   // d is "Earth"
-    @e = a["Time"].DateTime         // e is converted to DateTime
-    a["Param2"][1].Int = 5          // Set the value
+    @a = ["A": MyPointXY(1,2), "B": MyPointXY(3,4)]             // MyPointXY Constructor
+    @b = ["A": MyPointXY(X:1,Y:2), "B": MyPointXY(X:3,Y:4)]     // MyPointXY field intitializer
+    @c Map<str, MyPointXY> = ["A": (1,2), "B": (3,4)]           // MyPointXY Constructor
+    @d Map<str, MyPointXY> = ["A": (X:1,Y:2), "B": (X:3,Y:4)]   // MyPointXY field initializer
 
+The `@` operator can be used to capture the result of a sub-expression:
+
+    while stream.Read(buffer)@count != 0
+        { result.Push(buffer[0::count]) }
+
+More on that below.
 
 #### Non-Nullable References
 
@@ -207,29 +205,14 @@ confusing, especially since they aren't marked that way on most ASCII charts.
 Strings are interpolated when when followed by parenthesis `"Example:"(expression)`,
 or an identifier beginning a primary expression `"Item #" i "=" X[i]`.  
 
-    @a = "Regular string literal"               // No interpolation
-    @b = "Column 1"\tab"Column 2"\crlf          // Containing a tab, ending with \r\n
-    @c = tr"Translated string"                  // Translated string
-    @d = "Hello world, 2+2="(2+2)"!"\crlf       // Interpolated with crlf at end
-    @e = tr"Hello world, X=" X "!"\crlf         // Translated and interpolated variable with crlf at end
-    @f = `Jack says "Hello World!"`             // Include quote character
-
-It looks better with color:
-
 ![](Doc/Strings.png)
-
-TBD: Make it illegal to use `+` after interpolated string literals since the
-end result is identical?  Note that the the translation file would be different.
-
-    @a = tr"Hello "name", what's up?"       // Translation file contains one string
-    @b = tr"Hello "name + tr", what's up?"  // Translation file contains two strings
 
 There is no `StringBuilder` class.  Instead, use `List<byte>`. 
 
     @sb = List<byte>()
-    sb.Append("Count to 10: ")
+    sb.Push("Count to 10: ")
     for @count in 1::10
-        { sb.Append(" " + count) }
+        { sb.Push(" " + count) }
     return str(sb)
 
 Strings can be sliced.  See `List` (below)
@@ -256,12 +239,20 @@ use `Array` to store immutable data.
 
 Arrays can be sliced.  See `List` (below)
 
+**TBD:** In the future, the requirement for requiring `ro` on all class elements
+could be lifted provided that the class is cloned at array creation time.
+
 #### Span
 
-Span is a view into a string, array, or list.  They are `ref` structs
-and may never be put on the heap.  Elements are immutable or mutable
-depending on what creates them (immutable for `str` and `Array`,
-mutable for `List`)
+Span is a view into a string, array, or list.  They are `ref struct` and
+may never be put on the heap.  The span itself is immutable, and cannot be
+copied.  It can be returned from a function, but absolute single ownership
+is enforced. This allows a `Span` to have a deterministic destructor.
+More on this in on the GC section below.
+
+Elements are immutable when `str` and `Array` are sliced, and mutable when
+`List` is sliced.
+
 
 See `List` (below) for more info on slicing
 
@@ -288,15 +279,15 @@ span is a change to the list.
 When the count or capaicty of a list changes, all spans pointing into it become detached.
 A new list is created and used by the list, but the old spans continue aliasing the old
 data.  In general, this should be very rare for most programs, however it is necessary
-for memory safety, efficiency, and programmers should be aware.
+for memory safety, efficiency, and programmers should be aware.  **TBD:** May panic
+instead of detaching, since this is probably a progrmming error.
 
         @list List<byte>
-        list.Append("Hello Pat")    // list is "Hello Pat"
+        list.Push("Hello Pat")    // list is "Hello Pat"
         @slice = a[6::3]            // slice is "Pat"
         slice[0] = "M"[0]           // slice is "Mat", list is "Hello Mat"
-        list.Append("!")            // slice is now detached, list is "Hello Mat!"
+        list.Push("!")            // slice is now detached, list is "Hello Mat!"
         slice[0] = "C"[0]           // slice is "Cat", list is still "Hello Mat!"
-
 
 #### Map
 
@@ -307,6 +298,10 @@ for memory safety, efficiency, and programmers should be aware.
     @c = a["not found"]                         // throws exception
     @d = a.Get("not found")                     // d is 0
     @e = a.Get("not found", -1)                 // e is -1
+
+#### SortedMap
+
+This will be similar to `Map`, but use a red black tree.
 
 #### Json
 
@@ -324,8 +319,19 @@ The `Json` data structure is meant to be quick and easy to use, not necessarily
 the fastest or most efficient. For efficient memory usage, `Json` will support
 [Newtonsoft](https://www.newtonsoft.com/json) style serialization:
 
-    @a = Json.Serialize(object)                 // a is a Json `str`
-    @b = Json.Deserialize<MyObject>(jsonStr)    // b is a `MyObject`
+Another example:
+
+    @a Json = [
+        "Param1" : 23,
+        "Param2" : [1,2,3],
+        "Param3" : ["Hello":12, "World" : "Earth"],
+        "Time" : "2019-12-07T14:13:46"
+    ]
+    @b = a["Param1"].Int            // b is 23
+    @c = a["param2"][1].Int         // c is 2
+    @d = a["Param3"]["World"].Str   // d is "Earth"
+    @e = a["Time"].DateTime         // e is converted to DateTime
+    a["Param2"][1].Int = 5          // Set the value
 
 
 ## Operator Precedence
@@ -447,41 +453,6 @@ The `scope` statement can be turned into a loop using the `continue` statement:
     }
 
 Likewise, `break` can be used to exit early.
-
-#### Catch and Finally
-
-Any scope can be used to catch an exception, there is no need for a `try` statement.
-Exceptions are automatically re-thrown unless there is an explicit `break` or
-`return` keyword. 
-
-    afun F()
-    {
-        @a = DoStuff()
-    catch SpecialError:
-        SpecialCleanup()
-    catch Error:
-        GeneralCleanup()
-    finally:
-        DoStuffNoMatterWhat()
-    }
-
-The exception handling code doesn't have access to any variables in the local scope.
-The `scope` keyword can be used for that purpose.
-
-    afun F() int
-    {
-        @a = 0
-        scope
-        {
-            a = DoStuff()
-        catch SpecialError1:
-            return -1
-        catch SpecialError2:
-            break;
-        }
-        return a
-    }
-
 
 #### For Loop
 
@@ -805,10 +776,93 @@ the work on the type conversion is actually quite cheap.*"
 Note that an interface containing only static functions can be implemented using
 a thin pointer.
 
-## Exceptions and Errors
+## Errors and Exceptions
 
-[Midori](http://joeduffyblog.com/2016/02/07/the-error-model/) has some good
-ideas that I will look into soon.
+Errors are return values which can be caught, stored, or explicity ignored.
+Exceptions are programming errors that stop the debugger and complain loudly.
+They cannot be caught, however, they are memory safe and do enough cleanup
+so that a production system can log the error and continue running. (i.e.
+they actually can be caught in special places, but never in synchronous code)
+
+A function marked with `error` may either return a result or return an error.
+If the result is used without error checking, either 1) the function must have
+an error handler, or 2) the function must have an error return value, or 3) both.
+
+Any scope can catch an error.
+
+Given the following definitions:
+
+    pub fun afun Open(name str, mode FileMode) File error => impl
+    pub mut afun Read(data mut Span<byte>) int error  => impl
+    pub mut afun Close() error => impl
+
+We may decide to let errors percolate up:
+
+<pre>
+    pub afun ReadFileIntoString(name str) str
+    {
+        @result = List<byte>()
+        @buffer = List<byte>(256, byte(0)) // Fill with 256 0 bytes
+        @stream = <b>use</b> File.<b>Open</b>(name, FileMode.ReadOnly)
+        while stream.<b>Read</b>(buffer)@count != 0
+            { result.Push(buffer[0::count]) }
+        return str(result)
+    }
+</pre>
+    
+There are 3 functions that can generate an error, `use`, `Open`, and `Read`.
+They are highlighted by the IDE to let you know each one could immediately
+generate an error and exit the function.  If the function were not marked
+`error`, the code would fail to compile.  But we could handle those errors
+in the function instead percolating them up.
+
+<pre>
+    // This is not an example of something that should be done
+    pub afun ReadFileOrErrorIntoString(name str) str
+    {
+        @result = List<byte>();
+        @buffer = List<byte>(256, byte(0))
+        @stream = <b>use</b> File.<b>Open</b>(name, FileMode.ReadOnly)
+        while stream.<b>Read</b>(buffer)@count != 0
+            { result.Push(buffer[0::count]) }
+        return str(result);
+    error e FileNotFound:
+        return "ERROR: Can`t even open the file, " e.Message
+    error e:
+        return "ERROR: Can't read the file, " e.Message ", here is part of it: " str(result)
+    }
+</pre>
+
+A scope can have only one error handler at the end of it, but it may have
+multiple error cases.  Any un-tested error jumps directly to it.  It has
+access to only the variables declared before the first un-caught error.
+In this case it has access to `result` and `buffer`, but not `stream`.
+
+An error handler at the end of a function requires the use of `return` above
+it, even if the function is void.  Each case of the error handler must terminate
+with either `return` to suppress the error or with `raise` to percolate the
+error up.  Only when the final error case catches all errors (i.e. `error e:`)
+and also `returns`, then can the the error be fully suppressed and the
+function won't need to be marked with `error`.
+
+Error handlers nested inside a scope must use `return`, `break`, or `continue`
+
+**TBD:** Figure out how to test for an error instead of catching it.
+Maybe `if try(File.Open(...)@stream) { use stream... }
+
+
+
+
+
+
+
+**TBD:** The above is still a WIP
+[Midori](http://joeduffyblog.com/2016/02/07/the-error-model/)
+
+
+
+
+
 
 **TBD:** Describe error model.  In short, errors are return codes that
 get checked by the calling function.  Exceptions immediately end
@@ -828,20 +882,53 @@ to recover (and log an error) after a programing error.
 
 ## Garbage Collection
 
-For a while I was held up thinking about how garbage collection should
-work.  Mark and sweep is really *really* tough to do efficiently, and
-even more so when targeting WebAssembly since there is an execution
-stack and lack of write barriers.
+**TBD:** Explain how `ref` structs can have an `unsafe` deterministic
+destructor and how that will help with garbage collection.
+
+There will be a garbage collector, but probably 99% of the garbage can be
+deleted right after it is created, used, and forgotten.  For instance:
+
+
+    pub afun WriteStuffToFile(fileName str) error
+    {
+        @buffer = List<byte>()
+        for @i in 1::10
+            { buffer.Push("Count = i" i ""/crlf) }
+        @stream = use File.Open(fileName, FileMode.Create)
+        stream.Write(buffer)
+    }
+
+The compiler can see into all functions and know that `Push` doesn't
+capture its arguments, nor do any of the internal functions used
+to convert integers to strings or other internal functions for
+interpolating strings.  Therefore, the compiler can delete each temporary
+object in the `for` loop at the end of the scope of each iteraton.
+It can also see that `stream` can't escape (because it can look into the
+`Open` function and see it's never captured) and then delete it at the
+end of the function.  
+
+`buffer` is sliced to create a `Span` which is a `ref` struct that can
+only be captured for the duration of the async call.  Using some light
+weight reference counting, all of the arrays used to build the `buffer`
+can be deleted as the buffer is expanded.  There are a few exceptions
+where the underlying array can be leaked but those can't happen in this
+example and should be rare in well written programs, see `list` (above)
+for how the span can become detached.
+
+In Zurfur, calling an async function doesn't create a heap object, so there
+is no garbage created for them.
+
+The first version of Zurfur uses reference counting only for the array
+underlying the list.  All other objects are deterministically destroyed
+when they can be, and garbage collected when the compiler can't prove
+that it's ok to do so.
+
+A future version of Zurfur might have reference counting for all objects,
+or it might have a compacting collector.
 
 Thanks to [Lobster](https://aardappel.github.io/lobster/memory_management.html)
-and the single threaded nature of JavaScript, I have decided to go with
-reference counting.  In a single threaded environment, it's fast, efficient,
-and most count adjustments can be removed at compile time. With reference
-counting, you avoid the long pauses, get deterministic finalization, and
-make memory management faster and less complex.
-
-For now, object graph cycles will be considered an error or memory leak.
-Eventually, there may be a garbage collector to detect and cleanup cycles.
+and the single threaded nature of JavaScript I have decided that it is
+OK to use reference counting for some things.
 
 ## Pointers
 
