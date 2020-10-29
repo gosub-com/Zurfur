@@ -196,8 +196,8 @@ pub class Example2  // YES, errors working
     fun fun7(a out List<List<int>>) { }
     fun fun8(a Map<str,List<int>>) { }
     
-    pub fun Sort<T>(greaterThan fun<T,T><bool>) { }
-    pub @MyFieldFunc fun<object,str><void>
+    pub fun Sort<T>(greaterThan fun(T,T)bool) { }
+    pub @MyFieldFunc fun(object,str)void
 
 
     pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
@@ -408,7 +408,7 @@ pub class MyClass1
 }
 
 
-pub static fun Sort<T>(s MutSpan<T>, lessThan fun<T,T><bool>)
+pub static fun Sort<T>(s MutSpan<T>, lessThan fun(T,T)bool)
 {
     // Simple selection sort
     for @i in s.Count-1

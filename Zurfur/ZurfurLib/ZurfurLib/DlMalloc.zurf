@@ -2301,7 +2301,7 @@ pub unsafe class DlMalloc
     }
 
     // Traversal
-    fun internal_inspect_all(handler fun<*void,*void,ulong>)
+    fun internal_inspect_all(handler fun(*void,*void,ulong))
     {
         if (!is_initialized())
             { return }
@@ -2698,7 +2698,7 @@ pub unsafe class DlMalloc
     }
 
 
-    pub fun InspectAll(handler fun<*void,*void,ulong>)
+    pub fun InspectAll(handler fun(*void,*void,ulong))
     {
         if (ok_magic())
         {

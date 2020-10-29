@@ -574,9 +574,10 @@ multiplication cannot be used to continue a line.  This is necessary so a
 dereference statement such as `*a = 3` cannot be continued from the previous line.
 
 
-## Classes
+## Class, Struct, and Enum
 
-Classes are always allocated on the heap. 
+Class and struct are similar to C# in that class is a heap reference object
+and struct is a value object.
 
     pub class Example
     {   
@@ -609,11 +610,14 @@ Or you can implement them the regular way `prop GetExpr { get { return expressio
 
 Classes are sealed by default.  Use the `unsealed` keword to open them up.
 Sealed classes may be extended but no functions may be overridden.
-**TBD:** Require `extends unseal` to extend sealed classes?
+
+**TBD:** Remove `@` from field definitions?  It makes parsing easier to keep
+it.  And without it, it's not always so obvious that it's a field definition.
+Consider using `var` keyword instead.
 
 #### Struct
 
-A `struct` is a value object (just like C#), and can be used where speed and
+Struct is a value object, and can be used where speed and
 efficiency are desired.  `int`, `byte`, and `float` are structs. 
 
     // Mutable point (each mutable function must also be marked)
@@ -626,7 +630,6 @@ efficiency are desired.  `int`, `byte`, and `float` are structs.
         pub prop PropX int { get => X; set { X = value } }
     }
     
-
 A mutable struct returned from a getter can be mutated in-place provided there is a corresponding setter.
 
     @a = List<MyMutablePoint> = [(1,2), (3,4), (5,6)]
@@ -647,14 +650,33 @@ Structs are mutable by default, but can be made immutable using the `ro` keyword
         pub new(x int, y int) { X = x; Y = y}
     }
 
-Structs are passed to functions by value or by reference, whichever is more
+They are passed to functions by value or by reference, whichever is more
 efficient.  So, `@a = Multiply(b,c)` would pass `b` and `c` by value
 if they are integers, or by reference if they are large matricies.
 
-Structs can be initialized by a constructor or using named field parameters:
+They can be initialized by a constructor or using named field parameters:
 
     @a = MyPoint(1,2)
     @b = MyPoint(X: 3, Y: 4)
+
+**TBD:** Make `struct` members public by default?  Remove `@` for fields?
+
+#### Anonymous Class and Struct
+
+An anonymous class can be created like this: `@a = aclass(x int, y int)`
+or `@a = aclass(x=0, y=0)`.  All fields are public, and do not need explict
+type names when used as a local variable.
+
+Since struct parameters of a lambda are passed by read-only value, an
+anonymous class can be used to capture them by reference.
+
+    @a = aclass(max = int.Min)
+    myList.ForEach(item -> { a.max = Math.Max(item, a.max) })
+    Log.Info("Maximum value in the list is: " a.max)
+
+**TBD:** Require `@` for variable names `@a = aclass(@x int, @y int)`?
+Probably not necessary since the keyword gives it away.  Also, we have
+precedence not to use `@` here `const a int = 3`.
 
 #### Enums
 
@@ -794,7 +816,7 @@ Any scope can catch an error.  Given the following definitions:
 We may decide to let errors percolate up:
 
 <pre>
-    pub afun ReadFileIntoString(name str) str
+    pub afun ReadFileIntoString(name str) str <b>error</b>
     {
         @result = List<byte>()
         @buffer = List<byte>(256, byte(0)) // Fill with 256 0 bytes
@@ -813,7 +835,7 @@ in the function instead percolating them up.
 
 <pre>
     // This is not an example of something that should be done
-    pub afun ReadFileOrErrorIntoString(name str) str
+    pub afun ReadFileOrErrorIntoString(name str) str // not marked with `error`
     {
         @result = List<byte>();
         @buffer = List<byte>(256, byte(0))

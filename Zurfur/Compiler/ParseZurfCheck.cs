@@ -12,7 +12,7 @@ namespace Gosub.Zurfur.Compiler
     class ParseZurfCheck
     {
         // Debug the parse tree
-        bool mShowParseTree = false;
+        bool mShowParseTree = true;
 
         public Token LastToken;
 

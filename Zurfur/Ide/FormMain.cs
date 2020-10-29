@@ -67,8 +67,6 @@ namespace Gosub.Zurfur
             {
                 MessageBox.Show(this, "Error loading example: " + ex.Message, App.Name);
             }
-
-
         }
 
 

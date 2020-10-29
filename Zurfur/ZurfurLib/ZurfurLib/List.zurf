@@ -149,11 +149,11 @@ pub class List<T>
     pub mut fun Remove(index int) => todo()
     pub mut fun Remove(range Range<int>) => todo()
     
-    pub fun Convert<Tout>(c fun<T><Tout>) => todo()
-    pub fun ForEach(r fun<T>) => todo()
-    pub fun Find(p fun<T>) => todo()
-    pub mut fun Sort(compare fun<T,T><bool>) => todo()
-    pub mut fun Sort(compare fun<T,T><bool>, range Range<int>) => todo()
+    pub fun Convert<Tout>(c fun(T)Tout) => todo()
+    pub fun ForEach(r fun(T)) => todo()
+    pub fun Find(p fun(T)) => todo()
+    pub mut fun Sort(compare fun(T,T)bool) => todo()
+    pub mut fun Sort(compare fun(T,T)bool, range Range<int>) => todo()
     
     
     pub struct Enumerator
@@ -172,7 +172,7 @@ pub class List<T>
                 return true
             }
             return false
-        }  
+        }
     }
                
 }
