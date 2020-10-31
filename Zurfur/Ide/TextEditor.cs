@@ -117,6 +117,11 @@ namespace Gosub.Zurfur
         /// </summary>
         public event EventHandler FilePathChanged;
 
+        /// <summary>
+        /// Occurs when the lexer is set (even if the object does not change)
+        /// </summary>
+        public event EventHandler LexerChanged;
+
         public TextEditor()
         {
             mLexer = new Lexer();
@@ -185,7 +190,7 @@ namespace Gosub.Zurfur
         {
             mUndo.Clear(); // TBD: Should handle Undo
             mRedo.Clear();
-            Lexer.ScanLines(File.ReadAllLines(filePath));
+            Lexer.Scan(File.ReadAllLines(filePath));
             FileInfo = new FileInfo(filePath);
             FileInfo.Refresh(); // This seems to be needed for some reason
             Modified = false;
@@ -1047,9 +1052,9 @@ namespace Gosub.Zurfur
         }
 
         /// <summary>
-        /// Setup tokens to be drawn.  Sets all tokens to
-        /// default info (see static function GetDefaultTokenInfo)
-        /// Deletes undo info.
+        /// Gets/sets the lexer to hold and lex the text.
+        /// When set, if the text is different, the undo-redo
+        /// is deleted.
         /// WARNING: Do not change the text from the lexer, or else
         ///          it gets out of sync with this control.  
         /// </summary>
@@ -1058,11 +1063,18 @@ namespace Gosub.Zurfur
             get { return mLexer; }
             set
             {
+                if ((object)mLexer == (object)value)
+                    return;
+                bool eq = mLexer.Equals(value);
                 mLexer = value;
-                mUndo.Clear();
-                mRedo.Clear();
+                if (!eq)
+                {
+                    mUndo.Clear(); // TBD: Fix undo/redo
+                    mRedo.Clear();
+                    OnTextChangedInternal();
+                }
                 Invalidate();
-                OnTextChangedInternal();
+                LexerChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 

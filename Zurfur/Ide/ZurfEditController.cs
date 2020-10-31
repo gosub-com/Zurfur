@@ -5,14 +5,11 @@ using System.Windows.Forms;
 
 using Gosub.Zurfur.Lex;
 using Gosub.Zurfur.Compiler;
-using Gosub.Zurfur.Build;
 
 namespace Gosub.Zurfur.Ide
 {
     /// <summary>
-    /// Manage a group of Zurfur text editors.   Customizes their look
-    /// and interacts with the compiler asking it to build and
-    /// retrieve symbolic info.
+    /// Manage a group of Zurfur text editors.   Customizes their look.
     /// </summary>
     class ZurfEditController
     {
@@ -25,19 +22,15 @@ namespace Gosub.Zurfur.Ide
         FormHoverMessage mHoverMessageForm;
         Token mHoverToken;
         TextEditor mActiveEditor;
+        Timer mTimer = new Timer() { Interval = 20 };
+        bool mUpdateInfo;
 
         Dictionary<string, TextEditor> mEditors = new Dictionary<string, TextEditor>();
 
-        /// <summary>
-        /// For the time being, the editor is in charge of sending files to the build.
-        /// This will be changed so there is a looser assocition.
-        /// </summary>
-        BuildManager mBuildPackage;
-
-        public ZurfEditController(BuildManager buildPackage)
+        public ZurfEditController()
         {
-            mBuildPackage = buildPackage;
             mHoverMessageForm = new FormHoverMessage();
+            mTimer.Tick += mTimer_Tick;
         }
 
         public void AddEditor(TextEditor editor)
@@ -46,31 +39,24 @@ namespace Gosub.Zurfur.Ide
                 return;
 
             mEditors[editor.FilePath] = editor;
-
-            if (mEditors.Count == 1)
-                MonitorBuildPackage();
-
-            editor.MouseHoverTokenChanged += editor_MouseTokenChanged;
+            editor.LexerChanged += Editor_LexerChanged;
             editor.TextChanged2 += editor_TextChanged2;
+            editor.MouseHoverTokenChanged += editor_MouseTokenChanged;
             editor.MouseClick += editor_MouseClick;
             editor.MouseDown += editor_MouseDown;
-
-            SendRecompileMessage(editor);
+            mTimer.Enabled = true;
         }
 
         public void RemoveEditor(TextEditor editor)
         {
-            editor.MouseHoverTokenChanged -= editor_MouseTokenChanged;
+            editor.LexerChanged += Editor_LexerChanged;
             editor.TextChanged2 -= editor_TextChanged2;
+            editor.MouseHoverTokenChanged -= editor_MouseTokenChanged;
             editor.MouseClick -= editor_MouseClick;
             editor.MouseDown -= editor_MouseDown;
-
             mEditors.Remove(editor.FilePath);
-            mBuildPackage.CloseFile(editor.FilePath);
-
-            // So the awaiter exits if this is the last editor
-            mBuildPackage.ForceNotifyBuildChanged();
-
+            if (mEditors.Count == 0)
+                mTimer.Enabled = false;
         }
 
         /// <summary>
@@ -80,23 +66,33 @@ namespace Gosub.Zurfur.Ide
         {
             mActiveEditor = editor;
             if (editor != null)
-                editor_MouseTokenChanged(editor, null, null);
-        }
-
-        private void editor_TextChanged2(object sender, EventArgs e)
-        {
-            // Send message to build build manager to recompile
-            var editor = sender as TextEditor;
-            SendRecompileMessage(editor);
-        }
-
-        private void SendRecompileMessage(TextEditor editor)
-        {
-            if (editor != null)
             {
-                var buildFile = mBuildPackage.GetFile(editor.FilePath);
-                if (buildFile != null)
-                    buildFile.Lexer = editor.Lexer;
+                UpdateScrollBars(editor);
+                editor_MouseTokenChanged(editor, null, null);
+            }
+        }
+
+        void editor_TextChanged2(object sender, EventArgs e)
+        {
+            if (sender == mActiveEditor)
+                mUpdateInfo = true;
+        }
+
+        private void Editor_LexerChanged(object sender, EventArgs e)
+        {
+            if (sender == mActiveEditor)
+                mUpdateInfo = true;
+        }
+
+
+        void mTimer_Tick(object sender, EventArgs e)
+        {
+            DisplayHoverForm();
+            if (mUpdateInfo)
+            {
+                mUpdateInfo = false;
+                if (mActiveEditor != null)
+                    UpdateScrollBars(mActiveEditor);
             }
         }
 
@@ -207,17 +203,9 @@ namespace Gosub.Zurfur.Ide
         }
 
         /// <summary>
-        /// Called periodically from the UI thread to show various info
-        /// </summary>
-        public void Timer()
-        {
-            DisplayHoverForm();
-        }
-
-        /// <summary>
         /// Called periodically to display the hover form
         /// </summary>
-        private void DisplayHoverForm()
+        void DisplayHoverForm()
         {
             if (mActiveEditor != null
                     && mHoverToken != null
@@ -249,30 +237,9 @@ namespace Gosub.Zurfur.Ide
             }
         }
 
-        async void MonitorBuildPackage()
+        void UpdateScrollBars(TextEditor editor)
         {
-            while (mEditors.Count != 0)
-            {
-                await mBuildPackage.AwaitBuildChanged();
-
-                foreach (var kv in mEditors)
-                    UpdateBuildInfo(kv.Value);
-            }
-        }
-
-        private void UpdateBuildInfo(TextEditor editor)
-        {
-            // TBD: This could be sped up by tracking `FileBuildVersion`
-            //      but is probably not really necessary
-            var buildFile = mBuildPackage.GetFile(editor.FilePath);
-            if (buildFile == null)
-            {
-                if (System.Diagnostics.Debugger.IsAttached)
-                    throw new Exception("Build file shouldn't be null here");
-                return;
-            }
-
-            // Update the editor with new build info
+            // Warnings on text
             var marks = new List<VerticalMarkInfo>();
             int lastMark = -1;
             foreach (var token in editor.Lexer)
@@ -284,6 +251,7 @@ namespace Gosub.Zurfur.Ide
                     marks.Add(new VerticalMarkInfo { Color = Color.Gold, Length = 1, Start = lastMark });
                 }
             }
+            // Errors on text
             lastMark = -1;
             foreach (var token in editor.Lexer)
             {
@@ -294,6 +262,7 @@ namespace Gosub.Zurfur.Ide
                     marks.Add(new VerticalMarkInfo { Color = Color.Red, Length = 1, Start = lastMark });
                 }
             }
+            // Errors on meta tokens
             foreach (var token in editor.Lexer.MetaTokens)
             {
                 // ERRORS
@@ -306,7 +275,5 @@ namespace Gosub.Zurfur.Ide
             editor.SetMarks(marks.ToArray());
             editor.InvalidateAll();
         }
-
-
     }
 }

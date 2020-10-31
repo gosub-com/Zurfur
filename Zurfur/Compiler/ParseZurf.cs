@@ -18,7 +18,7 @@ namespace Gosub.Zurfur.Compiler
 
         ParseZurfCheck mZurfParseCheck;
 
-        bool				mParseError;	// Flag is set whenever a parse error occurs
+        int                 mParseErrors;	// Number of errors
         Lexer				mLexer;			// Lexer to be paresed
         Lexer.Enumerator	mLexerEnum;		// Enumerator for the Lexer
         string				mTokenName="*"; // Skipped by first accept
@@ -35,7 +35,7 @@ namespace Gosub.Zurfur.Compiler
 
         SyntaxFile mUnit;
 
-        public bool ParseError => mParseError;
+        public int ParseErrors => mParseErrors;
 
         // Add semicolons to all lines, except for:
         static WordSet sEndLineSkipSemicolon = new WordSet("; { [ ( ,");
@@ -676,14 +676,14 @@ namespace Gosub.Zurfur.Compiler
             if (mToken.Type == eTokenType.Identifier)
             {
                 var pp = SaveParsePoint();
-                mParseError = false;
+                mParseErrors = 0;
                 className = ParseTypeName();
-                if (mParseError || !AcceptMatch("::")) 
+                if (mParseErrors != 0 || !AcceptMatch("::")) 
                 {
                     className = null;
                     RestoreParsePoint(pp);
                 }
-                mParseError = pp.ParseError;
+                mParseErrors = pp.ParseErrors;
             }
 
             // Parse operator
@@ -1286,12 +1286,12 @@ namespace Gosub.Zurfur.Compiler
                     var p = SaveParsePoint();
                     var openTypeToken = mToken;
 
-                    mParseError = false;
+                    mParseErrors = 0;
                     var typeArgs = ParseTypeArgumentList();
-                    if (!mParseError && sTypeArgumentParameterSymbols.Contains(mTokenName))
+                    if (mParseErrors == 0 && sTypeArgumentParameterSymbols.Contains(mTokenName))
                     {
                         // Yes, it is a type argument list.  Keep it
-                        mParseError = p.ParseError;
+                        mParseErrors = p.ParseErrors;
                         if (typeArgIdentifier.Type != eTokenType.Reserved)
                             typeArgIdentifier.Type = eTokenType.TypeName;
                         accepted = true;
@@ -1734,7 +1734,7 @@ namespace Gosub.Zurfur.Compiler
             public Token Token;
             public eTokenType TokenType;
             public Token Inserted;
-            public bool ParseError;
+            public int ParseErrors;
             public int ExtraTokenCount;
         }
 
@@ -1746,7 +1746,7 @@ namespace Gosub.Zurfur.Compiler
             p.Token = mToken;
             p.TokenType = mToken.Type;
             p.Inserted = mInsertedToken;
-            p.ParseError = mParseError;
+            p.ParseErrors = mParseErrors;
             p.ExtraTokenCount = mExtraTokens.Count;
             return p;
         }
@@ -1759,7 +1759,7 @@ namespace Gosub.Zurfur.Compiler
             mToken.Type = p.TokenType;
             mTokenName = mToken.Name;
             mInsertedToken = p.Inserted;
-            mParseError = p.ParseError;
+            mParseErrors = p.ParseErrors;
             while (mExtraTokens.Count > p.ExtraTokenCount)
                 mExtraTokens.RemoveAt(mExtraTokens.Count-1);
         }
@@ -1933,7 +1933,7 @@ namespace Gosub.Zurfur.Compiler
         // Reject the given token
         public void RejectToken(Token token, string errorMessage)
         {
-            mParseError = true;
+            mParseErrors++;
             token.AddError(errorMessage);
 
             // Make sure invisible tokens with errors are recorded

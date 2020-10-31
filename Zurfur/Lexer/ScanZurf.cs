@@ -14,30 +14,14 @@ namespace Gosub.Zurfur.Lex
         // NOTE: >=, >>, and >>= are omitted and handled at parser level.
         public const string MULTI_CHAR_TOKENS = "<< <= == != && || += -= *= /= %= &= |= ~= <<= => -> !== === :: .. ... ++ -- ";
         static Regex sFindUrl = new Regex(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
-        List<Token> mTokenBuffer = new List<Token>();  // Be kind to the GC
         Dictionary<long, bool> mSpecialSymbols = new Dictionary<long, bool>();
         bool mSpecialSymbolsHas3Chars;
-
-        public MinTern Mintern { get; set; }
+        bool mTokenizeComments;
 
         public ScanZurf()
         {
             SetSpecialSymbols(MULTI_CHAR_TOKENS);
-            TokenizeComments = true;
-        }
-
-        /// <summary>
-        /// Set to true to process `//` style comments
-        /// </summary>
-        public bool TokenizeComments { get; set; }
-
-        public override Scanner Clone()
-        {
-            var scanner = new ScanZurf();
-            scanner.TokenizeComments = TokenizeComments;
-            scanner.mSpecialSymbols = new Dictionary<long, bool>(mSpecialSymbols);
-            scanner.mSpecialSymbolsHas3Chars = mSpecialSymbolsHas3Chars;
-            return scanner;
+            mTokenizeComments = true;
         }
 
         /// <summary>
@@ -45,7 +29,7 @@ namespace Gosub.Zurfur.Lex
         /// Separate each symbol with a space character.  Symbols must not start with a
         /// number or letter.  They must not be longer than 3 characters.
         /// </summary>
-        public void SetSpecialSymbols(string symbols)
+        void SetSpecialSymbols(string symbols)
         {
             mSpecialSymbols.Clear();
             mSpecialSymbolsHas3Chars = false;
@@ -65,28 +49,12 @@ namespace Gosub.Zurfur.Lex
         /// <summary>
         /// Scan a line
         /// </summary>
-        public override Token[] ScanLine(string line, int lineIndex)
+        public override void ScanLine(string line, List<Token> tokens, MinTern mintern)
         {
-            int charIndex = 0;
-            if (Mintern == null)
-                Mintern = new MinTern();
-
             // Build an array of tokens for this line
+            int charIndex = 0;
             while (charIndex < line.Length)
-                ScanToken(line, ref charIndex, mTokenBuffer);
-
-            foreach (var token in mTokenBuffer)
-                token.Y = lineIndex;
-
-            if (mTokenBuffer.Count != 0)
-            {
-                mTokenBuffer[0].SetBolnByLexerOnly();
-                mTokenBuffer[mTokenBuffer.Count - 1].SetEolnByLexerOnly();
-            }
-
-            var tokens = mTokenBuffer.ToArray();
-            mTokenBuffer.Clear();
-            return tokens;
+                ScanToken(line, ref charIndex, tokens, mintern);
         }
 
         /// <summary>
@@ -95,7 +63,7 @@ namespace Gosub.Zurfur.Lex
         /// NOTE: The token's LineIndex is set to zero
         /// NOTE: The token is stripped of TABs
         /// </summary>
-        void ScanToken(string line, ref int charIndex, List<Token> tokens)
+        void ScanToken(string line, ref int charIndex, List<Token> tokens, MinTern mintern)
         {
             // Skip white space
             while (charIndex < line.Length && char.IsWhiteSpace(line[charIndex]))
@@ -110,28 +78,28 @@ namespace Gosub.Zurfur.Lex
             char ch1 = line[charIndex];
             if (char.IsLetter(ch1) || ch1 == '_')
             {
-                tokens.Add(ScanIdentifier(line, ref charIndex, startIndex));
+                tokens.Add(ScanIdentifier(line, ref charIndex, startIndex, mintern));
                 return;
             }
 
             // Number
             if (IsAsciiDigit(ch1))
             {
-                tokens.Add(ScanNumber(line, ref charIndex, startIndex));
+                tokens.Add(ScanNumber(line, ref charIndex, startIndex, mintern));
                 return;
             }
             // Quote
             if (ch1 == '\"' || ch1 == '`')
             {
-                tokens.Add(ScanString(line, ref charIndex, startIndex));
+                tokens.Add(ScanString(line, ref charIndex, startIndex, mintern));
                 return;
             }
             // Comment
-            if (TokenizeComments && ch1 == '/')
+            if (mTokenizeComments && ch1 == '/')
             {
                 if (charIndex + 1 < line.Length && line[charIndex + 1] == '/')
                 {
-                    ScanComment(line, startIndex, tokens);
+                    ScanComment(line, startIndex, tokens, mintern);
                     charIndex = line.Length;
                     return;
                 }
@@ -146,22 +114,22 @@ namespace Gosub.Zurfur.Lex
                     && mSpecialSymbols.ContainsKey(code * 65536 + line[charIndex + 2]))
                 {
                     charIndex += 3;
-                    tokens.Add(new Token(Mintern[line.Substring(startIndex, 3)], startIndex, 0));
+                    tokens.Add(new Token(mintern[line.Substring(startIndex, 3)], startIndex, 0));
                     return;
                 }
                 if (mSpecialSymbols.ContainsKey(code))
                 {
                     charIndex += 2;
-                    tokens.Add(new Token(Mintern[line.Substring(startIndex, 2)], startIndex, 0));
+                    tokens.Add(new Token(mintern[line.Substring(startIndex, 2)], startIndex, 0));
                     return;
                 }
             }
 
             // Single character
-            tokens.Add(new Token(Mintern[line[charIndex++].ToString()], startIndex, 0));
+            tokens.Add(new Token(mintern[line[charIndex++].ToString()], startIndex, 0));
         }
 
-        private void ScanComment(string comment, int startIndex, List<Token> tokens)
+        void ScanComment(string comment, int startIndex, List<Token> tokens, MinTern mintern)
         {
             eTokenType commentType = startIndex + 2 < comment.Length && comment[startIndex + 2] == '/'
                                         ? eTokenType.PublicComment : eTokenType.Comment;
@@ -180,13 +148,13 @@ namespace Gosub.Zurfur.Lex
                 m = sFindUrl.Match(comment, startIndex);
             }
 
-            comment = comment.Substring(startIndex).TrimEnd();
+            comment = mintern[comment.Substring(startIndex).TrimEnd()];
             if (comment != "")
                 tokens.Add(new Token(comment, startIndex, 0, commentType));
 
         }
 
-        Token ScanString(string line, ref int charIndex, int startIndex)
+        Token ScanString(string line, ref int charIndex, int startIndex, MinTern mintern)
         {
             // TBD: This will go away, let the higher level parser
             //      determine when to end the quote (and interpret escapes)
@@ -198,12 +166,12 @@ namespace Gosub.Zurfur.Lex
             }
             if (endIndex != line.Length)
                 endIndex++; // Skip end quote
-            string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
+            string token = mintern[line.Substring(charIndex, endIndex - charIndex)];
             charIndex = endIndex;
             return new Token(token, startIndex, 0, eTokenType.Quote);
         }
 
-        private Token ScanNumber(string line, ref int charIndex, int startIndex)
+        Token ScanNumber(string line, ref int charIndex, int startIndex, MinTern mintern)
         {
             // Just scoop up everything that could be a number
             int endIndex = charIndex;
@@ -235,19 +203,19 @@ namespace Gosub.Zurfur.Lex
 
             if (endIndex - charIndex < 0)
                 return Token.Empty;
-            string number = Mintern[line.Substring(charIndex, endIndex - charIndex)];
+            string number = mintern[line.Substring(charIndex, endIndex - charIndex)];
             charIndex = endIndex;  // Skip token
             return new Token(number, startIndex, 0, eTokenType.Number);
         }
 
-        private Token ScanIdentifier(string line, ref int charIndex, int startIndex)
+        Token ScanIdentifier(string line, ref int charIndex, int startIndex, MinTern mintern)
         {
             // Hop over identifier
             int endIndex = charIndex;
             while (endIndex < line.Length &&
                     (char.IsLetterOrDigit(line, endIndex) || line[endIndex] == '_'))
                 endIndex++;
-            string token = Mintern[line.Substring(charIndex, endIndex - charIndex)];
+            string token = mintern[line.Substring(charIndex, endIndex - charIndex)];
             charIndex = endIndex; // Skip token
             return new Token(token, startIndex, 0, eTokenType.Identifier);
         }

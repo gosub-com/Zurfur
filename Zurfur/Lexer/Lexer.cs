@@ -8,6 +8,7 @@ namespace Gosub.Zurfur.Lex
     /// Lexical analyzer - scan and separate tokens in a file.
     /// Provide services for the editor to modify the text and re-tokenize
     /// whenever it changes.  Tokens never cross line boundaries.
+    /// Default's to ScanText scanner.
     /// </summary>
     sealed public class Lexer
     {
@@ -15,7 +16,9 @@ namespace Gosub.Zurfur.Lex
         List<string> mLines = new List<string>();
         List<Token[]> mTokens = new List<Token[]>();
         Token[] mMetaTokens = Array.Empty<Token>();
-        Scanner mScanner;
+        Scanner mScanner = ScanText.Empty;
+        MinTern mMinTern = new MinTern();
+        List<Token> mTokenBuffer = new List<Token>();  // Be kind to the GC
 
         /// <summary>
         /// Create an empty lexer
@@ -33,13 +36,33 @@ namespace Gosub.Zurfur.Lex
             mTokens.Add(new Token[0]);
         }
 
+
+        public bool Equals(Lexer lex)
+        {
+            if (lex == this)
+                return true;
+            if (LineCount != lex.LineCount)
+                return false;
+            for (int i = 0; i < LineCount; i++)
+                if (mLines[i] != lex.mLines[i])
+                    return false;
+            return true;
+        }
+
+        /// <summary>
+        /// Defaults to ScanText.  Re-scans all text when set (unless it's the same object)
+        /// </summary>
         public Scanner Scanner
         {
-            set { mScanner = value; }
+            set 
+            {
+                if (mScanner == value)
+                    return;
+                mScanner = value;
+                Scan(mLines.ToArray());
+            }
             get
             {
-                if (mScanner == null)
-                    mScanner = new ScanText();
                 return mScanner;
             }
         }
@@ -54,8 +77,7 @@ namespace Gosub.Zurfur.Lex
             lex.mLines = new List<string>(mLines);
             lex.mTokens = new List<Token[]>(mTokens);
             lex.mMetaTokens = (Token[])mMetaTokens.Clone();
-            if (mScanner != null)
-                lex.mScanner = mScanner.Clone();
+            lex.mScanner = mScanner;
             return lex;
         }
 
@@ -205,7 +227,7 @@ namespace Gosub.Zurfur.Lex
 
             // Re-scan the updated text lines
             for (int i = start.Y; i <= end.Y; i++)
-                mTokens[i] = Scanner.ScanLine(mLines[i], i);
+                mTokens[i] = ScanLine(mLines[i], i);
 
             // Re-adjust token line positions
             for (int i = start.Y; i < mTokens.Count; i++)
@@ -218,10 +240,9 @@ namespace Gosub.Zurfur.Lex
         }
 
         /// <summary>
-        /// Scan lines of text from an array, completely 
-        /// replacing all text in Lines, and all tokens
+        /// Delete all data, then scan tokens from strings using the current `Scanner`.
         /// </summary>
-        public void ScanLines(string[] lines)
+        public void Scan(string[] lines)
         {
             mTokens.Clear();
 
@@ -234,10 +255,14 @@ namespace Gosub.Zurfur.Lex
             for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++)
             {
                 mLines.Add(lines[lineIndex]);
-                mTokens.Add(Scanner.ScanLine(lines[lineIndex], lineIndex));
+                mTokens.Add(ScanLine(lines[lineIndex], lineIndex));
             }
         }
-        public void ScanLines(Stream s)
+
+        /// <summary>
+        /// Delete all data, then scan tokens from a stream using the current `Scanner`.
+        /// </summary>
+        public void Scan(Stream s)
         {
             mTokens.Clear();
             mLines.Clear();
@@ -246,8 +271,30 @@ namespace Gosub.Zurfur.Lex
             {
                 var line = tr.ReadLine();
                 mLines.Add(line);
-                mTokens.Add(Scanner.ScanLine(line, mTokens.Count));
+                mTokens.Add(ScanLine(line, mTokens.Count));
             }
+        }
+
+        Token [] ScanLine(string line, int lineIndex)
+        {
+            mTokenBuffer.Clear();
+            Scanner.ScanLine(line, mTokenBuffer, mMinTern);
+
+            var tokens = mTokenBuffer.ToArray();
+            mTokenBuffer.Clear();
+
+            // Set line index
+            foreach (var token in tokens)
+                token.Y = lineIndex;
+
+            // Set begin/end index
+            if (tokens.Length != 0)
+            {
+                tokens[0].SetBolnByLexerOnly();
+                tokens[tokens.Length - 1].SetEolnByLexerOnly();
+            }
+
+            return tokens;
         }
 
         /// <summary>

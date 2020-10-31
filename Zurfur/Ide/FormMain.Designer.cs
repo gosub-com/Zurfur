@@ -28,9 +28,7 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
-            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormMain));
-            this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.mainMenu = new System.Windows.Forms.MenuStrip();
             this.menuFile = new System.Windows.Forms.ToolStripMenuItem();
             this.menuFileNewProject = new System.Windows.Forms.ToolStripMenuItem();
@@ -61,6 +59,7 @@
             this.buttonMin = new System.Windows.Forms.Button();
             this.buttonClose = new System.Windows.Forms.Button();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.labelStatus = new System.Windows.Forms.Label();
             this.mainMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
@@ -68,12 +67,6 @@
             this.splitContainer1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
-            // 
-            // timer1
-            // 
-            this.timer1.Enabled = true;
-            this.timer1.Interval = 20;
-            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
             // 
             // mainMenu
             // 
@@ -86,7 +79,7 @@
             this.mainMenu.Location = new System.Drawing.Point(22, 1);
             this.mainMenu.Name = "mainMenu";
             this.mainMenu.RenderMode = System.Windows.Forms.ToolStripRenderMode.Professional;
-            this.mainMenu.Size = new System.Drawing.Size(302, 24);
+            this.mainMenu.Size = new System.Drawing.Size(182, 24);
             this.mainMenu.TabIndex = 16;
             this.mainMenu.Text = "menuStrip1";
             // 
@@ -110,59 +103,59 @@
             // menuFileNewProject
             // 
             this.menuFileNewProject.Name = "menuFileNewProject";
-            this.menuFileNewProject.Size = new System.Drawing.Size(180, 22);
+            this.menuFileNewProject.Size = new System.Drawing.Size(152, 22);
             this.menuFileNewProject.Text = "New Project...";
             this.menuFileNewProject.Click += new System.EventHandler(this.menuFileNewProject_Click);
             // 
             // menuFileNewFile
             // 
             this.menuFileNewFile.Name = "menuFileNewFile";
-            this.menuFileNewFile.Size = new System.Drawing.Size(180, 22);
+            this.menuFileNewFile.Size = new System.Drawing.Size(152, 22);
             this.menuFileNewFile.Text = "New File";
             this.menuFileNewFile.Click += new System.EventHandler(this.menuFileNewFile_Click);
             // 
             // toolStripMenuItem2
             // 
             this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-            this.toolStripMenuItem2.Size = new System.Drawing.Size(177, 6);
+            this.toolStripMenuItem2.Size = new System.Drawing.Size(149, 6);
             // 
             // menuFileOpenProject
             // 
             this.menuFileOpenProject.Name = "menuFileOpenProject";
-            this.menuFileOpenProject.Size = new System.Drawing.Size(180, 22);
+            this.menuFileOpenProject.Size = new System.Drawing.Size(152, 22);
             this.menuFileOpenProject.Text = "Open Project...";
             this.menuFileOpenProject.Click += new System.EventHandler(this.menuFileOpenProject_Click);
             // 
             // menuFileOpenFile
             // 
             this.menuFileOpenFile.Name = "menuFileOpenFile";
-            this.menuFileOpenFile.Size = new System.Drawing.Size(180, 22);
+            this.menuFileOpenFile.Size = new System.Drawing.Size(152, 22);
             this.menuFileOpenFile.Text = "Open File...";
             this.menuFileOpenFile.Click += new System.EventHandler(this.menuFileOpenFile_Click);
             // 
             // toolStripMenuItem1
             // 
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            this.toolStripMenuItem1.Size = new System.Drawing.Size(177, 6);
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(149, 6);
             // 
             // menuFileSave
             // 
             this.menuFileSave.Name = "menuFileSave";
-            this.menuFileSave.Size = new System.Drawing.Size(180, 22);
+            this.menuFileSave.Size = new System.Drawing.Size(152, 22);
             this.menuFileSave.Text = "Save";
             this.menuFileSave.Click += new System.EventHandler(this.menuFileSave_Click);
             // 
             // menuFileSaveAll
             // 
             this.menuFileSaveAll.Name = "menuFileSaveAll";
-            this.menuFileSaveAll.Size = new System.Drawing.Size(180, 22);
+            this.menuFileSaveAll.Size = new System.Drawing.Size(152, 22);
             this.menuFileSaveAll.Text = "Save All";
             this.menuFileSaveAll.Click += new System.EventHandler(this.menuFileSaveAll_Click);
             // 
             // menuFileSaveAs
             // 
             this.menuFileSaveAs.Name = "menuFileSaveAs";
-            this.menuFileSaveAs.Size = new System.Drawing.Size(180, 22);
+            this.menuFileSaveAs.Size = new System.Drawing.Size(152, 22);
             this.menuFileSaveAs.Text = "Save As...";
             this.menuFileSaveAs.Click += new System.EventHandler(this.menuFileSaveAs_Click);
             // 
@@ -256,7 +249,7 @@
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.mvEditors);
-            this.splitContainer1.Size = new System.Drawing.Size(984, 608);
+            this.splitContainer1.Size = new System.Drawing.Size(984, 542);
             this.splitContainer1.SplitterDistance = 156;
             this.splitContainer1.TabIndex = 20;
             // 
@@ -266,7 +259,7 @@
             this.projectTree.Location = new System.Drawing.Point(0, 0);
             this.projectTree.Name = "projectTree";
             this.projectTree.RootDir = "";
-            this.projectTree.Size = new System.Drawing.Size(156, 608);
+            this.projectTree.Size = new System.Drawing.Size(156, 542);
             this.projectTree.TabIndex = 20;
             this.projectTree.FileDoubleClicked += new Gosub.Zurfur.ProjectTree.FileInfoDelegate(this.projectTree_FileDoubleClicked);
             this.projectTree.FileMoved += new Gosub.Zurfur.ProjectTree.FileMovedDelegate(this.projectTree_FileMoved);
@@ -277,7 +270,7 @@
             this.mvEditors.EditorViewActive = null;
             this.mvEditors.Location = new System.Drawing.Point(0, 0);
             this.mvEditors.Name = "mvEditors";
-            this.mvEditors.Size = new System.Drawing.Size(824, 608);
+            this.mvEditors.Size = new System.Drawing.Size(824, 542);
             this.mvEditors.TabIndex = 19;
             this.mvEditors.EditorAdded += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorAdded);
             this.mvEditors.EditorRemoved += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorRemoved);
@@ -333,11 +326,22 @@
             this.pictureBox1.TabIndex = 25;
             this.pictureBox1.TabStop = false;
             // 
+            // labelStatus
+            // 
+            this.labelStatus.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.labelStatus.AutoSize = true;
+            this.labelStatus.Location = new System.Drawing.Point(-1, 569);
+            this.labelStatus.Name = "labelStatus";
+            this.labelStatus.Size = new System.Drawing.Size(35, 13);
+            this.labelStatus.TabIndex = 26;
+            this.labelStatus.Text = "label1";
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(984, 631);
+            this.ClientSize = new System.Drawing.Size(984, 582);
+            this.Controls.Add(this.labelStatus);
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.buttonClose);
             this.Controls.Add(this.buttonMin);
@@ -373,7 +377,6 @@
 		}
 
 		#endregion
-		private System.Windows.Forms.Timer timer1;
 		private System.Windows.Forms.MenuStrip mainMenu;
 		private System.Windows.Forms.ToolStripMenuItem menuFile;
 		private System.Windows.Forms.ToolStripMenuItem menuFileOpenFile;
@@ -404,6 +407,7 @@
         private System.Windows.Forms.Button buttonMin;
         private System.Windows.Forms.Button buttonClose;
         private System.Windows.Forms.PictureBox pictureBox1;
+        private System.Windows.Forms.Label labelStatus;
     }
 }
 

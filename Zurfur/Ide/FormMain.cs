@@ -5,27 +5,24 @@ using System.Windows.Forms;
 using System.IO;
 using System.Threading.Tasks;
 
-using Gosub.Zurfur.Compiler;
 using Gosub.Zurfur.Ide;
 using Gosub.Zurfur.Lex;
-using Gosub.Zurfur.Build;
-using System.Diagnostics;
-using System.Threading;
+using Gosub.Zurfur.Compiler;
 
 namespace Gosub.Zurfur
 {
     public partial class FormMain:Form
     {
         bool                mInActivatedEvent;
-        BuildManager        mBuilderMan;
-        ZurfEditController  mEditController;
+        ZurfEditController  mEditController = new ZurfEditController();
+        BuildPackage        mBuildPackage = new BuildPackage();    
 
         // Move when clicking menu
         bool mMouseDown;
         Point mMouseDownPos;
         Point mMouseDownForm;
 
-        static readonly WordSet sTextEditorExtensions = new WordSet(".txt .json .md .htm .html .css");
+        static readonly WordSet sTextEditorExtensions = new WordSet(".txt .json .md .htm .html .css .zurf");
         static readonly WordSet sImageEditorExtensions = new WordSet(".jpg .jpeg .png .bmp");
 
         static readonly string ZURFUR_PROJ_EXT = ".zurfproj";
@@ -38,8 +35,6 @@ namespace Gosub.Zurfur
 
         public FormMain()
         {
-            mBuilderMan = new BuildManager();
-            mEditController = new ZurfEditController(mBuilderMan);
             InitializeComponent();
         }
 
@@ -47,28 +42,42 @@ namespace Gosub.Zurfur
         {
         }
 
-        private async void FormMain_Shown(object sender, EventArgs e)
+        private void FormMain_Shown(object sender, EventArgs e)
         {
-            var build = new BuildPackage();
+            mBuildPackage.StatusUpdate += mBuildPackage_StatusUpdate;
+            mBuildPackage.FileUpdate += mBuildPackage_FileUpdate;
+
+            // Load example project, TBD: This will be removed
             if (System.Diagnostics.Debugger.IsAttached)
             {
-                // This will be removed
-                await LoadProjectAsync(EXAMPLE_PROJECT);
-                await build.Build(EXAMPLE_PROJECT_DIR);
-                return;
+                LoadProject(EXAMPLE_PROJECT);
             }
-            try
+            else
             {
-                // This will be removed
-                await LoadProjectAsync(EXAMPLE_PROJECT);
-                await build.Build(EXAMPLE_PROJECT_DIR);
+                try
+                {
+                    LoadProject(EXAMPLE_PROJECT);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, "Error loading example: " + ex.Message, App.Name);
+                }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, "Error loading example: " + ex.Message, App.Name);
-            }
-        }
 
+            // Open the default file, TBD: This will be removed
+            foreach (var file in projectTree)
+            {
+                if (file.FileName.ToLower() == ZURFUR_SRC_MAIN.ToLower())
+                {
+                    projectTree.OpenAndSelect(file.Path);
+                    LoadFile(file.Path);
+                    break;
+                }
+            }
+
+            // Load the example project, TBD: This will be removed
+            mBuildPackage.Load(EXAMPLE_PROJECT_DIR);
+        }
 
         private void buttonClose_Click(object sender, EventArgs e)
         {
@@ -160,15 +169,31 @@ namespace Gosub.Zurfur
         {
             var textEditor = editor as TextEditor;
             if (textEditor != null)
+            {
                 mEditController.AddEditor(textEditor);
+                textEditor.TextChanged2 += TextEditor_TextChanged2;
+            }
         }
 
         private void mvEditors_EditorRemoved(IEditor editor)
         {
             var textEditor = editor as TextEditor;
             if (textEditor != null)
+            {
                 mEditController.RemoveEditor(textEditor);
+                textEditor.TextChanged2 -= TextEditor_TextChanged2;
+            }
         }
+
+        private void TextEditor_TextChanged2(object sender, EventArgs e)
+        {
+            // Notify build system
+            var textEditor = sender as TextEditor;
+            if (textEditor == null)
+                return;
+            mBuildPackage.SetLexer(textEditor.FilePath, textEditor.Lexer);
+        }
+
 
         private void mvEditors_EditorActiveViewChanged(IEditor editor)
         {
@@ -179,6 +204,41 @@ namespace Gosub.Zurfur
             else
                 projectTree.OpenAndSelect(""); // NoSelection
         }
+
+        /// <summary>
+        /// Called when a file changes because build has changed
+        /// </summary>
+        private void mBuildPackage_FileUpdate(object sender, BuildPackage.UpdatedEventArgs e)
+        {
+            // Update all text editors that could have changed
+            foreach (var editor in mvEditors.Editors)
+            {
+                if (editor.FilePath == e.Message || e.Message == "")
+                {
+                    var lexer = mBuildPackage.GetLexer(e.Message);
+                    var textEditor = editor as TextEditor;
+                    if (textEditor != null && lexer != null)
+                    {
+                        // NOTE: The build can lag behind the text editor and get out of sync.
+                        // When that happens, the text editor is the truth and needs to be
+                        // re-compiled.
+                        if (textEditor.Lexer.Equals(lexer))
+                            textEditor.Lexer = lexer;
+                        else
+                            mBuildPackage.SetLexer(e.Message, textEditor.Lexer);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Called when build status updates with a new message
+        /// </summary>
+        private void mBuildPackage_StatusUpdate(object sender, BuildPackage.UpdatedEventArgs e)
+        {
+            labelStatus.Text = e.Message;
+        }
+
 
         void menuFileOpenProject_Click(object sender, EventArgs e)
         {
@@ -207,15 +267,15 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Show file dialog, then load file or project
         /// </summary>
-        async void TryLoadFileOrProject(string fileName)
+        void TryLoadFileOrProject(string fileName)
         {
             var isProject = Path.GetExtension(fileName).ToLower() == ZURFUR_PROJ_EXT;
             try
             {
                 if (isProject)
-                    await LoadProjectAsync(fileName);
+                    LoadProject(fileName);
                 else
-                    await LoadFileAsync(fileName);
+                    LoadFile(fileName);
             }
             catch (Exception ex)
             {
@@ -225,7 +285,7 @@ namespace Gosub.Zurfur
             }
         }
 
-        async Task LoadProjectAsync(string fileName)
+        void LoadProject(string fileName)
         {
             if (!CanCloseAll())
                 return;
@@ -233,20 +293,11 @@ namespace Gosub.Zurfur
             projectTree.RootDir = "";
             var project = ZurfProject.Load(fileName);
             projectTree.RootDir = project.ProjectDirectory;
-
-            // For the time being, we'll open the default file.
-            /*foreach (var file in projectTree)
-                if (file.FileName.ToLower() == ZURFUR_SRC_MAIN.ToLower())
-                {
-                    projectTree.OpenAndSelect(file.Path);
-                    await LoadFileAsync(file.Path);
-                    break;
-                }*/
         }
 
-        async Task LoadFileAsync(string path)
+        void LoadFile(string path)
         {
-            // Check for aleady loaded file path
+            // Editor already open?
             path = Path.GetFullPath(path);
             foreach (var editor in mvEditors.Editors)
             {
@@ -257,16 +308,20 @@ namespace Gosub.Zurfur
                 }
             }
 
-            var buildFile = Path.GetExtension(path).ToLower();
-            var lex = await mBuilderMan.LoadFileAsync(path);
+            // Already in package?
+            var lex = mBuildPackage.GetLexer(path);
             if (lex != null)
             {
                 var newEditor = new TextEditor();
                 newEditor.FilePath = path;
-                newEditor.Lexer = lex.Lexer;
+                newEditor.Lexer = lex;
                 mvEditors.AddEditor(newEditor);
+                return;
             }
-            else if (sTextEditorExtensions.Contains(buildFile))
+
+            // Open from disk
+            var buildFile = Path.GetExtension(path).ToLower();
+            if (sTextEditorExtensions.Contains(buildFile))
             {
                 var newEditor = new TextEditor();
                 newEditor.LoadFile(path);
@@ -289,6 +344,7 @@ namespace Gosub.Zurfur
                 MessageBox.Show(this, "Can't open this file type", App.Name);
                 return;
             }
+            
         }
 
         private void menuFileNewFile_Click(object sender, EventArgs e)
@@ -399,15 +455,6 @@ namespace Gosub.Zurfur
                 MessageBox.Show(this, "Error saving file: " + ex.Message, App.Name);
             }
             return false;
-        }
-
-        /// <summary>
-        /// Recompile or display hover message when necessary
-        /// </summary>
-        private void timer1_Tick(object sender, EventArgs e)
-        {
-            mEditController.Timer();
-            mBuilderMan.Timer();
         }
 
         private void menuHelpAbout_Click(object sender, EventArgs e)
@@ -523,14 +570,14 @@ namespace Gosub.Zurfur
 
 
 
-        private async void projectTree_FileDoubleClicked(object sender, ProjectTree.FileInfo file)
+        private void projectTree_FileDoubleClicked(object sender, ProjectTree.FileInfo file)
         {
             if (file.IsDir)
                 return;
 
             try
             {
-                await LoadFileAsync(file.Path);
+                LoadFile(file.Path);
             }
             catch (Exception ex)
             {

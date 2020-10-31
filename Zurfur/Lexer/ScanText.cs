@@ -11,40 +11,17 @@ namespace Gosub.Zurfur.Lex
     /// </summary>
     public sealed class ScanText : Scanner
     {
-        List<Token> mTokenBuffer = new List<Token>();  // Be kind to the GC
-        public MinTern Mintern { get; set; }
-
-        public override Scanner Clone()
-        {
-            return new ScanText();
-        }
+        public static readonly ScanText Empty = new ScanText();
 
         /// <summary>
         /// Scan a line
         /// </summary>
-        public override Token[] ScanLine(string line, int lineIndex)
+        public override void ScanLine(string line, List<Token> tokens, MinTern mintern)
         {
-            if (Mintern == null)
-                Mintern = new MinTern();
-
-            int charIndex = 0;
-
             // Build an array of tokens for this line
+            int charIndex = 0;
             while (charIndex < line.Length)
-                ScanToken(line, ref charIndex, mTokenBuffer);
-
-            foreach (var token in mTokenBuffer)
-                token.Y = lineIndex;
-
-            if (mTokenBuffer.Count != 0)
-            {
-                mTokenBuffer[0].SetBolnByLexerOnly();
-                mTokenBuffer[mTokenBuffer.Count - 1].SetEolnByLexerOnly();
-            }
-
-            var tokens = mTokenBuffer.ToArray();
-            mTokenBuffer.Clear();
-            return tokens;
+                ScanToken(line, ref charIndex, tokens, mintern);
         }
 
         /// <summary>
@@ -53,7 +30,7 @@ namespace Gosub.Zurfur.Lex
         /// NOTE: The token's LineIndex is set to zero
         /// NOTE: The token is stripped of TABs
         /// </summary>
-        void ScanToken(string line, ref int charIndex, List<Token> tokens)
+        void ScanToken(string line, ref int charIndex, List<Token> tokens, MinTern mintern)
         {
             // Skip white space
             while (charIndex < line.Length && char.IsWhiteSpace(line[charIndex]))
@@ -67,10 +44,8 @@ namespace Gosub.Zurfur.Lex
             int startIndex = charIndex;
             while (charIndex < line.Length && !char.IsWhiteSpace(line[charIndex]))
                 charIndex++;
-            tokens.Add(new Token(Mintern[line.Substring(startIndex, charIndex - startIndex)], startIndex, 0));
+            tokens.Add(new Token(mintern[line.Substring(startIndex, charIndex - startIndex)], startIndex, 0));
         }
-
-
 
     }
 }

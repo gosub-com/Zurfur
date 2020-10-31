@@ -12,16 +12,15 @@ namespace Gosub.Zurfur.Lex
     public abstract class Scanner
     {
         /// <summary>
-        /// Logic to tokenize text based on the language
+        /// Logic to tokenize text based on the language. 
         /// </summary>
-        public abstract Token[] ScanLine(string line, int lineIndex);
+        public abstract void ScanLine(string line, List<Token> tokens, MinTern mintern );
 
         /// <summary>
-        /// This must be overridden by the inheriting class to create the same
-        /// type of scanner and clone anything that is mutable.
+        /// Conveninece function
         /// </summary>
-        public abstract Scanner Clone();
-
+        /// <param name="ch"></param>
+        /// <returns></returns>
         public static bool IsAsciiDigit(char ch)
         {
             return ch >= '0' && ch <= '9';

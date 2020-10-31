@@ -35,7 +35,7 @@ pub class Map<TKey, TValue>
     pub fun Contains(key TKey) bool => todo()
     pub fun Get(key TKey) TValue => todo()
     pub fun Get(key TKey, defaultValue TValue) TValue => todo()
-    pub fun TryGet(key TKey, value out ?TValue) bool => todo()
+    pub fun TryGet(key TKey) ?TValue => todo()
     pub prop Keys ICollection<TKey> { get => todo() }
     pub prop Values ICollection<TValue> { get => todo() }
 

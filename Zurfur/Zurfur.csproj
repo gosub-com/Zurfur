@@ -51,9 +51,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Build\BuildFile.cs" />
-    <Compile Include="Build\BuildPackage.cs" />
-    <Compile Include="Build\BuildManager.cs" />
+    <Compile Include="Compiler\BuildPackage.cs" />
     <Compile Include="Lexer\ScanZurf.cs" />
     <Compile Include="Compiler\SilGenHeader.cs" />
     <Compile Include="Compiler\Symbols.cs" />

@@ -143,12 +143,13 @@ mutable fileds named `X` and `Y`, any of these forms could be used.
     @a = ["A": MyPointXY(1,2), "B": MyPointXY(3,4)]             // MyPointXY Constructor
     @b = ["A": MyPointXY(X:1,Y:2), "B": MyPointXY(X:3,Y:4)]     // MyPointXY field intitializer
 
-The `@` operator can be used to capture the result of a sub-expression:
+The `@` operator can also be used to capture the result of a sub-expression:
 
     while stream.Read(buffer)@count != 0
         { result.Push(buffer[0::count]) }
 
-More on that below.
+    if myMap.TryGet("MyKey")@value
+        { doSometingWith(value) }
 
 #### Non-Nullable References
 
