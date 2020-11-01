@@ -12,6 +12,8 @@ namespace Gosub.Zurfur.Compiler
         string mTokenName = "*"; // Skipped by first accept
         Token mToken;
         Token mPrevToken;
+        public int ParseErrors { get; private set; }
+
 
         static WordSet sValueTokens = new WordSet("true false null");
         static WordSet sEndArray = new WordSet("]", true);
@@ -19,6 +21,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sEndObject = new WordSet("}", true);
         static WordSet sEndObjectKey = new WordSet(": }", true);
         static WordSet sEndObjectValue = new WordSet(", }", true);
+
 
         /// <summary>
         /// Parse the given lexer
@@ -39,7 +42,7 @@ namespace Gosub.Zurfur.Compiler
 
             if (mTokenName != "")
             {
-                mToken.AddError("Expecting end of file");
+                RejectToken(mToken, "Expecting end of file");
                 Accept();
                 while (mTokenName != "")
                 {
@@ -53,7 +56,7 @@ namespace Gosub.Zurfur.Compiler
         {
             if (mTokenName == "")
             {
-                mToken.AddError("Execting a value, not end of file");
+                RejectToken(mToken, "Execting a value, not end of file");
                 return;
             }
             if (sValueTokens.Contains(mTokenName))
@@ -67,7 +70,7 @@ namespace Gosub.Zurfur.Compiler
             else if (mTokenName == "[")
                 ParseArray();
             else
-                mToken.AddError("Expecting a value, 'true', 'false', 'null', '{', '[', number, or string");
+                RejectToken(mToken, "Expecting a value, 'true', 'false', 'null', '{', '[', number, or string");
         }
 
         void ParseArray()
@@ -98,6 +101,8 @@ namespace Gosub.Zurfur.Compiler
             }
             if (AcceptMatch("}"))
                 Connect(open, mPrevToken);
+            else
+                RejectToken(mToken, "Expecting '}'");
         }
 
         void ParseObjectKv()
@@ -105,7 +110,7 @@ namespace Gosub.Zurfur.Compiler
             if (mTokenName != "" && mTokenName[0] == '\"')
                 Accept();
             else
-                mToken.AddError("Expecting a string");
+                RejectToken(mToken, "Expecting a string");
 
             if (mTokenName != ":")
                 Reject("Expecting ':'", sEndObjectKey);
@@ -118,16 +123,25 @@ namespace Gosub.Zurfur.Compiler
                 Reject("Expecting ',' or '}'", sEndObjectValue);
         }
 
+        // Reject the given token
+        public void RejectToken(Token token, string errorMessage)
+        {
+            ParseErrors++;
+            token.AddError(errorMessage);
+        }
+
+
         // Reject the current token, then advance until the first stopToken
         void Reject(string errorMessage, WordSet stopTokens)
         {
-            mToken.AddError(errorMessage);
+            RejectToken(mToken, errorMessage);
             while (!stopTokens.Contains(mToken))
             {
                 mToken.Grayed = true;
                 Accept();
             }
         }
+
 
         // Accept the token if it matches.  Returns true if it was accepted.
         bool AcceptMatch(string matchToken)
@@ -156,9 +170,6 @@ namespace Gosub.Zurfur.Compiler
                 // Read next token (set EOF flag if no more tokens on line)
                 if (mLexerEnum.MoveNext())
                     mToken = mLexerEnum.Current;
-                else
-                    mToken = new Token("");
-
             } while (mToken.Type == eTokenType.Comment);
 
             // Reset token info
@@ -185,25 +196,7 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         void Connect(Token s1, Token s2)
         {
-            // Find tokens that are already connected
-            List<Token> tokens = new List<Token>();
-            Token[] s1Connectors = s1.GetInfo<Token[]>();
-            if (s1Connectors != null)
-                foreach (Token s in s1Connectors)
-                    tokens.Add(s);
-            Token[] s2Connectors = s2.GetInfo<Token[]>();
-            if (s2Connectors != null)
-                foreach (Token s in s2Connectors)
-                    tokens.Add(s);
-
-            // Add these tokens to the list
-            tokens.Add(s1);
-            tokens.Add(s2);
-
-            // Set token info
-            Token[] sa = tokens.ToArray();
-            foreach (Token s in sa)
-                s.SetInfo(sa);
+            Token.Connect(s1, s2);
         }
 
     }

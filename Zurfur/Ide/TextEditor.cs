@@ -17,9 +17,11 @@ namespace Gosub.Zurfur
         readonly float SHRUNK_TEXT_LINE_SCALE = 0.5f;
         readonly float SHRUNK_FONT_SCALE = 0.65f;
         readonly PointF SHRUNK_FONT_OFFSET = new PointF(0.2f, -0.12f); // Scaled by font size
+        const int FILL_X_OFFSET = 3;
+
 
         // Lexer and text
-        Lexer           mLexer;
+        Lexer mLexer;
         List<UndoOp>    mUndo = new List<UndoOp>();
         List<UndoOp>    mRedo = new List<UndoOp>();
         bool            mReadOnly;
@@ -1202,9 +1204,6 @@ namespace Gosub.Zurfur
             }
         }
 
-
-        const int FILL_X_OFFSET = 3;
-
         /// <summary>
         /// Print a token (either the foreground or background)
         /// Sets mTestToken if a token is under mTestPoint
@@ -1215,7 +1214,8 @@ namespace Gosub.Zurfur
             int col = IndexToCol(token.Location);
             float x = PointX(col);
             float y = PointY(token.Y);
-            float xEnd = PointX(col + token.Name.Length);
+            int tokenLength = token.Name.Length == 0 ? 4 : token.Name.Length; // Give EOF some width
+            float xEnd = PointX(col + tokenLength);
             float yEnd = PointY(token.Y + 1);
 
             // If it's under the test point, return it

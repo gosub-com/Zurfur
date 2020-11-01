@@ -24,7 +24,6 @@ namespace Gosub.Zurfur.Compiler
         string				mTokenName="*"; // Skipped by first accept
         Token				mToken = new Token(";");
         Token               mPrevToken = new Token(";");
-        Token               mLastVisibleToken = new Token(";");
         StringBuilder       mComments = new StringBuilder();
         SyntaxField         mLastField;
         List<Token>         mExtraTokens = new List<Token>();
@@ -75,7 +74,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sAddOperators = new WordSet("+ - | " + XOR);
         static WordSet sMultiplyOperators = new WordSet("* / % & << >>"); // For '>>', use VIRTUAL_TOKEN_SHIFT_RIGHT
         static WordSet sAssignOperators = new WordSet("= += -= *= /= %= |= &= " + XOR + "= <<= >>=");
-        static WordSet sUnaryOperators = new WordSet("- ! & use unsafe " + XOR + " " + PTR);
+        static WordSet sUnaryOperators = new WordSet("+ - ! & use unsafe " + XOR + " " + PTR);
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
         // This seems stange because something like `a = F<T1,T2>;` is not a valid expression
@@ -90,7 +89,6 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sRejectForCondition = new WordSet("in");
         static WordSet sRejectFuncName = new WordSet("(");
         static WordSet sRejectFuncParam = new WordSet(", )");
-        static WordSet sRejectTypeName = new WordSet(", ) >");
 
         static WordMap<string> sStringLiterals = new WordMap<string>()
             { { "lf", "\n" }, { "cr", "\r"}, {"crlf", "\r\n"}, {"tab", "\t"} };
@@ -219,9 +217,11 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 var keyword = mToken;
+                bool ignoreSemicolon = false;
                 switch (mTokenName)
                 {
                     case ";":
+                        ignoreSemicolon = true;
                         Accept();
                         RejectQualifiers(qualifiers, "Expecting a statement after qualifier");
                         break;
@@ -303,7 +303,8 @@ namespace Gosub.Zurfur.Compiler
                         }
                         break;
                 }
-                AcceptSemicolonOrReject();
+                if (!ignoreSemicolon)
+                    AcceptSemicolonOrReject();
             }
         }
 
@@ -1222,6 +1223,8 @@ namespace Gosub.Zurfur.Compiler
         {
             if (sUnaryOperators.Contains(mTokenName))
             {
+                if (mTokenName == "+")
+                    RejectToken(mToken, "Unary '+' operator is not allowed");
                 return new SyntaxUnary(Accept(), ParseUnary());
             }
 
@@ -1558,7 +1561,7 @@ namespace Gosub.Zurfur.Compiler
                 return ParseAnonymousClass();
             }
 
-            if (!ParseIdentifier("Expecting a type name", out var typeName, sRejectTypeName))
+            if (!ParseIdentifier("Expecting a type name", out var typeName))
                 return new SyntaxError(mToken);
             typeName.Type = eTokenType.TypeName;
             SyntaxExpr result = new SyntaxToken(typeName);
@@ -1571,7 +1574,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     accepted = true;
                     var dotToken = mPrevToken;
-                    if (!ParseIdentifier("Expecting a type name", out var dotTypeName, sRejectTypeName))
+                    if (!ParseIdentifier("Expecting a type name", out var dotTypeName))
                         return new SyntaxError(mToken);
                     dotTypeName.Type = eTokenType.TypeName;
                     result = new SyntaxBinary(dotToken, result, new SyntaxToken(dotTypeName));
@@ -1612,7 +1615,7 @@ namespace Gosub.Zurfur.Compiler
             if (!AcceptMatch(closeSymbol))
             {
                 FreeExprList(typeArgs);
-                Reject("Expecting '>' to end the type argument list", sRejectTypeName);
+                Reject("Expecting '>' to end the type argument list");
                 return new SyntaxError();
             }
             Connect(openToken, mPrevToken);
@@ -1798,9 +1801,6 @@ namespace Gosub.Zurfur.Compiler
             if (mTokenName == "//" || mTokenName == "///")
                 ParseComments();
 
-            if (mTokenName != "")
-                mLastVisibleToken = mToken;
-
             // Set token type
             if (mTokenName.Length == 0)
                 mToken.Type = eTokenType.Normal;
@@ -1895,10 +1895,10 @@ namespace Gosub.Zurfur.Compiler
         // no tabs and no space or `;` at then end of the line.
         void GetNextToken()
         {
-            if (mLexerEnum.MoveNext())
-                mToken = mLexerEnum.Current;
-            else
-                mToken = new Token("");
+            if (!mLexerEnum.MoveNext())
+                return;
+
+            mToken = mLexerEnum.Current;
             mToken.Clear();
             mTokenName = mToken.Name;
 
@@ -1942,10 +1942,6 @@ namespace Gosub.Zurfur.Compiler
                 if (!mExtraTokens.Contains(token))
                     mExtraTokens.Add(token);
             }
-
-            // If the error is after the end of file, put it on the last visible token
-            if (token.Name == "")
-                mLastVisibleToken.AddError(errorMessage);
         }
 
         // Reject the current token, then advance until the first stopToken

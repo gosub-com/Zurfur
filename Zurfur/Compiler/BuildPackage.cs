@@ -217,6 +217,9 @@ namespace Gosub.Zurfur.Compiler
                         break;
                     case ".json":
                         lexer.Scanner = sScanJson;
+                        var jsonParse = new ParseJson(lexer);
+                        jsonParse.Parse();
+                        fi.ParseErrors = jsonParse.ParseErrors;
                         break;
                 }
             });

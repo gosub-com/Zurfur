@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections.Generic;
 
 using Gosub.Zurfur.Lex;
@@ -178,9 +179,11 @@ namespace Gosub.Zurfur.Compiler
 
         Symbol FindSymbol(SyntaxScope scope)
         {
+            if (scope == null)
+                throw new Exception("Compiler Error: Symbol not found because scope is NULL.  Declaration before namespace.");
             var parentSymbol = scope.ParentScope == null ? mPackage.Symbols : FindSymbol(scope.ParentScope);
             if (!parentSymbol.Symbols.TryGetValue(scope.Name, out var symbol))
-                throw new Exception("Symbol not found: '" + scope.FullName + "'");
+                throw new Exception("Compiler Error: Symbol not found: '" + scope.FullName + "'");
             return symbol;
         }
 
