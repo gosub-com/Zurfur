@@ -96,8 +96,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 return null;
             }
-            // Clone so the editor can use/modify it while we compile in the background
-            return fi.Lexer.Clone();
+            return fi.Lexer;
         }
 
         /// <summary>
@@ -107,7 +106,7 @@ namespace Gosub.Zurfur.Compiler
         {
             if (!mPackageFiles.TryGetValue(fileName, out var fileIno))
                 return;
-            fileIno.Lexer = lexer.Clone(); // Editor keeps its copy while we can work in the background
+            fileIno.Lexer = lexer;
             mLoadQueue.RemoveAll(match => match == fileName);
             mParseQueue.RemoveAll(match => match == fileName);
             mParseQueue.Insert(0, fileName);
@@ -203,8 +202,8 @@ namespace Gosub.Zurfur.Compiler
             StatusUpdate?.Invoke(this, new UpdatedEventArgs("Parsing " + fi.Name));
             await Task.Delay(SLOW_DOWN_MS/2);
 
-            // No need to clone since it was already done when set by the editor
-            var lexer = fi.Lexer;
+            // Clone before processing in background thread
+            var lexer = fi.Lexer.Clone();
             await Task.Run(() => 
             {
                 switch (fi.Extension)

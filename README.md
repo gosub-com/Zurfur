@@ -667,16 +667,25 @@ They can be initialized by a constructor or using named field parameters:
 
 #### Anonymous Class and Struct
 
-An anonymous class can be created like this: `@a = aclass(x int, y int)`
-or `@a = aclass(x=0, y=0)`.  All fields are public, and do not need explict
-type names when used as a local variable.
+An anonymous class can be created like this: `@a = class(x int, y int)`
+or `@a = class(x=1, y=MyFunc())`.  Fields are public, and do not need
+explict type names when used as a local variable.
 
 Since struct parameters of a lambda are passed by read-only value, an
 anonymous class can be used to capture them by reference.
 
-    @a = aclass(max = int.Min)
+    @a = class(max = int.Min)
     myList.ForEach(item -> { a.max = Math.Max(item, a.max) })
     Log.Info("Maximum value in the list is: " a.max)
+    
+For now, anonymous struct is the only way to return multiple values
+from a function.
+
+    pub static fun Circle(a f64, r f64) struct(x f64, y f64)
+        => (r*Cos(a), r*Sin(a))
+
+    @a = ReturnTwoValues(PI/2, 1.0)
+    Log.Info("My two values are x=" a.x ", and y=" a.y)
 
 #### Enums
 

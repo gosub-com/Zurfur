@@ -99,6 +99,19 @@ namespace Gosub.Zurfur.Lex
             mBits = tokenBits;
         }
 
+        /// <summary>
+        /// Clone the token, but lose all the markup info
+        /// </summary>
+        public Token Clone()
+        {
+            var token = new Token(Name, X, Y);
+            if (Boln)
+                token.SetBolnByLexerOnly();
+            if (Eoln)
+                token.SetEolnByLexerOnly();
+            return token;
+        }
+
         public int Y
         {
             get { return Location.Y; }

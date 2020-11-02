@@ -75,16 +75,24 @@ namespace Gosub.Zurfur.Lex
         }
 
         /// <summary>
-        /// Clone the lexer, but not the tokens which are shared.  Since the
-        /// mutable parts are cloned, the copies should be thread safe.
+        /// Clone the lexer and all tokens.  All markup information is discarded.
         /// </summary>
         public Lexer Clone()
         {
             var lex = new Lexer();
             lex.mLines = new List<string>(mLines);
-            lex.mTokens = new List<Token[]>(mTokens);
-            lex.EndToken = EndToken;
-            lex.mMetaTokens = (Token[])mMetaTokens.Clone();
+            lex.mTokens.Clear();
+            foreach (var tokenLine in mTokens)
+            {
+                var newTokens = new Token[tokenLine.Length];
+                for (int i = 0;  i < newTokens.Length;  i++)
+                    newTokens[i] = tokenLine[i].Clone();
+                lex.mTokens.Add(newTokens);
+            }
+            lex.EndToken.Y = lex.mTokens.Count;
+            lex.mMetaTokens = new Token[mMetaTokens.Length];
+            for (int i = 0; i < mMetaTokens.Length; i++)
+                lex.MetaTokens[i] = mMetaTokens[i].Clone();
             lex.mScanner = mScanner;
             return lex;
         }

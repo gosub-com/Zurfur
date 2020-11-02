@@ -53,7 +53,7 @@ namespace Gosub.Zurfur.Compiler
             + "box boxed init move copy clone drop error dispose own owned "
             + "trait extends implements implement impl union fun afun def yield let cast "
             + "any dyn loop match event from to of on cofun cofunc global local val it throws atask "
-            + "scope assign astruct aclass @";
+            + "scope assign @";
 
         static readonly string sReservedControlWords = "using namespace module include class struct enum interface "
             + "func afunc fun afun prop aprop get set if else switch await for while dowhile scope _";
@@ -65,7 +65,7 @@ namespace Gosub.Zurfur.Compiler
             + "static unsealed abstract virtual override new ro boxed mut");
 
         static WordSet sEmptyWordSet = new WordSet("");
-        static WordSet sBeginsTypeName = new WordSet("? mut * ref in out ro fun afun aclass astruct"); // Plus identifier
+        static WordSet sBeginsTypeName = new WordSet("? mut * ref in out ro fun afun class struct"); // Plus identifier
         static WordSet sAllowConstraintKeywords = new WordSet("class struct unmanaged");
         static WordSet sAutoImplementMethod = new WordSet("default impl extern");
 
@@ -1259,7 +1259,7 @@ namespace Gosub.Zurfur.Compiler
                 return new SyntaxUnary(sizeofToken, sizeofType);
             }
 
-            if (mTokenName == "aclass" || mTokenName == "astruct")
+            if (mTokenName == "class" || mTokenName == "struct")
             {
                 return ParseAnonymousClass();
             }
@@ -1563,7 +1563,7 @@ namespace Gosub.Zurfur.Compiler
                 return new SyntaxBinary(tokenFun, typeArgs,  funReturnType);
             }
 
-            if (mTokenName == "aclass" || mTokenName == "astruct")
+            if (mTokenName == "class" || mTokenName == "struct")
             {
                 return ParseAnonymousClass();
             }
@@ -1631,6 +1631,7 @@ namespace Gosub.Zurfur.Compiler
 
         SyntaxExpr ParseAnonymousClass()
         {
+            mToken.Type = eTokenType.Reserved;
             var keyword = Accept();
             if (!AcceptMatchOrReject("("))
                 return new SyntaxError(mToken);
