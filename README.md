@@ -52,10 +52,10 @@ free to send me comments letting me know what you think should be changed.
 
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
-    pub static fun Main(args []str)
+    pub static fun Main(args Array<str>)
     {
         // This is a regular private comment
-        Console.Log("Hello World, 2+2=" + add(2,2))
+        Console.Log("Hello World, 2+2=" add(2,2))
     }
 
     // Regular static function
@@ -213,7 +213,7 @@ There is no `StringBuilder` class.  Instead, use `List<byte>`.
     @sb = List<byte>()
     sb.Push("Count to 10: ")
     for @count in 1::10
-        { sb.Push(" " + count) }
+        { sb.Push(" " count) }
     return str(sb)
 
 Strings can be sliced.  See `List` (below)
@@ -258,10 +258,15 @@ Elements are immutable when `str` and `Array` are sliced, and mutable when
 
 `List` is a variable sized array with a `Count` and `Capacity` that
 changes as items are added or removed.  Lists use `ref` returns and act
-exactly like a dynamically sized mutable array.  A field of a mutable struct
-can be modified, like so:
+exactly like a dynamically sized mutable array.
 
-    struct MyPoint { pub @X int;  pub @Y int; fun new(x int, y int) {todo()} }
+    @a = [1,2,3]                // a is List<int>
+    @b = ["A", "B", "C"]        // b is List<str>
+    @c = [[1,2,3],[4,5,6]]      // c is List<List<int>>
+
+A field of a mutable struct can be modified, like so:
+
+    struct MyPoint { pub X int;  pub Y int; fun new(x int, y int) {todo()} }
     @a List<MyPoint> = [(1,2),(3,4),(5,6)]  // Use array intializer with MyPoint constructor
     a[1].Y = 12                             // Now a contains [(1,2),(3,12),(5,6)]
 
@@ -280,22 +285,22 @@ data.  In general, this should be very rare for most programs, however it is nec
 for memory safety, efficiency, and programmers should be aware.  **TBD:** May panic
 instead of detaching, since this is probably a programming error.
 
-        @list List<byte>
-        list.Push("Hello Pat")    // list is "Hello Pat"
-        @slice = a[6::3]            // slice is "Pat"
-        slice[0] = "M"[0]           // slice is "Mat", list is "Hello Mat"
-        list.Push("!")            // slice is now detached, list is "Hello Mat!"
-        slice[0] = "C"[0]           // slice is "Cat", list is still "Hello Mat!"
+        @list = List<byte>()
+        list.Push("Hello Pat")  // list is "Hello Pat"
+        @slice = a[6::3]        // slice is "Pat"
+        slice[0] = "M"[0]       // slice is "Mat", list is "Hello Mat"
+        list.Push("!")          // slice is now detached, list is "Hello Mat!"
+        slice[0] = "C"[0]       // slice is "Cat", list is still "Hello Mat!"
 
 #### Map
 
 `Map` is a hash table and is similar to `Dictionary` in C#.
 
-    @a Map<str,int> = ["Hello":1, "World":2]
-    @b = a["World"]                             // b is 2
-    @c = a["not found"]                         // throws exception
-    @d = a.Get("not found")                     // d is 0
-    @e = a.Get("not found", -1)                 // e is -1
+    @a = ["Hello":1, "World":2]     // a is Map<str,int>
+    @b = a["World"]                 // b is 2
+    @c = a["not found"]             // throws exception
+    @d = a.Get("not found")         // d is 0
+    @e = a.Get("not found", -1)     // e is -1
 
 #### SortedMap
 
@@ -364,7 +369,7 @@ Or, `if maybeNullObjectFunc()@nonNullObject { }` can be used to
 convert `?Object` into `Object` inside of the braces. 
 
 The range operator`..` takes two `int`s and make a `Range` which is a
-`struct Range{ @High int; @Low int}`.  The `::` operator also makes a
+`struct Range{ High int; Low int}`.  The `::` operator also makes a
 range, but the second parameter is a count (`High = Low + Count`).  
 
 The pair operator `:` makes a key/value pair which can be used
@@ -525,10 +530,10 @@ level as a `case` statement.
     {
     case 0, 1, 2:
         DoStuff0()  // No fall through here.
-    case 3:
+    case 3..6:      // Same as 3,4,5
         DoStuff1()
         break;      // SYNTAX ERROR: Break is illegal here
-    case 4,5,6:
+    case 6,7,8:
         DoStuff2()
         if x==y
             { break }  // Exit switch statement early, don't DoStuff3
@@ -583,21 +588,21 @@ and struct is a value object.
     pub class Example
     {   
         // Mutable fields
-        @F1 str                                  // Private string initialized to ""
-        pub @F2 List<int>                        // List initialized to empty (i.e. Count = 0)
-        pub @F4 List<int> = [1,2,3]              // List initialized with 1,2,3
-        pub @F5 List<str> = ["Hello", "World"]   // Initialized list
-        pub @F6 Map<str,int> = ["A":1, "B":2]    // Initialized map
+        F1 str                                  // Private string initialized to ""
+        pub F2 List<int>                        // List initialized to empty (i.e. Count = 0)
+        pub F4 List<int> = [1,2,3]              // List initialized with 1,2,3
+        pub F5 List<str> = ["Hello", "World"]   // Initialized list
+        pub F6 Map<str,int> = ["A":1, "B":2]    // Initialized map
 
         // Immutable fields
-        pub ro @F7 str = "Hello world"                // Initialized read only string
-        pub ro @points List<MutablePointXY> = [(1,2),(3,4),(5,6)]
+        pub ro F7 str = "Hello world"
+        pub ro points List<MutablePointXY> = [(1,2),(3,4),(5,6)]
         
-        pub fun Func1(this, a int) f64 => F1 + " hi"   // Member function
-        pub fun Func2(this mut, a int) { F1 = "x"}     // Member function that mutates
+        pub fun Func1(this, a int) f64 => "" F1 " hi"   // Member function
+        pub fun Func2(this mut, a int) { F1 = "x"}      // Member function that mutates
 
-        pub prop Prop1 str => F1                     // Property returning F1
-        pub prop ChangedTime DateTime = DateTime.Now // Default value and default get/set
+        pub prop Prop1 str => F1                        // Property returning F1
+        pub prop ChangedTime DateTime = DateTime.Now    // Default value and default get/set
             => default get private set
     }
 
@@ -612,9 +617,7 @@ Or you can implement them the regular way `prop GetExpr { get { return expressio
 Classes are sealed by default.  Use the `unsealed` keword to open them up.
 Sealed classes may be extended but no functions may be overridden.
 
-**TBD:** Remove `@` from field definitions?  It makes parsing easier to keep
-it.  And without it, it's not always so obvious that it's a field definition.
-Consider using `var` keyword instead.
+**TBD:** Require `@` for field definitions?  Consider requiring `var` keyword instead.
 
 #### Struct
 
@@ -624,8 +627,8 @@ efficiency are desired.  `int`, `byte`, and `float` are structs.
     // Mutable point (each mutable function must also be marked)
     pub struct MyMutablePoint
     {
-        pub @X int
-        pub @Y int
+        pub X int
+        pub Y int
         pub fun new(x int, y int) { X = x; Y = y}
         pub mut fun SetY(y int) { Y = y }
         pub prop PropX int { get => X; set { X = value } }
@@ -646,8 +649,8 @@ Structs are mutable by default, but can be made immutable using the `ro` keyword
     // Immutable point (use `ro` on the `struct`)
     pub struct ro MyPoint
     {
-        pub ro @X int
-        pub ro @Y int
+        pub ro X int
+        pub ro Y int
         pub new(x int, y int) { X = x; Y = y}
     }
 
@@ -660,7 +663,7 @@ They can be initialized by a constructor or using named field parameters:
     @a = MyPoint(1,2)
     @b = MyPoint(X: 3, Y: 4)
 
-**TBD:** Make `struct` members public by default?  Remove `@` for fields?
+**TBD:** Make `struct` members public by default?
 
 #### Anonymous Class and Struct
 
@@ -674,10 +677,6 @@ anonymous class can be used to capture them by reference.
     @a = aclass(max = int.Min)
     myList.ForEach(item -> { a.max = Math.Max(item, a.max) })
     Log.Info("Maximum value in the list is: " a.max)
-
-**TBD:** Require `@` for variable names `@a = aclass(@x int, @y int)`?
-Probably not necessary since the keyword gives it away.  Also, we have
-precedence not to use `@` here `const a int = 3`.
 
 #### Enums
 

@@ -16,16 +16,16 @@ static fun test_HelloWorld()
 
 pub class Example
 {
-    @info str                            // Initialized string
-    @list List<str> = ["Hello", "World"] // Mutable list
-    ro @map Map<str,int> = ["A":1,"B":2] // Immutable map
-    pub fun GetInfo(a int) str => info+a // Public member function
+    info str                             // Initialized string
+    list List<str> = ["Hello", "World"]  // Mutable list
+    ro map Map<str,int> = ["A":1,"B":2]  // Immutable map
+    pub fun GetInfo(a int) str => info+a // Public function
     pub prop Info str => info            // Public property
     
     pub fun Test()
     {
-        @a = tr"Column 1"\tab"Column 2"\crlf
-        @data = "Name:"name\tab"Occupation:"lastName\crlf
+        a = tr"Column 1"\tab"Column 2"\crlf
+        data = "Name:"name\tab"Occupation:"lastName\crlf
         
         while stream.Read(buffer)@size != 0
         {
@@ -37,12 +37,12 @@ pub class Example
 
 pub class MutableTest
 {
-    @a MyObject
-    @b List<MyObject>
+    a MyObject
+    b List<MyObject>
 
-    ro @c mut MyObject
-    ro @d mut List<MyObject>
-    ro @e mut List<MyObject>
+    ro c mut MyObject
+    ro d mut List<MyObject>
+    ro e mut List<MyObject>
 
 
     pub fun getMyObjectAt(i index) mut MyObject => todo()
@@ -59,8 +59,8 @@ pub class MutableTest
 // Mutable point (each mutable function must also be marked)
 pub struct MyMutablePoint
 {
-    pub @X int
-    pub @Y int
+    pub X int
+    pub Y int
     pub fun new(x int, y int) { X = x; Y = y}
     pub mut fun SetY(y int) { Y = y }
     pub prop PropX int { get => X; set { X = value } }
@@ -71,8 +71,8 @@ pub struct MyMutablePoint
 pub class Example_x
 {
     pub const CONST_FIELD int = 234
-    pub @field1 f32
-    pub @field2 int
+    pub field1 f32
+    pub field2 int
     pub prop Prop str => Header + info      // Property
     pub fun A(a int, b int, c f32) f32 => a+1
     pub fun A(a f32) f32 => a+1
@@ -119,8 +119,8 @@ pub struct PointXY<T>
     implements IArithmetic<T>
     where f is IAritmetic<T>
 {
-    pub @x int
-    pub @y int
+    pub x int
+    pub y int
     
     pub fun operator+(a PointXY<T>, b PointXY<T>) PointXY<T> => todo()
 }
@@ -149,28 +149,28 @@ pub class Example2  // YES, errors working
     //    Switch statement
 
     // Fields initialized to zero, null, or "" for string
-    @f1 int          // Initialized to 0
-    @f2 f32      // Initialized to 0.0
-    @f3 str          // Initialized to "", not NULL
+    f1 int          // Initialized to 0
+    f2 f32      // Initialized to 0.0
+    f3 str          // Initialized to "", not NULL
     
-    @f4 Array<int> = [1,2,3,4]
-    @f5 Array<Array<int>>
-    @f7 Map<str,List<int>>
-    @f8 Pointer<int>
-    @f9 *int        // Same as Pointer<int>
+    f4 Array<int> = [1,2,3,4]
+    f5 Array<Array<int>>
+    f7 Map<str,List<int>>
+    f8 Pointer<int>
+    f9 *int        // Same as Pointer<int>
     
-    @f10 = int(FuncReturnsInt())
-    @f11 = Array<int>()            // Array, Count=0
-    @f12 = Array<int>(32)          // Array, Count=32
-    @f13 = Array<int>([1,2,3])     // Array initialized with 1, 2, 3
-    @f13a = List<int>(32)          // Empty List, Capacity=32
-    @f14 = Map<str,str>()          // Empty map
+    f10 = int(FuncReturnsInt())
+    f11 = Array<int>()            // Array, Count=0
+    f12 = Array<int>(32)          // Array, Count=32
+    f13 = Array<int>([1,2,3])     // Array initialized with 1, 2, 3
+    f13a = List<int>(32)          // Empty List, Capacity=32
+    f14 = Map<str,str>()          // Empty map
     
-    @f15 int = 32
-    @f16 int = FuncReturnsInt() >> 4
-    @f17 f32 = FuncReturnsf32orInt()
-    @f18 str = "Hello"
-    @f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
+    f15 int = 32
+    f16 int = FuncReturnsInt() >> 4
+    f17 f32 = FuncReturnsf32orInt()
+    f18 str = "Hello"
+    f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
     pub prop P1 int => 1
@@ -197,7 +197,7 @@ pub class Example2  // YES, errors working
     fun fun8(a Map<str,List<int>>) { }
     
     pub fun Sort<T>(greaterThan fun(T,T)bool) { }
-    pub @MyFieldFunc fun(object,str)void
+    pub MyFieldFunc fun(object,str)void
 
 
     pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
@@ -372,8 +372,8 @@ pub fun Example::IfTests()
 
 pub struct MyPoint
 {
-    pub @X int
-    pub @Y int
+    pub X int
+    pub Y int
     pub override fun ToStr() => "(" X ", " Y ")"
 }
 
@@ -394,9 +394,9 @@ pub interface MyInterfaceTest
     protected fun C() int => imp
         
     pub fun B() int => A() + 1
-    pub struct Astruct { pub @a int }
+    pub struct Astruct { pub a int }
     pub enum Aenum { a; b; c}
-    pub class Aclass { pub @a int  }
+    pub class Aclass { pub a int  }
 }
 
 pub class MyClass1
@@ -516,8 +516,8 @@ namespace ExampleNs1.HelloWorld
     
     class ClassEx1
     {
-        @a int
-        @b int
+        a int
+        b int
     }
 }
 
@@ -537,8 +537,8 @@ namespace ExampleNs1
 
     class ClassEx1
     {
-        @a int
-        @b int
+        a int
+        b int
         class Inner1
         {
         }
@@ -565,8 +565,8 @@ namespace ExampleNs2
     
     class ClassEx1
     {
-        @a int
-        @b int
+        a int
+        b int
         class Inner1
         {
         }

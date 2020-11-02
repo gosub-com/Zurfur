@@ -277,8 +277,8 @@ namespace Gosub.Zurfur.Compiler
                         break;
 
                     case "const":
-                    case "@":
-                        //case "var":
+                    case "var":
+                    //case "@": // TBD: Keep this is we want to require `@` in front of class fields
                         if (mTokenName != "@")
                             mToken.Type = eTokenType.ReservedControl;
                         qualifiers.Add(Accept());
@@ -295,6 +295,13 @@ namespace Gosub.Zurfur.Compiler
                             var enumFieldName = ParseEnumField(parentScope, qualifiers, keyword);
                             if (!mToken.Error)
                                 mUnit.Fields.Add(enumFieldName);
+                        }
+                        else if (keyword.Type == eTokenType.Identifier)
+                        {
+                            // TBD: Remove this if we require `@` in front of field definitions
+                            var classFieldVarName2 = ParseField(parentScope, qualifiers);
+                            if (!mToken.Error)
+                                mUnit.Fields.Add(classFieldVarName2);
                         }
                         else
                         {

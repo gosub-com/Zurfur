@@ -10,15 +10,15 @@ pub struct GcType { }
 // similar to the vtable pointer in C++
 pub struct GcObject<T>
 {
-    pub ro @Type *GcType
+    pub ro Type *GcType
 }
 
 // This is at the front of all array objects on the heap.
 // NOTE: The pointer points to the data, not to this object.
 pub struct GcObjectArray<T>
 {
-    pub ro @Type *GcType
-    pub ro @Count xuint // Data is 64 bit aligned for 32/64 bit machines
+    pub ro Type *GcType
+    pub ro Count xuint // Data is 64 bit aligned for 32/64 bit machines
     // Array data follows this
 }
 
@@ -27,7 +27,7 @@ pub struct GcObjectArray<T>
 // instead of the GcObjectArray.
 pub struct GcArrayPointer<T>
 {
-    pub @Data *T
+    pub Data *T
     prop Type ro *GcType
         => unsafe (cast(*GcObjectArray)Data)[-1].Type
     prop Count xuint
@@ -53,10 +53,10 @@ pub class List<T>
     // GC, so doing that might actually be slower
     // in the normal case.
 
-    @items  GcArrayPointer<T>
-    @capacity int       // CapacSize of the items array (GC uses this)
-    @count int          // Current size of the list
-    @spanCount int
+    items  GcArrayPointer<T>
+    capacity int       // CapacSize of the items array (GC uses this)
+    count int          // Current size of the list
+    spanCount int
     
     pub fun new(capacity int)
     {
@@ -158,8 +158,8 @@ pub class List<T>
     
     pub struct Enumerator
     {
-        @index int
-        @version int
+        index int
+        version int
         pub fun new(list List<T>) { count = list.Count }
         pub mut fun GetNext(list List<T>, item ref T) bool
         {
