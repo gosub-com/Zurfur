@@ -421,7 +421,7 @@ return from a function prevents the calling function from mutating.
 
 Like Golang, semicolons are required between statements but they are automatically
 inserted at the end of lines based on the last non-comment token and the first token
-of the next line.  See "Coding Standards" (below) for more info about semi-colons.
+of the next line.  See "Coding Style" (below) for more info about semi-colons.
 
 #### While and Do Statements
 
@@ -549,35 +549,32 @@ The `match` keyword is reserved, but the syntax is identical to a regular functi
 
     @num = 3 + match(myConstant)[1:a, 2..5:b, 6:myFunc(), default: 0]
 
-## Coding Standards
+## Coding Style
 
-Zurfur enforces a few coding standards, but one style it does **not** enforce
+Zurfur enforces a few style standards, but one style it does **not** enforce
 where your curly brace goes.  Both end-of-line and beginning-of-next-line are
 acceptable.  By convention, all code in the Zurfur code base uses curly brace
 on beginning-of-next-line style.  The Zurfur IDE shrinks curly brace only lines
 so they take the same space as the brace-at-end style as in a regular IDE.
 
-Here are the enforced coding standards:
-
-1. No tabs in the source code
-2. No white space at end of line
-3. No semi-colons at the end of lines
-4. Split lines require a binary operator at the beginning of the next line
-5. Or split lines require `[`, `(`, or `,`, on the previous line
-
-
 Like Golang, semicolons are required between statements but they are automatically
 inserted at the end of lines based on the last non-comment token and the first token
 of the next line.
 
-The general rule is that any line beginning with a binary operator does not put
-a semicolon on the previous line.  Additionally, `{`, `[`, `(`, or `,` at the end
-of a line prevents a semicolon on that line.
+Here are the enforced style rules:
 
-
-**Exception:** A line beginning with an `*` always has a semicolon before it, so
-multiplication cannot be used to continue a line.  This is necessary so a
-dereference statement such as `*a = 3` cannot be continued from the previous line.
+1. No tabs
+2. No white space or visible semi-colons at the end of a line
+3. Split lines require a `[`, `(`, or `,` at the end of the line
+or a binary operator (except `*`) at the beginning of the next
+line.  Also accepted, a few other places where a continuation might
+be expected such as `implements`, `where`, or an anonymouse `struct`
+when in a function definition.
+4. A `{` cannot start a scope unless it is in an expected place such as after
+`if`, `while`, `scope`, etc., or a lambda expression.
+5. Modifiers must appear in the following order: `pub` (or `protected`, `private`),
+`unsafe`, `static` (or `const`), `unsealed`, `abstract` (or `virtual`, `override`,
+`new`), `ref`, `mut` (or `ro`)
 
 
 ## Class, Struct, and Enum

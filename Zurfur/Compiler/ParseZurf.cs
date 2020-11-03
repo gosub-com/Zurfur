@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.Text;
 
 using Gosub.Zurfur.Lex;
@@ -28,6 +29,7 @@ namespace Gosub.Zurfur.Compiler
         SyntaxField         mLastField;
         List<Token>         mExtraTokens = new List<Token>();
         int                 mTernaryLevel;
+        Token               mTokenAfterInsertedToken;
 
         // Be kind to GC
         Queue<List<SyntaxExpr>>   mExprCache = new Queue<List<SyntaxExpr>>();
@@ -39,9 +41,8 @@ namespace Gosub.Zurfur.Compiler
         // Add semicolons to all lines, except for:
         static WordSet sEndLineSkipSemicolon = new WordSet("; { [ ( ,");
         static WordSet sBeginLineSkipSemicolon = new WordSet("{ } ] ) + - / % | & || && == != = "
-                                                + ": ? . , > << <= < => -> .. :: !== === += -= *= /= %= &= |= = "
-                                                + " where is in as extends implements implement impl else then");
-        Token mInsertedToken;
+                            + ": ? . , > << <= < => -> .. :: !== === += -= *= /= %= &= |= =  is in as");
+
 
         static readonly string sReservedWordsList = "abstract as base break case catch class const "
             + "continue default delegate do then else enum event explicit extern false defer use "
@@ -65,7 +66,6 @@ namespace Gosub.Zurfur.Compiler
             + "static unsealed abstract virtual override new ro boxed mut");
 
         static WordSet sEmptyWordSet = new WordSet("");
-        static WordSet sBeginsTypeName = new WordSet("? mut * ref in out ro fun afun class struct"); // Plus identifier
         static WordSet sAllowConstraintKeywords = new WordSet("class struct unmanaged");
         static WordSet sAutoImplementMethod = new WordSet("default impl extern");
 
@@ -422,12 +422,11 @@ namespace Gosub.Zurfur.Compiler
             synClass.TypeParams = ParseTypeParams();
             mUnit.Types.Add(synClass);
 
-            // Parse extends classes
-            if (AcceptMatch("extends"))
+            if (AcceptMatchSkipInvisibleSemicolon("extends"))
                 synClass.Extends = ParseTypeName();
 
             // Parse implemented classes
-            if (AcceptMatch("implements"))
+            if (AcceptMatchSkipInvisibleSemicolon("implements"))
             {
                 var baseClasses = NewExprList();
                 baseClasses.Add(ParseTypeName());
@@ -491,19 +490,16 @@ namespace Gosub.Zurfur.Compiler
 
         private SyntaxConstraint[] ParseConstraints()
         {
-            if (mTokenName != "where")
-                return null;
-
             List<SyntaxConstraint> constraints = new List<SyntaxConstraint>();
-            while (mTokenName == "where")
-                constraints.Add(ParseConstraint());
+            while (AcceptMatchSkipInvisibleSemicolon("where"))
+                constraints.Add(ParseConstraint(mPrevToken));
             return constraints.ToArray();
         }
 
-        SyntaxConstraint ParseConstraint()
+        SyntaxConstraint ParseConstraint(Token keyword)
         {
             var constraint = new SyntaxConstraint();
-            constraint.Keyword = Accept();
+            constraint.Keyword = keyword;
             if (!ParseIdentifier("Expecting a type name", out constraint.GenericTypeName))
                 return constraint;
             constraint.GenericTypeName.Type = eTokenType.TypeName;
@@ -653,8 +649,7 @@ namespace Gosub.Zurfur.Compiler
                         synFunc.TypeParams = ParseTypeParams();
                         synFunc.Params = ParseFuncParamsDef();
                         synFunc.ReturnType = null;
-                        if (BeginsTypeName(mToken))
-                            synFunc.ReturnType = ParseTypeName();
+                        synFunc.ReturnType = ParseTypeName(false);
                         if (mTokenName == "error")
                             Accept();  // TBD: Add to attributes
 
@@ -900,28 +895,25 @@ namespace Gosub.Zurfur.Compiler
                     var ifCondition = ParseExpr();
                     var ifBody = ParseStatements("if");
                     requireSemicolon = false;
-                    if (mToken != "else")
+                    if (!AcceptMatchSkipInvisibleSemicolon("else"))
                     {
-                        // IF (condition) (body)
+                        // No else clause, generate: IF (condition) (body)
                         statements.Add(new SyntaxBinary(keyword, ifCondition, ifBody));
+                        break;
+                    }
+                    if (mTokenName != "if")
+                    {
+                        // Parse else clause, generate: // IF (condition) (body) (else-body)
+                        statements.Add(new SyntaxMulti(keyword, ifCondition, ifBody, ParseStatements("else")));
                     }
                     else
                     {
-                        // IF (condition) (body) (else-body)
-                        Accept();
-                        if (mTokenName != "if")
-                        {
-                            statements.Add(new SyntaxMulti(keyword, ifCondition, ifBody, ParseStatements("else")));
-                        }
-                        else
-                        {
-                            // IF (condition) (body) ( (else-if-body) )
-                            var elseIfToken = mToken;
-                            var elseStatements = NewExprList();
-                            ParseStatement(elseStatements);
-                            statements.Add(new SyntaxMulti(keyword, ifCondition, ifBody, 
-                                               new SyntaxMulti(NewVirtualToken(elseIfToken, "{"), FreeExprList(elseStatements))));
-                        }
+                        // Parse else if clause, generate: IF (condition) (body) ( (else-if-body) )
+                        var elseIfToken = mToken;
+                        var elseStatements = NewExprList();
+                        ParseStatement(elseStatements);
+                        statements.Add(new SyntaxMulti(keyword, ifCondition, ifBody, 
+                                            new SyntaxMulti(NewVirtualToken(elseIfToken, "{"), FreeExprList(elseStatements))));
                     }
                     break;
 
@@ -1261,7 +1253,7 @@ namespace Gosub.Zurfur.Compiler
 
             if (mTokenName == "class" || mTokenName == "struct")
             {
-                return ParseAnonymousClass();
+                return ParseAnonymousClass(Accept());
             }
 
             return ParsePrimary();
@@ -1526,15 +1518,7 @@ namespace Gosub.Zurfur.Compiler
             return ParseExpr();
         }
 
-        /// <summary>
-        /// Returns TRUE if this could begin a type name
-        /// </summary>
-        bool BeginsTypeName(Token t)
-        {
-            return t.Type == eTokenType.Identifier || sBeginsTypeName.Contains(t.Name);
-        }
-
-        SyntaxExpr ParseTypeName()
+        SyntaxExpr ParseTypeName(bool required = true)
         {
             // TBD: Some of these are really qualifiers
             if (mToken == "?" || mToken == "mut" || mToken == PTR
@@ -1554,22 +1538,26 @@ namespace Gosub.Zurfur.Compiler
                 var typeArgs = ParseTypeArgumentList("(");
 
                 // Return type
-                SyntaxExpr funReturnType;
-                if (BeginsTypeName(mToken))
-                    funReturnType = ParseTypeName();
-                else
-                    funReturnType = new SyntaxToken(Token.Empty);
+                var funReturnType = ParseTypeName(false);
 
                 return new SyntaxBinary(tokenFun, typeArgs,  funReturnType);
             }
 
-            if (mTokenName == "class" || mTokenName == "struct")
+            if (AcceptMatchSkipInvisibleSemicolon("class")
+                    || AcceptMatchSkipInvisibleSemicolon("struct"))
             {
-                return ParseAnonymousClass();
+                return ParseAnonymousClass(mPrevToken);
             }
 
-            if (!ParseIdentifier("Expecting a type name", out var typeName))
+            if (required && mToken.Type != eTokenType.Identifier)
+            {
+                ParseIdentifier("Expecting a type name", out var typeNameX);
                 return new SyntaxError(mToken);
+            }
+            if (mToken.Type != eTokenType.Identifier)
+                return new SyntaxToken(Token.Empty);
+
+            var typeName = Accept();
             typeName.Type = eTokenType.TypeName;
             SyntaxExpr result = new SyntaxToken(typeName);
 
@@ -1629,12 +1617,11 @@ namespace Gosub.Zurfur.Compiler
             return new SyntaxMulti(NewVirtualToken(openToken, VT_TYPE_ARG_LIST), FreeExprList(typeArgs));
         }
 
-        SyntaxExpr ParseAnonymousClass()
+        SyntaxExpr ParseAnonymousClass(Token keyword)
         {
-            mToken.Type = eTokenType.Reserved;
-            var keyword = Accept();
+            keyword.Type = eTokenType.Reserved;
             if (!AcceptMatchOrReject("("))
-                return new SyntaxError(mToken);
+                return new SyntaxError(keyword);
             var open = mPrevToken;
 
             var fields = NewExprList();
@@ -1713,6 +1700,14 @@ namespace Gosub.Zurfur.Compiler
             return false;
         }
 
+        bool AcceptMatchSkipInvisibleSemicolon(string match)
+        {
+            // Eat the invisible ";" if the token after it matches
+            if (mToken.Invisible && mTokenName == ";" && mTokenAfterInsertedToken != null && mTokenAfterInsertedToken.Name == match)
+                Accept();
+            return AcceptMatch(match);
+        }
+
         // Accept match, otherwise reject until match token, then try one more time
         bool AcceptMatchOrReject(string matchToken, string message = null, bool tryToRecover = true)
         {
@@ -1756,7 +1751,7 @@ namespace Gosub.Zurfur.Compiler
             p.PrevToken = mPrevToken;
             p.Token = mToken;
             p.TokenType = mToken.Type;
-            p.Inserted = mInsertedToken;
+            p.Inserted = mTokenAfterInsertedToken;
             p.ParseErrors = mParseErrors;
             p.ExtraTokenCount = mExtraTokens.Count;
             return p;
@@ -1769,7 +1764,7 @@ namespace Gosub.Zurfur.Compiler
             mToken = p.Token;
             mToken.Type = p.TokenType;
             mTokenName = mToken.Name;
-            mInsertedToken = p.Inserted;
+            mTokenAfterInsertedToken = p.Inserted;
             mParseErrors = p.ParseErrors;
             while (mExtraTokens.Count > p.ExtraTokenCount)
                 mExtraTokens.RemoveAt(mExtraTokens.Count-1);
@@ -1795,11 +1790,11 @@ namespace Gosub.Zurfur.Compiler
 
             var prevToken = mToken;
             mPrevToken = prevToken;
-            if (mInsertedToken != null)
+            if (mTokenAfterInsertedToken != null)
             {
-                mToken = mInsertedToken;
+                mToken = mTokenAfterInsertedToken;
                 mTokenName = mToken.Name;
-                mInsertedToken = null;
+                mTokenAfterInsertedToken = null;
                 return mPrevToken;
             }
 
@@ -1846,7 +1841,7 @@ namespace Gosub.Zurfur.Compiler
                 // Mark at end of token, before any comment
                 int x = prevToken.X + prevToken.Name.Length;
 
-                mInsertedToken = mToken;
+                mTokenAfterInsertedToken = mToken;
                 mToken = new Token(";", x, prevToken.Y, eTokenBits.Invisible);
                 mTokenName = ";";
             }
