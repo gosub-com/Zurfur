@@ -73,7 +73,13 @@ namespace Gosub.Zurfur.Compiler
 
     class SyntaxField : SyntaxScope
     {
-        public SyntaxExpr TypeName; // TypeName[0]=type, TypeName[1]=initializer (optional)
+        public SyntaxExpr TypeName;
+        public SyntaxExpr Initializer;
+
+        // Only for properties
+        public Token GetToken;
+        public Token SetToken;
+        public Token GetSetVisibilityToken;
         public override string FullName => base.FullName + "::" + Name;
 
         public SyntaxField()

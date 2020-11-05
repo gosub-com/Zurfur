@@ -73,17 +73,9 @@ pub interface IFastEnumerator<T>
 }
 
 
-pub interface IArray<T>
-    implements ICollection<T>
-{
-    fun operator[](index int) T => impl get set
-}
-
-
 pub interface IList<T>
-    implements IArray<T>
 {
-    fun operator[](index int) T => impl get set
+    fun operator[](index int) ref T => impl
     mut fun Insert(index int, item T) => impl
     mut fun Insert(index int, collection ICollection<T>) => impl
     mut fun Remove(index int) => impl
@@ -107,7 +99,7 @@ pub interface IMap<TKey, TValue>
     implements ICollection<KeyValuePair<TKey, TValue>>
 {
     fun operator in(a TKey) bool => impl
-    fun operator[](key TKey) TValue => impl get set
+    fun operator[](key TKey) ref TValue => impl
     fun Contains(key TKey) bool => impl
     fun Get(key TKey, defaultValue TValue) TValue => impl
     fun TryGet(key TKey, value out TValue) bool => impl

@@ -123,21 +123,10 @@ pub class List<T>
 
 
     pub fun operator[](index int) ref mut T
-    {
-        get
-        {
-            Debug.BoundCheck(index, count)
-            // TBD
-        }
-    }
+        => todo()
+
     pub fun operator[](range Range<int>) ref mut Span<T>
-    {
-        get
-        {
-            Debug.BoundCheck(range.Low, count)
-            // TBD
-        }
-    }
+        => todo()
     
     pub prop Count int => count
     pub mut fun Push(item T) => todo()

@@ -29,13 +29,18 @@ Here are some key features of Zurfur:
     * Function parameters must be explicitly marked `mut` if they mutate anything
     * Children of read only fields (i.e. `ro` fields) are also read only
     * Get/set of a mutable struct acts like you expect (e.g. `myObject.VectorProperty.X = 3` works)
-* Functions pass `struct` parameters by reference or value, whichever is more efficient
-* Type declaration syntax is from Golang
-* Strings are UTF8 byte arrays, always initialized to ""
-* Interfaces support Rust style traits and Golang style duck typing
-* Clone always performs a deep copy 
-* `==` operator fails if it is not defined on a class (does not default to object comparison)
-* Async acts like a blocking call without the `await` keyword (ideal for JavaScript callbacks)
+    * `Array<T>` and its elements are immutable, `List<T>` is the only mutable array type
+* Fast and efficient:
+    * Return references and span used everywhere. `[]int` is `Span<int>`, and OK to pass to async functions
+    * Single threaded model (from Javascript) allows efficient reference counted objects
+    * Safe multithreading via web workers (clone defined as fast deep copy for message passing)
+    * Functions pass `struct` parameters by reference or value, whichever is more efficient
+    * Async acts like a Golang blocking call without the `await` keyword (no garbage created for the task)
+* More:
+    * Type declaration syntax is from Golang
+    * Strings are UTF8 byte arrays, always initialized to "" (all classes initialized to non-null values)
+    * Interfaces support Rust style traits and Golang style duck typing via fat pointers
+    * `==` operator fails if it is not defined on a class (does not default to object comparison)
 
 #### Status Update
 
@@ -47,50 +52,6 @@ free to send me comments letting me know what you think should be changed.
 * [Lobster](http://strlen.com/lobster/) - A really cool language that uses reference counting GC
 * [Zig](https://ziglang.org/) - A better and safer C
 * [Pinecone](https://github.com/wmww/Pinecone/blob/master/readme.md) - Inspiration to keep plugging away
-
-## Functions
-
-    /// This is a public documentation comment.  Do not use XML.
-    /// Use `name` to refer to variables in the code. 
-    pub static fun Main(args Array<str>)
-    {
-        // This is a regular private comment
-        Console.Log("Hello World, 2+2=" add(2,2))
-    }
-
-    // Regular static function
-    pub static fun add(a int, b int) int
-        => a + b
-
-Functions are declared with the `fun` keyword. The type names come
-after each argument, and the return type comes after the parameters.
-Functions, classes, structs, enums, variables and constants are
-private unless they have the 'pub' qualifier.  Functions are allowed
-at the namespace level, but must be static or extension methods.
-
-TBD: Still thinking about using the Golang `func` keyword to define functions.
-
-By default, functions pass parameters by immutable reference.  The exception
-is that small structs may be passed by value when it is more efficient to do so.
-
-    pub fun Test(a      f64,       // Pass by value since that's more efficient
-                 s      MyStruct,  // Pass by value or reference whichever is more efficient
-                 ms mut MyStruct,  // Pass by reference, preserve `ro` fields
-                 rs ref MyStruct,  // Pass by reference, nothing is preserved
-                 os out MyStruct,  // MyStruct is returned by reference
-                 c      MyClass,   // Pass reference, the object is immutable
-                 mc mut MyClass,   // Pass by reference, object is mutable, reference cannot be changed
-                 ic ref MyClass,   // Pass by reference, object is mutable, reference can be changed
-                 oc out MyClass)   // MyClass is returned by reference
-
-If `s` is big, such as a matrix containing 16 floats, it is passed by
-reference.  If it is small, such as a single float or int, it is passed
-by value.  A struct containing two integers might be passed by value or
-by reference depending on the compiler, options, and optimizations.
-
-Even if `MyStruct` or `MyClass` is mutable, `s` and `c` cannot be mutated.
-Only parameters marked with `mut` or `ref` can be mutated.  `out` parameters
-must be assigned, never read.
 
 ## Local Variables
 
@@ -106,8 +67,8 @@ operator (i.e. the `var` keyword from C#):
 
 The above form `@variable = expression` creates a variable with the same type as
 the expression.  A second form `@variable type [=expression]` creates an explicitly
-typed variable with optional assignment from an expression.  If the expression
-cannot be converted, an error is generated
+typed variable with optional assignment from an expression.  This form is required
+for class and struct field definitions:
 
     @a int = MyIntFunc()                // Error if MyIntFunc returns a float
     @b str                              // b is a string, initialized to ""
@@ -116,12 +77,9 @@ cannot be converted, an error is generated
     @e Map<str,f32> = ["A":1, "B:1.2]   // Create Map<str,f32>
     @f Json = ["A":1,"B":[1,2,3.5]]     // Create a Json
 
-In general, `@` is used to introduce a variable into the scope of a function,
-class, or struct.
-
-An array of expressions `[e1,e2,e3...]` is used to initialize a list and
-an array of pairs `[K1:V1,K2:V2...]` is used to initialize a map.  Notice
-that brackets `[]` are used for both arrays and maps. Curly braces are reserved
+An array of expressions `[e1, e2, e3...]` is used to initialize a list and
+an array of pairs `[K1:V1, K2:V2, K3:V3...]` is used to initialize a map.
+Brackets `[]` are used for both arrays and maps. Curly braces are reserved
 for statement level constructs.  Constructors can be called with `()`.  
 The following are identical, although, the simplest form is preferred:
 
@@ -129,8 +87,8 @@ The following are identical, although, the simplest form is preferred:
     @b Map<str,int> = ["A":1, "B":2]        // Type name is specified
     @c Map<str,int> = [("A",1), ("B", 2)]   // Use ICollection and KeyValuePair constructor
 
-`a` is prefered for local variables, but can't be used to declare class
-variables, so `b` is preferred for creating fields. `c` is not preferred,
+`a` is prefered for local variables but can't be used to declare class
+fields, so `b` must be used for creating fields. `c` is not preferred,
 but is accepted because the `Map` constructor takes an
 `ICollection<KeyValuePair<str,int>>` parameter. The `KeyValuePair` constructor
 takes `str` and `int`, so everything matches up and is accepted.
@@ -145,31 +103,82 @@ mutable fileds named `X` and `Y`, any of these forms could be used.
 
 The `@` operator can also be used to capture the result of a sub-expression:
 
+    // Capture the count from each Read
     while stream.Read(buffer)@count != 0
         { result.Push(buffer[0::count]) }
 
-    if myMap.TryGet("MyKey")@value
-        { doSometingWith(value) }
-
 #### Non-Nullable References
 
-References are non-nullable (i.e. may never be `null`) and are initialized
-when created.  The optimizer may decide to delay initialization until the
-variable is actually used which could have implications if the constructor
-has side effects.  For instance:
+All references are non-nullable by default and class fields are
+initialized at creation or in the constructor:
 
-    @myList List<int>               // Optimizer may remove this constructor call
-    if MyFunc()
-        { myList = MyListFunc() }   // Constructor might not be called above
-    else
-        { myList.Add(1) }           // Optimizer may move constructor call here
-
-It is possible to create a nullable reference.
-    
-    @myNullStr ?str         // String is null
+    pub class MyClass
+    {
+        myList List<int>                    // Initialized to an empty List<int>
+        myMap  Map<str,str>                 // Initialized to an empty Map<str,str>
+        myNullMap ?Map<str,str>             // Initalized to null
+        pub fun TryGet(v str) ?str {...}    // Takes a non-null str, returns a possibly null str
+    }
 
 A non-nullable reference can be assigned to a nullable, but a
 conditional test must be used to convert nullable to non-nullable. 
+Use the `@` operator to do that. For a generic type, we might have
+an enumerator with a function like this:
+
+    pub mut fun GetNext() ?T { return next object, or null when done }
+
+And use like this:
+
+    if myEnum.GetNext()@value
+        { doSomethingWith(value) }
+
+## Functions
+
+    /// This is a public documentation comment.  Do not use XML.
+    /// Use `name` to refer to variables in the code. 
+    pub static fun Main(args Array<str>)
+    {
+        // This is a regular private comment
+        Log.Info("Hello World, 2+2=" add(2,2))
+    }
+
+Functions are declared with the `fun` keyword. The type names come
+after each argument, and the return type comes after the parameters.
+Functions, classes, structs, enums, variables and constants are
+private unless they have the 'pub' qualifier.  Functions are allowed
+at the namespace level, but must be static or extension methods.
+
+By default, functions pass parameters by immutable reference.  The exception
+is that small structs (e.g. `Span<T>`) may be passed by value when it is more
+efficient to do so.
+
+    pub fun Test(a      f64,       // Pass by value since that's more efficient
+                 s      MyStruct,  // Pass by value or reference whichever is more efficient
+                 ms mut MyStruct,  // Pass by reference, preserve `ro` fields
+                 rs ref MyStruct,  // Pass by reference, nothing is preserved
+                 c      MyClass,   // Pass reference, the object is immutable
+                 mc mut MyClass,   // Pass by reference, object is mutable, reference cannot be changed
+                 ic ref MyClass)   // Pass by reference, object is mutable, reference can be changed
+
+If `s` is big, such as a matrix containing 16 floats, it is passed by
+reference.  If it is small, such as a single float or int, it is passed
+by value.  A struct containing two integers might be passed by value or
+by reference depending on the compiler, options, and optimizations.
+Even if `MyStruct` or `MyClass` is mutable, `s` and `c` cannot be mutated
+because only parameters marked with `mut` or `ref` can be mutated.  
+
+There are no `out` parameters.  Use multiple returns instead:
+
+    // Multiple returns
+    pub static fun Circle(a f64, r f64) : (x f64, y f64)
+    {
+        return Cos(a)*r, Sin(a)*r
+    }
+
+
+**TBD:** Still thinking about using the Golang `func` keyword to define functions.
+Also, wondering if repurposing `:` for return values is a good idea.  Maybe
+choose a fun new operator, such as `:>`?
 
 
 ## Basic types
@@ -218,14 +227,82 @@ There is no `StringBuilder` class.  Instead, use `List<byte>`.
 
 Strings can be sliced.  See `List` (below)
 
+#### List
+
+`List` is the most primitive mutable array type, used as the base building
+block by all other data structures.  It is a variable sized array with a
+`Count` and `Capacity` that changes as items are added or removed.  Lists
+use `ref` returns and an underlying reference counted buffer - So they are
+fast and efficient.
+
+    @a = [1,2,3]                // a is List<int>
+    @b = ["A", "B", "C"]        // b is List<str>
+    @c = [[1,2,3],[4,5,6]]      // c is List<List<int>>
+
+A field of a mutable struct can be modified, like so:
+
+    struct MyPoint { pub X int;  pub Y int; fun new(x int, y int) {todo()} }
+    @a List<MyPoint> = [(1,2),(3,4),(5,6)]  // Use array intializer with MyPoint constructor
+    a[1].Y = 12                             // Now a contains [(1,2),(3,12),(5,6)]
+
+#### Span
+
+Span is a view into a string, array, or list.  They are `ref struct` and
+may never be stored on the heap.  Unlike in C#, a span can be used to pass
+data into an async function.  
+
+Zurfur array syntax translates to directly Span (not to Array like C#).
+The following definitions are identical:
+
+    // The following definitions are identical:
+    mut afun Write(data Span<byte>) int error => impl
+    mut afun Write(data []byte) int error => impl
+
+Span is as fast, simple, and efficient as it gets.  They are just a pointer
+and count.  They are passed down the execution stack or stored on the async
+stack when necessary.  More on this in the GC section below.
+
+Elements are immutable when `str` and `Array` are sliced, and mutable when
+`List` is sliced.
+
+Given a range, the index operator can be used to slice the List.  A change to
+the list is a change to the span and a change to the span is a change to the list.
+
+    @a = ["a","b","c","d","e"]  // a is List<str>
+    @b = a[1..4]                // b is a span, with b[0] == "b" (b aliases ["b","c","d"])
+    @c = a[2::2]                // c is a span, with c[0] == "c" (c aliases ["c","d"])
+    c[0] = "hello"              // now a = ["a","b","hello","d","e"], and b=["b","hello","d"]
+
+When the count or capacity of a list changes, all spans pointing into it become detached.
+A new list is created and used by the list, but the old spans continue aliasing the old
+data.  In general, this should be very rare for most programs, however it is necessary
+for memory safety, efficiency, and programmers should be aware.
+
+        @list = List<byte>()
+        list.Push("Hello Pat")  // list is "Hello Pat"
+        @slice = a[6::3]        // slice is "Pat"
+        slice[0] = "M"[0]       // slice is "Mat", list is "Hello Mat"
+        list.Push("!")          // DEBUG PANIC - slice is now detached, list is "Hello Mat!"
+        slice[0] = "C"[0]       // slice is "Cat", list is still "Hello Mat!"
+
+Mutating the size of a list (not the elements of it) is a programming error,
+however it won't be memory unsafe.  Therefore, when running in a debugger,
+it will stop and complain, but when running in production, it will log an
+error and continue running.
+
 #### Array
+
+IMPORTNT: Zurfur syntax `[]T` translates to `Span<T>`.  If you want a C#
+style (but fully immutable) array, you must use `Array<T>` instead.
 
 Zurfur arrays are immutable.  They may contain only immutable classes
 explicitly marked with `ro`.  Mutable struct elements are allowed; however,
 they are copied into the array and become immutable therever after.
 Structs containing mutable classes, such as `List` are not allowed.
+**TBD:** This can be relaxed by allowing a clone which then becomes
+read-only.
 
-Arrays, like strings, should be used to hold data that never changes
+Arrays, like strings, can be used to hold data that never changes
 after it has been created.  Use `List` to build and hold mutable data,
 use `Array` to store immutable data.
 
@@ -242,55 +319,6 @@ Arrays can be sliced.  See `List` (below)
 
 **TBD:** In the future, the requirement for requiring `ro` on all class elements
 could be lifted provided that the class is cloned at array creation time.
-
-#### Span
-
-Span is a view into a string, array, or list.  They are `ref struct` and
-may never be put on the heap.  The span itself is immutable, and cannot be
-copied.  It can be returned from a function, but absolute single ownership
-is enforced. This allows a `Span` to have a deterministic destructor.
-More on this in on the GC section below.
-
-Elements are immutable when `str` and `Array` are sliced, and mutable when
-`List` is sliced. See `List` (below) for more info on slicing
-
-#### List
-
-`List` is a variable sized array with a `Count` and `Capacity` that
-changes as items are added or removed.  Lists use `ref` returns and act
-exactly like a dynamically sized mutable array.
-
-    @a = [1,2,3]                // a is List<int>
-    @b = ["A", "B", "C"]        // b is List<str>
-    @c = [[1,2,3],[4,5,6]]      // c is List<List<int>>
-
-A field of a mutable struct can be modified, like so:
-
-    struct MyPoint { pub X int;  pub Y int; fun new(x int, y int) {todo()} }
-    @a List<MyPoint> = [(1,2),(3,4),(5,6)]  // Use array intializer with MyPoint constructor
-    a[1].Y = 12                             // Now a contains [(1,2),(3,12),(5,6)]
-
-Given a range, the index operator can be used to slice the List.  A slice is a view
-into the list.  A change to the list is a change to the span and a change to the
-span is a change to the list.
-
-    @a = ["a","b","c","d","e"]  // a is List<str>
-    @b = a[1..4]                // b is a span, with b[0] == "b" (b aliases ["b","c","d"])
-    @c = a[2::2]                // c is a span, with c[0] == "c" (c aliases ["c","d"])
-    c[0] = "hello"              // now a = ["a","b","hello","d","e"], and b=["b","hello","d"]
-
-When the count or capacity of a list changes, all spans pointing into it become detached.
-A new list is created and used by the list, but the old spans continue aliasing the old
-data.  In general, this should be very rare for most programs, however it is necessary
-for memory safety, efficiency, and programmers should be aware.  **TBD:** May panic
-instead of detaching, since this is probably a programming error.
-
-        @list = List<byte>()
-        list.Push("Hello Pat")  // list is "Hello Pat"
-        @slice = a[6::3]        // slice is "Pat"
-        slice[0] = "M"[0]       // slice is "Mat", list is "Hello Mat"
-        list.Push("!")          // slice is now detached, list is "Hello Mat!"
-        slice[0] = "C"[0]       // slice is "Cat", list is still "Hello Mat!"
 
 #### Map
 
@@ -876,8 +904,9 @@ Maybe `if try(File.Open(...)@stream) { use stream... }`  The above is still a WI
 
 ## Garbage Collection
 
-**TBD:** Explain how `ref` structs can have an `unsafe` deterministic
-destructor and how that will help with garbage collection.
+**TBD:** Explain the difference between forward references and
+return references, and how they will be "covered" when passed
+down the execution stack.
 
 There will be a garbage collector, but probably 99% of the garbage can be
 deleted right after it is created, used, and forgotten.  For instance:

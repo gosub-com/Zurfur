@@ -34,6 +34,24 @@ pub class Example
     }
 }
 
+/// This is a public documentation comment.  Do not use XML.
+/// Use `name` to refer to variables in the code.
+pub static fun Main(args Array<str>)
+{
+    // This is a regular private comment
+    Log.Info("Hello World, 2+2=" add(2,2))
+}
+
+// Regular static function
+pub static fun add(a int, b int) int
+    => a + b
+
+// Multiple returns
+pub static fun Circle(a f64, r f64) : (x f64, y f64)
+{
+    return Cos(a)*r, Sin(a)*r
+}
+
 
 pub class MutableTest
 {
@@ -63,7 +81,13 @@ pub struct MyMutablePoint
     pub Y int
     pub fun new(x int, y int) { X = x; Y = y}
     pub mut fun SetY(y int) { Y = y }
-    pub prop PropX int { get => X; set { X = value } }
+    pub prop PropX int
+    {
+    get:
+        return X
+    set:
+        X = value
+    }
 }
 
 
@@ -77,8 +101,7 @@ pub class Example_x
     pub fun A(a int, b int, c f32) f32 => a+1
     pub fun A(a f32) f32 => a+1
     pub fun B(a f32) f32 => a+1
-    pub prop ChangedTime DateTime = DateTime.Now
-        => default get private set
+    pub prop ChangedTime DateTime get set = DateTime.Now
         
     pub fun E()
     {
@@ -175,13 +198,13 @@ pub class Example2  // YES, errors working
     // Properties
     pub prop P1 int => 1
     pub prop P2 f32 =>  f1 + f2
-    pub prop P3 int { get { return 3 } }
-    pub prop P4 int = 3
-        => default get set // Initialized to 3
-    pub prop P5 int = 3
+    pub prop P4 int get set = 3
+    pub prop P5 int
     {
-        get { return p1 }
-        set { p1 = value }
+    get:
+        return p1
+    set:
+        p1 = value
     }
     
     pub fun operator[](index i) int => i

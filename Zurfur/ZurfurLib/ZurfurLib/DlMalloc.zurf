@@ -235,17 +235,15 @@ pub unsafe class DlMalloc
     /// the number of discontiguous memory regions.
     pub prop SegmentCount int
     {
-        get
+    get:
+        @count = 0
+        @segment = seg
+        while segment != null
         {
-            @count = 0
-            @segment = seg
-            while segment != null
-            {
-                count += 1
-                segment = segment.next
-            }
-            return count
+            count += 1
+            segment = segment.next
         }
+        return count
     }
 
     //  Supported pointer/size_t representation:       4 or 8 bytes
@@ -532,12 +530,12 @@ pub unsafe class DlMalloc
         pub prop prev_foot xuint
         {
             get => cast(xuint)prev_foot_ptr
-            set { prev_foot_ptr = cast(*void)value }
+            set: prev_foot_ptr = cast(*void)value
         }
         pub prop head xuint
         {
             get => cast(xuint)head_ptr
-            set { head_ptr = cast(xuint)value }
+            set: head_ptr = cast(xuint)value
         }
     }
 
@@ -701,12 +699,12 @@ pub unsafe class DlMalloc
         pub prop prev_foot xuint
         {
             get => cast(xuint)prev_foot_ptr
-            set { prev_foot_ptr = cast(*void)value }
+            set: prev_foot_ptr = cast(*void)value
         }
         pub prop head xuint
         {
             get => cast(xuint)head_ptr
-            set { head_ptr = cast(xuint)value }
+            set: head_ptr = cast(xuint)value
         }
 
     }

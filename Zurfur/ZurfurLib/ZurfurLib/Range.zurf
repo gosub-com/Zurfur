@@ -1,31 +1,35 @@
 ﻿namespace Zurfur
 
-/// Span (TBD: Ensure type system doesn't need both MutSpan and RoSpan)
-pub struct ref ro Span<T>
+
+struct Range<T>
+    implements IEquatable<T>, IEnumerable<T>
+    where T is IArithmetic<T>
 {
-    ro owner ?object
-    ro data *T
-    pub ro Count int
-    pub fun operator[](index int) ref T
-    {
-        get
-        {
-            if cast(uint)index >= cast(uint)Count
-                { throw IndexOutOfRangeException() }
-            return unsafe(cast(ref T)(data + index))
-        }
-    }
+    pub Low T
+    pub High T
     
-    pub fun operator[](r Range<int>) Span<T>
-    {
-        get
-        {
-            if r.Low < 0 || r.High < r.Low
-                || cast(uint)r.High > cast(uint)Count
-            {
-                throw IndexOutOfRangeException()
-            }
-            return unsafe(Span<T>(owner, data+r.Low, r.High-r.Low))
-        }
-    }
+    pub static fun Equals(a T, b T) bool
+        => a.Low == b.Low && a.High == b.High
+    pub static fun GetHashCode(a T) uint
+        => HashMix(a.Low.GetHashCode(), a.High.GetHashCode())
+    pub fun GetEnumerator() RangeEnumerator<T>
+        => RangeEnumerator<T>(Low, High)
+    
 }
+
+struct RangeEnumerator<T>
+    implements IFastEnumerator<T>
+{
+    index T
+    ro high T
+    
+    pub fun new(low T, high T)
+        { index = low;  this.high = high}
+
+    prop Current T => index
+    fun HasNext() bool => index < high
+    mut fun Advance()
+        { index += T.Identiry }
+}
+
+    

@@ -18,7 +18,7 @@ namespace Gosub.Zurfur.Compiler
 
         static WordSet sRequireGlobalFieldQualifiers = new WordSet("const static");
         static WordSet sRequireGlobalFuncQualifiers = new WordSet("static");
-        static WordSet sFuncInInterfaceQualifiersAllowed = new WordSet("pub private protected static mut async");
+        static WordSet sFuncInInterfaceQualifiersAllowed = new WordSet("pub private protected static mut async error");
 
         static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static");
         static WordSet sClassQualifiers = new WordSet("pub pfublic protected private internal unsafe unsealed abstract ro boxed");
@@ -29,7 +29,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static ro const var mut @");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
 
-        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe virtual override new mut static async");
+        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe virtual override new mut static async error");
         static WordSet sPropQualifiers = new WordSet("pub public protected private internal unsafe static virtual override new");
 
         static WordMap<int> sClassFuncFieldQualifiersOrder = new WordMap<int>()
@@ -332,6 +332,8 @@ namespace Gosub.Zurfur.Compiler
                 case "default":
                 case "catch":
                 case "finally":
+                case "get":
+                case "set":
                     break;
 
                 case "unsafe":
@@ -404,7 +406,10 @@ namespace Gosub.Zurfur.Compiler
             }
             foreach (var field in unit.Fields)
             {
-                ShowParseTree(field.TypeName);
+                if (field.TypeName != null)
+                    ShowParseTree(field.TypeName);
+                if (field.Initializer != null)
+                    ShowParseTree(field.Initializer);
             }
         }
 
