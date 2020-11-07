@@ -1371,13 +1371,13 @@ pub unsafe class DlMalloc
         @s = seg
         while (s != null)
         {
-            @q = align_as_chunk(s->baseAddr)
+            @q = align_as_chunk(s.baseAddr)
             @lastq = null
             assert(pinuse(q))
 
             // Walk chunks
             while (segment_holds(s, q)
-                    && q != top && q->head != FENCEPOST_HEAD)
+                    && q != top && q.head != FENCEPOST_HEAD)
             {
                 @chunkSize = cast(i64)chunksize(q)
                 heapSize += chunkSize
@@ -1399,7 +1399,7 @@ pub unsafe class DlMalloc
                 lastq = q
                 q = next_chunk(q)
             }
-            s = s->next
+            s = s.next
         }
 
 

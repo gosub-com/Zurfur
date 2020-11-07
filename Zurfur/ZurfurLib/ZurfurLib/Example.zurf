@@ -31,6 +31,14 @@ pub class Example
         {
             @a = MyFun as Hello
         }
+        // Lambda
+        @sum = 0
+        
+        list.For @a
+        {
+            sum += a
+        }
+        
     }
 }
 
@@ -105,7 +113,7 @@ pub class Example_x
         
     pub fun E()
     {
-        list.binarysearch(1,23)(a,b) ->   {  a.compare(b) }
+        list.binarysearch(1, 23, @(a,b) => a.compare(b) )
         const MY_CONST = 23
         @a = f(x)
         @b = f(MY_CONST)
@@ -268,16 +276,16 @@ pub class Example2  // YES, errors working
         // Static assigments
         M<str>.Hello = 6
         M<str,int.x<T>.y>.Hello2 = f(1, 2, "Jeremy")
-        M<str,int>.Hello2 = f(1, 2, (x, y) -> x < y)
+        M<str,int>.Hello2 = f(1, 2, @(x, y) => x < y)
         
         @a = x>y
         if MyFieldFunc != null
             { MyFieldFunc(this, "hello") }
 
-        @l1 = (a) -> { return 23 }
-        @l2 = (a) -> 23
-        list.Sort((a, b) -> a < b)
-        list.Sort((a, b) -> { return a < b })
+        @l1 = @ => { return 23 }
+        @l2 = @a => 23
+        list.Sort(@(a, b) => a < b)
+        list.Sort(@(a, b) => { return a < b })
 
         // In operator
         if myStr in myMap || myIn in 1..23

@@ -279,10 +279,8 @@ namespace Gosub.Zurfur.Compiler
                         CheckExpr(expr, expr[0]);
                     break;
 
-                case "->": // Lambda
-                    // TBD: Check lambda
+                case ParseZurf.VT_LAMBDA_BRACE:
                     break;
-
 
                 case "const":
                 case "var":
@@ -327,6 +325,7 @@ namespace Gosub.Zurfur.Compiler
                         CheckExpr(expr, e);
                     break;
 
+                case "error":
                 case "continue":
                 case "break":
                 case "default":
@@ -418,6 +417,7 @@ namespace Gosub.Zurfur.Compiler
             if (expr == null)
                 return expr;
             expr.Token.AddInfo("Parse tree: " + expr.ToString());
+            mParser.RecordInvisibleToken(expr.Token);
             foreach (var e in expr)
                 ShowParseTree(e); // Subtrees without info token
             return expr;

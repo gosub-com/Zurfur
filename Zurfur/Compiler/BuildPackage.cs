@@ -246,7 +246,8 @@ namespace Gosub.Zurfur.Compiler
                 return;
             }
 
-            // Generate Header
+            // Generate Header for each file
+            var zurfFiles = new Dictionary<string, SilGenHeader>();
             foreach (var fi in mPackageFiles)
             {
                 if (fi.Value.Extension == ".zurf")
@@ -256,9 +257,11 @@ namespace Gosub.Zurfur.Compiler
                     sil.MergeTypeDefinitions();
                     sil.GenerateHeader();
                     sil.GenerateCode();
+                    zurfFiles.Add(fi.Value.Path, sil);
                     //fi.Value.SilHeader = sil;
                 }
             }
+            List<int> a;
             FileUpdate(this, new UpdatedEventArgs(""));
 
             int headerErrors = CountErrors();

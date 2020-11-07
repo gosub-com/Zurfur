@@ -10,8 +10,8 @@ pub class Map<TKey, TValue>
     pub fun new()
         where TKey is IEquatable<TKey>
     {
-        compareFunc = (a, b) -> TKey.Compare(a, b)
-        hashFunc = (a) -> TKey.GetHashCode(a)
+        compareFunc = @(a, b) => TKey.Compare(a, b)
+        hashFunc = @a => TKey.GetHashCode(a)
     }
     
     pub fun new(compare fun(TKey, TKey)bool,

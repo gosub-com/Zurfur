@@ -382,7 +382,7 @@ Operator precedence comes from Golang.
 |&&|Conditional
 |&#124;&#124;|Conditional
 |a ? b : c| Not associative (see below for restrictions)
-|->|Lambda
+|=>|Lambda
 |key:Value|Pair
 |,|Comma Separator (not an expression)
 |= += -= *= /= %= &= |= ~= <<= >>=|Assignment Statements (not an expression)
@@ -418,7 +418,38 @@ of illegal expresions are `c1 ? x : c2 ? y : z` (not associative),
 directly contain an operator with lower precedence than range.
 For example, `a==b ? x==3 : y==4` is  illegal.  parentheses can be
 used to override that behavior, `a==b ? (x==3) : (y==4)` and
-`a==b ? (p-> p==3) : (p-> p==4)` are acceptable.
+`a==b ? (@p=> p==3) : (@p=> p==4)` are acceptable.
+
+#### Anonymous Class, Struct, and Lambda
+
+An anonymous class can be created like this: `@a = class(x f64, y f64=3)`
+or `@a = class(x=1, y=MyFunc())`.  Fields are public, and do not need
+explict type names when used as a local variable. **TBD:** Determine
+if we want `@` in front of new variables.  Probably not since `class`
+is there.
+
+    @a = class(x=1, y=2)
+    Log.Info("X=" a.x ", Y=" a.y)   // Prints "X=1, Y=2"
+
+Lambdas copy class parameters by reference, but struct parameters by read-only
+value.  An anonymous class can be used to pass struct parameters by reference:
+
+    @a = class(max = int.Min)
+    myList.For(@item => { a.max = Math.Max(item, a.max) }
+    Log.Info("Maximum value in the list is: " a.max)
+
+The `@` is used to make `@item` easy to recognize as a new variable used
+by the lambda.  Multiple parameters can be created `myList.Sort(@(a,b) => a < b`.
+There is shortcut syntax for lambda-only functions that remove the parenthesis
+and the `=>`, like this:
+
+    myList.For @a
+    {
+        // Do stuff with `a`
+    }
+
+**TBD:** Consider how to `break` out of the lambda.  Use a return type of `Breakable`?
+
 
 #### Operator Overloading
 
@@ -501,15 +532,11 @@ The simplest form of the for loop is when the expression evaluates to an integer
 
 The range operators can be used as follows:
 
-    // Print the numbers from 5 to 49
-    for @i in 5..50
-        { Console.WriteLine(i) }   // `i` is an integer
-
-    // Print all the numbers in the list except the first and last
-    for @i in 1..list.Count-1
+    // Print all the numbers in the list
+    for @i in 0..list.Count
         { Console.WriteLine(list[i]) }
 
-    // Collect elements 5,6, and 7 into myArray
+    // Collect elements 5,6, and 7 into myList
     for @i in 5::3
         { myList.Add(myArray[i]) }
 
@@ -690,27 +717,6 @@ They can be initialized by a constructor or using named field parameters:
 
 **TBD:** Make `struct` members public by default?
 
-#### Anonymous Class and Struct
-
-An anonymous class can be created like this: `@a = class(x int, y int)`
-or `@a = class(x=1, y=MyFunc())`.  Fields are public, and do not need
-explict type names when used as a local variable.
-
-Since struct parameters of a lambda are passed by read-only value, an
-anonymous class can be used to capture them by reference.
-
-    @a = class(max = int.Min)
-    myList.ForEach(item -> { a.max = Math.Max(item, a.max) })
-    Log.Info("Maximum value in the list is: " a.max)
-    
-For now, anonymous struct is the only way to return multiple values
-from a function.
-
-    pub static fun Circle(a f64, r f64) struct(x f64, y f64)
-        => (r*Cos(a), r*Sin(a))
-
-    @a = ReturnTwoValues(PI/2, 1.0)
-    Log.Info("My two values are x=" a.x ", and y=" a.y)
 
 #### Enums
 
@@ -736,6 +742,80 @@ weight as an integer and need no metadata in the compiled executable.
 
 **TBD:** Differentiate an enum having only scalar values vs one with flags?
 The one with flags allows `|` and `&`, etc but the other doesn't.
+
+## Errors and Exceptions
+
+Errors are return values which can be caught, stored, or explicitly ignored.
+Exceptions are programming errors that stop the debugger and complain loudly.
+They cannot be caught, however, they are memory safe and do enough cleanup
+so that a production system can log the error and continue running. (i.e.
+they actually can be caught in special places, but never in synchronous code)
+
+A function marked with `error` may either return a result or return an error.
+If the result is used without error checking, either 1) the function must have
+an error handler, or 2) the function must have an error return value, or 3) both.
+
+Any scope can catch an error.  Given the following definitions:
+
+    pub fun afun Open(name str, mode FileMode) File error => impl
+    pub mut afun Read(data mut Span<byte>) int error  => impl
+    pub mut afun Close() error => impl
+
+We may decide to let errors percolate up:
+
+<pre>
+    pub afun ReadFileIntoString(name str) str <b>error</b>
+    {
+        @result = List<byte>()
+        @buffer = List<byte>(256, byte(0)) // Fill with 256 0 bytes
+        @stream = <b>use</b> File.<b>Open</b>(name, FileMode.ReadOnly)
+        while stream.<b>Read</b>(buffer)@count != 0
+            { result.Push(buffer[0::count]) }
+        return str(result)
+    }
+</pre>
+    
+There are 3 functions that can generate an error, `use`, `Open`, and `Read`.
+They are highlighted by the IDE to let you know each one could immediately
+generate an error and exit the function.  If the function were not marked
+`error`, the code would fail to compile.  But we could handle those errors
+in the function instead percolating them up.
+
+<pre>
+    // This is not an example of something that should be done
+    pub afun ReadFileOrErrorIntoString(name str) str // not marked with `error`
+    {
+        @result = List<byte>();
+        @buffer = List<byte>(256, byte(0))
+        @stream = <b>use</b> File.<b>Open</b>(name, FileMode.ReadOnly)
+        while stream.<b>Read</b>(buffer)@count != 0
+            { result.Push(buffer[0::count]) }
+        return str(result);
+    error e FileNotFound:
+        return "ERROR: Can`t even open the file, " e.Message
+    error e:
+        return "ERROR: Can't read the file, " e.Message ", here is part of it: " str(result)
+    }
+</pre>
+
+A scope can have only one error handler at the end of it, but it may have
+multiple error cases.  Any un-tested error jumps directly to it.  It has
+access to only the variables declared before the first un-caught error.
+In this case it has access to `result` and `buffer`, but not `stream`.
+
+An error handler at the end of a function requires the use of `return` above
+it, even if the function is void.  Each case of the error handler must terminate
+with either `return` to suppress the error or with `raise` to percolate the
+error up.  Only when the final error case catches all errors (i.e. `error e:`)
+and also `return`'s, can the the error be fully suppressed and the
+function not marked with `error`.
+
+Error handlers nested inside a scope must use `return`, `break`, or `continue`
+
+**TBD:** Figure out how to test for an error instead of catching it.
+Maybe `if try(File.Open(...)@stream) { use stream... }`  The above is still a WIP
+[Midori](http://joeduffyblog.com/2016/02/07/the-error-model/)
+
 
 ## Interfaces
 
@@ -829,78 +909,6 @@ the work on the type conversion is actually quite cheap.*"
 Note that an interface containing only static functions can be implemented using
 a thin pointer.
 
-## Errors and Exceptions
-
-Errors are return values which can be caught, stored, or explicitly ignored.
-Exceptions are programming errors that stop the debugger and complain loudly.
-They cannot be caught, however, they are memory safe and do enough cleanup
-so that a production system can log the error and continue running. (i.e.
-they actually can be caught in special places, but never in synchronous code)
-
-A function marked with `error` may either return a result or return an error.
-If the result is used without error checking, either 1) the function must have
-an error handler, or 2) the function must have an error return value, or 3) both.
-
-Any scope can catch an error.  Given the following definitions:
-
-    pub fun afun Open(name str, mode FileMode) File error => impl
-    pub mut afun Read(data mut Span<byte>) int error  => impl
-    pub mut afun Close() error => impl
-
-We may decide to let errors percolate up:
-
-<pre>
-    pub afun ReadFileIntoString(name str) str <b>error</b>
-    {
-        @result = List<byte>()
-        @buffer = List<byte>(256, byte(0)) // Fill with 256 0 bytes
-        @stream = <b>use</b> File.<b>Open</b>(name, FileMode.ReadOnly)
-        while stream.<b>Read</b>(buffer)@count != 0
-            { result.Push(buffer[0::count]) }
-        return str(result)
-    }
-</pre>
-    
-There are 3 functions that can generate an error, `use`, `Open`, and `Read`.
-They are highlighted by the IDE to let you know each one could immediately
-generate an error and exit the function.  If the function were not marked
-`error`, the code would fail to compile.  But we could handle those errors
-in the function instead percolating them up.
-
-<pre>
-    // This is not an example of something that should be done
-    pub afun ReadFileOrErrorIntoString(name str) str // not marked with `error`
-    {
-        @result = List<byte>();
-        @buffer = List<byte>(256, byte(0))
-        @stream = <b>use</b> File.<b>Open</b>(name, FileMode.ReadOnly)
-        while stream.<b>Read</b>(buffer)@count != 0
-            { result.Push(buffer[0::count]) }
-        return str(result);
-    error e FileNotFound:
-        return "ERROR: Can`t even open the file, " e.Message
-    error e:
-        return "ERROR: Can't read the file, " e.Message ", here is part of it: " str(result)
-    }
-</pre>
-
-A scope can have only one error handler at the end of it, but it may have
-multiple error cases.  Any un-tested error jumps directly to it.  It has
-access to only the variables declared before the first un-caught error.
-In this case it has access to `result` and `buffer`, but not `stream`.
-
-An error handler at the end of a function requires the use of `return` above
-it, even if the function is void.  Each case of the error handler must terminate
-with either `return` to suppress the error or with `raise` to percolate the
-error up.  Only when the final error case catches all errors (i.e. `error e:`)
-and also `return`'s, can the the error be fully suppressed and the
-function not marked with `error`.
-
-Error handlers nested inside a scope must use `return`, `break`, or `continue`
-
-**TBD:** Figure out how to test for an error instead of catching it.
-Maybe `if try(File.Open(...)@stream) { use stream... }`  The above is still a WIP
-[Midori](http://joeduffyblog.com/2016/02/07/the-error-model/)
 
 ## Garbage Collection
 

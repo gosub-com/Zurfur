@@ -58,7 +58,7 @@ pub static fun test_Convert()
 {
     @a = List<float>()
     @b = List<int>()
-    @c = a.Convert((i) -> int(i))
+    @c = a.Convert(@ => int(i))
 }
 
 

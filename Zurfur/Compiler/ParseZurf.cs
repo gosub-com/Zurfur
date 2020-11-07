@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
+using System.Linq;
 using System.Text;
 
 using Gosub.Zurfur.Lex;
@@ -14,6 +15,7 @@ namespace Gosub.Zurfur.Compiler
     class ParseZurf
     {
         public const string VT_TYPE_ARG_LIST = "<>"; // Differentiate from '<'
+        public const string VT_LAMBDA_BRACE = "=>{";
         public const string PTR = "*";
         public const string XOR = "~";
 
@@ -947,6 +949,7 @@ namespace Gosub.Zurfur.Compiler
                     requireSemicolon = false;
                     break;
 
+                case "error":
                 case "catch":
                 case "case":
                     var caseToken = Accept();
@@ -1075,13 +1078,34 @@ namespace Gosub.Zurfur.Compiler
         SyntaxExpr ParseLambda()
         {
             var result = ParseTernary();
-            if (mTokenName == "->")
+
+            if (mTokenName == "=>")
             {
+                if (result.Token.Name != "@")
+                    RejectToken(mToken, "Left side must be new variable expression, e.g. '@a' or '@(a,b)'");
+
                 var lambdaToken = Accept();
                 if (mTokenName == "{")
-                    result = new SyntaxBinary(lambdaToken, result, ParseStatements("lambda statements"));
+                    result = new SyntaxBinary(NewVirtualToken(lambdaToken, VT_LAMBDA_BRACE), 
+                                    result, ParseStatements("lambda statements"));
                 else
                     result = new SyntaxBinary(lambdaToken, result, ParseTernary());
+
+                if (mTokenName == "=>")
+                    Reject("Lambda operator '=>' is not associative, must use parentheses");
+            }
+            else if (mTokenName == "{" && result.Token == "@")
+            {
+                // Implicit lambda - binary capture operator '@' followed by '{'
+                var virtualLambdaToken = NewVirtualToken(mToken, VT_LAMBDA_BRACE);
+                if (result.Count <= 1)
+                    RejectToken(virtualLambdaToken, "Implicit lambda can't be used after unary @.  Use '=>' after '@(var)' or remove parentheses before it");
+
+                 result = new SyntaxBinary(virtualLambdaToken, result, ParseStatements("lambda statements"));
+
+                // Prevent things like "while @a{x()}{y()}"
+                if (mTokenName == "{")
+                    RejectToken(virtualLambdaToken, "Brace '{' can't follow lambda expression");
             }
             return result;
         }
@@ -1183,23 +1207,20 @@ namespace Gosub.Zurfur.Compiler
 
         SyntaxExpr ParseIsAs()
         {
-            var result = ParseCaptureNewVar();
+            var result = ParseNewVarCapture();
             if (mTokenName == "is" || mTokenName == "as")
                 result = new SyntaxBinary(Accept(), result, ParseTypeName());
             return result;
         }
 
-        SyntaxExpr ParseCaptureNewVar()
+        SyntaxExpr ParseNewVarCapture()
         {
             var result = ParseUnary();
             if (mTokenName == "@")
             {
-                var varOp = Accept();
-                if (ParseIdentifier("", out var varName))
-                {
-                    varName.Type = eTokenType.DefineLocal;
-                    result = new SyntaxBinary(varOp, result, new SyntaxToken(varName));
-                }
+                result = new SyntaxBinary(Accept(), result, ParseNewVarExpr());
+                if (mTokenName == "@")
+                    Reject("New variable operator '@' is not associative");
             }
             return result;
         }
@@ -1211,6 +1232,13 @@ namespace Gosub.Zurfur.Compiler
                 if (mTokenName == "+")
                     RejectToken(mToken, "Unary '+' operator is not allowed");
                 return new SyntaxUnary(Accept(), ParseUnary());
+            }
+            if (mTokenName == "@")
+            {
+                var result = new SyntaxUnary(Accept(), ParseNewVarExpr());
+                if (mTokenName == "@")
+                    Reject("New variable operator '@' is not associative");
+                return result;
             }
 
             if (mTokenName == "cast")
@@ -1243,6 +1271,35 @@ namespace Gosub.Zurfur.Compiler
             }
 
             return ParsePrimary();
+        }
+        private SyntaxExpr ParseNewVarExpr()
+        {
+            var newVarList = NewExprList();
+            if (AcceptMatch("("))
+            {
+                var open = mPrevToken;
+                do
+                {
+                    if (ParseIdentifier("", out var varName))
+                    {
+                        varName.Type = eTokenType.DefineLocal;
+                        newVarList.Add(new SyntaxToken(mPrevToken));
+                    }
+                } while (AcceptMatch(","));
+
+                if (AcceptMatchOrReject(")"))
+                    Connect(open, mPrevToken);
+            }
+            else
+            {
+                if (mTokenName != "=>" && ParseIdentifier("", out var varName))
+                {
+                    varName.Type = eTokenType.DefineLocal;
+                    newVarList.Add(new SyntaxToken(mPrevToken));
+                }
+            }
+
+            return new SyntaxMulti(Token.Empty, FreeExprList(newVarList));
         }
 
         SyntaxExpr ParsePrimary()
@@ -1308,20 +1365,21 @@ namespace Gosub.Zurfur.Compiler
                 return new SyntaxToken(mToken);
             }
 
-            // Parse parentheses: expression, or lambda parameters (not a function call)
+            // Parse parentheses: (expression) - not a function call
             if (mTokenName == "(" || mToken == "[")
             {
                 // Use ")" or "]" to differentiate between function call and ordering
-                var endToken = mTokenName == "(" ? ")" : "]";
-                var result = ParseParen(NewVirtualToken(mToken, endToken));
+                var open = mToken;
+                var close = mTokenName == "(" ? ")" : "]";
+                var result = ParseParen(NewVirtualToken(mToken, close));
 
                 // Disallow old style casts (and other)
-                if (mTokenName == "(" || mToken.Type == eTokenType.Identifier)
+                if (close == ")" && (mTokenName == "(" || mToken.Type == eTokenType.Identifier))
                 {
-                    if (endToken == ")" && (mTokenName == "(" || mToken.Type == eTokenType.Identifier))
-                        RejectToken(mToken, "Old style cast not allowed");
+                    var message = "Old style cast not allowed";
+                    RejectToken(mPrevToken, message);
+                    Reject(message);
                 }
-
                 return result;
             }
 
@@ -1800,7 +1858,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 mToken.Type = eTokenType.Quote;
                 if (mTokenName.Length <= 1 || !mTokenName.EndsWith(mTokenName[0].ToString()))
-                        RejectToken(mToken, "Exepcting an end " + mTokenName[0] + " character");
+                    RejectToken(mToken, "Exepcting an end " + mTokenName[0] + " character");
             }
             else if (mTokenName[0] >= '0' && mTokenName[0] <= '9')
                 mToken.Type = eTokenType.Number;
@@ -1808,6 +1866,8 @@ namespace Gosub.Zurfur.Compiler
                 mToken.Type = tokenType;
             else if (char.IsLetter(mTokenName[0]) || mTokenName[0] == '_')
                 mToken.Type = eTokenType.Identifier;
+            else if (mTokenName == ":")
+                mToken.Type = eTokenType.BoldSymbol;
             else
                 mToken.Type = eTokenType.Normal;
 
@@ -1927,7 +1987,12 @@ namespace Gosub.Zurfur.Compiler
         {
             mParseErrors++;
             token.AddError(errorMessage);
+            RecordInvisibleToken(token);
+        }
 
+        // Call this after adding info to an invisible token
+        public void RecordInvisibleToken(Token token)
+        {
             // Make sure invisible tokens with errors are recorded
             if (token.Invisible)
             {
