@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 using Gosub.Zurfur.Lex;
@@ -9,9 +10,7 @@ namespace Gosub.Zurfur.Compiler
     class SyntaxFile
     {
         public List<SyntaxUsing> Using = new List<SyntaxUsing>();
-        public SyntaxNamespace CurrentNamespace { get { return Namespaces.Count == 0 ? null : Namespaces[Namespaces.Count - 1]; } }
-
-        public List<SyntaxNamespace> Namespaces = new List<SyntaxNamespace>();
+        public Dictionary<string, SyntaxNamespace> Namesapces = new Dictionary<string, SyntaxNamespace>();
         public List<SyntaxType> Types = new List<SyntaxType>();
         public List<SyntaxFunc> Funcs = new List<SyntaxFunc>();
         public List<SyntaxField> Fields = new List<SyntaxField>();
@@ -25,30 +24,28 @@ namespace Gosub.Zurfur.Compiler
 
     class SyntaxScope
     {
-        public virtual bool IsNamespace => false;
         public virtual bool IsType => false;
         public SyntaxScope ParentScope;
+        public string[] NamePath;
         public string Comments;
         public Token[] Qualifiers;
         public Token Keyword; // class, struct, func, prop, blank for field, etc.
         public Token Name;
 
-        virtual public string FullName
+        public string FullName
         {
             get
             {
-                var name = Name == null ? "(none)" : Name;
-                if (ParentScope != null)
-                    name = ParentScope.FullName + "." + name;
-                return name;
+                return string.Join(".", NamePath) + ":" + Name;
             }
         }
         public override string ToString() => FullName;
     }
 
-    class SyntaxNamespace : SyntaxScope
+    class SyntaxNamespace
     {
-        public override bool IsNamespace => true;
+        public string Comments = "";
+        public List<Token> Tokens = new List<Token>();
     }
 
     /// <summary>
@@ -57,6 +54,7 @@ namespace Gosub.Zurfur.Compiler
     class SyntaxType : SyntaxScope
     {
         public override bool IsType => true;
+        public bool Simple;
         public SyntaxExpr Extends;
         public SyntaxExpr []Implements;
         public SyntaxExpr TypeParams;
@@ -73,6 +71,7 @@ namespace Gosub.Zurfur.Compiler
 
     class SyntaxField : SyntaxScope
     {
+        public bool Simple;
         public SyntaxExpr TypeName;
         public SyntaxExpr Initializer;
 
@@ -80,7 +79,6 @@ namespace Gosub.Zurfur.Compiler
         public Token GetToken;
         public Token SetToken;
         public Token GetSetVisibilityToken;
-        public override string FullName => base.FullName + "::" + Name;
 
         public SyntaxField()
         {

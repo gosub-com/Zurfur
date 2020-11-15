@@ -210,7 +210,9 @@ namespace Gosub.Zurfur.Ide
             if (mActiveEditor != null
                     && mHoverToken != null
                     && mHoverToken.Type != eTokenType.Comment
-                    && (mHoverToken.GetInfoString() != "" || mHoverToken.GetInfo<Symbol>() != null)
+                    && (mHoverToken.GetInfoString() != "" 
+                            || mHoverToken.GetInfo<Symbol>() != null
+                            || mHoverToken.GetInfo<TokenError>() != null)
                     && !mHoverMessageForm.Visible)
             {
                 // Get message
@@ -218,11 +220,17 @@ namespace Gosub.Zurfur.Ide
                 var symbol = mHoverToken.GetInfo<Symbol>();
                 if (symbol != null)
                 {
-                    message += symbol.ToString() + "\r\n";
+                    message += "SYMBOL: " + symbol.ToString() + "\r\n";
                     if (symbol.Comments != "")
                         message += symbol.Comments + "\r\n";
                     message += "\r\n";
                 }
+
+                foreach (var error in mHoverToken.GetInfos<TokenError>())
+                {
+                    message += "ERROR:" + error.ToString() + "\r\n";
+                }
+
                 message += mHoverToken.GetInfoString();
                 mHoverMessageForm.Message.Text = message.Trim();
 

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Gosub.Zurfur.Ide;
 using Gosub.Zurfur.Lex;
 using Gosub.Zurfur.Compiler;
+using System.Diagnostics;
 
 namespace Gosub.Zurfur
 {
@@ -15,7 +16,10 @@ namespace Gosub.Zurfur
     {
         bool                mInActivatedEvent;
         ZurfEditController  mEditController = new ZurfEditController();
-        BuildPackage        mBuildPackage = new BuildPackage();    
+        BuildPackage        mBuildPackage = new BuildPackage();
+        string mCompilerStatus = "";
+        string mErrorLineStatus = "";
+
 
         // Move when clicking menu
         bool mMouseDown;
@@ -172,6 +176,7 @@ namespace Gosub.Zurfur
             {
                 mEditController.AddEditor(textEditor);
                 textEditor.TextChanged2 += TextEditor_TextChanged2;
+                textEditor.CursorLocChanged += TextEditor_CursorLocChanged;
             }
         }
 
@@ -182,9 +187,12 @@ namespace Gosub.Zurfur
             {
                 mEditController.RemoveEditor(textEditor);
                 textEditor.TextChanged2 -= TextEditor_TextChanged2;
+                textEditor.CursorLocChanged -= TextEditor_CursorLocChanged;
             }
         }
 
+
+        int mChangedLine = -1;
         private void TextEditor_TextChanged2(object sender, EventArgs e)
         {
             // Notify build system
@@ -192,8 +200,27 @@ namespace Gosub.Zurfur
             if (textEditor == null)
                 return;
             mBuildPackage.SetLexer(textEditor.FilePath, textEditor.Lexer);
+            Debug.WriteLine("Rebuild on text change");
+            mChangedLine = textEditor.CursorLoc.Y;
         }
 
+        private void TextEditor_CursorLocChanged(object sender, EventArgs e)
+        {
+            // Rebuild only once when the line changes to show
+            // accidental spaces in the source code
+            var textEditor = sender as TextEditor;
+            if (textEditor == null)
+                return;
+
+            mErrorLineStatus = FindErrorOnLine(textEditor.Lexer, textEditor.CursorLoc);
+            UpdateStatus();
+
+            if (textEditor.CursorLoc.Y == mChangedLine || mChangedLine < 0)
+                return;
+            mChangedLine = -1;
+            mBuildPackage.SetLexer(textEditor.FilePath, textEditor.Lexer);
+            Debug.WriteLine("Rebuild on cursor movement");
+        }
 
         private void mvEditors_EditorActiveViewChanged(IEditor editor)
         {
@@ -236,9 +263,60 @@ namespace Gosub.Zurfur
         /// </summary>
         private void mBuildPackage_StatusUpdate(object sender, BuildPackage.UpdatedEventArgs e)
         {
-            labelStatus.Text = e.Message;
+            mCompilerStatus = e.Message;
+            var editor = mvEditors.EditorViewActive as TextEditor;
+            mErrorLineStatus = "";
+            if (editor != null)
+            {
+                var lexer = editor.Lexer;
+                mErrorLineStatus = FindErrorOnLine(lexer, lexer.Cursor);
+            }
+            UpdateStatus();
         }
 
+        void UpdateStatus()
+        {
+            labelStatus.Text = mCompilerStatus + (mErrorLineStatus == "" ? "" : " - ") + mErrorLineStatus;
+        }
+
+        private static string FindErrorOnLine(Lexer lexer, TokenLoc cursor)
+        {
+            var errorMessage = "";
+            var tokens = new List<Token>();
+            var lastToken = Token.Empty;
+            foreach (var token in lexer.GetEnumeratorStartAtLine(cursor.Y))
+            {
+                if (token.Y != cursor.Y)
+                {
+                    lastToken = token;
+                    break;
+                }
+                tokens.Add(token);
+            }
+            // The error can be marked on the next line if it's a brace.
+            // The parser should probably detect that and add a virtual
+            // token on the previous line
+            if (lastToken.Name == "{" || lastToken == "}")
+                tokens.Add(lastToken);
+
+            foreach (var token in lexer.MetaTokens)
+                if (token.Y == cursor.Y)
+                    tokens.Add(token);
+
+            tokens.Sort((a, b) =>
+            {
+                if (a.Location == b.Location) return 0;
+                return a.Location < b.Location ? -1 : 1;
+            });
+            foreach (var token in tokens)
+            {
+                var error = token.GetInfo<TokenError>();
+                if (error != null && (errorMessage == "" || token.Location.X < cursor.X))
+                    errorMessage = error.ToString();
+            }
+
+            return errorMessage;
+        }
 
         void menuFileOpenProject_Click(object sender, EventArgs e)
         {

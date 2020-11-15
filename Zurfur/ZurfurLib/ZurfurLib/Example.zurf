@@ -14,6 +14,18 @@ static fun test_HelloWorld()
     }
 }
 
+pub struct SimpleStruct(X int, Y int)
+
+pub class SimpleClass(FirstName str, LastName str)
+
+pub class SimpleClassWitBody(FirstName str, LastName str)
+{
+    // a int - ILLEGAL
+    // fun new(a int) => AlsoIllegal()
+    fun ToStr() { return "" LastName ", " FirstName }
+}
+
+
 pub class Example
 {
     info str                             // Initialized string
@@ -22,32 +34,71 @@ pub class Example
     pub fun GetInfo(a int) str => info+a // Public function
     pub prop Info str => info            // Public property
     
-    pub fun Test()
-    {
-        a = tr"Column 1"\tab"Column 2"\crlf
-        data = "Name:"name\tab"Occupation:"lastName\crlf
-        
-        while stream.Read(buffer)@size != 0
-        {
-            @a = MyFun as Hello
-        }
-        // Lambda
-        @sum = 0
-        
-        list.For @a
-        {
-            sum += a
-        }
-        
-    }
 }
 
 /// This is a public documentation comment.  Do not use XML.
 /// Use `name` to refer to variables in the code.
-pub static fun Main(args Array<str>)
+pub static fun test_Main(args Array<str>)
 {
     // This is a regular private comment
     Log.Info("Hello World, 2+2=" add(2,2))
+
+    @v = ""
+    switch myString
+    {
+    case "x":                    v = "x"
+    case "y","z":                v = "y or z"
+    case it >= "a" && it <= "z": v = "lower"
+    case it >= "A" && it <= "Z": v = "upper"
+    default:                     v = "Neither"
+    }
+
+    switch myObject
+    {
+    case it is MyType && it.Prop == 3:
+        v = "myType.Prop==3"
+    case it is YourType:
+        v = it.YourTypeProperty
+    }
+    
+    @a = match(a+b)[
+        1..4: "a",
+        it >= 5 || it <= 6: "b"]
+    a = match(a+b)[
+        it==1 || it==2 || it==3: "a",
+        it>=5 || it<=6: "b"]
+
+    a = tr"Column 1"\tab"Column 2"\crlf
+    data = "Name:"name\tab"Occupation:"lastName\crlf
+    
+    while stream.Read(buffer)@size != 0
+    {
+        @a = MyFun as Hello
+    }
+
+
+    // AcceptMatch returns ?Token = (bool, Token)
+    // @Token captures the token, leaving the bool
+    if AcceptMatch("(")@Token
+    {
+        // We got a token
+    }
+
+    // list.For takes a lambda with one parameter
+    // @item captures the lambda parameter
+    @sum = 0
+    list.For() @item =>
+    {
+        sum += item
+    }
+
+
+}
+
+
+pub static fun AcceptMatch(name str) ?Token
+{
+    return name == "(" ? Token() : null
 }
 
 // Regular static function
@@ -541,79 +592,75 @@ pub static fun MemCopy32(dest *void, source *void, length xint)
     }
 }
 
-namespace ExampleNs1.HelloWorld
+
+namespace Zurfur.Example.ExampleNs1.HelloWorld
+
+static fun F1() => todo
+
+class ClassEx1
 {
+    a int
+    b int
+}
+
+
+
+namespace Zurfur.Example.ExampleNs1
     static fun F1() => todo
     
-    class ClassEx1
+namespace Zurfur.Example.ExampleNs1.InnerEx1
+
+namespace Zurfur.Example.ExampleNs1.InnerEx2
+
+namespace Zurfur.Example.ExampleNs1
+
+class ClassEx1
+{
+    a int
+    b int
+    class Inner1
     {
-        a int
-        b int
+    }
+
+    class Inner2
+    {
+    }
+}
+class ClassEx2
+{
+    class Inner1
+    {
+    }
+
+    class Inner2
+    {
     }
 }
 
 
-namespace ExampleNs1
+namespace Zurfur.Example.ExampleNs2
+
+static fun F1() => todo
+
+class ClassEx1
 {
-    static fun F1() => todo
-    
-    namespace InnerEx1
-    {
-
-    }
-
-    namespace InnerEx2
+    a int
+    b int
+    class Inner1
     {
     }
 
-    class ClassEx1
+    class Inner2
     {
-        a int
-        b int
-        class Inner1
-        {
-        }
-    
-        class Inner2
-        {
-        }
-    }
-    class ClassEx2
-    {
-        class Inner1
-        {
-        }
-    
-        class Inner2
-        {
-        }
     }
 }
-
-namespace ExampleNs2
+class ClassEx2
 {
-    static fun F1() => todo
-    
-    class ClassEx1
+    class Inner1
     {
-        a int
-        b int
-        class Inner1
-        {
-        }
-    
-        class Inner2
-        {
-        }
     }
-    class ClassEx2
+
+    class Inner2
     {
-        class Inner1
-        {
-        }
-    
-        class Inner2
-        {
-        }
     }
 }

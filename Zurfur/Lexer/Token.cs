@@ -52,7 +52,7 @@ namespace Gosub.Zurfur.Lex
     /// </summary>
     public class Token
     {
-        public static readonly Token []EmptyArray = new Token[0];
+        public static readonly Token[] EmptyArray = new Token[0];
 
         /// <summary>
         /// The string is always "", but error codes and location are undefined
@@ -201,19 +201,19 @@ namespace Gosub.Zurfur.Lex
         public bool HasInfo() => mInfo.HasInfo();
         public void AddInfo(object info) => mInfo.AddInfo(info);
         public void RemoveInfo<T>() => mInfo.RemoveInfo<T>();
-        public void SetInfo<T>(T info) =>  mInfo.SetInfo(info);
+        public void SetInfo<T>(T info) => mInfo.SetInfo(info);
         public T GetInfo<T>() => mInfo.GetInfo<T>();
         public T[] GetInfos<T>() => mInfo.GetInfos<T>();
         public string GetInfoString() => mInfo.GetInfoString();
 
         /// <summary>
-        /// Add an error to this token (set error flag and append the message)
+        /// Add an error to this token, set error flag and append TokenError(errorMessage)
         /// </summary>
         public void AddError(string errorMessage)
         {
             // Display error message
             Error = true;
-            AddInfo(errorMessage);
+            AddInfo(new TokenError(errorMessage));
         }
 
         /// <summary>
@@ -483,5 +483,16 @@ namespace Gosub.Zurfur.Lex
             Url = url;
         }
     }
+
+    public class TokenError
+    {
+        public string Message = "";
+        public TokenError(string message) { Message = message; }
+        public override string ToString()
+        {
+            return Message;
+        }
+    }
+
 
 }

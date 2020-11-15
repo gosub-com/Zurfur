@@ -2,41 +2,6 @@
 
 namespace Zurfur
 
-
-// TBD: This will contain compiler generated metadata for each type
-pub struct GcType { }
-
-// This is at the front of all objects on the heap,
-// similar to the vtable pointer in C++
-pub struct GcObject<T>
-{
-    pub ro Type *GcType
-}
-
-// This is at the front of all array objects on the heap.
-// NOTE: The pointer points to the data, not to this object.
-pub struct GcObjectArray<T>
-{
-    pub ro Type *GcType
-    pub ro Count xuint // Data is 64 bit aligned for 32/64 bit machines
-    // Array data follows this
-}
-
-// This is a raw pointer to an array on the GC heap.
-// NOTE: For speed, the pointer points to the data
-// instead of the GcObjectArray.
-pub struct GcArrayPointer<T>
-{
-    pub Data *T
-    prop Type ro *GcType
-        => unsafe (cast(*GcObjectArray)Data)[-1].Type
-    prop Count xuint
-        => unsafe (cast(*GcObjectArray)Data)[-1].Count
-    prop TypePointer ro *GcType
-        => unsafe (cast(*GcObjectArray)Data)[-1]
-}
-
-
 /// This is the lowest level array type in Zurfur.
 /// All dynamically sized objects should build from this.
 pub class List<T>

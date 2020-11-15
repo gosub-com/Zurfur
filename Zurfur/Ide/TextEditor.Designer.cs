@@ -50,18 +50,19 @@
             this.vScrollBar.TabIndex = 1;
             this.vScrollBar.ValueChanged += new System.EventHandler(this.vScrollBar_ValueChanged);
             // 
-            // verticalMarksLeft
+            // vMarksLeft
             // 
             this.vMarksLeft.ArrowHight = 0;
             this.vMarksLeft.CursorMark = 0;
             this.vMarksLeft.Location = new System.Drawing.Point(139, 40);
             this.vMarksLeft.Maximum = 0;
-            this.vMarksLeft.Name = "verticalMarksLeft";
+            this.vMarksLeft.Name = "vMarksLeft";
+            this.vMarksLeft.ShowCursor = false;
             this.vMarksLeft.Size = new System.Drawing.Size(5, 149);
             this.vMarksLeft.TabIndex = 2;
             this.vMarksLeft.Text = "verticalMarks1";
             // 
-            // Editor
+            // TextEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -72,7 +73,7 @@
             this.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.DoubleBuffered = true;
             this.Font = new System.Drawing.Font("Courier New", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Name = "Editor";
+            this.Name = "TextEditor";
             this.Size = new System.Drawing.Size(212, 211);
             this.Load += new System.EventHandler(this.Editor_Load);
             this.ResumeLayout(false);

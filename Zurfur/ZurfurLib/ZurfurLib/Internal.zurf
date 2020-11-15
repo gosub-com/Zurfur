@@ -1,0 +1,56 @@
+﻿
+namespace Zurfur.Compiler
+
+pub struct ro Attribute { }
+
+pub struct ro AlignAttribute
+    extends Attribute
+{
+    pub ro Size int
+}
+
+
+namespace Zurfur.Compiler.Internal
+
+// TBD: This will contain compiler generated metadata for each type
+pub struct GcType { }
+
+// Header for all heap objects
+pub struct ro GcObject<T>
+{
+    pub ro Type *GcType
+}
+
+// Header for all heap arrays
+[Align(8)]
+pub struct ro GcArray<T>
+{
+    pub ro Type  *GcType
+    pub ro Count  uint
+}
+
+// Header for all reference counted heap arrays.
+// This is the underlying array used by List<T>
+[Align(8)]
+pub struct ro GcRefArray<T>
+{
+    pub ro Type  *GcType
+    pub ro Count  uint
+    pub ro Ref    uint
+}
+
+
+// This is a raw pointer to an array on the GC heap.
+// NOTE: For speed, the pointer points to the data
+// instead of the GcObjectArray.
+[Align(8)]
+pub struct GcRefArrayPointer<T>
+{
+    pub Data *T
+    prop Type ro *GcType
+        => unsafe (cast(*GcObjectArray)Data)[-1].Type
+    prop Count xuint
+        => unsafe (cast(*GcObjectArray)Data)[-1].Count
+    prop TypePointer ro *GcType
+        => unsafe (cast(*GcObjectArray)Data)[-1]
+}

@@ -23,6 +23,7 @@ namespace Gosub.Zurfur.Compiler
         public CompilerInfo CompilerInfo = new CompilerInfo();
 
         public Symbol Symbols = new Symbol(SymbolTypeEnum.Namespace, new Token(), null);
+        public string[] Namespaces = Array.Empty<string>();
     }
 
     class PackageInfo
@@ -56,47 +57,51 @@ namespace Gosub.Zurfur.Compiler
     class SymFile
     {
         public string FileName = "";
+        public SymFile(string fileName) { FileName = fileName; }
     }
 
     class Symbol
     {
         public readonly SymbolTypeEnum Type;
-        public readonly Token Name = Token.Empty;
+        public readonly string Name = "";
+        public Token Token = Token.Empty;
         public readonly Symbol Parent;
         public string Comments = "";
 
         SymFile mFile;
         Dictionary<string, Symbol> mSymbols;
-        Symbol mDuplicates;
-        string mFullName;
+        List<Symbol> mDuplicates;
 
 
-        public Symbol(SymbolTypeEnum type, Token name, Symbol parent)
+        public Symbol(SymbolTypeEnum type, Token token, Symbol parent)
         {
             Type = type;
-            Name = name;
+            Token = token;
             Parent = parent;
+            Name = token.Name;
         }
+
+        public Symbol(SymbolTypeEnum type, string name, Symbol parent)
+        {
+            Type = type;
+            Parent = parent;
+            Name = name;
+        }
+
 
         public bool IsDuplicte => mDuplicates != null;
 
         public void AddDuplicate(Symbol symbol)
         {
-            var d = this;
-            while (d.mDuplicates != null)
-                d = d.mDuplicates;
-            d.mDuplicates = symbol;
+            if (mDuplicates == null)
+                mDuplicates = new List<Symbol>();
+            mDuplicates.Add(symbol);
         }
 
         public SymFile File
         {
             set { mFile = value; }
-            get
-            {
-                if (mFile == null)
-                    mFile = new SymFile();
-                return mFile;
-            }
+            get { return mFile; }
         }
 
         public Dictionary<string, Symbol> Symbols
@@ -114,20 +119,27 @@ namespace Gosub.Zurfur.Compiler
         {
             get
             {
-                if (mFullName == null)
-                {
-                    if (Parent == null || Parent.Name == "")
-                        mFullName = Name;
-                    else
-                        mFullName = Parent.FullName + (Parent.Type == SymbolTypeEnum.Namespace && Type != SymbolTypeEnum.Namespace ? "/" : ".") + Name;
-                }
-                return mFullName;
+                string name;
+                if (Type == SymbolTypeEnum.Field || Type == SymbolTypeEnum.Funcs)
+                    name = "." + Name;
+                else if (Type == SymbolTypeEnum.Func)
+                    name = Name;
+                else if (Type == SymbolTypeEnum.Type)
+                    name = ":" + Name;
+                else if (Type == SymbolTypeEnum.Namespace)
+                    name = "/" + Name;
+                else
+                    name = "?" + Name;
+
+                if (Parent != null)
+                    name = Parent.FullName + name;
+                return name;
             }
         }
 
         public override string ToString()
         {
-            return Type + ":" + FullName;
+            return FullName;
         }
     }
 
@@ -144,7 +156,6 @@ namespace Gosub.Zurfur.Compiler
     class SymField : Symbol
     {
         public SymField(Token name, Symbol parent) : base(SymbolTypeEnum.Field, name, parent) { }
-        public string FullTypeName = "TBD";
     }
 
     class SymFuncs : Symbol
@@ -154,8 +165,10 @@ namespace Gosub.Zurfur.Compiler
 
     class SymFunc : Symbol
     {
-        public SymFunc(Token name, Symbol parent) : base(SymbolTypeEnum.Func, name, parent) { }
+        public SymFunc(string name, Token funcGroupName, Symbol parent) : base(SymbolTypeEnum.Func, name, parent)
+            { Token = funcGroupName;  }
     }
+
 
     class SymTypeArg : Symbol
     {

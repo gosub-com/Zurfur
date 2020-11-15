@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using Gosub.Zurfur.Lex;
 
 namespace Gosub.Zurfur.Compiler
@@ -12,7 +12,7 @@ namespace Gosub.Zurfur.Compiler
     class ParseZurfCheck
     {
         // Debug the parse tree
-        bool mShowParseTree = true;
+        bool mShowParseTree = false;
 
         public Token LastToken;
 
@@ -32,6 +32,11 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe virtual override new mut static async error");
         static WordSet sPropQualifiers = new WordSet("pub public protected private internal unsafe static virtual override new");
 
+        static WordSet sTopLevelStatements = new WordSet("{ ( = += -= *= /= %= &= |= ~= <<= >>= => @ "
+            + "const var let mut defer use throw switch case return for break default while if else get set do unsafe");
+        static WordSet sAssignments = new WordSet("= += -= *= /= %= &= |= ~= <<= >>=");
+        static WordSet sInvalidLeftAssignments = new WordSet("+ - * / % & | == != < <= > >=");
+
         static WordMap<int> sClassFuncFieldQualifiersOrder = new WordMap<int>()
         {
             { "pub", 1 }, { "public", 1 }, { "protected", 1 }, { "private", 1 }, { "internal", 1 },
@@ -43,6 +48,17 @@ namespace Gosub.Zurfur.Compiler
             { "mut", 11 }, { "ro", 11}, {"readonly", 11},
             { "async", 12 }
         };
+
+        static WordMap<int> sOpClass = new WordMap<int>
+        {
+            { "+", 1 }, { "-", 1 }, { "*", 1 }, { "/", 1 }, { "%", 1 },
+            { "|", 2 }, { "&", 2 },  { ">>", 2 }, { "<<", 2 },
+            { "~", 3 },
+        };
+
+        const string DO_NOT_MIX_ARITMETIC_ERROR = "Do not mix arithmetic and bitwise operators, use parentheses.";
+        const string DO_NOT_MIX_XOR_ERROR = "Do not mix XOR with arithmetic or bitwise operators, use parentheses.";
+
 
         ParseZurf mParser;
 
@@ -69,7 +85,7 @@ namespace Gosub.Zurfur.Compiler
 
                 var keyword = aClass.Keyword;
                 var outerKeyword = aClass.ParentScope == null ? "" : aClass.ParentScope.Keyword;
-                if (outerKeyword == "")
+                if (aClass.NamePath.Length == 0)
                     mParser.RejectToken(keyword, "The namespace must be defined before the " + keyword);
                 if (outerKeyword != "" && outerKeyword == "enum")
                     mParser.RejectToken(keyword, "Classes, structs, enums, and interfaces may not be nested inside an enum");
@@ -105,17 +121,22 @@ namespace Gosub.Zurfur.Compiler
 
                 var keyword = func.Keyword;
                 var outerKeyword = func.ParentScope == null ? "" : func.ParentScope.Keyword;
-                if (outerKeyword == "")
+                if (func.NamePath.Length == 0)
                     mParser.RejectToken(keyword, "The namespace must be defined before method");
+
                 if ((outerKeyword == "" || outerKeyword == "namespace") && func.ClassName == null)
                 {
                     if (!HasQualifier(func.Qualifiers, sRequireGlobalFuncQualifiers))
                         mParser.RejectToken(keyword, "Methods at the namespace level must be 'static' or an extension method");
                 }
+             
                 if (outerKeyword == "interface")
                 {
                     RejectQualifiers(func.Qualifiers, sFuncInInterfaceQualifiersAllowed, "This qualifier may not appear before a function defined inside an interface");
                 }
+
+                if (func.Name == "new" && func.ParentScope is SyntaxType t && t.Simple)
+                    mParser.RejectToken(func.Name, "'new' may not be defined inside class/struct with parameters");
 
                 switch (keyword)
                 {
@@ -138,6 +159,9 @@ namespace Gosub.Zurfur.Compiler
                 CheckQualifiers(field.ParentScope, field.Name, field.Qualifiers);
 
                 var outerKeyword = field.ParentScope == null ? "" : field.ParentScope.Keyword;
+
+                if (!field.Simple && field.ParentScope is SyntaxType t && t.Simple)
+                    mParser.RejectToken(field.Name, "Fields may not be defined inside class/struct with parameters");
 
                 switch (outerKeyword)
                 {
@@ -236,147 +260,53 @@ namespace Gosub.Zurfur.Compiler
         {
             if (expr == null)
                 return;
-
-            // TBD: This will be generalized when generating code
-            WordSet sInvalidLeftAssignments = new WordSet("+ - * / % & | == != < <= > >=");
-
             LastToken = expr.Token;
-            switch (expr.Token)
+
+            foreach (var e in expr)
+                CheckStatements(expr, e);
+
+            // Check invalid operator class
+            if (expr.Count == 2 && sOpClass.TryGetValue(expr.Token.Name, out var opClass))
             {
-                case "__pcfail":
-                    throw new Exception("Parse check fail test");
-
-                case "{": // Statement
-                    foreach (var e in expr)
-                        CheckStatements(expr, e);
-                    break;
-
-                case "(": // Function call
-                    foreach (var e in expr)
-                        CheckExpr(expr, e);
-                    break;
-                
-                case "=": case "+=": case "-=": case "*=": case "/=":
-                case "%=": case "&=": case "|=": case "~=": case "<<=":
-                case ">>=":
-                    if (expr.Count >= 2)
-                    {
-                        if (sInvalidLeftAssignments.Contains(expr[0].Token))
-                        {
-                            if (expr[0].Token != "*" || expr[0].Count >= 2) // Unary `*` is OK
-                                mParser.RejectToken(expr[0].Token, "Invalid operator in left side of assignment");
-                        }
-                        else
-                        {
-                            CheckExpr(expr, expr[0]);
-                        }
-                        CheckExpr(expr, expr[1]);
-                    }
-                    break;
-
-                case "=>":
-                    if (expr.Count != 0)
-                        CheckExpr(expr, expr[0]);
-                    break;
-
-                case ParseZurf.VT_LAMBDA_BRACE:
-                    break;
-
-                case "const":
-                case "var":
-                case "let":
-                case "mut":
-                case "@":
-                    if (expr.Count > 2)
-                        CheckExpr(expr, expr[2]);
-                    break;
-
-                case "defer":
-                case "use":
-                case "throw":
-                    foreach (var e in expr)
-                        CheckStatements(expr, e);
-                    break;
-
-                case "scope":
-                    if (expr.Count != 0)
-                        CheckStatements(expr, expr[0]);
-                    break;
-
-                case "switch":
-                case "while":
-                case "do":
-                case "if":
-                    if (expr.Count != 0)
-                        CheckExpr(expr, expr[0]);
-                    for (int i = 1; i < expr.Count; i++)
-                        CheckStatements(expr, expr[i]);
-                    break;
-
-                case "for":
-                    if (expr.Count >= 2)
-                        CheckExpr(expr, expr[1]);
-                    for (int i = 2;  i < expr.Count;  i++)
-                        CheckStatements(expr, expr[i]);
-                    break;
-
-                case "case":
-                    foreach (var e in expr)
-                        CheckExpr(expr, e);
-                    break;
-
-                case "error":
-                case "continue":
-                case "break":
-                case "default":
-                case "catch":
-                case "finally":
-                case "get":
-                case "set":
-                    break;
-
-                case "unsafe":
-                case "return":
-                    if (expr.Count != 0)
-                        CheckExpr(expr, expr[0]);
-                    break;
-
-                default:
-                    mParser.RejectToken(expr.Token, "Only assignment, function call, and create typed variable can be used as statements");
-                    break;
+                if (expr[0].Count == 2
+                    && sOpClass.TryGetValue(expr[0].Token.Name, out var opClass0) 
+                    && opClass0 != opClass)
+                {
+                    var message = expr.Token == "~" || expr[0].Token == "~" ? DO_NOT_MIX_XOR_ERROR : DO_NOT_MIX_ARITMETIC_ERROR;
+                    mParser.RejectToken(expr.Token, message);
+                    mParser.RejectToken(expr[0].Token, message);
+                }
+                if (expr[1].Count == 2
+                    && sOpClass.TryGetValue(expr[1].Token.Name, out var opClass1)
+                    && opClass1 != opClass)
+                {
+                    var message = expr.Token == "~" || expr[0].Token == "~" ? DO_NOT_MIX_XOR_ERROR : DO_NOT_MIX_ARITMETIC_ERROR;
+                    mParser.RejectToken(expr.Token, message);
+                    mParser.RejectToken(expr[1].Token, message);
+                }
             }
+
+
+            // The rest only gets checked for statements
+            bool isStatement = parent == null || parent.Token == "{";
+            if (!isStatement)
+                return;
+
+            // Check valid top level statements
+            if (!sTopLevelStatements.Contains(expr.Token.Name))
+                mParser.RejectToken(expr.Token, "Only assignment, function call, and create typed variable can be used as statements");
+
+            // Check no assignment to operator expression
+            // NOTE: This probably goes away when we check types (cannot assign to r value)
+            if (sAssignments.Contains(expr.Token.Name) && expr.Count >= 2)
+                if (sInvalidLeftAssignments.Contains(expr[0].Token))
+                {
+                    if (expr[0].Token != "*" || expr[0].Count >= 2) // Unary `*` is OK
+                        mParser.RejectToken(expr[0].Token, "Invalid operator in left side of assignment");
+                }
+
         }
 
-        void CheckExpr(SyntaxExpr parent, SyntaxExpr expr)
-        {
-            switch (expr.Token)
-            {
-                case "switch":
-                    // Switch expression (not statement)
-                    if (parent != null && parent.Token != "{" && expr.Count >= 2)
-                    {
-                        if (expr[1].Count == 0)
-                            mParser.RejectToken(expr[1].Token, "Switch expression list may not be empty");                       
-                    }
-
-                    if (expr.Count == 2)
-                    {
-                        CheckExpr(expr, expr[0]);
-                        foreach (var e in expr[1])
-                            CheckStatements(null, e);
-                    }
-
-                    //foreach (var e in expr)
-                    //    CheckStatements(expr, e);
-                    break;
-
-
-                default:
-                    foreach (var e in expr)
-                        CheckExpr(expr, e);
-                    break;
-            }
-        }
 
         public void ShowParseTree(SyntaxFile unit)
         {

@@ -25,6 +25,8 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     public class BuildPackage
     {
+        const string OUTPUT_DIR = "Output\\Debug";
+
         public int SLOW_DOWN_MS = 0;
         public delegate void UpdateEventHandler(object sender, UpdatedEventArgs e);
 
@@ -39,7 +41,8 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public event UpdateEventHandler FileUpdate;
 
-        bool mLoadCalled;
+        string mBaseDir = "";
+        string mOutputDir = "";
         bool mIsCompiling;
 
         static ScanZurf sScanZurf = new ScanZurf();
@@ -70,12 +73,14 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public void Load(string dir)
         {
-            if (mLoadCalled)
+            if (mBaseDir != "")
                 throw new Exception("Not allowed to call 'Load' ever again");
-            mLoadCalled = true;
+            mBaseDir = dir;
+            mOutputDir = Path.Combine(mBaseDir, OUTPUT_DIR);
 
             var projectFiles = new List<FileInfo>();
             EnumerateDir(FixPathName(dir), projectFiles);
+
             foreach (var file in projectFiles)
             {
                 mPackageFiles[file.Path] = file;
@@ -124,19 +129,8 @@ namespace Gosub.Zurfur.Compiler
                     return;
                 mIsCompiling = true;
 
-                while (mLoadQueue.Count != 0 || mParseQueue.Count != 0)
-                {
-                    // Allow load and parse to run concurrently since
-                    // one is mostly IO and the other mostly CPU.
-                    // Other than that, we won't try to multi-task for now.
-                    var loadTask = LoadAndLex();
-                    var parseTask = Parse();
-                    await loadTask;
-                    await parseTask;
+                await TryCompile();
 
-                    if (mLoadQueue.Count == 0 && mParseQueue.Count == 0)
-                        await Generate();
-                }
             }
             catch (Exception ex)
             {
@@ -150,6 +144,24 @@ namespace Gosub.Zurfur.Compiler
             {
                 mIsCompiling = false;
             }
+        }
+
+        private async Task TryCompile()
+        {
+            // Load, Lex, and Parse all files in the queue
+            while (mLoadQueue.Count != 0 || mParseQueue.Count != 0)
+            {
+                // Allow load and parse to run concurrently since
+                // one is mostly IO and the other mostly CPU.
+                // Other than that, we won't try to multi-task for now.
+                var loadTask = LoadAndLex();
+                var parseTask = Parse();
+                await loadTask;
+                await parseTask;
+            }
+
+            if (mLoadQueue.Count == 0 && mParseQueue.Count == 0)
+                await Generate();
         }
 
         async Task LoadAndLex()
@@ -236,38 +248,28 @@ namespace Gosub.Zurfur.Compiler
         {
             await Task.Delay(SLOW_DOWN_MS);
 
-            // Do not generate code if there are parse errors
-            int parseErrors = 0;
-            foreach (var fi in mPackageFiles)
-                parseErrors += fi.Value.ParseErrors;
-            if (parseErrors != 0)
-            {
-                StatusUpdate?.Invoke(this, new UpdatedEventArgs("ERROR: " + parseErrors + " syntax errors found"));
-                return;
-            }
-
+            var dt = DateTime.Now;
             // Generate Header for each file
-            var zurfFiles = new Dictionary<string, SilGenHeader>();
+            var zurfFiles = new Dictionary<string, SyntaxFile>();
             foreach (var fi in mPackageFiles)
-            {
                 if (fi.Value.Extension == ".zurf")
-                {
-                    var sil = new SilGenHeader(fi.Value.Path, fi.Value.Syntax);
-                    sil.GenerateTypeDefinitions();
-                    sil.MergeTypeDefinitions();
-                    sil.GenerateHeader();
-                    sil.GenerateCode();
-                    zurfFiles.Add(fi.Value.Path, sil);
-                    //fi.Value.SilHeader = sil;
-                }
-            }
-            List<int> a;
+                    zurfFiles[fi.Key] = fi.Value.Syntax;
+
+            // TBD: Move to background thread (clone Lexer's etc.)
+            var sil = new SilGenHeader();
+            sil.GenerateTypeDefinitions(zurfFiles);
+            var ts1 = DateTime.Now - dt;
+
+            sil.SaveHeader(mOutputDir);
+
+
+
             FileUpdate(this, new UpdatedEventArgs(""));
 
-            int headerErrors = CountErrors();
-            if (headerErrors != 0)
+            int errors = CountErrors();
+            if (errors != 0)
             {
-                StatusUpdate?.Invoke(this, new UpdatedEventArgs("ERROR: " + headerErrors + " header errors found"));
+                StatusUpdate?.Invoke(this, new UpdatedEventArgs("ERROR: " + errors + " errors"));
                 return;
             }
             StatusUpdate?.Invoke(this, new UpdatedEventArgs("Done"));

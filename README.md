@@ -367,7 +367,8 @@ Another example:
 
 ## Operator Precedence
 
-Operator precedence comes from Golang.
+Operator precedence is mostly from Golang, but more compatible
+with C and gives an error where not compatible:
 
 |Operators | Notes
 | :--- | :---
@@ -375,13 +376,15 @@ Operator precedence comes from Golang.
 |- ! & ~ * sizeof use unsafe cast| Unary
 |@|Capture new variable
 |as is | Type conversion and comparison
-|* / % & << >>| Multiply/Bits
-|+ - &#124; ~| Add/Bits
+|<< >>| Bitwise shift (not associative, can't mix with arithmetic operators)
+|* / % & | Multiply, bitwise "and" (can't mix arithmetic and bit operators)
+|~| Bitwise xor (can't mix with arithmetic operators)
+|+ - &#124; ~| Add, bitwise "or"/xor (can't mix arithmetic and bit operators)
 |Low..High, Low::Count|Range (inclusive of low, exclusive of high)
 |== != < <= > >= === !== in|Not associative
 |&&|Conditional
 |&#124;&#124;|Conditional
-|a ? b : c| Not associative (see below for restrictions)
+|a ? b : c| Not associative, no nesting (see below for restrictions)
 |=>|Lambda
 |key:Value|Pair
 |,|Comma Separator (not an expression)
@@ -396,17 +399,14 @@ captures the value returned by `Read` into the new variable `length`.
 Or, `if maybeNullObjectFunc()@nonNullObject { }` can be used to
 convert `?Object` into `Object` inside of the braces. 
 
+The bitwise shift operators `<<` and `>>` are higher precedence than other
+operators, making them compatible with C for bitwise operations.  Bitwise
+and arithmetic operators may not be mixed, for example both `a + b | c` and
+`a + b << c` are illegal.  Parentheses may be used (e.g. `(a+b)|c` is legal)
+
 The range operator`..` takes two `int`s and make a `Range` which is a
 `struct Range{ High int; Low int}`.  The `::` operator also makes a
 range, but the second parameter is a count (`High = Low + Count`).  
-
-The pair operator `:` makes a key/value pair which can be used
-in an array to initialize a map.
-
-Assignment is a statement, not an expression.  Therefore, expressions like
-`a = b = 1` and `while (a = count) < 20` are not allowed. In the latter
-case, use `while count@a < 20`.  Comma is also not an expression and may
-only be used where they are expected, such as a function call or lambda.
 
 Operator `==` does not default to object comparison, and only works when it
 is defined for the given type.  Use `===` and `!==` for object comparison. 
@@ -419,6 +419,15 @@ directly contain an operator with lower precedence than range.
 For example, `a==b ? x==3 : y==4` is  illegal.  parentheses can be
 used to override that behavior, `a==b ? (x==3) : (y==4)` and
 `a==b ? (@p=> p==3) : (@p=> p==4)` are acceptable.
+
+The pair operator `:` makes a key/value pair which can be used
+in an array to initialize a map.
+
+Assignment is a statement, not an expression.  Therefore, expressions like
+`a = b = 1` and `while (a = count) < 20` are not allowed. In the latter
+case, use `while count@a < 20`.  Comma is also not an expression and may
+only be used where they are expected, such as a function call or lambda.
+
 
 #### Anonymous Class, Struct, and Lambda
 
@@ -1006,15 +1015,21 @@ as an old C style cast, except the keyword `cast` must be used.
 ## Namespaces
 
 Namespaces are similar to C#, but can also contain static functions,
-and extension methods.  `using Zurur.Math` imports the intrinsic
+and extension methods.  `use Zurur.Math` imports the intrinsic
 math functions, `Cos`, `Sin`, etc. into the global symbol table.  If you
 want to froce them to be prefixed with `Math.`, it can be done with
 `using Math=Zurfur.Math`.
 
-The first namespace defined in a file does not use curly braces to start a
-new scope, nor should it start a new level of indentation.  All other
-namespaces are sub-namespaces of the top level namespace and must
-use curly braces.  Only one top level namespace per file is allowed.
+Namespaces do not nest or require curly braces.  The namespace must be
+declared at the top of each file, after `use` statements, and before
+function or class definitions.
+
+All other namespaces in a file must be sub-namespaces of the top one:
+
+    namespace MyCompany.MyProject               // Top level namespace
+    namespace MyCompany.MyProject.Utils         // Sub-namespace, ok in same file
+    namespace MyCompany.MyProject.OtherUtils    // Another sub-namespace, also ok
+    namespace MyCompany.MyOtherProject          // ILLEGAL when in the same file
 
 ## Async
 

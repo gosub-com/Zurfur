@@ -37,7 +37,6 @@ namespace Gosub.Zurfur
         float[]         mTabSpacing = new float[32];
         int             mTabStartColumnPrevious = -1;
         string[]        mInsertOneString = new string[] { "" };
-        string[]        mInsertCR = new string[] { "", "" };
         int             mTabSize = 4;
         bool            mTabInsertsSpaces = true;
 
@@ -79,6 +78,9 @@ namespace Gosub.Zurfur
         static Token sNormalToken = new Token();
 
         TokenColorOverride[]mTokenColorOverrides;
+
+
+        public bool RemoveWhiteSpaceAtEndOnEnter = true;
 
         // Internal quick access to mLexer
         int LineCount { get { return mLexer.LineCount; } }
@@ -342,6 +344,7 @@ namespace Gosub.Zurfur
                 FixCursorLocation(ref value);
                 if (value == mCursorLoc)
                     return;
+                mLexer.Cursor = mCursorLoc;
                 mCursorLoc = value;
                 CursorLocChanged?.Invoke(this, mEventArgs);
                 UpdateCursorBlinker();
@@ -637,7 +640,6 @@ namespace Gosub.Zurfur
             var vScrollWidth = vScrollBar.Width; // Preserve vScrollBar width which gets changed when font is changed
             base.OnFontChanged(e);
             vScrollBar.Width = vScrollWidth; 
-            SetupScrollBars();
         }
 
         protected override void OnVisibleChanged(EventArgs e)
@@ -1062,7 +1064,11 @@ namespace Gosub.Zurfur
         /// </summary>
         public Lexer Lexer
         {
-            get { return mLexer; }
+            get 
+            {
+                mLexer.Cursor = mCursorLoc;
+                return mLexer; 
+            }
             set
             {
                 if ((object)mLexer == (object)value)
@@ -1073,6 +1079,8 @@ namespace Gosub.Zurfur
                 {
                     mUndo.Clear(); // TBD: Fix undo/redo
                     mRedo.Clear();
+                    FixCursorLocation(ref mCursorLoc);
+                    mLexer.Cursor = mCursorLoc;
                     OnTextChangedInternal();
                 }
                 Invalidate();
@@ -1138,6 +1146,7 @@ namespace Gosub.Zurfur
             mSelStart = selStart;
             mSelEnd = selEnd;
             mCursorLoc = selEnd;
+            mLexer.Cursor = mCursorLoc;
 
             EnsureCursorOnScreen();
             UpdateCursorBlinker();
@@ -1352,9 +1361,11 @@ namespace Gosub.Zurfur
                     mTabSpacing[i] = mFontSize.Width*mTabSize;
                 mTabSpacing[0] = 0;
                 RecalcLineTops();
-
-                // Setup cursor
+                SetupScrollBars();
+                mTopLeft = new Point(); // Necessary since below functions use mTopLeft
+                mTopLeft = new Point((int)PointX(hScrollBar.Value), (int)PointY(vScrollBar.Value));
                 UpdateCursorBlinker();
+                UpdateMouseHoverToken();
             }
 
             // Draw the graphics
@@ -1455,10 +1466,27 @@ namespace Gosub.Zurfur
         protected override void OnMouseWheel(MouseEventArgs e)
         {
             base.OnMouseWheel(e);
-            if (e.Delta > 0)
-                vScrollBar.Value = Math.Max(0, vScrollBar.Value-3);
+
+            if (Form.ModifierKeys.HasFlag(Keys.Control))
+            {
+                if (e.Delta > 0)
+                {
+                    if (Font.Size < 16)
+                        Font = new Font(Font.FontFamily, Font.Size * 1.1f);
+                }
+                else
+                {
+                    if (Font.Size > 8)
+                        Font = new Font(Font.FontFamily, Font.Size / 1.1f);
+                }
+            }
             else
-                vScrollBar.Value = Math.Min(vScrollBar.Maximum, vScrollBar.Value + 3);
+            {
+                if (e.Delta > 0)
+                    vScrollBar.Value = Math.Max(0, vScrollBar.Value - 3);
+                else
+                    vScrollBar.Value = Math.Min(vScrollBar.Maximum, vScrollBar.Value + 3);
+            }
         }
 
         /// <summary>
@@ -1635,7 +1663,7 @@ namespace Gosub.Zurfur
         /// </summary>
         void ScrollBar_Changed()
         {
-            mTopLeft = new Point();
+            mTopLeft = new Point(); // Necessary since below functions use mTopLeft
             mTopLeft = new Point((int)PointX(hScrollBar.Value), (int)PointY(vScrollBar.Value));
             UpdateCursorBlinker();
             UpdateMouseHoverToken();
@@ -1960,12 +1988,24 @@ namespace Gosub.Zurfur
             {
                 // Insert ENTER (and space before cursor)
                 string line = GetLine(CursorLoc.Y);
-                int i = 0;
-                while (i < line.Length && i < CursorLoc.X
-                            && char.IsWhiteSpace(line, i))
-                    i++;
-                insert = mInsertCR;
-                mInsertCR[1] = line.Substring(0, i);
+                if (RemoveWhiteSpaceAtEndOnEnter)
+                {
+                    // Remove white space before, then after the cursor
+                    while (start.X > 0 && start.X-1 < line.Length && char.IsWhiteSpace(line, start.X-1))
+                        start.X--;
+                    while (end.X < line.Length && char.IsWhiteSpace(line, end.X))
+                        end.X++;
+                }
+
+                // Copy white space from line above
+                int wsX = 0;
+                while (wsX < line.Length && wsX < CursorLoc.X
+                            && char.IsWhiteSpace(line, wsX))
+                    wsX++;
+
+                string[] insertCR = new string[] { "", "" };
+                insertCR[1] = line.Substring(0, wsX);
+                insert = insertCR;
             }
             else if (e.KeyChar == '\t' && mTabInsertsSpaces)
             {

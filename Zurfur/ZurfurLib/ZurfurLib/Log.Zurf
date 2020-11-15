@@ -1,0 +1,31 @@
+﻿namespace Zurfur
+
+
+// The compiler will create a new object for each file
+pub class Log
+{
+    pub enum Level { Fatal; Error; Warn; Info; Debug }
+
+    pub ro File str
+    
+
+    pub prop LogLevel Level { todo() }
+    pub fun Fatal(message str, li LogLine = default) { todo() }
+    pub fun Error(message str, li LogLine = default) { todo() }
+    pub fun Warn(message str, li LogLine = default) { todo() }
+    pub fun Info(message str, li LogLine = default) { todo() }
+    pub fun Debug(message str, li LogLine = default) { todo() }
+
+    pub prop RecordTimeEvents bool get set
+    pub fun Time(name str, message str = "") { todo() }
+    pub fun TimeBegin(name str, message str = "") { todo() }
+    pub fun TimeEnd(name str, message str = "") { }
+
+    // The compiler will fill in the line number of the caller
+    pub struct ro LogLine
+    {
+        pub fun default() => extern
+        pub ro Line int
+    }
+
+}

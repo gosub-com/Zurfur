@@ -27,6 +27,11 @@ namespace Gosub.Zurfur.Lex
         /// </summary>
         public Token EndToken { get; private set; } = new Token("", 0, 2);
 
+        /// <summary>
+        /// Optional location of cursor (y = -1 if not set)
+        /// </summary>
+        public TokenLoc Cursor = new TokenLoc(0, -1);
+
         public Lexer()
         {
             // Must have at least one line of text
@@ -94,6 +99,7 @@ namespace Gosub.Zurfur.Lex
             for (int i = 0; i < mMetaTokens.Length; i++)
                 lex.MetaTokens[i] = mMetaTokens[i].Clone();
             lex.mScanner = mScanner;
+            lex.Cursor = Cursor;
             return lex;
         }
 

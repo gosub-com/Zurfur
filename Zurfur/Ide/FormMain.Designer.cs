@@ -249,7 +249,7 @@
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.mvEditors);
-            this.splitContainer1.Size = new System.Drawing.Size(984, 542);
+            this.splitContainer1.Size = new System.Drawing.Size(984, 533);
             this.splitContainer1.SplitterDistance = 156;
             this.splitContainer1.TabIndex = 20;
             // 
@@ -259,7 +259,7 @@
             this.projectTree.Location = new System.Drawing.Point(0, 0);
             this.projectTree.Name = "projectTree";
             this.projectTree.RootDir = "";
-            this.projectTree.Size = new System.Drawing.Size(156, 542);
+            this.projectTree.Size = new System.Drawing.Size(156, 533);
             this.projectTree.TabIndex = 20;
             this.projectTree.FileDoubleClicked += new Gosub.Zurfur.ProjectTree.FileInfoDelegate(this.projectTree_FileDoubleClicked);
             this.projectTree.FileMoved += new Gosub.Zurfur.ProjectTree.FileMovedDelegate(this.projectTree_FileMoved);
@@ -270,7 +270,7 @@
             this.mvEditors.EditorViewActive = null;
             this.mvEditors.Location = new System.Drawing.Point(0, 0);
             this.mvEditors.Name = "mvEditors";
-            this.mvEditors.Size = new System.Drawing.Size(824, 542);
+            this.mvEditors.Size = new System.Drawing.Size(824, 533);
             this.mvEditors.TabIndex = 19;
             this.mvEditors.EditorAdded += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorAdded);
             this.mvEditors.EditorRemoved += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorRemoved);
@@ -330,9 +330,10 @@
             // 
             this.labelStatus.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.labelStatus.AutoSize = true;
-            this.labelStatus.Location = new System.Drawing.Point(-1, 569);
+            this.labelStatus.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelStatus.Location = new System.Drawing.Point(-1, 560);
             this.labelStatus.Name = "labelStatus";
-            this.labelStatus.Size = new System.Drawing.Size(35, 13);
+            this.labelStatus.Size = new System.Drawing.Size(51, 20);
             this.labelStatus.TabIndex = 26;
             this.labelStatus.Text = "label1";
             // 
