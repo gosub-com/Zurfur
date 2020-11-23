@@ -31,7 +31,7 @@
 
 use Zurfur
 
-namespace Zurfur.Internal.DlMalloc
+namespace Zurfur.Internal.Memory
 
 pub class DlMallocException
     extends Exception
@@ -2299,7 +2299,7 @@ pub unsafe class DlMalloc
     }
 
     // Traversal
-    fun internal_inspect_all(handler fun(*void,*void,ulong))
+    fun internal_inspect_all(handler fun(start *void, next *void, used ulong))
     {
         if (!is_initialized())
             { return }
@@ -2696,7 +2696,7 @@ pub unsafe class DlMalloc
     }
 
 
-    pub fun InspectAll(handler fun(*void,*void,ulong))
+    pub fun InspectAll(handler fun(start *void, next *void, used ulong))
     {
         if (ok_magic())
         {

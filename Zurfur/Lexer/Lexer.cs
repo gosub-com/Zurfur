@@ -61,6 +61,11 @@ namespace Gosub.Zurfur.Lex
             return true;
         }
 
+        public override string ToString()
+        {
+            return mLines.Count.ToString() + " Lines";
+        }
+
         /// <summary>
         /// Defaults to ScanText.  Re-scans all text when set (unless it's the same object)
         /// </summary>

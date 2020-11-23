@@ -170,16 +170,13 @@ because only parameters marked with `mut` or `ref` can be mutated.
 There are no `out` parameters.  Use multiple returns instead:
 
     // Multiple returns
-    pub static fun Circle(a f64, r f64) : (x f64, y f64)
+    pub static fun Circle(a f64, r f64) -> (x f64, y f64)
     {
         return Cos(a)*r, Sin(a)*r
     }
 
 
 **TBD:** Still thinking about using the Golang `func` keyword to define functions.
-Also, wondering if repurposing `:` for return values is a good idea.  Maybe
-choose a fun new operator, such as `:>`?
-
 
 ## Basic types
 
@@ -292,7 +289,7 @@ error and continue running.
 
 #### Array
 
-IMPORTNT: Zurfur syntax `[]T` translates to `Span<T>`.  If you want a C#
+IMPORTANT: Zurfur syntax `[]T` translates to `Span<T>`.  If you want a C#
 style (but fully immutable) array, you must use `Array<T>` instead.
 
 Zurfur arrays are immutable.  They may contain only immutable classes
@@ -727,7 +724,7 @@ They can be initialized by a constructor or using named field parameters:
 **TBD:** Make `struct` members public by default?
 
 
-#### Enums
+#### Enum
 
 Enumerations are similar to C# enumerations, in that they are just
 a wrapped `int`.  But they are implemented internally as a `struct`
@@ -751,6 +748,46 @@ weight as an integer and need no metadata in the compiled executable.
 
 **TBD:** Differentiate an enum having only scalar values vs one with flags?
 The one with flags allows `|` and `&`, etc but the other doesn't.
+
+#### New, Init, Equality, Clone, Dispose, and Drop
+
+The `new` function is the object constructor.  It does not have access to
+`this` and may not call member functions except for another `new` function
+(e.g. `new(a int)` may call `new()`).  `init` is called after the object is
+created and it has access to `this` and may call other member functions.
+
+`Equals`, `GetHashCode`, and `Clone` are generated automatically for types
+that don't contain pointers or define a `dispose` function.  The `Equals`
+function compares values, not object references (although object references
+may be used to speed up the comparison).  Types that don't have an
+`Equals` function may not be compared with `==` or `!=`.
+
+`clone` without parameters is always a deep copy for mutable types, and a
+shallow copy for immutable types.  Parameters can be used to create new
+immutable objects with different values (e.g. `person.Clone(FirstName: "Sebastian")`).
+Objects can be cloned to a buffer for transport to a Webworker
+(e.g. `person.Clone(Buffer)`).  The buffer clone will be super fast,
+laid out in memory so that it can be chopped up directly into DlMalloc
+allocated objects.
+
+A class may define `dispose`, which a user of the class may call or `use`
+to dispose of the object (e.g. `@a = use File.Open(...)` calls `dispose`
+at the end of the scope).  Calling `dispose` multiple times is not an error. 
+
+A class may define `drop`, which is called by the garbage collector when the
+object becomes unreachable.  Once unreachable, always unreachable, there
+is no resurrection.  Therefore, the `drop` function does not have access to
+`this` or any of its class fields since they may have already been reclaimed.
+It does have access to struct and pointer fields.  It should raise a debug
+panic if the object is still  *open* when `drop` is called (in a release, an
+error should be logged and resources cleaned up).
+
+There are no guarantees as to when `drop` is called, it could be very quickly
+if the compiler determines the object is dead at the end of the scope, or if
+reference counting is used.  Drops may be queued and called later.  Or they
+might be called a long time later in a fully garbage collected environmnet.
+It is an error for the user of an object to allow it to be reclaimed while
+in the *open* state.
 
 ## Errors and Exceptions
 
@@ -1015,16 +1052,15 @@ as an old C style cast, except the keyword `cast` must be used.
 ## Namespaces
 
 Namespaces are similar to C#, but can also contain static functions,
-and extension methods.  `use Zurur.Math` imports the intrinsic
+and extension methods.  `use Zurfur.Math` imports the intrinsic
 math functions, `Cos`, `Sin`, etc. into the global symbol table.  If you
 want to froce them to be prefixed with `Math.`, it can be done with
-`using Math=Zurfur.Math`.
+`use Math=Zurfur.Math`.
 
 Namespaces do not nest or require curly braces.  The namespace must be
 declared at the top of each file, after `use` statements, and before
-function or class definitions.
-
-All other namespaces in a file must be sub-namespaces of the top one:
+function or class definitions. All other namespaces in a file must be
+sub-namespaces of the top one:
 
     namespace MyCompany.MyProject               // Top level namespace
     namespace MyCompany.MyProject.Utils         // Sub-namespace, ok in same file

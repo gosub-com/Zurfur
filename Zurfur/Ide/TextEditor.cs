@@ -1071,8 +1071,6 @@ namespace Gosub.Zurfur
             }
             set
             {
-                if ((object)mLexer == (object)value)
-                    return;
                 bool eq = mLexer.Equals(value);
                 mLexer = value;
                 if (!eq)

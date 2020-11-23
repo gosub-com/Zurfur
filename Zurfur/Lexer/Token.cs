@@ -134,7 +134,7 @@ namespace Gosub.Zurfur.Lex
         public bool Error
         {
             get => Subtype == eTokenSubtype.Error;
-            set { Subtype = eTokenSubtype.Error; }
+            set { Subtype = value ? eTokenSubtype.Error : eTokenSubtype.Normal; }
         }
 
         /// <summary>
@@ -214,6 +214,12 @@ namespace Gosub.Zurfur.Lex
             // Display error message
             Error = true;
             AddInfo(new TokenError(errorMessage));
+        }
+
+        public void AddError(TokenError error)
+        {
+            Error = true;
+            AddInfo(error);
         }
 
         /// <summary>

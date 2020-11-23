@@ -12,7 +12,7 @@ namespace Gosub.Zurfur.Compiler
     class ParseZurfCheck
     {
         // Debug the parse tree
-        bool mShowParseTree = false;
+        bool mShowParseTree = true;
 
         public Token LastToken;
 
@@ -33,7 +33,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sPropQualifiers = new WordSet("pub public protected private internal unsafe static virtual override new");
 
         static WordSet sTopLevelStatements = new WordSet("{ ( = += -= *= /= %= &= |= ~= <<= >>= => @ "
-            + "const var let mut defer use throw switch case return for break default while if else get set do unsafe");
+            + "const var let mut defer use throw switch case return for break default while if else get set do unsafe error finally exit fun afun");
         static WordSet sAssignments = new WordSet("= += -= *= /= %= &= |= ~= <<= >>=");
         static WordSet sInvalidLeftAssignments = new WordSet("+ - * / % & | == != < <= > >=");
 
@@ -107,7 +107,7 @@ namespace Gosub.Zurfur.Compiler
                 }
             }
 
-            foreach (var func in unit.Funcs)
+            foreach (var func in unit.Methods)
             {
                 LastToken = func.Keyword;
 
@@ -269,7 +269,7 @@ namespace Gosub.Zurfur.Compiler
             if (expr.Count == 2 && sOpClass.TryGetValue(expr.Token.Name, out var opClass))
             {
                 if (expr[0].Count == 2
-                    && sOpClass.TryGetValue(expr[0].Token.Name, out var opClass0) 
+                    && sOpClass.TryGetValue(expr[0].Token.Name, out var opClass0)
                     && opClass0 != opClass)
                 {
                     var message = expr.Token == "~" || expr[0].Token == "~" ? DO_NOT_MIX_XOR_ERROR : DO_NOT_MIX_ARITMETIC_ERROR;
@@ -288,7 +288,7 @@ namespace Gosub.Zurfur.Compiler
 
 
             // The rest only gets checked for statements
-            bool isStatement = parent == null || parent.Token == "{";
+            bool isStatement = expr.Token == "{";
             if (!isStatement)
                 return;
 
@@ -296,7 +296,7 @@ namespace Gosub.Zurfur.Compiler
             if (!sTopLevelStatements.Contains(expr.Token.Name))
                 mParser.RejectToken(expr.Token, "Only assignment, function call, and create typed variable can be used as statements");
 
-            // Check no assignment to operator expression
+            // Check no assignment to rvalue 'a+b = 1'
             // NOTE: This probably goes away when we check types (cannot assign to r value)
             if (sAssignments.Contains(expr.Token.Name) && expr.Count >= 2)
                 if (sInvalidLeftAssignments.Contains(expr[0].Token))
@@ -304,6 +304,29 @@ namespace Gosub.Zurfur.Compiler
                     if (expr[0].Token != "*" || expr[0].Count >= 2) // Unary `*` is OK
                         mParser.RejectToken(expr[0].Token, "Invalid operator in left side of assignment");
                 }
+
+            // TBD: Check for 'return' before 'error' and 'continue', etc. after (see README) 
+            // Check for 'return' before or code after local function
+            bool hasLocalFunction = false;
+            for (int i = 0;  i < expr.Count;  i ++)
+            {
+                var token = expr[i].Token;
+                if (token.Name == "fun" || token.Name == "afun")
+                {
+                    // Local function defined
+                    hasLocalFunction = true;
+                    var parentName = parent == null ? "" : parent.Token.Name;
+                    if (parent != null)
+                        mParser.RejectToken(token, "Local function must be defined at top level of a function scope");
+                    else if (i == 0 || expr[i - 1].Token.Name != "return")
+                        mParser.RejectToken(token, "Expecting 'return' before a new local function is defined");
+                }
+                else
+                {
+                    if (hasLocalFunction)
+                        mParser.RejectToken(token, "No code allowed after a local function has been defined");
+                }
+            }
 
         }
 
@@ -322,13 +345,9 @@ namespace Gosub.Zurfur.Compiler
                         ShowParseTree(baseClass);
                 ShowParseTree(aClass.Alias);
             }
-            foreach (var func in unit.Funcs)
+            foreach (var func in unit.Methods)
             {
-                ShowParseTree(func.ReturnType);
-                if (func.Params != null)
-                    foreach (var param in func.Params)
-                        if (param.Count >= 1)
-                            ShowParseTree(param[0]);
+                ShowParseTree(func.Params);
                 if (func.Statements != null)
                     foreach (var statement in func.Statements)
                         ShowParseTree(statement);

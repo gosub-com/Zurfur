@@ -4,7 +4,7 @@ namespace Zurfur.Collections
 /// Implement IEquatable on any object that can be stored in a Map.
 /// This is different than implementing just Equals
 /// in that NAN must compare to itself as true.
-pub static interface IEquatable<T>
+pub static interface Equatable<T>
 {
     static fun GetHashCode(a T) uint => impl
     static fun Equals(a T, b T) bool => impl
@@ -13,14 +13,14 @@ pub static interface IEquatable<T>
 /// Implement IComparable on any object that can be sorted.
 /// This is different than implementing just Compare
 /// in that NAN must have a valid sort order.
-pub static interface IComparable<T>
-    implements IEquatable<T>
+pub static interface Comparable<T>
+    implements Equatable<T>
 {
     static fun Compare(a T, b T) int  => impl
 }
 
 pub static interface IArithmetic<T>
-    implements IComparable<T>
+    implements Comparable<T>
 {
     fun operator-(a T) T => impl
     fun operator-(a T, b T) T => impl
@@ -32,62 +32,25 @@ pub static interface IArithmetic<T>
     static prop Origin T => impl get
 }
 
-pub interface IEnumerable<out T>
+pub interface Iterable<TCollection, T>
 {
-    fun GetEnumerator() IEnumerator<T> => impl
+    fun GetIterator() Iterator<TCollection, T> => impl
 }
 
 /// This is the only function needed for standard iterators
-pub interface IEnumerator<T>
+pub interface Iterator<TCollection, T>
 {
-    mut fun GetNext(item ref T) bool => impl
+    mut fun GetNext(collection TCollection<T>) ?T => impl
 }
 
-pub interface ICollection<T>
-    implements IEnumerable<T>
+pub interface Collection<T>
+    implements Iterable<T>
 {
     prop Count int => impl get
 }
 
-/// This should only be defined for simple types
-/// that get inlined, such as int, Range, etc..
-/// Otherwise, only define IEnumerator
-pub interface IFastEnumerator<T>
-    implements IEnumerator<T>
-{
-    fun HasNext() bool => impl
-    prop Current T => impl get
 
-    mut fun Advance() => impl
-    
-    mut fun GetNext(item ref T) bool
-    {
-        if HasNext()
-        {
-            item = Current
-            Advance()
-            return true
-        }
-        return false
-    }
-}
-
-
-pub interface IList<T>
-{
-    fun operator[](index int) ref T => impl
-    mut fun Insert(index int, item T) => impl
-    mut fun Insert(index int, collection ICollection<T>) => impl
-    mut fun Remove(index int) => impl
-    mut fun Remove(range Range<int>) => impl
-    
-    mut fun Clear() { Remove(0..Count) }
-    mut fun Add(item T) { Insert(Count, item) }
-    mut fun Add(items ICollection<T>) { Insert(Count, items) }
-    mut fun Pop() { @item = this[Count-1]; Remove(Count-1);  return item }
-}
-
-pub struct KeyValuePair<TKey, TValue>
+pub struct Pair<TKey, TValue>
 {
     pub Key TKey
     pub Value TValue
@@ -95,18 +58,6 @@ pub struct KeyValuePair<TKey, TValue>
     pub fun new(key TKey, value TValue) { Key = key; Value = value }
 }
 
-pub interface IMap<TKey, TValue>
-    implements ICollection<KeyValuePair<TKey, TValue>>
-{
-    fun operator in(a TKey) bool => impl
-    fun operator[](key TKey) ref TValue => impl
-    fun Contains(key TKey) bool => impl
-    fun Get(key TKey, defaultValue TValue) TValue => impl
-    fun TryGet(key TKey, value out TValue) bool => impl
-    prop Keys ICollection<TKey> => impl get
-    prop Values ICollection<TValue> => impl get
-    mut fun Remove(TKey key) bool => impl
-}
 
 /// This is a test
 pub interface IGeneric<Q>

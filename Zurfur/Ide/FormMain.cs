@@ -242,7 +242,7 @@ namespace Gosub.Zurfur
             {
                 if (editor.FilePath == e.Message || e.Message == "")
                 {
-                    var lexer = mBuildPackage.GetLexer(e.Message);
+                    var lexer = mBuildPackage.GetLexer(editor.FilePath);
                     var textEditor = editor as TextEditor;
                     if (textEditor != null && lexer != null)
                     {

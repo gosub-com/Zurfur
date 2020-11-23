@@ -6,23 +6,13 @@ using Gosub.Zurfur.Lex;
 namespace Gosub.Zurfur.Compiler
 {
 
-    enum SymbolTypeEnum
-    {
-        Namespace,
-        Type,
-        Field,
-        Funcs,
-        Func,
-        TypeArg
-    }
-
     class SymPackage
     {
         public string PackageName = "";
         public PackageInfo PackageInfo = new PackageInfo();
         public CompilerInfo CompilerInfo = new CompilerInfo();
 
-        public Symbol Symbols = new Symbol(SymbolTypeEnum.Namespace, new Token(), null);
+        public Symbol Symbols = new SymNamespace("", null);
         public string[] Namespaces = Array.Empty<string>();
     }
 
@@ -56,13 +46,15 @@ namespace Gosub.Zurfur.Compiler
 
     class SymFile
     {
-        public string FileName = "";
-        public SymFile(string fileName) { FileName = fileName; }
+        public string FileName;
+        public SyntaxFile SyntaxFile;
+        public Symbol[] Use;
+        public SymFile(string fileName, SyntaxFile syntaxFile ) { FileName = fileName; SyntaxFile = syntaxFile; }
     }
 
-    class Symbol
+    abstract class Symbol
     {
-        public readonly SymbolTypeEnum Type;
+        public abstract string TypeName { get; }
         public readonly string Name = "";
         public Token Token = Token.Empty;
         public readonly Symbol Parent;
@@ -72,22 +64,18 @@ namespace Gosub.Zurfur.Compiler
         Dictionary<string, Symbol> mSymbols;
         List<Symbol> mDuplicates;
 
-
-        public Symbol(SymbolTypeEnum type, Token token, Symbol parent)
+        public Symbol(Token token, Symbol parent)
         {
-            Type = type;
             Token = token;
             Parent = parent;
             Name = token.Name;
         }
 
-        public Symbol(SymbolTypeEnum type, string name, Symbol parent)
+        public Symbol(string name, Symbol parent)
         {
-            Type = type;
             Parent = parent;
             Name = name;
         }
-
 
         public bool IsDuplicte => mDuplicates != null;
 
@@ -120,13 +108,13 @@ namespace Gosub.Zurfur.Compiler
             get
             {
                 string name;
-                if (Type == SymbolTypeEnum.Field || Type == SymbolTypeEnum.Funcs)
+                if (this is SymField || this is SymMethods)
                     name = "." + Name;
-                else if (Type == SymbolTypeEnum.Func)
-                    name = Name;
-                else if (Type == SymbolTypeEnum.Type)
+                else if (this is SymMethod)
+                    name = "." + Name;
+                else if (this is SymType)
                     name = ":" + Name;
-                else if (Type == SymbolTypeEnum.Namespace)
+                else if (this is SymNamespace)
                     name = "/" + Name;
                 else
                     name = "?" + Name;
@@ -143,42 +131,42 @@ namespace Gosub.Zurfur.Compiler
         }
     }
 
+    class SymNamespace : Symbol
+    {
+        public SymNamespace(string name, Symbol parent) : base(name, parent) { }
+        public override string TypeName => "namespace";
+    }
+
     /// <summary>
     /// Class, struct, enum, interface
     /// </summary>
     class SymType : Symbol
     {
-        public SymType(Token name, Symbol parent) : base(SymbolTypeEnum.Type, name, parent) { }
-
-        public int TypeArgCount;
+        public string TypeKeyword = "type";
+        public SymType(Token name, Symbol parent) : base(name, parent) { }
+        public override string TypeName => TypeKeyword;
     }
 
     class SymField : Symbol
     {
-        public SymField(Token name, Symbol parent) : base(SymbolTypeEnum.Field, name, parent) { }
+        public SymField(Token name, Symbol parent) : base(name, parent) { }
+        public override string TypeName => "field";
     }
 
-    class SymFuncs : Symbol
+    class SymMethods : Symbol
     {
-        public SymFuncs(Token name, Symbol parent) : base(SymbolTypeEnum.Funcs, name, parent) { }
+        public SymMethods(Token name, Symbol parent) : base(name, parent) { }
+        public override string TypeName => "methods";
     }
 
-    class SymFunc : Symbol
+    class SymMethod : Symbol
     {
-        public SymFunc(string name, Token funcGroupName, Symbol parent) : base(SymbolTypeEnum.Func, name, parent)
+        public SymMethod(string name, Token funcGroupName, Symbol parent) : base(name, parent)
             { Token = funcGroupName;  }
+        public override string TypeName =>  "method";
+
     }
 
-
-    class SymTypeArg : Symbol
-    {
-        public readonly int Index;
-
-        public SymTypeArg(Token name, int index, Symbol parent) : base(SymbolTypeEnum.TypeArg, name, parent)
-        {
-            Index = index;
-        }
-    }
 
 
 }

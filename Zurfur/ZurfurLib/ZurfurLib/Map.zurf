@@ -1,10 +1,9 @@
 ﻿namespace Zurfur
 
 pub class Map<TKey, TValue>
-    implements IMutMap<TKey, TValue>
 {
-    ro compareFunc fun(TKey, TKey)bool
-    ro hashFunc fun(TKey)uint
+    ro compareFunc fun(a TKey, b TKey)bool
+    ro hashFunc fun(key TKey)uint
     
 
     pub fun new()
@@ -14,8 +13,8 @@ pub class Map<TKey, TValue>
         hashFunc = @a => TKey.GetHashCode(a)
     }
     
-    pub fun new(compare fun(TKey, TKey)bool,
-                hash fun(TKey)uint)
+    pub fun new(compare fun(a TKey, b TKey)bool,
+                hash fun(key TKey)uint)
     {
         compareFunc = compare
         hashFunc = hash
@@ -25,7 +24,7 @@ pub class Map<TKey, TValue>
         where TKey is IEquatable
         => todo()
         
-    pub fun new(keyValues ICollection<KeyValuePair<TKey, TValue>>) => todo()
+    pub fun new(keyValues ICollection<Pair<TKey, TValue>>) => todo()
     
     pub prop Count int => todo()
 

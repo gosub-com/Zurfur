@@ -21,7 +21,7 @@ pub struct xuint = u32
 
 /// bool (true or false)
 pub struct ro bool
-    implements IEquatable<bool>
+    implements Equatable<bool>
 {
     pub static fun new(a bool) => extern
     pub static fun GetHashCode(a bool) uint => extern
@@ -35,7 +35,7 @@ pub struct ro bool
 
 /// i8 (-128..127)
 pub struct ro i8
-    implements IComparable<i8>
+    implements Comparable<i8>
 {
     pub const Max i8 = 127
     pub const Min i8 = -128
@@ -70,7 +70,7 @@ pub struct ro i8
 
 /// u8 (0..255) same as byte
 pub struct ro u8
-    implements IComparable<u8>
+    implements Comparable<u8>
 {
     pub const Max u8 = 255
     pub const Min u8 = 0
@@ -107,7 +107,7 @@ pub struct ro u8
 
 /// i16 (-32768..32768)
 pub struct ro i16
-    implements IComparable<i16>
+    implements Comparable<i16>
 {
     pub const Max i16 = 32767
     pub const Min i16 = -32768
@@ -139,7 +139,7 @@ pub struct ro i16
 
 /// u16 (0..65535)
 pub struct ro u16
-    implements IComparable<u16>
+    implements Comparable<u16>
 {
     pub const Max u16 = 65535
     pub const Min u16 = 0
@@ -397,8 +397,8 @@ pub struct ro f32
     
     // Comparisons for sorting (NAN>infinity and NAN==NAN are both true)
     pub static fun GetHashCode(a f32) uint => extern
-    pub fun IEquatable<f32>::Equals(a f32, b f32) bool => extern
-    pub fun IComparable<f32>::Compare(a f32, b f32) int => extern
+    pub fun Equatable<f32>::Equals(a f32, b f32) bool => extern
+    pub fun Comparable<f32>::Compare(a f32, b f32) int => extern
     
     pub prop IsInfinity bool => todo()
     pub prop IsNaN bool => todo()
@@ -444,8 +444,8 @@ pub struct ro f64
     
     // Comparisons for sorting (NAN>infinity and NAN==NAN are both true)
     pub static fun GetHashCode(a f64) uint => extern
-    pub fun IEquatable<f32>::Equals(a f64, b f64) bool => extern
-    pub fun IComparable<f32>::Compare(a f64, b f64) int => extern
+    pub fun Equatable<f32>::Equals(a f64, b f64) bool => extern
+    pub fun Comparable<f32>::Compare(a f64, b f64) int => extern
     
     pub prop IsInfinity bool => todo()
     pub prop IsNaN bool => todo()

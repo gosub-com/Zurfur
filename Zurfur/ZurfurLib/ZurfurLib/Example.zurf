@@ -1,9 +1,7 @@
-use a.b.c
-use system.gosub.p
-
+use Zurfur
 
 // http://zurfur.com
-namespace Zurfur.Example
+namespace TestExample
 
 static fun test_HelloWorld()
 {
@@ -92,6 +90,15 @@ pub static fun test_Main(args Array<str>)
         sum += item
     }
 
+    return
+
+    fun testfunc()
+    {
+        @a int = 23
+        for @v in 1..23
+        {
+        }
+    }
 
 }
 
@@ -106,7 +113,7 @@ pub static fun add(a int, b int) int
     => a + b
 
 // Multiple returns
-pub static fun Circle(a f64, r f64) : (x f64, y f64)
+pub static fun Circle(a f64, r f64) -> (x f64, y f64)
 {
     return Cos(a)*r, Sin(a)*r
 }
@@ -278,8 +285,8 @@ pub class Example2  // YES, errors working
     fun fun7(a out List<List<int>>) { }
     fun fun8(a Map<str,List<int>>) { }
     
-    pub fun Sort<T>(greaterThan fun(T,T)bool) { }
-    pub MyFieldFunc fun(object,str)void
+    pub fun Sort<T>(greaterThan fun(a T,b T)bool) { }
+    pub MyFieldFunc fun(a object,b str)void
 
 
     pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
@@ -490,7 +497,7 @@ pub class MyClass1
 }
 
 
-pub static fun Sort<T>(s MutSpan<T>, lessThan fun(T,T)bool)
+pub static fun Sort<T>(s MutSpan<T>, lessThan fun(a T,b T)bool)
 {
     // Simple selection sort
     for @i in s.Count-1
@@ -593,7 +600,7 @@ pub static fun MemCopy32(dest *void, source *void, length xint)
 }
 
 
-namespace Zurfur.Example.ExampleNs1.HelloWorld
+namespace TestExample.ExampleNs1.HelloWorld
 
 static fun F1() => todo
 
@@ -605,14 +612,14 @@ class ClassEx1
 
 
 
-namespace Zurfur.Example.ExampleNs1
+namespace TestExample.ExampleNs1
     static fun F1() => todo
     
-namespace Zurfur.Example.ExampleNs1.InnerEx1
+namespace TestExample.ExampleNs1.InnerEx1
 
-namespace Zurfur.Example.ExampleNs1.InnerEx2
+namespace TestExample.ExampleNs1.InnerEx2
 
-namespace Zurfur.Example.ExampleNs1
+namespace TestExample.ExampleNs1
 
 class ClassEx1
 {
@@ -638,7 +645,7 @@ class ClassEx2
 }
 
 
-namespace Zurfur.Example.ExampleNs2
+namespace TestExample.ExampleNs2
 
 static fun F1() => todo
 

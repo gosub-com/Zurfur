@@ -217,13 +217,20 @@ namespace Gosub.Zurfur.Ide
             {
                 // Get message
                 string message = "";
-                var symbol = mHoverToken.GetInfo<Symbol>();
-                if (symbol != null)
+                var symbols = mHoverToken.GetInfos<Symbol>();
+                foreach (var symbol in symbols)
                 {
-                    message += "SYMBOL: " + symbol.ToString() + "\r\n";
+                    message += symbol.TypeName.ToUpper() + ": " + symbol.ToString() + "\r\n";
                     if (symbol.Comments != "")
                         message += symbol.Comments + "\r\n";
                     message += "\r\n";
+                    
+                    if (symbols.Length != 1)
+                    {
+                        // TBD: Multiples probably mean an error
+                        message += "DUPLICATE: " + symbols.Length + "\r\n";
+                        break;  // TBD: Do something with duplicates
+                    }
                 }
 
                 foreach (var error in mHoverToken.GetInfos<TokenError>())

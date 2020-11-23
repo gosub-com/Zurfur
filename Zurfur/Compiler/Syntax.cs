@@ -9,10 +9,11 @@ namespace Gosub.Zurfur.Compiler
 {
     class SyntaxFile
     {
+        public Lexer Lexer = new Lexer();
         public List<SyntaxUsing> Using = new List<SyntaxUsing>();
-        public Dictionary<string, SyntaxNamespace> Namesapces = new Dictionary<string, SyntaxNamespace>();
+        public Dictionary<string, SyntaxNamespace> Namespaces = new Dictionary<string, SyntaxNamespace>();
         public List<SyntaxType> Types = new List<SyntaxType>();
-        public List<SyntaxFunc> Funcs = new List<SyntaxFunc>();
+        public List<SyntaxFunc> Methods = new List<SyntaxFunc>();
         public List<SyntaxField> Fields = new List<SyntaxField>();
     }
 
@@ -22,14 +23,31 @@ namespace Gosub.Zurfur.Compiler
         public Token[] NamePath = Token.EmptyArray;
     }
 
-    class SyntaxScope
+    class SyntaxScope : SyntaxExpr
     {
+        public SyntaxScope(Token keyword)
+            : base(keyword, 0)
+        {
+        }
+        public SyntaxScope(Token keyword, int count)
+            : base(keyword, count)
+        {
+        }
+
+        public override SyntaxExpr this[int index]
+            =>  throw new IndexOutOfRangeException();
+        public override IEnumerator<SyntaxExpr> GetEnumerator()
+        {
+            yield break;
+        }
+
+
+        public Token Keyword => Token; // class, struct, func, prop, blank for field, etc.
         public virtual bool IsType => false;
         public SyntaxScope ParentScope;
         public string[] NamePath;
         public string Comments;
         public Token[] Qualifiers;
-        public Token Keyword; // class, struct, func, prop, blank for field, etc.
         public Token Name;
 
         public string FullName
@@ -45,6 +63,8 @@ namespace Gosub.Zurfur.Compiler
     class SyntaxNamespace
     {
         public string Comments = "";
+
+        // Final token of all namespaces with this name
         public List<Token> Tokens = new List<Token>();
     }
 
@@ -53,6 +73,11 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     class SyntaxType : SyntaxScope
     {
+        public SyntaxType(Token keyword)
+            : base(keyword)
+        {
+        }
+
         public override bool IsType => true;
         public bool Simple;
         public SyntaxExpr Extends;
@@ -71,6 +96,11 @@ namespace Gosub.Zurfur.Compiler
 
     class SyntaxField : SyntaxScope
     {
+        public SyntaxField()
+            : base(Token.Empty)
+        {
+        }
+
         public bool Simple;
         public SyntaxExpr TypeName;
         public SyntaxExpr Initializer;
@@ -79,23 +109,34 @@ namespace Gosub.Zurfur.Compiler
         public Token GetToken;
         public Token SetToken;
         public Token GetSetVisibilityToken;
-
-        public SyntaxField()
-        {
-            Keyword = Token.Empty;
-        }
-
-
     }
 
     class SyntaxFunc : SyntaxScope
     {
+        public SyntaxFunc(Token keyword)
+            : base(keyword, 1)
+        {
+        }
+        public override SyntaxExpr this[int index]
+        {
+            get
+            {
+                if (index != 0)
+                    throw new IndexOutOfRangeException();
+                return Statements;
+            }
+        }
+        public override IEnumerator<SyntaxExpr> GetEnumerator()
+        {
+            yield return Statements;
+        }
+
+
         public SyntaxExpr ClassName;
-        public SyntaxExpr TypeParams;
-        public SyntaxExpr Params;
-        public SyntaxExpr ReturnType;
+        public SyntaxExpr Params; // 0: Type params, 1: Parameters, 2: Returns
         public SyntaxConstraint[] Constraints;
         public SyntaxExpr Statements;
     }
+
 
 }

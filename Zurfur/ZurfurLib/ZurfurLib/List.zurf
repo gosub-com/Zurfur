@@ -5,6 +5,7 @@ namespace Zurfur
 /// This is the lowest level array type in Zurfur.
 /// All dynamically sized objects should build from this.
 pub class List<T>
+    implements Iterable<List<T>, T>
 {
     pub const MaxItems uint = uint.Max/4/Math.Max(1,sizeof(t))
 
@@ -22,6 +23,7 @@ pub class List<T>
     capacity int       // CapacSize of the items array (GC uses this)
     count int          // Current size of the list
     spanCount int
+    version int
     
     pub fun new(capacity int)
     {
@@ -82,7 +84,7 @@ pub class List<T>
         // TBD: Clone here?
     }
     
-    pub fun new(items ICollection<T>)
+    pub fun new(items Collection<T>)
     {
     }
 
@@ -102,30 +104,69 @@ pub class List<T>
     pub mut fun Insert(index int, items ICollection<T>) => todo()
     pub mut fun Remove(index int) => todo()
     pub mut fun Remove(range Range<int>) => todo()
-    
-    pub fun Convert<Tout>(c fun(T)Tout) => todo()
-    pub fun ForEach(r fun(T)) => todo()
-    pub fun Find(p fun(T)) => todo()
-    pub mut fun Sort(compare fun(T,T)bool) => todo()
-    pub mut fun Sort(compare fun(T,T)bool, range Range<int>) => todo()
-    
-    
-    pub struct Enumerator
+
+    pub fun Convert<Tout>(f fun(item T)Tout) => todo()
+    pub fun Find(f fun(item T)) => todo()
+    pub mut fun Sort(compare fun(a T, b T)bool) => todo()
+    pub mut fun Sort(compare fun(a T, b T)bool, range Range<int>) => todo()
+
+    pub fun Remove(test fun(item T) bool exit) exit
     {
-        index int
+        @v = version
+        @si = 0
+        @di = 0
+        while si < count
+        {
+            @remove = test(items[si])
+            if v != version
+                { throw MutateWhileIteratingException() }
+            if !remove
+            {
+                if si != di
+                    { items[di] = itmes[si]}
+                di += 1
+            }
+            si += 1
+        }
+        Remove(di:si)
+        return
+    error:
+        if v != version
+            { throw MutateWhileIteratingException() }
+        Remove(di:si)
+    }
+
+    // Usage: myList.For @item => DoStuffWithItem()
+    pub fun For(f fun(item mut T) exit) exit
+    {
+        @v = version
+        for @i in count
+        {
+            f(items[i])
+            if v != version
+                { throw MutateWhileIteratingException() }
+        }
+    }
+
+    
+    pub struct ListIterator<T>
+        implements Iterator<List<T>, T>
+    {
         version int
-        pub fun new(list List<T>) { count = list.Count }
-        pub mut fun GetNext(list List<T>, item ref T) bool
+        index int
+        pub fun new(list List<T>)
+            { version = list.version }
+        pub mut fun GetNext(list List<T>) ?mut T
         {
             if version != list.version
-                { throw InvalidEnumeratorException() }
+                { throw MutateWhileIteratingException() }
             if index < list.Count
             {
-                item = List[index]
+                @item = list[index]
                 index += 1
-                return true
+                return item
             }
-            return false
+            return null
         }
     }
                

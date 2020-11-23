@@ -173,6 +173,13 @@ namespace Gosub.Zurfur.Compiler
                 throw new ArgumentNullException("p0, p1, and p2 must not be null");
             mParameters = new SyntaxExpr[] { p0, p1, p2 };
         }
+        public SyntaxMulti(Token token, SyntaxExpr p0, SyntaxExpr p1, SyntaxExpr p2, SyntaxExpr p3)
+            : base(token, 3)
+        {
+            if (p0 == null || p1 == null || p2 == null || p3 == null)
+                throw new ArgumentNullException("p0, p1, p2, and p3 must not be null");
+            mParameters = new SyntaxExpr[] { p0, p1, p2, p3 };
+        }
 
         public override SyntaxExpr this[int index]
         {
