@@ -215,16 +215,29 @@ namespace Gosub.Zurfur.Ide
                             || mHoverToken.GetInfo<TokenError>() != null)
                     && !mHoverMessageForm.Visible)
             {
-                // Get message
+                // Show symbol info
                 string message = "";
                 var symbols = mHoverToken.GetInfos<Symbol>();
                 foreach (var symbol in symbols)
                 {
-                    message += symbol.TypeName.ToUpper() + ": " + symbol.ToString() + "\r\n";
+                    // Top level symbol info
+                    message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
+
+                    // Field type info (if it exists)
+                    if (symbol is SymField symField)
+                    {
+                        if (symField.Type == null)
+                            message += "TYPE: Unresolved" + "\r\n";
+                        else
+                            message += symField.Type.Kind.ToUpper() + ": " + symField.Type.ToString() + "\r\n";
+                    }
+
+                    // Comments
                     if (symbol.Comments != "")
                         message += symbol.Comments + "\r\n";
                     message += "\r\n";
                     
+                    // Only show one symbol, but if there are duplicates let us know about them
                     if (symbols.Length != 1)
                     {
                         // TBD: Multiples probably mean an error

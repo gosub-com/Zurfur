@@ -59,7 +59,7 @@ interface FileStream
 {
 }
 
-class File
+type File
 {
     pub static fun Open(file str) FileStream error => todo()
 }

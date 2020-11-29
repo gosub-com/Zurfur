@@ -33,7 +33,7 @@ use Zurfur
 
 namespace Zurfur.Internal.Memory
 
-pub class DlMallocException
+pub type DlMallocException
     extends Exception
 {
     pub fun new(string message) { base(message) }
@@ -104,7 +104,7 @@ pub interface DlMallocMem
 /// be implemented.  Other Call* functions can optionally be overriden as well.
 /// Call or expose protected members Malloc and Free to implement malloc and free.
 /// </summary>
-pub unsafe class DlMalloc
+pub unsafe type DlMalloc
 {
 
     //  Top
@@ -520,7 +520,7 @@ pub unsafe class DlMalloc
     //        for sake of usage checks.
 
     /// Originally malloc_chunk, now mchunk
-    pub struct mchunk
+    pub type mchunk
     {
         pub prev_foot_ptr *void // Size of previous chunk (if free).
         pub head_ptr *void      // Size and inuse bits.
@@ -683,7 +683,7 @@ pub unsafe class DlMalloc
     /// <summary>
     /// Originally malloc_tree_chunk, now tchunk
     /// </summary>
-    pub struct tchunk
+    pub type tchunk
     {
         // The first four fields must be compatible with mchunk
         pub prev_foot_ptr *void
@@ -777,7 +777,7 @@ pub unsafe class DlMalloc
     /// <summary>
     /// malloc_segment
     /// </summary>
-    struct msegment
+    type msegment
     {
         pub baseAddr *byte      // base address
         pub size      xuint     // allocated size
@@ -801,7 +801,7 @@ pub unsafe class DlMalloc
     //  initialized in init_mparams. Note that the non-zeroness of "magic"
     //  also serves as an initialization flag.
 
-    struct malloc_params
+    type malloc_params
     {
         pub magic xuint
         pub page_size xuint
@@ -1314,7 +1314,7 @@ pub unsafe class DlMalloc
         return false
     }
 
-    pub class HeapStats
+    pub type HeapStats
     {
         pub HeapSize i64
         pub UsedChunks i64

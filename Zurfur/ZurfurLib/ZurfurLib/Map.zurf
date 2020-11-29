@@ -1,6 +1,6 @@
 ﻿namespace Zurfur
 
-pub class Map<TKey, TValue>
+pub type Map<TKey, TValue>
 {
     ro compareFunc fun(a TKey, b TKey)bool
     ro hashFunc fun(key TKey)uint

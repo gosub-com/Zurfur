@@ -55,9 +55,17 @@ namespace Gosub.Zurfur.Lex
         public static readonly Token[] EmptyArray = new Token[0];
 
         /// <summary>
-        /// The string is always "", but error codes and location are undefined
+        /// Wow, this is awful.  Since it was "readonly" only at the top
+        /// level, I accidentally added info to the "Empty" one and it
+        /// accumulated junk forever.  -1 for static mutable data.
+        /// This temp fix just clears the accumulated data, but really,
+        /// this should be removed.
         /// </summary>
-        public static readonly Token Empty = new Token();
+        public static Token Empty
+        {
+            get { sEmpty.Clear();  return sEmpty; }
+        }
+        static readonly Token sEmpty = new Token();
 
         // Fields
         public readonly string Name = "";
@@ -307,13 +315,14 @@ namespace Gosub.Zurfur.Lex
 
             public void AddInfo(object info)
             {
-                if (mInfo == null)
+                var obj = mInfo;
+                if (obj == null)
                 {
                     mInfo = info;
                     return;
                 }
-                var list = mInfo as object[];
-                if (list != null)
+                var list = obj as object[];
+                if (list != null && list.GetType() == typeof(object[]))
                 {
                     for (int i = 0;  i < list.Length;  i++)
                         if (list[i] == null)
@@ -329,25 +338,28 @@ namespace Gosub.Zurfur.Lex
                     return;
                 }
                 list = new object[4];
-                list[0] = mInfo;
+                list[0] = obj;
                 list[1] = info;
                 mInfo = list;
             }
 
             public void RemoveInfo<T>()
             {
-                if (mInfo == null)
+                var obj = mInfo;
+                if (obj == null)
                     return;
-                if (mInfo is T)
+                if (obj is T)
                 {
                     mInfo = null;
                     return;
                 }
-                var list = mInfo as object[];
-                if (list != null)
+                var list = obj as object[];
+                if (list != null && list.GetType() == typeof(object[]))
+                {
                     for (int i = 0; i < list.Length; i++)
                         if (list[i] is T)
                             list[i] = null;
+                }
             }
 
             public void SetInfo<T>(T info)
@@ -358,10 +370,11 @@ namespace Gosub.Zurfur.Lex
 
             public T GetInfo<T>()
             {
-                if (mInfo is T)
-                    return (T)mInfo;
-                var list = mInfo as object[];
-                if (list != null)
+                var obj = mInfo;
+                if (obj is T)
+                    return (T)obj;
+                var list = obj as object[];
+                if (list != null && list.GetType() == typeof(object[]))
                     foreach (var elem in list)
                         if (elem is T)
                             return (T)elem;
@@ -370,10 +383,11 @@ namespace Gosub.Zurfur.Lex
 
             public T[] GetInfos<T>()
             {
-                if (mInfo is T)
-                    return new T[1] { (T)mInfo };
-                var list = mInfo as object[];
-                if (list == null)
+                var obj = mInfo;
+                if (obj is T)
+                    return new T[1] { (T)obj };
+                var list = obj as object[];
+                if (list == null || list.GetType() != typeof(object[]))
                     return new T[0];
                 var infos = new List<T>();
                 foreach (var elem in list)

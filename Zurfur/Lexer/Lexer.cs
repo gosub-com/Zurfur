@@ -365,6 +365,7 @@ namespace Gosub.Zurfur.Lex
             int			mIndexToken;
             Token		mCurrent;
             Token       []mCurrentLine;
+            static Token sEmptyToken = new Token();
 
             public IEnumerator<Token> GetEnumerator() { return this; }
             public void Dispose() { }
@@ -455,7 +456,7 @@ namespace Gosub.Zurfur.Lex
                 if (mIndexLine < mLexer.mTokens.Count)
                 {
                     mCurrentLine = mLexer.mTokens[mIndexLine++];
-                    mCurrent = mCurrentLine.Length == 0 ? Token.Empty : mCurrentLine[mIndexToken++];
+                    mCurrent = mCurrentLine.Length == 0 ? sEmptyToken : mCurrentLine[mIndexToken++];
                     return true;
                 }
                 mCurrent = null;

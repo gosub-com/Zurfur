@@ -200,7 +200,6 @@ namespace Gosub.Zurfur
             if (textEditor == null)
                 return;
             mBuildPackage.SetLexer(textEditor.FilePath, textEditor.Lexer);
-            Debug.WriteLine("Rebuild on text change");
             mChangedLine = textEditor.CursorLoc.Y;
         }
 
@@ -219,7 +218,6 @@ namespace Gosub.Zurfur
                 return;
             mChangedLine = -1;
             mBuildPackage.SetLexer(textEditor.FilePath, textEditor.Lexer);
-            Debug.WriteLine("Rebuild on cursor movement");
         }
 
         private void mvEditors_EditorActiveViewChanged(IEditor editor)

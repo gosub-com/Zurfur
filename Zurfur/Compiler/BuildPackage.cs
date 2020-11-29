@@ -44,6 +44,7 @@ namespace Gosub.Zurfur.Compiler
         string mBaseDir = "";
         string mOutputDir = "";
         bool mIsCompiling;
+        int mCompileCount;
 
         static ScanZurf sScanZurf = new ScanZurf();
         static ScanZurf sScanJson = new ScanZurf();
@@ -123,14 +124,14 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         async void Compile()
         {
+            if (mIsCompiling)
+                return;
+            mIsCompiling = true;
+            var dt = DateTime.Now;
+            int n = ++mCompileCount;
             try
             {
-                if (mIsCompiling)
-                    return;
-                mIsCompiling = true;
-
                 await TryCompile();
-
             }
             catch (Exception ex)
             {
@@ -143,6 +144,7 @@ namespace Gosub.Zurfur.Compiler
             finally
             {
                 mIsCompiling = false;
+                Debug.WriteLine("Compile " + n + ", time: " + (DateTime.Now - dt));
             }
         }
 
@@ -218,6 +220,7 @@ namespace Gosub.Zurfur.Compiler
             var lexer = fi.Lexer.Clone();
             await Task.Run(() => 
             {
+                var dt1 = DateTime.Now;
                 switch (fi.Extension)
                 {
                     case ".zurf":
@@ -233,6 +236,8 @@ namespace Gosub.Zurfur.Compiler
                         fi.ParseErrors = jsonParse.ParseErrors;
                         break;
                 }
+                var dt2 = DateTime.Now;
+                var ts1 = dt2 - dt1;
             });
 
             // If requested to compile again, throw away the intermediate results
@@ -266,13 +271,10 @@ namespace Gosub.Zurfur.Compiler
             {
                 foreach (var token in fi.Value.Lexer)
                 {
-                    if (token.Error)
-                    {
-                        token.RemoveInfo<Symbol>();
-                        token.RemoveInfo<SilError>();
-                        if (token.GetInfo<TokenError>() == null)
-                            token.Error = false;
-                    }
+                    token.RemoveInfo<Symbol>();
+                    token.RemoveInfo<SilError>();
+                    if (token.GetInfo<TokenError>() == null)
+                        token.Error = false;
                 }
             }
 

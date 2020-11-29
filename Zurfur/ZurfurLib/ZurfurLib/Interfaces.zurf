@@ -40,7 +40,14 @@ pub interface Iterable<TCollection, T>
 /// This is the only function needed for standard iterators
 pub interface Iterator<TCollection, T>
 {
-    mut fun GetNext(collection TCollection<T>) ?T => impl
+    /// Get the next item from a collection.
+    /// Returns null if there are no more items.
+    /// Panic if collection is mutated while iterating.
+    mut fun Next(collection TCollection<T>) ?mut ref T => impl
+
+    /// Return the item previously returned by Next.
+    /// Panic if Next was never called, or if Next returned null.
+    fun Current(collection TCollection<T>) mut ref T => impl
 }
 
 pub interface Collection<T>
@@ -50,7 +57,7 @@ pub interface Collection<T>
 }
 
 
-pub struct Pair<TKey, TValue>
+pub type Pair<TKey, TValue>
 {
     pub Key TKey
     pub Value TValue
@@ -65,8 +72,8 @@ pub interface IGeneric<Q>
     fun A<T>(Q m) int => test()
 }
 
-// Test generic class
-pub class MyGeneric<QQ>
+// Test generic type
+pub type MyGeneric<QQ>
     implements IGeneric<QQ>
 {
     pub fun IGeneric<QQ>::A<T>(QQ a) int { }

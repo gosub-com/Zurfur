@@ -202,7 +202,7 @@ namespace Gosub.Zurfur.Lex
             }
 
             if (endIndex - charIndex < 0)
-                return Token.Empty;
+                return new Token();
             string number = mintern[line.Substring(charIndex, endIndex - charIndex)];
             charIndex = endIndex;  // Skip token
             return new Token(number, startIndex, 0, eTokenType.Number);

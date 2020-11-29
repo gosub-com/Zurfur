@@ -1,39 +1,58 @@
-﻿use Zurfur.Unsafe.Memory
+﻿use Zurfur.Unsafe
+use Zurfur.Compiler.Internal
 
 namespace Zurfur
 
 /// This is the lowest level array type in Zurfur.
 /// All dynamically sized objects should build from this.
-pub class List<T>
+/// Mutating the list count (or deleting it) while a
+/// span exists causes a run-time error in debug mode
+/// or a memory leak in release mode.  Always memory safe.
+pub type List<T>
     implements Iterable<List<T>, T>
 {
     pub const MaxItems uint = uint.Max/4/Math.Max(1,sizeof(t))
 
-    // The GC will know the layout of this class
-    // and follow the items pointer accordingly.
-    //
-    // spanCount is currenty held here, but could be
-    // moved to the array memory in the future.
-    // This would allow Span<T>'s drop to also free the
-    // memory.  It should be rare to detach and need
-    // GC, so doing that might actually be slower
-    // in the normal case.
 
-    items  GcArrayPointer<T>
-    capacity int       // CapacSize of the items array (GC uses this)
-    count int          // Current size of the list
-    spanCount int
-    version int
+    // Detect incorrect list passed to iterator
+    // and mutation while iterating.
+    const MASTER_VERSION_INC int = 65536 + 1024
+    static mut sMasterVersion int = 0
+
+    // The GC will follow this pointer because it is special.
+    // `items` is never referenced when count is zero, so
+    // we can unsafe cast to follow without checking for null
+    items  ?*GcRefArray<T>
+    count int           // Current size of the list
+    version int         // Increment when Count changes
+
+    pub fun new()
+    {
+        version = sMasterVersion
+        sMasterVersion += MASTER_VERSION_INC
+    }
     
     pub fun new(capacity int)
     {
+        new()
         SetCapacity(capacity)
     }
 
-    pub fun drop()
+    mut fun drop()
     {
-        count = 0 // Flag to drop
-        SetCapacity(0)
+        if items != null
+        {
+            if items.Ref != 1
+            {
+                count = 0
+                items.Ref -= 1
+                Log.PanicInDebugMode("Drop while span exists")
+                return
+            }
+            Clear()
+            unsafe dlMalloc.Free(items)
+            items = null
+        }
     }
     
     /// Grow the capacity to be at least minCount size.
@@ -41,7 +60,7 @@ pub class List<T>
     /// otherwise the list is expanded exponentially.
     pub fun Grow(minCapacity int)
     {
-        if minCapacity <= capacity
+        if minCapacity <= items.Count
             { return }
         @newCap = Math.Max(capacity*2, minCount)
         if sizeof(T) == 1
@@ -58,30 +77,45 @@ pub class List<T>
         SetCapacity(count + extra)
     }
     
-    // Set the capacity, won't shrink below count
+    // Set the capacity, won't shrink below count.
+    // Always makes a copy, even if capacity is the same.
     fun SetCapacity(capacity int)
     {
-        capacity = Math.Max(capacity, count)
+        version += 1
+        @capacity = Math.Max(capacity, count)
         Debug.PanicIf(uint(capacity) > MaxItems)
         
-        // Copy old items into new array
+        // Move items into new array
         @oldItems = items
-        items = capacity == 0 ? null : unsafe cast(*T)DlMalloc.Calloc(sizeof(T)*capacity:2)
-        this.capacity = capacity
-        unsafe MemCopy32(items, oldItems, sizeof(T)*count)
-        
-        // When spanCout is zero, we own it and can delete it.
-        // Oterwise, it becomes garbage
-        if spanCount == 0
-            { unsafe dlMalloc.Free(oldItems) }
-        spanCount = 0
+        if capacity != 0
+        {
+            items = unsafe cast(*T)DlMalloc.Calloc(sizeof(T)*capacity)
+            *items = GcRefArray(Count:capacity, Ref:oldItems.Ref)
+            unsafe MemCopy32(items.Data, oldItems.Data, sizeof(T)*count)
+        }
+        else
+        {
+            items = null
+        }
+
+        // Delete old array if possible
+        if oldItems != null
+        {
+            items.Ref -= 1
+            if oldItems.Ref != 0
+            {
+                Log.PanicInDebugMode("Mutate list capacity while span exists")
+                return
+            }
+            unsafe DlMalloc.Free(oldItems)
+        }
         
     }
 
-    
+
+    // TBD: Where to clone
     pub fun new(items Span<T>)
     {
-        // TBD: Clone here?
     }
     
     pub fun new(items Collection<T>)
@@ -96,6 +130,7 @@ pub class List<T>
         => todo()
     
     pub prop Count int => count
+    pub mut fun Clear() => todo
     pub mut fun Push(item T) => todo()
     pub mut fun Push(items Span<T>) => todo()
     pub mut fun Pop() ?T => todo()
@@ -119,7 +154,7 @@ pub class List<T>
         {
             @remove = test(items[si])
             if v != version
-                { throw MutateWhileIteratingException() }
+                { throw InvalidIteratorException() }
             if !remove
             {
                 if si != di
@@ -132,7 +167,7 @@ pub class List<T>
         return
     error:
         if v != version
-            { throw MutateWhileIteratingException() }
+            { throw InvalidIteratorException() }
         Remove(di:si)
     }
 
@@ -144,29 +179,35 @@ pub class List<T>
         {
             f(items[i])
             if v != version
-                { throw MutateWhileIteratingException() }
+                { throw InvalidIteratorException() }
         }
     }
 
     
-    pub struct ListIterator<T>
+    pub type ListIterator<T>
         implements Iterator<List<T>, T>
     {
         version int
-        index int
+        index int = -1
+        
         pub fun new(list List<T>)
             { version = list.version }
-        pub mut fun GetNext(list List<T>) ?mut T
+            
+        pub mut fun Next(list List<T>) ?mut ref T
         {
             if version != list.version
-                { throw MutateWhileIteratingException() }
+                { throw InvalidIteratorException() }
+            index += 1
             if index < list.Count
-            {
-                @item = list[index]
-                index += 1
-                return item
-            }
+                { return ref list[index] }
             return null
+        }
+
+        pub fun Current(list List<T>) mut ref T
+        {
+            if version != list.version
+                { throw InvalidIteratorException() }
+            return ref list[index]
         }
     }
                

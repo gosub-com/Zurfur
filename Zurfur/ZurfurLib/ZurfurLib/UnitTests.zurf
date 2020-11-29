@@ -14,7 +14,7 @@ static fun test_HelloWorld()
     }
 }
 
-pub class Example
+pub type Example
 {
     info str                  // Private string initialized to ""
     array Array<int> = [1,2,3]         // Private mutable array
@@ -62,8 +62,9 @@ pub static fun test_Convert()
 }
 
 
-pub unsealed class TestGuiForm extends Form
+pub type TestGuiForm extends Form
 {
+    type Label { }
     pub Message1 Label
     pub Message2 Label
     pub Message3 Label

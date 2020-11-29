@@ -1,9 +1,9 @@
 ﻿
 namespace Zurfur.Compiler
 
-pub struct ro Attribute { }
+pub type ro Attribute { }
 
-pub struct ro AlignAttribute
+pub type ro AlignAttribute
     extends Attribute
 {
     pub ro Size int
@@ -13,17 +13,17 @@ pub struct ro AlignAttribute
 namespace Zurfur.Compiler.Internal
 
 // TBD: This will contain compiler generated metadata for each type
-pub struct GcType { }
+pub type GcType { }
 
 // Header for all heap objects
-pub struct ro GcObject<T>
+pub type ro GcObject<T>
 {
     pub ro Type *GcType
 }
 
 // Header for all heap arrays
 [Align(8)]
-pub struct ro GcArray<T>
+pub type ro GcArray<T>
 {
     pub ro Type  *GcType
     pub ro Count  uint
@@ -32,25 +32,27 @@ pub struct ro GcArray<T>
 // Header for all reference counted heap arrays.
 // This is the underlying array used by List<T>
 [Align(8)]
-pub struct ro GcRefArray<T>
+pub type ro GcRefArray<T>
 {
-    pub ro Type  *GcType
-    pub ro Count  uint
-    pub ro Ref    uint
-}
+    pub ro      Type  *GcType
+    pub ro init Count  uint
+    pub         Ref    uint
 
+    pub fun new()
+    {
+        Type = todo()
+    }
 
-// This is a raw pointer to an array on the GC heap.
-// NOTE: For speed, the pointer points to the data
-// instead of the GcObjectArray.
-[Align(8)]
-pub struct GcRefArrayPointer<T>
-{
-    pub Data *T
-    prop Type ro *GcType
-        => unsafe (cast(*GcObjectArray)Data)[-1].Type
-    prop Count xuint
-        => unsafe (cast(*GcObjectArray)Data)[-1].Count
-    prop TypePointer ro *GcType
-        => unsafe (cast(*GcObjectArray)Data)[-1]
+    // TBD: Need access to 'this' pointer (use 'ref' on property?)
+    pub unsafe prop Data *T
+        => cast(*T)(cast(xuint)&this + sizeof(GcRefArray<T>))
+
+    // TBD: Need access to 'this' pointer (use 'ref' on function?)
+    /// No bounds checking
+    pub unsafe fun operator[](index int) *T
+    {
+        return unsafe cast(*T)(cast(xuint)&this
+                                + sizeof(GcRefArray<T>)
+                                + sizeof(T)*index)
+    }
 }

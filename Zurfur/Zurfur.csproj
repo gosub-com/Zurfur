@@ -52,9 +52,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Compiler\BuildPackage.cs" />
+    <Compile Include="Compiler\SymbolInfo.cs" />
     <Compile Include="Lexer\ScanZurf.cs" />
     <Compile Include="Compiler\SilGenHeader.cs" />
-    <Compile Include="Compiler\Symbols.cs" />
+    <Compile Include="Compiler\SymbolTable.cs" />
     <Compile Include="Compiler\ParseZurfCheck.cs" />
     <Compile Include="Ide\IEditor.cs" />
     <Compile Include="Ide\ImageEditor.cs">
@@ -204,9 +205,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="ZurfurLib\ZurfurLib\Map.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="ZurfurLib\ZurfurLib\Math.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="ZurfurLib\ZurfurLib\Range.zurf">

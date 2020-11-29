@@ -2,7 +2,7 @@
 
 
 // The compiler will create a new object for each file
-pub class Log
+pub type Log
 {
     pub enum Level { Fatal; Error; Warn; Info; Debug }
 
@@ -16,13 +16,18 @@ pub class Log
     pub fun Info(message str, li LogLine = default) { todo() }
     pub fun Debug(message str, li LogLine = default) { todo() }
 
+    /// Recoverable programming error.  In debug mode, stop and
+    /// make the programmer look at it.  In production, log it
+    /// and continue.
+    pub fun PanicInDebugMode(message str, li LogLine = default) { todo() }
+
     pub prop RecordTimeEvents bool get set
     pub fun Time(name str, message str = "") { todo() }
     pub fun TimeBegin(name str, message str = "") { todo() }
     pub fun TimeEnd(name str, message str = "") { }
 
     // The compiler will fill in the line number of the caller
-    pub struct ro LogLine
+    pub type ro LogLine
     {
         pub fun default() => extern
         pub ro Line int

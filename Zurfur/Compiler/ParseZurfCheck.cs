@@ -36,6 +36,8 @@ namespace Gosub.Zurfur.Compiler
             + "const var let mut defer use throw switch case return for break default while if else get set do unsafe error finally exit fun afun");
         static WordSet sAssignments = new WordSet("= += -= *= /= %= &= |= ~= <<= >>=");
         static WordSet sInvalidLeftAssignments = new WordSet("+ - * / % & | == != < <= > >=");
+        static WordSet sAllowedBeforeLocalFunc = new WordSet("return afun fun");
+
 
         static WordMap<int> sClassFuncFieldQualifiersOrder = new WordMap<int>()
         {
@@ -315,10 +317,9 @@ namespace Gosub.Zurfur.Compiler
                 {
                     // Local function defined
                     hasLocalFunction = true;
-                    var parentName = parent == null ? "" : parent.Token.Name;
                     if (parent != null)
                         mParser.RejectToken(token, "Local function must be defined at top level of a function scope");
-                    else if (i == 0 || expr[i - 1].Token.Name != "return")
+                    else if (i == 0 || !sAllowedBeforeLocalFunc.Contains(expr[i - 1].Token.Name))
                         mParser.RejectToken(token, "Expecting 'return' before a new local function is defined");
                 }
                 else
@@ -327,9 +328,7 @@ namespace Gosub.Zurfur.Compiler
                         mParser.RejectToken(token, "No code allowed after a local function has been defined");
                 }
             }
-
         }
-
 
         public void ShowParseTree(SyntaxFile unit)
         {

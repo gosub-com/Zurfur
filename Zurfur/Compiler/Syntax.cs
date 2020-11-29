@@ -62,10 +62,8 @@ namespace Gosub.Zurfur.Compiler
 
     class SyntaxNamespace
     {
+        public Token[] Path;
         public string Comments = "";
-
-        // Final token of all namespaces with this name
-        public List<Token> Tokens = new List<Token>();
     }
 
     /// <summary>
@@ -96,9 +94,10 @@ namespace Gosub.Zurfur.Compiler
 
     class SyntaxField : SyntaxScope
     {
-        public SyntaxField()
-            : base(Token.Empty)
+        public SyntaxField(Token name)
+            : base(name)
         {
+            Name = name;
         }
 
         public bool Simple;
