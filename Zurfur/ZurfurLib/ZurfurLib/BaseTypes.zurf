@@ -6,24 +6,24 @@
 
 namespace Zurfur
 
-pub type void { }
-pub type int = i32
-pub type uint = u32
-pub type byte = u8
+pub struct void { }
+pub struct int = i32
+pub struct uint = u32
+pub struct byte = u8
 
 /// TBD: Implement
-pub type Array<T> { }
+pub struct Array<T> { }
 
 // TBD: Needs to be an actual type to enforce proper typing and casting rules
 /// 32 bit or 64 bit integer depending on the platform
-pub type xint = i32
+pub struct xint = i32
 
 // TBD: Needs to be an actual type to enforce proper typing and casting rules
 /// 32 bit or 64 bit integer depending on the platform
-pub type xuint = u32
+pub struct xuint = u32
 
 /// bool (true or false)
-pub type ro bool
+pub struct ro bool
     implements Equatable<bool>
 {
     pub static fun new(a bool) => extern
@@ -37,7 +37,7 @@ pub type ro bool
 }
 
 /// i8 (-128..127)
-pub type ro i8
+pub struct ro i8
     implements Comparable<i8>
 {
     pub const MaxValue i8 = 127
@@ -72,7 +72,7 @@ pub type ro i8
 
 
 /// u8 (0..255) same as byte
-pub type ro u8
+pub struct ro u8
     implements Comparable<u8>
 {
     pub const MaxValue u8 = 255
@@ -109,7 +109,7 @@ pub type ro u8
 }
 
 /// i16 (-32768..32768)
-pub type ro i16
+pub struct ro i16
     implements Comparable<i16>
 {
     pub const MaxValue i16 = 32767
@@ -141,7 +141,7 @@ pub type ro i16
 
 
 /// u16 (0..65535)
-pub type ro u16
+pub struct ro u16
     implements Comparable<u16>
 {
     pub const MaxValue u16 = 65535
@@ -175,7 +175,7 @@ pub type ro u16
 }
 
 /// A 32 bit integer (same as int)
-pub type ro i32
+pub struct ro i32
     implements IArithmetic<i32>
 {
     pub const MaxValue i32 = 2147483647
@@ -230,7 +230,7 @@ pub type ro i32
 }
 
 /// 32 bit unsigned integer (same as uint)
-pub type ro u32
+pub struct ro u32
     implements IArithmetic<u32>
 {
     pub const MaxValue u32 = 4294967295
@@ -287,7 +287,7 @@ pub type ro u32
 }
 
 /// A 64 bit integer
-pub type ro i64
+pub struct ro i64
     implements IArithmetic<i64>
 {
     pub const MaxValue i64 = 9223372036854775807
@@ -338,7 +338,7 @@ pub type ro i64
 }
 
 /// 64 bit unsigned integer
-pub type ro u64
+pub struct ro u64
     implements IArithmetic<u64>
 {
     pub const MaxValue u64 = 18446744073709551615
@@ -389,7 +389,7 @@ pub type ro u64
     pub fun Sq() u64 => extern
 }
 
-pub type ro f32
+pub struct ro f32
     implements IArithmetic<f32>
 {
     pub const MaxValue f32 = 3.40282347E+38F
@@ -463,7 +463,7 @@ pub type ro f32
     pub fun Trunc() f32 => extern
 }
 
-pub type ro f64
+pub struct ro f64
     implements IArithmetic<f64>
 {
     pub const MaxValue f64 = 1.7976931348623157E+308
@@ -535,7 +535,7 @@ pub type ro f64
 
 /// 128 bit decimal integer.  This will support NAN, infinity, and
 /// exponents covering the entire range of f64 with more precision.
-pub type ro decimal
+pub struct ro decimal
     implements IArithmetic<decimal>
 {
     pub fun new(a decimal) => extern

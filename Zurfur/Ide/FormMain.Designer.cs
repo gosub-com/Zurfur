@@ -60,6 +60,7 @@
             this.buttonClose = new System.Windows.Forms.Button();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.labelStatus = new System.Windows.Forms.Label();
+            this.menuDebugViewOutput = new System.Windows.Forms.ToolStripMenuItem();
             this.mainMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
@@ -79,7 +80,7 @@
             this.mainMenu.Location = new System.Drawing.Point(22, 1);
             this.mainMenu.Name = "mainMenu";
             this.mainMenu.RenderMode = System.Windows.Forms.ToolStripRenderMode.Professional;
-            this.mainMenu.Size = new System.Drawing.Size(182, 24);
+            this.mainMenu.Size = new System.Drawing.Size(302, 24);
             this.mainMenu.TabIndex = 16;
             this.mainMenu.Text = "menuStrip1";
             // 
@@ -194,6 +195,7 @@
             // menuDebug
             // 
             this.menuDebug.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.menuDebugViewOutput,
             this.menuDebugRun});
             this.menuDebug.Name = "menuDebug";
             this.menuDebug.Size = new System.Drawing.Size(54, 20);
@@ -203,7 +205,7 @@
             // menuDebugRun
             // 
             this.menuDebugRun.Name = "menuDebugRun";
-            this.menuDebugRun.Size = new System.Drawing.Size(118, 22);
+            this.menuDebugRun.Size = new System.Drawing.Size(180, 22);
             this.menuDebugRun.Text = "Run (F5)";
             this.menuDebugRun.Click += new System.EventHandler(this.menuDebugRun_Click);
             // 
@@ -337,6 +339,13 @@
             this.labelStatus.TabIndex = 26;
             this.labelStatus.Text = "label1";
             // 
+            // menuDebugViewOutput
+            // 
+            this.menuDebugViewOutput.Name = "menuDebugViewOutput";
+            this.menuDebugViewOutput.Size = new System.Drawing.Size(180, 22);
+            this.menuDebugViewOutput.Text = "View Output (F4)";
+            this.menuDebugViewOutput.Click += new System.EventHandler(this.menuDebugViewOutput_Click);
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -409,6 +418,7 @@
         private System.Windows.Forms.Button buttonClose;
         private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.Label labelStatus;
+        private System.Windows.Forms.ToolStripMenuItem menuDebugViewOutput;
     }
 }
 

@@ -67,7 +67,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sTypeSymbols = new WordSet("? * ^ [ mut ref in out ro");
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static unsealed abstract virtual override new ro mut init");
+            + "static unsealed abstract virtual override new ro");
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sAllowConstraintKeywords = new WordSet("unmanaged");
@@ -252,9 +252,9 @@ namespace Gosub.Zurfur.Compiler
 
                     case "interface":
                     case "enum":
-                    //case "struct":
-                    //case "class":
-                    case "type":
+                    case "struct":
+                    case "class":
+                    //case "type":
                         mToken.Type = eTokenType.ReservedControl;
                         Accept();
                         while (AcceptMatch("ref") || AcceptMatch("ro") || AcceptMatch("boxed"))
@@ -681,6 +681,11 @@ namespace Gosub.Zurfur.Compiler
                 return null;
             }
 
+            if (mTokenName == "^")
+                qualifiers.Add(Accept());
+            if (mTokenName == "mut")
+                qualifiers.Add(Accept());
+
             synFunc.Params = ParseMethodSignature(keyword);
 
             synFunc.Constraints = ParseConstraints();
@@ -699,7 +704,7 @@ namespace Gosub.Zurfur.Compiler
             var typeParams = ParseTypeParams();
             var funcParams = ParseMethodParams();
 
-            if (mTokenName == "type")
+            if (mTokenName == "class" || mTokenName == "struct")
                 RejectToken(mToken, "Use '->' instead of anonymous class");
             SyntaxExpr returnParams;
 
@@ -1316,7 +1321,7 @@ namespace Gosub.Zurfur.Compiler
                 return ParseTypeFunc(false);
             }
 
-            if (mTokenName == "type")
+            if (mTokenName == "class" || mTokenName == "struct")
             {
                 return ParseAnonymousClass(Accept());
             }
@@ -1656,7 +1661,7 @@ namespace Gosub.Zurfur.Compiler
                 return new SyntaxUnary(funKeyword, ParseMethodSignature(funKeyword));
             }
 
-            if (AcceptMatch("type"))
+            if (AcceptMatch("class") || AcceptMatch("struct"))
             {
                 return ParseAnonymousClass(mPrevToken);
             }
@@ -2051,12 +2056,16 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
+        public class ParseError : TokenError
+        {
+            public ParseError(string message) : base(message) { }
+        }
 
         // Reject the given token
         public void RejectToken(Token token, string errorMessage)
         {
             mParseErrors++;
-            token.AddError(errorMessage);
+            token.AddError(new ParseError(errorMessage));
             RecordInvisibleToken(token);
         }
 

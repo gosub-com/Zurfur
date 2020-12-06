@@ -43,7 +43,7 @@ pub interface Iterator<TCollection, T>
     /// Get the next item from a collection.
     /// Returns null if there are no more items.
     /// Panic if collection is mutated while iterating.
-    mut fun Next(collection TCollection<T>) ?mut ref T => impl
+    fun Next mut(collection TCollection<T>) ?mut ref T => impl
 
     /// Return the item previously returned by Next.
     /// Panic if Next was never called, or if Next returned null.
@@ -57,7 +57,7 @@ pub interface Collection<T>
 }
 
 
-pub type Pair<TKey, TValue>
+pub struct Pair<TKey, TValue>
 {
     pub Key TKey
     pub Value TValue
@@ -73,7 +73,7 @@ pub interface IGeneric<Q>
 }
 
 // Test generic type
-pub type MyGeneric<QQ>
+pub class MyGeneric<QQ>
     implements IGeneric<QQ>
 {
     pub fun IGeneric<QQ>::A<T>(QQ a) int { }

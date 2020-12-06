@@ -1,7 +1,7 @@
 ﻿namespace Zurfur
 
 
-pub type Range<T>
+pub struct Range<T>
     implements Iterable<Range<T>, T>
     where T is IArithmetic<T>
 {
@@ -23,7 +23,7 @@ pub type Range<T>
     
 }
 
-pub type RangeIterator<T>
+pub struct RangeIterator<T>
     implements Iterator<Range<T>, T>
     where T is IArithmetic<T>
 {
@@ -34,7 +34,7 @@ pub type RangeIterator<T>
         index = low-1
     }
 
-    pub mut fun Next(range Range<T>) ?ref T
+    pub fun Next mut(range Range<T>) ?ref T
     {
         index += 1
         if index < range.High

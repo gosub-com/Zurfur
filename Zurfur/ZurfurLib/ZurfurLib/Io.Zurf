@@ -3,63 +3,36 @@
 namespace Zurfur.Io
 
 
-// TBD: Break this up into two different interfaces,
-// ReadStream and WriteStream, or even smaller as in Golang?
-interface Stream
+interface Reader
 {
-    /// Quickly gets last known length of stream.
-    /// Might become stale if the file is written
-    /// after being open, or if more data becomes
-    /// available from the device.  Is always valid
-    /// when backed by memory
-    prop Length i64 => impl get
-    
-    /// Quickly gets/sets stream position.  When setting,
-    /// the position is cached, then set before the next
-    /// read or write.
-    prop Position i64 => impl get set
-
-    /// Gets the number of bytes that can be read now (sync)
-    prop ReadableNow int => impl get
-    
-    /// Gets number of bytes that can be written now (sync)
-    prop WritableNow int => impl get
-    
-
-    /// Synchronously read bytes from the buffer.
-    /// Never blocks, just returns 0 if there aren't any
-    mut fun ReadNow(data mut Span<byte>) int => impl
-    
-    /// Synchronously write bytes to the buffer.
-    /// Never blocks, just returns 0 if there isn't any space
-    mut fun WriteNow(data Span<byte>) int => impl
-    
-    /// Quickly reads the next byte, returns -1
-    /// if there is no more sync data in the stream
-    /// or if there is any kind of error
-    mut fun ReadByteNow() int => impl
-    
-    mut afun Seek(offset i64, origin SeekOrigin) error => impl
-    mut afun Read(data mut Span<byte>) int error  => impl
-    mut afun Write(data Span<byte>) int error => impl
-    mut afun Flush() error => impl
-    mut afun Close() error => impl
-    
-    /// NOTE: It is an error for a stream to be left open
-    /// when dropped. In debug mode, execution stops to
-    /// allow the programmer to fix the bug.  In production
-    /// environments, the file is closed and an error is logged.
-    fun drop() => impl
-    
-    // Illegal to clone or copy the stream
-    fun copy() => null
+    afun Read mut(data mut []byte) int error  => impl
+    // TBD: Since most streams have an underlying
+    // buffer,  would it make sense to add sync
+    // functions ReadableNow and ReadNow?
 }
+
+interface Writer
+{
+    afun Write mut(data []byte) int error => impl
+    afun Flush mut() error => impl
+    // TBD: Since most streams have an underlying
+    // buffer,  would it make sense to add sync
+    // functions WritableNow and WriteNow?
+}
+
+interface Seeker
+{
+    prop Length i64 => impl get
+    prop Position i64 => impl get set
+    afun Seek mut(offset i64, origin SeekOrigin) error => impl
+}
+
 
 interface FileStream
 {
 }
 
-type File
+class File
 {
     pub static fun Open(file str) FileStream error => todo()
 }

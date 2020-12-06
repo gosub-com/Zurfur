@@ -8,7 +8,7 @@ namespace Zurfur
 /// Mutating the list count (or deleting it) while a
 /// span exists causes a run-time error in debug mode
 /// or a memory leak in release mode.  Always memory safe.
-pub type List<T>
+pub class List<T>
     implements Iterable<List<T>, T>
 {
     pub const MaxItems uint = uint.Max/4/Math.Max(1,sizeof(t))
@@ -17,7 +17,7 @@ pub type List<T>
     // Detect incorrect list passed to iterator
     // and mutation while iterating.
     const MASTER_VERSION_INC int = 65536 + 1024
-    static mut sMasterVersion int = 0
+    static sMasterVersion int = 0
 
     // The GC will follow this pointer because it is special.
     // `items` is never referenced when count is zero, so
@@ -38,7 +38,7 @@ pub type List<T>
         SetCapacity(capacity)
     }
 
-    mut fun drop()
+    fun drop mut()
     {
         if items != null
         {
@@ -130,20 +130,20 @@ pub type List<T>
         => todo()
     
     pub prop Count int => count
-    pub mut fun Clear() => todo
-    pub mut fun Push(item T) => todo()
-    pub mut fun Push(items Span<T>) => todo()
-    pub mut fun Pop() ?T => todo()
-    pub mut fun Insert(index int, item T) => todo()
-    pub mut fun Insert(index int, items Span<T>) => todo()
-    pub mut fun Insert(index int, items ICollection<T>) => todo()
-    pub mut fun Remove(index int) => todo()
-    pub mut fun Remove(range Range<int>) => todo()
+    pub fun Clear mut() => todo
+    pub fun Push mut(item T) => todo()
+    pub fun Push mut(items Span<T>) => todo()
+    pub fun Pop mut() ?T => todo()
+    pub fun Insert mut(index int, item T) => todo()
+    pub fun Insert mut(index int, items Span<T>) => todo()
+    pub fun Insert mut(index int, items ICollection<T>) => todo()
+    pub fun Remove mut(index int) => todo()
+    pub fun Remove mut(range Range<int>) => todo()
 
     pub fun Convert<Tout>(f fun(item T)Tout) => todo()
     pub fun Find(f fun(item T)) => todo()
-    pub mut fun Sort(compare fun(a T, b T)bool) => todo()
-    pub mut fun Sort(compare fun(a T, b T)bool, range Range<int>) => todo()
+    pub fun Sort mut(compare fun(a T, b T)bool) => todo()
+    pub fun Sort mut(compare fun(a T, b T)bool, range Range<int>) => todo()
 
     pub fun Remove(test fun(item T) bool exit) exit
     {
@@ -184,7 +184,7 @@ pub type List<T>
     }
 
     
-    pub type ListIterator<T>
+    pub struct ListIterator<T>
         implements Iterator<List<T>, T>
     {
         version int
@@ -193,7 +193,7 @@ pub type List<T>
         pub fun new(list List<T>)
             { version = list.version }
             
-        pub mut fun Next(list List<T>) ?mut ref T
+        pub fun Next mut(list List<T>) ?mut ref T
         {
             if version != list.version
                 { throw InvalidIteratorException() }

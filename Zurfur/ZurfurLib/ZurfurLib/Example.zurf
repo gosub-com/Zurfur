@@ -12,11 +12,11 @@ static fun test_HelloWorld()
     }
 }
 
-pub type SimpleStruct(X int, Y int)
+pub struct SimpleStruct(X int, Y int)
 
-pub type SimpleClass(FirstName str, LastName str)
+pub class SimpleClass(FirstName str, LastName str)
 
-pub type SimpleClassWitBody(FirstName str, LastName str)
+pub class SimpleClassWitBody(FirstName str, LastName str)
 {
     // a int - ILLEGAL
     // fun new(a int) => AlsoIllegal()
@@ -24,7 +24,7 @@ pub type SimpleClassWitBody(FirstName str, LastName str)
 }
 
 
-pub type Example
+pub class Example
 {
     info str                             // Initialized string
     list List<str> = ["Hello", "World"]  // Mutable list
@@ -136,9 +136,9 @@ pub static fun Circle(a f64, r f64) -> (x f64, y f64)
 }
 
 
-pub type MutableTest
+pub class MutableTest
 {
-    pub type MyObject { }
+    pub class MyObject { }
 
     a MyObject
     b List<MyObject>
@@ -160,12 +160,12 @@ pub type MutableTest
 }
 
 // Mutable point (each mutable function must also be marked)
-pub type MyMutablePoint
+pub struct MyMutablePoint
 {
     pub X int
     pub Y int
     pub fun new(x int, y int) { X = x; Y = y}
-    pub mut fun SetY(y int) { Y = y }
+    pub fun SetY mut(y int) { Y = y }
     pub prop PropX int
     {
     get:
@@ -177,7 +177,7 @@ pub type MyMutablePoint
 
 
 /// Example class, a test of hover comments and `code` comments
-pub type Example_x
+pub class Example_x
 {
     pub const CONST_FIELD int = 234
     pub field1 f32
@@ -223,7 +223,7 @@ pub fun Example::MyExtension()
 }
 
 
-pub type PointXY<T>
+pub struct PointXY<T>
     implements IArithmetic<T>
     where f is IAritmetic<T>
 {
@@ -246,7 +246,7 @@ pub fun Example::Extension()
 }
 
 // Test class
-pub type Example2  // YES, errors working
+pub class Example2  // YES, errors working
 {
     // Todo List:
     //    .. operator doesn't need parameters at beginning or end
@@ -478,7 +478,7 @@ pub fun Example::IfTests()
     }
 }
 
-pub type MyPoint
+pub struct MyPoint
 {
     pub X int
     pub Y int
@@ -502,12 +502,12 @@ pub interface MyInterfaceTest
     protected fun C() int => imp
         
     pub fun B() int => A() + 1
-    pub type Astruct { pub a int }
+    pub struct Astruct { pub a int }
     pub enum Aenum { a; b; c}
-    pub type Aclass { pub a int  }
+    pub struct Aclass { pub a int  }
 }
 
-pub type MyClass1
+pub class MyClass1
     implements MyInterfaceTest
 {
     pub fun A() int => 3
@@ -540,7 +540,7 @@ pub static fun Sort<T>(s MutSpan<T>, lessThan fun(a T,b T)bool)
 }
 
 // The matrix class is used to implement square 2d arrays
-pub type Matrix2d<t>
+pub class Matrix2d<t>
     extends VariableSizedObject<T>
 {
     fun new(len1 int, len2 int) { todo() }
@@ -623,7 +623,7 @@ namespace TestExample.ExampleNs1.HelloWorld
 
 static fun F1() => todo
 
-type ClassEx1
+class ClassEx1
 {
     a int
     b int
@@ -640,25 +640,25 @@ namespace TestExample.ExampleNs1.InnerEx2
 
 namespace TestExample.ExampleNs1
 
-type ClassEx1
+class ClassEx1
 {
     a int
     b int
-    type Inner1
+    class Inner1
     {
     }
 
-    type Inner2
+    class Inner2
     {
     }
 }
-type ClassEx2
+class ClassEx2
 {
-    type Inner1
+    class Inner1
     {
     }
 
-    type Inner2
+    class Inner2
     {
     }
 }
@@ -668,25 +668,25 @@ namespace TestExample.ExampleNs2
 
 static fun F1() => todo
 
-type ClassEx1
+class ClassEx1
 {
     a int
     b int
-    type Inner1
+    class Inner1
     {
     }
 
-    type Inner2
+    class Inner2
     {
     }
 }
-type ClassEx2
+class ClassEx2
 {
-    type Inner1
+    class Inner1
     {
     }
 
-    type Inner2
+    class Inner2
     {
     }
 }

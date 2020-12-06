@@ -14,11 +14,14 @@ namespace Gosub.Zurfur.Compiler
 
     class SilGenHeader
     {
+        static WordSet sUnaryTypeSymbols = new WordSet("? * ^ [ mut ref in out ro");
+
         Dictionary<string, SymFile> mFiles = new Dictionary<string, SymFile>();
-        Dictionary<string, Symbol> mSymbols = new Dictionary<string, Symbol>();
+        SymbolTable mSymbols = new SymbolTable();
 
         List<string> mNamespaces = new List<string>();
         List<string> mAllSymbols = new List<string>();
+        DateTime mStartTime = DateTime.Now;
 
         /// <summary>
         /// Step 1: GenerateTypeDefinitions, requires nothing from any other package.
@@ -40,13 +43,13 @@ namespace Gosub.Zurfur.Compiler
             foreach (var syntaxFile in syntaxFiles)
                 mFiles[syntaxFile.Key] = new SymFile(syntaxFile.Key, syntaxFile.Value);
 
+            mSymbols[""] = new SymNamespace("", new SymFile("", new SyntaxFile()), new Token(""));
+
             AddNamespaces();
             AddTypes();
             AddFields();
             AddMethodGroups();
-
-            foreach (var symbol in mSymbols)
-                VerifyNoSameParentSymbols(symbol.Value);
+            VerifyNoSameParentSymbols();
             return;
 
             void AddNamespaces()
@@ -63,24 +66,29 @@ namespace Gosub.Zurfur.Compiler
 
             Symbol AddNamespace(SymFile file, Token[] path)
             {
-                var symbols = mSymbols;
-                Symbol parentSymbol = null;
-                Symbol nsSymbol = null;
+                var childrenSymbols = mSymbols[""].Children;
+                Symbol parentSymbol = mSymbols[""];
+                Symbol newNamespace = null;
                 foreach (var token in path)
                 {
-                    if (symbols.TryGetValue(token.Name, out nsSymbol))
+                    if (childrenSymbols.TryGetValue(token.Name, out var childNamespaceName))
                     {
-                        nsSymbol.AddLocation(file, token);
+                        newNamespace = mSymbols[childNamespaceName];
+                        newNamespace.AddLocation(file, token);
                     }
                     else
                     {
-                        nsSymbol = new SymNamespace(parentSymbol, file, token);
-                        symbols[token] = nsSymbol;
+                        newNamespace = new SymNamespace(parentSymbol.FullName, file, token);
+                        childrenSymbols[token] = newNamespace.FullName;
+                        mSymbols[newNamespace.FullName] = newNamespace;
+                        parentSymbol.Children[token.Name] = newNamespace.FullName;
                     }
-                    parentSymbol = nsSymbol;
-                    symbols = nsSymbol.Symbols;
+                    Debug.Assert(mSymbols[newNamespace.FullName] == newNamespace);
+
+                    parentSymbol = newNamespace;
+                    childrenSymbols = newNamespace.Children;
                 }
-                return nsSymbol;
+                return newNamespace;
             }
 
             void AddTypes()
@@ -89,16 +97,23 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var type in symFile.SyntaxFile.Types)
                     {
-                        var newType = new SymType(FindSymbolPath(type.NamePath), symFile, type.Name);
+                        var newType = new SymType(mSymbols.FindPath(type.NamePath).FullName, symFile, type.Name);
                         newType.TypeKeyword = type.Keyword.Name;
                         newType.Comments = type.Comments;
-                        if (AddSymbol(newType) && type.TypeParams.Count != 0)
+                        if (mSymbols.Add(newType) && type.TypeParams.Count != 0)
                         {
                             // Add type arguments
+                            var typeArgs = new List<string>();
                             foreach (var expr in type.TypeParams)
                             {
-                                AddSymbol(new SymTypeArg(newType, symFile, expr.Token));
+                                mSymbols.Add(new SymTypeArg(newType.FullName, symFile, expr.Token));
+                                typeArgs.Add(expr.Token.Name);
                             }
+                            // TBD: We need to do this because we need to maintain the
+                            //      parameter order.  It might be better to keep an ordered
+                            //      list of names in the symbol table.  We will need that
+                            //      if we want to maintain field order.
+                            newType.TypeArgs = typeArgs.ToArray();
                         }
                     }
                 }
@@ -110,10 +125,10 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var field in symFile.SyntaxFile.Fields)
                     {
-                        var newField = new SymField(FindSymbolPath(field.NamePath), symFile, field.Name);
+                        var newField = new SymField(mSymbols.FindPath(field.NamePath).FullName, symFile, field.Name);
                         newField.Syntax = field;
                         newField.Comments = field.Comments;
-                        AddSymbol(newField);
+                        mSymbols.Add(newField);
                     }
                 }
             }
@@ -124,23 +139,23 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var method in symFile.SyntaxFile.Methods)
                     {
-                        var parentSymbol = FindSymbolPath(method.NamePath);
-                        if (!parentSymbol.Symbols.ContainsKey(method.Name))
-                            parentSymbol.Symbols[method.Name] = new SymMethods(parentSymbol, symFile, method.Name);
+                        var parentSymbol = mSymbols.FindPath(method.NamePath);
+                        if (!parentSymbol.Children.ContainsKey(method.Name))
+                        {
+                            var newMethod = new SymMethods(parentSymbol.FullName, symFile, method.Name);
+                            parentSymbol.Children[method.Name] = newMethod.FullName;
+                            mSymbols[newMethod.FullName] = newMethod;
+                        }
                     }
                 }
             }
 
-            void VerifyNoSameParentSymbols(Symbol symbol)
+            void VerifyNoSameParentSymbols()
             {
-                foreach (var childSymbol in symbol.Symbols)
+                foreach (var symbol in mSymbols.Values)
                 {
-                    if (childSymbol.Value.Name == symbol.Name)
-                    {
-                        foreach (var symLoc in childSymbol.Value.Locations)
-                            Reject(symLoc.Token, "Name must not be same as parent symbol");
-                    }
-                    VerifyNoSameParentSymbols(childSymbol.Value);
+                    if (symbol.FullName != "" && symbol.Name == mSymbols[symbol.ParentName].Name)
+                        Reject(symbol.Token, "Name must not be same as parent symbol");
                 }
             }
 
@@ -162,10 +177,10 @@ namespace Gosub.Zurfur.Compiler
             {
                 foreach (var symFile in mFiles.Values)
                 {
-                    var useNamespaces = new List<Symbol>();
+                    var useNamespaces = new List<string>();
                     foreach (var use in symFile.SyntaxFile.Using)
                     {
-                        var symbol = FindSymbolPath(use.NamePath);
+                        var symbol = mSymbols.FindPath(use.NamePath);
                         if (symbol == null)
                             continue;  // Error marked by function
 
@@ -176,12 +191,12 @@ namespace Gosub.Zurfur.Compiler
                             continue;
                         }
 
-                        if (useNamespaces.Contains(symbol))
+                        if (useNamespaces.Contains(symbol.FullName))
                         {
                             Reject(lastToken, "Already included in previous use statement");
                             continue;
                         }
-                        useNamespaces.Add(symbol);
+                        useNamespaces.Add(symbol.FullName);
                     }
                     // TBD: Sort namespaces so packages are searched first
                     symFile.Use = useNamespaces.ToArray();
@@ -195,7 +210,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var func in symFile.SyntaxFile.Methods)
                     {
-                        var group = FindSymbolPath(func.NamePath).Symbols[func.Name.Name];
+                        var group = mSymbols[mSymbols.FindPath(func.NamePath).Children[func.Name.Name]];
                         if (!(group is SymMethods))
                         {
                             Reject(func.Name, "Duplicate symbol.  There is a " + group.Kind + " with the same name");
@@ -207,15 +222,15 @@ namespace Gosub.Zurfur.Compiler
 
             void ResolveFieldTypes()
             {
-                VisitSymbols(sym => 
+                foreach (var sym in mSymbols.Values)
                 {
                     if (!(sym is SymField field))
-                        return true;
+                        continue;
 
-                    if (field.Parent as SymType == null)
+                    if (mSymbols[field.ParentName] as SymType == null)
                     {
                         Warning(field.Token, "Compiler error: Parent of field must be a type, namespace not implemented yet");
-                        return true;
+                        continue;
                     }
                     // Skip enum and errors
                     if (field.Syntax.TypeName == null || field.Syntax.TypeName.Token.Name == "")
@@ -224,17 +239,15 @@ namespace Gosub.Zurfur.Compiler
                             Warning(field.Syntax.Name, "TBD: Process enum");
                         else
                             Reject(field.Syntax.Name, "Expecting symbol to have an explicitly named type");
-                        return true;
+                        continue;
                     }
                     field.Type = ResolveType(field, field.Syntax.TypeName);
                     if (field.Type == null)
                     {
                         Warning(field.Token, "Error resolving symbol type (warning for now)");
-                        return true;
+                        continue;
                     }
-
-                    return true;
-                });
+                }
             }
 
 
@@ -244,16 +257,17 @@ namespace Gosub.Zurfur.Compiler
                 var constFields = new List<SymConstFieldInfo>();
                 var staticFields = new List<SymFieldInfo>();
 
-                VisitSymbols(sym =>
+                foreach (var sym in mSymbols.Values)
                 {
-                    if (!(sym is SymType type))
-                        return true;
+                    if (!(sym is SymType symType))
+                        continue;
 
                     fields.Clear();
                     constFields.Clear();
                     staticFields.Clear();
-                    foreach (var sym2 in sym.Symbols.Values)
+                    foreach (var sym2Name in sym.Children.Values)
                     {
+                        var sym2 = mSymbols[sym2Name];
                         if (!(sym2 is SymField symField))
                             continue;
 
@@ -284,59 +298,121 @@ namespace Gosub.Zurfur.Compiler
                     }
 
                     var typeInfo = new SymTypeInfo();
+                    typeInfo.FullName = symType.FullName;
+                    typeInfo.TypeArgs = symType.TypeArgs;
                     typeInfo.ConstFields = constFields.ToArray();
                     typeInfo.StaticFields = staticFields.ToArray();
                     typeInfo.Fields = fields.ToArray();
-                    type.Info = typeInfo;
-
-
-                    return true;
-                });
+                    symType.Info = typeInfo;
+                }
             }
 
         }
-
-        void Visit(Dictionary<string, Symbol> symbols, Func<Symbol, bool> f)
-        {
-            foreach (var symbol in symbols.Values)
-            {
-                if (f(symbol) && !symbol.IsEmpty)
-                    Visit(symbol.Symbols, f);
-            }
-        }
-
-        void VisitSymbols(Func<Symbol, bool> f)
-        {
-            foreach (var symbol in mSymbols.Values)
-            {
-                if (f(symbol) && !symbol.IsEmpty)
-                    Visit(symbol.Symbols, f);
-            }
-        }
-
 
         /// <summary>
         /// Step 3: Generate header file
         /// </summary>
-        public void GenerateHeader(string file)
+        public void GenerateHeader()
         {
-            GenSymbols(mSymbols);
-            mNamespaces.Sort((a, b) => a.CompareTo(b));
-            mAllSymbols.Sort((a, b) => a.CompareTo(b));
 
-            var headerFile = new List<string>();
-            VisitSymbols(sym =>
+            foreach (var s in mSymbols.Values)
             {
-                if (!(sym is SymType type))
-                    return true;
+                mAllSymbols.Add(s.Kind.ToUpper() + ": " + s.FullName + "  ->  " + s.ParentName);
+                if (s is SymNamespace n)
+                    mNamespaces.Add(n.FullName);
+            }
+
+            mAllSymbols.Sort((a, b) => a.CompareTo(b));
+            mNamespaces.Sort((a, b) => a.CompareTo(b));
+        }
+
+        /// <summary>
+        /// This may be called after all steps have been completed.
+        /// </summary>
+        public List<string> GenerateReport()
+        {
+            // Count errors
+            var errors = new Dictionary<string, int>();
+            int unknownErrors = 0;
+            int totalErrors = 0;
+            foreach (var file in mFiles.Values)
+            {
+                foreach (var token in file.SyntaxFile.Lexer)
+                {
+                    if (token.Error)
+                    {
+                        var foundError = false;
+                        foreach (var error in token.GetInfos<TokenError>())
+                        {
+                            foundError = true;
+                            var name = error.GetType().Name.ToString();
+                            if (errors.ContainsKey(name))
+                                errors[name] += 1;
+                            else
+                                errors[name] = 1;
+                            totalErrors++;
+                        }
+                        if (!foundError)
+                        {
+                            unknownErrors++;
+                            totalErrors++;
+                        }
+                    }
+                }
+                if (unknownErrors != 0)
+                    errors["Unknown"] = unknownErrors;
+            }
+
+            // Report errors
+            var headerFile = new List<string>();
+            if (totalErrors == 0)
+            {
+                headerFile.Add("SUCCESS!  No Errors found");
+            }
+            else
+            {
+                headerFile.Add("FAIL!  " + totalErrors + " errors found!");
+                foreach (var error in errors)
+                {
+                    headerFile.Add("    " + error.Key + ": " + error.Value);
+                }
+            }
+            headerFile.Add("");
+
+            // Count symbols
+            int concreteTypes = 0;
+            int genericTypes = 0;
+            foreach (var sym in mSymbols.Values)
+            {
+                if (sym.GetType() == typeof(SymType))
+                {
+                    var t = sym as SymType;
+                    if (t.Info.TypeArgs.Length == 0)
+                        concreteTypes++;
+                    else
+                        genericTypes++;
+                }
+            }
+
+            headerFile.Add("SYMBOLS: " + mAllSymbols.Count);
+            headerFile.Add("    Concrete: " + concreteTypes);
+            headerFile.Add("    Generic: " + genericTypes);
+            headerFile.Add("");
+
+            // Report symbols
+            foreach (var sym in mSymbols.Values)
+            {
+                if (sym.GetType() != typeof(SymType))
+                    continue;
+                var type = sym as SymType;
 
                 headerFile.Add("");
                 headerFile.Add("");
-                headerFile.Add("TYPE NAME: " + type.FullName);
+                headerFile.Add("TYPE " + type.Kind.ToUpper() + ": " + type.Info.FullNameWithTypeArgs());
                 if (type.Info == null)
                 {
                     headerFile.Add("    ERROR, unresolved info");
-                    return true;
+                    continue;
                 }
 
                 foreach (var field in type.Info.ConstFields)
@@ -345,36 +421,21 @@ namespace Gosub.Zurfur.Compiler
                     headerFile.Add("    static " + field.Name + " " + field.Type);
                 foreach (var field in type.Info.Fields)
                     headerFile.Add("    field " + field.Name + " " + field.Type + ", address=" + field.Address);
-                return true;
-            });
-
-        }
-
-        void GenSymbols(Dictionary<string, Symbol> symbols)
-        {
-            foreach (var symbol in symbols)
-            {
-                if (symbol.Value is SymNamespace)
-                {
-                    if (!mNamespaces.Contains(symbol.Value.ToString()))
-                        mNamespaces.Add(symbol.Value.ToString());
-                }
-                else
-                {
-                    mAllSymbols.Add(symbol.Value.ToString() + ", " + symbol.Value.Kind);
-                }
-                GenSymbols(symbol.Value.Symbols);
             }
-        }
 
-        static WordSet sTypeSymbols = new WordSet("? * ^ [ mut ref in out ro");
+            headerFile.Add("");
+            headerFile.Add("Header time = " + (int)(DateTime.Now - mStartTime).TotalMilliseconds + " ms");
+
+
+            return headerFile;
+        }
 
         SymType ResolveType(Symbol scope, SyntaxExpr typeExpr)
         {
             Debug.Assert(typeExpr != null && typeExpr.Token.Name != "");
 
             // For now skip unary type qualifiers
-            while (sTypeSymbols.Contains(typeExpr.Token) && typeExpr.Count >= 1)
+            while (sUnaryTypeSymbols.Contains(typeExpr.Token) && typeExpr.Count >= 1)
                 typeExpr = typeExpr[0];
             if (typeExpr.Token == "fun" || typeExpr.Token == "afun" || typeExpr.Token == "type")
             {
@@ -396,7 +457,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
 
-            var symbol = FindSymbolUse(scope, typeExpr.Token);
+            var symbol = mSymbols.FindUse(typeExpr.Token, scope, scope.File.Use);
             if (symbol == null)
                 return null; // Error already marked
             typeExpr.Token.AddInfo(symbol);
@@ -409,126 +470,6 @@ namespace Gosub.Zurfur.Compiler
             return typeSymbol;
         }
 
-        /// <summary>
-        /// Find a symbol in the current scope or use statements if not found.
-        /// Marks an error if undefined or duplicate.  Returns null on error.
-        /// TBD: If symbol is unique in this package, but duplicated in an
-        /// external package, is that an error?  Yes for now.
-        /// </summary>
-        Symbol FindSymbolUse(Symbol scope, Token name)
-        {
-            var symbol = FindSymbolScope(scope.Parent, name.Name);
-            if (symbol != null)
-                return symbol;
-
-            var symbols = new List<Symbol>(); // TBD: Be kind to GC
-            foreach (var useSymbol in scope.File.Use)
-            {
-                if (useSymbol.Symbols.TryGetValue(name.Name, out var newSymbol))
-                    symbols.Add(newSymbol);
-            }
-            if (symbols.Count == 0)
-            {
-                Reject(name, "Undefined symbol");
-                return null;
-            }
-            if (symbols.Count > 1)
-            {
-                Reject(name, "Multiple symbols defined.  Found in '" + symbols[0].Locations[0].File.Path
-                    + "' and '" + symbols[1].Locations[0].File.Path + "'");
-                return null;
-            }
-            return symbols[0];
-        }
-
-        /// <summary>
-        /// Find the symbol in the scope, or null if it is not found.
-        /// Does not search use statements.
-        /// </summary>
-        Symbol FindSymbolScope(Symbol parentScope, string name)
-        {
-            while (parentScope != null)
-            {
-                if (parentScope.Symbols.TryGetValue(name, out var symbol))
-                    return symbol;
-                parentScope = parentScope.Parent;
-            }
-            return null;
-        }
-
-
-        /// <summary>
-        /// Returns the symbol at the given path in the package.  Generates exception if not found.
-        /// </summary>
-        Symbol FindSymbolPath(string []path)
-        {
-            var symbols = mSymbols;
-            Symbol symbol = null;
-            foreach (var name in path)
-            {
-                if (!symbols.TryGetValue(name, out symbol))
-                {
-                    symbol = null;
-                    break;
-                }
-                symbols = symbol.Symbols;
-            }
-            if (symbol == null)
-                throw new Exception("Compiler error: Could not find parent symbol '" + string.Join(".", path) + "'");
-            return symbol;
-        }
-
-        /// <summary>
-        /// Returns the symbol at the given path in the package.  Returns null if not found.
-        /// Error tokens are marked if there is an error.
-        /// </summary>
-        Symbol FindSymbolPath(Token []path)
-        {
-            var symbols = mSymbols;
-            Symbol symbol = null;
-            foreach (var name in path)
-            {
-                if (!symbols.TryGetValue(name, out symbol))
-                {
-                    Reject(name, "Namespace or type name not found");
-                    return null;
-                }
-                symbols = symbol.Symbols;
-            }
-            return symbol;
-        }
-
-        /// <summary>
-        /// Add a new symbol to its parent, mark duplicates if necessary.
-        /// Parent must already be set.  Sets File and Token
-        /// Returns true if it was added (false for duplicate)
-        /// </summary>
-        private bool AddSymbol(Symbol newSymbol)
-        {
-            var token = newSymbol.Token;
-            token.AddInfo(newSymbol);
-
-            var parentSymbol = newSymbol.Parent;
-            if (!parentSymbol.Symbols.TryGetValue(newSymbol.Name, out var remoteSymbol))
-            {
-                parentSymbol.Symbols[newSymbol.Name] = newSymbol;
-                return true;
-            }
-
-            // Duplicate
-            Reject(token, "Duplicate symbol. There is a " + remoteSymbol.Kind + " with the same name");
-            remoteSymbol.AddDuplicate(newSymbol);
-            if (!(remoteSymbol is SymNamespace))
-            {
-                foreach (var symLoc in remoteSymbol.Locations)
-                    if (!symLoc.Token.Error)
-                    {
-                        symLoc.Token.AddInfo(newSymbol);
-                        Reject(symLoc.Token, "Duplicate symbol.  There is a " + newSymbol.Kind + " with the same name");
-                    }
-            }
-            return false;
-        }
 
         // Does not reject if there is already an error there
         void Reject(Token token, string message)

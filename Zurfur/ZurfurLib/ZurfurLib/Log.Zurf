@@ -2,7 +2,7 @@
 
 
 // The compiler will create a new object for each file
-pub type Log
+pub class Log
 {
     pub enum Level { Fatal; Error; Warn; Info; Debug }
 
@@ -27,7 +27,7 @@ pub type Log
     pub fun TimeEnd(name str, message str = "") { }
 
     // The compiler will fill in the line number of the caller
-    pub type ro LogLine
+    pub struct ro LogLine
     {
         pub fun default() => extern
         pub ro Line int

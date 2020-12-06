@@ -1,6 +1,6 @@
 ﻿namespace Zurfur
 
-pub type Map<TKey, TValue>
+pub class Map<TKey, TValue>
 {
     ro compareFunc fun(a TKey, b TKey)bool
     ro hashFunc fun(key TKey)uint
@@ -39,8 +39,8 @@ pub type Map<TKey, TValue>
     pub prop Keys ICollection<TKey> => todo()
     pub prop Values ICollection<TValue> { get: todo() }
 
-    pub mut fun Clear() => todo()
-    pub mut fun Add(item KeyValue<TKey, TValue>) => todo()
-    pub mut fun Add(items ICollection<KeyValue<TKey, TValue>>) => todo()
-    pub mut fun Remove(TKey key) bool => todo()
+    pub fun Clear mut() => todo()
+    pub fun Add mut(item KeyValue<TKey, TValue>) => todo()
+    pub fun Add mut(items ICollection<KeyValue<TKey, TValue>>) => todo()
+    pub fun Remove mut(TKey key) bool => todo()
 }

@@ -11,187 +11,155 @@ using Gosub.Zurfur.Lex;
 
 namespace Gosub.Zurfur.Compiler
 {
-
-
-    class SymFile
-    {
-        public string Name = "";
-        public string Path = "";
-        public SyntaxFile SyntaxFile;
-        public Symbol[] Use = new Symbol[0];
-
-        public SymFile(string path, SyntaxFile syntaxFile) 
-        {
-            Path = path;
-            Name = System.IO.Path.GetFileName(path);
-            SyntaxFile = syntaxFile; 
-        }
-
-        public override string ToString()
-        {
-            return Name;
-        }
-    }
-
     /// <summary>
-    /// Symbol location (file + token)
+    /// Utility class to find symbols.  Errors are only makred if
+    /// the token doesn't already have an error.  Currently, marked
+    /// with SilError.
     /// </summary>
-    readonly struct SymLoc
+    class SymbolTable
     {
-        public readonly SymFile File;
-        public readonly Token Token;
-        public SymLoc(SymFile file, Token token) { File = file;  Token = token; }
-    }
+        Dictionary<string, Symbol> mSymbols = new Dictionary<string, Symbol>();
 
-    abstract class Symbol
-    {
-        public abstract string Kind { get; }
-        public readonly string Name;
-        public readonly Symbol Parent;
-        public string Comments = "";
-
-        public List<SymLoc> Locations;
-        Dictionary<string, Symbol> mSymbols;
-        List<Symbol> mDuplicates;
-
-        public Symbol(Symbol parent, SymFile file, Token token)
+        public Symbol this[string i]
         {
-            Parent = parent;
-            Name = token.Name;
-            Locations = new List<SymLoc>(1);
-            AddLocation(file, token);
+            get { return mSymbols[i]; }
+            set { mSymbols[i] = value; }
         }
 
-        public void AddLocation(SymFile file, Token token)
+        public Dictionary<string, Symbol>.ValueCollection Values => mSymbols.Values;
+
+        /// <summary>
+        /// Add a new symbol to its parent, mark duplicates if necessary.
+        /// Adds symbol info to token.
+        /// Returns true if it was added (false for duplicate)
+        /// </summary>
+        public bool Add(Symbol newSymbol)
         {
-            Locations.Add(new SymLoc(file, token));
+            var token = newSymbol.Token;
+            token.AddInfo(newSymbol);
+            var parentSymbol = mSymbols[newSymbol.ParentName];
+            if (!parentSymbol.Children.TryGetValue(newSymbol.Name, out var remoteSymbolName))
+            {
+                parentSymbol.Children[newSymbol.Name] = newSymbol.FullName;
+                mSymbols[newSymbol.FullName] = newSymbol;
+                return true;
+            }
+
+            // Duplicate
+            var remoteSymbol = mSymbols[remoteSymbolName];
+            Reject(token, "Duplicate symbol. There is a " + remoteSymbol.Kind + " with the same name");
+            remoteSymbol.AddDuplicate(newSymbol);
+            if (!(remoteSymbol is SymNamespace))
+            {
+                foreach (var symLoc in remoteSymbol.Locations)
+                    if (!symLoc.Token.Error)
+                    {
+                        symLoc.Token.AddInfo(newSymbol);
+                        Reject(symLoc.Token, "Duplicate symbol.  There is a " + newSymbol.Kind + " with the same name");
+                    }
+            }
+            return false;
+        }
+
+
+        /// <summary>
+        /// Find the symbol in the scope, or null if it is not found.
+        /// Does not search use statements.
+        /// </summary>
+        public Symbol FindScope(string name, Symbol parentScope)
+        {
+            while (parentScope.Name != "")
+            {
+                if (parentScope.Children.TryGetValue(name, out var symbol))
+                    return mSymbols[symbol];
+                parentScope = mSymbols[parentScope.ParentName];
+            }
+            if (parentScope.Children.TryGetValue(name, out var symbol2))
+                return mSymbols[symbol2];
+
+            return null;
+        }
+
+
+        /// <summary>
+        /// Returns the symbol at the given path in the package.  Generates exception if not found.
+        /// </summary>
+        public Symbol FindPath(string[] path)
+        {
+            var symbol = mSymbols[""];
+            foreach (var name in path)
+            {
+                if (!symbol.Children.TryGetValue(name, out var childName))
+                    throw new Exception("Compiler error: Could not find parent symbol '" + string.Join(".", path) + "'");
+                symbol = mSymbols[childName];
+            }
+            return symbol;
         }
 
         /// <summary>
-        /// Retrieve the file containing the symbol definition.
-        /// Types, functions, and fields should have exactly one location.
-        /// Namespaces and function groups may have multiples.
-        /// Throws an exception if file location is not present or if
-        /// multiple location exist.
+        /// Returns the symbol at the given path in the package.
+        /// Returns null and marks an error if not found.
         /// </summary>
-        SymLoc Location
+        public Symbol FindPath(Token[] path)
         {
-            get
+            var symbol = mSymbols[""];
+            foreach (var name in path)
             {
-                if (Locations.Count == 0)
-                    throw new Exception("Symbol location cannot be found");
-                if (Locations.Count > 1)
-                    throw new Exception("Symbol has multiple locations");
-                return Locations[0];
+                if (!symbol.Children.TryGetValue(name, out var childName))
+                {
+                    Reject(name, "Namespace or type name not found");
+                    return null;
+                }
+                symbol = mSymbols[childName];
             }
+            return symbol;
         }
 
         /// <summary>
-        /// Throws exception if not a unique symbol with exactly one location
+        /// Find a symbol in the current scope or use statements if not found.
+        /// Marks an error if undefined or duplicate.  Returns null on error.
+        /// TBD: If symbol is unique in this package, but duplicated in an
+        /// external package, is that an error?  Yes for now.
         /// </summary>
-        public Token Token => Location.Token;
-
-        /// <summary>
-        /// Throws exception if not a unique symbol with exactly one location
-        /// </summary>
-        public SymFile File => Location.File;
-
-        public bool IsDuplicte => mDuplicates != null;
-
-        public void AddDuplicate(Symbol symbol)
+        public Symbol FindUse(Token name, Symbol scope, string[] use)
         {
-            if (mDuplicates == null)
-                mDuplicates = new List<Symbol>();
-            mDuplicates.Add(symbol);
-        }
+            var symbol = FindScope(name.Name, mSymbols[scope.ParentName]);
+            if (symbol != null)
+                return symbol;
 
-        public Dictionary<string, Symbol> Symbols
-        {
-            set { mSymbols = value; }
-            get
+            var symbols = new List<Symbol>(); // TBD: Be kind to GC
+            foreach (var useSymbol in use)
             {
-                if (mSymbols == null)
-                    mSymbols = new Dictionary<string, Symbol>();
-                return mSymbols;
+                if (mSymbols[useSymbol].Children.TryGetValue(name.Name, out var newSymbol))
+                {
+                    symbols.Add(mSymbols[newSymbol]);
+                }
             }
-        }
-
-        public bool IsEmpty => mSymbols == null || mSymbols.Count == 0;
-
-        public string FullName
-        {
-            get
+            if (symbols.Count == 0)
             {
-                string name;
-                if (this is SymField || this is SymMethods)
-                    name = "." + Name;
-                else if (this is SymMethod)
-                    name = "." + Name;
-                else if (this is SymType)
-                    name = ":" + Name;
-                else if (this is SymNamespace)
-                    name = "/" + Name;
-                else
-                    name = "?" + Name;
-
-                if (Parent != null)
-                    name = Parent.FullName + name;
-                return name;
+                Reject(name, "Undefined symbol");
+                return null;
             }
+            if (symbols.Count > 1)
+            {
+                Reject(name, "Multiple symbols defined.  Found in '" + symbols[0].Locations[0].File.Path
+                    + "' and '" + symbols[1].Locations[0].File.Path + "'");
+                return null;
+            }
+            return symbols[0];
         }
 
-        public override string ToString()
+
+
+        // Does not reject if there is already an error there
+        void Reject(Token token, string message)
         {
-            return FullName;
+            if (!token.Error)
+                token.AddError(new SilError(message));
         }
-    }
 
-    class SymNamespace : Symbol
-    {
-        public SymNamespace(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
-        public override string Kind => "namespace";
-    }
 
-    /// <summary>
-    /// Class, struct, enum, interface
-    /// </summary>
-    class SymType : Symbol
-    {
-        public string TypeKeyword = "type";
-        public SymType(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
-        public override string Kind => TypeKeyword;
-
-        public SymTypeInfo Info;
 
     }
-
-
-    class SymTypeArg : SymType
-    {
-        public SymTypeArg(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
-        public override string Kind => "type argument";
-    }
-
-    class SymField : Symbol
-    {
-        public SymField(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
-        public override string Kind => "field";
-        public SyntaxField Syntax;
-        public SymType Type;
-    }
-
-    class SymMethods : Symbol
-    {
-        public SymMethods(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
-        public override string Kind => "methods";
-    }
-
-    class SymMethod : Symbol
-    {
-        public SymMethod(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
-        public override string Kind =>  "method";
-    }
-
-
 
 }

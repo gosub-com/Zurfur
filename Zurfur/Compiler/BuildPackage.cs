@@ -25,36 +25,34 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     public class BuildPackage
     {
+        /// <summary>
+        /// Hard code for now
+        /// </summary>
         const string OUTPUT_DIR = "Output\\Debug";
+        const string OUTPUT_FILE = "PackageHeader.txt";
 
         public int SLOW_DOWN_MS = 0;
         public delegate void UpdateEventHandler(object sender, UpdatedEventArgs e);
-
-        /// <summary>
-        /// Build status - Load, Parse, Errors, Done, etc.
-        /// </summary>
-        public event UpdateEventHandler StatusUpdate;
-
-        /// <summary>
-        /// Lexer has been updated by compiler to convey new token information.
-        /// Message contains the file name, or "" for all files updated.
-        /// </summary>
-        public event UpdateEventHandler FileUpdate;
+        static ScanZurf sScanZurf = new ScanZurf();
+        static ScanZurf sScanJson = new ScanZurf();
 
         string mBaseDir = "";
-        string mOutputDir = "";
         bool mIsCompiling;
         int mCompileCount;
 
-        static ScanZurf sScanZurf = new ScanZurf();
-        static ScanZurf sScanJson = new ScanZurf();
 
         Dictionary<string, FileInfo> mPackageFiles = new Dictionary<string, FileInfo>();
 
         // NOTE: Queue doesn't have RemoveAll and other List features.
-        //       Make sure Zurfur has all that.
+        //       Make sure Zurfur Queue has all that.
         List<string> mLoadQueue = new List<string>();
         List<string> mParseQueue = new List<string>();
+
+        List<TaskCompletionSource<bool>> mCompileDoneTasks = new List<TaskCompletionSource<bool>>();
+        List<string> mReport = new List<string>();
+        public List<string> GetReport() => mReport;
+        public string OutputFile => Path.Combine(mBaseDir, OUTPUT_DIR, OUTPUT_FILE);
+        public string OutputDir => Path.Combine(mBaseDir, OUTPUT_DIR);
 
         /// <summary>
         /// For status, Message: Build step (Loading, Parsing, Linking, etc.)
@@ -70,6 +68,17 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
+        /// Build status - Load, Parse, Errors, Done, etc.
+        /// </summary>
+        public event UpdateEventHandler StatusUpdate;
+
+        /// <summary>
+        /// Lexer has been updated by compiler to convey new token information.
+        /// Message contains the file name, or "" for all files updated.
+        /// </summary>
+        public event UpdateEventHandler FileUpdate;
+
+        /// <summary>
         /// Starts loading the project into memory.  Only call once, ever.
         /// </summary>
         public void Load(string dir)
@@ -77,7 +86,6 @@ namespace Gosub.Zurfur.Compiler
             if (mBaseDir != "")
                 throw new Exception("Not allowed to call 'Load' ever again");
             mBaseDir = dir;
-            mOutputDir = Path.Combine(mBaseDir, OUTPUT_DIR);
 
             var projectFiles = new List<FileInfo>();
             EnumerateDir(FixPathName(dir), projectFiles);
@@ -107,11 +115,15 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Sets the lexer, ovrriding the file on disk and triggers a new build.
+        /// Throws exception if the file is not in the project or is not yet loaded.
+        /// Use GetLexer() == null to check for that.
         /// </summary>
         public void SetLexer(string fileName, Lexer lexer)
         {
             if (!mPackageFiles.TryGetValue(fileName, out var fileIno))
-                return;
+                throw new Exception("Cannot set Lexer, file is not in the project: " + fileName);
+            if (fileIno.Lexer == null)
+                throw new Exception("Cannot set Lexer, file is not loaded: " + fileName);
             fileIno.Lexer = lexer;
             mLoadQueue.RemoveAll(match => match == fileName);
             mParseQueue.RemoveAll(match => match == fileName);
@@ -119,8 +131,20 @@ namespace Gosub.Zurfur.Compiler
             Compile();
         }
 
+        // If in the process of building, the task completes when it is done.
+        // Otherwise, trigger a new build.
+        public Task ReCompile()
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            mCompileDoneTasks.Add(tcs);
+            Compile();
+            return tcs.Task;
+        }
+
         /// <summary>
-        /// Called whenever anything changes.
+        /// Called whenever anything changes.  NOTE: Doesn't start a new
+        /// build if in the process of compiling, but the compiler will
+        /// restart the build at the end if there are changes.
         /// </summary>
         async void Compile()
         {
@@ -160,10 +184,14 @@ namespace Gosub.Zurfur.Compiler
                 var parseTask = Parse();
                 await loadTask;
                 await parseTask;
+
+                if (mLoadQueue.Count == 0 && mParseQueue.Count == 0)
+                    await Generate();
             }
 
-            if (mLoadQueue.Count == 0 && mParseQueue.Count == 0)
-                await Generate();
+            foreach (var tcs in mCompileDoneTasks)
+                tcs.SetResult(true);
+            mCompileDoneTasks.Clear();
         }
 
         async Task LoadAndLex()
@@ -284,7 +312,8 @@ namespace Gosub.Zurfur.Compiler
             var sil = new SilGenHeader();
             sil.EnumerateSymbols(zurfFiles);
             sil.ResolveTypeNames();
-            sil.GenerateHeader(mOutputDir);
+            sil.GenerateHeader();
+            mReport = sil.GenerateReport();
 
             var dt3 = DateTime.Now;
             var ts1 = dt2 - dt1;

@@ -1,7 +1,7 @@
 ﻿namespace Zurfur
 
 /// String is a wrapper for a read only array of bytes
-pub type ro boxed str
+pub class ro str
     extends ArrayBase<byte>
     implements IComparable<str>, IRoArray<byte>
 {

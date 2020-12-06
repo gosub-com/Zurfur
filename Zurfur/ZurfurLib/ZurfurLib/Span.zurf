@@ -1,7 +1,7 @@
 ﻿namespace Zurfur
 
 /// Span (TBD: Ensure type system doesn't need both MutSpan and RoSpan)
-pub type ref Span<T>
+pub struct ref Span<T>
 {
     ro data *T
     pub ro Count int

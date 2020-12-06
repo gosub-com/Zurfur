@@ -20,6 +20,9 @@ namespace Gosub.Zurfur
         string mCompilerStatus = "";
         string mErrorLineStatus = "";
 
+        int mRecompileForChangedLine = -1;
+
+
 
         // Move when clicking menu
         bool mMouseDown;
@@ -191,16 +194,19 @@ namespace Gosub.Zurfur
             }
         }
 
-
-        int mChangedLine = -1;
         private void TextEditor_TextChanged2(object sender, EventArgs e)
         {
             // Notify build system
             var textEditor = sender as TextEditor;
             if (textEditor == null)
                 return;
-            mBuildPackage.SetLexer(textEditor.FilePath, textEditor.Lexer);
-            mChangedLine = textEditor.CursorLoc.Y;
+
+            // Recompile if file is part of the build project
+            if (mBuildPackage.GetLexer(textEditor.FilePath) != null)
+            {
+                mBuildPackage.SetLexer(textEditor.FilePath, textEditor.Lexer);
+                mRecompileForChangedLine = textEditor.CursorLoc.Y;
+            }
         }
 
         private void TextEditor_CursorLocChanged(object sender, EventArgs e)
@@ -214,10 +220,12 @@ namespace Gosub.Zurfur
             mErrorLineStatus = FindErrorOnLine(textEditor.Lexer, textEditor.CursorLoc);
             UpdateStatus();
 
-            if (textEditor.CursorLoc.Y == mChangedLine || mChangedLine < 0)
+            if (textEditor.CursorLoc.Y == mRecompileForChangedLine || mRecompileForChangedLine < 0)
                 return;
-            mChangedLine = -1;
-            mBuildPackage.SetLexer(textEditor.FilePath, textEditor.Lexer);
+               
+            mRecompileForChangedLine = -1;
+            if (mBuildPackage.GetLexer(textEditor.FilePath) != null)
+                mBuildPackage.SetLexer(textEditor.FilePath, textEditor.Lexer);
         }
 
         private void mvEditors_EditorActiveViewChanged(IEditor editor)
@@ -639,13 +647,6 @@ namespace Gosub.Zurfur
             viewRTFToolStripMenuItem.Enabled = textEditor != null;
         }
 
-        private void menuDebug_DropDownOpening(object sender, EventArgs e)
-        {
-            menuDebugRun.Enabled = projectTree.RootDir != "";
-        }
-
-
-
         private void projectTree_FileDoubleClicked(object sender, ProjectTree.FileInfo file)
         {
             if (file.IsDir)
@@ -670,25 +671,12 @@ namespace Gosub.Zurfur
                     editor.FilePath = newFile.Path;
         }
 
-        private void menuDebugRun_Click(object sender, EventArgs e)
-        {
-            // TBD: Load and store tatget from ZurfProject file.
-            // TBD: Need to copy all files into a \bin\debug folder
-            foreach (var file in projectTree)
-            {
-                if (file.Path.Contains("www") && Path.GetFileName(file.Path).ToLower() == "index.html")
-                {
-                    System.Diagnostics.Process.Start(file.Path);
-                    return;
-                }
-            }
-            MessageBox.Show(this, "'index.html' file not found in www directory", App.Name);
-        }
-
         private void FormMain_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.F5)
                 menuDebugRun_Click(null, null);
+            if (e.KeyCode == Keys.F4)
+                menuDebugViewOutput_Click(null, null);
             
             if (e.KeyCode == Keys.Escape && mMouseDown)
             {
@@ -736,5 +724,44 @@ namespace Gosub.Zurfur
             WindowState = WindowState == FormWindowState.Normal ? FormWindowState.Maximized : FormWindowState.Normal;
         }
 
+        private void menuDebug_DropDownOpening(object sender, EventArgs e)
+        {
+            menuDebugRun.Enabled = projectTree.RootDir != "";
+            menuDebugViewOutput.Enabled = projectTree.RootDir != "";
+        }
+
+        private void menuDebugRun_Click(object sender, EventArgs e)
+        {
+            // TBD: Load and store tatget from ZurfProject file.
+            // TBD: Need to copy all files into a \bin\debug folder
+            foreach (var file in projectTree)
+            {
+                if (file.Path.Contains("www") && Path.GetFileName(file.Path).ToLower() == "index.html")
+                {
+                    Process.Start(file.Path);
+                    return;
+                }
+            }
+            MessageBox.Show(this, "'index.html' file not found in www directory", App.Name);
+        }
+
+        private async void menuDebugViewOutput_Click(object sender, EventArgs e)
+        {
+            await mBuildPackage.ReCompile();
+
+            // For now, just write it to path.  This should probably be moved to build system.
+            var report = mBuildPackage.GetReport();
+
+            if (!Directory.Exists(mBuildPackage.OutputDir))
+                Directory.CreateDirectory(mBuildPackage.OutputDir);
+
+            File.WriteAllLines(mBuildPackage.OutputFile, report);
+            projectTree.RefreshFiles();
+            projectTree.OpenAndSelect(mBuildPackage.OutputFile);
+            LoadFile(mBuildPackage.OutputFile);
+            foreach (var editor in mvEditors.Editors)
+                if (editor.FilePath == mBuildPackage.OutputFile)
+                    editor.LoadFile(mBuildPackage.OutputFile);
+        }
     }
 }
