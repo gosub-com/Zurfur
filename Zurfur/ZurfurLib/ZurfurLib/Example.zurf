@@ -7,9 +7,7 @@ static fun test_HelloWorld()
 {
     Console.Log("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
-    {
         Console.Log("Count=" a)
-    }
 }
 
 pub struct SimpleStruct(X int, Y int)
@@ -73,9 +71,7 @@ pub static fun test_Main(args Array<str>)
     data = "Name:"name\tab"Occupation:"lastName\crlf
     
     while stream.Read(buffer)@size != 0
-    {
         @a = MyFun as Hello
-    }
 
 
     // AcceptMatch returns ?Token = (bool, Token)
@@ -101,9 +97,7 @@ pub static fun test_Main(args Array<str>)
         Debug.Assert(squareTriple(2) == 36)
     
         for @v in 1..23
-        {
             Log.Info("Count=" v)
-        }
     }
 
     /// Compose f(g(x))
@@ -415,9 +409,7 @@ pub fun Example::IfTests()
     }
     
     while f(x)
-    {
         x = x + 1
-    }
     
     if myStr in myMap || myIn in 1..23
     {
@@ -431,29 +423,13 @@ pub fun Example::IfTests()
         todo()
     }
     else if b
-    {
         todo()
-    }
     else if c
-    {
         todo()
-    }
     
     if a
-    {
         f(x)
-    }
     
-
-    if myStr in myMap || myIn in 1..23
-    {
-      DoSomething()
-      hello()
-    }
-    else
-    {
-        f(a)
-    }
 
     if myStr in myMap || myIn in 1..23
     {
@@ -461,21 +437,23 @@ pub fun Example::IfTests()
         hello()
     }
     else
-    {
         f(a)
+
+    if myStr in myMap || myIn in 1..23
+    {
+        DoSomething()
+        hello()
     }
+    else
+        f(a)
         
 
     for @a in 1..23
-    {
       F(out @b, c)
-    }
 
 
     for @a in 1..23
-    {
         F(out mut @b, c)
-    }
 }
 
 pub struct MyPoint
@@ -555,14 +533,11 @@ pub static fun MemCopy(dest *void, source *void, length xint)
     @s = cast(xint)source
     
     if length <= 0
-    {
         return
-    }
+
     // Align `d` on i32
     while d & 3 != 0 && length != 0
-    {
-        *cast(*byte)d = *cast(*byte)s; d+=1; s+=1; length-=1
-    }
+        { *cast(*byte)d = *cast(*byte)s; d+=1; s+=1; length-=1 }
     
     if s & 3 == 0
     {
@@ -580,9 +555,7 @@ pub static fun MemCopy(dest *void, source *void, length xint)
         *cast(*byte)d = *cast(*byte)s; d+=1; s+=1
     }
     while d != end
-    {
-        *cast(*byte)d = *cast(*byte)s; d+=1; s+=1
-    }
+        { *cast(*byte)d = *cast(*byte)s; d+=1; s+=1 }
 }
 
 pub static fun MemCopy32(dest *void, source *void, length xint)
@@ -591,31 +564,21 @@ pub static fun MemCopy32(dest *void, source *void, length xint)
     @s = cast (xint)source
 
     if length <= 0
-    {
         return
-    }
 
     // Try 64 bit copy first
     @end = d + length
     if (d~s) & 4 == 0 && length >= 8
     {
         if d & 4 != 0
-        {
-            *cast(*i32)d = *cast(*i32)s; d+=4; s+=4
-        }
+            { *cast(*i32)d = *cast(*i32)s; d+=4; s+=4 }
         while end - d >= 8
-        {
-            *cast(*i64)d = *cast(*i64)s; d+=8; s+=8
-        }
+            { *cast(*i64)d = *cast(*i64)s; d+=8; s+=8 }
     }
     while end-d >= 4
-    {
-        *cast(*i32)d = *cast(*i32)s; d+=4; s+=4
-    }
+        { *cast(*i32)d = *cast(*i32)s; d+=4; s+=4 }
     while d != end
-    {
-        *cast(*byte)d = *cast(*byte)s; d+=1; s+=1
-    }
+        { *cast(*byte)d = *cast(*byte)s; d+=1; s+=1 }
 }
 
 

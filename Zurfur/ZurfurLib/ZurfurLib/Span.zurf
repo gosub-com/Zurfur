@@ -8,7 +8,7 @@ pub struct ref Span<T>
     pub fun operator[](index int) ref T
     {
         if cast(uint)index >= cast(uint)Count
-            { throw IndexOutOfRangeException() }
+            throw IndexOutOfRangeException()
         return unsafe(cast(ref T)(data + index))
     }
     

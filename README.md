@@ -493,11 +493,11 @@ the code block outside the function:
         myList.For @a =>
         {
             if a < 1
-                { continue }    // Continue in the lambda
+                continue    // Continue in the lambda
             if a > 10
-                { break }       // Break out of the lambda
+                break       // Break out of the lambda
             if a == 3
-                { return false} // Return out of the function, not the lambda
+                return false // Return out of the function, not the lambda
         }
         return true
     }
@@ -570,7 +570,7 @@ There is no `StringBuilder` class, use `List<byte>` instead:
     @sb = List<byte>()
     sb.Push("Count to 10: ")
     for @count in 1::10
-        { sb.Push(" " count) }
+        sb.Push(" " count)
     return str(sb)
 
 Strings can be sliced.  See `List` (below)
@@ -773,7 +773,7 @@ Zurfur inherits this from C#, and Eric Lippert
 
 Like Golang, semicolons are required between statements but they are automatically
 inserted at the end of lines based on the last non-comment token and the first token
-of the next line.  See "Coding Style" (below) for more info about semi-colons.
+of the next line.  See "Coding Style" (below) for more info about semicolons.
 
 #### While and Do Statements
 
@@ -804,7 +804,7 @@ The `scope` statement can be turned into a loop using the `continue` statement:
     {
         DoSomething()
         if WeWantToRepeat()
-            { continue }
+            continue
     }
 
 Likewise, `break` can be used to exit early.
@@ -817,28 +817,28 @@ The simplest form of the for loop is when the expression evaluates to an integer
 
     // Print the numbers 0 to 9
     for @i in 10
-        { Console.WriteLine(i) }   // `i` is an integer
+        Console.WriteLine(i)   // `i` is an integer
 
     // Increment all the numbers in an list
     for @i in list.Count
-        { list[i] += 1 }
+        list[i] += 1
 
 The range operators can be used as follows:
 
     // Print all the numbers in the list
     for @i in 0..list.Count
-        { Console.WriteLine(list[i]) }
+        Console.WriteLine(list[i])
 
     // Collect elements 5,6, and 7 into myList
     for @i in 5::3
-        { myList.Add(myArray[i]) }
+        myList.Add(myArray[i])
 
 Any object that supplies an enumerator (or has a `get` indexer and a `Count` property)
 can be enumerated.  The `Map` enumerator supplies key value pairs:
 
     // Print key value pairs of all elements in a map
     for @kv in map
-        { Console.WriteLine("Key: " + kv.Key.ToString() + " is " + kv.Value.ToString()) }
+        Console.WriteLine("Key: " + kv.Key.ToString() + " is " + kv.Value.ToString())
 
 The expression after `in` is evaluated at the start of the loop and never
 changes once calculated:
@@ -856,16 +856,16 @@ or remove elements from the collection.  An exception is thrown if
 it is attempted.  Here are two examples of things to avoid:
 
     for @i in myIntList
-        { myIntList.Add(1) }   // Exception thrown on next iteration
+        myIntList.Add(1)   // Exception thrown on next iteration
 
     // This does not remove 0's and increment the remaining elements
     // The count is evaluated only at the beginning of the loop.
     for @i in myIntList.Count
     {
         if myIntList[i] == 0
-            { RemoveAt(i) }        // There are at least two problems with this
+            RemoveAt(i)        // There are at least two problems with this
         else
-            { myIntList[i] += 1 } // This will throw an exception if any element was removed
+            myIntList[i] += 1 // This will throw an exception if any element was removed
     }
  
 #### Switch
@@ -884,7 +884,7 @@ level as a `case` statement.
     case 6,7,8:
         DoStuff2()
         if x==y
-            { break }  // Exit switch statement early, don't DoStuff3
+            break  // Exit switch statement early, don't DoStuff3
         DoStuff3()
     default:
     }
@@ -919,7 +919,10 @@ line.  Also accepted, a few other places where a continuation might
 be expected such as `implements`, `where`, or other keywords
 4. A `{` cannot start a scope unless it is in an expected place such as after
 `if`, `while`, `scope`, etc., or a lambda expression.
-5. Modifiers must appear in the following order: `pub` (or `protected`, `private`),
+5. Compound statements without braces require the compound part to be on the
+next line, non-empty, indented at least two spaces, can't contain another
+compound statement, and can't have another statement on the same line
+6. Modifiers must appear in the following order: `pub` (or `protected`, `private`),
 `unsafe`, `static` (or `const`), `unsealed`, `abstract` (or `virtual`, `override`,
 `new`), `ref`, `mut` (or `ro`)
 
@@ -951,7 +954,7 @@ We may decide to let errors percolate up:
         @buffer = List<byte>(256, byte(0)) // Fill with 256 0 bytes
         @stream = <b>use</b> File.<b>Open</b>(name, FileMode.ReadOnly)
         while stream.<b>Read</b>(buffer)@count != 0
-            { result.Push(buffer[0::count]) }
+            result.Push(buffer[0::count])
         return str(result)
     }
 </pre>
@@ -970,7 +973,7 @@ in the function instead percolating them up.
         @buffer = List<byte>(256, byte(0))
         @stream = <b>use</b> File.<b>Open</b>(name, FileMode.ReadOnly)
         while stream.<b>Read</b>(buffer)@count != 0
-            { result.Push(buffer[0::count]) }
+            result.Push(buffer[0::count])
         return str(result);
     error e FileNotFound:
         return "ERROR: Can`t even open the file, " e.Message
@@ -1068,9 +1071,9 @@ function:
             where T is IAritmetic
     {
         if value <= low
-            { return low }
+            return low
         if value >= high
-            { return high }
+            return high
         return value;
     }
 

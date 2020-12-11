@@ -61,14 +61,14 @@ pub class List<T>
     pub fun Grow(minCapacity int)
     {
         if minCapacity <= items.Count
-            { return }
+            return
         @newCap = Math.Max(capacity*2, minCount)
         if sizeof(T) == 1
-            { newCap = Math.Max(newCap, 12) }
+            newCap = Math.Max(newCap, 12)
         else if sizeof(T) <= 64
-            { newCap = Math.Max(newCap, 4) }
+            newCap = Math.Max(newCap, 4)
         else
-            { newCap = Math.Max(newCap, 1) }
+            newCap = Math.Max(newCap, 1)
         SetCapacity(newCap)
     }
     
@@ -154,7 +154,7 @@ pub class List<T>
         {
             @remove = test(items[si])
             if v != version
-                { throw InvalidIteratorException() }
+                throw InvalidIteratorException()
             if !remove
             {
                 if si != di
@@ -167,7 +167,7 @@ pub class List<T>
         return
     error:
         if v != version
-            { throw InvalidIteratorException() }
+            throw InvalidIteratorException()
         Remove(di:si)
     }
 
@@ -179,7 +179,7 @@ pub class List<T>
         {
             f(items[i])
             if v != version
-                { throw InvalidIteratorException() }
+                throw InvalidIteratorException()
         }
     }
 
@@ -196,17 +196,17 @@ pub class List<T>
         pub fun Next mut(list List<T>) ?mut ref T
         {
             if version != list.version
-                { throw InvalidIteratorException() }
+                throw InvalidIteratorException()
             index += 1
             if index < list.Count
-                { return ref list[index] }
+                return ref list[index]
             return null
         }
 
         pub fun Current(list List<T>) mut ref T
         {
             if version != list.version
-                { throw InvalidIteratorException() }
+                throw InvalidIteratorException()
             return ref list[index]
         }
     }

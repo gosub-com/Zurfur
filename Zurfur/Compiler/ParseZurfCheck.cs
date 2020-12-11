@@ -327,6 +327,13 @@ namespace Gosub.Zurfur.Compiler
                     if (hasLocalFunction)
                         mParser.RejectToken(token, "No code allowed after a local function has been defined");
                 }
+
+                if (token.Name == "else")
+                {
+                    if (i == 0 || (expr[i - 1].Token.Name != "if" && expr[i - 1].Token.Name != "else"))
+                        mParser.RejectToken(token, "'else' must follow 'if'");
+
+                }
             }
         }
 

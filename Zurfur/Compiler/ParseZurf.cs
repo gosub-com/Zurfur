@@ -45,9 +45,9 @@ namespace Gosub.Zurfur.Compiler
 
         // Add semicolons to all lines, except for:
         static WordSet sEndLineSkipSemicolon = new WordSet("; { [ ( ,");
+        static WordSet sBeginLineForceSemicolon = new WordSet("}");
         static WordSet sBeginLineSkipSemicolon = new WordSet("{ ] ) + - / % | & || && == != = "
                             + ": ? . , > << <= < => -> .. :: !== === += -= *= /= %= &= |= =  is in as");
-        static WordSet sBeginLineForceSemicolon = new WordSet("}");
 
 
         static WordSet sReservedWords = new WordSet("abstract as base break case catch class const "
@@ -82,6 +82,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sAssignOps = new WordSet("= += -= *= /= %= |= &= ~= <<= >>=");
         static WordSet sUnaryOps = new WordSet("+ - ! & ~ use unsafe ref *");
         static WordSet sAllowedAfterInterpolatedString = new WordSet("; , ) ] }");
+        static WordSet sNoSubCompoundStatement = new WordSet("if else while for do switch scope");
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
         // This seems stange because something like `a = F<T1,T2>;` is not a valid expression
@@ -215,12 +216,9 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 var keyword = mToken;
-                bool ignoreSemicolon = false;
                 switch (mTokenName)
                 {
                     case ";":
-                        ignoreSemicolon = true;
-                        Accept();
                         if (qualifiers.Count != 0)
                             RejectToken(keyword, "Expecting a class/struct/fun/prop, etc. or field definition");
                         break;
@@ -307,8 +305,7 @@ namespace Gosub.Zurfur.Compiler
                         }
                         break;
                 }
-                if (!ignoreSemicolon)
-                    AcceptSemicolonOrReject();
+                AcceptSemicolonOrReject();
             }
         }
 
@@ -816,6 +813,36 @@ namespace Gosub.Zurfur.Compiler
             return new SyntaxUnary(name, type);
         }
         
+        SyntaxExpr ParseCompoundStatement(Token keyword, string errorMessage)
+        {
+            if (mTokenName == "{")
+                return ParseStatements(errorMessage);
+            if (mToken != ";" || !mToken.Invisible)
+            {
+                Reject("Expecting '{' or end of line");
+                return new SyntaxError();
+            }
+            Accept();
+            if (mTokenName == "}")
+                RejectToken(mPrevToken, "Expecting '{' or non-empty statement");
+            else if (mTokenName == ";")
+                RejectToken(mToken, "Expecting '{' or non-empty statement");
+            else if (mToken.X < keyword.X + 2)
+                RejectToken(mToken, "Compound statement must be indented at least two spaces after the '" + keyword.Name + "' keyword");
+            else if (sNoSubCompoundStatement.Contains(mTokenName))
+                RejectToken(mToken, "Compound statement may not embed a '" + mTokenName + "' statement");
+            var semicolon = mPrevToken;
+
+            var statement = NewExprList();
+            ParseStatement(statement, false);
+
+            if (mTokenName == ";" && !mToken.Invisible)
+                RejectToken(mToken, "Compound statement may not have another statement on the same line, use braces");
+            AcceptSemicolonOrReject();
+
+            return new SyntaxMulti(NewVirtualToken(semicolon, "{"), FreeExprList(statement));
+        }
+
         /// <summary>
         /// Parse '{ statements }'
         /// </summary>
@@ -868,6 +895,7 @@ namespace Gosub.Zurfur.Compiler
             switch (mToken)
             {
                 case ";":
+                case "}":
                     break;
 
                 case "=>":
@@ -895,8 +923,10 @@ namespace Gosub.Zurfur.Compiler
 
                 case "while":
                     // WHILE (condition) (body)
+                    requireSemicolon = false;
                     mToken.Type = eTokenType.ReservedControl;
-                    statements.Add(new SyntaxBinary(Accept(), ParseExpr(), ParseStatements("'while' statement")));
+                    statements.Add(new SyntaxBinary(Accept(), ParseExpr(), 
+                                    ParseCompoundStatement(keyword, "'while' statement")));
                     break;
 
                 case "scope":
@@ -917,57 +947,48 @@ namespace Gosub.Zurfur.Compiler
                     break;                        
 
                 case "if":
+                    requireSemicolon = false;
                     mToken.Type = eTokenType.ReservedControl;
                     Accept();
-                    var ifCondition = ParseExpr();
-                    var ifBody = ParseStatements("'if' statement");
-                    requireSemicolon = false;
-                    if (!AcceptMatchSkipInvisibleSemicolon("else"))
-                    {
-                        // No else clause, generate: IF (condition) (body)
-                        statements.Add(new SyntaxBinary(keyword, ifCondition, ifBody));
-                        break;
-                    }
-                    mPrevToken.Type = eTokenType.ReservedControl;
-                    if (mTokenName != "if")
-                    {
-                        // Parse else clause, generate: // IF (condition) (body) (else-body)
-                        statements.Add(new SyntaxMulti(keyword, ifCondition, ifBody, ParseStatements("'else' statement")));
-                    }
-                    else
-                    {
-                        // Parse else if clause, generate: IF (condition) (body) ( (else-if-body) )
-                        mToken.Type = eTokenType.ReservedControl;
-                        var elseIfToken = mToken;
-                        var elseStatements = NewExprList();
-                        ParseStatement(elseStatements);
-                        statements.Add(new SyntaxMulti(keyword, ifCondition, ifBody, 
-                                            new SyntaxMulti(NewVirtualToken(elseIfToken, "{"), FreeExprList(elseStatements))));
-                    }
+                    statements.Add(new SyntaxBinary(keyword, ParseExpr(),
+                                    ParseCompoundStatement(keyword, "'if' statement")));
                     break;
 
                 case "else":
+                    requireSemicolon = false;
                     mToken.Type = eTokenType.ReservedControl;
-                    Reject("Else must follow 'if' statement");
                     Accept();
+                    if (AcceptMatch("if"))
+                    {
+                        mPrevToken.Type = eTokenType.ReservedControl;
+                        statements.Add(new SyntaxBinary(keyword, ParseExpr(),
+                                        ParseCompoundStatement(keyword, "'else if' statement")));
+                    }
+                    else
+                    {
+                        statements.Add(new SyntaxUnary(keyword,
+                                        ParseCompoundStatement(keyword, "'else' statement")));
+                    }
                     break;
 
                 case "for":
                     // FOR (variable) (condition) (statements)
+                    requireSemicolon = false;
                     mToken.Type = eTokenType.ReservedControl;
                     Accept();
                     if (!AcceptMatch("@"))
                         RejectToken(mToken, "Expecting '@'");
                     var forVariable = new SyntaxToken(ParseIdentifier("Expecting a loop variable", sRejectForCondition));
                     forVariable.Token.Type = eTokenType.DefineLocal;
-
                     AcceptMatchOrReject("in");
                     var forCondition = ParseExpr();
-                    statements.Add(new SyntaxMulti(keyword, forVariable, forCondition, ParseStatements("'for' statement")));
+                    statements.Add(new SyntaxMulti(keyword, forVariable, forCondition, 
+                                    ParseCompoundStatement(keyword, "'for' statement")));
                     break;
 
                 case "throw":
                 case "return":
+                    keyword.Type = eTokenType.ReservedControl;
                     Accept();
                     if (sStatementEndings.Contains(mTokenName))
                     {
@@ -984,6 +1005,7 @@ namespace Gosub.Zurfur.Compiler
 
                 case "continue":
                 case "break":
+                    keyword.Type = eTokenType.ReservedControl;
                     statements.Add(new SyntaxToken(Accept()));
                     break;
 

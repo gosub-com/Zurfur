@@ -16,9 +16,7 @@ pub struct Range<T>
     {
         @i = Low
         while @i < High && f(i)
-        {
             i += 1
-        }
     }
     
 }
@@ -38,14 +36,14 @@ pub struct RangeIterator<T>
     {
         index += 1
         if index < range.High
-            { return ref index }
+            return ref index
         return null
     }
 
     pub fun Current(range Range<T>) ref T
     {
         if index < range.Low || index >= range.High
-            { throw InvalidIteratorException() }
+            throw InvalidIteratorException()
         return ref index
     }
 }
