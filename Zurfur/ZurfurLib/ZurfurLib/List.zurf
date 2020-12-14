@@ -1,5 +1,6 @@
 ﻿use Zurfur.Unsafe
 use Zurfur.Compiler.Internal
+use Zurfur.Collections
 
 namespace Zurfur
 
@@ -136,7 +137,7 @@ pub class List<T>
     pub fun Pop mut() ?T => todo()
     pub fun Insert mut(index int, item T) => todo()
     pub fun Insert mut(index int, items Span<T>) => todo()
-    pub fun Insert mut(index int, items ICollection<T>) => todo()
+    pub fun Insert mut(index int, items Collection<T>) => todo()
     pub fun Remove mut(index int) => todo()
     pub fun Remove mut(range Range<int>) => todo()
 

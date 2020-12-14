@@ -10,11 +10,18 @@ namespace Gosub.Zurfur.Compiler
     class SyntaxFile
     {
         public Lexer Lexer = new Lexer();
+        public Dictionary<string, SyntaxPragma> Pragmas = new Dictionary<string, SyntaxPragma>();
         public List<SyntaxUsing> Using = new List<SyntaxUsing>();
         public Dictionary<string, SyntaxNamespace> Namespaces = new Dictionary<string, SyntaxNamespace>();
         public List<SyntaxType> Types = new List<SyntaxType>();
         public List<SyntaxFunc> Methods = new List<SyntaxFunc>();
         public List<SyntaxField> Fields = new List<SyntaxField>();
+    }
+
+    class SyntaxPragma
+    {
+        public SyntaxPragma(Token token) { Name = token; }
+        public Token Name;
     }
 
     class SyntaxUsing

@@ -105,14 +105,16 @@ Functions, types, enums, variables and constants are private unless
 they have the 'pub' qualifier.  Functions are allowed at the namespace
 level, but must be static or extension methods.
 
-By default, functions pass parameters by immutable reference.  The exception
+By default, functions pass parameters as read-only reference.  The exception
 is that small structs (e.g. `Span<T>`) may be passed by value when it is more
-efficient to do so.
+efficient to do so.  Since all types are passed the same way, there is little
+difference whether `MyType` is a `class` or `struct`:
 
-    pub fun Test(a      f64,         // Pass by value since that's more efficient
-                 s      MyStruct,    // Pass by value or reference whichever is more efficient
-                 ms mut MyStruct,    // Pass by reference, preserve `ro` fields
-                 rs ref MyStruct)    // Pass by reference, nothing is preserved
+    pub fun Test(a        f64,      // Pass by value since that's more efficient
+                 s        MyType,   // Pass by value or reference whichever is more efficient
+                 ros   ro MyType,   // Pass an immutable type
+                 ms   mut MyType,   // Pass by reference, preserve `ro` fields
+                 rs   ref MyType)   // Pass by reference, nothing is preserved
 
 If `s` is big, such as a matrix containing 16 floats, it is passed by
 reference.  If it is small, such as a single float or int, it is passed
@@ -328,30 +330,39 @@ aliased somewhere.  After, `clone`, we know this to be true.
 ### Simple Class and Struct
 
 Simple types can declare thier fields in parentheses.  All fields are public
-and no additional fields or constructors may be defined in the body.  The entire
-type must either be mutable or `ro`, no mixing fields.
+and no additional fields may be defined in the body.  The entire type must
+be either mutable or `ro`, no mixing.
 
     // Simple struct and class
-    pub struct SimplePoint(X int, Y int)
-    pub struct WithConstructor(X int = 1, Y int = 2)
+    pub struct SpecialPoint(X int, Y int)
+    pub struct Line(p1 Point, p2 Point)
+    pub struct WithInitialization(X int = 1, Y int = 2)
     pub class ro Person(Id int, FirstName str, LastName str, BirthYear int)
 
-    // A simple struct may have properties and functions in the body,
-    // but not fields or additional constructors
+    // A simple struct may define properties, functions, and
+    // constructors in the body but no additional fields or
+    // field backed properties
     pub struct Point(X int, Y int)
     {
-        pub mut fun SetY(y int) { Y = y }           // Mutable functions must be marked `mut`
+        fun new(p SpecialPoint)
+            { todo() }
+        pub fun SetY mut(y int)         // Mutable functions are marked `mut`
+            { Y = y }
         pub prop PropX int
-            { get => X; set { X = value } }
+        {
+            get: return X
+            set: X = value
+        }
+        pub prop Illegal int get set    // ILLEGAL, no additional fields
     }
-
 
 The default constructor can take all the fields in positional order, or any
 of the fields as named parameters.  There is also a default `clone` function.
 
-    @x = Point(1,2)                     // Simple types get a constructor with all parameters
-    @y = Point(X: 3, Y: 4)              // They can be initialized via named parameters
-    @z = WithConstructor(X: 5)          // Constructor called first, so Y=2 here
+    @w = Point()                        // Default constructor
+    @x = Point(1,2)                     // Constructor with all parameters
+    @y = Point(X: 3, Y: 4)              // Initialized via named parameters
+    @z = WithInitialization(X: 5)       // Constructor called first, so Y=2 here
     @p1 = Person(1, "John", "Doe", 32)
     @p2 = p1.clone(FirstName: "Jane")   // Clone is always a deep copy
 
@@ -580,6 +591,10 @@ Strings can be sliced.  See `List` (below)
 An array is the most primitive heap object.  The array count is immutable,
 but elements are not.  They are declared with `Array(count)` syntax, not
 with C# `[]type` syntax.  `[]type` translates to `Span<type>`.
+
+**TBD:** Make all arrays immutable?  Strings are immutable, and that's very
+useful.  If arrays are immutable, there would need to be a mutable version
+called `Buffer`.
 
 Arrays can be sliced.  See `List` (below)
 
@@ -1158,7 +1173,8 @@ For now...
 
 Pointers are not safe.  They act axactly as they do in C.  You can corrupt
 memory and crash your application.  They can be null, and the compiler
-does not add run time null checks.  There are three reasons for this.
+does not add run time null checks.  The data they point to is always
+mutable.  There are three reasons for this.
 
 First, it makes porting from C easier.  I need to port DlMalloc without
 worrying about pointer type safety.  Second, they are fast.  It is
@@ -1167,8 +1183,8 @@ fast and efficiently.  Third, without pointers, Zurfur is a type
 safe language.  Pointers should only be used where necessary.
 
 Perhaps, after Zurfur is running, I might add a few things from
-[Zig](https://ziglang.org/).  Among them is null safety (e.g. `*?int`)
-and requiring an array type to allow array access (i.e. `*[]int`).
+[Zig](https://ziglang.org/).  Among them is null safety (e.g. `?*int`),
+explicit array types (i.e. `*[]int`), and mutability attribute.
 That would be a major breaking change, which might be acceptable if
 done before version 1.0.  But, speed cannot be sacrificed.
 

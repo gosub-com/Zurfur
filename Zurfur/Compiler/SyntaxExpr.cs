@@ -174,7 +174,7 @@ namespace Gosub.Zurfur.Compiler
             mParameters = new SyntaxExpr[] { p0, p1, p2 };
         }
         public SyntaxMulti(Token token, SyntaxExpr p0, SyntaxExpr p1, SyntaxExpr p2, SyntaxExpr p3)
-            : base(token, 3)
+            : base(token, 4)
         {
             if (p0 == null || p1 == null || p2 == null || p3 == null)
                 throw new ArgumentNullException("p0, p1, p2, and p3 must not be null");

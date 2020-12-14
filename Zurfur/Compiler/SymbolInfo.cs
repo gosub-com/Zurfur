@@ -3,29 +3,25 @@ using System.Text;
 using System.Collections.Generic;
 
 
-/// <summary>
-/// This file contains low level symbol information.  The types in
-/// SymbolTable contain the high high level information.
-/// </summary>
-
 namespace Gosub.Zurfur.Compiler
 {
     class SymTypeInfo
     {
-        public string FullName = "";
+        public string Name = "";
         public int Alignment;
         public int Size;
+        public string[] TypeArgs = Array.Empty<string>();
         public SymFieldInfo[] Fields = Array.Empty<SymFieldInfo>();
         public SymFieldInfo[] StaticFields = Array.Empty<SymFieldInfo>();
         public SymConstFieldInfo[] ConstFields = Array.Empty<SymConstFieldInfo>();
-        public string[] TypeArgs = Array.Empty<string>();
+        public SymMethodInfo[] Methods = Array.Empty<SymMethodInfo>();
 
         public string FullNameWithTypeArgs()
         {
             if (TypeArgs.Length == 0)
-                return FullName;
+                return Name;
             StringBuilder sb = new StringBuilder();
-            sb.Append(FullName);
+            sb.Append(Name);
             sb.Append("<");
             sb.Append(string.Join(",", TypeArgs));
             sb.Append(">");
@@ -38,27 +34,34 @@ namespace Gosub.Zurfur.Compiler
         }
     }
 
-    struct SymFieldInfo
+    class SymFieldInfo
     {
-        public string Name;
-        public SymType Type;
+        public string Name = "";
+        public string Type = "";
         public int Address;
 
         public override string ToString()
         {
-            return Name == null || Type == null ? "?" : Name + " " + Type;
+            return Name + " " + Type;
         }
     }
 
-    struct SymConstFieldInfo
+    class SymConstFieldInfo
     {
-        public string Name;
-        public SymType Type;
+        public string Name = "";
+        public string Type = "";
         public decimal ValueDecimal;  // And long, int, char, etc.  (excluding f32 and f64)
         public double ValueDouble;    // Only necessary since Decimal doesn't cover all possibilities like it should
         public override string ToString()
         {
-            return Name == null || Type == null ? "?" : Name + " " + Type;
+            return Name + " " + Type;
         }
+    }
+
+    class SymMethodInfo
+    {
+        public string Name = "";
+        public string[] Params = Array.Empty<string>();
+        public string[] Returns = Array.Empty<string>();
     }
 }

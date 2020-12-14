@@ -1,22 +1,22 @@
-﻿namespace Zurfur
+﻿use Zurfur.Collections
+
+namespace Zurfur
 
 
-pub struct Range<T>
+pub struct Range<T>(Low T, High T)
     implements Iterable<Range<T>, T>
     where T is IArithmetic<T>
 {
-    pub Low T
-    pub High T
-    
     pub fun GetIterator() Iterator<Range<T>, T>
         => RangeIterator<Range<T>, T>(Low)
 
     // Usage: myRange.For @index => DoStuffWithItem()
-    pub fun For(f fun(item T) Breakable)
+    pub fun For(f fun(item T) exit) exit
     {
         @i = Low
         while @i < High && f(i)
             i += 1
+        
     }
     
 }

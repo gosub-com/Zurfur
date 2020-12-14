@@ -212,7 +212,8 @@ namespace Gosub.Zurfur.Ide
                     && mHoverToken.Type != eTokenType.Comment
                     && (mHoverToken.GetInfoString() != "" 
                             || mHoverToken.GetInfo<Symbol>() != null
-                            || mHoverToken.GetInfo<TokenError>() != null)
+                            || mHoverToken.GetInfo<TokenError>() != null
+                            || mHoverToken.GetInfo<TokenWarn>() != null)
                     && !mHoverMessageForm.Visible)
             {
                 // Show symbol info
@@ -221,15 +222,21 @@ namespace Gosub.Zurfur.Ide
                 foreach (var symbol in symbols)
                 {
                     // Top level symbol info
-                    message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
 
-                    // Field type info (if it exists)
+                    // Field type info
                     if (symbol is SymField symField)
                     {
-                        if (symField.Type == null)
-                            message += "TYPE: Unresolved" + "\r\n";
-                        else
-                            message += symField.Type.Kind.ToUpper() + ": " + symField.Type.ToString() + "\r\n";
+                        message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
+                        message += "TYPE: " + symField.TypeName + "\r\n";
+                    }
+                    else if (symbol is SymMethod symMethod)
+                    {
+                        message += symbol.Kind.ToUpper() + ": " + symbol.ParentName + "\r\n";
+                        message += "TYPE: " + symMethod.Name + "\r\n";
+                    }
+                    else
+                    {
+                        message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
                     }
 
                     // Comments
@@ -247,9 +254,9 @@ namespace Gosub.Zurfur.Ide
                 }
 
                 foreach (var error in mHoverToken.GetInfos<TokenError>())
-                {
                     message += "ERROR:" + error.ToString() + "\r\n";
-                }
+                foreach (var error in mHoverToken.GetInfos<TokenWarn>())
+                    message += "WARN:" + error.ToString() + "\r\n";
 
                 message += mHoverToken.GetInfoString();
                 mHoverMessageForm.Message.Text = message.Trim();

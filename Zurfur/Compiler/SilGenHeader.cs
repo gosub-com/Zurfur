@@ -11,13 +11,22 @@ namespace Gosub.Zurfur.Compiler
     {
         public SilError(string message) : base(message) { }
     }
+    public class SilWarn : TokenWarn
+    {
+        public SilWarn(string message) : base(message) { }
+    }
 
     class SilGenHeader
     {
-        static WordSet sUnaryTypeSymbols = new WordSet("? * ^ [ mut ref in out ro");
+        static WordSet sTypeSymbols = new WordSet("? * ^ [ " + ParseZurf.VT_TYPE_ARG);
+        static WordSet sTypeAttributes = new WordSet("in out mut ro ref");
 
         Dictionary<string, SymFile> mFiles = new Dictionary<string, SymFile>();
         SymbolTable mSymbols = new SymbolTable();
+        Dictionary<string, SymSpecializedType> mSpecializedTypes = new Dictionary<string, SymSpecializedType>();
+        Dictionary<string, SymSpecializedType> mFuncTypes = new Dictionary<string, SymSpecializedType>();
+
+        Dictionary<string, SymTypeInfo> mSymTypeInfo = new Dictionary<string, SymTypeInfo>();
 
         List<string> mNamespaces = new List<string>();
         List<string> mAllSymbols = new List<string>();
@@ -37,6 +46,7 @@ namespace Gosub.Zurfur.Compiler
         /// Step 1: Find all the symbols in this package.
         /// Load namespaces, types, fields, and method group names.
         /// Each file is independent, requires nothing from other packages.
+        /// The methods themselves can't be added until we have complete type info.
         /// </summary>
         public void EnumerateSymbols(Dictionary<string, SyntaxFile> syntaxFiles)
         {
@@ -162,14 +172,15 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Step 2: Resolve type names.  Requires symbols from external packages.
+        /// Step 2: Add methods and resolve type names.
+        /// Requires symbols from external packages.
         /// TBD: Add way to include external package headers
         /// </summary>
         public void ResolveTypeNames()
         {
             ProcessUseStatements();
-            MarkDuplicateFunctions();
-            ResolveFieldTypes();
+            ResolveFields();
+            AddAndResolveMethods();
             BuildTypeFieldInfo();
             return;
 
@@ -181,7 +192,7 @@ namespace Gosub.Zurfur.Compiler
                     foreach (var use in symFile.SyntaxFile.Using)
                     {
                         var symbol = mSymbols.FindPath(use.NamePath);
-                        if (symbol == null)
+                        if (symbol == null || use.NamePath.Length == 0)
                             continue;  // Error marked by function
 
                         var lastToken = use.NamePath[use.NamePath.Length - 1];
@@ -203,25 +214,9 @@ namespace Gosub.Zurfur.Compiler
                 }
             }
 
-
-            void MarkDuplicateFunctions()
+            void ResolveFields()
             {
-                foreach (var symFile in mFiles.Values)
-                {
-                    foreach (var func in symFile.SyntaxFile.Methods)
-                    {
-                        var group = mSymbols[mSymbols.FindPath(func.NamePath).Children[func.Name.Name]];
-                        if (!(group is SymMethods))
-                        {
-                            Reject(func.Name, "Duplicate symbol.  There is a " + group.Kind + " with the same name");
-                            func.Name.AddInfo(group);
-                        }
-                    }
-                }
-            }
-
-            void ResolveFieldTypes()
-            {
+                // Enumerate 
                 foreach (var sym in mSymbols.Values)
                 {
                     if (!(sym is SymField field))
@@ -241,13 +236,44 @@ namespace Gosub.Zurfur.Compiler
                             Reject(field.Syntax.Name, "Expecting symbol to have an explicitly named type");
                         continue;
                     }
-                    field.Type = ResolveType(field, field.Syntax.TypeName);
-                    if (field.Type == null)
+                    var fieldType = ResolveType(field, field.Syntax.TypeName);
+                    if (fieldType != null)
+                        field.TypeName = fieldType.FullName;
+                }
+            }
+
+            void AddAndResolveMethods()
+            {
+                foreach (var symFile in mFiles.Values)
+                {
+                    foreach (var func in symFile.SyntaxFile.Methods)
                     {
-                        Warning(field.Token, "Error resolving symbol type (warning for now)");
-                        continue;
+                        var group = mSymbols[mSymbols.FindPath(func.NamePath).Children[func.Name.Name]];
+                        if (!(group is SymMethods))
+                        {
+                            Reject(func.Name, "Duplicate symbol.  There is a " + group.Kind + " with the same name");
+                            func.Name.AddInfo(group);
+                        }
+                        else
+                        {
+                            AddAndResolveMethod(group as SymMethods, func, symFile);
+                        }
                     }
                 }
+            }
+
+            void AddAndResolveMethod(SymMethods scope, SyntaxFunc func, SymFile file)
+            {
+                var methodType = ResolveType(scope, func.Params);
+                if (methodType == null)
+                {
+                    Warning(func.Name, "Cannot resolve type");
+                    return;
+                }
+                var methodSymbol = new SymMethod(scope.FullName, methodType.FullName);
+                methodSymbol.AddLocation(file, func.Name);
+                methodSymbol.Comments = func.Comments;
+                mSymbols.Add(methodSymbol);
             }
 
 
@@ -271,24 +297,18 @@ namespace Gosub.Zurfur.Compiler
                         if (!(sym2 is SymField symField))
                             continue;
 
-                        if (symField.Type == null)
-                        {
-                            Warning(symField.Token, "Unresolved type name, compiler error should already have an error");
-                            continue;
-                        }
-
                         var syntax = symField.Syntax;
                         if (Array.Exists(syntax.Qualifiers, t => t.Name == "const"))
                         {
                             var constField = new SymConstFieldInfo();
-                            constField.Type = symField.Type;
+                            constField.Type = symField.TypeName;
                             constField.Name = symField.Token;
                             constFields.Add(constField);
                         }
                         else
                         {
                             var field = new SymFieldInfo();
-                            field.Type = symField.Type;
+                            field.Type = symField.TypeName;
                             field.Name = symField.Token;
                             if (Array.Exists(syntax.Qualifiers, t => t.Name == "static"))
                                 staticFields.Add(field);
@@ -298,12 +318,12 @@ namespace Gosub.Zurfur.Compiler
                     }
 
                     var typeInfo = new SymTypeInfo();
-                    typeInfo.FullName = symType.FullName;
+                    typeInfo.Name = symType.FullName;
                     typeInfo.TypeArgs = symType.TypeArgs;
                     typeInfo.ConstFields = constFields.ToArray();
                     typeInfo.StaticFields = staticFields.ToArray();
                     typeInfo.Fields = fields.ToArray();
-                    symType.Info = typeInfo;
+                    mSymTypeInfo[typeInfo.Name] = typeInfo;
                 }
             }
 
@@ -380,26 +400,38 @@ namespace Gosub.Zurfur.Compiler
             headerFile.Add("");
 
             // Count symbols
-            int concreteTypes = 0;
+            int simpleTypes = 0;
             int genericTypes = 0;
             foreach (var sym in mSymbols.Values)
             {
                 if (sym.GetType() == typeof(SymType))
                 {
                     var t = sym as SymType;
-                    if (t.Info.TypeArgs.Length == 0)
-                        concreteTypes++;
+                    if (mSymTypeInfo[t.FullName].TypeArgs.Length == 0)
+                        simpleTypes++;
                     else
                         genericTypes++;
                 }
             }
 
             headerFile.Add("SYMBOLS: " + mAllSymbols.Count);
-            headerFile.Add("    Concrete: " + concreteTypes);
-            headerFile.Add("    Generic: " + genericTypes);
+            headerFile.Add("    Simple Types: " + simpleTypes);
+            headerFile.Add("    Generic Types: " + genericTypes);
+            headerFile.Add("    Generic Specializations: " + mSpecializedTypes.Count);
             headerFile.Add("");
 
-            // Report symbols
+            headerFile.Add("Generic specializations:");
+            foreach (var sp in mSpecializedTypes.Values)
+                headerFile.Add("    " + sp.FullName);
+            headerFile.Add("");
+
+
+            headerFile.Add("Method call types:");
+            foreach (var sp in mFuncTypes.Values)
+                headerFile.Add("    " + sp.FullName);
+            headerFile.Add("");
+
+            // Report types
             foreach (var sym in mSymbols.Values)
             {
                 if (sym.GetType() != typeof(SymType))
@@ -407,20 +439,33 @@ namespace Gosub.Zurfur.Compiler
                 var type = sym as SymType;
 
                 headerFile.Add("");
-                headerFile.Add("");
-                headerFile.Add("TYPE " + type.Kind.ToUpper() + ": " + type.Info.FullNameWithTypeArgs());
-                if (type.Info == null)
+                headerFile.Add("TYPE " + type.TypeKeyword.ToUpper() + ": " + mSymTypeInfo[type.FullName].FullNameWithTypeArgs());
+                if (!mSymTypeInfo.TryGetValue(type.FullName, out var info))
                 {
                     headerFile.Add("    ERROR, unresolved info");
                     continue;
                 }
 
-                foreach (var field in type.Info.ConstFields)
+                foreach (var field in info.ConstFields)
                     headerFile.Add("    const " + field.Name + " " + field.Type);
-                foreach (var field in type.Info.StaticFields)
+                foreach (var field in info.StaticFields)
                     headerFile.Add("    static " + field.Name + " " + field.Type);
-                foreach (var field in type.Info.Fields)
-                    headerFile.Add("    field " + field.Name + " " + field.Type + ", address=" + field.Address);
+                foreach (var field in info.Fields)
+                    headerFile.Add("    field " + field.Name + " " + field.Type);
+
+                foreach (var child1 in type.Children)
+                {
+                    var methodGroup = mSymbols[child1.Value] as SymMethods;
+                    if (methodGroup != null)
+                    {
+                        foreach (var childMethod in methodGroup.Children)
+                        {
+                            var method = mSymbols[childMethod.Value] as SymMethod;
+                            if (method != null)
+                                headerFile.Add("    method " + method.FullName);
+                        }
+                    }
+                }
             }
 
             headerFile.Add("");
@@ -430,36 +475,39 @@ namespace Gosub.Zurfur.Compiler
             return headerFile;
         }
 
+        /// <summary>
+        /// Resolve a type.  Non-generic types are found in the symbol table
+        /// and given a full name (e.g. 'int' -> 'Zufur.int').  Generic types
+        /// must have all type arguments resolved as well.
+        /// </summary>
         SymType ResolveType(Symbol scope, SyntaxExpr typeExpr)
         {
-            Debug.Assert(typeExpr != null && typeExpr.Token.Name != "");
+            // There will also be a syntax error
+            if (typeExpr == null || typeExpr.Token.Name == "")
+                return null;
 
-            // For now skip unary type qualifiers
-            while (sUnaryTypeSymbols.Contains(typeExpr.Token) && typeExpr.Count >= 1)
-                typeExpr = typeExpr[0];
-            if (typeExpr.Token == "fun" || typeExpr.Token == "afun" || typeExpr.Token == "type")
+            if (typeExpr.Token == "fun" || typeExpr.Token == "afun")
+                return ResolveFuncType();
+
+            if (sTypeAttributes.Contains(typeExpr.Token))
             {
-                Warning(typeExpr.Token, "Function types not resolved yet");
-                return null; // For now skip these
+                // TBD: Figure out what to do about the attributes.  For now skip them.
+                Warning(typeExpr.Token, "Attribute not processed yet");
+                if (typeExpr.Count == 1)
+                    return ResolveType(scope, typeExpr[0]);
+                Reject(typeExpr.Token, "Index error");
+                return null;
             }
 
-            if (typeExpr.Token == ParseZurf.VT_TYPE_ARG)
-            {
-                if (typeExpr.Count == 0)
-                {
-                    Reject(typeExpr.Token, "Unexpected empty type argument list");
-                    return null;
-                }
-                // Resolve sub-types, TBD: Track errors
-                for (int i = 1; i < typeExpr.Count; i++)
-                    ResolveType(scope, typeExpr[i]);
-                return ResolveType(scope, typeExpr[0]);
-            }
+            if (sTypeSymbols.Contains(typeExpr.Token))
+                return ResolveGenericTypeSymbol();
 
-
+            // Resolve regular symbol
             var symbol = mSymbols.FindUse(typeExpr.Token, scope, scope.File.Use);
             if (symbol == null)
                 return null; // Error already marked
+
+            // Mark symbol or error
             typeExpr.Token.AddInfo(symbol);
             var typeSymbol = symbol as SymType;
             if (typeSymbol == null)
@@ -468,6 +516,93 @@ namespace Gosub.Zurfur.Compiler
                 return null;
             }
             return typeSymbol;
+
+            SymType ResolveFuncType()
+            {
+                foreach (var generic in typeExpr[0])
+                    Reject(generic.Token, "Generic type args not supported yet");
+                var paramTypes = new List<string>();
+                var returnTypes = new List<string>();
+                var resolved1 = ResolveTypeArgParams(typeExpr[1], paramTypes);
+                var resolved2 = ResolveTypeArgParams(typeExpr[2], returnTypes);
+                if (!resolved1 || !resolved2)
+                    return null;
+                if (returnTypes.Count == 1 && returnTypes[0] == "void")
+                    returnTypes.Clear();
+                if (typeExpr[3].Token.Name != "") // error attribute
+                    returnTypes.Add(typeExpr[3].Token.Name);
+                var spec = new SymSpecializedType(typeExpr.Token, paramTypes.ToArray(), returnTypes.ToArray());
+
+                // Return the one in the symbol table, if it exists
+                if (mFuncTypes.TryGetValue(spec.FullName, out var specExists))
+                    spec = specExists;
+                else
+                    mFuncTypes[spec.FullName] = spec;
+                return spec;
+            }
+
+            SymType ResolveGenericTypeSymbol()
+            {
+                if (typeExpr.Count == 0)
+                {
+                    Reject(typeExpr.Token, "Unexpected empty type argument list");
+                    return null;
+                }
+                // Resolve type parameters
+                var typeArgs = new List<string>();
+                if (!ResolveTypeArgs(typeArgs))
+                    return null;
+                var typeParent = typeArgs[0];
+                typeArgs.RemoveAt(0);
+
+                // Generic type parameters (e.g. List<int>) or unary symbol (e.g. *int)
+                SymSpecializedType spec;
+                if (typeExpr.Token.Name == ParseZurf.VT_TYPE_ARG)
+                    spec = new SymSpecializedType(typeParent, typeArgs.ToArray());
+                else
+                    spec = new SymSpecializedType(typeExpr.Token.Name, new string[] { typeParent });
+
+                // Return the one in the symbol table, if it exists
+                if (mSpecializedTypes.TryGetValue(spec.FullName, out var specExists))
+                    spec = specExists;
+                else
+                    mSpecializedTypes[spec.FullName] = spec;
+                return spec;
+            }
+
+            bool ResolveTypeArgParams(SyntaxExpr paramExprs, List<string> paramTypes)
+            {
+                bool resolved = true;
+                foreach (var pType in paramExprs)
+                {
+                    if (pType.Count == 0 || pType[0].Token == "" || pType[0].Token == "void" )
+                    {
+                        paramTypes.Add("void");
+                        continue;
+                    }
+
+                    var sym = ResolveType(scope, pType[0]);
+                    if (sym != null)
+                        paramTypes.Add(sym.FullName);
+                    else
+                        resolved = false;
+                }
+                return resolved;
+            }
+
+            bool ResolveTypeArgs(List<string> typeArgs)
+            {
+                var resolved = true;
+                foreach (var typeArg in typeExpr)
+                {
+                    var sym = ResolveType(scope, typeArg);
+                    if (sym != null)
+                        typeArgs.Add(sym.FullName);
+                    else
+                        resolved = false;
+                }
+                return resolved;
+            }
         }
 
 
@@ -482,7 +617,7 @@ namespace Gosub.Zurfur.Compiler
         void Warning(Token token, string message)
         {
             if (!token.Error)
-                token.AddWarning(message);
+                token.AddWarning(new SilWarn(message));
         }
 
     }

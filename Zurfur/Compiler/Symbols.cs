@@ -56,6 +56,13 @@ namespace Gosub.Zurfur.Compiler
             AddLocation(file, token);
         }
 
+        public Symbol(string parentName, string name)
+        {
+            ParentName = parentName;
+            Name = name;
+            FullName = GetFullName();
+        }
+
         string GetFullName()
         {
             if (ParentName == "")
@@ -123,16 +130,14 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     class SymType : Symbol
     {
-        public string TypeKeyword = "type";
+        public string TypeKeyword = "";
         public SymType(string parentName, SymFile file, Token token) : base(parentName, file, token) { }
-        public override string Kind => TypeKeyword;
+        public SymType(string parentName, string name) : base(parentName, name) { }
+        public override string Kind => "type";
 
         // TBD: This is only needed to maintain type arg order.  Could remove this
         //      if we also store an ordered list of symbols in the symbol table
         public string[] TypeArgs = Array.Empty<string>();
-
-        public SymTypeInfo Info;
-
     }
 
 
@@ -142,12 +147,58 @@ namespace Gosub.Zurfur.Compiler
         public override string Kind => "type argument";
     }
 
+    /// <summary>
+    /// Parent is the full name of the generic type, typeParams are the full name of each argument.
+    /// The symbol name is a combination of both parentName<T0,T1,T2...>
+    /// or for generic functions fun(T0,T1)->(R0,R1)
+    /// </summary>
+    class SymSpecializedType : SymType
+    {
+        public readonly string[] Params;
+        public readonly string[] Returns;
+
+        public SymSpecializedType(string parentName, string[] typeParams)
+            : base(parentName, "<" + TypeArgsFullName(typeParams) + ">") 
+        {
+            Params = typeParams;
+            Returns = Array.Empty<string>();
+        }
+        public SymSpecializedType(string parentName, string[] typeParams, string []typeReturns)
+            : base(parentName, ParamsFuncFullName(typeParams, typeReturns))
+        {
+            Params = typeParams;
+            Returns = typeReturns;
+        }
+
+        public static string ParamsFuncFullName(string []typeParams, string []typeReturns)
+        {
+            return "(" + TypeArgsFullName(typeParams) + ")->(" + TypeArgsFullName(typeReturns) + ")";
+        }
+
+        static string TypeArgsFullName(string []typeParams)
+        {
+            if (typeParams.Length == 0)
+                return "";
+            if (typeParams.Length == 1)
+                return typeParams[0];
+            StringBuilder sb = new StringBuilder();
+            sb.Append(typeParams[0]);
+            for (int i = 1;  i < typeParams.Length;  i++)
+            {
+                sb.Append(",");
+                sb.Append(typeParams[i]);
+            }
+            return sb.ToString();
+        }
+
+    }
+
     class SymField : Symbol
     {
         public SymField(string parentName, SymFile file, Token token) : base(parentName, file, token) { }
         public override string Kind => "field";
         public SyntaxField Syntax;
-        public SymType Type;
+        public string TypeName = "(unresolved)";
     }
 
     class SymMethods : Symbol
@@ -158,7 +209,15 @@ namespace Gosub.Zurfur.Compiler
 
     class SymMethod : Symbol
     {
-        public SymMethod(string parentName, SymFile file, Token token) : base(parentName, file, token) { }
+        // The name is the function type
+        public SymMethod(string parentName, string name) : base(parentName, name) { }
         public override string Kind => "method";
+    }
+
+    class SymMethodArg : Symbol
+    {
+        public SymMethodArg(string parentName, SymFile file, Token token) : base(parentName, file, token) { }
+        public override string Kind => "method arg";
+        public string TypeName = "(unresolved)";
     }
 }

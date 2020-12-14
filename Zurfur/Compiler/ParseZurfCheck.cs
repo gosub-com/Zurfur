@@ -12,7 +12,7 @@ namespace Gosub.Zurfur.Compiler
     class ParseZurfCheck
     {
         // Debug the parse tree
-        bool mShowParseTree = true;
+        bool mShowParseTree = false;
 
         public Token LastToken;
 
@@ -37,7 +37,6 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sAssignments = new WordSet("= += -= *= /= %= &= |= ~= <<= >>=");
         static WordSet sInvalidLeftAssignments = new WordSet("+ - * / % & | == != < <= > >=");
         static WordSet sAllowedBeforeLocalFunc = new WordSet("return afun fun");
-
 
         static WordMap<int> sClassFuncFieldQualifiersOrder = new WordMap<int>()
         {
@@ -71,6 +70,8 @@ namespace Gosub.Zurfur.Compiler
 
         public void Check(SyntaxFile unit)
         {
+            if (unit.Pragmas.ContainsKey("ShowParse"))
+                mShowParseTree = true;
             LastToken = null;
             CheckParseTree(unit);
             LastToken = null;
@@ -136,9 +137,6 @@ namespace Gosub.Zurfur.Compiler
                 {
                     RejectQualifiers(func.Qualifiers, sFuncInInterfaceQualifiersAllowed, "This qualifier may not appear before a function defined inside an interface");
                 }
-
-                if (func.Name == "new" && func.ParentScope is SyntaxType t && t.Simple)
-                    mParser.RejectToken(func.Name, "'new' may not be defined inside class/struct with parameters");
 
                 switch (keyword)
                 {
@@ -337,7 +335,7 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
-        public void ShowParseTree(SyntaxFile unit)
+        void ShowParseTree(SyntaxFile unit)
         {
             if (!mShowParseTree)
                 return;
@@ -372,7 +370,7 @@ namespace Gosub.Zurfur.Compiler
             if (expr == null)
                 return expr;
             expr.Token.AddInfo("Parse tree: " + expr.ToString());
-            mParser.RecordInvisibleToken(expr.Token);
+            mParser.RecordMetaToken(expr.Token);
             foreach (var e in expr)
                 ShowParseTree(e); // Subtrees without info token
             return expr;

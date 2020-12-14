@@ -2,13 +2,6 @@
 using System.Collections.Generic;
 using Gosub.Zurfur.Lex;
 
-/// <summary>
-/// This file contains high level symbol table types.  The 'info' types in SymbolInfo
-/// contain the low level class data.  It might be better to completely separate them,
-/// but for now the high level has access to the low level (not the other way around)
-/// </summary>
-
-
 namespace Gosub.Zurfur.Compiler
 {
     /// <summary>
@@ -27,6 +20,18 @@ namespace Gosub.Zurfur.Compiler
         }
 
         public Dictionary<string, Symbol>.ValueCollection Values => mSymbols.Values;
+
+        public bool TryGetValue(string name, out Symbol value)
+            => mSymbols.TryGetValue(name, out value);
+
+        public int Count => mSymbols.Count;
+
+        public Symbol Get(string name, Symbol defaultValue)
+        {
+            if (TryGetValue(name, out var value))
+                return value;
+            return defaultValue;
+        }
 
         /// <summary>
         /// Add a new symbol to its parent, mark duplicates if necessary.

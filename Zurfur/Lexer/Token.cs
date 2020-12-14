@@ -39,7 +39,7 @@ namespace Gosub.Zurfur.Lex
         Eoln = 1, // Read only (set only once by lexer)
         Boln = 2, // Read only (set only once by lexer)
         Grayed = 4,
-        Invisible = 8,
+        Meta = 8,
         Underline = 16,
         ReadOnlyMask = Eoln | Boln,
         Shrink = 32
@@ -138,6 +138,8 @@ namespace Gosub.Zurfur.Lex
 
         /// <summary>
         /// Alias for Subtype == Error
+        /// TBD: This bit should be readonly under total control of this class
+        ///      (i.e.  AddInfo and RemoveInfo set bits accordingly)
         /// </summary>
         public bool Error
         {
@@ -147,11 +149,13 @@ namespace Gosub.Zurfur.Lex
 
         /// <summary>
         /// Alias for Subtype == Warn (but does not set if the token already has an error)
+        /// TBD: This bit should be readonly under total control of this class
+        ///      (i.e.  AddInfo and RemoveInfo set bits accordingly)
         /// </summary>
         public bool Warn
         {
             get => Subtype == eTokenSubtype.Warn;
-            set { if (Subtype != eTokenSubtype.Error) Subtype = eTokenSubtype.Warn; }
+            set { if (Subtype != eTokenSubtype.Error) Subtype = value ? eTokenSubtype.Warn : eTokenSubtype.Normal; }
         }
 
         public bool Grayed
@@ -159,10 +163,10 @@ namespace Gosub.Zurfur.Lex
             get => (mBits & eTokenBits.Grayed) != 0;
             set { mBits = mBits & ~eTokenBits.Grayed | (value ? eTokenBits.Grayed : 0); }
         }
-        public bool Invisible
+        public bool Meta
         {
-            get => (mBits & eTokenBits.Invisible) != 0;
-            set { mBits = mBits & ~eTokenBits.Invisible | (value ? eTokenBits.Invisible : 0); }
+            get => (mBits & eTokenBits.Meta) != 0;
+            set { mBits = mBits & ~eTokenBits.Meta | (value ? eTokenBits.Meta : 0); }
         }
         public bool Underline
         {
@@ -224,6 +228,9 @@ namespace Gosub.Zurfur.Lex
             AddInfo(new TokenError(errorMessage));
         }
 
+        /// <summary>
+        /// Add an error to this token, set error flag and append TokenError(errorMessage)
+        /// </summary>
         public void AddError(TokenError error)
         {
             Error = true;
@@ -234,6 +241,15 @@ namespace Gosub.Zurfur.Lex
         /// Add a warning to the token (set warning bit and append the message)
         /// </summary>
         public void AddWarning(string warnMessage)
+        {
+            Warn = true;
+            AddInfo(new TokenWarn(warnMessage));
+        }
+
+        /// <summary>
+        /// Add a warning to the token (set warning bit and append the message)
+        /// </summary>
+        public void AddWarning(TokenWarn warnMessage)
         {
             Warn = true;
             AddInfo(warnMessage);
@@ -514,5 +530,14 @@ namespace Gosub.Zurfur.Lex
         }
     }
 
+    public class TokenWarn
+    {
+        public string Message = "";
+        public TokenWarn(string message) { Message = message; }
+        public override string ToString()
+        {
+            return Message;
+        }
+    }
 
 }

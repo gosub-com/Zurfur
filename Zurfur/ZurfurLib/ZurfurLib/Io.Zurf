@@ -20,6 +20,8 @@ interface Writer
     // functions WritableNow and WriteNow?
 }
 
+enum SeekOrigin { begin; current; end }
+
 interface Seeker
 {
     prop Length i64 => impl get

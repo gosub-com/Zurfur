@@ -53,7 +53,7 @@
   <ItemGroup>
     <Compile Include="Compiler\BuildPackage.cs" />
     <Compile Include="Compiler\SymbolInfo.cs" />
-    <Compile Include="Compiler\SymbolTableData.cs" />
+    <Compile Include="Compiler\Symbols.cs" />
     <Compile Include="Lexer\ScanZurf.cs" />
     <Compile Include="Compiler\SilGenHeader.cs" />
     <Compile Include="Compiler\SymbolTable.cs" />

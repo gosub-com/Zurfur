@@ -7,6 +7,7 @@
 namespace Zurfur
 
 pub struct void { }
+pub struct object { }
 pub struct int = i32
 pub struct uint = u32
 pub struct byte = u8
@@ -210,8 +211,8 @@ pub struct ro i32
     pub fun operator/(a i32, b i32) i32 => extern
     pub fun operator%(a i32, b i32) i32 => extern
     
-    pub fun GetEnumerator() RangeEnumerator<i32>
-        => RangeEnumerator<i32>(0, this)
+    pub fun GetIterator() RangeIterator<i32>
+        => RangeIterator<i32>(0, this)
     
     // Not overloadable, but these are supplied specially for this type
     // fun operator~(a i32) i32
@@ -268,8 +269,8 @@ pub struct ro u32
     pub fun operator/(a u32, b u32) u32 => extern
     pub fun operator%(a u32, b u32) u32 => extern
     
-    pub fun GetEnumerator() RangeEnumerator<u32>
-        => RangeEnumerator<u32>(0, this)
+    pub fun GetIterator() RangeIterator<u32>
+        => RangeIterator<u32>(0, this)
     
 
     // Not overloadable, but these are supplied specially for this type
@@ -318,8 +319,8 @@ pub struct ro i64
     pub fun operator/(a i64, b i64) i64 => extern
     pub fun operator%(a i64, b i64) i64 => extern
     
-    pub fun GetEnumerator() RangeEnumerator<i64>
-        => RangeEnumerator<i64>(0, this)
+    pub fun GetIterator() RangeIterator<i64>
+        => RangeIterator<i64>(0, this)
 
     // Not overloadable, but these are supplied specially for this type
     // fun operator~(a i64) i64
@@ -372,8 +373,8 @@ pub struct ro u64
     pub fun operator/(a u64, b u64) u64 => extern
     pub fun operator%(a u64, b u64) u64 => extern
 
-    pub fun GetEnumerator() RangeEnumerator<u64>
-        => RangeEnumerator<u64>(0, this)
+    pub fun GetIterator() RangeIterator<u64>
+        => RangeIterator<u64>(0, this)
 
     // Not overloadable, but these are supplied specially for this type
     // fun operator~(a u64)

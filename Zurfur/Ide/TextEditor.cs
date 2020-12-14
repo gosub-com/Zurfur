@@ -1258,9 +1258,6 @@ namespace Gosub.Zurfur
                 return;
             }
 
-            if (token.Invisible)
-                return;
-
             // Adjust tabs
             int tabStartColumn = mTabSize - col % mTabSize;
             if (tabStartColumn != mTabStartColumnPrevious && token.Name.IndexOf('\t') >= 0)
@@ -1269,19 +1266,27 @@ namespace Gosub.Zurfur
                 mTabFormat.SetTabStops(tabStartColumn*mFontSize.Width, mTabSpacing);
             }
 
+            // Font color
+            FontInfo fontInfo = GetFontInfo(token);
+            var font = overrides != null && overrides.Font != null ? overrides.Font : fontInfo.Font;
+            var brush = overrides != null && overrides.ForeColor != null ? overrides.ForeColor : fontInfo.Brush;
+            if (token.Meta)
+            {
+                brush = Brushes.Orange;
+                x += 2;
+                y -= 2;
+            }
+
             if (token.Y >= 0 && token.Y < mLineShrunk.Length && mLineShrunk[token.Y])
             {
                 // Draw shrunk text
                 x = (int)(x + mFontSize.Width * SHRUNK_FONT_OFFSET.X);
                 y = (int)(y + mFontSize.Height * SHRUNK_FONT_OFFSET.Y);
-                gr.DrawString(token.Name, mShrunkFont, Brushes.Black, x, y, mTabFormat);
+                gr.DrawString(token.Name, mShrunkFont, brush, x, y, mTabFormat);
             }
             else
             {
                 // Draw normal text
-                FontInfo fontInfo = GetFontInfo(token);
-                var font = overrides != null && overrides.Font != null ? overrides.Font : fontInfo.Font;
-                var brush = overrides != null && overrides.ForeColor != null ? overrides.ForeColor : fontInfo.Brush;
                 gr.DrawString(token.Name, font, brush, x, y, mTabFormat);
             }
             // Draw outline
@@ -1323,6 +1328,11 @@ namespace Gosub.Zurfur
             while (endLine <= LineCount && PointY(endLine) < maxY)
                 endLine++;
 
+            // Draw metatokens
+            foreach (var metaToken in mLexer.MetaTokens)
+                if (metaToken.Y >= minY && metaToken.Y <= maxY)
+                    if (background || mLexer.ShowMetaTokens)
+                        DrawToken(gr, metaToken, background);
 
             // Draw all tokens on the screen
             foreach (Token token in mLexer.GetEnumeratorStartAtLine(startLine))
@@ -1334,8 +1344,6 @@ namespace Gosub.Zurfur
                 DrawToken(gr, token, background);
             }
 
-            foreach (Token token in Lexer.MetaTokens)
-                DrawToken(gr, token, background);
         }
 
         /// <summary>

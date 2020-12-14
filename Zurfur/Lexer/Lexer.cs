@@ -17,9 +17,13 @@ namespace Gosub.Zurfur.Lex
         List<string> mLines = new List<string>();
         List<Token[]> mTokens = new List<Token[]>();
         Token[] mMetaTokens;
+        public bool ShowMetaTokens;
+
         Scanner mScanner = ScanText.Empty;
+
+        // Be kind to the GC
         MinTern mMinTern = new MinTern();
-        List<Token> mTokenBuffer = new List<Token>();  // Be kind to the GC
+        List<Token> mTokenBuffer = new List<Token>();
 
 
         /// <summary>
@@ -90,6 +94,7 @@ namespace Gosub.Zurfur.Lex
         public Lexer Clone()
         {
             var lex = new Lexer();
+            lex.ShowMetaTokens = ShowMetaTokens;
             lex.mLines = new List<string>(mLines);
             lex.mTokens.Clear();
             foreach (var tokenLine in mTokens)

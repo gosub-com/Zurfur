@@ -1,3 +1,10 @@
+
+//pragma ShowSemicolons       // Show invisible semicolons
+//pragma ShowParse            // Show the parse tree (hover over a symbol)
+//pragma ShowMetaSymbols      // Show parser symbols
+
+// Press F4 to see header file report
+
 use Zurfur
 
 // http://zurfur.com
@@ -29,7 +36,29 @@ pub class Example
     ro map Map<str,int> = ["A":1,"B":2]  // Immutable map
     pub fun GetInfo(a int) str => info+a // Public function
     pub prop Info str => info            // Public property
+
+    a Zim<void>
+    b Zim<object>
+    c Zim<i8>
+    d Zim<u8>
+    e Zim<byte>
+    f Zim<i16>
+    g Zim<u16>
+    h Zim<i32>
+    i Zim<u32>
+    j Zim<int>
+    k Zim<u64>
+    l Zim<i64>
+    m Zim<f64>
+    n Zim<f32>
+    o Zim<str>
+    p Zim<decimal>
     
+}
+
+pub class Zim<T>
+{
+    pub q T
 }
 
 
@@ -113,6 +142,7 @@ pub static fun test_Main(args Array<str>)
 
 }
 
+pub class Token(a str)
 
 pub static fun AcceptMatch(name str) ?Token
 {
@@ -142,14 +172,14 @@ pub class MutableTest
     ro e mut List<MyObject>
 
 
-    pub fun getMyObjectAt(i index) mut MyObject => todo()
+    pub fun getMyObjectAt(i int) mut MyObject => todo()
     pub fun getMyObjects() List<mut MyObject> => todo()
-    pub fun getMyObjects() mut List<MyObject> => todo()
+    pub fun getMyObjects2() mut List<MyObject> => todo()
     pub prop P1 MyObject => i
     pub prop P2 mut MyObject => i
     
     pub prop P mut str => Header + info       // Public property
-    fun getListObject(i mut index) mut MyObject => a[i]
+    fun getListObject(i mut int) mut MyObject => a[i]
 
 }
 
@@ -191,7 +221,7 @@ pub class Example_x
     }
     
 }
-pub fun Example::MyExtension() => Func1(10) // Extension method
+pub fun Example::MyExtension2() => Func1(10) // Extension method
 
 
 pub fun Example::MyExtension()
@@ -238,6 +268,8 @@ pub fun Example::Extension()
     @j = 15
     @k int = 64
 }
+
+struct MyStruct(a int)
 
 // Test class
 pub class Example2  // YES, errors working
@@ -286,7 +318,7 @@ pub class Example2  // YES, errors working
         p1 = value
     }
     
-    pub fun operator[](index i) int => i
+    pub fun operator[](index int) int => index
     
     // Function
     fun fun1(a int) f32 => f1 + f2 + a
@@ -305,7 +337,6 @@ pub class Example2  // YES, errors working
     pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
     
     fun fun9(a out List<List<int>>) { }
-    fun fun10(a out MyList<int,x,y,z>){ }
     
     pub static fun Main(args Array<str>)
     {
@@ -494,7 +525,7 @@ pub class MyClass1
 }
 
 
-pub static fun Sort<T>(s MutSpan<T>, lessThan fun(a T,b T)bool)
+pub static fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
 {
     // Simple selection sort
     for @i in s.Count-1
@@ -518,7 +549,7 @@ pub static fun Sort<T>(s MutSpan<T>, lessThan fun(a T,b T)bool)
 }
 
 // The matrix class is used to implement square 2d arrays
-pub class Matrix2d<t>
+pub class Matrix2d<T>
     extends VariableSizedObject<T>
 {
     fun new(len1 int, len2 int) { todo() }

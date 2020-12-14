@@ -301,8 +301,15 @@ namespace Gosub.Zurfur.Compiler
                 {
                     token.RemoveInfo<Symbol>();
                     token.RemoveInfo<SilError>();
-                    if (token.GetInfo<TokenError>() == null)
-                        token.Error = false;
+                    token.RemoveInfo<SilWarn>();
+
+                    // TBD: Move Error/Warn setting logic into Token class
+                    token.Error = false;
+                    token.Warn = false;
+                    if (token.GetInfo<TokenError>() != null)
+                        token.Error = true;
+                    else if (token.GetInfo<TokenWarn>() != null)
+                        token.Warn = true;
                 }
             }
 
