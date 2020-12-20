@@ -1,0 +1,55 @@
+﻿
+// This file is to test the parse, make sure error
+// messages look good and no crashes, etc.
+// Comment out "pragma NoParse"
+pragma NoParse
+//pragma ShowSemi
+
+
+use Zurfur
+
+namespace TestSyntax
+
+
+pub struct ro test
+{
+    pub const MaxValue i8 = 127
+    pub const MinValue i8 = -128
+    pub const Origin i8 = 0
+    pub const Identity i8 = 1
+
+
+    // Try to give good info at the end of each line
+    fun new(a i8) // Next line shouldn't be a compound error
+    pub fun
+    fun A
+    fun B(
+    fun C(a
+    fun E(a int
+    fun F(a int,
+    fun G(a int, b
+    pub fun H(a int, b int)  // Compound error on this line (not next)
+    pub fun I(a int, b int) void
+
+    // Error in 'fun' declaration still parses function after '{'
+    fun I(a int, x) hello world void
+    {
+        if a > 3   // Error: Next line doesn't look like a compound
+        a += 1
+
+        if a > 3
+            a+=1; b+=1  // Error: Looks like b+=1 is part of compound
+
+        if a >
+        a+= 1       // No error (it's on the previous line)
+
+        if a > 3 return 4 // Error: Compound must be on next line
+        
+    }
+
+    fun I(a int, x) hello world void
+    NoCompoundHere()
+
+
+    
+}

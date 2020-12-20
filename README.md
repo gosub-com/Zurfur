@@ -36,10 +36,10 @@ Here are some key features:
     * References are non-nullable by default and may use `?type` for nullable
     * Get/set of a mutable type acts like you expect (e.g. `myObject.VectorProperty.X = 3` works)
 * Fast and efficient:
+    * All non-array objects are value types (many fewer heap objets, great for functional programming)
     * Return references and span used everywhere. `[]int` is `Span<int>`, and OK to pass to async functions
     * Single threaded model (from Javascript) allows efficient reference counted heap objects
     * Safe multithreading via web workers (`clone` and `bag` defined as fast deep copy for message passing)
-    * Allow class to be value object to reduce heap allocations
     * Functions pass parameters by reference, but will pass by value when it is more efficient
     * Async acts like a Golang blocking call without the `await` keyword (no garbage created for the task)
 * More:
@@ -136,9 +136,10 @@ Functions can return multiple values:
 
 ## Types
 
-Like C#, `struct` is a value type and `class` is a heap object. 
-**TBD:** Still trying to work out if we can have `owned` classes
-to eliminate some heap allocations and garbage.
+I am leaning towards making Zurfur a value oriented language, requiring `^`
+for heap objects.  Every object is a value with a clear owner but is passed
+to a function via reference.  The function may modify the object if it was
+passed with `mut`, but cannot ever capture a reference to it.
 
 ### Owned Object Discussion
 

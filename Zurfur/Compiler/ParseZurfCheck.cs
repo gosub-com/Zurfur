@@ -18,7 +18,7 @@ namespace Gosub.Zurfur.Compiler
 
         static WordSet sRequireGlobalFieldQualifiers = new WordSet("const static");
         static WordSet sRequireGlobalFuncQualifiers = new WordSet("static");
-        static WordSet sFuncInInterfaceQualifiersAllowed = new WordSet("pub private protected static mut async error");
+        static WordSet sFuncInInterfaceQualifiersAllowed = new WordSet("pub private protected static mut imp async error");
 
         static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static");
         static WordSet sClassQualifiers = new WordSet("pub pfublic protected private internal unsafe unsealed abstract ro boxed");
@@ -29,7 +29,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static ro const var mut @");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
 
-        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe virtual override new mut static async error");
+        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe virtual override new mut ref static extern imp async error");
         static WordSet sPropQualifiers = new WordSet("pub public protected private internal unsafe static virtual override new");
 
         static WordSet sTopLevelStatements = new WordSet("{ ( = += -= *= /= %= &= |= ~= <<= >>= => @ "
@@ -40,6 +40,7 @@ namespace Gosub.Zurfur.Compiler
 
         static WordMap<int> sClassFuncFieldQualifiersOrder = new WordMap<int>()
         {
+            { "extern", 0 }, { "imp", 0 },
             { "pub", 1 }, { "public", 1 }, { "protected", 1 }, { "private", 1 }, { "internal", 1 },
             { "unsafe", 2 },
             { "static", 4 },  {"const", 4 },
@@ -117,10 +118,10 @@ namespace Gosub.Zurfur.Compiler
                 CheckQualifiers(func.ParentScope, func.Name, func.Qualifiers);
 
                 CheckStatements(null, func.Statements);
-                if (func.Statements == null)
-                {
-                    mParser.RejectToken(func.Keyword, "Missing body");
-                }
+                //if (func.Statements == null)
+                //{
+                //    mParser.RejectToken(func.Keyword, "Missing body");
+                //}
 
                 var keyword = func.Keyword;
                 var outerKeyword = func.ParentScope == null ? "" : func.ParentScope.Keyword;

@@ -10,50 +10,41 @@ namespace Zurfur
 /// span exists causes a run-time error in debug mode
 /// or a memory leak in release mode.  Always memory safe.
 pub class List<T>
-    implements Iterable<List<T>, T>
+    implements Collection<T>
 {
     pub const MaxItems uint = uint.Max/4/Math.Max(1,sizeof(t))
 
-
-    // Detect incorrect list passed to iterator
-    // and mutation while iterating.
-    const MASTER_VERSION_INC int = 65536 + 1024
-    static sMasterVersion int = 0
-
     // The GC will follow this pointer because it is special.
     // `items` is never referenced when count is zero, so
-    // we can unsafe cast to follow without checking for null
-    items  ?*GcRefArray<T>
-    count int           // Current size of the list
-    version int         // Increment when Count changes
-
-    pub fun new()
-    {
-        version = sMasterVersion
-        sMasterVersion += MASTER_VERSION_INC
-    }
+    // we can cast (unsafely) to follow without checking for null
+    items  *GcRefArray<T>
+    pub prop Count int get private set
+    pub prop Version int get private set  // Increment when Count changes
     
     pub fun new(capacity int)
     {
-        new()
         SetCapacity(capacity)
     }
 
     fun drop mut()
     {
-        if items != null
+        if items == null
+            return
+        if items.Ref != 1
         {
-            if items.Ref != 1
-            {
-                count = 0
-                items.Ref -= 1
-                Log.PanicInDebugMode("Drop while span exists")
-                return
-            }
-            Clear()
-            unsafe dlMalloc.Free(items)
-            items = null
+            Count = 0
+            items.Ref -= 1
+            Log.PanicInDebugMode("Drop while span exists")
+            return
         }
+        Clear()
+        unsafe dlMalloc.Free(items)
+        items = null
+    }
+
+    pub fun IncVersion()
+    {
+        Version = Version + 1
     }
     
     /// Grow the capacity to be at least minCount size.
@@ -75,15 +66,15 @@ pub class List<T>
     
     pub fun Trim(extra int = 0)
     {
-        SetCapacity(count + extra)
+        SetCapacity(Count + extra)
     }
     
     // Set the capacity, won't shrink below count.
     // Always makes a copy, even if capacity is the same.
     fun SetCapacity(capacity int)
     {
-        version += 1
-        @capacity = Math.Max(capacity, count)
+        IncVersion()
+        @capacity = Math.Max(capacity, Count)
         Debug.PanicIf(uint(capacity) > MaxItems)
         
         // Move items into new array
@@ -92,7 +83,7 @@ pub class List<T>
         {
             items = unsafe cast(*T)DlMalloc.Calloc(sizeof(T)*capacity)
             *items = GcRefArray(Count:capacity, Ref:oldItems.Ref)
-            unsafe MemCopy32(items.Data, oldItems.Data, sizeof(T)*count)
+            unsafe MemCopy32(items.Data, oldItems.Data, sizeof(T)*Count)
         }
         else
         {
@@ -114,8 +105,7 @@ pub class List<T>
     }
 
 
-    // TBD: Where to clone
-    pub fun new(items Span<T>)
+    pub fun new(items []T)
     {
     }
     
@@ -124,37 +114,43 @@ pub class List<T>
     }
 
 
-    pub fun operator[](index int) ref mut T
-        => todo()
-
-    pub fun operator[](range Range<int>) ref mut Span<T>
-        => todo()
     
-    pub prop Count int => count
-    pub fun Clear mut() => todo
-    pub fun Push mut(item T) => todo()
-    pub fun Push mut(items Span<T>) => todo()
-    pub fun Pop mut() ?T => todo()
-    pub fun Insert mut(index int, item T) => todo()
-    pub fun Insert mut(index int, items Span<T>) => todo()
-    pub fun Insert mut(index int, items Collection<T>) => todo()
-    pub fun Remove mut(index int) => todo()
-    pub fun Remove mut(range Range<int>) => todo()
-
-    pub fun Convert<Tout>(f fun(item T)Tout) => todo()
-    pub fun Find(f fun(item T)) => todo()
-    pub fun Sort mut(compare fun(a T, b T)bool) => todo()
-    pub fun Sort mut(compare fun(a T, b T)bool, range Range<int>) => todo()
+    pub fun Clear mut()
+        todo()
+    pub fun Push mut(item T)
+        todo()
+    pub fun Push mut(items Span<T>)
+        todo()
+    pub fun Pop mut() ?T
+        todo()
+    pub fun Insert mut(index int, item T)
+        todo()
+    pub fun Insert mut(index int, items Span<T>)
+        todo()
+    pub fun Insert mut(index int, items Collection<T>)
+        todo()
+    pub fun Remove mut(index int)
+        todo()
+    pub fun Remove mut(range Range<int>)
+        todo()
+    pub fun Convert<Tout>(f fun(item T)Tout)
+        todo()
+    pub fun Find(f fun(item T))
+        todo()
+    pub fun Sort mut(compare fun(a T, b T)bool)
+        todo()
+    pub fun Sort mut(compare fun(a T, b T)bool, range Range<int>)
+        todo()
 
     pub fun Remove(test fun(item T) bool exit) exit
     {
-        @v = version
+        @v = Version
         @si = 0
         @di = 0
-        while si < count
+        while si < Count
         {
             @remove = test(items[si])
-            if v != version
+            if v != Version
                 throw InvalidIteratorException()
             if !remove
             {
@@ -167,7 +163,7 @@ pub class List<T>
         Remove(di:si)
         return
     error:
-        if v != version
+        if v != Version
             throw InvalidIteratorException()
         Remove(di:si)
     }
@@ -175,28 +171,50 @@ pub class List<T>
     // Usage: myList.For @item => DoStuffWithItem()
     pub fun For(f fun(item mut T) exit) exit
     {
-        @v = version
-        for @i in count
+        @v = Version
+        for @i in Count
         {
             f(items[i])
-            if v != version
+            if v != Version
                 throw InvalidIteratorException()
         }
     }
 
-    
-    pub struct ListIterator<T>
-        implements Iterator<List<T>, T>
+    pub fun operator[](index int) ref mut T
+       todo()
+
+    pub fun operator[](range Range<int>) ref mut ListSpan<T>
+       todo()
+
+    // TBD: Implement ListSpan
+    pub struct ListSpan<T>
     {
+        
+    }
+
+    // TBD: Verify that it's impossible to get a mutable
+    //      ListIterator from an immutable list reference
+    pub fun GetIterator ref() ListIterator<T>
+    {
+        return ListIterator<T>(this)
+    }
+
+    pub struct ref ListIterator<T>
+        implements Iterator<T>
+    {
+        list ref List<T>
         version int
         index int = -1
         
-        pub fun new(list List<T>)
-            { version = list.version }
-            
-        pub fun Next mut(list List<T>) ?mut ref T
+        pub fun new(list ref List<T>)
         {
-            if version != list.version
+            this.list = ref list
+            version = list.Version
+        }
+            
+        pub fun Next mut() ?ref T
+        {
+            if version != list.Version
                 throw InvalidIteratorException()
             index += 1
             if index < list.Count
@@ -204,12 +222,6 @@ pub class List<T>
             return null
         }
 
-        pub fun Current(list List<T>) mut ref T
-        {
-            if version != list.version
-                throw InvalidIteratorException()
-            return ref list[index]
-        }
     }
                
 }

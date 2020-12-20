@@ -18,7 +18,7 @@ namespace Gosub.Zurfur.Compiler
     {
         public const string VT_TYPE_ARG = "$"; // Differentiate from '<' (must be 1 char long)
         // TBD: Allow pragmas to be set externally
-        static WordSet sPragmas = new WordSet("ShowParse ShowMetaSymbols ShowSemicolons");
+        static WordSet sPragmas = new WordSet("ShowParse ShowMeta ShowSemi NoParse");
 
 
         ParseZurfCheck mZurfParseCheck;
@@ -34,8 +34,8 @@ namespace Gosub.Zurfur.Compiler
         List<Token>         mMetaTokens = new List<Token>();
         int                 mTernaryLevel;
         Token               mTokenAfterInsertedToken;
-        bool                mShowMetaSymbols;
-        bool                mShowMetaSemicolons;
+        bool                mShowMeta;
+        bool                mShowSemi;
 
         // Be kind to GC
         Queue<List<SyntaxExpr>>   mExprCache = new Queue<List<SyntaxExpr>>();
@@ -49,7 +49,7 @@ namespace Gosub.Zurfur.Compiler
 
         // Add semicolons to all lines, except for:
         static WordSet sEndLineSkipSemicolon = new WordSet("; { [ ( ,");
-        static WordSet sBeginLineForceSemicolon = new WordSet("}");
+        static WordSet sBeginLineForceSemicolon = new WordSet("} namespace pub fun afun extern imp static");
         static WordSet sBeginLineSkipSemicolon = new WordSet("{ ] ) + - / % | & || && == != = "
                             + ": ? . , > << <= < => -> .. :: !== === += -= *= /= %= &= |= =  is in as");
 
@@ -61,16 +61,16 @@ namespace Gosub.Zurfur.Compiler
             + "typeof type unsafe using static virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where nameof "
             + "box boxed init move copy clone drop error dispose own owned "
-            + "trait extends implements implement impl union fun afun def yield let cast "
+            + "trait extends implements implement impl imp union fun afun def yield let cast "
             + "any dyn loop select match event from to of on cofun cofunc global local val it throws atask task "
             + "scope assign @ and or not xor with cap exit pragma");
 
-        static WordSet sReservedFuncNames = new WordSet("new init drop copy move clone dispose match cast default implicit");
+        static WordSet sReservedFuncNames = new WordSet("new init drop copy move clone dispose match cast default implicit unsafe sizeof");
         static WordSet sReservedIdentifierVariables = new WordSet("null this true false default base match it new");
         static WordSet sTypeSymbols = new WordSet("? * ^ [ mut ref in out ro");
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static unsealed abstract virtual override new ro");
+            + "static extern imp unsealed abstract virtual override new ro");
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sAllowConstraintKeywords = new WordSet("unmanaged");
@@ -96,7 +96,7 @@ namespace Gosub.Zurfur.Compiler
 
         static WordSet sStatementEndings = new WordSet("; => }");
         static WordSet sStatementsDone = new WordSet("} namespace class struct interface enum", true);
-        static WordSet sRejectAnyStop = new WordSet("=> ; { } namespace class struct interface enum if else for while throw switch case func fun prop aprop get set", true);
+        static WordSet sRejectAnyStop = new WordSet("=> ; { }", true);
         static WordSet sRejectForCondition = new WordSet("in");
         static WordSet sRejectFuncName = new WordSet("(");
         static WordSet sRejectFuncParam = new WordSet(", )");
@@ -114,7 +114,6 @@ namespace Gosub.Zurfur.Compiler
             mSyntax = new SyntaxFile();
             mSyntax.Lexer = lexer;
             mZurfParseCheck = new ParseZurfCheck(this);
-            Accept();
         }
 
         // Be kind to GC
@@ -173,24 +172,33 @@ namespace Gosub.Zurfur.Compiler
             while (mTokenName != "")
                 Accept();
 
-            mLexer.ShowMetaTokens = mShowMetaSemicolons || mShowMetaSymbols;
+            mLexer.ShowMetaTokens = mShowSemi || mShowMeta;
 
             return mSyntax;
         }
+        class NoCompilePragmaException : Exception { }
 
         /// <summary>
         /// Parse the file
         /// </summary>
         void ParseCompilationUnit()
         {
-            while (mTokenName != "")
+            try
             {
-                ParseScopeStatements(null);
-                if (mTokenName != "")
+                Accept();
+                while (mTokenName != "")
                 {
-                    RejectToken(mToken, "Unexpected symbol at top level scope");
-                    Accept();
+                    ParseScopeStatements(null);
+                    if (mTokenName != "")
+                    {
+                        RejectToken(mToken, "Unexpected symbol at top level scope");
+                        Accept();
+                    }
                 }
+            }
+            catch (NoCompilePragmaException)
+            {
+
             }
         }
 
@@ -614,12 +622,6 @@ namespace Gosub.Zurfur.Compiler
             if (mToken.Error)
                 return;
 
-            // Look ahead for problems
-            if (mTokenName != "=>" && mTokenName != "{" && mTokenName != "get" && mTokenName != "=")
-            {
-                Reject("Expecting '{', '=>', or 'get'"); // NOTE: "=" rejected below
-                return;
-            }
             if (mTokenName == "=")
             {
                 RejectToken(mToken, "Expecting '{', '=>', or 'get'.  Only auto generated properties can have an initialization expression.");
@@ -641,7 +643,6 @@ namespace Gosub.Zurfur.Compiler
                 return;
             }
 
-
             var synFunc = new SyntaxFunc(keyword);
             synFunc.ParentScope = parentScope;
             synFunc.NamePath = mNamePath;
@@ -650,10 +651,8 @@ namespace Gosub.Zurfur.Compiler
             synFunc.Name = propertyName;
             synFunc.Params = typeName;
 
-            if (mTokenName == "=>")
-                synFunc.Statements = ParseStatementsSeparator();
-            else
-                synFunc.Statements = ParseStatements("'" + synFunc.Name + "' property");
+            if (qualifiers.FindIndex(token => token.Name == "imp" || token.Name == "extern") < 0)
+                synFunc.Statements = ParseCompoundStatement(keyword);
 
             AddMethod(synFunc);
         }
@@ -680,15 +679,15 @@ namespace Gosub.Zurfur.Compiler
                 qualifiers.Add(Accept());
             if (mTokenName == "mut")
                 qualifiers.Add(Accept());
+            if (mTokenName == "ref")
+                qualifiers.Add(Accept());
 
             synFunc.Params = ParseMethodSignature(keyword, true);
 
             synFunc.Constraints = ParseConstraints();
 
-            if (mTokenName == "=>")
-                synFunc.Statements = ParseStatementsSeparator();
-            else
-                synFunc.Statements = ParseStatements("'" + synFunc.Name + "' method");
+            if (qualifiers.FindIndex(token => token.Name == "imp" || token.Name == "extern") < 0)
+                synFunc.Statements = ParseCompoundStatement(keyword);
 
             synFunc.Qualifiers = qualifiers.ToArray();
             return synFunc;
@@ -819,15 +818,30 @@ namespace Gosub.Zurfur.Compiler
                 Reject("Expecting '{' or end of line");
                 return new SyntaxError();
             }
+            // We are on the invisible meta semi-colon.
+            // Ensure next line is indented before continuing
+            if (mTokenAfterInsertedToken.X < mLexer.GetLineTokens(keyword.Y)[0].X + 2)
+            {
+                RejectToken(mToken, "Next line of compound statement must be indented at least two spaces");
+                return new SyntaxError();
+            }
+
             Accept();
             if (mTokenName == "}")
+            {
                 RejectToken(mPrevToken, "Expecting '{' or non-empty statement");
+                return new SyntaxError();
+            }
             else if (mTokenName == ";")
+            {
                 RejectToken(mToken, "Expecting '{' or non-empty statement");
-            else if (mToken.X < keyword.X + 2)
-                RejectToken(mToken, "Compound statement must be indented at least two spaces after the '" + keyword.Name + "' keyword");
+                return new SyntaxError();
+            }
             else if (sNoSubCompoundStatement.Contains(mTokenName))
+            {
                 RejectToken(mToken, "Compound statement may not embed a '" + mTokenName + "' statement");
+                return new SyntaxError();
+            }
             var semicolon = mPrevToken;
 
             var statement = NewExprList();
@@ -835,7 +849,8 @@ namespace Gosub.Zurfur.Compiler
 
             if (mTokenName == ";" && !mToken.Meta)
                 RejectToken(mToken, "Compound statement may not have another statement on the same line, use braces");
-            AcceptSemicolonOrReject();
+            else if (mTokenName != ";")
+                RejectToken(mToken, "Expecting ';' or end of line");
 
             return new SyntaxMulti(NewVirtualToken(semicolon, "{"), FreeExprList(statement));
         }
@@ -862,30 +877,6 @@ namespace Gosub.Zurfur.Compiler
 
             return new SyntaxMulti(openToken, FreeExprList(statements));
         }
-
-        /// <summary>
-        /// Parse '=> expression', including things like '=> extern get'
-        /// </summary>
-        SyntaxExpr ParseStatementsSeparator()
-        {
-            if (mToken != "=>")
-                throw new Exception("Compiler error: Expecting '=>'");
-            var keyword = Accept();
-            if (sExternalMethodBodies.ContainsKey(mTokenName))
-            {
-                var getToken = mLexer.EndToken;
-                var setToken = mLexer.EndToken;
-                var extrnalToken = Accept();
-                if (AcceptMatch("get"))
-                    getToken = mPrevToken;
-                if (AcceptMatch("set"))
-                    setToken = mPrevToken;
-                return new SyntaxUnary(keyword, new SyntaxBinary(extrnalToken,
-                            new SyntaxToken(getToken), new SyntaxToken(setToken)));
-            }
-            return new SyntaxUnary(keyword, ParseExpr());                 
-        }
-
         private void ParseStatement(List<SyntaxExpr> statements, bool requireSemicolon = true)
         {
             var keyword = mToken;
@@ -1050,7 +1041,9 @@ namespace Gosub.Zurfur.Compiler
                     break;
 
                 default:
-                    if (sRejectAnyStop.Contains(mTokenName))
+                    if ((sReservedWords.Contains(mTokenName) || mTokenName == "")
+                        && !sReservedIdentifierVariables.Contains(mTokenName)
+                        && !sReservedFuncNames.Contains(mTokenName))
                     {
                         RejectToken(mToken, "Unexpected token or reserved word");
                         Accept();
@@ -1975,7 +1968,7 @@ namespace Gosub.Zurfur.Compiler
 
                 mTokenAfterInsertedToken = mToken;
                 mToken = new Token(";", x, prevToken.Y, eTokenBits.Meta);
-                if (mShowMetaSemicolons)
+                if (mShowSemi)
                     mMetaTokens.Add(mToken);
                 mTokenName = ";";
             }
@@ -2094,16 +2087,23 @@ namespace Gosub.Zurfur.Compiler
                 RejectToken(mToken, "Duplicate pragma");
                 return;
             }
-            if (mTokenName == "__fail")
-                throw new Exception("Parse fail test");
-            if (mTokenName == "ShowSemicolons")
-                mShowMetaSemicolons = true;
-            if (mTokenName == "ShowMetaSymbols")
-                mShowMetaSymbols = true;
-
             if (!sPragmas.Contains(mTokenName))
                 mToken.AddWarning("Unkown pragma");
             mSyntax.Pragmas[mTokenName] = new SyntaxPragma(mToken);
+
+            if (mTokenName == "__fail")
+                throw new Exception("Parse fail test");
+            if (mTokenName == "ShowSemi")
+                mShowSemi = true;
+            if (mTokenName == "ShowMeta")
+                mShowMeta = true;
+            if (mTokenName == "NoParse")
+            {
+                while (Accept() != "")
+                { }
+                throw new NoCompilePragmaException();
+            }
+
         }
 
         public class ParseError : TokenError
@@ -2146,7 +2146,9 @@ namespace Gosub.Zurfur.Compiler
             //      Example: `Poperator[](key TKey) TValue => impl get`
 
             bool accepted = false;
-            while (!sRejectAnyStop.Contains(mToken) && !extraStops.Contains(mToken))
+            while (!sRejectAnyStop.Contains(mToken)
+                    && !sReservedWords.Contains(mTokenName)
+                    && !extraStops.Contains(mToken))
             {
                 mToken.Grayed = true;
                 Accept();
@@ -2163,7 +2165,7 @@ namespace Gosub.Zurfur.Compiler
         Token NewVirtualToken(Token connectedToken, string text)
         {
             var virtualToken = new Token(text, connectedToken.X, connectedToken.Y, eTokenBits.Meta);
-            if (mShowMetaSymbols)
+            if (mShowMeta)
                 mMetaTokens.Add(virtualToken);
             Connect(connectedToken, virtualToken);
             return virtualToken;

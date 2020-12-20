@@ -29,7 +29,7 @@ pub class Log
     // The compiler will fill in the line number of the caller
     pub struct ro LogLine
     {
-        pub fun default() => extern
+        extern pub fun default()
         pub ro Line int
     }
 

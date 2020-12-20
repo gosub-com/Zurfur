@@ -1,7 +1,7 @@
-
-//pragma ShowSemicolons       // Show invisible semicolons
+//pragma ShowSemi       // Show invisible semicolons
 //pragma ShowParse            // Show the parse tree (hover over a symbol)
-//pragma ShowMetaSymbols      // Show parser symbols
+//pragma ShowMeta     // Show parser symbols
+//pragma NoParse
 
 // Press F4 to see header file report
 
@@ -34,8 +34,10 @@ pub class Example
     info str                             // Initialized string
     list List<str> = ["Hello", "World"]  // Mutable list
     ro map Map<str,int> = ["A":1,"B":2]  // Immutable map
-    pub fun GetInfo(a int) str => info+a // Public function
-    pub prop Info str => info            // Public property
+    pub fun GetInfo(a int) str
+        return info+a
+    pub prop Info str
+        return info
 
     a Zim<void>
     b Zim<object>
@@ -136,8 +138,10 @@ pub static fun test_Main(args Array<str>)
         return @x => f(g(x))
     }
 
-    fun triple(x int) int => x*3
-    fun square(x int) int => x*x
+    fun triple(x int) int
+        return x*3
+    fun square(x int) int
+        return x*x
     
 
 }
@@ -151,13 +155,11 @@ pub static fun AcceptMatch(name str) ?Token
 
 // Regular static function
 pub static fun add(a int, b int) int
-    => a + b
+    return a + b
 
 // Multiple returns
 pub static fun Circle(a f64, r f64) -> (x f64, y f64)
-{
     return Cos(a)*r, Sin(a)*r
-}
 
 
 pub class MutableTest
@@ -172,14 +174,15 @@ pub class MutableTest
     ro e mut List<MyObject>
 
 
-    pub fun getMyObjectAt(i int) mut MyObject => todo()
-    pub fun getMyObjects() List<mut MyObject> => todo()
-    pub fun getMyObjects2() mut List<MyObject> => todo()
-    pub prop P1 MyObject => i
-    pub prop P2 mut MyObject => i
+    pub fun getMyObjectAt(i int) mut MyObject { todo() }
+    pub fun getMyObjects() List<mut MyObject> { todo() }
+    pub fun getMyObjects2() mut List<MyObject> { todo() }
+    pub prop P1 MyObject { return i }
+    pub prop P2 mut MyObject { return i }
     
-    pub prop P mut str => Header + info       // Public property
-    fun getListObject(i mut int) mut MyObject => a[i]
+    pub prop P mut str { return Header + info }
+    fun getListObject(i mut int) mut MyObject
+        return a[i]
 
 }
 
@@ -206,10 +209,11 @@ pub class Example_x
     pub const CONST_FIELD int = 234
     pub field1 f32
     pub field2 int
-    pub prop Prop str => Header + info      // Property
-    pub fun A(a int, b int, c f32) f32 => a+1
-    pub fun A(a f32) f32 => a+1
-    pub fun B(a f32) f32 => a+1
+    pub prop Prop str
+        return Header + info
+    pub fun A(a int, b int, c f32) f32 { return  a+1 }
+    pub fun A(a f32) f32 { return a+1 }
+    pub fun B(a f32) f32 { return a+1 }
     pub prop ChangedTime DateTime get set = DateTime.Now
         
     pub fun E()
@@ -221,7 +225,8 @@ pub class Example_x
     }
     
 }
-pub fun Example::MyExtension2() => Func1(10) // Extension method
+pub fun Example::MyExtension2()
+    return Func1(10)
 
 
 pub fun Example::MyExtension()
@@ -254,7 +259,8 @@ pub struct PointXY<T>
     pub x int
     pub y int
     
-    pub fun operator+(a PointXY<T>, b PointXY<T>) PointXY<T> => todo()
+    pub fun operator+(a PointXY<T>, b PointXY<T>) PointXY<T>
+        todo()
 }
 
 pub fun Example::Extension()
@@ -272,7 +278,7 @@ pub fun Example::Extension()
 struct MyStruct(a int)
 
 // Test class
-pub class Example2  // YES, errors working
+pub class Example2<Q>  // YES, errors working
 {
     // Todo List:
     //    .. operator doesn't need parameters at beginning or end
@@ -307,8 +313,8 @@ pub class Example2  // YES, errors working
     f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
-    pub prop P1 int => 1
-    pub prop P2 f32 =>  f1 + f2
+    pub prop P1 int { return 1 }
+    pub prop P2 f32 { return f1 + f2 }
     pub prop P4 int get set = 3
     pub prop P5 int
     {
@@ -318,10 +324,12 @@ pub class Example2  // YES, errors working
         p1 = value
     }
     
-    pub fun operator[](index int) int => index
+    pub fun operator[](index int) int
+        return index
     
     // Function
-    fun fun1(a int) f32 => f1 + f2 + a
+    fun fun1(a int) f32
+        return f1 + f2 + a
     fun fun2(a int) { }
     fun fun3(a out str) bool {}
     fun fun4(a ref MyStruct) {}
@@ -329,8 +337,22 @@ pub class Example2  // YES, errors working
     fun fun6(a List<int>) { }
     fun fun7(a out List<List<int>>) { }
     fun fun8(a Map<str,List<int>>) { }
+
+
+    pub fun CompareY(a int, b void) int
+        return -1
+
+    pub fun CompareZ(a Q, b Q) void
+        return -1
+
+    pub fun CompareX<T>(a T, b T) int
+        return -1
     
-    pub fun Sort<T>(greaterThan fun(a T,b T)bool) { }
+    pub fun Sort<T>(greaterThan fun(a T,b T)bool)
+        Todo()
+
+
+    
     pub MyFieldFunc fun(a object,b str)void
 
 
@@ -491,7 +513,8 @@ pub struct MyPoint
 {
     pub X int
     pub Y int
-    pub override fun ToStr() => "(" X ", " Y ")"
+    pub override fun ToStr()
+        return "(" X ", " Y ")"
 }
 
 
@@ -507,10 +530,12 @@ pub enum MyEnum
 
 pub interface MyInterfaceTest
 {
-    fun A() int => imp
-    protected fun C() int => imp
+    imp fun A() int
+    imp protected fun C() int
         
-    pub fun B() int => A() + 1
+    pub fun B() int
+        return A() + 1
+        
     pub struct Astruct { pub a int }
     pub enum Aenum { a; b; c}
     pub struct Aclass { pub a int  }
@@ -519,8 +544,10 @@ pub interface MyInterfaceTest
 pub class MyClass1
     implements MyInterfaceTest
 {
-    pub fun A() int => 3
-    pub fun MyInterfaceTest::C() int => 3
+    pub fun A() int
+        return 3
+    pub fun MyInterfaceTest::C() int
+        return 3
 
 }
 
@@ -553,7 +580,8 @@ pub class Matrix2d<T>
     extends VariableSizedObject<T>
 {
     fun new(len1 int, len2 int) { todo() }
-    pub fun operator[](i1 int, i2 int) ref T => todo()
+    pub fun operator[](i1 int, i2 int) ref T
+        todo()
 }
 
 
@@ -615,7 +643,8 @@ pub static fun MemCopy32(dest *void, source *void, length xint)
 
 namespace TestExample.ExampleNs1.HelloWorld
 
-static fun F1() => todo
+static fun F1()
+    todo()
 
 class ClassEx1
 {
@@ -626,7 +655,8 @@ class ClassEx1
 
 
 namespace TestExample.ExampleNs1
-    static fun F1() => todo
+    static fun F1()
+        todo()
     
 namespace TestExample.ExampleNs1.InnerEx1
 
@@ -660,7 +690,8 @@ class ClassEx2
 
 namespace TestExample.ExampleNs2
 
-static fun F1() => todo
+static fun F1()
+    todo()
 
 class ClassEx1
 {

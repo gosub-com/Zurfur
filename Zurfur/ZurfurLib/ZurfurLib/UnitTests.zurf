@@ -21,8 +21,10 @@ pub class Example
     list List<str> = ["Hello", "World"]// Private mutable list
     ro m Map<str,int> = ["A":1, "B":2] // Private immutable map
     pub ro Header str = "Zurfur"       // Public immutable string
-    pub fun F(a int) int => m["A"]+10   // Public function
-    pub prop P str => Header + info     // Public property
+    pub fun F(a int) int
+        return m["A"]+10   // Public function
+    pub prop P str
+        return Header + info     // Public property
 }
 
 static fun test_ForSimple()

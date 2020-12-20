@@ -217,6 +217,9 @@
     <None Include="ZurfurLib\www\Test.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="ZurfurLib\ZurfurLib\SyntaxErrors.zurf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="ZurfurLib\ZurfurLib\Unsafe.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

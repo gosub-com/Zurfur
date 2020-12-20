@@ -21,12 +21,16 @@ pub struct object_base<T>
     // TBD: The compiler only generates these when
     //      T is Equatable, Comparable, clonable, etc.
     static fun GetHashCode<T>(a ref T)
-        where T is Equatable => extern
+        where T is Equatable
+        todo()
     static fun Equals<T>(a ref T, b ref T)
-        where T is Equatable => extern
+        where T is Equatable
+        todo()
     static fun Compare<T>(a ref T, b ref T)
-        where T is Comparable => extern
-    static fun clone<T>(a ref T) => extern
+        where T is Comparable
+        todo()
+    static fun clone<T>(a ref T)
+        todo()
 }
 
 
@@ -68,14 +72,12 @@ pub struct ro GcRefArray<T>
 
     // TBD: Need access to 'this' pointer (use 'ref' on property?)
     pub unsafe prop Data *T
-        => cast(*T)(cast(xuint)&this + sizeof(GcRefArray<T>))
+        return cast(*T)(cast(xuint)&this + sizeof(GcRefArray<T>))
 
     // TBD: Need access to 'this' pointer (use 'ref' on function?)
     /// No bounds checking
     pub unsafe fun operator[](index int) *T
-    {
         return unsafe cast(*T)(cast(xuint)&this
                                 + sizeof(GcRefArray<T>)
                                 + sizeof(T)*index)
-    }
 }

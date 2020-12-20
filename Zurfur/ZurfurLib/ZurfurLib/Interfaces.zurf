@@ -6,8 +6,8 @@ namespace Zurfur.Collections
 /// in that NAN must compare to itself as true.
 pub static interface Equatable<T>
 {
-    static fun GetHashCode(a T) uint => impl
-    static fun Equals(a T, b T) bool => impl
+    imp static fun GetHashCode(a T) uint
+    imp static fun Equals(a T, b T) bool
 }
 
 /// Implement IComparable on any object that can be sorted.
@@ -16,44 +16,35 @@ pub static interface Equatable<T>
 pub static interface Comparable<T>
     implements Equatable<T>
 {
-    static fun Compare(a T, b T) int  => impl
+    imp static fun Compare(a T, b T) int
 }
 
 pub static interface IArithmetic<T>
     implements Comparable<T>
 {
-    fun operator-(a T) T => impl
-    fun operator-(a T, b T) T => impl
-    fun operator+(a T, b T) T => impl
-    fun operator*(a T, b T) T => impl
-    fun operator/(a T, b T) T => impl
-    fun operator%(a T, b T) T => impl
-    static prop Identity T => impl get
-    static prop Origin T => impl get
+    imp fun operator-(a T) T
+    imp fun operator-(a T, b T) T
+    imp fun operator+(a T, b T) T
+    imp fun operator*(a T, b T) T
+    imp fun operator/(a T, b T) T
+    imp fun operator%(a T, b T) T
+    imp static prop Identity T get
+    imp static prop Origin T get
 }
 
-pub interface Iterable<TCollection, T>
+pub interface Collection<T>
 {
-    fun GetIterator() Iterator<TCollection, T> => impl
+    imp prop Count int get
+    imp fun GetIterator() Iterator<T>
 }
 
 /// This is the only function needed for standard iterators
-pub interface Iterator<TCollection, T>
+pub interface Iterator<T>
 {
     /// Get the next item from a collection.
     /// Returns null if there are no more items.
     /// Panic if collection is mutated while iterating.
-    fun Next mut(collection TCollection<T>) ?mut ref T => impl
-
-    /// Return the item previously returned by Next.
-    /// Panic if Next was never called, or if Next returned null.
-    fun Current(collection TCollection<T>) mut ref T => impl
-}
-
-pub interface Collection<T>
-    implements Iterable<T>
-{
-    prop Count int => impl get
+    imp fun Next mut() ?ref T
 }
 
 
@@ -69,14 +60,15 @@ pub struct Pair<TKey, TValue>
 /// This is a test
 pub interface IGeneric<Q>
 {
-    fun A<T>(Q m) int => test()
+    fun A<T>(m Q) int
+        test()
 }
 
 // Test generic type
 pub class MyGeneric<QQ>
     implements IGeneric<QQ>
 {
-    pub fun IGeneric<QQ>::A<T>(QQ a) int { }
+    pub fun IGeneric<QQ>::A<T>(a QQ) int { }
 }
 
 /// Compiler implemented interface created for all structs that are blittable.

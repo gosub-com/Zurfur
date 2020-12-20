@@ -146,6 +146,8 @@ namespace Gosub.Zurfur.Lex
         /// </summary>
         public string GetLine(int index) { return mLines[index]; }
 
+        public Token []GetLineTokens(int line) { return mTokens[line]; }
+
         /// <summary>
         /// Returns v, bounded by min and max (or min if min >= max)
         /// </summary>

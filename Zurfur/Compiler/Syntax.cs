@@ -50,7 +50,6 @@ namespace Gosub.Zurfur.Compiler
 
 
         public Token Keyword => Token; // class, struct, func, prop, blank for field, etc.
-        public virtual bool IsType => false;
         public SyntaxScope ParentScope;
         public string[] NamePath;
         public string Comments;
@@ -83,7 +82,6 @@ namespace Gosub.Zurfur.Compiler
         {
         }
 
-        public override bool IsType => true;
         public bool Simple;
         public SyntaxExpr Extends;
         public SyntaxExpr []Implements;

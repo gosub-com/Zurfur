@@ -42,16 +42,15 @@ namespace Gosub.Zurfur.Compiler
         {
             var token = newSymbol.Token;
             token.AddInfo(newSymbol);
-            var parentSymbol = mSymbols[newSymbol.ParentName];
-            if (!parentSymbol.Children.TryGetValue(newSymbol.Name, out var remoteSymbolName))
+            var parentSymbol = newSymbol.Parent;
+            if (!parentSymbol.Children.TryGetValue(newSymbol.Name, out var remoteSymbol))
             {
-                parentSymbol.Children[newSymbol.Name] = newSymbol.FullName;
+                parentSymbol.Children[newSymbol.Name] = newSymbol;
                 mSymbols[newSymbol.FullName] = newSymbol;
                 return true;
             }
 
             // Duplicate
-            var remoteSymbol = mSymbols[remoteSymbolName];
             Reject(token, "Duplicate symbol. There is a " + remoteSymbol.Kind + " with the same name");
             remoteSymbol.AddDuplicate(newSymbol);
             if (!(remoteSymbol is SymNamespace))
@@ -71,16 +70,16 @@ namespace Gosub.Zurfur.Compiler
         /// Find the symbol in the scope, or null if it is not found.
         /// Does not search use statements.
         /// </summary>
-        public Symbol FindScope(string name, Symbol parentScope)
+        public Symbol FindScope(string name, Symbol scope)
         {
-            while (parentScope.Name != "")
+            while (scope.Name != "")
             {
-                if (parentScope.Children.TryGetValue(name, out var symbol))
-                    return mSymbols[symbol];
-                parentScope = mSymbols[parentScope.ParentName];
+                if (scope.Children.TryGetValue(name, out var symbol))
+                    return symbol;
+                scope = scope.Parent;
             }
-            if (parentScope.Children.TryGetValue(name, out var symbol2))
-                return mSymbols[symbol2];
+            if (scope.Children.TryGetValue(name, out var symbol2))
+                return symbol2;
 
             return null;
         }
@@ -94,9 +93,9 @@ namespace Gosub.Zurfur.Compiler
             var symbol = mSymbols[""];
             foreach (var name in path)
             {
-                if (!symbol.Children.TryGetValue(name, out var childName))
+                if (!symbol.Children.TryGetValue(name, out var child))
                     throw new Exception("Compiler error: Could not find parent symbol '" + string.Join(".", path) + "'");
-                symbol = mSymbols[childName];
+                symbol = child;
             }
             return symbol;
         }
@@ -110,12 +109,12 @@ namespace Gosub.Zurfur.Compiler
             var symbol = mSymbols[""];
             foreach (var name in path)
             {
-                if (!symbol.Children.TryGetValue(name, out var childName))
+                if (!symbol.Children.TryGetValue(name, out var child))
                 {
                     Reject(name, "Namespace or type name not found");
                     return null;
                 }
-                symbol = mSymbols[childName];
+                symbol = child;
             }
             return symbol;
         }
@@ -128,7 +127,7 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public Symbol FindUse(Token name, Symbol scope, string[] use)
         {
-            var symbol = FindScope(name.Name, mSymbols[scope.ParentName]);
+            var symbol = FindScope(name.Name, scope);
             if (symbol != null)
                 return symbol;
 
@@ -137,7 +136,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 if (mSymbols[useSymbol].Children.TryGetValue(name.Name, out var newSymbol))
                 {
-                    symbols.Add(mSymbols[newSymbol]);
+                    symbols.Add(newSymbol);
                 }
             }
             if (symbols.Count == 0)

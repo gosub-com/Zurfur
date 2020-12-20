@@ -231,8 +231,10 @@ namespace Gosub.Zurfur.Ide
                     }
                     else if (symbol is SymMethod symMethod)
                     {
-                        message += symbol.Kind.ToUpper() + ": " + symbol.ParentName + "\r\n";
+                        message += symbol.Kind.ToUpper() + ": " + symbol.Parent.FullName + "\r\n";
                         message += "TYPE: " + symMethod.Name + "\r\n";
+                        foreach (var child in symMethod.Children)
+                            message += "    " + child.Key + ": " + child.Value.FullName + "\r\n";
                     }
                     else
                     {

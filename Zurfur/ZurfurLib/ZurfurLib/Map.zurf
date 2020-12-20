@@ -24,25 +24,33 @@ pub class Map<TKey, TValue>
     
     pub fun new(capacity int)
         where TKey is IEquatable
-        => todo()
-        
-    pub fun new(keyValues Collection<Pair<TKey, TValue>>) => todo()
-    
-    pub prop Count int => todo()
-
-    pub fun operator in(a TKey) bool => todo()
+        todo()
+    pub fun new(keyValues Collection<Pair<TKey, TValue>>)
+        todo()
+    pub prop Count int
+        todo()
+    pub fun operator in(a TKey) bool
+        todo()
     pub fun operator[](key TKey) ref TValue
-        => todo()
-    
-    pub fun Contains(key TKey) bool => todo()
-    pub fun Get(key TKey) TValue => todo()
-    pub fun Get(key TKey, defaultValue TValue) TValue => todo()
-    pub fun TryGet(key TKey) ?TValue => todo()
-    pub prop Keys Collection<TKey> => todo()
-    pub prop Values Collection<TValue> { get: todo() }
-
-    pub fun Clear mut() => todo()
-    pub fun Add mut(item Pair<TKey, TValue>) => todo()
-    pub fun Add mut(items Collection<Pair<TKey, TValue>>) => todo()
-    pub fun Remove mut(key TKey) bool => todo()
+       todo()
+    pub fun Contains(key TKey) bool
+        todo()
+    pub fun Get(key TKey) TValue
+        todo()
+    pub fun Get(key TKey, defaultValue TValue) TValue
+        todo()
+    pub fun TryGet(key TKey) ?TValue
+        todo()
+    pub prop Keys Collection<TKey>
+        todo()
+    pub prop Values Collection<TValue>
+        { get: todo() }
+    pub fun Clear mut()
+        todo()
+    pub fun Add mut(item Pair<TKey, TValue>)
+        todo()
+    pub fun Add mut(items Collection<Pair<TKey, TValue>>)
+        todo()
+    pub fun Remove mut(key TKey) bool
+        todo()
 }
