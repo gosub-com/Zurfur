@@ -18,7 +18,7 @@ namespace Gosub.Zurfur
         ZurfEditController  mEditController = new ZurfEditController();
         BuildPackage        mBuildPackage = new BuildPackage();
         string mCompilerStatus = "";
-        string mErrorLineStatus = "";
+        string mCursorLineStatus = "";
 
         int mRecompileForChangedLine = -1;
 
@@ -217,7 +217,7 @@ namespace Gosub.Zurfur
             if (textEditor == null)
                 return;
 
-            mErrorLineStatus = FindErrorOnLine(textEditor.Lexer, textEditor.CursorLoc);
+            mCursorLineStatus = FindErrorOnLine(textEditor.Lexer, textEditor.CursorLoc);
             UpdateStatus();
 
             if (textEditor.CursorLoc.Y == mRecompileForChangedLine || mRecompileForChangedLine < 0)
@@ -271,18 +271,18 @@ namespace Gosub.Zurfur
         {
             mCompilerStatus = e.Message;
             var editor = mvEditors.EditorViewActive as TextEditor;
-            mErrorLineStatus = "";
+            mCursorLineStatus = "";
             if (editor != null)
             {
                 var lexer = editor.Lexer;
-                mErrorLineStatus = FindErrorOnLine(lexer, lexer.Cursor);
+                mCursorLineStatus = FindErrorOnLine(lexer, lexer.Cursor);
             }
             UpdateStatus();
         }
 
         void UpdateStatus()
         {
-            labelStatus.Text = mCompilerStatus + (mErrorLineStatus == "" ? "" : " - ") + mErrorLineStatus;
+            labelStatus.Text = mCompilerStatus + (mCursorLineStatus == "" ? "" : " - ") + mCursorLineStatus;
         }
 
         private static string FindErrorOnLine(Lexer lexer, TokenLoc cursor)

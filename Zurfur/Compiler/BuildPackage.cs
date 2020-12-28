@@ -300,8 +300,8 @@ namespace Gosub.Zurfur.Compiler
                 foreach (var token in fi.Value.Lexer)
                 {
                     token.RemoveInfo<Symbol>();
-                    token.RemoveInfo<SilError>();
-                    token.RemoveInfo<SilWarn>();
+                    token.RemoveInfo<ZilError>();
+                    token.RemoveInfo<ZilWarn>();
 
                     // TBD: Move Error/Warn setting logic into Token class
                     token.Error = false;
@@ -316,10 +316,9 @@ namespace Gosub.Zurfur.Compiler
             var dt2 = DateTime.Now;
 
             // TBD: Move to background thread (clone Lexer, parse tree, etc.)
-            var sil = new SilGenHeader();
+            var sil = new ZilGenHeader();
             sil.EnumerateSymbols(zurfFiles);
             sil.ResolveTypeNames();
-            sil.GenerateHeader();
             mReport = sil.GenerateReport();
 
             var dt3 = DateTime.Now;

@@ -416,8 +416,8 @@ pub struct ro f32
     
     // Sort order (these are true): NAN>infinity, NAN==NAN, -0==+0
     extern pub static fun GetHashCode(a f32) uint
-    extern pub fun Equatable<f32>::Equals(a f32, b f32) bool
-    extern pub fun Comparable<f32>::Compare(a f32, b f32) int
+    extern pub static fun Equatable<f32>.Equals(a f32, b f32) bool
+    extern pub static fun Comparable<f32>.Compare(a f32, b f32) int
     
     pub prop IsInfinity bool
         todo()
@@ -491,8 +491,8 @@ pub struct ro f64
     
     // Sort order (these are true): NAN>infinity, NAN==NAN, -0==+0
     extern pub static fun GetHashCode(a f64) uint
-    extern pub fun Equatable<f32>::Equals(a f64, b f64) bool
-    extern pub fun Comparable<f32>::Compare(a f64, b f64) int
+    extern pub static fun Equatable<f32>.Equals(a f64, b f64) bool
+    extern pub static fun Comparable<f32>.Compare(a f64, b f64) int
     
     pub prop IsInfinity bool
         todo()
@@ -572,8 +572,8 @@ pub struct ro decimal
     
     // Sort order (these are true): NAN>infinity, NAN==NAN, -0==+0
     extern pub static fun GetHashCode(a decimal) uint
-    extern pub fun Equatable<f32>::Equals(a decimal, b decimal) bool
-    extern pub fun Comparable<f32>::Compare(a decimal, b decimal) int
+    extern pub static fun Equatable<f32>.Equals(a decimal, b decimal) bool
+    extern pub static fun Comparable<f32>.Compare(a decimal, b decimal) int
     
     // Overloadable operators
     extern pub fun operator-(a decimal) decimal

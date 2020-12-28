@@ -229,12 +229,22 @@ namespace Gosub.Zurfur.Ide
                         message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
                         message += "TYPE: " + symField.TypeName + "\r\n";
                     }
+                    else if (symbol is SymMethodArg symMethodArg)
+                    {
+                        message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
+                        message += "TYPE: " + symMethodArg.TypeName + "\r\n";
+                    }
                     else if (symbol is SymMethod symMethod)
                     {
-                        message += symbol.Kind.ToUpper() + ": " + symbol.Parent.FullName + "\r\n";
-                        message += "TYPE: " + symMethod.Name + "\r\n";
+                        message += symbol.Kind.ToUpper() + ": " + symbol.FullName + "\r\n";
+                        message += "PARAMS: \r\n";
                         foreach (var child in symMethod.Children)
-                            message += "    " + child.Key + ": " + child.Value.FullName + "\r\n";
+                        {
+                            if (child.Value is SymMethodArg arg)
+                                message += "    " + child.Key + ": " + arg.TypeName + "\r\n";
+                            else
+                                message += "    " + child.Key + ": Error - unknown type\r\n";
+                        }
                     }
                     else
                     {

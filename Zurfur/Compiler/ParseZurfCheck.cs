@@ -128,7 +128,7 @@ namespace Gosub.Zurfur.Compiler
                 if (func.NamePath.Length == 0)
                     mParser.RejectToken(keyword, "The namespace must be defined before method");
 
-                if ((outerKeyword == "" || outerKeyword == "namespace") && func.ClassName == null)
+                if ((outerKeyword == "" || outerKeyword == "namespace") && func.ExtensionType == null)
                 {
                     if (!HasQualifier(func.Qualifiers, sRequireGlobalFuncQualifiers))
                         mParser.RejectToken(keyword, "Methods at the namespace level must be 'static' or an extension method");
@@ -352,7 +352,9 @@ namespace Gosub.Zurfur.Compiler
             }
             foreach (var func in unit.Methods)
             {
-                ShowParseTree(func.Params);
+                //ShowParseTree(func.Name);
+                ShowParseTree(func.ExtensionType);
+                ShowParseTree(func.MethodSignature);
                 if (func.Statements != null)
                     foreach (var statement in func.Statements)
                         ShowParseTree(statement);

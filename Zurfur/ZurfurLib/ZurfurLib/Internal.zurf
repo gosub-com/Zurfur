@@ -29,8 +29,6 @@ pub struct object_base<T>
     static fun Compare<T>(a ref T, b ref T)
         where T is Comparable
         todo()
-    static fun clone<T>(a ref T)
-        todo()
 }
 
 

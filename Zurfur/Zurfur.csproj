@@ -52,10 +52,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Compiler\BuildPackage.cs" />
-    <Compile Include="Compiler\SymbolInfo.cs" />
     <Compile Include="Compiler\Symbols.cs" />
     <Compile Include="Lexer\ScanZurf.cs" />
-    <Compile Include="Compiler\SilGenHeader.cs" />
+    <Compile Include="Compiler\ZilGenHeader.cs" />
     <Compile Include="Compiler\SymbolTable.cs" />
     <Compile Include="Compiler\ParseZurfCheck.cs" />
     <Compile Include="Ide\IEditor.cs" />
@@ -217,7 +216,7 @@
     <None Include="ZurfurLib\www\Test.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\SyntaxErrors.zurf">
+    <None Include="ZurfurLib\ZurfurLib\ErrorTests.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="ZurfurLib\ZurfurLib\Unsafe.zurf">

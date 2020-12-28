@@ -11,6 +11,19 @@ use Zurfur
 namespace TestSyntax
 
 
+static fun A() { } // Duplicate
+static fun A() void{ } // Duplicate
+static fun B() int { } // Duplicate
+static fun B() f32 { } // Duplicate
+static fun C(a int, a int) { } // Duplicate parameter
+static fun D<X,X>(a X) { } // Duplicate type parameter
+static fun E<X>(a Y) { } // Unresolved type
+
+class A { pub fun A() { } } // Same name as parent
+class C<T> { class D<T> { } } // Same type arg name as parent
+class B<T> { pub fun A<T>() { } } // Same type arg name as parent
+
+
 pub struct ro test
 {
     pub const MaxValue i8 = 127

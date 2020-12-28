@@ -1,6 +1,5 @@
 ﻿use Zurfur.Unsafe
 use Zurfur.Compiler.Internal
-use Zurfur.Collections
 
 namespace Zurfur
 

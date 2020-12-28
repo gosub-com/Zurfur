@@ -85,7 +85,7 @@ namespace Gosub.Zurfur.Compiler
         public bool Simple;
         public SyntaxExpr Extends;
         public SyntaxExpr []Implements;
-        public SyntaxExpr TypeParams;
+        public SyntaxExpr TypeArgs;
         public SyntaxExpr Alias;
         public SyntaxConstraint []Constraints;
     }
@@ -108,11 +108,6 @@ namespace Gosub.Zurfur.Compiler
         public bool Simple;
         public SyntaxExpr TypeName;
         public SyntaxExpr Initializer;
-
-        // Only for properties
-        public Token GetToken;
-        public Token SetToken;
-        public Token GetSetVisibilityToken;
     }
 
     class SyntaxFunc : SyntaxScope
@@ -135,11 +130,18 @@ namespace Gosub.Zurfur.Compiler
             yield return Statements;
         }
 
-
-        public SyntaxExpr ClassName;
-        public SyntaxExpr Params; // 0: Type params, 1: Parameters, 2: Returns
+        public SyntaxExpr ExtensionType;
+        public SyntaxExpr TypeArgs;
+        public SyntaxExpr MethodSignature;
         public SyntaxConstraint[] Constraints;
         public SyntaxExpr Statements;
+
+        // Only for properties
+        public bool IsProperty;
+        public Token GetToken;
+        public Token SetToken;
+        public Token GetSetVisibilityToken;
+
     }
 
 

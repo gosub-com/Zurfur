@@ -1,5 +1,5 @@
 //pragma ShowSemi       // Show invisible semicolons
-//pragma ShowParse            // Show the parse tree (hover over a symbol)
+pragma ShowParse            // Show the parse tree (hover over a symbol)
 //pragma ShowMeta     // Show parser symbols
 //pragma NoParse
 
@@ -28,6 +28,16 @@ pub class SimpleClassWitBody(FirstName str, LastName str)
     fun ToStr() { return "" LastName ", " FirstName }
 }
 
+// https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
+pub static fun Iterable<T>.AlphaLengthWise<T, L>(
+               lengthProvider fun(t T) L) Iterable<T>
+{
+    return this
+        .OrderBy(@a => lengthProvider(a))
+        .ThenBy(@a => a)
+
+        f(t).AW(T,L).q
+}
 
 pub class Example
 {
@@ -36,6 +46,8 @@ pub class Example
     ro map Map<str,int> = ["A":1,"B":2]  // Immutable map
     pub fun GetInfo(a int) str
         return info+a
+    pub fun GetInfo(a str) str
+        return a
     pub prop Info str
         return info
 
@@ -225,11 +237,11 @@ pub class Example_x
     }
     
 }
-pub fun Example::MyExtension2()
+pub fun Example.MyExtension2()
     return Func1(10)
 
 
-pub fun Example::MyExtension()
+pub fun Example.MyExtension()
 {
     @a = Map<str,int>(["A":1, "B":2, "C":3])
     @b Map<str,int> = ["A":1, "B":2, "C":3]
@@ -263,7 +275,7 @@ pub struct PointXY<T>
         todo()
 }
 
-pub fun Example::Extension()
+pub fun Example.Extension()
 {
     for @a in 1..23
     {
@@ -451,7 +463,7 @@ pub class Example2<Q>  // YES, errors working
 }
 
 
-pub fun Example::IfTests()
+pub fun Example.IfTests()
 {
     // In operator
     if myStr in myMap || myIn in 1..23
@@ -546,7 +558,7 @@ pub class MyClass1
 {
     pub fun A() int
         return 3
-    pub fun MyInterfaceTest::C() int
+    pub fun MyInterfaceTest.C() int
         return 3
 
 }

@@ -1,5 +1,5 @@
 ﻿
-namespace Zurfur.Collections
+namespace Zurfur
 
 /// Implement IEquatable on any object that can be stored in a Map.
 /// This is different than implementing just Equals
@@ -33,12 +33,18 @@ pub static interface IArithmetic<T>
 }
 
 pub interface Collection<T>
+    implements Iterable<T>
 {
     imp prop Count int get
     imp fun GetIterator() Iterator<T>
 }
 
-/// This is the only function needed for standard iterators
+
+pub interface Iterable<T>
+{
+    imp fun GetIterator()
+}
+
 pub interface Iterator<T>
 {
     /// Get the next item from a collection.
@@ -68,7 +74,7 @@ pub interface IGeneric<Q>
 pub class MyGeneric<QQ>
     implements IGeneric<QQ>
 {
-    pub fun IGeneric<QQ>::A<T>(a QQ) int { }
+    pub fun IGeneric<QQ>.A<T>(a QQ) int { }
 }
 
 /// Compiler implemented interface created for all structs that are blittable.

@@ -45,6 +45,7 @@
             this.menuEditFindNext = new System.Windows.Forms.ToolStripMenuItem();
             this.viewRTFToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuDebug = new System.Windows.Forms.ToolStripMenuItem();
+            this.menuDebugViewOutput = new System.Windows.Forms.ToolStripMenuItem();
             this.menuDebugRun = new System.Windows.Forms.ToolStripMenuItem();
             this.menuHelp = new System.Windows.Forms.ToolStripMenuItem();
             this.menuHelpAbout = new System.Windows.Forms.ToolStripMenuItem();
@@ -53,14 +54,13 @@
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
-            this.projectTree = new Gosub.Zurfur.ProjectTree();
-            this.mvEditors = new Gosub.Zurfur.MultiViewEditor();
             this.buttonMax = new System.Windows.Forms.Button();
             this.buttonMin = new System.Windows.Forms.Button();
             this.buttonClose = new System.Windows.Forms.Button();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.labelStatus = new System.Windows.Forms.Label();
-            this.menuDebugViewOutput = new System.Windows.Forms.ToolStripMenuItem();
+            this.projectTree = new Gosub.Zurfur.ProjectTree();
+            this.mvEditors = new Gosub.Zurfur.MultiViewEditor();
             this.mainMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
@@ -80,7 +80,7 @@
             this.mainMenu.Location = new System.Drawing.Point(22, 1);
             this.mainMenu.Name = "mainMenu";
             this.mainMenu.RenderMode = System.Windows.Forms.ToolStripRenderMode.Professional;
-            this.mainMenu.Size = new System.Drawing.Size(302, 24);
+            this.mainMenu.Size = new System.Drawing.Size(182, 24);
             this.mainMenu.TabIndex = 16;
             this.mainMenu.Text = "menuStrip1";
             // 
@@ -202,10 +202,17 @@
             this.menuDebug.Text = "Debug";
             this.menuDebug.DropDownOpening += new System.EventHandler(this.menuDebug_DropDownOpening);
             // 
+            // menuDebugViewOutput
+            // 
+            this.menuDebugViewOutput.Name = "menuDebugViewOutput";
+            this.menuDebugViewOutput.Size = new System.Drawing.Size(163, 22);
+            this.menuDebugViewOutput.Text = "View Output (F4)";
+            this.menuDebugViewOutput.Click += new System.EventHandler(this.menuDebugViewOutput_Click);
+            // 
             // menuDebugRun
             // 
             this.menuDebugRun.Name = "menuDebugRun";
-            this.menuDebugRun.Size = new System.Drawing.Size(180, 22);
+            this.menuDebugRun.Size = new System.Drawing.Size(163, 22);
             this.menuDebugRun.Text = "Run (F5)";
             this.menuDebugRun.Click += new System.EventHandler(this.menuDebugRun_Click);
             // 
@@ -251,39 +258,15 @@
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.mvEditors);
-            this.splitContainer1.Size = new System.Drawing.Size(984, 533);
-            this.splitContainer1.SplitterDistance = 156;
+            this.splitContainer1.Size = new System.Drawing.Size(1323, 615);
+            this.splitContainer1.SplitterDistance = 165;
             this.splitContainer1.TabIndex = 20;
-            // 
-            // projectTree
-            // 
-            this.projectTree.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.projectTree.Location = new System.Drawing.Point(0, 0);
-            this.projectTree.Name = "projectTree";
-            this.projectTree.RootDir = "";
-            this.projectTree.Size = new System.Drawing.Size(156, 533);
-            this.projectTree.TabIndex = 20;
-            this.projectTree.FileDoubleClicked += new Gosub.Zurfur.ProjectTree.FileInfoDelegate(this.projectTree_FileDoubleClicked);
-            this.projectTree.FileMoved += new Gosub.Zurfur.ProjectTree.FileMovedDelegate(this.projectTree_FileMoved);
-            // 
-            // mvEditors
-            // 
-            this.mvEditors.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.mvEditors.EditorViewActive = null;
-            this.mvEditors.Location = new System.Drawing.Point(0, 0);
-            this.mvEditors.Name = "mvEditors";
-            this.mvEditors.Size = new System.Drawing.Size(824, 533);
-            this.mvEditors.TabIndex = 19;
-            this.mvEditors.EditorAdded += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorAdded);
-            this.mvEditors.EditorRemoved += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorRemoved);
-            this.mvEditors.EditorActiveViewChanged += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorActiveViewChanged);
-            this.mvEditors.EditorCanClose += new Gosub.Zurfur.MultiViewEditor.EditorCanCloseDelegate(this.mvEditors_EditorCanClose);
             // 
             // buttonMax
             // 
             this.buttonMax.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.buttonMax.Font = new System.Drawing.Font("Wingdings", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(2)));
-            this.buttonMax.Location = new System.Drawing.Point(915, 2);
+            this.buttonMax.Location = new System.Drawing.Point(1254, 2);
             this.buttonMax.Name = "buttonMax";
             this.buttonMax.Size = new System.Drawing.Size(32, 23);
             this.buttonMax.TabIndex = 21;
@@ -296,7 +279,7 @@
             // 
             this.buttonMin.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.buttonMin.Font = new System.Drawing.Font("Arial Narrow", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.buttonMin.Location = new System.Drawing.Point(881, 2);
+            this.buttonMin.Location = new System.Drawing.Point(1220, 2);
             this.buttonMin.Name = "buttonMin";
             this.buttonMin.Size = new System.Drawing.Size(32, 23);
             this.buttonMin.TabIndex = 22;
@@ -308,7 +291,7 @@
             // buttonClose
             // 
             this.buttonClose.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonClose.Location = new System.Drawing.Point(949, 2);
+            this.buttonClose.Location = new System.Drawing.Point(1288, 2);
             this.buttonClose.Name = "buttonClose";
             this.buttonClose.Size = new System.Drawing.Size(32, 23);
             this.buttonClose.TabIndex = 24;
@@ -333,24 +316,41 @@
             this.labelStatus.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.labelStatus.AutoSize = true;
             this.labelStatus.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.labelStatus.Location = new System.Drawing.Point(-1, 560);
+            this.labelStatus.Location = new System.Drawing.Point(-1, 642);
             this.labelStatus.Name = "labelStatus";
             this.labelStatus.Size = new System.Drawing.Size(51, 20);
             this.labelStatus.TabIndex = 26;
             this.labelStatus.Text = "label1";
             // 
-            // menuDebugViewOutput
+            // projectTree
             // 
-            this.menuDebugViewOutput.Name = "menuDebugViewOutput";
-            this.menuDebugViewOutput.Size = new System.Drawing.Size(180, 22);
-            this.menuDebugViewOutput.Text = "View Output (F4)";
-            this.menuDebugViewOutput.Click += new System.EventHandler(this.menuDebugViewOutput_Click);
+            this.projectTree.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.projectTree.Location = new System.Drawing.Point(0, 0);
+            this.projectTree.Name = "projectTree";
+            this.projectTree.RootDir = "";
+            this.projectTree.Size = new System.Drawing.Size(165, 615);
+            this.projectTree.TabIndex = 20;
+            this.projectTree.FileDoubleClicked += new Gosub.Zurfur.ProjectTree.FileInfoDelegate(this.projectTree_FileDoubleClicked);
+            this.projectTree.FileMoved += new Gosub.Zurfur.ProjectTree.FileMovedDelegate(this.projectTree_FileMoved);
+            // 
+            // mvEditors
+            // 
+            this.mvEditors.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.mvEditors.EditorViewActive = null;
+            this.mvEditors.Location = new System.Drawing.Point(0, 0);
+            this.mvEditors.Name = "mvEditors";
+            this.mvEditors.Size = new System.Drawing.Size(1154, 615);
+            this.mvEditors.TabIndex = 19;
+            this.mvEditors.EditorAdded += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorAdded);
+            this.mvEditors.EditorRemoved += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorRemoved);
+            this.mvEditors.EditorActiveViewChanged += new Gosub.Zurfur.MultiViewEditor.EditorDelegate(this.mvEditors_EditorActiveViewChanged);
+            this.mvEditors.EditorCanClose += new Gosub.Zurfur.MultiViewEditor.EditorCanCloseDelegate(this.mvEditors_EditorCanClose);
             // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(984, 582);
+            this.ClientSize = new System.Drawing.Size(1323, 664);
             this.Controls.Add(this.labelStatus);
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.buttonClose);

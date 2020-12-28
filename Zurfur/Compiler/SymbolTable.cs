@@ -50,8 +50,32 @@ namespace Gosub.Zurfur.Compiler
                 return true;
             }
 
+            DuplicateSymbol(newSymbol, remoteSymbol);
+            return false;
+        }
+
+        /// <summary>
+        /// Add a new symbol to its parent, mark duplicates if necessary.
+        /// Walk up the tree and mark duplicate if there are other type args with the same name.
+        /// Adds symbol info to token.
+        /// Returns true if it was added (false for duplicate)
+        /// </summary>
+        public bool AddTypeArg(SymType newSymbol)
+        {
+            bool isAdded = Add(newSymbol);
+            if (isAdded)
+            {
+                // TBD: Finish
+            }
+            return isAdded;
+        }
+
+
+        public void DuplicateSymbol(Symbol newSymbol, Symbol remoteSymbol, bool isMethod = false)
+        {
             // Duplicate
-            Reject(token, "Duplicate symbol. There is a " + remoteSymbol.Kind + " with the same name");
+            var postfix = $" with the same name {(isMethod ? "and type " : "")}as '{(isMethod?remoteSymbol.Parent:remoteSymbol)}'";
+            Reject(newSymbol.Token, "Duplicate symbol. There is a " + remoteSymbol.Kind + postfix);
             remoteSymbol.AddDuplicate(newSymbol);
             if (!(remoteSymbol is SymNamespace))
             {
@@ -59,10 +83,9 @@ namespace Gosub.Zurfur.Compiler
                     if (!symLoc.Token.Error)
                     {
                         symLoc.Token.AddInfo(newSymbol);
-                        Reject(symLoc.Token, "Duplicate symbol.  There is a " + newSymbol.Kind + " with the same name");
+                        Reject(symLoc.Token, "Duplicate symbol.  There is a " + newSymbol.Kind + postfix);
                     }
             }
-            return false;
         }
 
 
@@ -153,13 +176,11 @@ namespace Gosub.Zurfur.Compiler
             return symbols[0];
         }
 
-
-
         // Does not reject if there is already an error there
         void Reject(Token token, string message)
         {
             if (!token.Error)
-                token.AddError(new SilError(message));
+                token.AddError(new ZilError(message));
         }
 
 

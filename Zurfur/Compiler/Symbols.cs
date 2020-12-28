@@ -39,8 +39,16 @@ namespace Gosub.Zurfur.Compiler
     {
         public abstract string Kind { get; }
 
-        public string mName;
-        public string FullName { get; private set; }
+        /// <summary>
+        /// Short name
+        /// </summary>
+        public string Name { get; private set; } = "";
+
+        /// <summary>
+        /// Fully qualified name, except for type arguments which are short
+        /// </summary>
+        public string FullName { get; protected set; } = "";
+
         public string Comments = "";
 
         public Symbol Parent { get; private set; }
@@ -54,6 +62,7 @@ namespace Gosub.Zurfur.Compiler
         {
             Parent = parent;
             Name = token.Name;
+            FullName = GetFullName();
             AddLocation(file, token);
         }
 
@@ -61,23 +70,25 @@ namespace Gosub.Zurfur.Compiler
         {
             Parent = parent;
             Name = name;
+            FullName = GetFullName();
         }
 
-
-        public string Name
+        /// <summary>
+        /// WARNING: Use with care.  Don't try to rename a symbol that has
+        /// already been added to the table!  Everything will get messed up.
+        /// This will fix the symbol FullName and also the FullName of
+        /// the children, but it won't attempt to fix the parent.
+        /// </summary>
+        public void SetName(string name)
         {
-            get { return mName; }
-            set
-            {
-                mName = value;
-                FullName = GetFullName();
-                foreach (var child in Children)
-                    child.Value.Name = child.Value.Name;
-            }
+            Name = name;
+            FullName = GetFullName();
+            foreach (var child in Children.Values)
+                child.SetName(child.Name);
         }
 
 
-        string GetFullName()
+        protected virtual string GetFullName()
         {
             if (Parent == null || Parent.Name == "")
                 return Name;
@@ -131,6 +142,19 @@ namespace Gosub.Zurfur.Compiler
         {
             return FullName;
         }
+
+        /// <summary>
+        /// Find direct children of specific type
+        /// </summary>
+        public List<T>FindChildren<T>()
+        {
+            var children = new List<T>();
+            foreach (var child in Children.Values)
+                if (child is T symChild)
+                    children.Add(symChild);
+            return children;
+        }
+
     }
 
     class SymEmpty : Symbol
@@ -155,16 +179,36 @@ namespace Gosub.Zurfur.Compiler
         public SymType(Symbol parent, string name) : base(parent, name) { }
         public override string Kind => "type";
 
-        // TBD: This is only needed to maintain type arg order.  Could remove this
-        //      if we also store an ordered list of symbols in the symbol table
-        public string[] TypeArgs = Array.Empty<string>();
+        // The following is redundant (do not serialize, call SetChildInfo)
+        public string[] TypeArgs;
+        public string TypeArgNames() => TypeArgs.Length == 0 ? "" : "<" + string.Join(",", TypeArgs) + ">";
+
+        /// <summary>
+        /// Call this only once to fill in the redundant information
+        /// </summary>
+        public void SetChildInfo()
+        {
+            var ta = FindChildren<SymTypeArg>();
+            ta.Sort((a, b) => a.Order.CompareTo(b.Order));
+            TypeArgs = ta.ConvertAll(a => a.Name).ToArray();
+        }
     }
 
 
     class SymTypeArg : SymType
     {
-        public SymTypeArg(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
+        public SymTypeArg(Symbol parent, SymFile file, Token token, int index) : base(parent, file, token)
+        {
+            Order = index;
+        }
         public override string Kind => "type argument";
+
+        public int Order;
+
+        protected override string GetFullName()
+        {
+            return Name;
+        }
     }
 
     /// <summary>
@@ -218,7 +262,7 @@ namespace Gosub.Zurfur.Compiler
         public SymField(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
         public override string Kind => "field";
         public SyntaxField Syntax;
-        public string TypeName = "(unresolved)";
+        public SymType TypeName;
     }
 
     class SymMethodGroup : Symbol
@@ -229,20 +273,45 @@ namespace Gosub.Zurfur.Compiler
 
     class SymMethod : Symbol
     {
-        // The name is the function type
+        // The actual name is the method group (this name will be $1, etc.)
         public SymMethod(Symbol parent, string name) : base(parent, name) { }
         public override string Kind => "method";
 
-        // TBD: This is only needed to maintain type arg order.  Could remove this
-        //      if we also store an ordered list of symbols in the symbol table
-        public string[] TypeArgs = Array.Empty<string>();
+        // The following is redundant (do not serialize, call SetChildInfo)
+        public string[] TypeArgs;
+        public string ParamTypeNames = "";
+        public string ReturnTypeNames = "";
+        public SymMethodArg[] Params;
+        public SymMethodArg[] Returns;
+        public string TypeArgNames() => TypeArgs.Length == 0 ? "" : "<" + string.Join(",", TypeArgs) + ">";
 
+
+        /// <summary>
+        /// Call this only once to fill in the redundant information
+        /// </summary>
+        public void SetChildInfo()
+        {
+            var ta = FindChildren<SymTypeArg>();
+            ta.Sort((a,b) => a.Order.CompareTo(b.Order));
+            TypeArgs = ta.ConvertAll(a => a.Name).ToArray();
+            var p = FindChildren<SymMethodArg>();
+            p.Sort((a, b) => a.Order.CompareTo(b.Order));
+            Params = p.FindAll(a => !a.IsReturn).ToArray();
+            Returns = p.FindAll(a => a.IsReturn).ToArray();
+
+            ParamTypeNames = "(" + string.Join(",", Array.ConvertAll(Params, a => a.TypeName.ToString())) + ")";
+            ReturnTypeNames = "(" + string.Join(",", Array.ConvertAll(Returns, a => a.TypeName.ToString())) + ")";
+        }
     }
 
     class SymMethodArg : Symbol
     {
-        public SymMethodArg(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
+        public SymMethodArg(Symbol parent, SymFile file, Token token, int order) : base(parent, file, token)
+            { Order = order; }
         public override string Kind => "parameter";
-        public string TypeName = "(unresolved)";
+
+        public bool IsReturn;
+        public int Order;
+        public SymType TypeName;
     }
 }

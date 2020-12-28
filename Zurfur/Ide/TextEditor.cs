@@ -1225,8 +1225,9 @@ namespace Gosub.Zurfur
             float xEnd = PointX(col + tokenLength);
             float yEnd = PointY(token.Y + 1);
 
-            // If it's under the test point, return it
-            if (mTestPoint.X >= x && mTestPoint.X < xEnd
+            // Check if mTestToken is under mTestPoint, keep first hit which is the meta token
+            if (mTestToken == null
+                && mTestPoint.X >= x && mTestPoint.X < xEnd
                 && mTestPoint.Y >= y && mTestPoint.Y < yEnd)
             {
                 mTestToken = token;
