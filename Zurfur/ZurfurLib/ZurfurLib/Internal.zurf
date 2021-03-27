@@ -3,11 +3,8 @@ namespace Zurfur.Compiler
 
 pub class ro Attribute { }
 
-pub class ro AlignAttribute
+pub class ro AlignAttribute(Size int)
     extends Attribute
-{
-    pub ro Size int
-}
 
 
 namespace Zurfur.Compiler.Internal
@@ -15,30 +12,13 @@ namespace Zurfur.Compiler.Internal
 // TBD: This will contain compiler generated metadata for each type
 pub struct GcType { }
 
-// Base for all objects
-pub struct object_base<T>
-{
-    // TBD: The compiler only generates these when
-    //      T is Equatable, Comparable, clonable, etc.
-    static fun GetHashCode<T>(a ref T)
-        where T is Equatable
-        todo()
-    static fun Equals<T>(a ref T, b ref T)
-        where T is Equatable
-        todo()
-    static fun Compare<T>(a ref T, b ref T)
-        where T is Comparable
-        todo()
-}
-
-
 
 // Header for all heap objects
 [Align(8)]
 pub struct ro GcObject<T>
 {
-    pub ro Type *GcType
-    refCount int // Might not exist in GC implementations
+    @Type *GcType pub get
+    @refCount int // Might not exist in GC implementations
 }
 
 // Header for all heap array objects
@@ -46,11 +26,11 @@ pub struct ro GcObject<T>
 [Align(8)]
 pub struct ro GcArray<T>
 {
-    const DEFAULT_HASH uint= 0xFFFFFFFF
-    pub ro Type  *GcType
-    refCount int // Might not exist in GC implementations
-    pub ro Count  uint
-    hashCode uint = DEFAULT_HASH // Immutable type, so cache the hash
+    const DEFAULT_HASH uint = 0xFFFFFFFF
+    @Type *GcType pub get
+    @refCount int // Might not exist in GC implementations
+    @Count uint pub get
+    @hashCode uint = DEFAULT_HASH // Immutable type, so cache the hash
 }
 
 // This is the underlying array used by List<T>.
@@ -59,9 +39,9 @@ pub struct ro GcArray<T>
 [Align(8)]
 pub struct ro GcRefArray<T>
 {
-    pub ro Type     *GcType
-    pub    RefCount  uint
-    pub ro Count     uint
+    @Type *GcType pub get
+    @RefCount uint pub get set
+    @Count uint pub get
 
     pub fun new()
     {

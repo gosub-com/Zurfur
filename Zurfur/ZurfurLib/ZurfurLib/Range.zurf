@@ -25,8 +25,8 @@ pub struct RangeIterator<T>
     implements Iterator<T>
     where T is IArithmetic<T>
 {
-    index T
-    high T
+    @index T
+    @high T
     
     pub fun new(r Range<T>)
     {

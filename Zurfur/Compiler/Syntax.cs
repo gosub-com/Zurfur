@@ -136,7 +136,7 @@ namespace Gosub.Zurfur.Compiler
         public SyntaxConstraint[] Constraints;
         public SyntaxExpr Statements;
 
-        // Only for properties
+        // Only for fields/properties
         public bool IsProperty;
         public Token GetToken;
         public Token SetToken;

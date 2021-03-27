@@ -25,8 +25,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe ref ro");
         static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
 
-        static WordSet sFieldInStructQualifiers = new WordSet("pub public protected private internal unsafe static ro const var mut @");
-        static WordSet sFieldInClassQualifiers = new WordSet("pub public protected private internal unsafe static ro const var mut @");
+        static WordSet sFieldInStructQualifiers = new WordSet("pub public static ro const");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
 
         static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe virtual override new mut ref static extern imp async error");
@@ -40,15 +39,16 @@ namespace Gosub.Zurfur.Compiler
 
         static WordMap<int> sClassFuncFieldQualifiersOrder = new WordMap<int>()
         {
-            { "extern", 0 }, { "imp", 0 },
             { "pub", 1 }, { "public", 1 }, { "protected", 1 }, { "private", 1 }, { "internal", 1 },
             { "unsafe", 2 },
             { "static", 4 },  {"const", 4 },
             { "unsealed", 6 },
             { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
             { "ref", 10},
-            { "mut", 11 }, { "ro", 11}, {"readonly", 11},
-            { "async", 12 }
+            { "ro", 11}, {"readonly", 11},
+            { "mut", 12 },
+            { "async", 13 },
+            { "extern", 14 }, { "imp", 14 },
         };
 
         static WordMap<int> sOpClass = new WordMap<int>
@@ -175,8 +175,6 @@ namespace Gosub.Zurfur.Compiler
                         mParser.RejectToken(field.Name, "Fields are not allowed inside an interface");
                         break;
                     case "class":
-                        RejectQualifiers(field.Qualifiers, sFieldInClassQualifiers, "Does not apply to a field in a class");
-                        break;
                     case "struct":
                         RejectQualifiers(field.Qualifiers, sFieldInStructQualifiers, "Does not apply to a field in a struct");
                         break;

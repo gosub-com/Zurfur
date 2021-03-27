@@ -41,9 +41,26 @@ pub static fun Iterable<T>.AlphaLengthWise<T, L>(
 
 pub class Example
 {
-    info str                             // Initialized string
-    list List<str> = ["Hello", "World"]  // Mutable list
-    ro map Map<str,int> = ["A":1,"B":2]  // Immutable map
+    pub prop MyConst str return "Hello"
+    
+
+    @a1 str
+    @a2 str = "Hello"
+    @a3 List<str> = ["Hello", "World"]
+    @a4 List<int> = [1,2]
+    @a5 List<int> pub get
+    @a6 List<int> pub mut
+    @a7 List<int> pub get set
+    //pub a8 List<int>
+    //pub a9 private set List<int>
+    //pub private set a9 List<int>
+
+    ro @map1 Map<str,int> = ["A":1,"B":2]        // Immutable map
+    ro @map2 mut Map<str,int> = ["A":1,"B":2]    // Can't be assigned, can be mutated
+    ro @map3 Map<str,int> init                   // Read only, init in constructor
+    ro @map4 Map<str,int> pub init               // Read only, init in constructor allow public init
+    
+
     pub fun GetInfo(a int) str
         return info+a
     pub fun GetInfo(a str) str
@@ -51,28 +68,28 @@ pub class Example
     pub prop Info str
         return info
 
-    a Zim<void>
-    b Zim<object>
-    c Zim<i8>
-    d Zim<u8>
-    e Zim<byte>
-    f Zim<i16>
-    g Zim<u16>
-    h Zim<i32>
-    i Zim<u32>
-    j Zim<int>
-    k Zim<u64>
-    l Zim<i64>
-    m Zim<f64>
-    n Zim<f32>
-    o Zim<str>
-    p Zim<decimal>
+    @a Zim<void>
+    @b Zim<object>
+    @c Zim<i8>
+    @d Zim<u8>
+    @e Zim<byte>
+    @f Zim<i16>
+    @g Zim<u16>
+    @h Zim<i32>
+    @i Zim<u32>
+    @j Zim<int>
+    @k Zim<u64>
+    @l Zim<i64>
+    @m Zim<f64>
+    @n Zim<f32>
+    @o Zim<str>
+    @p Zim<decimal>
     
 }
 
 pub class Zim<T>
 {
-    pub q T
+    @q T pub get set
 }
 
 
@@ -178,39 +195,34 @@ pub class MutableTest
 {
     pub class MyObject { }
 
-    a MyObject
-    b List<MyObject>
+    @a MyObject
+    @b List<MyObject>
 
-    ro c mut MyObject
-    ro d mut List<MyObject>
-    ro e mut List<MyObject>
+    @c mut MyObject
+    ro @d mut List<MyObject>
+    @e mut List<MyObject>
 
 
-    pub fun getMyObjectAt(i int) mut MyObject { todo() }
-    pub fun getMyObjects() List<mut MyObject> { todo() }
-    pub fun getMyObjects2() mut List<MyObject> { todo() }
+    pub fun getMyObjectAt(i int) MyObject { todo() }
+    pub fun getMyObjects() List<MyObject> { todo() }
+    pub fun getMyObjects2() List<MyObject> { todo() }
     pub prop P1 MyObject { return i }
-    pub prop P2 mut MyObject { return i }
+    pub prop P2 MyObject { return i }
     
-    pub prop P mut str { return Header + info }
+    pub prop P str { return Header + info }
     fun getListObject(i mut int) mut MyObject
         return a[i]
 
 }
 
-// Mutable point (each mutable function must also be marked)
-pub struct MyMutablePoint
+// Mutable point
+pub struct MyMutablePoint(X int, Y int)
 {
-    pub X int
-    pub Y int
-    pub fun new(x int, y int) { X = x; Y = y}
     pub fun SetY mut(y int) { Y = y }
     pub prop PropX int
     {
-    get:
-        return X
-    set:
-        X = value
+        get: return X
+        set: X = value
     }
 }
 
@@ -219,14 +231,17 @@ pub struct MyMutablePoint
 pub class Example_x
 {
     pub const CONST_FIELD int = 234
-    pub field1 f32
-    pub field2 int
+    @field1 f32 pub get
+    @field2 int pub
+    @ChangedTime DateTime pub get = DateTime.Now
+
     pub prop Prop str
         return Header + info
     pub fun A(a int, b int, c f32) f32 { return  a+1 }
     pub fun A(a f32) f32 { return a+1 }
     pub fun B(a f32) f32 { return a+1 }
-    pub prop ChangedTime DateTime get set = DateTime.Now
+
+    struct DateTime { }
         
     pub fun E()
     {
@@ -264,15 +279,11 @@ pub fun Example.MyExtension()
 }
 
 
-pub struct PointXY<T>
+pub struct PointXY<T>(X int, Y int)
     implements IArithmetic<T>
-    where f is IAritmetic<T>
 {
-    pub x int
-    pub y int
-    
     pub fun operator+(a PointXY<T>, b PointXY<T>) PointXY<T>
-        todo()
+        return todo()
 }
 
 pub fun Example.Extension()
@@ -301,14 +312,14 @@ pub class Example2<Q>  // YES, errors working
     //    Switch statement
 
     // Fields initialized to zero, null, or "" for string
-    f1 int          // Initialized to 0
-    f2 f32      // Initialized to 0.0
-    f3 str          // Initialized to "", not NULL
+    @f1 int          // Initialized to 0
+    @f2 f32      // Initialized to 0.0
+    @f3 str          // Initialized to "", not NULL
     
-    f4 Array<int> = [1,2,3,4]
-    f5 Array<Array<int>>
-    f7 Map<str,List<int>>
-    f9 *int        // Same as Pointer<int>
+    @f4 Array<int> = [1,2,3,4]
+    @f5 Array<Array<int>>
+    @f7 Map<str,List<int>>
+    @f9 *int        // Same as Pointer<int>
 
     /// TBD: Maybe allow these
     //f10 = int(FuncReturnsInt())
@@ -318,22 +329,19 @@ pub class Example2<Q>  // YES, errors working
     //f13a = List<int>(32)          // Empty List, Capacity=32
     //f14 = Map<str,str>()          // Empty map
     
-    f15 int = 32
-    f16 int = FuncReturnsInt() >> 4
-    f17 f32 = FuncReturnsf32orInt()
-    f18 str = "Hello"
-    f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
+    @f15 int = 32
+    @f16 int = FuncReturnsInt() >> 4
+    @f17 f32 = FuncReturnsf32orInt()
+    @f18 str = "Hello"
+    @f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
-    pub prop P1 int { return 1 }
-    pub prop P2 f32 { return f1 + f2 }
-    pub prop P4 int get set = 3
+    pub prop P1 int return 1
+    pub prop P2 f32 return f1 + f2
     pub prop P5 int
     {
-    get:
-        return p1
-    set:
-        p1 = value
+        get: return p1
+        set: p1 = value
     }
     
     pub fun operator[](index int) int
@@ -361,11 +369,11 @@ pub class Example2<Q>  // YES, errors working
         return -1
     
     pub fun Sort<T>(greaterThan fun(a T,b T)bool)
-        Todo()
+        return Todo()
 
 
     
-    pub MyFieldFunc fun(a object,b str)void
+    @MyFieldFunc fun(a object,b str)void pub get
 
 
     pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
@@ -521,10 +529,8 @@ pub fun Example.IfTests()
         F(out mut @b, c)
 }
 
-pub struct MyPoint
+pub struct MyPoint(X int, Y int)
 {
-    pub X int
-    pub Y int
     pub override fun ToStr()
         return "(" X ", " Y ")"
 }
@@ -542,15 +548,15 @@ pub enum MyEnum
 
 pub interface MyInterfaceTest
 {
-    imp fun A() int
-    imp protected fun C() int
+    fun A() int imp
+    protected fun C() int imp
         
     pub fun B() int
         return A() + 1
         
-    pub struct Astruct { pub a int }
+    pub struct Astruct { @a int pub get }
     pub enum Aenum { a; b; c}
-    pub struct Aclass { pub a int  }
+    pub struct Aclass { @a int pub get }
 }
 
 pub class MyClass1
@@ -593,7 +599,7 @@ pub class Matrix2d<T>
 {
     fun new(len1 int, len2 int) { todo() }
     pub fun operator[](i1 int, i2 int) ref T
-        todo()
+        return todo()
 }
 
 
@@ -656,19 +662,19 @@ pub static fun MemCopy32(dest *void, source *void, length xint)
 namespace TestExample.ExampleNs1.HelloWorld
 
 static fun F1()
-    todo()
+    return todo()
 
 class ClassEx1
 {
-    a int
-    b int
+    @a int
+    @b int
 }
 
 
 
 namespace TestExample.ExampleNs1
     static fun F1()
-        todo()
+        return todo()
     
 namespace TestExample.ExampleNs1.InnerEx1
 
@@ -678,8 +684,8 @@ namespace TestExample.ExampleNs1
 
 class ClassEx1
 {
-    a int
-    b int
+    @a int
+    @b int
     class Inner1
     {
     }
@@ -703,12 +709,12 @@ class ClassEx2
 namespace TestExample.ExampleNs2
 
 static fun F1()
-    todo()
+    return todo()
 
 class ClassEx1
 {
-    a int
-    b int
+    @a int
+    @b int
     class Inner1
     {
     }

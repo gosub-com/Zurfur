@@ -27,9 +27,9 @@ pub struct xuint = u32
 pub struct ro bool
     implements Equatable<bool>
 {
-    extern pub static fun new(a bool)
-    extern pub static fun GetHashCode(a bool) uint
-    extern pub static fun Equals(a bool, b bool) bool
+    pub static fun new(a bool) extern
+    pub static fun GetHashCode(a bool) uint extern
+    pub static fun Equals(a bool, b bool) bool extern
 
     // Not overloadable, but these are supplied specially for this type
     // fun static operator!(a bool)
@@ -46,29 +46,28 @@ pub struct ro i8
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    extern pub fun new(a i8)
-
-    extern pub fun cast(a u8) i8
-    extern pub fun cast(a i16) i8
-    extern pub fun cast(a u16) i8
-    extern pub fun cast(a i32) i8
-    extern pub fun cast(a u32) i8
-    extern pub fun cast(a i64) i8
-    extern pub fun cast(a u64) i8
-    extern pub fun cast(a f32) i8
-    extern pub fun cast(a f64) i8
-    extern pub fun cast(a decimal) i8
+    pub fun new(a i8) extern
+    pub fun cast(a u8) i8 extern
+    pub fun cast(a i16) i8 extern
+    pub fun cast(a u16) i8 extern
+    pub fun cast(a i32) i8 extern
+    pub fun cast(a u32) i8 extern
+    pub fun cast(a i64) i8 extern
+    pub fun cast(a u64) i8 extern
+    pub fun cast(a f32) i8 extern
+    pub fun cast(a f64) i8 extern
+    pub fun cast(a decimal) i8 extern
     
-    extern pub fun implicit(a i8) i16
-    extern pub fun implicit(a i8) i32
-    extern pub fun implicit(a i8) i64
-    extern pub fun implicit(a i8) f32
-    extern pub fun implicit(a i8) f64
-    extern pub fun implicit(a i8) decimal
+    //pub fun implicit(a i8) i16
+    //pub fun implicit(a i8) i32
+    //pub fun implicit(a i8) i64
+    //pub fun implicit(a i8) f32
+    //pub fun implicit(a i8) f64
+    //pub fun implicit(a i8) decimal
     
-    extern pub static fun GetHashCode(a i8) uint
-    extern pub static fun Equals(a i8, b i8) bool
-    extern pub static fun Compare(a i8, b i8) int
+    pub static fun GetHashCode(a i8) uint extern
+    pub static fun Equals(a i8, b i8) bool extern
+    pub static fun Compare(a i8, b i8) int extern
 }
 
 
@@ -81,32 +80,32 @@ pub struct ro u8
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    extern pub fun new(a u8)
+    pub fun new(a u8) extern
     
-    extern pub fun cast(a i8) u8
-    extern pub fun cast(a i16) u8
-    extern pub fun cast(a u16) u8
-    extern pub fun cast(a i32) u8
-    extern pub fun cast(a u32) u8
-    extern pub fun cast(a i64) u8
-    extern pub fun cast(a u64) u8
-    extern pub fun cast(a f32) u8
-    extern pub fun cast(a f64) u8
-    extern pub fun cast(a decimal) u8
+    pub fun cast(a i8) u8 extern
+    pub fun cast(a i16) u8 extern
+    pub fun cast(a u16) u8 extern
+    pub fun cast(a i32) u8 extern
+    pub fun cast(a u32) u8 extern
+    pub fun cast(a i64) u8 extern
+    pub fun cast(a u64) u8 extern
+    pub fun cast(a f32) u8 extern
+    pub fun cast(a f64) u8 extern
+    pub fun cast(a decimal) u8 extern
 
-    extern pub fun implicit(a u8) i16
-    extern pub fun implicit(a u8) u16
-    extern pub fun implicit(a u8) i32
-    extern pub fun implicit(a u8) u32
-    extern pub fun implicit(a u8) i64
-    extern pub fun implicit(a u8) u64
-    extern pub fun implicit(a u8) f32
-    extern pub fun implicit(a u8) f64
-    extern pub fun implicit(a u8) decimal
+    //pub fun implicit(a u8) i16
+    //pub fun implicit(a u8) u16
+    //pub fun implicit(a u8) i32
+    //pub fun implicit(a u8) u32
+    //pub fun implicit(a u8) i64
+    //pub fun implicit(a u8) u64
+    //pub fun implicit(a u8) f32
+    //pub fun implicit(a u8) f64
+    //pub fun implicit(a u8) decimal
     
-    extern pub static fun GetHashCode(a u8) uint
-    extern pub static fun Equals(a u8, b u8) bool
-    extern pub static fun Compare(a u8, b u8) int
+    pub static fun GetHashCode(a u8) uint extern
+    pub static fun Equals(a u8, b u8) bool extern
+    pub static fun Compare(a u8, b u8) int extern
 }
 
 /// i16 (-32768..32768)
@@ -118,26 +117,26 @@ pub struct ro i16
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    extern pub fun new(a i16)
+    pub fun new(a i16) extern
 
-    extern pub fun cast(a u16) i16
-    extern pub fun cast(a i32) i16
-    extern pub fun cast(a u32) i16
-    extern pub fun cast(a i64) i16
-    extern pub fun cast(a u64) i16
-    extern pub fun cast(a f32) i16
-    extern pub fun cast(a f64) i16
-    extern pub fun cast(a decimal) i16
+    pub fun cast(a u16) i16 extern
+    pub fun cast(a i32) i16 extern
+    pub fun cast(a u32) i16 extern
+    pub fun cast(a i64) i16 extern
+    pub fun cast(a u64) i16 extern
+    pub fun cast(a f32) i16 extern
+    pub fun cast(a f64) i16 extern
+    pub fun cast(a decimal) i16 extern
 
-    extern pub fun implicit(a i16) i32
-    extern pub fun implicit(a i16) i64
-    extern pub fun implicit(a i16) f32
-    extern pub fun implicit(a i16) f64
-    extern pub fun implicit(a i16) decimal
+    //pub fun implicit(a i16) i32
+    //pub fun implicit(a i16) i64
+    //pub fun implicit(a i16) f32
+    //pub fun implicit(a i16) f64
+    //pub fun implicit(a i16) decimal
 
-    extern pub static fun GetHashCode(a i16) uint
-    extern pub static fun Equals(a i16, b i16) bool
-    extern pub static fun Compare(a i16, b i16) int
+    pub static fun GetHashCode(a i16) uint extern
+    pub static fun Equals(a i16, b i16) bool extern
+    pub static fun Compare(a i16, b i16) int extern
 }
 
 
@@ -150,29 +149,29 @@ pub struct ro u16
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    extern pub fun new(a u16)
+    pub fun new(a u16) extern
 
-    extern pub fun cast(a i8) u16
-    extern pub fun cast(a i16) u16
-    extern pub fun cast(a i32) u16
-    extern pub fun cast(a u32) u16
-    extern pub fun cast(a i64) u16
-    extern pub fun cast(a u64) u16
-    extern pub fun cast(a f32) u16
-    extern pub fun cast(a f64) u16
-    extern pub fun cast(a decimal) u16
+    pub fun cast(a i8) u16 extern
+    pub fun cast(a i16) u16 extern
+    pub fun cast(a i32) u16 extern
+    pub fun cast(a u32) u16 extern
+    pub fun cast(a i64) u16 extern
+    pub fun cast(a u64) u16 extern
+    pub fun cast(a f32) u16 extern
+    pub fun cast(a f64) u16 extern
+    pub fun cast(a decimal) u16 extern
 
-    extern pub fun implicit(a u16) i32
-    extern pub fun implicit(a u16) u32
-    extern pub fun implicit(a u16) i64
-    extern pub fun implicit(a u16) u64
-    extern pub fun implicit(a u16) f32
-    extern pub fun implicit(a u16) f64
-    extern pub fun implicit(a u16) decimal
+    //pub fun implicit(a u16) i32
+    //pub fun implicit(a u16) u32
+    //pub fun implicit(a u16) i64
+    //pub fun implicit(a u16) u64
+    //pub fun implicit(a u16) f32
+    //pub fun implicit(a u16) f64
+    //pub fun implicit(a u16) decimal
 
-    extern pub static fun GetHashCode(a u16) uint
-    extern pub static fun Equals(a u16, b u16) bool
-    extern pub static fun Compare(a u16, b u16) int
+    pub static fun GetHashCode(a u16) uint extern
+    pub static fun Equals(a u16, b u16) bool extern
+    pub static fun Compare(a u16, b u16) int extern
 }
 
 /// A 32 bit integer (same as int)
@@ -184,32 +183,32 @@ pub struct ro i32
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    extern pub fun new(a i32)
+    pub fun new(a i32) extern
 
-    extern pub fun cast(a u32) i32
-    extern pub fun cast(a i64) i32
-    extern pub fun cast(a u64) i32
-    extern pub fun cast(a f32) i32
-    extern pub fun cast(a f64) i32
-    extern pub fun cast(a decimal) i32
+    pub fun cast(a u32) i32 extern
+    pub fun cast(a i64) i32 extern
+    pub fun cast(a u64) i32 extern
+    pub fun cast(a f32) i32 extern
+    pub fun cast(a f64) i32 extern
+    pub fun cast(a decimal) i32 extern
     
-    extern pub fun implicit(a i32) i64
-    extern pub fun implicit(a i32) f32
-    extern pub fun implicit(a i32) f64
-    extern pub fun implicit(a i32) decimal
+    //pub fun implicit(a i32) i64
+    //pub fun implicit(a i32) f32
+    //pub fun implicit(a i32) f64
+    //pub fun implicit(a i32) decimal
 
     // Comparisons
-    extern pub static fun GetHashCode(a i32) uint
-    extern pub static fun Equals(a i32, b i32) bool
-    extern pub static fun Compare(a i32, b i32) int
+    pub static fun GetHashCode(a i32) uint extern
+    pub static fun Equals(a i32, b i32) bool extern
+    pub static fun Compare(a i32, b i32) int extern
 
     // Overloadable operators
-    extern pub fun operator-(a i32) i32
-    extern pub fun operator+(a i32, b i32) i32
-    extern pub fun operator-(a i32, b i32) i32
-    extern pub fun operator*(a i32, b i32) i32
-    extern pub fun operator/(a i32, b i32) i32
-    extern pub fun operator%(a i32, b i32) i32
+    pub fun operator-(a i32) i32 extern
+    pub fun operator+(a i32, b i32) i32 extern
+    pub fun operator-(a i32, b i32) i32 extern
+    pub fun operator*(a i32, b i32) i32 extern
+    pub fun operator/(a i32, b i32) i32 extern
+    pub fun operator%(a i32, b i32) i32 extern
     
     pub fun GetIterator() RangeIterator<i32>
         return RangeIterator<i32>(0, this)
@@ -222,12 +221,12 @@ pub struct ro i32
     // fun operator<<(a i32, b i32) i32
     // fun operator>>(a i32, b i32) i32
 
-    extern pub fun Abs() i32
-    extern pub fun Clamp(min i32, max i32) i32
-    extern pub fun Max(n2 i32) i32
-    extern pub fun Min(n2 i32) i32
-    extern pub fun Sign() int
-    extern pub fun Sq() i32
+    pub fun Abs() i32 extern
+    pub fun Clamp(min i32, max i32) i32 extern
+    pub fun Max(n2 i32) i32 extern
+    pub fun Min(n2 i32) i32 extern
+    pub fun Sign() int extern
+    pub fun Sq() i32 extern
 }
 
 /// 32 bit unsigned integer (same as uint)
@@ -239,35 +238,35 @@ pub struct ro u32
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    extern pub fun new(a u32)
+    pub fun new(a u32) extern
 
-    extern pub fun cast(a i8) u32
-    extern pub fun cast(a i16) u32
-    extern pub fun cast(a i32) u32
-    extern pub fun cast(a i64) u32
-    extern pub fun cast(a u64) u32
-    extern pub fun cast(a f32) u32
-    extern pub fun cast(a f64) u32
-    extern pub fun cast(a decimal) u32
+    pub fun cast(a i8) u32 extern
+    pub fun cast(a i16) u32 extern
+    pub fun cast(a i32) u32 extern
+    pub fun cast(a i64) u32 extern
+    pub fun cast(a u64) u32 extern
+    pub fun cast(a f32) u32 extern
+    pub fun cast(a f64) u32 extern
+    pub fun cast(a decimal) u32 extern
     
-    extern pub fun implicit(a u32) i64
-    extern pub fun implicit(a u32) u64
-    extern pub fun implicit(a u32) decimal
-    extern pub fun implicit(a u32) f32
-    extern pub fun implicit(a u32) f64
+    //pub fun implicit(a u32) i64
+    //pub fun implicit(a u32) u64
+    //pub fun implicit(a u32) decimal
+    //pub fun implicit(a u32) f32
+    //pub fun implicit(a u32) f64
     
     // Comparisons
-    extern pub static fun GetHashCode(a u32) uint
-    extern pub static fun Equals(a u32, b u32) bool
-    extern pub static fun Compare(a u32, b u32) int
+    pub static fun GetHashCode(a u32) uint extern
+    pub static fun Equals(a u32, b u32) bool extern
+    pub static fun Compare(a u32, b u32) int extern
     
     // Overloadable operators
-    extern pub fun operator-(a u32) u32
-    extern pub fun operator+(a u32, b u32) u32
-    extern pub fun operator-(a u32, b u32) u32
-    extern pub fun operator*(a u32, b u32) u32
-    extern pub fun operator/(a u32, b u32) u32
-    extern pub fun operator%(a u32, b u32) u32
+    pub fun operator-(a u32) u32 extern
+    pub fun operator+(a u32, b u32) u32 extern
+    pub fun operator-(a u32, b u32) u32 extern
+    pub fun operator*(a u32, b u32) u32 extern
+    pub fun operator/(a u32, b u32) u32 extern
+    pub fun operator%(a u32, b u32) u32 extern
     
     pub fun GetIterator() RangeIterator<u32>
         return RangeIterator<u32>(0, this)
@@ -281,10 +280,10 @@ pub struct ro u32
     // fun operator<<(a u32, b i32) u32
     // fun operator>>(a u32, b i32) u32
 
-    extern pub fun Clamp(min u32, max u32) u32
-    extern pub fun Max(n2 u32) u32
-    extern pub fun Min(n2 u32) u32
-    extern pub fun Sq() u32
+    pub fun Clamp(min u32, max u32) u32 extern
+    pub fun Max(n2 u32) u32 extern
+    pub fun Min(n2 u32) u32 extern
+    pub fun Sq() u32 extern
 }
 
 /// A 64 bit integer
@@ -296,28 +295,28 @@ pub struct ro i64
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    extern pub fun new(a i64)
+    pub fun new(a i64) extern
 
-    extern pub fun cast(a u64) i64
-    extern pub fun cast(a f32) i64
-    extern pub fun cast(a f64) i64
-    extern pub fun cast(a decimal) i64
+    pub fun cast(a u64) i64 extern
+    pub fun cast(a f32) i64 extern
+    pub fun cast(a f64) i64 extern
+    pub fun cast(a decimal) i64 extern
     
-    extern pub fun implicit(a i64) decimal
-    extern pub fun implicit(a i64) f64
+    //pub fun implicit(a i64) decimal
+    //pub fun implicit(a i64) f64
 
     // Comparisons
-    extern pub static fun GetHashCode(a i64) uint
-    extern pub static fun Equals(a i64, b i64) bool
-    extern pub static fun Compare(a i64, b i64) int
+    pub static fun GetHashCode(a i64) uint extern
+    pub static fun Equals(a i64, b i64) bool extern
+    pub static fun Compare(a i64, b i64) int extern
 
     // Overloadable operators
-    extern pub fun operator-(a i64) i64
-    extern pub fun operator+(a i64, b i64) i64
-    extern pub fun operator-(a i64, b i64) i64
-    extern pub fun operator*(a i64, b i64) i64
-    extern pub fun operator/(a i64, b i64) i64
-    extern pub fun operator%(a i64, b i64) i64
+    pub fun operator-(a i64) i64 extern
+    pub fun operator+(a i64, b i64) i64 extern
+    pub fun operator-(a i64, b i64) i64 extern
+    pub fun operator*(a i64, b i64) i64 extern
+    pub fun operator/(a i64, b i64) i64 extern
+    pub fun operator%(a i64, b i64) i64 extern
     
     pub fun GetIterator() RangeIterator<i64>
         return RangeIterator<i64>(0, this)
@@ -330,12 +329,12 @@ pub struct ro i64
     // fun operator<<(a i64, b i32) i64
     // fun operator>>(a i64, b i32) i64
 
-    extern pub fun Abs() i64
-    extern pub fun Clamp(min i64, max i64) i64
-    extern pub fun Max(n2 i64) i64
-    extern pub fun Min(n2 i64) i64
-    extern pub fun Sign() int
-    extern pub fun Sq() i64
+    pub fun Abs() i64 extern
+    pub fun Clamp(min i64, max i64) i64 extern
+    pub fun Max(n2 i64) i64 extern
+    pub fun Min(n2 i64) i64 extern
+    pub fun Sign() int extern
+    pub fun Sq() i64 extern
 }
 
 /// 64 bit unsigned integer
@@ -347,31 +346,31 @@ pub struct ro u64
     pub const Origin u64 = 0
     pub const Identity u64 = 1
 
-    extern pub fun new(a u64)
+    pub fun new(a u64) extern
 
-    extern pub fun cast(a i8) u64
-    extern pub fun cast(a i16) u64
-    extern pub fun cast(a i32) u64
-    extern pub fun cast(a i64) u64
-    extern pub fun cast(a f32) u64
-    extern pub fun cast(a f64) u64
-    extern pub fun cast(a decimal) u64
+    pub fun cast(a i8) u64 extern
+    pub fun cast(a i16) u64 extern
+    pub fun cast(a i32) u64 extern
+    pub fun cast(a i64) u64 extern
+    pub fun cast(a f32) u64 extern
+    pub fun cast(a f64) u64 extern
+    pub fun cast(a decimal) u64 extern
     
-    extern pub fun implicit(a u64) decimal
-    extern pub fun implicit(a u64) f64
+    //pub fun implicit(a u64) decimal
+    //pub fun implicit(a u64) f64
 
     // Comparisons
-    extern pub static fun GetHashCode(a u64) uint
-    extern pub static fun Equals(a u64, b u64) bool
-    extern pub static fun Compare(a u64, b u64) int
+    pub static fun GetHashCode(a u64) uint extern
+    pub static fun Equals(a u64, b u64) bool extern
+    pub static fun Compare(a u64, b u64) int extern
     
     // Overloadable operators
-    extern pub fun operator-(a u64) u64
-    extern pub fun operator+(a u64, b u64) u64
-    extern pub fun operator-(a u64, b u64) u64
-    extern pub fun operator*(a u64, b u64) u64
-    extern pub fun operator/(a u64, b u64) u64
-    extern pub fun operator%(a u64, b u64) u64
+    pub fun operator-(a u64) u64 extern
+    pub fun operator+(a u64, b u64) u64 extern
+    pub fun operator-(a u64, b u64) u64 extern
+    pub fun operator*(a u64, b u64) u64 extern
+    pub fun operator/(a u64, b u64) u64 extern
+    pub fun operator%(a u64, b u64) u64 extern
 
     pub fun GetIterator() RangeIterator<u64>
         return RangeIterator<u64>(0, this)
@@ -384,10 +383,10 @@ pub struct ro u64
     // fun operator<<(a u64, b i32)
     // fun operator>>(a u64, b i32)
 
-    extern pub fun Clamp(min u64, max u64) u64
-    extern pub fun Max(n2 u64) u64
-    extern pub fun Min(n2 u64) u64
-    extern pub fun Sq() u64
+    pub fun Clamp(min u64, max u64) u64 extern
+    pub fun Max(n2 u64) u64 extern
+    pub fun Min(n2 u64) u64 extern
+    pub fun Sq() u64 extern
 }
 
 pub struct ro f32
@@ -402,70 +401,66 @@ pub struct ro f32
     pub const Origin f32 = 0
     pub const Identity f32 = 1
 
-    extern pub fun new(a f32)
+    pub fun new(a f32) extern
 
-    extern pub fun cast(a f64) f32
-    extern pub fun cast(a decimal) f32
+    pub fun cast(a f64) f32 extern
+    pub fun cast(a decimal) f32 extern
     
-    extern pub fun implicit(a f32) f64
-    extern pub fun implicit(a f32) decimal
+    //pub fun implicit(a f32) f64
+    //pub fun implicit(a f32) decimal
 
     // Normal f32 comparisons
-    extern pub static fun Equals(a f32, b f32) bool
-    extern pub static fun Compare(a f32, b f32) int
+    pub static fun Equals(a f32, b f32) bool extern
+    pub static fun Compare(a f32, b f32) int extern
     
     // Sort order (these are true): NAN>infinity, NAN==NAN, -0==+0
-    extern pub static fun GetHashCode(a f32) uint
-    extern pub static fun Equatable<f32>.Equals(a f32, b f32) bool
-    extern pub static fun Comparable<f32>.Compare(a f32, b f32) int
+    pub static fun GetHashCode(a f32) uint extern
+    pub static fun Equatable<f32>.Equals(a f32, b f32) bool extern
+    pub static fun Comparable<f32>.Compare(a f32, b f32) int extern
     
-    pub prop IsInfinity bool
-        todo()
-    pub prop IsNaN bool
-        todo()
-    pub prop IsNegativeInfinity bool
-        todo()
-    pub prop IsPositiveInfinity bool
-        todo()
+    pub prop IsInfinity bool return todo()
+    pub prop IsNaN bool return todo()
+    pub prop IsNegativeInfinity bool return todo()
+    pub prop IsPositiveInfinity bool return todo()
 
     // Overloadable operators
-    extern pub fun operator-(a f32) f32
-    extern pub fun operator+(a f32, b f32) f32
-    extern pub fun operator-(a f32, b f32) f32
-    extern pub fun operator*(a f32, b f32) f32
-    extern pub fun operator/(a f32, b f32) f32
-    extern pub fun operator%(a f32, b f32) f32
+    pub fun operator-(a f32) f32 extern
+    pub fun operator+(a f32, b f32) f32 extern
+    pub fun operator-(a f32, b f32) f32 extern
+    pub fun operator*(a f32, b f32) f32 extern
+    pub fun operator/(a f32, b f32) f32 extern
+    pub fun operator%(a f32, b f32) f32 extern
     
 
     const PI f32 = 3.141592653589793238
     const E f32 = 2.718281828459045235
-    extern pub fun Abs() f32
-    extern pub fun Acos() f32
-    extern pub fun ASin() f32
-    extern pub fun ATan() f32
-    extern pub fun ATan2(x f32) f32
-    extern pub fun Ceil() f32
-    extern pub fun Clamp(min f32, max f32) f32
-    extern pub fun Cos() f32
-    extern pub fun Cosh() f32
-    extern pub fun Exp() f32
-    extern pub fun Floor(n f32) f32
-    extern pub fun Log() f32
-    extern pub fun Log2() f32
-    extern pub fun Log10() f32
-    extern pub fun Log(b f32) f32
-    extern pub fun Max(n2 f32) f32
-    extern pub fun Min(n2 f32) f32
-    extern pub fun Pow(y f32) f32
-    extern pub fun Round(d int = 0) f32
-    extern pub fun Sign() int
-    extern pub fun Sin() f32
-    extern pub fun Sinh() f32
-    extern pub fun Sqrt() f32
-    extern pub fun Sq() f32
-    extern pub fun Tan() f32
-    extern pub fun Tanh() f32
-    extern pub fun Trunc() f32
+    pub fun Abs() f32 extern
+    pub fun Acos() f32 extern
+    pub fun ASin() f32 extern
+    pub fun ATan() f32 extern
+    pub fun ATan2(x f32) f32 extern
+    pub fun Ceil() f32 extern
+    pub fun Clamp(min f32, max f32) f32 extern
+    pub fun Cos() f32 extern
+    pub fun Cosh() f32 extern
+    pub fun Exp() f32 extern
+    pub fun Floor(n f32) f32 extern
+    pub fun Log() f32 extern
+    pub fun Log2() f32 extern
+    pub fun Log10() f32 extern
+    pub fun Log(b f32) f32 extern
+    pub fun Max(n2 f32) f32 extern
+    pub fun Min(n2 f32) f32 extern
+    pub fun Pow(y f32) f32 extern
+    pub fun Round(d int = 0) f32 extern
+    pub fun Sign() int extern
+    pub fun Sin() f32 extern
+    pub fun Sinh() f32 extern
+    pub fun Sqrt() f32 extern
+    pub fun Sq() f32 extern
+    pub fun Tan() f32 extern
+    pub fun Tanh() f32 extern
+    pub fun Trunc() f32 extern
 }
 
 pub struct ro f64
@@ -480,66 +475,62 @@ pub struct ro f64
     pub const Origin f64 = 0
     pub const Identity f64 = 1
 
-    extern pub fun new(a f64)
-    extern pub fun cast(a decimal) f64
+    pub fun new(a f64) extern
+    pub fun cast(a decimal) f64 extern
     
-    extern pub fun implicit(a f64) decimal
+    pub fun implicit(a f64) decimal extern
 
     // Normal f64 comparisons
-    extern pub static fun Equals(a f64, b f64) bool
-    extern pub static fun Compare(a f64, b f64) int
+    pub static fun Equals(a f64, b f64) bool extern
+    pub static fun Compare(a f64, b f64) int extern
     
     // Sort order (these are true): NAN>infinity, NAN==NAN, -0==+0
-    extern pub static fun GetHashCode(a f64) uint
-    extern pub static fun Equatable<f32>.Equals(a f64, b f64) bool
-    extern pub static fun Comparable<f32>.Compare(a f64, b f64) int
+    pub static fun GetHashCode(a f64) uint extern
+    pub static fun Equatable<f32>.Equals(a f64, b f64) bool extern
+    pub static fun Comparable<f32>.Compare(a f64, b f64) int extern
     
-    pub prop IsInfinity bool
-        todo()
-    pub prop IsNaN bool
-        todo()
-    pub prop IsNegativeInfinity bool
-        todo()
-    pub prop IsPositiveInfinity bool
-        todo()
+    pub prop IsInfinity bool return todo()
+    pub prop IsNaN bool return todo()
+    pub prop IsNegativeInfinity bool return todo()
+    pub prop IsPositiveInfinity bool return todo()
     
     // Overloadable operators
-    extern pub fun operator-(a f64) f64
-    extern pub fun operator+(a f64, b f64) f64
-    extern pub fun operator-(a f64, b f64) f64
-    extern pub fun operator*(a f64, b f64) f64
-    extern pub fun operator/(a f64, b f64) f64
-    extern pub fun operator%(a f64, b f64) f64
+    pub fun operator-(a f64) f64 extern
+    pub fun operator+(a f64, b f64) f64 extern
+    pub fun operator-(a f64, b f64) f64 extern
+    pub fun operator*(a f64, b f64) f64 extern
+    pub fun operator/(a f64, b f64) f64 extern
+    pub fun operator%(a f64, b f64) f64 extern
     
     const PI f64 = 3.141592653589793238
     const E f64 = 2.718281828459045235
-    extern pub fun Abs() f64
-    extern pub fun Acos() f64
-    extern pub fun ASin() f64
-    extern pub fun ATan() f64
-    extern pub fun ATan2(x f64) f64
-    extern pub fun Ceil() f64
-    extern pub fun Clamp(min f64, max f64) f64
-    extern pub fun Cos() f64
-    extern pub fun Cosh() f64
-    extern pub fun Exp() f64
-    extern pub fun Floor(n f64) f64
-    extern pub fun Log() f64
-    extern pub fun Log2() f64
-    extern pub fun Log10() f64
-    extern pub fun Log(b f64) f64
-    extern pub fun Max(n2 f64) f64
-    extern pub fun Min(n2 f64) f64
-    extern pub fun Pow(y f64) f64
-    extern pub fun Round(d int = 0) f64
-    extern pub fun Sign() int
-    extern pub fun Sin() f64
-    extern pub fun Sinh() f64
-    extern pub fun Sqrt() f64
-    extern pub fun Sq() f64
-    extern pub fun Tan() f64
-    extern pub fun Tanh() f64
-    extern pub fun Trunc() f64
+    pub fun Abs() f64 extern
+    pub fun Acos() f64 extern
+    pub fun ASin() f64 extern
+    pub fun ATan() f64 extern
+    pub fun ATan2(x f64) f64 extern
+    pub fun Ceil() f64 extern
+    pub fun Clamp(min f64, max f64) f64 extern
+    pub fun Cos() f64 extern
+    pub fun Cosh() f64 extern
+    pub fun Exp() f64 extern
+    pub fun Floor(n f64) f64 extern
+    pub fun Log() f64 extern
+    pub fun Log2() f64 extern
+    pub fun Log10() f64 extern
+    pub fun Log(b f64) f64 extern
+    pub fun Max(n2 f64) f64 extern
+    pub fun Min(n2 f64) f64 extern
+    pub fun Pow(y f64) f64 extern
+    pub fun Round(d int = 0) f64 extern
+    pub fun Sign() int extern
+    pub fun Sin() f64 extern
+    pub fun Sinh() f64 extern
+    pub fun Sqrt() f64 extern
+    pub fun Sq() f64 extern
+    pub fun Tan() f64 extern
+    pub fun Tanh() f64 extern
+    pub fun Trunc() f64 extern
 }
 
 /// 128 bit decimal integer.  This will support NAN, infinity, and
@@ -547,7 +538,7 @@ pub struct ro f64
 pub struct ro decimal
     implements IArithmetic<decimal>
 {
-    extern pub fun new(a decimal)
+    pub fun new(a decimal) extern
 
     pub const MaxValue decimal = 1E+1000M
     pub const MinValue decimal = -1E+1000M
@@ -557,37 +548,33 @@ pub struct ro decimal
     pub const Origin decimal = 0
     pub const Identity decimal = 1
     
-    pub prop IsInfinity bool
-        todo()
-    pub prop IsNaN bool
-        todo()
-    pub prop IsNegativeInfinity bool
-        todo()
-    pub prop IsPositiveInfinity bool
-        todo()
+    pub prop IsInfinity bool return todo()
+    pub prop IsNaN bool return todo()
+    pub prop IsNegativeInfinity bool return todo()
+    pub prop IsPositiveInfinity bool return todo()
 
     // Normal comparisons
-    extern pub static fun Equals(a decimal, b decimal) bool
-    extern pub static fun Compare(a decimal, b decimal) int
+    pub static fun Equals(a decimal, b decimal) bool extern
+    pub static fun Compare(a decimal, b decimal) int extern
     
     // Sort order (these are true): NAN>infinity, NAN==NAN, -0==+0
-    extern pub static fun GetHashCode(a decimal) uint
-    extern pub static fun Equatable<f32>.Equals(a decimal, b decimal) bool
-    extern pub static fun Comparable<f32>.Compare(a decimal, b decimal) int
+    pub static fun GetHashCode(a decimal) uint extern
+    pub static fun Equatable<f32>.Equals(a decimal, b decimal) bool extern
+    pub static fun Comparable<f32>.Compare(a decimal, b decimal) int extern
     
     // Overloadable operators
-    extern pub fun operator-(a decimal) decimal
-    extern pub fun operator+(a decimal, b decimal) decimal
-    extern pub fun operator-(a decimal, b decimal) decimal
-    extern pub fun operator*(a decimal, b decimal) decimal
-    extern pub fun operator/(a decimal, b decimal) decimal
-    extern pub fun operator%(a decimal, b decimal) decimal
+    pub fun operator-(a decimal) decimal extern
+    pub fun operator+(a decimal, b decimal) decimal extern
+    pub fun operator-(a decimal, b decimal) decimal extern
+    pub fun operator*(a decimal, b decimal) decimal extern
+    pub fun operator/(a decimal, b decimal) decimal extern
+    pub fun operator%(a decimal, b decimal) decimal extern
 
 
-    extern pub fun Abs() decimal
-    extern pub fun Clamp(min decimal, max decimal) decimal
-    extern pub fun Max(n2 decimal) decimal
-    extern pub fun Min(n2 decimal) decimal
-    extern pub fun Sign() int
-    extern pub fun Sq() decimal
+    pub fun Abs() decimal extern
+    pub fun Clamp(min decimal, max decimal) decimal extern
+    pub fun Max(n2 decimal) decimal extern
+    pub fun Min(n2 decimal) decimal extern
+    pub fun Sign() int extern
+    pub fun Sq() decimal extern
 }

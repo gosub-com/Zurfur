@@ -16,11 +16,11 @@ static fun test_HelloWorld()
 
 pub class Example
 {
-    info str                  // Private string initialized to ""
-    array Array<int> = [1,2,3]         // Private mutable array
-    list List<str> = ["Hello", "World"]// Private mutable list
-    ro m Map<str,int> = ["A":1, "B":2] // Private immutable map
-    pub ro Header str = "Zurfur"       // Public immutable string
+    @info str                  // Private string initialized to ""
+    @array Array<int> = [1,2,3]         // Private mutable array
+    @list List<str> = ["Hello", "World"]// Private mutable list
+    ro @m Map<str,int> = ["A":1, "B":2] // Private immutable map
+    ro @Header str pub get = "Zurfur"       // Public immutable string
     pub fun F(a int) int
         return m["A"]+10   // Public function
     pub prop P str
@@ -67,9 +67,9 @@ pub static fun test_Convert()
 pub class TestGuiForm extends Form
 {
     class Label { }
-    pub Message1 Label
-    pub Message2 Label
-    pub Message3 Label
+    @Message1 Label pub get set
+    @Message2 Label pub get set
+    @Message3 Label pub get set
 
 
     fun new()

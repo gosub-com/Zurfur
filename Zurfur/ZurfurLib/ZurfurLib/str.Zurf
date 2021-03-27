@@ -12,15 +12,15 @@ pub class ro str
     pub fun new(s str) { todo() }
     pub fun new(s Span<byte>) { todo() }
     pub fun operator[](index int) byte
-        todo()
+        return todo()
     pub fun operator[](range Range) Span<byte>
-        todo() // Slice
+        return todo() // Slice
     pub static fun GetHashCode(a str) uint
-        todo()
+        return todo()
     pub static fun Equals(a str, b str) bool
-        todo()
+        return todo()
     pub static fun Compare(a str, b str) int
-        todo()
+        return todo()
         
     pub fun operator+(s1 str, s2 str) str { todo() }
     pub fun operator+(s1 Span<byte>, s2 str) str { todo() }

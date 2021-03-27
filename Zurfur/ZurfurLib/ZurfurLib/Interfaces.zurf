@@ -6,8 +6,8 @@ namespace Zurfur
 /// in that NAN must compare to itself as true.
 pub static interface Equatable<T>
 {
-    imp static fun GetHashCode(a T) uint
-    imp static fun Equals(a T, b T) bool
+    static fun GetHashCode(a T) uint imp
+    static fun Equals(a T, b T) bool imp
 }
 
 /// Implement IComparable on any object that can be sorted.
@@ -16,33 +16,33 @@ pub static interface Equatable<T>
 pub static interface Comparable<T>
     implements Equatable<T>
 {
-    imp static fun Compare(a T, b T) int
+    static fun Compare(a T, b T) int imp
 }
 
 pub static interface IArithmetic<T>
     implements Comparable<T>
 {
-    imp fun operator-(a T) T
-    imp fun operator-(a T, b T) T
-    imp fun operator+(a T, b T) T
-    imp fun operator*(a T, b T) T
-    imp fun operator/(a T, b T) T
-    imp fun operator%(a T, b T) T
-    imp static prop Identity T get
-    imp static prop Origin T get
+    fun operator-(a T) T imp
+    fun operator-(a T, b T) T imp
+    fun operator+(a T, b T) T imp
+    fun operator*(a T, b T) T imp
+    fun operator/(a T, b T) T imp
+    fun operator%(a T, b T) T imp
+    static prop Identity T imp get
+    static prop Origin T imp get
 }
 
 pub interface Collection<T>
     implements Iterable<T>
 {
-    imp prop Count int get
-    imp fun GetIterator() Iterator<T>
+    prop Count int imp get
+    fun GetIterator() Iterator<T> imp
 }
 
 
 pub interface Iterable<T>
 {
-    imp fun GetIterator()
+    fun GetIterator() imp
 }
 
 pub interface Iterator<T>
@@ -50,24 +50,18 @@ pub interface Iterator<T>
     /// Get the next item from a collection.
     /// Returns null if there are no more items.
     /// Panic if collection is mutated while iterating.
-    imp fun Next mut() ?ref T
+    fun Next mut() ?ref T imp
 }
 
 
-pub struct Pair<TKey, TValue>
-{
-    pub Key TKey
-    pub Value TValue
-
-    pub fun new(key TKey, value TValue) { Key = key; Value = value }
-}
+pub struct Pair<TKey, TValue>(Key TKey, Value TValue)
 
 
 /// This is a test
 pub interface IGeneric<Q>
 {
     fun A<T>(m Q) int
-        test()
+        return 0
 }
 
 // Test generic type

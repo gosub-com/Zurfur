@@ -448,9 +448,10 @@ explict type names when used as a local variable.
 
 ### New, Init, Equality, Clone, Dispose, and Drop
 
-The `new` function is the object constructor.  It does not have access to
+The `new` function is the type constructor.  It does not have access to
 `this` and may not call member functions except for another `new` function
-(e.g. `new(a int)` may call `new()`).  `init` is called after the object is
+(e.g. `new(a int)` may call `new()`).  `unsafe` can be used to get access
+to `this` in the constructor.  `init` is called after the object is
 created and it has access to `this` and may call other member functions.
 
 `Equals`, `GetHashCode`, and `Clone` are generated automatically for types

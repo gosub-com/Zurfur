@@ -6,7 +6,7 @@ pub class Log
 {
     pub enum Level { Fatal; Error; Warn; Info; Debug }
 
-    pub ro File str
+    ro @FileName str pub get
     
 
     pub prop LogLevel Level { todo() }
@@ -21,7 +21,7 @@ pub class Log
     /// and continue.
     pub fun PanicInDebugMode(message str, li LogLine = default) { todo() }
 
-    pub prop RecordTimeEvents bool get set
+    @RecordTimeEvents bool pub get set
     pub fun Time(name str, message str = "") { todo() }
     pub fun TimeBegin(name str, message str = "") { todo() }
     pub fun TimeEnd(name str, message str = "") { }
@@ -29,8 +29,8 @@ pub class Log
     // The compiler will fill in the line number of the caller
     pub struct ro LogLine
     {
-        extern pub fun default()
-        pub ro Line int
+        pub fun default() extern
+        ro @Line int pub get
     }
 
 }

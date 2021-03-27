@@ -3,8 +3,9 @@
 /// Span (TBD: Ensure type system doesn't need both MutSpan and RoSpan)
 pub struct ref Span<T>
 {
-    ro data *T
-    pub ro Count int
+    ro @Data *T pub get
+    ro @Count int pub get
+    
     pub fun operator[](index int) ref T
     {
         if cast(uint)index >= cast(uint)Count

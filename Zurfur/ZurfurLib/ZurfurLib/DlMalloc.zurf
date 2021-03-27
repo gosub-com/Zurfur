@@ -47,7 +47,7 @@ pub interface DlMallocMem
     /// the size of allocated memory if desired  (must be in units of page size).
     /// Returns null when out of memory or on error.
     /// </summary>
-    imp fun CallMoreCore(length mut xuint) *void
+    fun CallMoreCore(length mut xuint) *void imp
 
     /// <summary>
     /// This was originally CALL_MUNMAP and is used to release memory pages
@@ -57,7 +57,7 @@ pub interface DlMallocMem
     /// Return true for success, or false for failure (in which
     /// case the pages are retained and used for future requests)
     /// </summary>
-    imp fun CallReleaseCore(address *void, length xuint) bool
+    fun CallReleaseCore(address *void, length xuint) bool imp
 
     /// <summary>
     /// This is called after DlMalloc has been disposed.  Since CallReleaseCore
@@ -188,25 +188,25 @@ pub unsafe class DlMalloc
     static prop MAX_SMALL_REQUEST xuint
         return MAX_SMALL_SIZE - CHUNK_ALIGN_MASK - CHUNK_OVERHEAD
 
-    memMan DlMallocMem
-    smallmap uint
-    treemap uint
-    dvsize xuint
-    topsize xuint
-    least_addr *byte
-    dv mchunk
-    top mchunk
-    trim_check xuint
-    release_checks xuint
-    magic xuint
-    smallbins **mchunk
-    treebins **tchunk
-    footprint xuint
-    max_footprint xuint
-    mflags flag_t
-    seg *msegment
-    malloc_corruption_error_count int
-    mparams malloc_params
+    @memMan DlMallocMem
+    @smallmap uint
+    @treemap uint
+    @dvsize xuint
+    @topsize xuint
+    @least_addr *byte
+    @dv mchunk
+    @top mchunk
+    @trim_check xuint
+    @release_checks xuint
+    @magic xuint
+    @smallbins **mchunk
+    @treebins **tchunk
+    @footprint xuint
+    @max_footprint xuint
+    @mflags flag_t
+    @seg *msegment
+    @malloc_corruption_error_count int
+    @mparams malloc_params
 
 
     fun new(memoryManager DlMallocMem, capacity xint)
@@ -234,7 +234,6 @@ pub unsafe class DlMalloc
     /// the number of discontiguous memory regions.
     pub prop SegmentCount int
     {
-    get:
         @count = 0
         @segment = seg
         while segment != null
@@ -352,7 +351,7 @@ pub unsafe class DlMalloc
     //  rarely trigger versus holding on to unused memory. To effectively
     //  disable, set to MAX_SIZE_T. This may lead to a very slight speed
     //  improvement at the expense of carrying around more memory.
-    protected const MAX_RELEASE_CHECK_RATE xuint = 4095
+    const MAX_RELEASE_CHECK_RATE xuint = 4095
 
 
     // The maximum possible xuint value has all bits set
@@ -525,10 +524,10 @@ pub unsafe class DlMalloc
     /// Originally malloc_chunk, now mchunk
     pub struct mchunk
     {
-        pub prev_foot_ptr *void // Size of previous chunk (if free).
-        pub head_ptr *void      // Size and inuse bits.
-        pub fd *mchunk          // double links -- used only if free.
-        pub bk *mchunk
+        @prev_foot_ptr *void pub get set // Size of previous chunk (if free).
+        @head_ptr *void  pub get set     // Size and inuse bits.
+        @fd *mchunk pub get set          // double links -- used only if free.
+        @bk *mchunk pub get set
 
         pub prop prev_foot xuint
         {
@@ -555,11 +554,11 @@ pub unsafe class DlMalloc
     static fun chunksize(p *mchunk) xuint
         return p.head & ~FLAG_BITS
     static fun clear_pinuse(p *mchunk)
-        p.head &= ~PINUSE_BIT
+        { p.head &= ~PINUSE_BIT }
     static fun set_flag4(p *mchunk)
-        p.head |= FLAG4_BIT
+        { p.head |= FLAG4_BIT }
     static fun clear_flag4(p *mchunk)
-        p.head &= ~FLAG4_BIT
+        { p.head &= ~FLAG4_BIT }
     static fun chunk_plus_offset(p *mchunk, s xuint) *mchunk
         return cast(*mchunk)(cast(*byte)p + s)
     static fun chunk_minus_offset(p *mchunk, s xuint) *mchunk
@@ -718,15 +717,15 @@ pub unsafe class DlMalloc
     pub struct tchunk
     {
         // The first four fields must be compatible with mchunk
-        pub prev_foot_ptr *void
-        pub head_ptr *void
-        pub fd *tchunk
-        pub bk *tchunk
+        @prev_foot_ptr *void pub get set
+        @head_ptr *void pub get set
+        @fd *tchunk pub get set
+        @bk *tchunk pub get set
 
-        pub child0 *tchunk
-        pub child1 *tchunk
-        pub parent *tchunk
-        pub index uint
+        @child0 *tchunk pub get set
+        @child1 *tchunk pub get set
+        @parent *tchunk pub get set
+        @index uint pub get set
 
         pub prop prev_foot xuint
         {
@@ -818,10 +817,10 @@ pub unsafe class DlMalloc
     /// </summary>
     struct msegment
     {
-        pub baseAddr *byte      // base address
-        pub size      xuint     // allocated size
-        pub next     *msegment  // ptr to next segment
-        pub sflags    flag_t    // mmap and extern flag
+        @baseAddr *byte pub get set     // base address
+        @size xuint pub get set         // allocated size
+        @next *msegment pub get set     // ptr to next segment
+        @sflags flag_t pub get set      // mmap and extern flag
     }
 
     static fun is_mmapped_segment(s *msegment) bool
@@ -844,11 +843,11 @@ pub unsafe class DlMalloc
 
     struct malloc_params
     {
-        pub magic xuint
-        pub page_size xuint
-        pub granularity xuint
-        pub trim_threshold xuint
-        pub default_mflags flag_t
+        @magic xuint pub get set
+        @page_size xuint pub get set
+        @granularity xuint pub get set
+        @trim_threshold xuint pub get set
+        @default_mflagsflag_t flag_t pub get set
     }
 
 
@@ -1376,11 +1375,11 @@ pub unsafe class DlMalloc
 
     pub struct HeapStats
     {
-        pub HeapSize i64
-        pub UsedChunks i64
-        pub UsedBytes i64
-        pub FreeChunks i64
-        pub FreeBytes i64
+        @HeapSize i64 pub get set
+        @UsedChunks i64 pub get set
+        @UsedBytes i64 pub get set
+        @FreeChunks i64 pub get set
+        @FreeBytes i64 pub get set
 
         pub fun ToStr() str
         {

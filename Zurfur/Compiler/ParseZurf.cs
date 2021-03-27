@@ -65,16 +65,17 @@ namespace Gosub.Zurfur.Compiler
             + "any dyn loop select match event from to of on cofun cofunc global local val it throws atask task "
             + "scope assign @ and or not xor with cap exit pragma");
 
+        static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
+            + "static unsealed abstract virtual override new ro");
+        static WordSet sPostFieldQualifiers = new WordSet("pub protected init set get mut");
+
         static WordSet sReservedFuncNames = new WordSet("new init drop copy move clone dispose match cast default implicit unsafe sizeof");
         static WordSet sReservedIdentifierVariables = new WordSet("null this true false default base match it new");
-        static WordSet sTypeSymbols = new WordSet("? * ^ [ mut ref in out ro");
-
-        static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static extern imp unsealed abstract virtual override new ro");
+        static WordSet sTypeQualifiers = new WordSet("in out");
+        static WordSet sTypeSymbols = new WordSet("? * ^ [ ref mut");
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sAllowConstraintKeywords = new WordSet("unmanaged");
-        static WordSet sExternalMethodBodies = new WordSet("impl extern");
 
         public static WordSet sOverloadableOps = new WordSet("+ - * / % [ in");
         static WordSet sCompareOps = new WordSet("== != < <= > >= === !== in");
@@ -288,11 +289,11 @@ namespace Gosub.Zurfur.Compiler
                         ParseProperty(keyword, parentScope, qualifiers);
                         break;
 
+                    case "@":
+                        ParseField2(Accept(), parentScope, qualifiers);
+                        break;
+
                     case "const":
-                    case "var":
-                    case "@": // TBD: Keep this is we want to require `@` in front of class fields
-                        if (mTokenName != "@")
-                            mToken.Type = eTokenType.ReservedControl;
                         qualifiers.Add(Accept());
                         AddField(ParseField(parentScope, qualifiers));
                         break;
@@ -304,15 +305,10 @@ namespace Gosub.Zurfur.Compiler
                             Accept();
                             AddField(ParseEnumField(parentScope, qualifiers, keyword));
                         }
-                        else if (keyword.Type == eTokenType.Identifier)
-                        {
-                            // TBD: Remove this if we require `@` in front of field definitions
-                            AddField(ParseField(parentScope, qualifiers));
-                        }
                         else
                         {
                             Accept();
-                            RejectToken(keyword, "Expecting a qualifier ('pub', etc.), or reserved word such as 'var', 'fun', 'class', etc.");
+                            RejectToken(keyword, "Expecting a field, function, property, struct ('@', 'fun', 'prop', 'struct', 'const', etc.) or qualifier ('pub', etc.)");
                         }
                         break;
                 }
@@ -548,12 +544,9 @@ namespace Gosub.Zurfur.Compiler
             field.Comments = mComments.ToString();
             mLastField = field; // Allow us to pick up comments on this line
 
-            if (!AcceptMatch("default"))
-            {
-                if (!ParseIdentifier("Expecting field name", out var newVarName))
-                    return null;
-                newVarName.Type = eTokenType.DefineField;
-            }
+            if (!ParseIdentifier("Expecting field name", out var newVarName))
+                return null;
+            newVarName.Type = eTokenType.DefineField;
 
             if (mTokenName != "=")
                 field.TypeName = ParseType();
@@ -563,6 +556,42 @@ namespace Gosub.Zurfur.Compiler
 
             return field;
         }
+
+        private void ParseField2(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
+        {
+            // Variable name
+            if (!ParseIdentifier("Expecting field name", out var newVarName))
+                return;
+            newVarName.Type = eTokenType.DefineField;
+
+            // Type name
+            var errors = mParseErrors;
+            var typeName = ParseType();
+            if (mParseErrors != errors)
+                return;
+
+            // Post field qualifiers
+            if (keyword != "const")
+                while (sPostFieldQualifiers.Contains(mTokenName))
+                    //qualifiers.Add(Accept());
+                    Accept();
+
+            // Initializer
+            SyntaxExpr initializer = null;
+            if (mTokenName == "=")
+                initializer = new SyntaxUnary(Accept(), ParseRightSideOfAssignment());
+
+            var field = new SyntaxField(newVarName);
+            field.ParentScope = parentScope;
+            field.NamePath = mNamePath;
+            field.Qualifiers = qualifiers.ToArray();
+            field.Comments = mComments.ToString();
+            field.TypeName = typeName;
+            field.Initializer = initializer;
+            mLastField = field; // Allow us to pick up comments on this line
+            AddField(field);
+        }
+
 
         /// <summary>
         /// Current token must already be checked for validity
@@ -597,12 +626,6 @@ namespace Gosub.Zurfur.Compiler
             if (mToken.Error)
                 return;
 
-            if (mTokenName == "=")
-            {
-                RejectToken(mToken, "Expecting '{' or 'get'.  Only auto generated properties can have an initialization expression.");
-                ParseRightSideOfAssignment(); // Throw it away
-            }
-
             var synFunc = new SyntaxFunc(keyword);
             synFunc.IsProperty = true;
             synFunc.ParentScope = parentScope;
@@ -612,22 +635,34 @@ namespace Gosub.Zurfur.Compiler
             synFunc.Name = propertyName;
             synFunc.MethodSignature = typeName;
 
-
-            // Auto property
-            if (AcceptMatch("get"))
+            // Body
+            if (AcceptMatchSkipMetaSemicolon("extern") || AcceptMatchSkipMetaSemicolon("imp"))
             {
-                synFunc.GetToken = mPrevToken;
-                if (AcceptMatch("private") || AcceptMatch("protected"))
-                    synFunc.GetSetVisibilityToken = mPrevToken;
-                if (AcceptMatch("set"))
-                    synFunc.SetToken = mPrevToken;
-                if (mTokenName == "=")
-                    synFunc.Statements = new SyntaxUnary(Accept(), ParseRightSideOfAssignment());
-                return;
+                qualifiers.Add(mPrevToken);
+                if (mPrevToken.Name == "imp")
+                {
+                    if (mTokenName == "get")
+                    {
+                        qualifiers.Add(Accept());
+                        if (mTokenName == "set")
+                            qualifiers.Add(Accept());
+                    }
+                    else
+                    {
+                        RejectToken(mToken, "Expecting 'get'");
+                    }
+                }
             }
-
-            if (qualifiers.FindIndex(token => token.Name == "imp" || token.Name == "extern") < 0)
-                synFunc.Statements = ParseCompoundStatement(keyword);
+            else if (mTokenName == "{" || IsMatchPastMetaSemicolon("return"))
+            {
+                synFunc.Statements = ParseCompoundStatement(keyword, false);
+            }
+            else
+            {
+                Reject("Expecting property body '{', 'return', 'extern', or 'imp'");
+                if (mTokenName == "{")
+                    synFunc.Statements = ParseCompoundStatement(keyword);
+            }
 
             AddMethod(synFunc);
         }
@@ -692,8 +727,21 @@ namespace Gosub.Zurfur.Compiler
 
             synFunc.Constraints = ParseConstraints();
 
-            if (qualifiers.FindIndex(token => token.Name == "imp" || token.Name == "extern") < 0)
-                synFunc.Statements = ParseCompoundStatement(keyword);
+            // Body
+            if (AcceptMatchSkipMetaSemicolon("extern") || AcceptMatchSkipMetaSemicolon("imp"))
+            {
+                qualifiers.Add(mPrevToken);
+            }
+            else if (mTokenName == "{" || IsMatchPastMetaSemicolon("return"))
+            {
+                synFunc.Statements = ParseCompoundStatement(keyword, false);
+            }
+            else
+            {
+                Reject("Expecting property body '{', 'return', 'extern', or 'imp'");
+                if (mTokenName == "{")
+                    synFunc.Statements = ParseCompoundStatement(keyword);
+            }
 
             synFunc.Qualifiers = qualifiers.ToArray();
             
@@ -719,7 +767,7 @@ namespace Gosub.Zurfur.Compiler
             if (AcceptMatchSkipMetaSemicolon("->"))
                 returnParams = ParseMethodParams(false);
             else
-                returnParams = new SyntaxUnary(mLexer.EndToken, new SyntaxUnary(mLexer.EndToken, ParseType(false)));
+                returnParams = new SyntaxUnary(mLexer.EndToken, new SyntaxUnary(mLexer.EndToken, ParseTypeWithQualifiers(false)));
 
             SyntaxToken qualifier;
             if (mTokenName == "error" || mTokenName == "exit")
@@ -737,7 +785,6 @@ namespace Gosub.Zurfur.Compiler
         {
             className = null;
             typeArgs = new SyntaxToken(mLexer.EndToken);
-
 
             funcName = mToken;
             if (!CheckIdentifier("Expecting a function or type name", sRejectTypeName))
@@ -833,7 +880,7 @@ namespace Gosub.Zurfur.Compiler
             if (!ParseIdentifier("Expecting a variable name", out var name, sRejectFuncParam))
                 return new SyntaxError();
             name.Type = eTokenType.DefineParam;
-            var type = ParseType();
+            var type = ParseTypeWithQualifiers();
 
             // Default parameter
             if (allowInitializer && AcceptMatch("="))
@@ -843,24 +890,31 @@ namespace Gosub.Zurfur.Compiler
             return new SyntaxUnary(name, type);
         }
         
-        SyntaxExpr ParseCompoundStatement(Token keyword)
+        SyntaxExpr ParseCompoundStatement(Token keyword, bool requireNextLine = true)
         {
             if (mTokenName == "{")
                 return ParseStatements("'" + keyword.Name + "' statement");
-            if (mToken != ";" || !mToken.Meta)
+
+            // If on the invisible meta semi-colon
+            if (mToken == ";" && mToken.Meta)
             {
-                Reject("Expecting '{' or end of line");
-                return new SyntaxError();
+                // Ensure next line is indented
+                if (mTokenAfterInsertedToken.X < mLexer.GetLineTokens(keyword.Y)[0].X + 2)
+                {
+                    RejectToken(mToken, "Expecting '{' or next line of compound statement must be indented at least two spaces");
+                    return new SyntaxError();
+                }
+                Accept();
             }
-            // We are on the invisible meta semi-colon.
-            // Ensure next line is indented before continuing
-            if (mTokenAfterInsertedToken.X < mLexer.GetLineTokens(keyword.Y)[0].X + 2)
+            else
             {
-                RejectToken(mToken, "Expecting '{' or next line of compound statement must be indented at least two spaces");
-                return new SyntaxError();
+                if (requireNextLine)
+                {
+                    Reject("Expecting '{' or end of line");
+                    return new SyntaxError();
+                }
             }
 
-            Accept();
             if (mTokenName == "}")
             {
                 RejectToken(mPrevToken, "Expecting '{' or non-empty statement");
@@ -1364,7 +1418,7 @@ namespace Gosub.Zurfur.Compiler
                 return ParseAnonymousClass(Accept());
             }
 
-            return ParseMemberAccess();
+            return ParsePrimary();
         }
 
 
@@ -1413,13 +1467,6 @@ namespace Gosub.Zurfur.Compiler
 
             return new SyntaxMulti(mLexer.EndToken, FreeExprList(newVarList));
         }
-        SyntaxExpr ParseMemberAccess()
-        {
-            var result = ParsePrimary();
-            while (mTokenName == ".")
-                result = new SyntaxBinary(Accept(), result, ParsePrimary());
-            return result;
-        }
 
         SyntaxExpr ParsePrimary()
         {
@@ -1435,6 +1482,12 @@ namespace Gosub.Zurfur.Compiler
                     // Function call or array access
                     accepted = true;
                     result = ParseParen(mToken, mTokenName == "(", result);
+                }
+                else if (mTokenName == ".")
+                {
+                    accepted = true;
+                    result = new SyntaxBinary(Accept(), result,
+                        new SyntaxToken(ParseIdentifier("Expecting identifier")));
                 }
                 else if (mTokenName == "<")
                 {
@@ -1596,7 +1649,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     isInterpolated = true;
                     str += STR_REPLACE;
-                    ParseMemberAccess();
+                    ParsePrimary();
                 }
             }
             // TBD: Show escape sequences, etc.
@@ -1674,6 +1727,16 @@ namespace Gosub.Zurfur.Compiler
             }
 
             return ParseExpr();
+        }
+
+        SyntaxExpr ParseTypeWithQualifiers(bool required = true)
+        {
+            while (sTypeQualifiers.Contains(mTokenName))
+            {
+                mToken.AddWarning("Type qualifier not recorded in parse tree yet");
+                Accept();
+            }
+            return ParseType(required);
         }
 
         SyntaxExpr ParseType(bool required = true)
@@ -1853,12 +1916,10 @@ namespace Gosub.Zurfur.Compiler
             return false;
         }
 
-        bool SkipSkipMetaSemicolonIfMatch(string match)
+        bool IsMatchPastMetaSemicolon(string match)
         {
-            // Eat the meta ";" if the token after it matches
-            if (mToken.Meta && mTokenName == ";" && mTokenAfterInsertedToken != null && mTokenAfterInsertedToken.Name == match)
-                Accept();
-            return mTokenName == match;
+            return mTokenName == match
+                || mToken.Meta && mTokenName == ";" && mTokenAfterInsertedToken != null && mTokenAfterInsertedToken.Name == match;
         }
 
         bool AcceptMatchSkipMetaSemicolon(string match)

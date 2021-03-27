@@ -16,9 +16,9 @@ pub class List<T>
     // The GC will follow this pointer because it is special.
     // `items` is never referenced when count is zero, so
     // we can cast (unsafely) to follow without checking for null
-    items  *GcRefArray<T>
-    pub prop Count int get private set
-    pub prop Version int get private set  // Increment when Count changes
+    @items  *GcRefArray<T>
+    @Count int pub get
+    @Version int pub get  // Increment when Count changes
     
     pub fun new(capacity int)
     {
@@ -115,31 +115,31 @@ pub class List<T>
 
     
     pub fun Clear mut()
-        todo()
+        return todo()
     pub fun Push mut(item T)
-        todo()
+        return todo()
     pub fun Push mut(items Span<T>)
-        todo()
+        return todo()
     pub fun Pop mut() ?T
-        todo()
+        return todo()
     pub fun Insert mut(index int, item T)
-        todo()
+        return todo()
     pub fun Insert mut(index int, items Span<T>)
-        todo()
+        return todo()
     pub fun Insert mut(index int, items Collection<T>)
-        todo()
+        return todo()
     pub fun Remove mut(index int)
-        todo()
+        return todo()
     pub fun Remove mut(range Range<int>)
-        todo()
+        return todo()
     pub fun Convert<Tout>(f fun(item T)Tout)
-        todo()
+        return todo()
     pub fun Find(f fun(item T))
-        todo()
+        return todo()
     pub fun Sort mut(compare fun(a T, b T)bool)
-        todo()
+        return todo()
     pub fun Sort mut(compare fun(a T, b T)bool, range Range<int>)
-        todo()
+        return todo()
 
     pub fun Remove(test fun(item T) bool exit) exit
     {
@@ -180,10 +180,10 @@ pub class List<T>
     }
 
     pub fun operator[](index int) ref mut T
-       todo()
+       return todo()
 
     pub fun operator[](range Range<int>) ref mut ListSpan<T>
-       todo()
+       return todo()
 
     // TBD: Implement ListSpan
     pub struct ListSpan<T>
@@ -201,9 +201,9 @@ pub class List<T>
     pub struct ref ListIterator<T>
         implements Iterator<T>
     {
-        list ref List<T>
-        version int
-        index int = -1
+        @list ref List<T>
+        @version int
+        @index int = -1
         
         pub fun new(list ref List<T>)
         {

@@ -3,54 +3,37 @@
 namespace Zurfur
 
 pub class Map<TKey, TValue>
+    where TKey is IEquatable<TKey>
 {
-    ro compareFunc fun(a TKey, b TKey)bool
-    ro hashFunc fun(key TKey)uint
-    
-
-    pub fun new()
-        where TKey is IEquatable<TKey>
-    {
-        compareFunc = @(a, b) => TKey.Compare(a, b)
-        hashFunc = @a => TKey.GetHashCode(a)
-    }
-    
-    pub fun new(compare fun(a TKey, b TKey)bool,
-                hash fun(key TKey)uint)
-    {
-        compareFunc = compare
-        hashFunc = hash
-    }
-    
     pub fun new(capacity int)
         where TKey is IEquatable
-        todo()
+        return todo()
     pub fun new(keyValues Collection<Pair<TKey, TValue>>)
-        todo()
+        return todo()
     pub prop Count int
-        todo()
+        return todo()
     pub fun operator in(a TKey) bool
-        todo()
+        return todo()
     pub fun operator[](key TKey) ref TValue
-       todo()
+        return todo()
     pub fun Contains(key TKey) bool
-        todo()
+        return todo()
     pub fun Get(key TKey) TValue
-        todo()
+        return todo()
     pub fun Get(key TKey, defaultValue TValue) TValue
-        todo()
+        return todo()
     pub fun TryGet(key TKey) ?TValue
-        todo()
+        return todo()
     pub prop Keys Collection<TKey>
-        todo()
+        return todo()
     pub prop Values Collection<TValue>
-        { get: todo() }
+        return todo()
     pub fun Clear mut()
-        todo()
+        return todo()
     pub fun Add mut(item Pair<TKey, TValue>)
-        todo()
+        return todo()
     pub fun Add mut(items Collection<Pair<TKey, TValue>>)
-        todo()
+        return todo()
     pub fun Remove mut(key TKey) bool
-        todo()
+        return todo()
 }
