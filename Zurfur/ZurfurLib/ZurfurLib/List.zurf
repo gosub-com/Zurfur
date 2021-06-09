@@ -81,7 +81,7 @@ pub class List<T>
         if capacity != 0
         {
             items = unsafe cast(*T)DlMalloc.Calloc(sizeof(T)*capacity)
-            *items = GcRefArray(Count:capacity, Ref:oldItems.Ref)
+            dref(items) = GcRefArray(Count:capacity, Ref:oldItems.Ref)
             unsafe MemCopy32(items.Data, oldItems.Data, sizeof(T)*Count)
         }
         else

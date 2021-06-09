@@ -1331,7 +1331,7 @@ namespace Gosub.Zurfur
 
             // Draw metatokens
             foreach (var metaToken in mLexer.MetaTokens)
-                if (metaToken.Y >= minY && metaToken.Y <= maxY)
+                if (metaToken.Y >= startLine && metaToken.Y <= endLine)
                     if (background || mLexer.ShowMetaTokens)
                         DrawToken(gr, metaToken, background);
 

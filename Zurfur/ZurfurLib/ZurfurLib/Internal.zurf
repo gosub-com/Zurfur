@@ -14,7 +14,7 @@ pub struct GcType { }
 
 
 // Header for all heap objects
-[Align(8)]
+#Align(8)
 pub struct ro GcObject<T>
 {
     @Type *GcType pub get
@@ -23,7 +23,7 @@ pub struct ro GcObject<T>
 
 // Header for all heap array objects
 // NOTE: refCount may not exist in GC implementations.
-[Align(8)]
+#Align(8)
 pub struct ro GcArray<T>
 {
     const DEFAULT_HASH uint = 0xFFFFFFFF
@@ -36,7 +36,7 @@ pub struct ro GcArray<T>
 // This is the underlying array used by List<T>.
 // Separate it from all other types since there is a chance
 // it would be reference counted even in a GC implementation.
-[Align(8)]
+#Align(8)
 pub struct ro GcRefArray<T>
 {
     @Type *GcType pub get

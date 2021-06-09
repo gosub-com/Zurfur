@@ -930,9 +930,10 @@ Here are the enforced style rules:
 
 1. No tabs
 2. No white space or visible semi-colons at the end of a line
-3. Split lines require a `[`, `(`, or `,` at the end of the line
-or a binary operator (except `*`) at the beginning of the next
-line.  Also accepted, a few other places where a continuation might
+3. Continuation lines start with a binary operator or with
+`[`, `]`, `(`, `)`, `,`, or `.`. Additionally, a continuation
+may use `[`, `(`, or `,` at the end of the previous line.
+Also accepted, a few other places where a continuation might
 be expected such as `implements`, `where`, or other keywords
 4. A `{` cannot start a scope unless it is in an expected place such as after
 `if`, `while`, `scope`, etc., or a lambda expression.

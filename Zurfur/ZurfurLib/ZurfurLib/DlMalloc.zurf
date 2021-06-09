@@ -932,10 +932,10 @@ pub unsafe class DlMalloc
 
     // -------------------------- Debugging setup ----------------------------
 
-    [Conditional("DEBUG")] fun check_free_chunk(p *mchunk) { do_check_free_chunk(p) }
-    [Conditional("DEBUG")] fun check_inuse_chunk(p *mchunk) { do_check_inuse_chunk(p) }
-    [Conditional("DEBUG")] fun check_malloced_chunk(mem *void, s xuint) { do_check_malloced_chunk(mem, s) }
-    [Conditional("DEBUG")] fun check_top_chunk(p *mchunk) { do_check_top_chunk(p) }
+    #Conditional("DEBUG") fun check_free_chunk(p *mchunk) { do_check_free_chunk(p) }
+    #Conditional("DEBUG") fun check_inuse_chunk(p *mchunk) { do_check_inuse_chunk(p) }
+    #Conditional("DEBUG") fun check_malloced_chunk(mem *void, s xuint) { do_check_malloced_chunk(mem, s) }
+    #Conditional("DEBUG") fun check_top_chunk(p *mchunk) { do_check_top_chunk(p) }
 
     // ---------------------------- Indexing Bins ----------------------------
 
@@ -1264,7 +1264,7 @@ pub unsafe class DlMalloc
                 assert(u.parent != u)
                 assert(u.parent.child0 == u
                         || u.parent.child1 == u
-                        || *(cast(**tchunk)u.parent) == u)
+                        || dref(cast(**tchunk)u.parent) == u)
                 if u.child0 != null
                 {
                     assert(u.child0.parent == u)
@@ -1291,7 +1291,7 @@ pub unsafe class DlMalloc
     fun do_check_treebin(i uint)
     {
         @tb = treebin_at(i)
-        @t = *tb
+        @t = dref(tb)
         @empty = (treemap & (1U << i)) == 0
         if t == null
             assert(empty)
@@ -1351,7 +1351,7 @@ pub unsafe class DlMalloc
             @tidx = compute_tree_index(size)
             if treemap_is_marked(tidx)
             {
-                @t = *treebin_at(tidx)
+                @t = dref(treebin_at(tidx))
                 @sizebits = size << leftshift_for_tree_index(tidx)
                 while t != null && chunksize(t) != size
                 {
@@ -1482,7 +1482,7 @@ pub unsafe class DlMalloc
     //  compilers.
 
     // Link a free chunk into a smallbin
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    #MethodImpl(MethodImplOptions.AggressiveInlining)
     fun insert_small_chunk mut(p *mchunk, s xuint)
     {
         @I = small_index(s)
@@ -1502,7 +1502,7 @@ pub unsafe class DlMalloc
     }
 
     // Unlink a chunk from a smallbin
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    #MethodImpl(MethodImplOptions.AggressiveInlining)
     fun unlink_small_chunk mut(p *mchunk, s xuint)
     {
         @F = p.fd
@@ -1529,7 +1529,7 @@ pub unsafe class DlMalloc
     }
 
     // Unlink the first chunk from a smallbin
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    #MethodImpl(MethodImplOptions.AggressiveInlining)
     fun unlink_first_small_chunk mut(b *mchunk, p *mchunk, i uint)
     {
         @F = p.fd
@@ -1549,7 +1549,7 @@ pub unsafe class DlMalloc
 
     // Replace dv node, binning the old one
     // Used only when dvsize known to be small
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    #MethodImpl(MethodImplOptions.AggressiveInlining)
     fun replace_dv mut(p *mchunk, s xuint)
     {
         @DVS = dvsize
@@ -1577,14 +1577,14 @@ pub unsafe class DlMalloc
         if !treemap_is_marked(I)
         {
             mark_treemap(I)
-            *H = x
+            dref(H) = x
             x.parent = cast(*tchunk)H
             x.fd = x
             x.bk = x
         }
         else
         {
-            @T = *H
+            @T = dref(H)
             @K = s << leftshift_for_tree_index(I)
             while true
             {
@@ -1592,11 +1592,11 @@ pub unsafe class DlMalloc
                 {
                     @C = ((K >> (SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 ? &T.child0 : &T.child1
                     K <<= 1
-                    if *C != null
-                        T = *C
+                    if dref(C) != null
+                        T = dref(C)
                     else if RTCHECK(ok_address(C))
                     {
-                        *C = x
+                        dref(C) = x
                         x.parent = T
                         x.fd = x
                         x.bk = x
@@ -1665,28 +1665,28 @@ pub unsafe class DlMalloc
         {
             @RP **tchunk
             RP = &x.child1
-            R = *RP
+            R = dref(RP)
             if R == null
             {
                 RP = &x.child0
-                R = *RP
+                R = dref(RP)
             }
             if R != null
             {
                 @CP **tchunk
                 CP = &R.child1
-                if *CP == null
+                if dref(CP) == null
                     CP = &R.child0
-                while *CP != null
+                while dref(CP) != null
                 {
                     RP = CP
-                    R = *RP
+                    R = dref(RP)
                     CP = &R.child1
-                    if *CP == null
+                    if dref(CP) == null
                         CP = &R.child0
                 }
                 if RTCHECK(ok_address(RP))
-                    *RP = null
+                    dref(RP) = null
                 else
                     memMan.CallCorruptionErrorAction()
             }
@@ -1694,9 +1694,9 @@ pub unsafe class DlMalloc
         if XP != null
         {
             @H = treebin_at(x.index)
-            if x == *H
+            if x == dref(H)
             {
-                *H = R
+                dref(H) = R
                 if R == null
                     clear_treemap(x.index)
             }
@@ -1747,7 +1747,7 @@ pub unsafe class DlMalloc
 
     // Relays to large vs small bin operations
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    #MethodImpl(MethodImplOptions.AggressiveInlining)
     fun insert_chunk mut(p *mchunk, s xuint)
     {
         if is_small(s)
@@ -1756,7 +1756,7 @@ pub unsafe class DlMalloc
             insert_large_chunk(cast(*tchunk)p, s)
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    #MethodImpl(MethodImplOptions.AggressiveInlining)
     fun unlink_chunk mut(p *mchunk, s xuint)
     {
         if is_small(s)
@@ -1813,7 +1813,7 @@ pub unsafe class DlMalloc
         top = null
         dv = null
         for @i in NTREEBINS
-            *treebin_at(i) = null
+            dref(treebin_at(i)) = null
         init_bins()
     }
 
@@ -1891,7 +1891,7 @@ pub unsafe class DlMalloc
         // Set up segment record
         assert(is_aligned(ss))
         set_size_and_pinuse_of_inuse_chunk(sp, ssize)
-        *ss = *seg // Push current record
+        dref(ss) = dref(seg) // Push current record
         seg.baseAddr = tbase
         seg.size = tsize
         seg.sflags = mmapped
@@ -2225,7 +2225,7 @@ pub unsafe class DlMalloc
         @rsize = cast(xuint)(-cast(xint)nb) // Unsigned negation
         @t *tchunk
         @idx = compute_tree_index(nb)
-        t = *treebin_at(idx)
+        t = dref(treebin_at(idx))
         if t != null
         {
             // Traverse tree for this bin looking for node with size == nb
@@ -2263,7 +2263,7 @@ pub unsafe class DlMalloc
             {
                 @leastbit = least_bit(leftbits)
                 @i = compute_bit2idx(leastbit)
-                t = *treebin_at(i)
+                t = dref(treebin_at(i))
             }
         }
 
@@ -2314,7 +2314,7 @@ pub unsafe class DlMalloc
         @rsize xuint
         @leastbit = least_bit(treemap)
         @i = compute_bit2idx(leastbit)
-        t = *treebin_at(i)
+        t = dref(treebin_at(i))
         v = t
         rsize = chunksize(t) - nb
 
@@ -2408,7 +2408,7 @@ pub unsafe class DlMalloc
     {
         @b = cast(*byte)mem
         for @s in 0..size
-            { *b = 0; b += 1 }
+            { dref(b) = 0; b += 1 }
     }
 
     fun init_user_mstate mut(tbase *byte, tsize xuint)

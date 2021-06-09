@@ -48,29 +48,29 @@ namespace Gosub.Zurfur.Compiler
         public int ParseErrors => mParseErrors;
 
         // Add semicolons to all lines, except for:
-        static WordSet sEndLineSkipSemicolon = new WordSet("; { [ ( ,");
+        static WordSet sEndLineSkipSemicolon = new WordSet("{ [ ( ,");
         static WordSet sBeginLineForceSemicolon = new WordSet("} namespace pub fun afun extern imp static");
-        static WordSet sBeginLineSkipSemicolon = new WordSet("{ ] ) + - / % | & || && == != = "
-                            + ": ? . , > << <= < => -> .. :: !== === += -= *= /= %= &= |= =  is in as");
+        static WordSet sBeginLineSkipSemicolon = new WordSet("{ [ ] ( ) , . + - * / % | & || && == != "
+                            + ": ? > << <= < => -> .. :: !== ===  is in as");
 
         static WordSet sReservedWords = new WordSet("abstract as base break case catch class const "
             + "continue default delegate do then else enum event explicit extern true false defer use "
             + "finally fixed for goto if implicit in interface internal is lock namespace module include "
-            + "new null operator out override pub public private protected readonly ro ref mut "
+            + "new null operator out override pub public private protected readonly ro ref dref mut "
             + "return unsealed unseal sealed sizeof stackalloc heapalloc static struct switch this throw try "
             + "typeof type unsafe using static virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where nameof "
             + "box boxed init move copy clone drop error dispose own owned "
             + "trait extends implements implement impl imp union fun afun def yield let cast "
             + "any dyn loop select match event from to of on cofun cofunc global local val it throws atask task "
-            + "scope assign @ and or not xor with cap exit pragma");
+            + "scope assign @ # and or not xor with cap exit pragma");
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
             + "static unsealed abstract virtual override new ro");
         static WordSet sPostFieldQualifiers = new WordSet("pub protected init set get mut");
 
-        static WordSet sReservedFuncNames = new WordSet("new init drop copy move clone dispose match cast default implicit unsafe sizeof");
-        static WordSet sReservedIdentifierVariables = new WordSet("null this true false default base match it new");
+        static WordSet sReservedUserFuncNames = new WordSet("new drop cast default implicit");
+        static WordSet sReservedIdentifierVariables = new WordSet("null this true false default base match it new cast dref");
         static WordSet sTypeQualifiers = new WordSet("in out");
         static WordSet sTypeSymbols = new WordSet("? * ^ [ ref mut");
 
@@ -84,7 +84,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sXorOps = new WordSet("~");
         static WordSet sMultiplyOps = new WordSet("* / % &");
         static WordSet sAssignOps = new WordSet("= += -= *= /= %= |= &= ~= <<= >>=");
-        static WordSet sUnaryOps = new WordSet("+ - ! & ~ use unsafe ref *");
+        static WordSet sUnaryOps = new WordSet("+ - ! & ~ use unsafe ref");
         static WordSet sAllowedAfterInterpolatedString = new WordSet("; , ) ] }");
         static WordSet sNoSubCompoundStatement = new WordSet("if else while for do switch scope");
 
@@ -214,9 +214,10 @@ namespace Gosub.Zurfur.Compiler
             while (mTokenName != "" && (mTokenName != "}" || topScope))
             {
                 var attributes = NewExprList();
-                while (mTokenName == "[")
+                while (AcceptMatch("#"))
                 {
-                    ParseParen(attributes, false);
+                    if (CheckIdentifier("Expecting an attribute"))
+                        attributes.Add(ParseExpr());
                     while (mTokenName == ";")
                         Accept();
                 }
@@ -290,12 +291,12 @@ namespace Gosub.Zurfur.Compiler
                         break;
 
                     case "@":
-                        ParseField2(Accept(), parentScope, qualifiers);
+                        ParseFieldFull(Accept(), parentScope, qualifiers);
                         break;
 
                     case "const":
                         qualifiers.Add(Accept());
-                        AddField(ParseField(parentScope, qualifiers));
+                        AddField(ParseFieldSimple(parentScope, qualifiers));
                         break;
 
                     default:
@@ -449,7 +450,7 @@ namespace Gosub.Zurfur.Compiler
                 var open = mPrevToken;
                 do
                 {
-                    var simpleField = ParseField(synClass, new List<Token>());
+                    var simpleField = ParseFieldSimple(synClass, new List<Token>());
                     if (simpleField != null)
                     {
                         simpleField.Simple = true;
@@ -535,7 +536,7 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Current token must already be checked for validity
         /// </summary>
-        SyntaxField ParseField(SyntaxScope parentScope, List<Token> qualifiers)
+        SyntaxField ParseFieldSimple(SyntaxScope parentScope, List<Token> qualifiers)
         {
             var field = new SyntaxField(mToken);
             field.ParentScope = parentScope;
@@ -557,7 +558,7 @@ namespace Gosub.Zurfur.Compiler
             return field;
         }
 
-        private void ParseField2(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
+        private void ParseFieldFull(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
         {
             // Variable name
             if (!ParseIdentifier("Expecting field name", out var newVarName))
@@ -701,7 +702,7 @@ namespace Gosub.Zurfur.Compiler
                     synFunc.Name = operatorKeyword;
                 }
             }
-            else if (sReservedFuncNames.Contains(mTokenName))
+            else if (sReservedUserFuncNames.Contains(mTokenName))
             {
                 // Reserved function
                 synFunc.Name = Accept();
@@ -988,6 +989,7 @@ namespace Gosub.Zurfur.Compiler
                     break;
                 
                 case "defer":
+                case "unsafe":
                     statements.Add(new SyntaxUnary(Accept(), ParseExpr()));
                     break;
 
@@ -1130,8 +1132,7 @@ namespace Gosub.Zurfur.Compiler
 
                 default:
                     if ((sReservedWords.Contains(mTokenName) || mTokenName == "")
-                        && !sReservedIdentifierVariables.Contains(mTokenName)
-                        && !sReservedFuncNames.Contains(mTokenName))
+                        && !sReservedIdentifierVariables.Contains(mTokenName))
                     {
                         RejectToken(mToken, "Unexpected token or reserved word");
                         Accept();

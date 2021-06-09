@@ -78,7 +78,7 @@ pub class TestGuiForm extends Form
     }
    
    
-    [NewCallableAttribute()]
+    #NewCallableAttribute()
     fun InitializeComponent()
     {
     
