@@ -50,7 +50,7 @@ namespace Gosub.Zurfur.Compiler
         // Add semicolons to all lines, except for:
         static WordSet sEndLineSkipSemicolon = new WordSet("{ [ ( ,");
         static WordSet sBeginLineForceSemicolon = new WordSet("} namespace pub fun afun extern imp static");
-        static WordSet sBeginLineSkipSemicolon = new WordSet("{ [ ] ( ) , . + - * / % | & || && == != "
+        static WordSet sBeginLineSkipSemicolon = new WordSet("\" { [ ] ( ) , . + - * / % | & || && == != "
                             + ": ? > << <= < => -> .. :: !== ===  is in as");
 
         static WordSet sReservedWords = new WordSet("abstract as base break case catch class const "
@@ -103,8 +103,9 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sRejectFuncParam = new WordSet(", )");
         static WordSet sRejectTypeName = new WordSet("( )");
 
+        WordSet sStringLiteralEscapes = new WordSet("{ \" }");
         static WordMap<string> sStringLiterals = new WordMap<string>()
-            { { "lf", "\n" }, { "cr", "\r"}, {"crlf", "\r\n"}, {"tab", "\t"} };
+            { { "n", "\n" }, { "r", "\r"}, {"rn", "\r\n"}, {"t", "\t"}, {"b", "\b" } };
 
         /// <summary>
         /// Parse the given lexer
@@ -1564,14 +1565,14 @@ namespace Gosub.Zurfur.Compiler
             {
                 return new SyntaxToken(Accept());
             }
-            if (mToken.Type == eTokenType.Quote)
+            if (mTokenName == "\"")
             {
                 return ParseStringLiteral(null);
             }
             if (mToken.Type == eTokenType.Identifier)
             {
                 var identifier = Accept();
-                if (mToken.Type == eTokenType.Quote && identifier == "tr")
+                if (mTokenName == "\"" && identifier == "tr")
                 {
                     identifier.Type = eTokenType.Reserved;
                     return ParseStringLiteral(identifier);
@@ -1591,83 +1592,184 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Parse interpolated string: "string" expr "continue"
-        /// Prefix may be null, or 'tr'.  Next token must be quoted string.
+        /// Parse interpolated string: "string {expr} continue{\rn}"
+        /// Prefix may be null, or 'tr'.  Next token must be quote symbol.
+        /// TBD: Store "tr" in the parse tree
         /// </summary>
         SyntaxExpr ParseStringLiteral(Token prefix)
         {
-            const string STR_REPLACE = "`~`";
+            const string STR_REPLACE_TEMP = "\uE123\uF123";
+            const string STR_REPLACE_FINAL = "{?}"; // TBD: Need something less common?
 
             var quote = mToken;
-            var str = "";
-            bool isInterpolated = false;
-            while (mToken.Type == eTokenType.Quote || mToken == "\\")
+            var literalTokens = new List<Token>();
+            var literalSb = new StringBuilder();
+            var literalExpr = NewExprList();
+            var isInterpolated = false;
+
+            var scoopStartY = -1;
+            var scoopStartX = -1;
+            BeginScoop(mToken);
+            literalTokens.Add(Accept());
+
+            // Scoop until something ends the literal
+            while (true)
             {
-                if (mToken.Type == eTokenType.Quote)
+                if (mToken.Boln || mToken.Meta && mTokenName == ";")
                 {
-                    // Quoted string
-                    var s = mTokenName.Substring(1, Math.Max(0, mTokenName.Length - 2));
-                    str += s;
-                    if (s.Contains(STR_REPLACE))
+                    EndScoop(mToken);
+                    RejectToken(mToken.Boln ? mPrevToken : mToken, "Expecting end quote before end of line");
+                    if (AcceptMatchSkipMetaSemicolon("\""))
                     {
-                        // TBD: Only do this when string is interpolated
-                        mToken.AddError($"Interpolated string literals may not contain {STR_REPLACE}");
+                        // Special case: continue string on next line even though this is an error
+                        BeginScoop(mPrevToken);
+                        continue;
                     }
-                    Accept();
+                    break; // End quoted string
                 }
-                else if (mToken == "\\")
+
+                if (sStringLiteralEscapes.Contains(mToken))
                 {
-                    // cr, lf, crlf, tab, etc.
-                    mToken.Type = eTokenType.Reserved;
+                    EndScoop(mToken);
                     Accept();
-                    if (sStringLiterals.Contains(mTokenName))
+                    if (ParseDouble(mPrevToken.Name))
                     {
-                        mToken.Type = eTokenType.Reserved;
-                        str += sStringLiterals[mTokenName];
-                        Accept();
+                        BeginScoop(mPrevToken);
+                        continue;
                     }
-                    else if (mToken.Type == eTokenType.Number)
+
+                    if (mPrevToken.Name == "\"")
                     {
-                        // Decimal escape
-                        mToken.Type = eTokenType.Reserved;
-                        Accept();
-                        // TBD: Add decimal escape sequence
+                        // Accept end quote, then continue on next line if possible
+                        literalTokens.Add(mPrevToken);
+                        if (mToken.Boln && AcceptMatch("\""))
+                        {
+                            BeginScoop(mPrevToken);
+                            literalTokens.Add(mPrevToken);
+                            continue;  // Continue quoted string on next line
+                        }
+                        break; // End quoted string
                     }
-                    else if (mToken.Type == eTokenType.Identifier && mTokenName[0] == 'x')
+
+                    if (mPrevToken.Name == "{")
                     {
-                        // Hexadecimal escape
-                        mToken.Type = eTokenType.Reserved;
-                        Accept();
-                        // TBD: Add hex escape sequence
+                        if (mTokenName == "\\")
+                            ParseEscapes();
+                        else if (mTokenName != "\"") // String not allowed in string (user is probably typing)
+                            ParseInterpolatedExpression();
+
+                        if (mTokenName != "}")
+                            Reject("Expecting '}' to end string interpolation", new WordSet("} \""));
+                        AcceptMatch("}");
+
+                        BeginScoop(mPrevToken);
+                        continue; // Continue quoted string
                     }
-                    else
+                    if (mPrevToken.Name == "}")
                     {
-                        RejectToken(mToken, "Expecting string literal escape, 'lf', 'cr', 'tab', etc.");
+                        RejectToken(mPrevToken, "Expecting another '}' in string literal");
+                        BeginScoop(mPrevToken);
+                        continue;  // Continue parsing quoted string
                     }
                 }
 
-                if (mToken == "(" || mToken.Type == eTokenType.Identifier)
-                {
-                    isInterpolated = true;
-                    str += STR_REPLACE;
-                    ParsePrimary();
-                }
+                literalTokens.Add(Accept());
             }
-            // TBD: Show escape sequences, etc.
-            quote.AddInfo(str//.Replace(STR_REPLACE, "{}")
-                .Replace("\r\n", "{\\crlf}")
-                .Replace("\r", "{\\cf}")
-                .Replace("\n", "{\\lf}")
-                .Replace("\t", "{\\tab}"));
+            EndScoop(mToken);
 
+            // Check for error
+            var str = literalSb.ToString();
             if (isInterpolated)
             {
-                if (!sAllowedAfterInterpolatedString.Contains(mTokenName))
-                    RejectToken(mToken, "May not follow an interpolated expression.  Parentheses can be used to compare interpolated strings.");
+                var containsReplacement = str.Contains(STR_REPLACE_FINAL);
+                foreach (var token in literalTokens)
+                {
+                    if (containsReplacement && STR_REPLACE_FINAL.Contains(token.Name))
+                        RejectToken(token, $"Interpolated string literals may not contain '{STR_REPLACE_FINAL}'");
+                }
             }
 
-            return new SyntaxUnary(NewVirtualToken(quote, "\""), new SyntaxToken(new Token(str)));
+            // Show final string
+            str = str.Replace(STR_REPLACE_TEMP, STR_REPLACE_FINAL);
+            var strPrint = "'" + str
+                .Replace("\r\n", "{\\rn}")
+                .Replace("\r", "{\\r}")
+                .Replace("\n", "{\\n}")
+                .Replace("\t", "{\\t}")
+                .Replace("\b", "{\\b}")+ "'";
+
+            foreach (var token in literalTokens)
+            {
+                if (token.Error)
+                    continue;
+                token.AddInfo(strPrint);
+                token.Type = eTokenType.Quote;
+            }
+
+            return new SyntaxUnary(quote, new SyntaxMulti(new Token(str), FreeExprList(literalExpr)));
+
+            // Called with beginning quote
+            void BeginScoop(Token beginScoop)
+            {
+                scoopStartX = beginScoop.X + beginScoop.Name.Length;
+                scoopStartY = beginScoop.Y;
+            }
+
+            // Called with end quote
+            void EndScoop(Token endToken)
+            {
+                if (scoopStartX < 0)
+                    return;
+                var x = endToken.X;
+                if (endToken.Y != scoopStartY)
+                    x = mLexer.GetLine(scoopStartY).Length;
+                var len = Math.Max(0, x - scoopStartX);
+                literalSb.Append(mLexer.GetLine(scoopStartY).Substring(scoopStartX, len));
+                scoopStartX = -1;
+            }
+
+            bool ParseDouble(string literalName)
+            {
+                if (mTokenName == literalName && !mToken.Boln)
+                {
+                    literalTokens.Add(mPrevToken);
+                    literalSb.Append(literalName);
+                    if (mPrevToken.X + 1 != mToken.X)
+                        RejectToken(mToken, "Unexpected space before this token");
+                    literalTokens.Add(Accept());
+                    return true;
+                }
+                return false;
+            }
+
+            void ParseEscapes()
+            {
+                while (AcceptMatch("\\"))
+                {
+                    mPrevToken.Type = eTokenType.Reserved;
+                    if (!sStringLiterals.Contains(mTokenName))
+                    {
+                        RejectToken(mToken, "Expecting string literal constant, 'r', 'n', 'rn', 't', etc.");
+                        if (mToken.Type == eTokenType.Identifier)
+                            Accept();
+                        continue;
+                    }
+
+                    mToken.Type = eTokenType.Reserved;
+                    literalSb.Append(sStringLiterals[mToken.Name]);
+                    Accept();
+                }
+            }
+
+            void ParseInterpolatedExpression()
+            {
+                isInterpolated = true;
+                literalExpr.Add(ParseExpr());
+                literalSb.Append(STR_REPLACE_TEMP);
+            }
+
         }
+
 
         SyntaxExpr ParseParen(Token keyword, bool isFuncCall = false, SyntaxExpr first = null)
         {
@@ -2030,12 +2132,8 @@ namespace Gosub.Zurfur.Compiler
             // Set token type
             if (mTokenName.Length == 0)
                 mToken.Type = eTokenType.Normal;
-            else if (mTokenName[0] == '\"' || mTokenName[0] == '`')
-            {
+            else if (mTokenName[0] == '\"')
                 mToken.Type = eTokenType.Quote;
-                if (mTokenName.Length <= 1 || !mTokenName.EndsWith(mTokenName[0].ToString()))
-                    RejectToken(mToken, "Exepcting an end " + mTokenName[0] + " character");
-            }
             else if (mTokenName[0] >= '0' && mTokenName[0] <= '9')
                 mToken.Type = eTokenType.Number;
             else if (sReservedWords.Contains(mTokenName))
@@ -2057,9 +2155,7 @@ namespace Gosub.Zurfur.Compiler
             if (prevToken.Y != mToken.Y
                     && (!sEndLineSkipSemicolon.Contains(prevToken) 
                             || sBeginLineForceSemicolon.Contains(mTokenName))
-                    && !(sBeginLineSkipSemicolon.Contains(mTokenName) 
-                            || mTokenName.StartsWith("\"")
-                            || mTokenName.StartsWith("`")))
+                    &&  !sBeginLineSkipSemicolon.Contains(mTokenName) )
             {
                 // Mark at end of token, before any comment
                 int x = prevToken.X + prevToken.Name.Length;

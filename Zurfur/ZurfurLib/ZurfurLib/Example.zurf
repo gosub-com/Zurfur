@@ -14,7 +14,7 @@ static fun test_HelloWorld()
 {
     Console.Log("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
-        Console.Log("Count=" a)
+        Console.Log("Count={a}")
 }
 
 pub struct SimpleStruct(X int, Y int)
@@ -25,7 +25,7 @@ pub class SimpleClassWitBody(FirstName str, LastName str)
 {
     // a int - ILLEGAL
     // fun new(a int) => AlsoIllegal()
-    fun ToStr() { return "" LastName ", " FirstName }
+    fun ToStr() { return "{LastName}, {FirstName}" }
 }
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
@@ -100,7 +100,7 @@ pub static fun test_Main(args Array<str>)
     test_compose()
 
     // This is a regular private comment
-    Log.Info("Hello World, 2+2=" add(2,2))
+    Log.Info("Hello World, 2+2={2+2}")
 
     @v = ""
     switch myString
@@ -127,8 +127,8 @@ pub static fun test_Main(args Array<str>)
         it==1 || it==2 || it==3: "a",
         it>=5 || it<=6: "b"]
 
-    a = tr"Column 1"\tab"Column 2"\crlf
-    data = "Name:"name\tab"Occupation:"lastName\crlf
+    a = tr"Column 1{\t}Column 2{\rn}"
+    data = "Name:{name}{\t}Occupation:{lastName}{\rn}"
     
     while stream.Read(buffer)@size != 0
         @a = MyFun as Hello
@@ -157,7 +157,7 @@ pub static fun test_Main(args Array<str>)
         Debug.Assert(squareTriple(2) == 36)
     
         for @v in 1..23
-            Log.Info("Count=" v)
+            Log.Info("Count={v}")
     }
 
     /// Compose f(g(x))
@@ -532,7 +532,7 @@ pub fun Example.IfTests()
 pub struct MyPoint(X int, Y int)
 {
     pub override fun ToStr()
-        return "(" X ", " Y ")"
+        return "({X}, {Y})"
 }
 
 

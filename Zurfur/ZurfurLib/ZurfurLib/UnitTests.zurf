@@ -10,8 +10,16 @@ static fun test_HelloWorld()
     Console.Log("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
     {
-        Console.Log("Count=" a)
+        Console.Log("Count={a}")
     }
+
+    @a = "Regular string literal"       // No interpolation
+    @b = "Column 1{\t}Column 2{\rn}"    // Containing a tab, ending with \r\n
+    @c = tr"Translated string"          // Translated at runtime
+    @d = "Hello world, a+b={a+b}{\rn}"  // Interpolated with \r\n at the end
+    @e = tr"Hello world, X={X}!{\rn}"   // Translated, interpolated, \r\n at end
+    @f = "Jack says ""Hello World!"""   // Containing quote character
+    @g = "{{""X"":1,""Y"":2}}"          // {"X":1,"Y":2}
 }
 
 pub class Example

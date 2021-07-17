@@ -560,21 +560,14 @@ Strings (i.e. `str`) are immutable byte arrays, generally assumed to hold
 UTF8 encoded characters.  However, there is no rule enforcing the UTF8 encoding
 so they may hold any binary data.
 
-String literals in source code can start with either a quote `"` or a backtick
-`` ` ``, which should only be used when the string literal contains a quote `"`.
-They can be translated using `tr"string"` syntax.
+String literals start with a quote `"` or they can be translated at runtime
+using `tr"string"` syntax.  All strings are interpolated (i.e. they do not
+need to start with `$`) and the syntax is largely the same as C#.  The
+backslash `\` is interpreted literally and does not create a control character.
+Control characters may be placed directly inside an interpolation (e.g.
+`{\t}` is a tab).
 
-They may contain escape constants when they are immediately followed
-by `\` and a recognized constant.  For example `"Column 1"\tab"Column 2"`
-contains a `\tab` character. Valid escape constants are `\lf` (i.e. `\n` in C),
-`\cr` (i.e. `\r` in C), `\crlf`, `\tab`, and others.  Unicode numbers may be
-encoded in decimal (e.g. `\127`) or in hexadecimal (e.g. `\x1F600` is the
-unicode smiley face).  A `\` inside the quotes is not an escape character.
-TBD: Do we want to stick with `\n` and `\r` out of tradition?  I find them
-confusing, especially since they aren't marked that way on most ASCII charts.
 
-Strings are interpolated when when followed by parenthesis `"Example:"(expression)`,
-or an identifier beginning a primary expression `"Item #" i "=" X[i]`.  
 
 ![](Doc/Strings.png)
 

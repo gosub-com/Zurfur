@@ -88,12 +88,6 @@ namespace Gosub.Zurfur.Lex
                 tokens.Add(ScanNumber(line, ref charIndex, startIndex, mintern));
                 return;
             }
-            // Quote
-            if (ch1 == '\"' || ch1 == '`')
-            {
-                tokens.Add(ScanString(line, ref charIndex, startIndex, mintern));
-                return;
-            }
             // Comment
             if (mTokenizeComments && ch1 == '/')
             {
@@ -131,6 +125,7 @@ namespace Gosub.Zurfur.Lex
 
         void ScanComment(string comment, int startIndex, List<Token> tokens, MinTern mintern)
         {
+            // TBD: This should probably go away and let the higher level parser do it
             eTokenType commentType = startIndex + 2 < comment.Length && comment[startIndex + 2] == '/'
                                         ? eTokenType.PublicComment : eTokenType.Comment;
 
@@ -152,23 +147,6 @@ namespace Gosub.Zurfur.Lex
             if (comment != "")
                 tokens.Add(new Token(comment, startIndex, 0, commentType));
 
-        }
-
-        Token ScanString(string line, ref int charIndex, int startIndex, MinTern mintern)
-        {
-            // TBD: This will go away, let the higher level parser
-            //      determine when to end the quote (and interpret escapes)
-            char endQuote = line[charIndex];
-            int endIndex = charIndex + 1;
-            while (endIndex < line.Length && line[endIndex] != endQuote)
-            {
-                endIndex++;
-            }
-            if (endIndex != line.Length)
-                endIndex++; // Skip end quote
-            string token = mintern[line.Substring(charIndex, endIndex - charIndex)];
-            charIndex = endIndex;
-            return new Token(token, startIndex, 0, eTokenType.Quote);
         }
 
         Token ScanNumber(string line, ref int charIndex, int startIndex, MinTern mintern)

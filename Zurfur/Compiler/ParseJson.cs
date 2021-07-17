@@ -61,8 +61,8 @@ namespace Gosub.Zurfur.Compiler
             }
             if (sValueTokens.Contains(mTokenName))
                 Accept();
-            else if (mTokenName[0] == '\"')
-                Accept();
+            else if (mTokenName == "\"")
+                ParseString();
             else if (mTokenName[0] >= '0' && mTokenName[0] <= '9')
                 Accept();
             else if (mTokenName == "{")
@@ -71,6 +71,21 @@ namespace Gosub.Zurfur.Compiler
                 ParseArray();
             else
                 RejectToken(mToken, "Expecting a value, 'true', 'false', 'null', '{', '[', number, or string");
+        }
+
+        void ParseString()
+        {
+            if (mTokenName != "\"")
+            {
+                Reject("Expecting a quote to begin a string", sEndObjectKey);
+                return;
+            }
+            // TBD: Accept and buid json style strings
+            Accept().Type = eTokenType.Quote;
+            while (mTokenName != "" && mTokenName != "\"" && !mToken.Boln && !mToken.Meta)
+                Accept().Type = eTokenType.Quote;
+            if (!mToken.Boln && mTokenName == "\"")
+                Accept().Type = eTokenType.Quote;
         }
 
         void ParseArray()
@@ -107,11 +122,7 @@ namespace Gosub.Zurfur.Compiler
 
         void ParseObjectKv()
         {
-            if (mTokenName != "" && mTokenName[0] == '\"')
-                Accept();
-            else
-                RejectToken(mToken, "Expecting a string");
-
+            ParseString();
             if (mTokenName != ":")
                 Reject("Expecting ':'", sEndObjectKey);
             if (mTokenName == ":")

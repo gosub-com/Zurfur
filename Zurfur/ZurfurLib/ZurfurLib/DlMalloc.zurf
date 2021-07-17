@@ -1383,11 +1383,11 @@ pub unsafe class DlMalloc
 
         pub fun ToStr() str
         {
-            return "HeapSize=" HeapSize
-                    ", UB=" UsedBytes
-                    ", FB=" FreeBytes
-                    ", UC=" UsedChunks
-                    ", FC=" FreeChunks
+            return "HeapSize={HeapSize}"
+                    ", UB={UsedBytes}"
+                    ", FB={FreeBytes}"
+                    ", UC={UsedChunks}"
+                    ", FC={FreeChunks}"
         }
     }
 
