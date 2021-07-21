@@ -183,6 +183,12 @@
     <Compile Include="Lexer\Token.cs" />
     <Compile Include="Lexer\Lexer.cs" />
     <Compile Include="App.cs" />
+    <None Include="ZurfurLib\ZurfurLib\Array.zurf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="ZurfurLib\ZurfurLib\Buffer.zurf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="ZurfurLib\ZurfurLib\DlMalloc.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

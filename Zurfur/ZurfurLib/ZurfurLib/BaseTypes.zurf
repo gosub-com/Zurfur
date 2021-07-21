@@ -6,28 +6,26 @@
 
 namespace Zurfur
 
-pub struct void { }
-pub struct object { }
-pub struct int = i32
-pub struct uint = u32
-pub struct byte = u8
+pub type void { }
+pub type object { }
+pub type int = i32
+pub type uint = u32
+pub type byte = u8
 
-/// TBD: Implement
-pub struct Array<T> { }
 
 // TBD: Needs to be an actual type to enforce proper typing and casting rules
 /// 32 bit or 64 bit integer depending on the platform
-pub struct xint = i32
+pub type xint = i32
 
 // TBD: Needs to be an actual type to enforce proper typing and casting rules
 /// 32 bit or 64 bit integer depending on the platform
-pub struct xuint = u32
+pub type xuint = u32
 
 /// bool (true or false)
-pub struct ro bool
+pub type ro bool
     implements Equatable<bool>
 {
-    pub static fun new(a bool) extern
+    pub static fun new(a bool) void extern
     pub static fun GetHashCode(a bool) uint extern
     pub static fun Equals(a bool, b bool) bool extern
 
@@ -38,7 +36,7 @@ pub struct ro bool
 }
 
 /// i8 (-128..127)
-pub struct ro i8
+pub type ro i8
     implements Comparable<i8>
 {
     pub const MaxValue i8 = 127
@@ -46,7 +44,7 @@ pub struct ro i8
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a i8) extern
+    pub fun new(a i8) void extern
     pub fun cast(a u8) i8 extern
     pub fun cast(a i16) i8 extern
     pub fun cast(a u16) i8 extern
@@ -72,7 +70,7 @@ pub struct ro i8
 
 
 /// u8 (0..255) same as byte
-pub struct ro u8
+pub type ro u8
     implements Comparable<u8>
 {
     pub const MaxValue u8 = 255
@@ -80,7 +78,7 @@ pub struct ro u8
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a u8) extern
+    pub fun new(a u8) void extern
     
     pub fun cast(a i8) u8 extern
     pub fun cast(a i16) u8 extern
@@ -109,7 +107,7 @@ pub struct ro u8
 }
 
 /// i16 (-32768..32768)
-pub struct ro i16
+pub type ro i16
     implements Comparable<i16>
 {
     pub const MaxValue i16 = 32767
@@ -117,7 +115,7 @@ pub struct ro i16
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a i16) extern
+    pub fun new(a i16) void extern
 
     pub fun cast(a u16) i16 extern
     pub fun cast(a i32) i16 extern
@@ -141,7 +139,7 @@ pub struct ro i16
 
 
 /// u16 (0..65535)
-pub struct ro u16
+pub type ro u16
     implements Comparable<u16>
 {
     pub const MaxValue u16 = 65535
@@ -149,7 +147,7 @@ pub struct ro u16
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a u16) extern
+    pub fun new(a u16) void extern
 
     pub fun cast(a i8) u16 extern
     pub fun cast(a i16) u16 extern
@@ -175,7 +173,7 @@ pub struct ro u16
 }
 
 /// A 32 bit integer (same as int)
-pub struct ro i32
+pub type ro i32
     implements IArithmetic<i32>
 {
     pub const MaxValue i32 = 2147483647
@@ -183,7 +181,7 @@ pub struct ro i32
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a i32) extern
+    pub fun new(a i32) void extern
 
     pub fun cast(a u32) i32 extern
     pub fun cast(a i64) i32 extern
@@ -230,7 +228,7 @@ pub struct ro i32
 }
 
 /// 32 bit unsigned integer (same as uint)
-pub struct ro u32
+pub type ro u32
     implements IArithmetic<u32>
 {
     pub const MaxValue u32 = 4294967295
@@ -238,7 +236,7 @@ pub struct ro u32
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a u32) extern
+    pub fun new(a u32) void extern
 
     pub fun cast(a i8) u32 extern
     pub fun cast(a i16) u32 extern
@@ -287,7 +285,7 @@ pub struct ro u32
 }
 
 /// A 64 bit integer
-pub struct ro i64
+pub type ro i64
     implements IArithmetic<i64>
 {
     pub const MaxValue i64 = 9223372036854775807
@@ -295,7 +293,7 @@ pub struct ro i64
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a i64) extern
+    pub fun new(a i64) void extern
 
     pub fun cast(a u64) i64 extern
     pub fun cast(a f32) i64 extern
@@ -338,7 +336,7 @@ pub struct ro i64
 }
 
 /// 64 bit unsigned integer
-pub struct ro u64
+pub type ro u64
     implements IArithmetic<u64>
 {
     pub const MaxValue u64 = 18446744073709551615
@@ -346,7 +344,7 @@ pub struct ro u64
     pub const Origin u64 = 0
     pub const Identity u64 = 1
 
-    pub fun new(a u64) extern
+    pub fun new(a u64) void extern
 
     pub fun cast(a i8) u64 extern
     pub fun cast(a i16) u64 extern
@@ -389,7 +387,7 @@ pub struct ro u64
     pub fun Sq() u64 extern
 }
 
-pub struct ro f32
+pub type ro f32
     implements IArithmetic<f32>
 {
     pub const MaxValue f32 = 3.40282347E+38F
@@ -401,7 +399,7 @@ pub struct ro f32
     pub const Origin f32 = 0
     pub const Identity f32 = 1
 
-    pub fun new(a f32) extern
+    pub fun new(a f32) void extern
 
     pub fun cast(a f64) f32 extern
     pub fun cast(a decimal) f32 extern
@@ -463,7 +461,7 @@ pub struct ro f32
     pub fun Trunc() f32 extern
 }
 
-pub struct ro f64
+pub type ro f64
     implements IArithmetic<f64>
 {
     pub const MaxValue f64 = 1.7976931348623157E+308
@@ -475,7 +473,7 @@ pub struct ro f64
     pub const Origin f64 = 0
     pub const Identity f64 = 1
 
-    pub fun new(a f64) extern
+    pub fun new(a f64) void extern
     pub fun cast(a decimal) f64 extern
     
     pub fun implicit(a f64) decimal extern
@@ -535,10 +533,10 @@ pub struct ro f64
 
 /// 128 bit decimal integer.  This will support NAN, infinity, and
 /// exponents covering the entire range of f64 with more precision.
-pub struct ro decimal
+pub type ro decimal
     implements IArithmetic<decimal>
 {
-    pub fun new(a decimal) extern
+    pub fun new(a decimal) void extern
 
     pub const MaxValue decimal = 1E+1000M
     pub const MinValue decimal = -1E+1000M

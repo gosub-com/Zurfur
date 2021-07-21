@@ -2,35 +2,31 @@
 
 
 // The compiler will create a new object for each file
-pub class Log
+pub type Log
 {
     pub enum Level { Fatal; Error; Warn; Info; Debug }
 
-    ro @FileName str pub get
-    
 
-    pub prop LogLevel Level { todo() }
-    pub fun Fatal(message str, li LogLine = default) { todo() }
-    pub fun Error(message str, li LogLine = default) { todo() }
-    pub fun Warn(message str, li LogLine = default) { todo() }
-    pub fun Info(message str, li LogLine = default) { todo() }
-    pub fun Debug(message str, li LogLine = default) { todo() }
+    // TBD: Figure out how to get default file names and line numbers.
+    //      Also figure out if this should be created per file
+
+    pub static prop LogLevel Level { todo() }
+    pub static fun Fatal(message str, li LogLine = default) void { todo() }
+    pub static fun Error(message str, li LogLine = default) void { todo() }
+    pub static fun Warn(message str, li LogLine = default) void { todo() }
+    pub static fun Info(message str, li LogLine = default) void { todo() }
+    pub static fun Debug(message str, li LogLine = default) void { todo() }
 
     /// Recoverable programming error.  In debug mode, stop and
     /// make the programmer look at it.  In production, log it
     /// and continue.
-    pub fun PanicInDebugMode(message str, li LogLine = default) { todo() }
+    pub static fun PanicInDebugMode(message str, li LogLine = default) void { todo() }
 
-    @RecordTimeEvents bool pub get set
-    pub fun Time(name str, message str = "") { todo() }
-    pub fun TimeBegin(name str, message str = "") { todo() }
-    pub fun TimeEnd(name str, message str = "") { }
+    pub static fun Time(name str, message str = "") void { todo() }
+    pub static fun TimeBegin(name str, message str = "") void { todo() }
+    pub static fun TimeEnd(name str, message str = "") void { }
 
-    // The compiler will fill in the line number of the caller
-    pub struct ro LogLine
-    {
-        pub fun default() extern
-        ro @Line int pub get
-    }
+
+    type ro LogLine(FilePath str, Line int)
 
 }

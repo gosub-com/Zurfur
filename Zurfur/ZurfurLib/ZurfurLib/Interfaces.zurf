@@ -42,7 +42,7 @@ pub interface Collection<T>
 
 pub interface Iterable<T>
 {
-    fun GetIterator() imp
+    fun GetIterator() Iterator<T> imp
 }
 
 pub interface Iterator<T>
@@ -50,11 +50,11 @@ pub interface Iterator<T>
     /// Get the next item from a collection.
     /// Returns null if there are no more items.
     /// Panic if collection is mutated while iterating.
-    fun Next mut() ?ref T imp
+    fun mut Next() ?ref T imp
 }
 
 
-pub struct Pair<TKey, TValue>(Key TKey, Value TValue)
+pub type Pair<TKey, TValue>(Key TKey, Value TValue)
 
 
 /// This is a test
@@ -65,7 +65,7 @@ pub interface IGeneric<Q>
 }
 
 // Test generic type
-pub class MyGeneric<QQ>
+pub type MyGeneric<QQ>
     implements IGeneric<QQ>
 {
     pub fun IGeneric<QQ>.A<T>(a QQ) int { }

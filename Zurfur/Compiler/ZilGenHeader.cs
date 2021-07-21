@@ -373,7 +373,7 @@ namespace Gosub.Zurfur.Compiler
             if (sTypeAttributes.Contains(typeExpr.Token))
             {
                 // TBD: Figure out what to do about the attributes.  For now skip them.
-                Warning(typeExpr.Token, "Attribute not processed yet");
+                //Warning(typeExpr.Token, "Attribute not processed yet");
                 if (typeExpr.Count == 1)
                     return ResolveType(scope, typeExpr[0], file);
                 Reject(typeExpr.Token, "Index error");

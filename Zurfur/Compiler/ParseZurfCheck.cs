@@ -341,12 +341,11 @@ namespace Gosub.Zurfur.Compiler
 
             foreach (var aClass in unit.Types)
             {
-                if (aClass.Extends != null)
-                    ShowParseTree(aClass.Extends);
+                if (aClass.AliasOrExtends != null)
+                    ShowParseTree(aClass.AliasOrExtends);
                 if (aClass.Implements != null)
                     foreach (var baseClass in aClass.Implements)
                         ShowParseTree(baseClass);
-                ShowParseTree(aClass.Alias);
             }
             foreach (var func in unit.Methods)
             {

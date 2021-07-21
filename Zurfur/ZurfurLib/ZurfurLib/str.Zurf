@@ -1,16 +1,15 @@
 ﻿namespace Zurfur
 
-/// String is a wrapper for a read only array of bytes
-pub class ro str
-    extends ArrayBase<byte>
-    implements IComparable<str>, IRoArray<byte>
+/// String is a wrapper for a read only array of bytes with support for UTF8
+pub type ro str = Array<byte>
 {
-    fun default() str
-        return ""
-    
-    pub fun new() { todo() }
-    pub fun new(s str) { todo() }
-    pub fun new(s Span<byte>) { todo() }
+    // NOTE: Much of the implmentation is inherited from Array
+    //       and its implicit conversion to Span
+
+
+    pub fun new() void { todo() }
+    pub fun new(s str) void { todo() }
+    pub fun new(s Span<byte>) void { todo() }
     pub fun operator[](index int) byte
         return todo()
     pub fun operator[](range Range) Span<byte>

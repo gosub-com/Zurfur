@@ -2,13 +2,13 @@
 
 namespace Zurfur
 
-pub class Map<TKey, TValue>
+pub type Map<TKey, TValue>
     where TKey is IEquatable<TKey>
 {
-    pub fun new(capacity int)
+    pub fun new(capacity int) void
         where TKey is IEquatable
         return todo()
-    pub fun new(keyValues Collection<Pair<TKey, TValue>>)
+    pub fun new(keyValues Collection<Pair<TKey, TValue>>) void
         return todo()
     pub prop Count int
         return todo()
@@ -28,12 +28,12 @@ pub class Map<TKey, TValue>
         return todo()
     pub prop Values Collection<TValue>
         return todo()
-    pub fun Clear mut()
+    pub fun mut Clear() void
         return todo()
-    pub fun Add mut(item Pair<TKey, TValue>)
+    pub fun mut Add(item Pair<TKey, TValue>) void
         return todo()
-    pub fun Add mut(items Collection<Pair<TKey, TValue>>)
+    pub fun mut Add(items Collection<Pair<TKey, TValue>>) void
         return todo()
-    pub fun Remove mut(key TKey) bool
+    pub fun mut Remove(key TKey) bool
         return todo()
 }

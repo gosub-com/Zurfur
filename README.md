@@ -30,14 +30,15 @@ Zurfur takes its main inspiration from C#, but borrows syntax and design
 concepts from Golang, Rust, Zig, Lobster, and many other languages.
 Here are some key features:
 
-* Mutability and nullabilty are part of the type system:
+* Mutability, ownership, and nullabilty are part of the type system:
     * Function parameters must be explicitly marked `mut` if they mutate anything
     * Children of read only fields (i.e. `ro` fields) are also read only
-    * References are non-nullable by default and may use `?type` for nullable
-    * Get/set of a mutable type acts like you expect (e.g. `myObject.VectorProperty.X = 3` works)
+    * All objects are owned (i.e. value types) unless explicitly boxed (e.g. `^type`)
+    * References and boxes are non-nullable, but may use `?type` or `?^type` for nullable
+    * Get/set of mutable properties works (e.g. `myList[0].VectorProperty.X = 3` mutates `X`)
 * Fast and efficient:
-    * All non-array objects are value types (many fewer heap objets, great for functional programming)
     * Return references and span used everywhere. `[]int` is `Span<int>`, and OK to pass to async functions
+    * The ownership model allows the runtime to delete most objects without needing GC
     * Single threaded model (from Javascript) allows efficient reference counted heap objects
     * Safe multithreading via web workers (`clone` and `bag` defined as fast deep copy for message passing)
     * Functions pass parameters by reference, but will pass by value when it is more efficient
@@ -80,10 +81,10 @@ typed variable with optional assignment from an expression.
 An array of expressions `[e1, e2, e3...]` is used to initialize a list and
 an array of pairs `[K1:V1, K2:V2, K3:V3...]` is used to initialize a map.
 Brackets `[]` are used for both arrays and maps. Curly braces are reserved
-for statement level constructs.  Constructors can be called with `()`.  
-The following are identical, although, the simplest form is preferred:
+for statement level constructs.  Constructors can be called with `()`.
+The following are identical:
 
-    class MyPointXY(X int, Y int)
+    type MyPointXY(X int, Y int)
     @c Map<str, MyPointXY> = ["A": (1,2), "B": (3,4)]           // MyPointXY Constructor
     @d Map<str, MyPointXY> = ["A": (X:1,Y:2), "B": (X:3,Y:4)]   // MyPointXY field initializer
     @a = ["A": MyPointXY(1,2), "B": MyPointXY(3,4)]
@@ -93,257 +94,228 @@ The following are identical, although, the simplest form is preferred:
 
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
-    pub static fun Main(args Array<str>)
+    pub static fun Main(args Array<str>) void
     {
         // This is a regular private comment
-        Log.Info("Hello World, 2+2=" add(2,2))
+        Log.Info("Hello World, 2+2={2+2}")
     }
 
-Functions are declared with the `fun` keyword. The type name comes
-after each argument, and the return type comes after the parameters.
-Functions, types, enums, variables and constants are private unless
-they have the 'pub' qualifier.  Functions are allowed at the namespace
-level, but must be static or extension methods.
+Functions are declared with the `fun` keyword. The type name comes after the
+argument, and the return type comes after the parameters.
 
-By default, functions pass parameters as read-only reference.  The exception
-is that small structs (e.g. `Span<T>`) may be passed by value when it is more
-efficient to do so.  Since all types are passed the same way, there is little
-difference whether `MyType` is a `class` or `struct`:
+Static functions and extension methods are allowed at
+the namespace level:
 
-    pub fun Test(a        f64,      // Pass by value since that's more efficient
-                 s        MyType,   // Pass by value or reference whichever is more efficient
-                 ros   ro MyType,   // Pass an immutable type
-                 ms   mut MyType,   // Pass by reference, preserve `ro` fields
-                 rs   ref MyType)   // Pass by reference, nothing is preserved
-
-If `s` is big, such as a matrix containing 16 floats, it is passed by
-reference.  If it is small, such as a single float or int, it is passed
-by value.  A type containing two integers might be passed by value or
-by reference depending on the compiler, options, and optimizations.
-Even if `MyStruct` is mutable, `s` cannot be mutated because only parameters
-marked with `mut` or `ref` can be mutated.  
+    // Declare an extension method for strings
+    pub str.Rest() str
+        return Count == 0 ? "" : str(this[1..])
 
 Functions can return multiple values:
 
     // Multiple returns
     pub static fun Circle(a f64, r f64) -> (x f64, y f64)
     {
-        return Cos(a)*r, Sin(a)*r
+        return a.Cos()*r, a.Sin()*r
     }
 
+The return parameters are named, and can be used by the calling function:
 
-**TBD:** Still thinking about using the Golang `func` keyword to define functions.
+    @a = Circle(0, 1)
+    Log.Info("X: {a.x}, Y:{a.y}")
+
+
+By default, functions pass parameters as read-only reference.  The exception
+is that small types (e.g. `int`, and maybe `Span<T>`) may be passed by value
+when it is more efficient to do so:
+
+    pub fun Test(a        f64,      // Pass by value since that's more efficient
+                 b        MyType,   // Immutable, pass by value or reference whichever is more efficient
+                 c    mut MyType)   // Mutable, but `ro` fields are preserved (never passed by value)
+
+If `b` is big, such as a matrix containing 16 floats, it is passed by
+reference.  If it is small, such as a single `int` or `f64`, it is passed
+by value.  A type containing three integers might be passed by value or by
+reference depending on the compiler, options, and optimizations.  
 
 ## Types
 
-I am leaning towards making Zurfur a value oriented language, requiring `^`
-for heap objects.  Every object is a value with a clear owner but is passed
-to a function via reference.  The function may modify the object if it was
-passed with `mut`, but cannot ever capture a reference to it.
+Zurufur is a value oriented language with both mutable and immutable types.
+Value oriented means that all objects have an owner and references to them
+can't be stored unless explictly boxed with a definition such as `^MyType`
+(i.e. pointer to `MyType`).
 
-### Owned Object Discussion
+    // Creating simple types is easy
+    type    Point(X int, Y int)             // Mutable type
+    type ro Person(Name str, Age int)       // Immutable type
 
-Zurfur wants to be just as easy as C#, but more efficient without the
-complexity of Rust or unsafeness of C++.  So how much simpleness do we
-trade for efficiency?
+Because all types are values instead of references, it is impossible for data
+structures to implicitly alias themselves, except when they are boxed and 
+immutable.  For instance:
 
-**Level 0: Class Is on the Heap**
+    // This cannot ever reference itself provided that `MutType`
+    // does not contain an explicitly boxed field, such as `^SomeOtherType`
+    @a = List<MutType>(CreateData())
+    a[0] = a[1]                         // Always makes a copy unless immutable type
+    a[0].x = 1                          // Never affects the value at a[1].x
 
-When it comes to heap and references, C# is super simple.  A `class` is always
-a heap object, and `struct` is always a value, embedded in its owner.
-In many cases, the optimizer should be able to embed a class on the stack
-and sometimes even within a class.  Consider this:
+In C# `a[0].x = 1` could change the value of `a[1].x`.  In Zurfur, this cannot
+happen unless explicitly boxed like this:
 
-    static pub fun DoSomething(x mut SomeClass) { ... }
-    pub class MyClass
+    // The list might alias two of the same object
+    @a = List<^MutType>(CreateData())
+    a[0] = a[1]                         // The list definitely aliases two of the same object
+    a[0].x = 1                          // a[1] = 1
+
+Unlike C#, it is impossible to capture a reference to an object passed to
+a function unless explicitly boxed or when the type is boxed and immutable.
+
+    fun NoCap(a MutType)    // The reference to `a` cannot be captured or stored
+    fun CapOk(b ^MutType)   // The reference to `b` can be captured and stored
+    fun CapOk(s str)        // The reference to `s` can be captured since a string is immutable and boxed
+
+### Boxed types
+
+Declaring a type `boxed` changes the memory layout, but not the fact that
+it is still a value type:
+
+    type boxed BoxedPoint(x int, y int)
+
+Any time this type is used, it is created on the heap.  However, it is still
+a value type:
+
+    @a = List<BoxedPoint>(CreateData())
+    a[0] = a[1]                         // Always makes a copy
+    a[0].x = 1                          // Never affects the value at a[1].x
+
+The most important boxed type in Zurfur is `Buffer<t>` which is the basis
+for `Array<T>`, `str`, and `List<T>`.
+
+### Immutable types
+
+An immutable type means that the type cannot modify its contents or anything
+it owns.  An immutable type may own a mutable object, however the mutable
+object must have been copied into it (to prevent aliasing), and then becomes
+forever frozen.  For example:
+
+    // `Stuff` should really be an `Array` which is an immutable type
+    type ro Person(Name str, Age int, Stuff List<int>)
+    @stuff = [1,2,3]
+    @person = Person("Jeremy", 50, stuff)   // Fully and forever immutable
+    @stuff[0].x = 10                        // person.Stuff[0] does not change
+
+Even though `Stuff` is `List<int>` which is a mutable type, it has become
+frozen and can no longer be modified.  Both `p.Stuff.Clear()` and
+`p.Stuff.x = 3` are illegal. Furthermore, it is impossible for `person.Stuff`
+to be modified from anywhere else since mutable objects are value types and
+are copied.
+
+There is an **explicit** way to allow an immutable object to reference mutable
+data, and that is through a box:
+
+    type ro Person(Name str, Age int, Stuff ^List<int>) // The box is immutable, but the list is mutable
+    @stuff = box [1,2,3]                                // This creates `^List<int>`
+    @person = Person("Jeremy", 50, stuff)
+    @stuff[0] = 10                                      // Now `person.Stuff[0]` == 10
+
+The variable `person` is not immutable and can be re-assigned to a new person:
+
+    @person = Person("Jeremy", 50, [1,2,3])
+    person = Person.Clone(Age: person.Age+1)    // Person gets a year older
+
+### Boxed ro types
+
+Boxed immutable types (i.e. `boxed ro`) are always on the heap, are
+reference types (just like C#!), and they are copied very quickly
+without dynamic allocation.  For functional programming, `boxed ro`
+is the way to go.
+
+The most important `boxed ro` type in Zurfur is `Array<T>` which is the basis
+for `str`.  For functional programming, use `List<T>` to build an array,
+then convert to `Array<T>` for immutable storage.
+
+In Zurfur:
+
+* `Buffer<T>` is a boxed mutable type, but with an immutable size
+* `Array<T>` is a boxed immutable type (an immutable version of `Buffer<T>`)
+* `str` is an `Array<str>` with extra functionality
+
+Consider the above, and these definitions:
+
+    type       Point(x int, y int)
+    type       Line(p1 Point, p2 Point)
+    type boxed BoxedPoint(x int, y int)
+    type       Shape(line Line, bp BoxedPoint, buf Buffer<int>, a Array<int>, name str)
+
+    @a = Shape(line:((1,2), (3,4)), bp:(5,6), buf:[1,2,3], a:[1,2,3], name: "Jeremy" )
+    @b = @a             // `b` is a copy, except for immutable boxed types which are references
+    @b.bp.x = 25        // a.bp.x is still 5
+
+The memory layout for `a` looks like:
+
+    line.p1.x    int
+    line.p1.y    int
+    line.p2.x    int
+    line.p2.y    int
+    bp           BoxedPoint, pointer to -----> p3.X    int
+                                               p3.Y    int
+    buf          Buffer<int>, pointer to ----> [0]     int
+                                               [1]     int
+                                               [2]     int
+                                               ... Buffer could continue
+    a            Array<int>, pointer to -----> [0]    int
+                                               [1]    int
+                                               [2]    int
+                                               ... Array could continue
+    name         str, pointer to ------------> "Jeremy"
+
+The memory layout for `b` looks like:
+
+    line.p1.x    int
+    line.p1.y    int
+    line.p2.x    int
+    line.p2.y    int
+    bp           BoxedPoint, pointer to -----> p3.X    int
+                                               p3.Y    int
+    buf          Buffer<int>, pointer to ----> [0]     int
+                                               [1]     int
+                                               [2]     int
+                                               ... Buffer could continue
+    a            Array<int>, pointer to -----> (see above, reference copied)
+    name         str, pointer to ------------> (see above, reference copied)
+
+
+### Selective immutability
+
+Mutability at the type level `type ro` is all or nothing for the whole type.
+When the type is not immutable, any field can be made immutable using `ro`.
+
+    type MyType
     {
-        a SomeClass
-        b SomeClass
-        c SomeClass     // Maybe this one needs to be cached somewhere
-        pub fun DoStuff()
-        {
-            @q = SomeClass()
-            DoSomething(q)
-        }
+        @a  int             // `a` can be assigned
+        ro @b int           // `b` is immutable
+        @c ro int           // Illegal since `int` is already immutable
+        @d List<int>        // `d` can be assigned and is also mutable (e.g. `d[0]=3` is ok)
+        ro @e List<int>     // `e` is immutable
+        @f ro List<int>     // `f` can be assigned, but is not mutable (e.g. `d[0]=3` is illegal)
+        ro @g mut List<int> // `g` cannot be assigned,  but is mutable
     }
 
-If the optimizer looks inside `DoSomething` and sees that `x` can never escape,
-then `q` can be allocated on the stack.  Furthermore, if the optimizer can verify
-`a` and `b` never escape, they too can be inlined inside `MyClass`.
-A function that creates a local `MyClass` and calls `DoStuff` could go from
-requiring 4 allocations down to 1 allocation.
-
-However, these optimizations might be difficult or impossible, especially when
-interfaces or lambdas are involved.  Even worse, a small change to one function
-could cause all the optimizations dissapear.  Perhaps someone went to great
-pains to make sure `a` and`b` were never captured.  The next person doesn't know
-this, changes the program, and bam... efficiency disaster.
-
-**Level 1: Specify When Functions Capture**
-
-And also allow opt-in ownership. For this, we could define two new keywords:
-`cap` for caputure, and `owned` for embedded (allocation free) objects.  The
-compiler would enforce that an `owned` object cannot be used in a way that would
-cause it to escape. An example:
-
-    static pub fun Print(name str) { ... }  // `str` is already on the heap, so no `cap`
-    static pub fun DoSomething(x mut SomeClass) { ... }
-    static pub fun DoSomethingThatCaptures(cap x mut SomeClass) // Require `cap` keyword
-    pub class MyClass
-    {
-        // NOTE: These must be `owned`, otherwise the program is too slow!
-        owned a SomeClass
-        owned b SomeClass
-        c SomeClass        // This must be cached!
-        pub fun DoStuff()
-        {
-            @q = SomeClass()
-            DoSomething(q)
-        }
-    }
-
-The price way pay for this is some extra complexity, especially when
-considering libraries and generic parameters.  If we want to iterate
-over `a`, the iterator may not capture the reference.  Converting a
-function to one that captures is a breaking change.  Is it worth it?
-
-What about strings and arrays?  Since they are always on the heap, the
-`cap` keyword is not required.  There would be very little efficiency
-gain.  And what benefit is there to write `pub fun DoSomething(cap x str)`
-everywhere?  Strings and arrays would be `class boxed`, always on the heap.
-
-Is it allowed for `DoStuff` to assign `a = q`?  If so, what happens to
-`a`?  If SomeClass contains a large number of disposable objects, assignment
-could become very expensive.  What about `q`?  Does it get moved?  Do
-we require a `clone` if it is also returned from the function?
-
-**Level 2: Make Owned Objects the Default**
-
-First, let's use `^` instead of the `owned` and `cap` keywords.  Now we
-have a type system that's much closer to garbage collected pointers: 
-
-    static pub fun Print(name str) { ... }  // `str` is on the heap, so no `^`
-    static pub fun DoSomething(x mut SomeClass) { ... }
-    static pub fun DoSomethingThatCaptures(x ^mut SomeClass)
-    pub class MyClass
-    {
-        // These must be `owned`, otherwise the program is too slow!
-        a SomeClass
-        b SomeClass
-        c ^SomeClass       // This must be cached!
-        d Map<str, SomeClass>   // TBD: Require ^ for generic types?
-        pub fun DoStuff()
-        {
-            @q = SomeClass()
-            DoSomething(q)
-        }
-    }
-
-Do we require generic class parameters to be heap objects?  If not,
-what does `d.Clear()` do with its owned objects?  If so, are we now
-at C# levels of garbage?  I think not, especially when using reference
-counting. Also, there are many opportunities for optimization and
-smaller code by requiring generic class parameters to be on the heap.
-
-Since efficiency is important, I am inclined to:
-1. Require `^` for all heap objects (and we can extend this to `struct`)
-2. Implicitly convert local objects from `type` to `^type` via move operation
-3. Disallow owned objects to be assigned (no implicit clone or dispose for assignment )
-4. Allow owned objects to be moved (`a` can be assigned in a constructor or returned from a function)
-5. Require generic class parameters to be `^type`
-
-Did we just inherit all the complexity of C++ and Rust with all the problems
-of a garbage collected language?  Is it worth it?  For now, I believe these
-rules don't make the language overly complex and they are worth it.
-
-**Which Syntax to Use for Member Functions?**
-
-    pub fun f(a MyClass)
-    pub mut fun f(a mut MyClass)
-    pub ^fun f(a ^MyClass)
-    pub ^mut fun f(a ^mut MyClass)
-
-    pub fun f(a MyClass)
-    pub fun mut f(a mut MyClass)
-    pub fun ^f(a ^MyClass)
-    pub fun ^mut f(a ^mut MyClass)
-
-    // This for now
-    pub fun f(a MyClass)
-    pub fun f mut(a mut MyClass)
-    pub fun f^(a ^MyClass)
-    pub fun f ^mut(a ^mut MyClass)
-
-    pub fun f(a MyClass)                // Require explicit `this`?
-    pub fun f(this mut, a mut MyClass)
-    pub fun f(this ^, a ^MyClass)
-    pub fun f(this ^mut, a ^mut MyClass)
-
-### Mutability
-
-Read only `ro` means children types are also read only.  A `ro ref`
-return from a function prevents the calling function from mutating.
-
-**Problem:** Many classes are mutable, but we want to use them
-inside an immutable type without possibility of aliasing.  Furthermore,
-we want them to be on the heap so cloning is cheap.  `str` is an
-immutable type, but `Map` is not.  We want to create immutable maps
-as data without possibility of change.
-
-    // Require clone here since CalculateData could capture a ^Data?
-    class Data(a int)
-    static ro data Map<str, ^Data> = CalculateData()
-   
-    // Mutable data ends up inside immutable class
-    class ro MyData(name str, stuff ^List<^Data>)
-    @list List<^Data> = [1,2,3]
-    @data = MyData("hello", list)
-    // MyData is immutable, but can be changed via `list[0].a = 5`
-
-Rust has this solved, I believe like this:
-
-    ro @list List<^Data> = [1,2,3]
-    @data = MyData("hello", list)
-
-    // Clone required here depending on type returned by Calculate
-    ro @list = Calculate().clone()      // Maybe clone required
-    @data = MyData("hello", list)
-
-`ro` becomes part of the type system as well as field modifier:
-
-    pub Calculate1() ro ^List<^Data> { }    // Nothing captured/aliased
-    pub Calculate2() ^List<^Data> { }       // ^List and ^Data may be captured/aliased
-    pub Calculate3() ^List<ro ^Data> { }    // ^Data is immutable, ^List is not
-
-`Calculate1` would be a reference copy, `Calculate2` would require clone.
-For `Calculate3`, `ro` would not be allowed if `Data` is an immutable
-type (e.g, `List<ro ^str>` doesn't need `^` because it's a boxed type and
-also doesn't need `ro` because it's an immutable type)
-
-
-**TBD:** Do we need a new type qualifier, `frozen`?  If we want to assign an
-object to a `ro` field, it must be known not to have a mutable reference
-aliased somewhere.  After, `clone`, we know this to be true.
-
-**TBD:** Need to define how to do interior mutability.  Rust style `Cell`?
-`unsafe mut`?  Is static mutable data allowed?  
-
-### Simple Class and Struct
+### Simple Types
 
 Simple types can declare thier fields in parentheses.  All fields are public
 and no additional fields may be defined in the body.  The entire type must
 be either mutable or `ro`, no mixing.
 
-    // Simple struct and class
-    pub struct SpecialPoint(X int, Y int)
-    pub struct Line(p1 Point, p2 Point)
-    pub struct WithInitialization(X int = 1, Y int = 2)
-    pub class ro Person(Id int, FirstName str, LastName str, BirthYear int)
+    // Simple types
+    pub type SpecialPoint(X int, Y int)
+    pub type Line(p1 Point, p2 Point)
+    pub type WithInitialization(X int = 1, Y int = 2)
+    pub type ro Person(Id int, FirstName str, LastName str, BirthYear int)
 
-    // A simple struct may define properties, functions, and
+    // A simple type may define properties, functions, and
     // constructors in the body but no additional fields or
     // field backed properties
-    pub struct Point(X int, Y int)
+    pub type Point(X int, Y int)
     {
         fun new(p SpecialPoint)
             { todo() }
@@ -370,7 +342,7 @@ of the fields as named parameters.  There is also a default `clone` function.
 A mutable type returned from a getter can be mutated in-place provided there
 is a corresponding setter:
 
-    @a List<Line> = [(1,2), (3,4), (5,6)]
+    @a List<Point> = [(1,2), (3,4), (5,6)]
     a[1].PropX = 23     // a = [(1,2),(23,4), (5,6)]
     a[1].SetY(24)       // a = [(1,2),(23,24), (5,6)]
     a[1].PropX = 0      // a = [(1,2),(0,24), (5,6)]
@@ -379,12 +351,12 @@ is a corresponding setter:
 this would still work.  `SetY` is marked with `mut` so the compiler would
 know to call the setter after the value is modified.  Same for `PropX`.
 
-### Complex Class and Struct
+### Complex Types
 
 If a type requires multiple constructors or private fields, it must declare
 all fields in the body.  
 
-    pub class Example
+    pub type Example
     {
         // Mutable fields
         text str // Private string initialized to ""
@@ -437,14 +409,14 @@ Classes are sealed by default.  Use the `unsealed` keword to open them up.
 
 **TBD:** Require `@` for field definitions?  Consider requiring `var` keyword instead.
 
-### Anonymous Class and Struct
+### Anonymous Type
 
-An anonymous class can be created like this: `@a = class(x f64, y f64)`
-or `@a = class(x=1, y=MyFunc())`.  Fields are public, and do not need
+An anonymous type can be created like this: `@a = type(x f64, y f64)`
+or `@a = type(x=1, y=MyFunc())`.  Fields are public, and do not need
 explict type names when used as a local variable. 
 
-    @a = class(x=1, y=2)
-    Log.Info("X=" a.x ", Y=" a.y)   // Prints "X=1, Y=2"
+    @a = type(x=1, y=2)
+    Log.Info("X={a.x}, Y={a.y}")   // Prints "X=1, Y=2"
 
 ### New, Init, Equality, Clone, Dispose, and Drop
 
@@ -495,7 +467,7 @@ in the *open* state.
     @a = 0
     myList.For(@item => { a.max = Math.Max(item, a.max) })
     myList.Sort(@(a,b) => a > b)
-    Log.Info("Sorted list is " myList ", maximum value is: " a.max)
+    Log.Info("Sorted list is {myList}, maximum value is: {a.max}")
 
 There is shortcut syntax for lambda-only functions that move
 the code block outside the function:
@@ -520,7 +492,7 @@ the code block outside the function:
 ### Enum
 
 Enumerations are similar to C# enumerations, in that they are just
-a wrapped `int`.  But they are implemented internally as a `struct`
+a wrapped `int`.  But they are implemented internally as a `type`
 and do not use `,` to separate values.
 
     pub enum MyEnum
@@ -531,7 +503,8 @@ and do not use `,` to separate values.
         E           // E is 33
     
         // Enumerations can define ToStr
-        fun ToStr() => MyConvertToTranslatedName()
+        fun ToStr() str
+            return MyConvertToTranslatedName()
     }
 
 The default `ToStr` function shows the value as an integer rather
@@ -545,7 +518,7 @@ The one with flags allows `|` and `&`, etc but the other doesn't.
 ## Basic types
 
     i8, u8, byte, i16, u16, i32, int, u32, uint, i64, u64, f32, f64, xint, xuint,
-    decimal, object, str, Array<T>, List<T>, Map<K,V>, Span<T>, Json, SortedMap<K,V>
+    decimal, object, str, Array<T>, List<T>, Map<K,V>, Span<T>, Json,
 
 `byte`, `int`, and `uint` are aliases for `u8`, `i32`, and `u32`.
 `xint` and `xuint` are extended integer types, which could be 32 or 64 bits
@@ -567,55 +540,54 @@ backslash `\` is interpreted literally and does not create a control character.
 Control characters may be placed directly inside an interpolation (e.g.
 `{\t}` is a tab).
 
-
-
 ![](Doc/Strings.png)
 
-There is no `StringBuilder` class, use `List<byte>` instead:
+There is no `StringBuilder` type, use `List<byte>` instead:
 
     @sb = List<byte>()
     sb.Push("Count to 10: ")
     for @count in 1::10
-        sb.Push(" " count)
-    return str(sb)
+        sb.Push(" {count}")
+    return sb.ToStr()
 
 Strings can be sliced.  See `List` (below)
 
+#### Buffer
+
+A buffer is the most primitive dynamically sized heap object.  The buffer
+count is immutable, but elements are not.  Buffers are declared with
+`Buffer(count)` syntax, not with C# `[]type` syntax.  `[]type` translates
+to `Span<type>`.
+
+Buffers can be sliced.  See `List` (below)
+
 #### Array
 
-An array is the most primitive heap object.  The array count is immutable,
-but elements are not.  They are declared with `Array(count)` syntax, not
-with C# `[]type` syntax.  `[]type` translates to `Span<type>`.
-
-**TBD:** Make all arrays immutable?  Strings are immutable, and that's very
-useful.  If arrays are immutable, there would need to be a mutable version
-called `Buffer`.
+An array is an immutable list of items (i.e. an immutable version of `Buffer`).
+Arrays are declared with `Array(count)` syntax, not with C# `[]type` syntax.
+`[]type` translates to `Span<type>`.
 
 Arrays can be sliced.  See `List` (below)
 
+
 #### List
 
-`List` is the most primitive dynamically sized array type, used as the base
-building block by all other data structures.  It is a variable sized array
-with a `Count` and `Capacity` that changes as items are added or removed.
+`List` is a dynamically sized mutable array.  It has a `Count` and `Capacity`
+that changes as items are added or removed:
 
     @a = [1,2,3]                // a is List<int>
     @b = ["A", "B", "C"]        // b is List<str>
     @c = [[1,2,3],[4,5,6]]      // c is List<List<int>>
 
-List acts like an array in that a field of a struct can be modified, like so:
+List acts like a C# array in that a field of an element can be modified, like so:
 
-    struct MyPoint(X int, Y int)
+    type MyPoint(X int, Y int)
     @a List<MyPoint> = [(1,2),(3,4),(5,6)]  // Use array intializer with MyPoint constructor
     a[1].Y = 12                             // Now a contains [(1,2),(3,12),(5,6)]
 
-The list class is embedded in its owning class (see *Owned Object Discussion*
-above).  It uses `ref` returns with an underlying reference counted array.
-They are fast and efficient.
-
 #### Span
 
-Span is a view into a string, array, or list.  They are `ref struct` and
+Span is a view into a string, array, or list.  They are `ref type` and
 may never be stored on the heap.  Unlike in C#, a span can be used to pass
 data to an async function.  
 
@@ -623,10 +595,10 @@ Array syntax translates directly to Span (not to Array like C#).
 The following definitions are identical:
 
     // The following definitions are identical:
-    afun Write mut(data Span<byte>) int error => impl
-    afun Write mut(data []byte) int error => impl
+    afun mut Write(data Span<byte>) int error impl
+    afun mut Write(data []byte) int error impl
 
-Span is as fast, simple, and efficient as it gets.  They are just a pointer
+Spans are as fast, simple, and efficient as it gets.  They are just a pointer
 and count.  They are passed down the *execution stack* or stored on the async
 task frame when necessary.  More on this in the GC section below.
 
@@ -663,10 +635,6 @@ running in production it will log an error and continue.
     @c = a["not found"]             // throws exception
     @d = a.Get("not found")         // d is 0
     @e = a.Get("not found", -1)     // e is -1
-
-#### SortedMap
-
-This will be similar to `Map`, but use a red black tree.
 
 #### Json
 
@@ -715,7 +683,7 @@ with C and gives an error where not compatible:
 |~| Bitwise *XOR* (can't mix with arithmetic operators)
 |+ - &#124; | Add, bitwise *OR* (can't mix arithmetic and bit operators)
 |Low..High, Low::Count|Range (inclusive of low, exclusive of high)
-|== != < <= > >= === !== in|Not associative
+|== != < <= > >= === !== in|Not associative, === and !== is only for pointers
 |&&|Conditional
 |&#124;&#124;|Conditional
 |a ? b : c| Not associative, no nesting (see below for restrictions)
@@ -739,7 +707,7 @@ and arithmetic operators may not be mixed, for example both `a + b | c` and
 `a + b << c` are illegal.  Parentheses may be used (e.g. `(a+b)|c` is legal)
 
 The range operator`..` takes two `int`s and make a `Range` which is a
-`struct Range{ High int; Low int}`.  The `::` operator also makes a
+`type Range(High int, Low int)`.  The `::` operator also makes a
 range, but the second parameter is a count (`High = Low + Count`).  
 
 Operator `==` does not default to object comparison, and only works when it
@@ -952,9 +920,9 @@ an error handler, or 2) the function must have an error return value, or 3) both
 
 Any scope can catch an error.  Given the following definitions:
 
-    pub fun afun Open(name str, mode FileMode) File error => impl
-    pub mut afun Read(data mut Span<byte>) int error  => impl
-    pub mut afun Close() error => impl
+    pub afun mut Open(name str, mode FileMode) File error => impl
+    pub afun mut Read(data mut Span<byte>) int error  => impl
+    pub afun mut Close() void error => impl
 
 We may decide to let errors percolate up:
 
@@ -1031,7 +999,7 @@ Unimplemented functions and properties are explicitly marked with
 `imp`.   Functions and properties must either have an implementation or
 specify `imp`, `default`, or `extern`.  
 
-NOTE: The implementation will use fat pointers.
+NOTE: The implementation uses use fat pointers.  (see notes below)
 
 **TBD:** Describe syntax for creating externally defined traits, like
 in Rust.  For example `implement TRAIT for TYPE`
@@ -1102,7 +1070,7 @@ typed language, type conversions happen far less often than method calls, so doi
 the work on the type conversion is actually quite cheap.*"
 
 Note that an interface containing only static functions can be implemented using
-a thin pointer.
+just a thin pointer to a VTable.
 
 
 ## Garbage Collection
@@ -1151,12 +1119,12 @@ add threads in the future since there won't be any way for a function
 to have access to mutable data used by another thread.
 
 
-## Pointers
+## Raw Pointers
 
 The unary `*` operator dereferences a pointer.  The `.` operator is used to access fields
 or members of a pointer to the type (so `->` is not used for pointers). 
  
-    pub static fun strcpy(dest *byte, source *byte)
+    pub static fun strcpy(dest *byte, source *byte) void
     {
         while *source != 0
             { *dest = *source;  dest += 1;  source += 1 }
@@ -1277,7 +1245,7 @@ to start or wait for multiple tasks, we can also use the `astart` and
     }
 
 A sync function cannot implicitly call an async function, but it can start it
-using the `astart` keyword, like this: `fun MySyncFunction() { astart MyAsyncFunction() }`
+using the `astart` keyword, like this: `fun MySyncFunction() void { astart MyAsyncFunction() }`
 
 #### Async Implementation 
 

@@ -5,7 +5,7 @@ namespace Zurfur.Io
 
 interface Reader
 {
-    afun Read mut(data mut []byte) int error imp
+    afun mut Read(data mut []byte) int error imp
     // TBD: Since most streams have an underlying
     // buffer,  would it make sense to add sync
     // functions ReadableNow and ReadNow?
@@ -13,8 +13,8 @@ interface Reader
 
 interface Writer
 {
-    afun Write mut(data []byte) int error imp
-    afun Flush mut() error imp
+    afun mut Write(data []byte) int error imp
+    afun mut Flush() void error imp
     // TBD: Since most streams have an underlying
     // buffer,  would it make sense to add sync
     // functions WritableNow and WriteNow?
@@ -26,7 +26,7 @@ interface Seeker
 {
     prop Length i64 imp get
     prop Position i64 imp get set
-    afun Seek mut(offset i64, origin SeekOrigin) error imp
+    afun mut Seek(offset i64, origin SeekOrigin) void error imp
 }
 
 
@@ -34,7 +34,7 @@ interface FileStream
 {
 }
 
-class File
+type File
 {
     pub static fun Open(file str) FileStream error
         return todo()

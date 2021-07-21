@@ -3,7 +3,7 @@
 namespace Zurfur
 
 
-pub struct Range<T>(Low T, High T)
+pub type Range<T>(Low T, High T)
     implements Iterable<T>
     where T is IArithmetic<T>
 {
@@ -11,7 +11,7 @@ pub struct Range<T>(Low T, High T)
         return RangeIterator<T>(this)
 
     // Usage: myRange.For @index => DoStuffWithItem()
-    pub fun For(f fun(item T) exit) exit
+    pub fun For(f fun(item T) void exit) void exit
     {
         @i = Low
         while @i < High && f(i)
@@ -21,19 +21,19 @@ pub struct Range<T>(Low T, High T)
     
 }
 
-pub struct RangeIterator<T>
+pub type RangeIterator<T>
     implements Iterator<T>
     where T is IArithmetic<T>
 {
     @index T
     @high T
     
-    pub fun new(r Range<T>)
+    pub fun new(r Range<T>) void
     {
         index = r.Low-1
     }
 
-    pub fun Next mut(range Range<T>) ?ref T
+    pub fun mut Next(range Range<T>) ?ref T
     {
         index += 1
         if index < high

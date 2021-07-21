@@ -1,25 +1,75 @@
 ﻿namespace Zurfur
 
-/// Span (TBD: Ensure type system doesn't need both MutSpan and RoSpan)
-pub struct ref Span<T>
+/// []T is converted to Span<T>
+pub type ref Span<T>
 {
-    ro @Data *T pub get
+    ro @Data ?ref mut T
     ro @Count int pub get
     
-    pub fun operator[](index int) ref T
-    {
-        if cast(uint)index >= cast(uint)Count
-            throw IndexOutOfRangeException()
-        return unsafe(cast(ref T)(data + index))
-    }
+    pub fun operator[](index int) mut ref T
+        require index >= 0 && index < Count, IndexOutOfRangeException
+        extern // Implementation TBD
     
-    pub fun operator[](r Range<int>) Span<T>
+    pub fun operator[](range Range<int>) mut Span<T>
+        require range.Low >= 0 && range.Low < Count, IndexOutOfRangeException
+        require range.High >= 0 && range.High < Count, IndexOutOfRangeException
+        require range.Low <= range.High, IndexCountOutOfRangeException
+        extern // Implementation TBD
+
+    pub fun mut Sort(compare fun(a T, b T)bool) void
+        return todo()
+
+    /// Set the span to `item` (or default if not specified)
+    pub fun mut Clear(item T = default) void
     {
-        if r.Low < 0 || r.High < r.Low
-            || cast(uint)r.High > cast(uint)Count
-        {
-            throw IndexOutOfRangeException()
-        }
-        return unsafe(Span<T>(owner, data+r.Low, r.High-r.Low))
+        for @i in 0..Count
+            this[i] = item
     }
+
+    /// Find index of the sequence `seq`.
+    /// Returns -1 if not found, or 0 if `seq` is empty.
+    pub fun Find(seq Span<T>) int
+    {
+        if seq.Count == 0
+            return 0
+        if seq.Count > Count
+            return -1
+        for @i in 0..Count-seq.Count+1
+        {
+            if this[i] != seq[0]
+                continue
+            @j = 1
+            while j < seq.Count && seq[j] == this[i+j]
+                j += 1
+            if j == seq.Count
+                return i
+        }
+        return -1
+    }
+
+
+    /// Find the index of the `item`.  Returns -1 if not found.
+    pub fun Find(item T) int
+    {
+        for @i in 0..Count
+        {
+            if this[i] == item
+                return i
+        }
+        return -1
+    }
+
+    /// Find the index of the `item` when `eq` returns true.
+    /// Returns -1 if not found.
+    pub fun Find(eq fun(item T) bool) int
+    {
+        for @i in 0..Count
+        {
+            if eq(this[i])
+                return i
+        }
+        return -1
+    }
+
+        
 }

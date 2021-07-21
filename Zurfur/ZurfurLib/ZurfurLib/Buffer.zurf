@@ -1,0 +1,24 @@
+﻿namespace Zurfur
+
+/// Mutable array with immutable Count.  This is the base
+/// of all dynamically sized objects and is one of the few
+/// types implmeneted partially by the compiler.
+pub type boxed Buffer<T>
+{
+    ro @Count int pub get
+
+    pub fun operator[](index int) mut ref T
+        require index >= 0 && index < Count, IndexOutOfRangeException
+        extern // Implementation TBD
+    
+    pub fun operator[](range Range<int>) mut Span<T>
+        require range.Low >= 0 && range.Low < Count, IndexOutOfRangeException
+        require range.High >= 0 && range.High < Count, IndexOutOfRangeException
+        require range.Low <= range.High, IndexCountOutOfRangeException
+        extern // Implementation TBD
+
+    // Allow buffer1.Find(buffer2) and all those others
+    pub fun implicit(a Buffer<T>) mut Span<T>
+        extern // Implementation TBD
+
+}

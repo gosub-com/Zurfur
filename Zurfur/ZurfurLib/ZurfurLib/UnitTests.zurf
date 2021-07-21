@@ -5,7 +5,7 @@
 
 namespace Zurfur.UnitTests
 
-static fun test_HelloWorld()
+static fun test_HelloWorld() void
 {
     Console.Log("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
@@ -22,12 +22,12 @@ static fun test_HelloWorld()
     @g = "{{""X"":1,""Y"":2}}"          // {"X":1,"Y":2}
 }
 
-pub class Example
+pub type Example
 {
     @info str                  // Private string initialized to ""
-    @array Array<int> = [1,2,3]         // Private mutable array
-    @list List<str> = ["Hello", "World"]// Private mutable list
-    ro @m Map<str,int> = ["A":1, "B":2] // Private immutable map
+    @array Array<int> = [1,2,3]             // Private mutable array
+    @list List<str> = ["Hello", "World"]    // Private mutable list
+    ro @m Map<str,int> = ["A":1, "B":2]     // Private immutable map
     ro @Header str pub get = "Zurfur"       // Public immutable string
     pub fun F(a int) int
         return m["A"]+10   // Public function
@@ -35,7 +35,7 @@ pub class Example
         return Header + info     // Public property
 }
 
-static fun test_ForSimple()
+static fun test_ForSimple() void
 {
 
     @count int
@@ -64,7 +64,7 @@ static fun test_ForSimple()
 }
 
 
-pub static fun test_Convert()
+pub static fun test_Convert() void
 {
     @a = List<float>()
     @b = List<int>()
@@ -72,22 +72,22 @@ pub static fun test_Convert()
 }
 
 
-pub class TestGuiForm extends Form
+pub type class TestGuiForm extends Form
 {
-    class Label { }
+    type Label { }
     @Message1 Label pub get set
     @Message2 Label pub get set
     @Message3 Label pub get set
 
 
-    fun new()
+    fun new() void
     {
         InitializeComponent()
     }
    
    
     #NewCallableAttribute()
-    fun InitializeComponent()
+    fun InitializeComponent() void
     {
     
         Message1 = Label(Text: "Message 1",
