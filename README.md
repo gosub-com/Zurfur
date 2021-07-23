@@ -8,7 +8,8 @@ spelled **_ZurFUR_** because our cat has fur.
 
 I love C#.  It's my favorite language to program in.  But, I'd like to fix
 some [warts](http://www.informit.com/articles/article.aspx?p=2425867) and have
-some features from other languages built in from the ground up.
+some features from other languages built in from the ground up.  I'm thinking
+about ownership, mutability, nullability, and function programming.
 
 **Status Update**
 
@@ -237,7 +238,7 @@ In Zurfur:
 
 * `Buffer<T>` is a boxed mutable type, but with an immutable size
 * `Array<T>` is a boxed immutable type (an immutable version of `Buffer<T>`)
-* `str` is an `Array<str>` with extra functionality
+* `str` is an `Array<byte>` with extra functionality
 
 Consider the above, and these definitions:
 

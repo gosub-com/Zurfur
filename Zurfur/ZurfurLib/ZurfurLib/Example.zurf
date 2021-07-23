@@ -27,6 +27,15 @@ pub type boxed SimpleClassWitBody(FirstName str, LastName str)
     // fun new(a int) => AlsoIllegal()
     fun ToStr() void
         return "{LastName}, {FirstName}"
+
+    pub fun Circle1(a f64, r f64) -> (x f64, y f64)
+        return Cos(a)*r, Sin(a)*r
+
+    pub fun Circle2(a int, r int) int
+        return Cos(a)*r, Sin(a)*r
+
+    
+        
 }
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
@@ -209,7 +218,7 @@ pub type MutableTest
     pub prop P2 MyObject { return i }
     
     pub prop P str { return Header + info }
-    fun getListObject(i mut int) mut MyObject
+    fun getListObject(i mut int) ref mut MyObject
         return a[i]
 
 }
@@ -351,11 +360,11 @@ pub type Example2<Q>  // YES, errors working
     fun fun1(a int) f32
         return f1 + f2 + a
     fun fun2(a int) void { }
-    fun fun3(a out str) bool {}
-    fun fun4(a ref MyStruct) void {}
+    fun fun3(a str) bool {}
+    fun fun4(a mut MyStruct) void {}
     fun fun5(a Array<Array<int>>) void {}
     fun fun6(a List<int>) void { }
-    fun fun7(a out List<List<int>>) void { }
+    fun fun7(a mut List<List<int>>) void { }
     fun fun8(a Map<str,List<int>>) void { }
 
 
@@ -378,7 +387,7 @@ pub type Example2<Q>  // YES, errors working
 
     pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
     
-    fun fun9(a out List<List<int>>) void { }
+    fun fun9(a mut List<List<int>>) void { }
     
     pub static fun Main(args Array<str>) void
     {
