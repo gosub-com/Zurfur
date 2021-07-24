@@ -896,12 +896,17 @@ Here are the enforced style rules:
 `[`, `]`, `(`, `)`, `,`, or `.`. Additionally, a continuation
 may use `[`, `(`, or `,` at the end of the previous line.
 Also accepted, a few other places where a continuation might
-be expected such as `implements`, `where`, or other keywords
+be expected such as `implements`, `where`, or other keywords.
+**TBD:** I am considering requiring them to be indented as well.
 4. A `{` cannot start a scope unless it is in an expected place such as after
 `if`, `while`, `scope`, etc., or a lambda expression.
 5. Compound statements without braces require the compound part to be on the
-next line, non-empty, indented at least two spaces, can't contain another
-compound statement, and can't have another statement on the same line
+next line, not empty, indented at least two spaces, can't contain another
+compound statement, and can't have another statement on the same line.
+The statement after the compound must line up with the statement above it.
+**Note:** I know some people hate braceless compound statements because of
+the problems they can cause, but I believe these safeties will prevent most problems.
+**TBD:** I am considering allowing multiple statements in the compound.
 6. Modifiers must appear in the following order: `pub` (or `protected`, `private`),
 `unsafe`, `static` (or `const`), `unsealed`, `abstract` (or `virtual`, `override`,
 `new`), `ref`, `mut` (or `ro`)

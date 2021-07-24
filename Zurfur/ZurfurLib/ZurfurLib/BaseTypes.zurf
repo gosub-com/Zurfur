@@ -416,10 +416,14 @@ pub type ro f32
     pub static fun Equatable<f32>.Equals(a f32, b f32) bool extern
     pub static fun Comparable<f32>.Compare(a f32, b f32) int extern
     
-    pub prop IsInfinity bool return todo()
-    pub prop IsNaN bool return todo()
-    pub prop IsNegativeInfinity bool return todo()
-    pub prop IsPositiveInfinity bool return todo()
+    pub prop IsInfinity bool
+        return todo()
+    pub prop IsNaN bool
+        return todo()
+    pub prop IsNegativeInfinity bool
+        return todo()
+    pub prop IsPositiveInfinity bool
+        return todo()
 
     // Overloadable operators
     pub fun operator-(a f32) f32 extern
@@ -487,10 +491,14 @@ pub type ro f64
     pub static fun Equatable<f32>.Equals(a f64, b f64) bool extern
     pub static fun Comparable<f32>.Compare(a f64, b f64) int extern
     
-    pub prop IsInfinity bool return todo()
-    pub prop IsNaN bool return todo()
-    pub prop IsNegativeInfinity bool return todo()
-    pub prop IsPositiveInfinity bool return todo()
+    pub prop IsInfinity bool
+        return todo()
+    pub prop IsNaN bool
+        return todo()
+    pub prop IsNegativeInfinity bool
+        return todo()
+    pub prop IsPositiveInfinity bool
+        return todo()
     
     // Overloadable operators
     pub fun operator-(a f64) f64 extern
@@ -546,10 +554,14 @@ pub type ro decimal
     pub const Origin decimal = 0
     pub const Identity decimal = 1
     
-    pub prop IsInfinity bool return todo()
-    pub prop IsNaN bool return todo()
-    pub prop IsNegativeInfinity bool return todo()
-    pub prop IsPositiveInfinity bool return todo()
+    pub prop IsInfinity bool
+        return todo()
+    pub prop IsNaN bool
+        return todo()
+    pub prop IsNegativeInfinity bool
+        return todo()
+    pub prop IsPositiveInfinity bool
+        return todo()
 
     // Normal comparisons
     pub static fun Equals(a decimal, b decimal) bool extern

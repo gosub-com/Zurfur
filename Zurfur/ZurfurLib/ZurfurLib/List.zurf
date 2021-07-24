@@ -21,7 +21,18 @@ pub type List<T>
     {
         Version += 1
     }
-    
+
+
+    pub fun operator[](index int) ref mut T
+        require index in 0..Count
+        return ref buffer[index]
+
+    pub fun operator[](range Range<int>) mut []T
+        require range.Low in 0..Count
+        require range.High in 0..Count
+        require range.Low <= range.High
+        return ref buffer[range]
+
     /// Grow the capacity to be at least minCapacity size.
     /// If minCapacity is <= capacity nothing happens,
     /// otherwise the list is expanded exponentially.
@@ -140,13 +151,6 @@ pub type List<T>
                 throw InvalidIteratorException()
         }
     }
-
-    pub fun operator[](index int) ref mut T
-       return ref buffer[index]
-
-    pub fun operator[](range Range<int>) mut []T
-       return ref buffer[range]
-
 
     // TBD: Verify that it's impossible to get a mutable
     //      ListIterator from an immutable list reference

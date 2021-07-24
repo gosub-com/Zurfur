@@ -675,15 +675,9 @@ namespace Gosub.Zurfur.Compiler
                     }
                 }
             }
-            else if (mTokenName == "{" || IsMatchPastMetaSemicolon("return"))
-            {
-                synFunc.Statements = ParseCompoundStatement(keyword, false);
-            }
             else
             {
-                Reject("Expecting property body '{', 'return', 'extern', or 'imp'");
-                if (mTokenName == "{")
-                    synFunc.Statements = ParseCompoundStatement(keyword);
+                synFunc.Statements = ParseCompoundStatement(keyword);
             }
 
             AddMethod(synFunc);
@@ -752,12 +746,6 @@ namespace Gosub.Zurfur.Compiler
             {
                 // TBD: Store in parse tree
                 ParseExpr();
-                if (AcceptMatch(","))
-                {
-                    // TBD: Parse qualified identifier, etc.
-                    if (AcceptIdentifier("Expecting type name"))
-                        mPrevToken.Type = eTokenType.TypeName;
-                }
             }
 
             // Body
@@ -765,15 +753,9 @@ namespace Gosub.Zurfur.Compiler
             {
                 qualifiers.Add(mPrevToken);
             }
-            else if (mTokenName == "{" || IsMatchPastMetaSemicolon("return"))
-            {
-                synFunc.Statements = ParseCompoundStatement(keyword, false);
-            }
             else
             {
-                Reject("Expecting property body '{', 'return', 'extern', 'imp', 'where' or 'require'");
-                if (mTokenName == "{")
-                    synFunc.Statements = ParseCompoundStatement(keyword);
+                synFunc.Statements = ParseCompoundStatement(keyword);
             }
 
             synFunc.Qualifiers = qualifiers.ToArray();
@@ -900,29 +882,25 @@ namespace Gosub.Zurfur.Compiler
             return new SyntaxBinary(name, type, initializer);
         }
         
-        SyntaxExpr ParseCompoundStatement(Token keyword, bool requireNextLine = true)
+        SyntaxExpr ParseCompoundStatement(Token keyword)
         {
             if (mTokenName == "{")
                 return ParseStatements("'" + keyword.Name + "' statement");
 
+            while (!mToken.Meta && AcceptMatch(";"))
+                RejectToken(mPrevToken, "Expecting '{' or end of line");
+
             // If on the invisible meta semi-colon
-            if (mToken == ";" && mToken.Meta)
+            var keywordColumn = mLexer.GetLineTokens(keyword.Y)[0].X;
+            if (mToken.Meta && AcceptMatch(";"))
             {
                 // Ensure next line is indented
-                if (mTokenAfterInsertedToken.X < mLexer.GetLineTokens(keyword.Y)[0].X + 2)
-                {
-                    RejectToken(mToken, "Expecting '{' or next line of compound statement must be indented at least two spaces");
-                    return new SyntaxError();
-                }
-                Accept();
+                if (mToken.X < keywordColumn + 2)
+                    RejectToken(mToken, "Expecting '{' or compound statement must be indented at least two spaces");
             }
             else
             {
-                if (requireNextLine)
-                {
-                    Reject("Expecting '{' or end of line");
-                    return new SyntaxError();
-                }
+                Reject("Expecting '{' or end of line");
             }
 
             if (mTokenName == "}")
@@ -946,9 +924,18 @@ namespace Gosub.Zurfur.Compiler
             ParseStatement(statement, false);
 
             if (mTokenName == ";" && !mToken.Meta)
-                RejectToken(mToken, "Compound statement may not have another statement on the same line, use braces");
+                RejectToken(mToken, "Compound statement may not have another statement on the same line");
             else if (mTokenName != ";")
                 RejectToken(mToken, "Expecting ';' or end of line");
+
+            // Verify spacing after compound statement
+            if (mTokenAfterInsertedToken != null 
+                    && mTokenAfterInsertedToken.Name != "}"
+                    && mTokenAfterInsertedToken.Name != "namespace"
+                    && mTokenAfterInsertedToken.X != keywordColumn)
+            {
+                RejectToken(mTokenAfterInsertedToken, "Indentation after compound statement must match previous level");
+            }
 
             return new SyntaxMulti(NewVirtualToken(semicolon, "{"), FreeExprList(statement));
         }
@@ -965,7 +952,7 @@ namespace Gosub.Zurfur.Compiler
             var openToken = mPrevToken;
             var statements = NewExprList();
             while (!sStatementsDone.Contains(mTokenName))
-                ParseStatement(statements);
+                ParseStatement(statements, true);
 
             if (AcceptMatchOrReject("}", "while parsing " + errorMessage))
                 Connect(openToken, mPrevToken);
@@ -975,7 +962,7 @@ namespace Gosub.Zurfur.Compiler
 
             return new SyntaxMulti(openToken, FreeExprList(statements));
         }
-        private void ParseStatement(List<SyntaxExpr> statements, bool requireSemicolon = true)
+        private void ParseStatement(List<SyntaxExpr> statements, bool requireSemicolon)
         {
             var keyword = mToken;
             switch (mToken)
@@ -1010,7 +997,6 @@ namespace Gosub.Zurfur.Compiler
 
                 case "while":
                     // WHILE (condition) (body)
-                    requireSemicolon = false;
                     mToken.Type = eTokenType.ReservedControl;
                     statements.Add(new SyntaxBinary(Accept(), ParseExpr(), 
                                     ParseCompoundStatement(keyword)));
@@ -1034,7 +1020,6 @@ namespace Gosub.Zurfur.Compiler
                     break;                        
 
                 case "if":
-                    requireSemicolon = false;
                     mToken.Type = eTokenType.ReservedControl;
                     Accept();
                     statements.Add(new SyntaxBinary(keyword, ParseExpr(),
@@ -1042,7 +1027,6 @@ namespace Gosub.Zurfur.Compiler
                     break;
 
                 case "else":
-                    requireSemicolon = false;
                     mToken.Type = eTokenType.ReservedControl;
                     Accept();
                     if (AcceptMatch("if"))
@@ -1060,7 +1044,6 @@ namespace Gosub.Zurfur.Compiler
 
                 case "for":
                     // FOR (variable) (condition) (statements)
-                    requireSemicolon = false;
                     mToken.Type = eTokenType.ReservedControl;
                     Accept();
                     if (!AcceptMatch("@"))

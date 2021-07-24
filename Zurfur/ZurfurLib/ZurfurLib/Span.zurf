@@ -7,13 +7,13 @@ pub type ref Span<T>
     ro @Count int pub get
     
     pub fun operator[](index int) mut ref T
-        require index >= 0 && index < Count, IndexOutOfRangeException
+        require index in 0..Count
         extern // Implementation TBD
     
     pub fun operator[](range Range<int>) mut Span<T>
-        require range.Low >= 0 && range.Low < Count, IndexOutOfRangeException
-        require range.High >= 0 && range.High < Count, IndexOutOfRangeException
-        require range.Low <= range.High, IndexCountOutOfRangeException
+        require range.Low in 0..Count
+        require range.High in 0..Count
+        require range.Low <= range.High
         extern // Implementation TBD
 
     pub fun mut Sort(compare fun(a T, b T)bool) void

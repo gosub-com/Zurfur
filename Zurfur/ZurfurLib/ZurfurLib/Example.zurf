@@ -51,7 +51,8 @@ pub static fun Iterable<T>.AlphaLengthWise<T, L>(
 
 pub type Example
 {
-    pub prop MyConst str return "Hello"
+    pub prop MyConst str
+        return "Hello"
     
 
     @a1 str
@@ -345,8 +346,10 @@ pub type Example2<Q>  // YES, errors working
     @f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
-    pub prop P1 int return 1
-    pub prop P2 f32 return f1 + f2
+    pub prop P1 int
+        return 1
+    pub prop P2 f32
+        return f1 + f2
     pub prop P5 int
     {
         get: return p1
