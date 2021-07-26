@@ -1,42 +1,70 @@
 ﻿using System;
 using System.Collections.Generic;
 using Gosub.Zurfur.Lex;
+using System.Text;
+using System.Diagnostics;
 
 namespace Gosub.Zurfur.Compiler
 {
     /// <summary>
-    /// Utility class to find symbols.  Errors are only makred if
-    /// the token doesn't already have an error.  Currently, marked
-    /// with SilError.
+    /// The master symbol table is a tree holding namespaces at the top
+    /// level, and types, functions, and parameters at lower levels.
+    /// Symbol names must never include the "#" which is used as a separator.
+    /// (e.g. "Zurfur.List" is stored in the table as "Zurfur#List").  This
+    /// allows "." to be used in a symbol name if desired.
     /// </summary>
     class SymbolTable
     {
-        Dictionary<string, Symbol> mSymbols = new Dictionary<string, Symbol>();
+        SymNamespace mRoot;
 
-        public Symbol this[string i]
+        public SymbolTable()
         {
-            get { return mSymbols[i]; }
-            set { mSymbols[i] = value; }
+            var preRoot = new SymNamespace(null, new SymFile("", new SyntaxFile()), new Token(""));
+            mRoot = new SymNamespace(preRoot, new SymFile("", new SyntaxFile()), new Token(""));
         }
 
-        public Dictionary<string, Symbol>.ValueCollection Values => mSymbols.Values;
+        public Symbol Root => mRoot;
 
-        public bool TryGetValue(string name, out Symbol value)
-            => mSymbols.TryGetValue(name, out value);
-
-        public int Count => mSymbols.Count;
-
-        public Symbol Get(string name, Symbol defaultValue)
+        /// <summary>
+        /// Visit all symbols
+        /// </summary>
+        public void VisitAll(Action<string, Symbol> visit)
         {
-            if (TryGetValue(name, out var value))
-                return value;
-            return defaultValue;
+            VisitAll(mRoot, "", visit);
         }
+
+        public static Dictionary<string, Symbol> GetSymbols(Symbol root)
+        {
+            var symbols = new Dictionary<string, Symbol>();
+            VisitAll(root, "", (name, symbol) => 
+            {
+                //Debug.Assert(!symbols.ContainsKey(name));
+                if (symbols.ContainsKey(name))
+                    symbols[" --->" + name] = symbol;
+                symbols[name] = symbol;
+            });
+            return symbols;
+        }
+
+        // Recursively call visit(fullName, Symbol) for each symbol in the root.
+        public static void VisitAll(Symbol root, string prefix, Action<string, Symbol> visit)
+        {
+            var fullName = prefix + root.Name;
+            if (fullName != "")
+                visit(fullName, root);
+            var childPrefix = fullName == "" ? "" :  fullName + "#";
+            foreach (var sym in root.Children)
+            {
+                Debug.Assert(sym.Key == sym.Value.Name);
+                VisitAll(sym.Value, childPrefix, visit);
+            }
+        }
+
 
         /// <summary>
         /// Add a new symbol to its parent, mark duplicates if necessary.
         /// Adds symbol info to token.
-        /// Returns true if it was added (false for duplicate)
+        /// Returns true if it was added (false for duplicate).
         /// </summary>
         public bool Add(Symbol newSymbol)
         {
@@ -46,7 +74,6 @@ namespace Gosub.Zurfur.Compiler
             if (!parentSymbol.Children.TryGetValue(newSymbol.Name, out var remoteSymbol))
             {
                 parentSymbol.Children[newSymbol.Name] = newSymbol;
-                mSymbols[newSymbol.FullName] = newSymbol;
                 return true;
             }
 
@@ -88,6 +115,22 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
+        /// <summary>
+        /// Find the namespace, return NULL if not found or it's not a namespace.
+        /// The namespace is a path in dotted format (e.g. "Zurfur.SecialNamespace")
+        /// </summary>
+        public SymNamespace FindNamespace(string name)
+        {
+            var sym = (Symbol)mRoot;
+            foreach (var n in name.Split('.'))
+            {
+                if (!sym.Children.TryGetValue(n, out sym))
+                    return null;
+                if (sym as SymNamespace == null)
+                    return null;
+            }
+            return sym as SymNamespace;
+        }
 
         /// <summary>
         /// Find the symbol in the scope, or null if it is not found.
@@ -113,7 +156,7 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public Symbol FindPath(string[] path)
         {
-            var symbol = mSymbols[""];
+            var symbol = (Symbol)mRoot;
             foreach (var name in path)
             {
                 if (!symbol.Children.TryGetValue(name, out var child))
@@ -129,7 +172,7 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public Symbol FindPath(Token[] path)
         {
-            var symbol = mSymbols[""];
+            var symbol = (Symbol)mRoot;
             foreach (var name in path)
             {
                 if (!symbol.Children.TryGetValue(name, out var child))
@@ -143,8 +186,10 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Find a symbol in the current scope or use statements if not found.
+        /// Find a symbol in the current scope.  If it's not found, scan
+        /// use statements for all occurences. 
         /// Marks an error if undefined or duplicate.  Returns null on error.
+        /// 
         /// TBD: If symbol is unique in this package, but duplicated in an
         /// external package, is that an error?  Yes for now.
         /// </summary>
@@ -155,13 +200,17 @@ namespace Gosub.Zurfur.Compiler
                 return symbol;
 
             var symbols = new List<Symbol>(); // TBD: Be kind to GC
-            foreach (var useSymbol in use)
+            foreach (var u in use)
             {
-                if (mSymbols[useSymbol].Children.TryGetValue(name.Name, out var newSymbol))
+                var ns = FindNamespace(u);
+                Debug.Assert(ns != null);
+                if (ns != null 
+                    && ns.Children.TryGetValue(name.Name, out var newSymbol))
                 {
                     symbols.Add(newSymbol);
                 }
             }
+
             if (symbols.Count == 0)
             {
                 Reject(name, "Undefined symbol");

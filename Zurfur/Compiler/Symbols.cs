@@ -45,11 +45,14 @@ namespace Gosub.Zurfur.Compiler
         public string Name { get; private set; } = "";
 
         /// <summary>
-        /// Fully qualified name, except for type arguments which are short
+        /// Fully qualified name
+        /// TBD: Migrate to "#"
         /// </summary>
-        public string FullName { get; protected set; } = "";
+        public string FullNameDot { get; protected set; } = "";
 
         public string Comments = "";
+        public string[] Qualifiers = Array.Empty<string>();
+
 
         public Symbol Parent { get; private set; }
 
@@ -62,7 +65,7 @@ namespace Gosub.Zurfur.Compiler
         {
             Parent = parent;
             Name = token.Name;
-            FullName = GetFullName();
+            FullNameDot = GetFullName();
             AddLocation(file, token);
         }
 
@@ -70,7 +73,7 @@ namespace Gosub.Zurfur.Compiler
         {
             Parent = parent;
             Name = name;
-            FullName = GetFullName();
+            FullNameDot = GetFullName();
         }
 
         /// <summary>
@@ -82,17 +85,17 @@ namespace Gosub.Zurfur.Compiler
         public void SetName(string name)
         {
             Name = name;
-            FullName = GetFullName();
+            FullNameDot = GetFullName();
             foreach (var child in Children.Values)
                 child.SetName(child.Name);
         }
 
 
-        protected virtual string GetFullName()
+        string GetFullName()
         {
             if (Parent == null || Parent.Name == "")
                 return Name;
-            return Parent.FullName + "." + Name;
+            return Parent.FullNameDot + "." + Name;
         }
 
         public void AddLocation(SymFile file, Token token)
@@ -140,7 +143,7 @@ namespace Gosub.Zurfur.Compiler
 
         public override string ToString()
         {
-            return FullName;
+            return FullNameDot;
         }
 
         /// <summary>
@@ -160,13 +163,13 @@ namespace Gosub.Zurfur.Compiler
     class SymEmpty : Symbol
     {
         public SymEmpty(string name) : base(null, name) { }
-        public override string Kind => "empty";
+        public override string Kind => "Empty";
     }
 
     class SymNamespace : Symbol
     {
         public SymNamespace(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
-        public override string Kind => "namespace";
+        public override string Kind => "Namespace";
     }
 
     /// <summary>
@@ -177,38 +180,32 @@ namespace Gosub.Zurfur.Compiler
         public string TypeKeyword = "";
         public SymType(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
         public SymType(Symbol parent, string name) : base(parent, name) { }
-        public override string Kind => "type";
+        public override string Kind => "Type";
 
         // The following is redundant (do not serialize, call SetChildInfo)
-        public string[] TypeArgs;
-        public string TypeArgNames() => TypeArgs.Length == 0 ? "" : "<" + string.Join(",", TypeArgs) + ">";
+        public string[] TypeParams;
+        public string TypeParamNames() => TypeParams.Length == 0 ? "" : "<" + string.Join(",", TypeParams) + ">";
 
         /// <summary>
         /// Call this only once to fill in the redundant information
         /// </summary>
         public void SetChildInfo()
         {
-            var ta = FindChildren<SymTypeArg>();
+            var ta = FindChildren<SymTypeParam>();
             ta.Sort((a, b) => a.Order.CompareTo(b.Order));
-            TypeArgs = ta.ConvertAll(a => a.Name).ToArray();
+            TypeParams = ta.ConvertAll(a => a.Name).ToArray();
         }
     }
 
 
-    class SymTypeArg : SymType
+    class SymTypeParam : SymType
     {
-        public SymTypeArg(Symbol parent, SymFile file, Token token, int index) : base(parent, file, token)
+        public SymTypeParam(Symbol parent, SymFile file, Token token, int index) : base(parent, file, token)
         {
             Order = index;
         }
-        public override string Kind => "type argument";
-
+        public override string Kind => "Type Param";
         public int Order;
-
-        protected override string GetFullName()
-        {
-            return Name;
-        }
     }
 
     /// <summary>
@@ -221,8 +218,10 @@ namespace Gosub.Zurfur.Compiler
         public readonly string[] Params;
         public readonly string[] Returns;
 
+        public override string Kind => "Specialized type";
+
         public SymSpecializedType(string name, string[] typeParams)
-            : base(new SymEmpty(name), "<" + TypeArgsFullName(typeParams) + ">") 
+            : base(new SymEmpty(name), "<" + TypeParamsFullName(typeParams) + ">") 
         {
             Params = typeParams;
             Returns = Array.Empty<string>();
@@ -236,10 +235,10 @@ namespace Gosub.Zurfur.Compiler
 
         public static string ParamsFuncFullName(string []typeParams, string []typeReturns)
         {
-            return "(" + TypeArgsFullName(typeParams) + ")->(" + TypeArgsFullName(typeReturns) + ")";
+            return "(" + TypeParamsFullName(typeParams) + ")->(" + TypeParamsFullName(typeReturns) + ")";
         }
 
-        static string TypeArgsFullName(string []typeParams)
+        static string TypeParamsFullName(string []typeParams)
         {
             if (typeParams.Length == 0)
                 return "";
@@ -260,55 +259,57 @@ namespace Gosub.Zurfur.Compiler
     class SymField : Symbol
     {
         public SymField(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
-        public override string Kind => "field";
-        public SyntaxField Syntax;
+        public override string Kind => "Field";
         public SymType TypeName;
     }
 
     class SymMethodGroup : Symbol
     {
         public SymMethodGroup(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
-        public override string Kind => "methods";
+        public override string Kind => "Methods";
     }
 
     class SymMethod : Symbol
     {
         // The actual name is the method group (this name will be $1, etc.)
         public SymMethod(Symbol parent, string name) : base(parent, name) { }
-        public override string Kind => "method";
-
-        // The following is redundant (do not serialize, call SetChildInfo)
-        public string[] TypeArgs;
-        public string ParamTypeNames = "";
-        public string ReturnTypeNames = "";
-        public SymMethodArg[] Params;
-        public SymMethodArg[] Returns;
-        public string TypeArgNames() => TypeArgs.Length == 0 ? "" : "<" + string.Join(",", TypeArgs) + ">";
+        public override string Kind => "Method";
 
 
-        /// <summary>
-        /// Call this only once to fill in the redundant information
-        /// </summary>
-        public void SetChildInfo()
+        public MethodParamInfo GetChildInfo()
         {
-            var ta = FindChildren<SymTypeArg>();
-            ta.Sort((a,b) => a.Order.CompareTo(b.Order));
-            TypeArgs = ta.ConvertAll(a => a.Name).ToArray();
-            var p = FindChildren<SymMethodArg>();
-            p.Sort((a, b) => a.Order.CompareTo(b.Order));
-            Params = p.FindAll(a => !a.IsReturn).ToArray();
-            Returns = p.FindAll(a => a.IsReturn).ToArray();
+            var mpi = new MethodParamInfo();
 
-            ParamTypeNames = "(" + string.Join(",", Array.ConvertAll(Params, a => a.TypeName.ToString())) + ")";
-            ReturnTypeNames = "(" + string.Join(",", Array.ConvertAll(Returns, a => a.TypeName.ToString())) + ")";
+            var tp = FindChildren<SymTypeParam>();
+            tp.Sort((a,b) => a.Order.CompareTo(b.Order));
+            mpi.TypeParams = tp.ConvertAll(a => a.Name).ToArray();
+
+            var mp = FindChildren<SymMethodParam>();
+            mp.Sort((a, b) => a.Order.CompareTo(b.Order));
+            mpi.Params = mp.FindAll(a => !a.IsReturn).ToArray();
+            mpi.Returns = mp.FindAll(a => a.IsReturn).ToArray();
+
+            mpi.ParamTypeNames = "(" + string.Join(",", Array.ConvertAll(mpi.Params, a => a.TypeName.ToString())) + ")";
+            mpi.ReturnTypeNames = "(" + string.Join(",", Array.ConvertAll(mpi.Returns, a => a.TypeName.ToString())) + ")";
+            return mpi;
+        }
+
+        public class MethodParamInfo
+        {
+            public string[] TypeParams;
+            public string ParamTypeNames;
+            public string ReturnTypeNames;
+            public SymMethodParam[] Params;
+            public SymMethodParam[] Returns;
+            public string TypeParamNames() => TypeParams.Length == 0 ? "" : "<" + string.Join(",", TypeParams) + ">";
         }
     }
 
-    class SymMethodArg : Symbol
+    class SymMethodParam : Symbol
     {
-        public SymMethodArg(Symbol parent, SymFile file, Token token, int order) : base(parent, file, token)
+        public SymMethodParam(Symbol parent, SymFile file, Token token, int order) : base(parent, file, token)
             { Order = order; }
-        public override string Kind => "parameter";
+        public override string Kind => "Param";
 
         public bool IsReturn;
         public int Order;
