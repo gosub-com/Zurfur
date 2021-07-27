@@ -218,15 +218,10 @@ pub unsafe type DlMalloc
         @tsize = granularity_align(rs)
         @tbase = cast(*byte)memMan.CallMoreCore(ref tsize)
         if (tbase != null)
-        {
             init_user_mstate(tbase, tsize)
             seg.sflags = flag_t.USE_MMAP_BIT
-        }
         else
-        {
             throw DlMallocException("Out of memory, cannot initialize malloc.")
-        }
-        
     }
     
 
@@ -237,10 +232,8 @@ pub unsafe type DlMalloc
         @count = 0
         @segment = seg
         while segment != null
-        {
             count += 1
             segment = segment.next
-        }
         return count
     }
 
@@ -554,11 +547,11 @@ pub unsafe type DlMalloc
     static fun chunksize(p *mchunk) xuint
         return p.head & ~FLAG_BITS
     static fun clear_pinuse(p *mchunk) void
-        { p.head &= ~PINUSE_BIT }
+        p.head &= ~PINUSE_BIT
     static fun set_flag4(p *mchunk) void
-        { p.head |= FLAG4_BIT }
+        p.head |= FLAG4_BIT
     static fun clear_flag4(p *mchunk) void
-        { p.head &= ~FLAG4_BIT }
+        p.head &= ~FLAG4_BIT
     static fun chunk_plus_offset(p *mchunk, s xuint) *mchunk
         return cast(*mchunk)(cast(*byte)p + s)
     static fun chunk_minus_offset(p *mchunk, s xuint) *mchunk
@@ -574,9 +567,9 @@ pub unsafe type DlMalloc
     static fun set_foot(p *mchunk, s xuint) void
         { (cast(*mchunk)(cast(*byte)p + s)).prev_foot = s }
     static fun set_size_and_pinuse_of_free_chunk(p *mchunk, s xuint) void
-        { p.head = s | PINUSE_BIT; set_foot(p, s) }
+        p.head = s | PINUSE_BIT; set_foot(p, s)
     static fun set_free_with_pinuse(p *mchunk, s xuint, n *mchunk) void
-        { clear_pinuse(n); set_size_and_pinuse_of_free_chunk(p, s) }
+        clear_pinuse(n); set_size_and_pinuse_of_free_chunk(p, s)
 
     // ------------------- Chunks sizes and alignments -----------------------
 
@@ -856,7 +849,7 @@ pub unsafe type DlMalloc
         { if mparams.magic == 0 { init_mparams() } }
 
     fun is_initialized() bool
-        { return top != null }
+        return top != null
 
     // -------------------------- system alloc setup -------------------------
 
@@ -866,7 +859,7 @@ pub unsafe type DlMalloc
        return (mflags & flag_t.USE_MMAP_BIT) != 0
         
     fun enable_mmap() void
-        { mflags |= flag_t.USE_MMAP_BIT }
+        mflags |= flag_t.USE_MMAP_BIT
 
     // page-align a size
     fun page_align(s xuint) xuint
@@ -997,15 +990,15 @@ pub unsafe type DlMalloc
 
     // Mark/Clear bits with given index
     fun mut mark_smallmap(i uint) uint
-        { smallmap |= idx2bit(i); return smallmap }
+        smallmap |= idx2bit(i); return smallmap
     fun mut clear_smallmap(i uint) uint
-        { smallmap &= ~idx2bit(i); return smallmap }
+        smallmap &= ~idx2bit(i); return smallmap
     fun smallmap_is_marked(i uint) bool
        return (smallmap & idx2bit(i)) != 0
     fun mut mark_treemap(i uint) uint
-        { treemap |= idx2bit(i);  return treemap }
+        treemap |= idx2bit(i);  return treemap
     fun mut clear_treemap(i uint) uint
-        { treemap &= ~idx2bit(i);  return treemap }
+        treemap &= ~idx2bit(i);  return treemap
     fun treemap_is_marked(i uint) bool
        return (treemap & idx2bit(i)) != 0
 
@@ -1081,27 +1074,19 @@ pub unsafe type DlMalloc
         return e
 
     static fun set_inuse(p mut mchunk, s xuint) void
-    {
         p.head = (p.head & PINUSE_BIT) | s | CINUSE_BIT
         cast(*mchunk)(cast(*byte)p + s).head |= PINUSE_BIT
-    }
 
     static fun set_inuse_and_pinuse(p mut mchunk, s xuint) void
-    {
         p.head = s | PINUSE_BIT | CINUSE_BIT
         cast(*mchunk)(cast(*byte)p + s).head |= PINUSE_BIT
-    }
 
     static fun set_inuse_and_pinuse(p mut tchunk, s xuint) void
-    {
         p.head = s | PINUSE_BIT | CINUSE_BIT
         cast(*mchunk)(cast(*byte)p + s).head |= PINUSE_BIT
-    }
 
     static fun set_size_and_pinuse_of_inuse_chunk(p mut mchunk, s xuint) void
-    {
         p.head = s | PINUSE_BIT | CINUSE_BIT
-    }
 
     // ---------------------------- setting mparams --------------------------
 
@@ -1123,22 +1108,17 @@ pub unsafe type DlMalloc
             || ((MCHUNK_SIZE & (MCHUNK_SIZE - SIZE_T_ONE)) != 0)
             || ((gsize & (gsize - SIZE_T_ONE)) != 0)
             || ((psize & (psize - SIZE_T_ONE)) != 0)
-        {
             throw DlMallocException("Abort: Sanity check failed")
-        }
 
         if mparams.magic == 0
-        {
             mparams.granularity = gsize
             mparams.page_size = psize
             mparams.trim_threshold = DEFAULT_TRIM_THRESHOLD
             mparams.default_mflags = flag_t.USE_MMAP_BIT
-
             @magic = cast(xuint)(Environment.TickCount + DateTime.Now.Ticks + 0x55555555U)
             magic |= 8U    // ensure nonzero
             magic &= ~7U   // improve chances of fault for bad values
             mparams.magic = magic
-        }
         return 1
     }
 
@@ -1152,14 +1132,11 @@ pub unsafe type DlMalloc
 
     // Check properties of any chunk, whether free, inuse, mmapped etc
     fun do_check_any_chunk(p *mchunk) void
-    {
         assert(is_aligned(chunk2mem(p)) || p.head == FENCEPOST_HEAD)
         assert(ok_address(p))
-    }
 
     // Check properties of top chunk
     fun do_check_top_chunk(p *mchunk) void
-    {
         @sp = segment_holding(cast(*byte)p)
         @sz = p.head & ~INUSE_BITS // third-lowest bit can be set!
         assert(sp != null)
@@ -1170,18 +1147,15 @@ pub unsafe type DlMalloc
         assert(sz == cast(xuint)((sp.baseAddr + sp.size) - cast(*byte)p) - TOP_FOOT_SIZE)
         assert(pinuse(p))
         assert(!pinuse(chunk_plus_offset(p, sz)))
-    }
 
     // Check properties of inuse chunks
     fun do_check_inuse_chunk(p *mchunk) void
-    {
         do_check_any_chunk(p)
         assert(is_inuse(p))
         assert(next_pinuse(p))
         // If not pinuse and not mmapped, previous chunk has OK offset
         assert(pinuse(p) || next_chunk(prev_chunk(p)) == p)
         assert(!is_mmapped(p))
-    }
 
     // Check properties of free chunks
     fun do_check_free_chunk(p *mchunk) void
@@ -1195,7 +1169,6 @@ pub unsafe type DlMalloc
         if p != dv && p != top
         {
             if sz >= MIN_CHUNK_SIZE
-            {
                 assert((sz & CHUNK_ALIGN_MASK) == 0)
                 assert(is_aligned(chunk2mem(p)))
                 assert(next.prev_foot == sz)
@@ -1203,11 +1176,8 @@ pub unsafe type DlMalloc
                 assert(next == top || is_inuse(next))
                 assert(p.fd.bk == p)
                 assert(p.bk.fd == p)
-            }
             else  // markers are always of size SIZE_T_SIZE
-            {
                 assert(sz == SIZE_T_SIZE)
-            }
         }
     }
 
@@ -1215,7 +1185,6 @@ pub unsafe type DlMalloc
     fun do_check_malloced_chunk(mem *void, s xuint) void
     {
         if mem != null
-        {
             @p = mem2chunk(mem)
             @sz = p.head & ~INUSE_BITS
             do_check_inuse_chunk(p)
@@ -1225,8 +1194,6 @@ pub unsafe type DlMalloc
             // unless mmapped, size is less than MIN_CHUNK_SIZE more than request
             assert(sz < (s + MIN_CHUNK_SIZE))
             assert(!is_mmapped(p))
-
-        }
     }
 
     // Check a tree and its subtrees.
@@ -1266,21 +1233,15 @@ pub unsafe type DlMalloc
                         || u.parent.child1 == u
                         || dref(cast(**tchunk)u.parent) == u)
                 if u.child0 != null
-                {
                     assert(u.child0.parent == u)
                     assert(u.child0 != u)
                     do_check_tree(u.child0)
-                }
                 if u.child1 != null
-                {
                     assert(u.child1.parent == u)
                     assert(u.child1 != u)
                     do_check_tree(u.child1)
-                }
                 if u.child0 != null && u.child1 != null
-                {
                     assert(chunksize(u.child0) < chunksize(u.child1))
-                }
             }
             u = u.fd
         } while u != t
@@ -1402,22 +1363,18 @@ pub unsafe type DlMalloc
         for @i in 0..NTREEBINS
             do_check_treebin(i)
 
-        if (dvsize != 0)
-        {
+        if dvsize != 0
             // check dv chunk
             do_check_any_chunk(dv)
             assert(dvsize == chunksize(dv))
             assert(dvsize >= MIN_CHUNK_SIZE)
             assert(!bin_find(dv))
-        }
 
-        if (top != null)
-        {
+        if top != null
             // check top chunk
             do_check_top_chunk(top)
             assert(topsize > 0)
             assert(!bin_find(top))
-        }
 
         @usedChunks = 0
         @freeChunks = 0
@@ -1441,20 +1398,16 @@ pub unsafe type DlMalloc
                 @chunkSize = cast(i64)chunksize(q)
                 heapSize += chunkSize
                 if (is_inuse(q))
-                {
                     usedBytes += chunkSize
                     usedChunks += 1
                     assert(!bin_find(q))
                     do_check_inuse_chunk(q)
-                }
                 else
-                {
                     freeBytes += chunkSize
                     freeChunks += 1
                     assert(q == dv || bin_find(q))
                     assert(lastq == null || is_inuse(lastq)) // Not 2 consecutive free
                     do_check_free_chunk(q)
-                }
                 lastq = q
                 q = next_chunk(q)
             }
@@ -1517,10 +1470,8 @@ pub unsafe type DlMalloc
                 clear_smallmap(I)
             else if RTCHECK(B == smallbin_at(I)
                      || (ok_address(B) && B.fd == p))
-            {
                 F.bk = B
                 B.fd = F
-            }
             else
                 memMan.CallCorruptionErrorAction()
         }
@@ -1539,10 +1490,8 @@ pub unsafe type DlMalloc
         if b == F
             clear_smallmap(i)
         else if RTCHECK(ok_address(F) && F.bk == p)
-        {
             F.bk = b
             b.fd = F
-        }
         else
             memMan.CallCorruptionErrorAction()
     }
@@ -1555,10 +1504,8 @@ pub unsafe type DlMalloc
         @DVS = dvsize
         assert(is_small(DVS))
         if DVS != 0
-        {
             @DV = dv
             insert_small_chunk(DV, DVS)
-        }
         dvsize = s
         dv = p
     }
@@ -1595,36 +1542,28 @@ pub unsafe type DlMalloc
                     if dref(C) != null
                         T = dref(C)
                     else if RTCHECK(ok_address(C))
-                    {
                         dref(C) = x
                         x.parent = T
                         x.fd = x
                         x.bk = x
                         break
-                    }
                     else
-                    {
                         memMan.CallCorruptionErrorAction()
                         break
-                    }
                 }
                 else
                 {
                     @F = T.fd
                     if RTCHECK(ok_address(T) && ok_address(F))
-                    {
                         T.fd = x
                         F.bk = x
                         x.fd = F
                         x.bk = T
                         x.parent = null
                         break
-                    }
                     else
-                    {
                         memMan.CallCorruptionErrorAction()
                         break
-                    }
                 }
             }
         }
@@ -1654,10 +1593,8 @@ pub unsafe type DlMalloc
             @F = x.fd
             R = x.bk
             if RTCHECK(ok_address(F) && F.bk == x && R.fd == x)
-            {
                 F.bk = R
                 R.fd = F
-            }
             else
                 memMan.CallCorruptionErrorAction()
         }
@@ -1667,10 +1604,8 @@ pub unsafe type DlMalloc
             RP = &x.child1
             R = dref(RP)
             if R == null
-            {
                 RP = &x.child0
                 R = dref(RP)
-            }
             if R != null
             {
                 @CP **tchunk
@@ -1720,10 +1655,8 @@ pub unsafe type DlMalloc
                     if C0 != null
                     {
                         if RTCHECK(ok_address(C0))
-                        {
                             R.child0 = C0
                             C0.parent = R
-                        }
                         else
                             memMan.CallCorruptionErrorAction()
                     }
@@ -1731,10 +1664,8 @@ pub unsafe type DlMalloc
                     if C1 != null
                     {
                         if RTCHECK(ok_address(C1))
-                        {
                             R.child1 = C1
                             C1.parent = R
-                        }
                         else
                             memMan.CallCorruptionErrorAction()
                     }
@@ -1788,11 +1719,9 @@ pub unsafe type DlMalloc
     {
         // Establish circular links for smallbins
         for @i in NSMALLBINS
-        {
             @bin = smallbin_at(i)
             bin.bk = bin
             bin.fd = bin
-        }
     }
 
     /// <summary>
@@ -1835,29 +1764,23 @@ pub unsafe type DlMalloc
 
         // consolidate remainder with first chunk of old base
         if oldfirst == top
-        {
             topsize += qsize
             @tsize = topsize
             top = q
             q.head = tsize | PINUSE_BIT
             check_top_chunk(q)
-        }
         else if oldfirst == dv
-        {
             dvsize += qsize
             @dsize = dvsize
             dv = q
             set_size_and_pinuse_of_free_chunk(q, dsize)
-        }
         else
         {
             if !is_inuse(oldfirst)
-            {
                 @nsize = chunksize(oldfirst)
                 unlink_chunk(oldfirst, nsize)
                 oldfirst = chunk_plus_offset(oldfirst, nsize)
                 qsize += nsize
-            }
             set_free_with_pinuse(q, qsize, oldfirst)
             insert_chunk(q, qsize)
             check_free_chunk(q)
@@ -1912,13 +1835,11 @@ pub unsafe type DlMalloc
 
         // Insert the rest of old top into a bin as an ordinary free chunk
         if csp != old_top
-        {
             @q = cast(*mchunk)old_top
             @psize = cast(xuint)(csp - old_top)
             @tn = chunk_plus_offset(q, psize)
             set_free_with_pinuse(q, psize, tn)
             insert_chunk(q, psize)
-        }
 
         check_top_chunk(top)
     }
@@ -1950,11 +1871,9 @@ pub unsafe type DlMalloc
             // Try MMAP
             @mp = cast(*byte)memMan.CallMoreCore(ref asize)
             if mp != null
-            {
                 tbase = mp
                 tsize = asize
                 mmap_flag = flag_t.USE_MMAP_BIT
-            }
         }
 
         if tbase != null
@@ -2002,7 +1921,6 @@ pub unsafe type DlMalloc
             }
 
             if nb < topsize
-            {
                 // Allocate from new or extended top space
                 topsize -= nb
                 @rsize = topsize
@@ -2014,7 +1932,6 @@ pub unsafe type DlMalloc
                 check_top_chunk(top)
                 check_malloced_chunk(chunk2mem(p), nb)
                 return chunk2mem(p)
-            }
         }
 
         memMan.CallMallocFailureAction()
@@ -2047,26 +1964,19 @@ pub unsafe type DlMalloc
                     @tp = cast(*tchunk)p
                     assert(segment_holds(sp, cast(*byte)sp))
                     if p == dv
-                    {
                         dv = null
                         dvsize = 0
-                    }
                     else
-                    {
                         unlink_large_chunk(tp)
-                    }
                     if memMan.CallReleaseCore(baseAddr, size)
-                    {
                         released += size
                         footprint -= size
                         // unlink obsoleted record
                         sp = pred
                         sp.next = next
-                    }
                     else
-                    { // back out if cannot unmap
+                        // back out if cannot unmap
                         insert_large_chunk(tp, psize)
-                    }
                 }
             }
             if NO_SEGMENT_TRAVERSAL // scan only first segment
@@ -2114,12 +2024,10 @@ pub unsafe type DlMalloc
                 }
 
                 if released != 0
-                {
                     sp.size -= released
                     footprint -= released
                     init_top(top, topsize - released)
                     check_top_chunk(top)
-                }
             }
 
             // Unmap any unused mmapped segments
@@ -2127,7 +2035,7 @@ pub unsafe type DlMalloc
 
             // On failure, disable autotrim to avoid repeated failed future calls
             if released == 0 && topsize > trim_check
-                { trim_check = MAX_SIZE_T }
+                trim_check = MAX_SIZE_T
         }
 
         return released != 0 ? 1 : 0
@@ -2149,21 +2057,15 @@ pub unsafe type DlMalloc
             {
                 // consolidate backward
                 if p != dv
-                {
                     unlink_chunk(p, prevsize)
-                }
                 else if (next.head & INUSE_BITS) == INUSE_BITS
-                {
                     dvsize = psize
                     set_free_with_pinuse(p, psize, next)
                     return
-                }
             }
             else
-            {
                 memMan.CallCorruptionErrorAction()
                 return
-            }
         }
         if RTCHECK(ok_address(next))
         {
@@ -2177,10 +2079,8 @@ pub unsafe type DlMalloc
                     top = p
                     p.head = tsize | PINUSE_BIT
                     if p == dv
-                    {
                         dv = null
                         dvsize = 0
-                    }
                     return
                 }
                 else if next == dv
@@ -2198,22 +2098,16 @@ pub unsafe type DlMalloc
                     unlink_chunk(next, nsize)
                     set_size_and_pinuse_of_free_chunk(p, psize)
                     if p == dv
-                    {
                         dvsize = psize
                         return
-                    }
                 }
             }
             else
-            {
                 set_free_with_pinuse(p, psize, next)
-            }
             insert_chunk(p, psize)
         }
         else
-        {
             memMan.CallCorruptionErrorAction()
-        }
     }
 
     // ---------------------------- malloc ---------------------------
@@ -2248,10 +2142,8 @@ pub unsafe type DlMalloc
                 if rt != null && rt != t
                     rst = rt
                 if t == null
-                {
                     t = rst // set t to least subtree holding sizes > nb
                     break
-                }
                 sizebits <<= 1
             }
         }
@@ -2260,11 +2152,9 @@ pub unsafe type DlMalloc
             // set t to root of next non-empty treebin
             @leftbits = left_bits(idx2bit(idx)) & treemap
             if leftbits != 0
-            {
                 @leastbit = least_bit(leftbits)
                 @i = compute_bit2idx(leastbit)
                 t = dref(treebin_at(i))
-            }
         }
 
         while t != null
@@ -2272,10 +2162,8 @@ pub unsafe type DlMalloc
             // find smallest of tree or subtree
             @trem = chunksize(t) - nb
             if trem < rsize
-            {
                 rsize = trem
                 v = t
-            }
             t = leftmost_child(t)
         }
 
@@ -2293,11 +2181,9 @@ pub unsafe type DlMalloc
                     if rsize < MIN_CHUNK_SIZE
                         set_inuse_and_pinuse(v, (rsize + nb))
                     else
-                    {
                         set_size_and_pinuse_of_inuse_chunk(cast(*mchunk)v, nb)
                         set_size_and_pinuse_of_free_chunk(r, rsize)
                         insert_chunk(r, rsize)
-                    }
                     return chunk2mem(v)
                 }
             }
@@ -2323,10 +2209,8 @@ pub unsafe type DlMalloc
         {
             @trem = chunksize(t) - nb
             if trem < rsize
-            {
                 rsize = trem
                 v = t
-            }
             t = leftmost_child(t)
         }
 
@@ -2340,11 +2224,9 @@ pub unsafe type DlMalloc
                 if rsize < MIN_CHUNK_SIZE
                     set_inuse_and_pinuse(v, (rsize + nb))
                 else
-                {
                     set_size_and_pinuse_of_inuse_chunk(cast(*mchunk)v, nb)
                     set_size_and_pinuse_of_free_chunk(r, rsize)
                     replace_dv(r, rsize)
-                }
                 return chunk2mem(v)
             }
         }
@@ -2371,21 +2253,16 @@ pub unsafe type DlMalloc
                 @used xuint
                 @start *void
                 if (is_inuse(q))
-                {
                     used = sz - CHUNK_OVERHEAD // must not be mmapped
                     start = chunk2mem(q)
-                }
                 else
                 {
                     used = 0
                     if (is_small(sz))
-                    {   // offset by possible bookkeeping
+                        // offset by possible bookkeeping
                         start = cast(*void)(cast(*byte)q + sizeof(mchunk))
-                    }
                     else
-                    {
                         start = cast(*void)(cast(*byte)q + sizeof(tchunk))
-                    }
                 }
                 if (start < cast(*void)next)  // skip if all space is bookkeeping
                     handler(start, next, used)
@@ -2408,7 +2285,7 @@ pub unsafe type DlMalloc
     {
         @b = cast(*byte)mem
         for @s in 0..size
-            { dref(b) = 0; b += 1 }
+            dref(b) = 0; b += 1
     }
 
     fun mut init_user_mstate(tbase *byte, tsize xuint) void
@@ -2546,12 +2423,10 @@ pub unsafe type DlMalloc
                     if (SIZE_T_SIZE != 4 && rsize < MIN_CHUNK_SIZE)
                         { set_inuse_and_pinuse(p, small_index2size(i)) }
                     else
-                    {
                         set_size_and_pinuse_of_inuse_chunk(p, nb)
                         r = chunk_plus_offset(p, nb)
                         set_size_and_pinuse_of_free_chunk(r, rsize)
                         replace_dv(r, rsize)
-                    }
                     mem = chunk2mem(p)
                     check_malloced_chunk(mem, nb)
                     return mem
@@ -2562,10 +2437,8 @@ pub unsafe type DlMalloc
                     {
                         mem = tmalloc_small(nb)
                         if mem != null
-                        {
                             check_malloced_chunk(mem, nb)
                             return mem
-                        }
                     }
                 }
             }
@@ -2579,10 +2452,8 @@ pub unsafe type DlMalloc
             {
                 mem = tmalloc_large(nb)
                 if mem != null
-                {
                     check_malloced_chunk(mem, nb)
                     return mem
-                }
             }
         }
 
@@ -2591,28 +2462,23 @@ pub unsafe type DlMalloc
             @rsize = dvsize - nb
             @p = dv
             if (rsize >= MIN_CHUNK_SIZE)
-            {
                 // split dv
                 dv = chunk_plus_offset(p, nb)
                 @r = dv
                 dvsize = rsize
                 set_size_and_pinuse_of_free_chunk(r, rsize)
                 set_size_and_pinuse_of_inuse_chunk(p, nb)
-            }
             else
-            {
                 // exhaust dv
                 @dvs = dvsize
                 dvsize = 0
                 dv = null
                 set_inuse_and_pinuse(p, dvs)
-            }
             mem = chunk2mem(p)
             check_malloced_chunk(mem, nb)
             return mem
         }
         else if (nb < topsize)
-        {
             // Split top
             topsize -= nb
             @rsize = topsize
@@ -2625,7 +2491,6 @@ pub unsafe type DlMalloc
             check_top_chunk(top)
             check_malloced_chunk(mem, nb)
             return mem
-        }
 
         mem = sys_alloc(nb)
 
@@ -2646,16 +2511,12 @@ pub unsafe type DlMalloc
 
         @p = mem2chunk(mem)
         if (!ok_magic())
-        {
             memMan.CallUsageErrorAction(p)
             return
-        }
         check_inuse_chunk(p)
         if (!RTCHECK(ok_address(p) && ok_inuse(p)))
-        {
             memMan.CallUsageErrorAction(p)
             return
-        }
         assert(!is_mmapped(p))
 
         @psize = chunksize(p)
@@ -2670,21 +2531,15 @@ pub unsafe type DlMalloc
             {
                 // consolidate backward
                 if (p != dv)
-                {
                     unlink_chunk(p, prevsize)
-                }
                 else if ((next.head & INUSE_BITS) == INUSE_BITS)
-                {
                     dvsize = psize
                     set_free_with_pinuse(p, psize, next)
                     return
-                }
             }
             else
-            {
                 memMan.CallUsageErrorAction(p)
                 return
-            }
         }
 
         if (RTCHECK(ok_next(p, next) && ok_pinuse(next)))
@@ -2699,22 +2554,18 @@ pub unsafe type DlMalloc
                     top = p
                     p.head = tsize | PINUSE_BIT
                     if (p == dv)
-                    {
                         dv = null
                         dvsize = 0
-                    }
                     if (should_trim(tsize))
                         sys_trim(0)
                     return
                 }
                 else if (next == dv)
-                {
                     dvsize += psize
                     @dsize = dvsize
                     dv = p
                     set_size_and_pinuse_of_free_chunk(p, dsize)
                     return
-                }
                 else
                 {
                     @nsize = chunksize(next)
@@ -2722,20 +2573,16 @@ pub unsafe type DlMalloc
                     unlink_chunk(next, nsize)
                     set_size_and_pinuse_of_free_chunk(p, psize)
                     if (p == dv)
-                    {
                         dvsize = psize
                         return
-                    }
                 }
             }
             else
                 set_free_with_pinuse(p, psize, next)
 
             if (is_small(psize))
-            {
                 insert_small_chunk(p, psize)
                 check_free_chunk(p)
-            }
             else
             {
                 @tp = cast(*tchunk)p

@@ -245,7 +245,8 @@ pub type MutableTest
 pub type MyMutablePoint(X int, Y int)
 {
     pub fun mut SetY(y int) void
-        { Y = y }
+        Y = y
+        
     pub prop PropX int
     {
         get: return X
@@ -264,9 +265,12 @@ pub type Example_x
 
     pub prop Prop str
         return Header + info
-    pub fun A(a int, b int, c f32) f32 { return  a+1 }
-    pub fun A(a f32) f32 { return a+1 }
-    pub fun B(a f32) f32 { return a+1 }
+    pub fun A(a int, b int, c f32) f32
+        return  a+1
+    pub fun A(a f32) f32
+        return a+1
+    pub fun B(a f32) f32
+        return a+1
 
     type DateTime { }
         
@@ -316,10 +320,8 @@ pub type PointXY<T>(X int, Y int)
 pub fun Example.Extension() void
 {
     for @a in 1..23
-    {
         F(out @x, a)
         F(out mut @y, a)
-    }
     @i = 32
     @j = 15
     @k int = 64
@@ -462,9 +464,7 @@ pub type Example2<Q>  // YES, errors working
 
         // In operator
         if myStr in myMap || myIn in 1..23
-        {
             DoSomething()
-        }
 
         // Switch expressions
         @num = 3 + match(myConstant)[1:a, 2..5:b, 6:myFunc(), default: 0]
@@ -504,26 +504,21 @@ pub fun Example.IfTests() void
 {
     // In operator
     if myStr in myMap || myIn in 1..23
-    {
         DoSomething()
         break
         return
-    }
     
     while f(x)
         x = x + 1
     
     if myStr in myMap || myIn in 1..23
-    {
         DoSomething()
         hello()
-    }
+    
     
     if a
-    {
-        todo()
-        todo()
-    }
+        todo1()
+        todo2()
     else if b
         todo()
     else if c
@@ -534,18 +529,14 @@ pub fun Example.IfTests() void
     
 
     if myStr in myMap || myIn in 1..23
-    {
         DoSomething()
         hello()
-    }
     else
         f(a)
 
     if myStr in myMap || myIn in 1..23
-    {
         DoSomething()
         hello()
-    }
     else
         f(a)
         
@@ -609,16 +600,12 @@ pub static fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool) void
         for @j in i+1..s.Count
         {
             if lessThan(s[j], lowElem)
-            {
                 lowElem = s[j]
                 lowIndex = j
-            }
         }
         if lowIndex != i
-        {
             s[lowIndex] = s[i]
             s[i] = lowElem
-        }
     }
 }
 
@@ -627,7 +614,7 @@ pub type class Matrix2d<T>
     extends VariableSizedObject<T>
 {
     fun new(len1 int, len2 int) void
-        { todo() }
+        todo()
     pub fun operator[](i1 int, i2 int) ref T
         return todo()
 }
@@ -644,25 +631,22 @@ pub static fun MemCopy(dest *void, source *void, length xint) void
 
     // Align `d` on i32
     while d & 3 != 0 && length != 0
-        { dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1; length-=1 }
+        dref(cast(*byte)d) = dref(cast(*byte)s)
+        d+=1;  s+=1;  length-=1
     
     if s & 3 == 0
-    {
         MemCopy32(cast(*void)d, cast(*void)s, length)
         return
-    }
     
     // Byte copy
     @end = d + length
     while end-d >= 4
-    {
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
-    }
     while d != end
-        { dref(cast(*byte)d) = dref(castx<*byte>(s)); d+=1; s+=1 }
+        dref(cast(*byte)d) = dref(castx<*byte>(s)); d+=1; s+=1
 }
 
 pub static fun MemCopy32(dest *void, source *void, length xint) void
@@ -683,9 +667,9 @@ pub static fun MemCopy32(dest *void, source *void, length xint) void
             { dref(cast(*i64)d) = dref(cast(*i64)s); d+=8; s+=8 }
     }
     while end-d >= 4
-        { dref(cast(*i32)d) = dref(cast(*i32)s); d+=4; s+=4 }
+        dref(cast(*i32)d) = dref(cast(*i32)s); d+=4; s+=4
     while d != end
-        { dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1 }
+        dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
 }
 
 

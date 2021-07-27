@@ -87,8 +87,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sMultiplyOps = new WordSet("* / % &");
         static WordSet sAssignOps = new WordSet("= += -= *= /= %= |= &= ~= <<= >>=");
         static WordSet sUnaryOps = new WordSet("+ - ! & ~ use unsafe ref");
-        static WordSet sAllowedAfterInterpolatedString = new WordSet("; , ) ] }");
-        static WordSet sNoSubCompoundStatement = new WordSet("if else while for do switch scope");
+        static WordSet sNoSubCompoundStatement = new WordSet("if else while for do switch case default scope get set");
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
         // This seems stange because something like `a = F<T1,T2>;` is not a valid expression
@@ -887,54 +886,66 @@ namespace Gosub.Zurfur.Compiler
             if (mTokenName == "{")
                 return ParseStatements("'" + keyword.Name + "' statement");
 
-            while (!mToken.Meta && AcceptMatch(";"))
-                RejectToken(mPrevToken, "Expecting '{' or end of line");
 
-            // If on the invisible meta semi-colon
+            // Expecting invisible meta semi-colon
             var keywordColumn = mLexer.GetLineTokens(keyword.Y)[0].X;
-            if (mToken.Meta && AcceptMatch(";"))
+            if (!AcceptMatch(";"))
             {
-                // Ensure next line is indented
-                if (mToken.X < keywordColumn + 2)
-                    RejectToken(mToken, "Expecting '{' or compound statement must be indented at least two spaces");
+                Reject($"Compound statement '{keyword.Name}' is expecting '{{' or end of line");
+                return new SyntaxError();
             }
-            else
+            if (!mPrevToken.Meta)
             {
-                Reject("Expecting '{' or end of line");
+                RejectToken(mPrevToken, $"Compound statement '{keyword.Name}' is expecting '{{' or end of line");
+                return new SyntaxError();
+            }
+            if (mTokenName == "}" || mTokenName == ";")
+            {
+                RejectToken(mToken, $"Compound statement '{keyword.Name}' is expecting '{{' or non-empty statement");
+                return new SyntaxError();
+            }
+            // Ensure next line is indented
+            if (mToken.X < keywordColumn + 2)
+            {
+                RejectToken(mToken, $"Compound statement '{keyword.Name}' is expecting '{{' or next line must be indented at least two spaces");
+                return new SyntaxError();
             }
 
-            if (mTokenName == "}")
-            {
-                RejectToken(mPrevToken, "Expecting '{' or non-empty statement");
-                return new SyntaxError();
-            }
-            else if (mTokenName == ";")
-            {
-                RejectToken(mToken, "Expecting '{' or non-empty statement");
-                return new SyntaxError();
-            }
-            else if (sNoSubCompoundStatement.Contains(mTokenName))
-            {
-                RejectToken(mToken, "Compound statement may not embed a '" + mTokenName + "' statement");
-                return new SyntaxError();
-            }
-            var semicolon = mPrevToken;
-
+            var compundColumn = mToken.X;
+            int newColumn = -1;
+            Token semicolon = mPrevToken;
             var statement = NewExprList();
-            ParseStatement(statement, false);
+            while (true)
+            {
+                if (sNoSubCompoundStatement.Contains(mTokenName))
+                {
+                    RejectToken(mToken, $"Compound statement '{keyword.Name}' may not embed '{mTokenName}' statement");
+                    return new SyntaxError();
+                }
 
-            if (mTokenName == ";" && !mToken.Meta)
-                RejectToken(mToken, "Compound statement may not have another statement on the same line");
-            else if (mTokenName != ";")
-                RejectToken(mToken, "Expecting ';' or end of line");
+                ParseStatement(statement, false);
 
-            // Verify spacing after compound statement
-            if (mTokenAfterInsertedToken != null 
+                if (mTokenName != ";")
+                {
+                    RejectToken(mToken, $"Compound statement '{keyword.Name}' is expecting ';' or end of line");
+                    break;
+                }
+
+                newColumn = mTokenAfterInsertedToken != null
                     && mTokenAfterInsertedToken.Name != "}"
                     && mTokenAfterInsertedToken.Name != "namespace"
-                    && mTokenAfterInsertedToken.X != keywordColumn)
+                    ? mTokenAfterInsertedToken.X : -1;
+
+                if (mToken.Meta && newColumn != compundColumn)
+                    break;
+
+                AcceptMatch(";");
+            }
+
+            // Verify spacing after compound statement
+            if (mTokenAfterInsertedToken != null && newColumn >= 0 && newColumn != keywordColumn)
             {
-                RejectToken(mTokenAfterInsertedToken, "Indentation after compound statement must match previous level");
+                RejectToken(mTokenAfterInsertedToken, $"Indentation after compound statement '{keyword.Name}' must match the keyword");
             }
 
             return new SyntaxMulti(NewVirtualToken(semicolon, "{"), FreeExprList(statement));

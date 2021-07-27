@@ -9,7 +9,7 @@ spelled **_ZurFUR_** because our cat has fur.
 I love C#.  It's my favorite language to program in.  But, I'd like to fix
 some [warts](http://www.informit.com/articles/article.aspx?p=2425867) and have
 some features from other languages built in from the ground up.  I'm thinking
-about ownership, mutability, nullability, and function programming.
+about traits, mutability, nullability, ownership, and functional programming.
 
 **Status Update**
 
@@ -96,10 +96,8 @@ The following are identical:
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
     pub static fun Main(args Array<str>) void
-    {
         // This is a regular private comment
         Log.Info("Hello World, 2+2={2+2}")
-    }
 
 Functions are declared with the `fun` keyword. The type name comes after the
 argument, and the return type comes after the parameters.
@@ -115,9 +113,7 @@ Functions can return multiple values:
 
     // Multiple returns
     pub static fun Circle(a f64, r f64) -> (x f64, y f64)
-    {
         return a.Cos()*r, a.Sin()*r
-    }
 
 The return parameters are named, and can be used by the calling function:
 
@@ -318,10 +314,10 @@ be either mutable or `ro`, no mixing.
     // field backed properties
     pub type Point(X int, Y int)
     {
-        fun new(p SpecialPoint)
-            { todo() }
-        pub fun SetY mut(y int)         // Mutable functions are marked `mut`
-            { Y = y }
+        fun new(p int) void
+            todo()
+        pub fun mut SetY (y int) void   // Mutable functions are marked `mut`
+            Y = y
         pub prop PropX int
         {
             get: return X
@@ -372,15 +368,15 @@ all fields in the body.
         pub ro Points List<MutablePointXY> = [(1,2),(3,4),(5,6)]
         
         // Functions and properties
-        pub fun HelloText() str => "Hello: " text  // Member function
-        pub mut fun SetText(a str) { text = a }    // Member function that mutates
-        pub prop Prop1 str => text                 // Property returning text
+        pub fun HelloText() str => "Hello: " text       // Member function
+        pub fun mut SetText(a str) void { text = a }    // Member function that mutates
+        pub prop Prop1 str => text                      // Property returning text
         pub prop Text str
         {
         get => top
         set:
             if value == text
-                { return }
+                return 
             text = value
             SendTextChangedEvent()
         }
@@ -750,16 +746,49 @@ Zurfur inherits this from C#, and Eric Lippert
 
 ## Statements
 
-Like Golang, semicolons are required between statements but they are automatically
-inserted at the end of lines based on the last non-comment token and the first token
-of the next line.  See "Coding Style" (below) for more info about semicolons.
+Like Golang, semicolons are required between statements but they are
+inserted automatically at the end of lines based on the last non-comment
+token and the first token of the next line. Compound statements (`if`,
+`else`, `while`, `for`) can accept multiple lines without needing braces. 
+
+Zurfur enforces a few coding style standards, but one style it does **not**
+enforce is where you put your curly brace.  Both end-of-line and
+beginning-of-next-line are acceptable.  By convention, most code in the Zurfur
+code base uses curly brace on beginning-of-next-line style.  The Zurfur IDE
+shrinks curly brace only lines so they take the same vertical space as the
+brace-at-end style as when using a regular editor.
+
+Here are the enforced style rules:
+
+1. No tabs
+2. No white space or visible semi-colons at the end of a line
+3. Continuation lines start with a binary operator or with
+`[`, `]`, `(`, `)`, `,`, or `.`. Additionally, a continuation
+may use `[`, `(`, or `,` at the end of the previous line.
+Also accepted, a few other places where a continuation might
+be expected such as `where`, `require`, or other keywords.
+**TBD:** I am considering requiring them to be indented as well.
+4. A `{` cannot start a scope unless it is in an expected place such as after
+`if`, `while`, `scope`, etc., or a lambda expression.
+5. Compound statements without braces require the compound part to start on
+the next line, be indented at least two spaces, not contain another
+compound statement, and not be empty.  The compound statement can be any
+number of lines long, provided each line starts on the same column.
+The statement after the compound must line up with the statement above it.
+**Note:** I know some people hate braceless compound statements because of
+the problems they can cause, but I believe these safeties will prevent most
+problems.
+6. Modifiers must appear in the following order: `pub` (or `protected`, `private`),
+`unsafe`, `static` (or `const`), `unsealed`, `abstract` (or `virtual`, `override`,
+`new`), `ref`, `mut` (or `ro`)
+
 
 #### While and Do Statements
 
 The `while` loop is the same as C#.  The `do` loop is also the same as C#
 except that the condition executes inside the scope of the loop:
 
-    do 
+    do
     {
         @accepted = SomeBooleanFunc()
         DoSomethingElse()
@@ -825,10 +854,8 @@ changes once calculated:
     // Print the numbers from 1 to 9
     @x = 10
     for @i in 1..x
-    {
         x = x + 5               // This does not affect the loop bounds 
         Console.WriteLine(i)
-    }
 
 When iterating over a collection, just like in C#, it is illegal to add
 or remove elements from the collection.  An exception is thrown if
@@ -875,41 +902,6 @@ level as a `case` statement.
 The `match` keyword is reserved, but the syntax is identical to a regular function call.
 
     @num = 3 + match(myConstant)[1:a, 2..5:b, 6:myFunc(), default: 0]
-
-## Coding Style
-
-Zurfur enforces a few style standards, but one style it does **not** enforce
-where your curly brace goes.  Both end-of-line and beginning-of-next-line are
-acceptable.  By convention, all code in the Zurfur code base uses curly brace
-on beginning-of-next-line style.  The Zurfur IDE shrinks curly brace only lines
-so they take the same space as the brace-at-end style as in a regular IDE.
-
-Like Golang, semicolons are required between statements but they are automatically
-inserted at the end of lines based on the last non-comment token and the first token
-of the next line.
-
-Here are the enforced style rules:
-
-1. No tabs
-2. No white space or visible semi-colons at the end of a line
-3. Continuation lines start with a binary operator or with
-`[`, `]`, `(`, `)`, `,`, or `.`. Additionally, a continuation
-may use `[`, `(`, or `,` at the end of the previous line.
-Also accepted, a few other places where a continuation might
-be expected such as `implements`, `where`, or other keywords.
-**TBD:** I am considering requiring them to be indented as well.
-4. A `{` cannot start a scope unless it is in an expected place such as after
-`if`, `while`, `scope`, etc., or a lambda expression.
-5. Compound statements without braces require the compound part to be on the
-next line, not empty, indented at least two spaces, can't contain another
-compound statement, and can't have another statement on the same line.
-The statement after the compound must line up with the statement above it.
-**Note:** I know some people hate braceless compound statements because of
-the problems they can cause, but I believe these safeties will prevent most problems.
-**TBD:** I am considering allowing multiple statements in the compound.
-6. Modifiers must appear in the following order: `pub` (or `protected`, `private`),
-`unsafe`, `static` (or `const`), `unsealed`, `abstract` (or `virtual`, `override`,
-`new`), `ref`, `mut` (or `ro`)
 
 
 ## Errors and Exceptions
