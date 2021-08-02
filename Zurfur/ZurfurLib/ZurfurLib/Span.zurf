@@ -16,11 +16,11 @@ pub type ref Span<T>
         require range.Low <= range.High
         extern // Implementation TBD
 
-    pub fun mut Sort(compare fun(a T, b T)bool) void
+    pub fun mut Sort(compare fun(a T, b T)bool) nil
         return todo()
 
     /// Set the span to `item` (or default if not specified)
-    pub fun mut Clear(item T = default) void
+    pub fun mut Clear(item T = default) nil
     {
         for @i in 0..Count
             this[i] = item

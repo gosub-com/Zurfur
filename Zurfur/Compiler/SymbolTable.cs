@@ -9,13 +9,13 @@ namespace Gosub.Zurfur.Compiler
     /// <summary>
     /// The master symbol table is a tree holding namespaces at the top
     /// level, and types, functions, and parameters at lower levels.
-    /// Symbol names must never include the "#" which is used as a separator.
-    /// (e.g. "Zurfur.List" is stored in the table as "Zurfur#List").  This
-    /// allows "." to be used in a symbol name if desired.
     /// </summary>
     class SymbolTable
     {
         SymNamespace mRoot;
+
+        // TBD: Add quick lookup for namespaces, types, and methods.
+        Dictionary<string, Symbol> mLookup = new Dictionary<string, Symbol>();
 
         public SymbolTable()
         {
@@ -28,91 +28,50 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Visit all symbols
         /// </summary>
-        public void VisitAll(Action<string, Symbol> visit)
+        public void VisitAll(Action<Symbol> visit)
         {
-            VisitAll(mRoot, "", visit);
+            VisitAll(mRoot, visit);
         }
 
         public static Dictionary<string, Symbol> GetSymbols(Symbol root)
         {
             var symbols = new Dictionary<string, Symbol>();
-            VisitAll(root, "", (name, symbol) => 
+            VisitAll(root, (symbol) => 
             {
-                //Debug.Assert(!symbols.ContainsKey(name));
-                if (symbols.ContainsKey(name))
-                    symbols[" --->" + name] = symbol;
-                symbols[name] = symbol;
+                if (symbol is SymTypeParam || symbol is SymMethodParam)
+                    return;
+                Debug.Assert(!symbols.ContainsKey(symbol.FullName));
+                symbols[symbol.FullName] = symbol;
             });
             return symbols;
         }
 
         // Recursively call visit(fullName, Symbol) for each symbol in the root.
-        public static void VisitAll(Symbol root, string prefix, Action<string, Symbol> visit)
+        public static void VisitAll(Symbol root, Action<Symbol> visit)
         {
-            var fullName = prefix + root.Name;
-            if (fullName != "")
-                visit(fullName, root);
-            var childPrefix = fullName == "" ? "" :  fullName + "#";
+            if (root.FullName != "")
+                visit(root);
             foreach (var sym in root.Children)
             {
                 Debug.Assert(sym.Key == sym.Value.Name);
-                VisitAll(sym.Value, childPrefix, visit);
+                VisitAll(sym.Value, visit);
             }
         }
 
-
         /// <summary>
-        /// Add a new symbol to its parent, mark duplicates if necessary.
-        /// Adds symbol info to token.
+        /// Add a new symbol to its parent, mark duplicates if there is a collision.
         /// Returns true if it was added (false for duplicate).
         /// </summary>
         public bool Add(Symbol newSymbol)
         {
-            var token = newSymbol.Token;
-            token.AddInfo(newSymbol);
             var parentSymbol = newSymbol.Parent;
             if (!parentSymbol.Children.TryGetValue(newSymbol.Name, out var remoteSymbol))
             {
                 parentSymbol.Children[newSymbol.Name] = newSymbol;
                 return true;
             }
-
-            DuplicateSymbol(newSymbol, remoteSymbol);
+            Reject(newSymbol.Token, $"Duplicate symbol. There is a {remoteSymbol.Kind} in this scope with the same name.");
             return false;
-        }
-
-        /// <summary>
-        /// Add a new symbol to its parent, mark duplicates if necessary.
-        /// Walk up the tree and mark duplicate if there are other type args with the same name.
-        /// Adds symbol info to token.
-        /// Returns true if it was added (false for duplicate)
-        /// </summary>
-        public bool AddTypeArg(SymType newSymbol)
-        {
-            bool isAdded = Add(newSymbol);
-            if (isAdded)
-            {
-                // TBD: Finish
-            }
-            return isAdded;
-        }
-
-
-        public void DuplicateSymbol(Symbol newSymbol, Symbol remoteSymbol, bool isMethod = false)
-        {
-            // Duplicate
-            var postfix = $" with the same name {(isMethod ? "and type " : "")}as '{(isMethod?remoteSymbol.Parent:remoteSymbol)}'";
-            Reject(newSymbol.Token, "Duplicate symbol. There is a " + remoteSymbol.Kind + postfix);
-            remoteSymbol.AddDuplicate(newSymbol);
-            if (!(remoteSymbol is SymNamespace))
-            {
-                foreach (var symLoc in remoteSymbol.Locations)
-                    if (!symLoc.Token.Error)
-                    {
-                        symLoc.Token.AddInfo(newSymbol);
-                        Reject(symLoc.Token, "Duplicate symbol.  There is a " + newSymbol.Kind + postfix);
-                    }
-            }
         }
 
         /// <summary>

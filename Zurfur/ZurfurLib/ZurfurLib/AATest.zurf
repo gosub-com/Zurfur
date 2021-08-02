@@ -1,0 +1,95 @@
+﻿// Misc compiler testing
+use Zurfur
+
+namespace AATest
+
+type aStruct(a int)
+
+pub type AGenericTest<T, QQQ>
+    where QQQ is x//: new() where T : new()
+{
+    pub fun new() nil
+        nil()
+
+    pub fun new(a int) nil
+        nil()
+
+    pub fun P1() nil { return 0; }
+    pub fun P2<Quack>(a Quack, b QQQ) nil { return (a.ToStr() + b.ToStr()).Length; }
+    pub fun P3<Z>() nil { return 0; }
+    pub fun P4<Quack, Quack1>() nil { return 0; }
+
+    pub fun GenericTest<Q1, Q2>(a Q1, b Q2) nil
+        return a.ToStr().Length + b.ToStr().Length
+
+    @XField0 int = 0
+    @Xfield1 Inner1<str, aStruct>
+    @Xfield2 Inner1<str, T>
+    @Xfield3 Inner1<QQQ, T>
+
+    pub fun UseIt() nil
+    {
+        XField0.ToStr()
+        // Xfield2<str, T>.P3<T>(); - Xfield2 can't use type parameters
+        // Xfield2.P3(); - Can't infer P3<type>
+        Xfield2.P3<T>()
+        @a = List<str, Outer<int, int>>()
+
+        Inner1<str, byte>.Inner2<short, ushort>.Hello = 1
+        Outer<T, QQQ>.Inner1<str, byte>.Inner2<short, ushort>.Hello = 2
+        Outer<QQQ, T>.Inner1<str, byte>.Inner2<short, ushort>.Hello = 3
+        Outer<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, byte>.Hello = 4
+
+        @p = AGenericTest<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, byte>()
+        p.P5<short, QQQ, ushort>(3, QQQ(), 0)
+    }
+    
+    pub type Inner1<Ta, Qa>
+    {
+        pub fun P1() nil { return 0; }
+        pub fun P2<Quack>() nil { return 0; }
+        pub fun P3<Z>() nil { return 0; }
+        pub fun P4<Z, Quack>() nil { return 0; }
+        pub fun P5<Quack, Quack1, Quack3>() nil{ return 0; }
+
+        pub type Inner2<Tb, Qb>
+        {
+            pub fun P1() nil { return 0; }
+            pub fun P2<Quack>() nil { return 0; }
+            pub fun P3<Z>() nil { return 0; }
+            pub fun P4<Z, Quack>() nil { return 0; }
+            pub fun P5<Quack, Quack1, Quack3>(a int, b Quack1, c u16) nil
+            {
+                return InnerP5() + InnerP5() + a + b.ToStr().Length + c
+
+                fun InnerP5() nil
+                    return ToStr().Length
+            }
+
+            @X Inner1<byte, uint>
+            @Y Inner2<int, str>
+            @Hello int // TBD: Allow this to be static?
+
+            pub type Inner3<A, B>
+            {
+                pub fun P1() nil { return 0; }
+                pub fun P2<Quack>() nil { return 0; }
+                pub fun P3<Z>() nil { return 0; }
+                pub fun P4<Z, Quack>() nil { return 0; }
+                pub fun P5<Quack, Quack1, Quack3>(a int, b Quack1, c u16) nil
+                {
+                    return InnerP5() + InnerP5() + a + b.ToStr().Length + c
+                    
+                    fun InnerP5() int
+                        return ToStr().Length
+                }
+
+                @X Inner1<byte, uint>
+                @Y Inner2<int, str>
+                @Hello int // TBD: Allow static?
+            }
+
+        }
+
+    }
+}

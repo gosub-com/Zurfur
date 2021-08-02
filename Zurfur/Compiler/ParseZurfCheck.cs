@@ -17,7 +17,6 @@ namespace Gosub.Zurfur.Compiler
         public Token LastToken;
 
         static WordSet sRequireGlobalFieldQualifiers = new WordSet("const static");
-        static WordSet sRequireGlobalFuncQualifiers = new WordSet("static");
         static WordSet sFuncInInterfaceQualifiersAllowed = new WordSet("pub private protected static mut imp async error");
 
         static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static");
@@ -127,12 +126,6 @@ namespace Gosub.Zurfur.Compiler
                 var outerKeyword = func.ParentScope == null ? "" : func.ParentScope.Keyword;
                 if (func.NamePath.Length == 0)
                     mParser.RejectToken(keyword, "The namespace must be defined before method");
-
-                if ((outerKeyword == "" || outerKeyword == "namespace") && func.ExtensionType == null)
-                {
-                    if (!HasQualifier(func.Qualifiers, sRequireGlobalFuncQualifiers))
-                        mParser.RejectToken(keyword, "Methods at the namespace level must be 'static' or an extension method");
-                }
              
                 if (outerKeyword == "interface")
                 {

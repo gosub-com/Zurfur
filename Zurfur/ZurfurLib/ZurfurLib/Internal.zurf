@@ -46,7 +46,7 @@ pub type ro GcRefArray<T>
     @RefCount uint pub get set
     @Count uint pub get
 
-    pub fun new() void
+    pub fun new() nil
     {
         Type = todo()
     }

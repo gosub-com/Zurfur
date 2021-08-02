@@ -67,7 +67,7 @@ namespace Gosub.Zurfur.Compiler
             + "scope assign @ # and or not xor with cap exit pragma require ensure");
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static unsealed abstract virtual override new ro");
+            + "static unsealed abstract virtual override ro");
         static WordSet sPostFieldQualifiers = new WordSet("init ref set get mut");
 
         static WordSet sReservedUserFuncNames = new WordSet("new drop cast default implicit");
@@ -87,7 +87,8 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sMultiplyOps = new WordSet("* / % &");
         static WordSet sAssignOps = new WordSet("= += -= *= /= %= |= &= ~= <<= >>=");
         static WordSet sUnaryOps = new WordSet("+ - ! & ~ use unsafe ref");
-        static WordSet sNoSubCompoundStatement = new WordSet("if else while for do switch case default scope get set");
+        static WordSet sNoSubCompoundStatement = new WordSet("type class if else while " 
+                                + "for do switch case default scope get set pub private protected namespace");
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
         // This seems stange because something like `a = F<T1,T2>;` is not a valid expression
@@ -266,7 +267,7 @@ namespace Gosub.Zurfur.Compiler
                         break;
 
                     case "interface":
-                    case "enum":
+                    case "enum": // TBD: Change to 'type enum'
                     case "type":
                         mToken.Type = eTokenType.ReservedControl;
                         Accept();
@@ -309,7 +310,7 @@ namespace Gosub.Zurfur.Compiler
                         else
                         {
                             Accept();
-                            RejectToken(keyword, "Expecting a field, function, property, struct ('@', 'fun', 'prop', 'struct', 'const', etc.) or qualifier ('pub', etc.)");
+                            RejectToken(keyword, "Expecting a field, type, function, property ('@', 'type', 'fun', 'prop', 'const', etc.) or qualifier ('pub', etc.)");
                         }
                         break;
                 }
@@ -886,9 +887,18 @@ namespace Gosub.Zurfur.Compiler
             if (mTokenName == "{")
                 return ParseStatements("'" + keyword.Name + "' statement");
 
+            // TBD: We could do a lot better error recovery for all the cases below.
+            //      The user is probably editing the top part of the compound statement,
+            //      so we could parse anything that looks correct, but gray it out as we go.
+            //      On a side note, '{' and '}' in interpolated strings can destroy
+            //      the scope.  See note in `ParseStringLiteral`
+
+            // Ignore compound statement on error
+            var keywordColumn = mLexer.GetLineTokens(keyword.Y)[0].X;
+            if (mToken.Error)
+                return new SyntaxError(mToken);
 
             // Expecting invisible meta semi-colon
-            var keywordColumn = mLexer.GetLineTokens(keyword.Y)[0].X;
             if (!AcceptMatch(";"))
             {
                 Reject($"Compound statement '{keyword.Name}' is expecting '{{' or end of line");
@@ -943,7 +953,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Verify spacing after compound statement
-            if (mTokenAfterInsertedToken != null && newColumn >= 0 && newColumn != keywordColumn)
+            if (mTokenAfterInsertedToken != null && newColumn > keywordColumn)
             {
                 RejectToken(mTokenAfterInsertedToken, $"Indentation after compound statement '{keyword.Name}' must match the keyword");
             }
@@ -1594,7 +1604,13 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Parse interpolated string: "string {expr} continue{\rn}"
         /// Prefix may be null, or 'tr'.  Next token must be quote symbol.
-        /// TBD: Store "tr" in the parse tree
+        /// TBD: Store "tr" in the parse tree.
+        /// TBD: The '{' and '} in string literals can destroy the scope,
+        ///      causing havoc while the user is typing.
+        ///      Error recovery could be improved by recognizing
+        ///      string literals at a lower level (e.g. Accept instead
+        ///      of ParseAtom), then intellegent error rcovery could
+        ///      work a lot better.  See note in `ParseCompoundStatement`
         /// </summary>
         SyntaxExpr ParseStringLiteral(Token prefix)
         {
@@ -1796,25 +1812,10 @@ namespace Gosub.Zurfur.Compiler
 
         SyntaxExpr ParseFuncCallParameter()
         {
-            // Allow 'ref' or 'out' qualifier
-            if (mTokenName == "out" || mTokenName == "ref")
-            {                 
-                var qualifier = Accept();
-                if (mTokenName == "mut" /* || mTokenName == "var" */ || mToken == "@")
-                {
-                    var keyword = Accept();
-                    if (keyword == "mut")
-                    {
-                        if (!AcceptMatch("@"))
-                            RejectToken(mToken, "Expecting '@'");
-                    }
-                    var identifier = ParseIdentifier("Expecting a variable name");
-                    identifier.Type = eTokenType.DefineLocal;
-                    return new SyntaxBinary(qualifier,
-                            new SyntaxToken(keyword),
-                            new SyntaxToken(identifier));
-                }
-                return new SyntaxUnary(qualifier, new SyntaxToken(Accept()));
+            // Allow 'ref' qualifier
+            if (mTokenName == "ref")
+            {
+                return new SyntaxUnary(Accept(), ParseExpr());
             }
 
             return ParseExpr();

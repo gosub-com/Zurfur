@@ -53,6 +53,8 @@
   <ItemGroup>
     <Compile Include="Compiler\BuildPackage.cs" />
     <Compile Include="Compiler\Symbols.cs" />
+    <Compile Include="Compiler\ZilReport.cs" />
+    <Compile Include="Compiler\ZilVerify.cs" />
     <Compile Include="Lexer\ScanZurf.cs" />
     <Compile Include="Compiler\ZilGenHeader.cs" />
     <Compile Include="Compiler\SymbolTable.cs" />
@@ -183,6 +185,9 @@
     <Compile Include="Lexer\Token.cs" />
     <Compile Include="Lexer\Lexer.cs" />
     <Compile Include="App.cs" />
+    <None Include="ZurfurLib\ZurfurLib\AATest.zurf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="ZurfurLib\ZurfurLib\Array.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

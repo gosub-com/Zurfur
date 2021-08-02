@@ -14,7 +14,7 @@ interface Reader
 interface Writer
 {
     afun mut Write(data []byte) int error imp
-    afun mut Flush() void error imp
+    afun mut Flush() nil error imp
     // TBD: Since most streams have an underlying
     // buffer,  would it make sense to add sync
     // functions WritableNow and WriteNow?
@@ -26,7 +26,7 @@ interface Seeker
 {
     prop Length i64 imp get
     prop Position i64 imp get set
-    afun mut Seek(offset i64, origin SeekOrigin) void error imp
+    afun mut Seek(offset i64, origin SeekOrigin) nil error imp
 }
 
 

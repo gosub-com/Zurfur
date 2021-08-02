@@ -316,10 +316,11 @@ namespace Gosub.Zurfur.Compiler
             var dt2 = DateTime.Now;
 
             // TBD: Move to background thread (clone Lexer, parse tree, etc.)
-            var sil = new ZilGenHeader();
-            sil.EnumerateSymbols(zurfFiles);
-            sil.ResolveTypeNames();
-            mReport = sil.GenerateReport();
+            var zil = new ZilGenHeader();
+            zil.EnumerateSymbols(zurfFiles);
+            zil.ResolveTypeNames();
+            ZilVerify.VerifyHeader(zil.Symbols);
+            mReport = ZilReport.GenerateReport(zurfFiles, zil.Symbols);
 
             var dt3 = DateTime.Now;
             var ts1 = dt2 - dt1;

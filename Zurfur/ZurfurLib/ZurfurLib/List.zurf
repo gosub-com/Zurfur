@@ -12,12 +12,12 @@ pub type List<T>
     @Count int pub get
     @Version int pub get  // Increment when Count changes
     
-    pub fun new(capacity int) void
+    pub fun new(capacity int) nil
     {
         SetCapacity(capacity)
     }
 
-    pub fun IncVersion() void
+    pub fun IncVersion() nil
     {
         Version += 1
     }
@@ -36,7 +36,7 @@ pub type List<T>
     /// Grow the capacity to be at least minCapacity size.
     /// If minCapacity is <= capacity nothing happens,
     /// otherwise the list is expanded exponentially.
-    pub fun Grow(minCapacity int) void
+    pub fun Grow(minCapacity int) nil
     {
         if minCapacity <= buffer.Count
             return
@@ -50,13 +50,13 @@ pub type List<T>
         SetCapacity(newCap)
     }
     
-    pub fun Trim(extra int = 0) void
+    pub fun Trim(extra int = 0) nil
     {
         SetCapacity(Count + extra)
     }
     
     // Set the capacity, won't shrink below count.
-    fun SetCapacity(capacity int) void
+    fun SetCapacity(capacity int) nil
     {
         IncVersion()
         @capacity = Math.Max(capacity, Count)
@@ -72,14 +72,14 @@ pub type List<T>
     }
 
 
-    pub fun new(items []T) void
+    pub fun new(items []T) nil
     {
         buffer = Buffer<T>(items.Count)
         for @i in 0..items.Count
             buffer[i] = items[i]
     }
     
-    pub fun new(items Collection<T>) void
+    pub fun new(items Collection<T>) nil
     {
     }
 
@@ -87,34 +87,34 @@ pub type List<T>
     /// replaced by `seqReplace`.
     // TBD: Is it confusing to have this function be an in-place replacement,
     //      but Array.Replace to be immutable?
-    pub fun Replace(seqSearch []T, seqReplace[]T) void
+    pub fun Replace(seqSearch []T, seqReplace[]T) nil
         return todo()
 
     // NOTE: Find/Sort, etc. are defined in Span<T>
 
 
-    pub fun mut Clear(item T = default) void
+    pub fun mut Clear(item T = default) nil
         return todo()
-    pub fun mut Push(item T) void
+    pub fun mut Push(item T) nil
         return todo()
-    pub fun mut Push(items []T) void
+    pub fun mut Push(items []T) nil
         return todo()
     pub fun mut Pop() ?T
         return todo()
-    pub fun mut Insert(index int, item T) void
+    pub fun mut Insert(index int, item T) nil
         return todo()
-    pub fun mut Insert(index int, items []T) void
+    pub fun mut Insert(index int, items []T) nil
         return todo()
-    pub fun mut Insert(index int, items Collection<T>) void
+    pub fun mut Insert(index int, items Collection<T>) nil
         return todo()
-    pub fun mut Remove(index int) void
+    pub fun mut Remove(index int) nil
         return todo()
-    pub fun mut Remove(range Range<int>) void
+    pub fun mut Remove(range Range<int>) nil
         return todo()
-    pub fun Convert<Tout>(f fun(item T)Tout) void
+    pub fun Convert<Tout>(f fun(item T)Tout) nil
         return todo()
 
-    pub fun Remove(test fun(item T) bool exit)  void exit
+    pub fun Remove(test fun(item T) bool exit)  nil exit
     {
         @v = Version
         @si = 0
@@ -141,7 +141,7 @@ pub type List<T>
     }
 
     // Usage: myList.For @item => DoStuffWithItem()
-    pub fun For(f fun(item mut T) void exit) void exit
+    pub fun For(f fun(item mut T) nil exit) nil exit
     {
         @v = Version
         for @i in Count
@@ -156,17 +156,17 @@ pub type List<T>
     //      ListIterator from an immutable list reference
     pub fun ref GetIterator() ListIterator<T>
     {
-        return ListIterator<T>(this)
+        return ListIterator(this)
     }
 
-    pub type ref ListIterator<T>
+    pub type ref ListIterator
         implements Iterator<T>
     {
         @list ref List<T>
         @version int
         @index int = -1
         
-        pub fun new(list ref List<T>) void
+        pub fun new(list ref List<T>) nil
         {
             this.list = ref list
             version = list.Version

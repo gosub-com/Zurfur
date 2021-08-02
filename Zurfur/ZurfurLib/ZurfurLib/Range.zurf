@@ -11,7 +11,7 @@ pub type Range<T>(Low T, High T)
         return RangeIterator<T>(this)
 
     // Usage: myRange.For @index => DoStuffWithItem()
-    pub fun For(f fun(item T) void exit) void exit
+    pub fun For(f fun(item T) nil exit) nil exit
     {
         @i = Low
         while @i < High && f(i)
@@ -28,7 +28,7 @@ pub type RangeIterator<T>
     @index T
     @high T
     
-    pub fun new(r Range<T>) void
+    pub fun new(r Range<T>) nil
     {
         index = r.Low-1
     }

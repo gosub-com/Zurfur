@@ -10,23 +10,17 @@ use Zurfur
 // http://zurfur.com
 namespace TestExample
 
-static fun test_HelloWorld() void
+static fun test_HelloWorld() nil
 {
     Console.Log("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
         Console.Log("Count={a}")
 }
 
-pub type SimpleStruct(X int, Y int)
 
-pub type boxed SimpleClass(FirstName str, LastName str)
-
-pub type boxed SimpleClassWitBody(FirstName str, LastName str)
+pub type boxed AGenericType<Q>(FirstName str, LastName str)
 {
-    // a int - ILLEGAL
-    // fun new(a int) => AlsoIllegal()
-    fun ToStr() void
-        return "{LastName}, {FirstName}"
+
 
     pub fun Circle1(a f64, r f64) -> (x f64, y f64)
         return Cos(a)*r, Sin(a)*r
@@ -38,16 +32,32 @@ pub type boxed SimpleClassWitBody(FirstName str, LastName str)
     pub fun Circle3(a f64, r f64) -> (x f64, y f64)
         return Cos(a)*r, Sin(a)*r
 
-    pub fun Circle3(a int, r int) int
-        return Cos(a)*r, Sin(a)*r
-
-    pub fun MyVoid1() void
+    pub fun MyVoid1() nil
         return 0
 
     pub fun MyVoid2() int
         return 0
        
 
+
+    // TBD: Move to failed unit t
+    // Overloaded generic functions are illegal
+    //fun GenericFunc1<T>() nil
+    //    return "{LastName}, {FirstName}"
+    //fun GenericFunc1<X>() nil
+    //    return "x"
+
+    // Overloaded functions with same parameters are illegal
+    //fun GenericFunc2(a int) nil
+    //    return "x"
+    //fun GenericFunc2(a int) nil
+    //    return "x"
+
+    // Overloaded functions with different return parameters are illegal
+    //fun GenericFunc3(a f64) int
+    //    return "x"
+    //fun GenericFunc3(a int) nil
+    //    return "x"
 
 }
 
@@ -95,7 +105,7 @@ pub type Example
     pub prop Info str
         return info
 
-    @a Zim<void>
+    @a Zim<nil>
     @b Zim<object>
     @c Zim<i8>
     @d Zim<u8>
@@ -122,7 +132,7 @@ pub type Zim<T>
 
 /// This is a public documentation comment.  Do not use XML.
 /// Use `name` to refer to variables in the code.
-pub static fun test_Main(args Array<str>) void
+pub static fun test_Main(args Array<str>) nil
 {
     test_compose()
 
@@ -178,7 +188,7 @@ pub static fun test_Main(args Array<str>) void
 
     return
 
-    fun test_compose() void
+    fun test_compose() nil
     {
         @squareTriple = compose(&square, &triple)
         Debug.Assert(squareTriple(2) == 36)
@@ -244,7 +254,7 @@ pub type MutableTest
 // Mutable point
 pub type MyMutablePoint(X int, Y int)
 {
-    pub fun mut SetY(y int) void
+    pub fun mut SetY(y int) nil
         Y = y
         
     pub prop PropX int
@@ -274,7 +284,7 @@ pub type Example_x
 
     type DateTime { }
         
-    pub fun E() void
+    pub fun E() nil
     {
         list.binarysearch(1, 23, @(a,b) => a.compare(b) )
         const MY_CONST = 23
@@ -283,11 +293,11 @@ pub type Example_x
     }
     
 }
-pub fun Example.MyExtension2() void
+pub fun Example.MyExtension2() nil
     return Func1(10)
 
 
-pub fun Example.MyExtension() void
+pub fun Example.MyExtension() nil
 {
     @a = Map<str,int>(["A":1, "B":2, "C":3])
     @b Map<str,int> = ["A":1, "B":2, "C":3]
@@ -317,11 +327,11 @@ pub type PointXY<T>(X int, Y int)
         return todo()
 }
 
-pub fun Example.Extension() void
+pub fun Example.Extension() nil
 {
     for @a in 1..23
-        F(out @x, a)
-        F(out mut @y, a)
+        F(ref x, a)
+        F(y, a)
     @i = 32
     @j = 15
     @k int = 64
@@ -381,37 +391,37 @@ pub type Example2<Q>  // YES, errors working
     // Function
     fun fun1(a int) f32
         return f1 + f2 + a
-    fun fun2(a int) void { }
+    fun fun2(a int) nil { }
     fun fun3(a str) bool {}
-    fun fun4(a mut MyStruct) void {}
-    fun fun5(a Array<Array<int>>) void {}
-    fun fun6(a List<int>) void { }
-    fun fun7(a mut List<List<int>>) void { }
-    fun fun8(a Map<str,List<int>>) void { }
+    fun fun4(a mut MyStruct) nil {}
+    fun fun5(a Array<Array<int>>) nil {}
+    fun fun6(a List<int>) nil { }
+    fun fun7(a mut List<List<int>>) nil { }
+    fun fun8(a Map<str,List<int>>) nil { }
 
 
-    pub fun CompareY(a int, b void) int
+    pub fun CompareY(a int, b nil) int
         return -1
 
-    pub fun CompareZ(a Q, b Q) void
+    pub fun CompareZ(a Q, b Q) nil
         return -1
 
     pub fun CompareX<T>(a T, b T) int
         return -1
     
-    pub fun Sort<T>(greaterThan fun(a T,b T)bool) void
+    pub fun Sort<T>(greaterThan fun(a T,b T)bool) nil
         return Todo()
 
 
     
-    @MyFieldFunc fun(a object,b str)void pub get
+    @MyFieldFunc fun(a object,b str)nil pub get
 
 
     pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
     
-    fun fun9(a mut List<List<int>>) void { }
+    fun fun9(a mut List<List<int>>) nil { }
     
-    pub static fun Main(args Array<str>) void
+    pub static fun Main(args Array<str>) nil
     {
         @a = use OpenFile("My File")
         defer file.close()
@@ -500,7 +510,7 @@ pub type Example2<Q>  // YES, errors working
 }
 
 
-pub fun Example.IfTests() void
+pub fun Example.IfTests() nil
 {
     // In operator
     if myStr in myMap || myIn in 1..23
@@ -542,16 +552,16 @@ pub fun Example.IfTests() void
         
 
     for @a in 1..23
-      F(out @b, c)
+      F(b, c)
 
 
     for @a in 1..23
-        F(out mut @b, c)
+        F(b, c)
 }
 
 pub type MyPoint(X int, Y int)
 {
-    pub override fun ToStr() void
+    pub override fun ToStr() nil
         return "({X}, {Y})"
 }
 
@@ -590,7 +600,7 @@ pub type MyClass1
 }
 
 
-pub static fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool) void
+pub static fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool) nil
 {
     // Simple selection sort
     for @i in s.Count-1
@@ -613,7 +623,7 @@ pub static fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool) void
 pub type class Matrix2d<T>
     extends VariableSizedObject<T>
 {
-    fun new(len1 int, len2 int) void
+    fun new(len1 int, len2 int) nil
         todo()
     pub fun operator[](i1 int, i2 int) ref T
         return todo()
@@ -621,7 +631,7 @@ pub type class Matrix2d<T>
 
 
 
-pub static fun MemCopy(dest *void, source *void, length xint) void
+pub static fun MemCopy(dest *nil, source *nil, length xint) nil
 {
     @d = cast(xint)dest
     @s = cast(xint)source
@@ -635,7 +645,7 @@ pub static fun MemCopy(dest *void, source *void, length xint) void
         d+=1;  s+=1;  length-=1
     
     if s & 3 == 0
-        MemCopy32(cast(*void)d, cast(*void)s, length)
+        MemCopy32(cast(*nil)d, cast(*nil)s, length)
         return
     
     // Byte copy
@@ -649,7 +659,7 @@ pub static fun MemCopy(dest *void, source *void, length xint) void
         dref(cast(*byte)d) = dref(castx<*byte>(s)); d+=1; s+=1
 }
 
-pub static fun MemCopy32(dest *void, source *void, length xint) void
+pub static fun MemCopy32(dest *nil, source *nil, length xint) nil
 {
     @d = cast (xint)dest
     @s = cast (xint)source
@@ -675,7 +685,7 @@ pub static fun MemCopy32(dest *void, source *void, length xint) void
 
 namespace TestExample.ExampleNs1.HelloWorld
 
-static fun F1() void
+static fun F1() nil
     return todo()
 
 type ClassEx1
@@ -687,7 +697,7 @@ type ClassEx1
 
 
 namespace TestExample.ExampleNs1
-    static fun F1() void
+    static fun F1() nil
         return todo()
     
 namespace TestExample.ExampleNs1.InnerEx1
@@ -722,7 +732,7 @@ type ClassEx2
 
 namespace TestExample.ExampleNs2
 
-static fun F1() void
+static fun F1() nil
     return todo()
 
 type ClassEx1

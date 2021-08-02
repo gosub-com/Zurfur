@@ -12,7 +12,7 @@ namespace TestSyntax
 
 
 static fun A() { } // Duplicate
-static fun A() void{ } // Duplicate
+static fun A() nil{ } // Duplicate
 static fun B() int { } // Duplicate
 static fun B() f32 { } // Duplicate
 static fun C(a int, a int) { } // Duplicate parameter
@@ -42,10 +42,10 @@ pub struct ro test
     fun F(a int,
     fun G(a int, b
     pub fun H(a int, b int)  // Compound error on this line (not next)
-    pub fun I(a int, b int) void
+    pub fun I(a int, b int) nil
 
     // Error in 'fun' declaration still parses function after '{'
-    fun I(a int, x) hello world void
+    fun I(a int, x) hello world nil
     {
         if a > 3   // Error: Next line doesn't look like a compound
         a += 1
@@ -60,7 +60,7 @@ pub struct ro test
         
     }
 
-    fun I(a int, x) hello world void
+    fun I(a int, x) hello world nil
     NoCompoundHere()
 
 

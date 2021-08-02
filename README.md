@@ -95,7 +95,7 @@ The following are identical:
 
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
-    pub static fun Main(args Array<str>) void
+    pub static fun Main(args Array<str>) nil
         // This is a regular private comment
         Log.Info("Hello World, 2+2={2+2}")
 
@@ -109,30 +109,39 @@ the namespace level:
     pub str.Rest() str
         return Count == 0 ? "" : str(this[1..])
 
-Functions can return multiple values:
+By default, functions pass parameters as read-only reference.  The exception
+is that small types (e.g. `int`, and `Span<T>`) may be passed by value
+when it is more efficient to do so.  In this example, `a` is passed by value.
+
+    pub fun Test(a        int,          // Pass by value since that's more efficient
+                 b    mut int,          // Illegal since `int` is an immutable type (i.e. `type ro`)
+                 c        MyMutType,    // Read-only, pass by value or reference whichever is more efficient
+                 d    mut MyMutType)    // Mutable, but `ro` fields are preserved
+
+If `c` is big, such as a matrix containing 16 floats, it is passed by
+reference.  If it is small, such as a single `int` or `Span<type>`, it is
+passed by value.  A type containing three integers might be passed by value
+or by reference depending on the compiler, options, and optimizations.
+`d` is always passed by referece.  
+
+**TBD:** `d` does not need to be annotated at the call site.  I am still
+undecided on this.  If you are passing an immutable type, (e.g. `int`,
+`Array`, etc.) it wouldn't apply because the type is immutable.  If you
+are passing a mutable type (e.g. `List`), you can hover over the function
+call to see if it is mutating a parameter.  Annotating all call sites with
+`mut` feels like it would unecessarily clutter the code.  OTOH, maybe it would
+make it easer to read or spot possible bugs.
+
+There are no `out` or `ref` parameters, but functions can return multiple values:
 
     // Multiple returns
     pub static fun Circle(a f64, r f64) -> (x f64, y f64)
         return a.Cos()*r, a.Sin()*r
 
-The return parameters are named, and can be used by the calling function:
+The return parameters are always named, and can be used by the calling function:
 
-    @a = Circle(0, 1)
-    Log.Info("X: {a.x}, Y:{a.y}")
-
-
-By default, functions pass parameters as read-only reference.  The exception
-is that small types (e.g. `int`, and maybe `Span<T>`) may be passed by value
-when it is more efficient to do so:
-
-    pub fun Test(a        f64,      // Pass by value since that's more efficient
-                 b        MyType,   // Immutable, pass by value or reference whichever is more efficient
-                 c    mut MyType)   // Mutable, but `ro` fields are preserved (never passed by value)
-
-If `b` is big, such as a matrix containing 16 floats, it is passed by
-reference.  If it is small, such as a single `int` or `f64`, it is passed
-by value.  A type containing three integers might be passed by value or by
-reference depending on the compiler, options, and optimizations.  
+    @location = Circle(a, r)
+    Log.Info("X: {location.x}, Y:{location.y}")
 
 ## Types
 
@@ -288,13 +297,13 @@ When the type is not immutable, any field can be made immutable using `ro`.
 
     type MyType
     {
-        @a  int             // `a` can be assigned
-        ro @b int           // `b` is immutable
-        @c ro int           // Illegal since `int` is already immutable
-        @d List<int>        // `d` can be assigned and is also mutable (e.g. `d[0]=3` is ok)
-        ro @e List<int>     // `e` is immutable
-        @f ro List<int>     // `f` can be assigned, but is not mutable (e.g. `d[0]=3` is illegal)
-        ro @g mut List<int> // `g` cannot be assigned,  but is mutable
+           @a     int           // `a` can be assigned
+        ro @b     int           // `b` is immutable
+           @c ro  int           // Illegal since `int` is already immutable
+           @d     List<int>     // `d` can be assigned and is also mutable (e.g. `d[0]=3` is ok)
+        ro @e     List<int>     // `e` is immutable
+           @f ro  List<int>     // `f` can be assigned, but is not mutable (e.g. `d[0]=3` is illegal)
+        ro @g mut List<int>     // `g` cannot be assigned,  but is mutable
     }
 
 ### Simple Types
@@ -314,9 +323,9 @@ be either mutable or `ro`, no mixing.
     // field backed properties
     pub type Point(X int, Y int)
     {
-        fun new(p int) void
+        fun new(p int) nil
             todo()
-        pub fun mut SetY (y int) void   // Mutable functions are marked `mut`
+        pub fun mut SetY (y int) nil   // Mutable functions are marked `mut`
             Y = y
         pub prop PropX int
         {
@@ -369,7 +378,7 @@ all fields in the body.
         
         // Functions and properties
         pub fun HelloText() str => "Hello: " text       // Member function
-        pub fun mut SetText(a str) void { text = a }    // Member function that mutates
+        pub fun mut SetText(a str) nil { text = a }    // Member function that mutates
         pub prop Prop1 str => text                      // Property returning text
         pub prop Text str
         {
@@ -920,7 +929,7 @@ Any scope can catch an error.  Given the following definitions:
 
     pub afun mut Open(name str, mode FileMode) File error => impl
     pub afun mut Read(data mut Span<byte>) int error  => impl
-    pub afun mut Close() void error => impl
+    pub afun mut Close() nil error => impl
 
 We may decide to let errors percolate up:
 
@@ -965,7 +974,7 @@ access to only the variables declared before the first un-caught error.
 In this case it has access to `result` and `buffer`, but not `stream`.
 
 An error handler at the end of a function requires the use of `return` above
-it, even if the function is void.  Each case of the error handler must terminate
+it, even if the function is `nil`.  Each case of the error handler must terminate
 with either `return` to suppress the error or with `raise` to percolate the
 error up.  Only when the final error case catches all errors (i.e. `error e:`)
 and also `return`'s, can the the error be fully suppressed and the
@@ -1122,7 +1131,7 @@ to have access to mutable data used by another thread.
 The unary `*` operator dereferences a pointer.  The `.` operator is used to access fields
 or members of a pointer to the type (so `->` is not used for pointers). 
  
-    pub static fun strcpy(dest *byte, source *byte) void
+    pub static fun strcpy(dest *byte, source *byte) nil
     {
         while *source != 0
             { *dest = *source;  dest += 1;  source += 1 }
@@ -1243,7 +1252,7 @@ to start or wait for multiple tasks, we can also use the `astart` and
     }
 
 A sync function cannot implicitly call an async function, but it can start it
-using the `astart` keyword, like this: `fun MySyncFunction() void { astart MyAsyncFunction() }`
+using the `astart` keyword, like this: `fun MySyncFunction() nil { astart MyAsyncFunction() }`
 
 #### Async Implementation 
 
