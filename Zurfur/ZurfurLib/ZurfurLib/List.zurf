@@ -43,7 +43,7 @@ pub type List<T>
         @newCap = Math.Max(capacity*2, minCount)
         if sizeof(T) == 1
             newCap = Math.Max(newCap, 12)
-        else if sizeof(T) <= 64
+        elif sizeof(T) <= 64
             newCap = Math.Max(newCap, 4)
         else
             newCap = Math.Max(newCap, 1)

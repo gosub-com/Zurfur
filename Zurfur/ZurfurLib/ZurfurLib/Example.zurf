@@ -10,11 +10,23 @@ use Zurfur
 // http://zurfur.com
 namespace TestExample
 
+
 static fun test_HelloWorld() nil
 {
+    while a == 3
+        doit()
+        doit2()
     Console.Log("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
-        Console.Log("Count={a}")
+        doita
+        doitb
+        //while a == 3
+        //    doit1
+        //    doit2
+        //hello
+        //if a
+        //    doit4
+            
 }
 
 
@@ -73,7 +85,7 @@ pub static fun Iterable<T>.AlphaLengthWise<T, L>(
         .OrderBy(@a => lengthProvider(a))
         .ThenBy(@a => a)
 
-        f(t).AW(T,L).q
+    F(t).AW(T,L).q
 }
 
 pub type Example
@@ -140,29 +152,18 @@ pub static fun test_Main(args Array<str>) nil
     Log.Info("Hello World, 2+2={2+2}")
 
     @v = ""
-    switch myString
-    {
-    case "x":                    v = "x"
-    case "y","z":                v = "y or z"
-    case it >= "a" && it <= "z": v = "lower"
-    case it >= "A" && it <= "Z": v = "upper"
-    default:                     v = "Neither"
-    }
 
-    switch myObject
-    {
-    case it is MyType && it.Prop == 3:
-        v = "myType.Prop==3"
-    case it is YourType:
-        v = it.YourTypeProperty
-    }
+    if myString[32]@q == "x"
+        v = "x"
+    elif q == "y"  || q=="z"
+        v = "y or z"
+    elif q >= "a" || q <= "z"
+        v = "lower"
+    elif q >= "A" || q <= "Z"
+        v = "upper"
+    else
+        v = "none"
     
-    @a = match(a+b)[
-        1..4: "a",
-        it >= 5 || it <= 6: "b"]
-    a = match(a+b)[
-        it==1 || it==2 || it==3: "a",
-        it>=5 || it<=6: "b"]
 
     a = tr"Column 1{\t}Column 2{\rn}"
     data = "Name:{name}{\t}Occupation:{lastName}{\rn}"
@@ -476,19 +477,19 @@ pub type Example2<Q>  // YES, errors working
         if myStr in myMap || myIn in 1..23
             DoSomething()
 
-        // Switch expressions
-        @num = 3 + match(myConstant)[1:a, 2..5:b, 6:myFunc(), default: 0]
+        // Match expressions
+        //@num = 3 + match(myConstant)[1:a, 2..5:b, 6:myFunc(), default: 0]
 
         // Switch statement
-        switch a
-        {
-        case 1:
-            DoIt(1) // No break necessary
-        case 2, 3:
-            DoIt2()
-        default:
-            doit3()
-        }
+        //switch a
+        //{
+        //case 1:
+        //    DoIt(1) // No break necessary
+        //case 2, 3:
+        //    DoIt2()
+        //default:
+        //    doit3()
+        //}
         
         @a json = [
              "TestArray": [
@@ -529,9 +530,9 @@ pub fun Example.IfTests() nil
     if a
         todo1()
         todo2()
-    else if b
+    elif b
         todo()
-    else if c
+    elif c
         todo()
     
     if a
@@ -697,8 +698,9 @@ type ClassEx1
 
 
 namespace TestExample.ExampleNs1
-    static fun F1() nil
-        return todo()
+
+static fun F1() nil
+    return todo()
     
 namespace TestExample.ExampleNs1.InnerEx1
 

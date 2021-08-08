@@ -45,11 +45,11 @@ static fun test_ForSimple() nil
         {
             count += 100
         }
-        else if a == 3 || a == 4
+        elif a == 3 || a == 4
         {
             count += 1000
         }
-        else if a == 5
+        elif a == 5
         {
             count += 10000
             count += 10000

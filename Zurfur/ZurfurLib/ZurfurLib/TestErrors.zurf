@@ -11,20 +11,20 @@ use Zurfur
 namespace TestSyntax
 
 
-static fun A() { } // Duplicate
+static fun A() { } // Expecting a type name
 static fun A() nil{ } // Duplicate
 static fun B() int { } // Duplicate
 static fun B() f32 { } // Duplicate
-static fun C(a int, a int) { } // Duplicate parameter
-static fun D<X,X>(a X) { } // Duplicate type parameter
-static fun E<X>(a Y) { } // Unresolved type
+static fun C(a int, a int) nil { } // Duplicate parameter
+static fun D<X,X>(a X) nil { } // Duplicate type parameter
+static fun E<X>(a Y) nil{ } // Unresolved type
 
-class A { pub fun A() { } } // Same name as parent
-class C<T> { class D<T> { } } // Same type arg name as parent
-class B<T> { pub fun A<T>() { } } // Same type arg name as parent
+type A { pub fun A() nil { } } // Same name as parent
+type C<T> { type D<T> { } } // Same type arg name as parent
+type B<T> { pub fun A<T>() nil { } } // Same type arg name as parent
 
 
-pub struct ro test
+pub type ro test
 {
     pub const MaxValue i8 = 127
     pub const MinValue i8 = -128
@@ -33,7 +33,7 @@ pub struct ro test
 
 
     // Try to give good info at the end of each line
-    fun new(a i8) // Next line shouldn't be a compound error
+    fun new(a i8) nil // Compound statement error
     pub fun
     fun A
     fun B(
@@ -41,28 +41,33 @@ pub struct ro test
     fun E(a int
     fun F(a int,
     fun G(a int, b
-    pub fun H(a int, b int)  // Compound error on this line (not next)
+    pub fun H(a int, b int) nil  // Compound error on this line (not next)
     pub fun I(a int, b int) nil
 
+    fun J(a int, x int) nil
+    NoCompoundHere()
+
     // Error in 'fun' declaration still parses function after '{'
-    fun I(a int, x) hello world nil
+    fun K(a int, x)  nil
     {
         if a > 3   // Error: Next line doesn't look like a compound
         a += 1
 
         if a > 3
-            a+=1; b+=1  // Error: Looks like b+=1 is part of compound
+            a+=1
+             b+=1  // Error: Compound statement alignment
 
         if a >
-        a+= 1       // No error (it's on the previous line)
+        a+= 1       // No error here because it's marked on the previous line
 
         if a > 3 return 4 // Error: Compound must be on next line
         
     }
 
-    fun I(a int, x) hello world nil
-    NoCompoundHere()
 
-
+    // TBD: The curly brace should be accepted as part of the `fun` declaration
+    fun K(a int, x) hello world nil
+    {
+    }
     
 }

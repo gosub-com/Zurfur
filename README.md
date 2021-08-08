@@ -757,40 +757,45 @@ Zurfur inherits this from C#, and Eric Lippert
 
 Like Golang, semicolons are required between statements but they are
 inserted automatically at the end of lines based on the last non-comment
-token and the first token of the next line. Compound statements (`if`,
-`else`, `while`, `for`) can accept multiple lines without needing braces. 
+token and the first token of the next line. Like C#, curly braces can be
+placed anywhere.  Both end-of-line and beginning-of-next-line are acceptable.
+The Zurfur IDE shrinks curly brace only lines so they take the same vertical
+space as the brace-at-end style as when using a regular editor.
 
-Zurfur enforces a few coding style standards, but one style it does **not**
-enforce is where you put your curly brace.  Both end-of-line and
-beginning-of-next-line are acceptable.  By convention, most code in the Zurfur
-code base uses curly brace on beginning-of-next-line style.  The Zurfur IDE
-shrinks curly brace only lines so they take the same vertical space as the
-brace-at-end style as when using a regular editor.
+Unlike Golang and C#, compound statements (`if`, `else`, `while`, `for`, etc.)
+can accept multiple lines without needing braces, but the indentation is
+checked to make sure it matches the expected behavior.
+
+By convention, most code in the Zurfur code base uses curly brace on
+beginning-of-next-line style and omits braces when they aren't needed.
 
 Here are the enforced style rules:
 
-1. No tabs
+1. No tabs anywhere in the source code
 2. No white space or visible semi-colons at the end of a line
-3. Continuation lines start with a binary operator or with
-`[`, `]`, `(`, `)`, `,`, or `.`. Additionally, a continuation
-may use `[`, `(`, or `,` at the end of the previous line.
-Also accepted, a few other places where a continuation might
-be expected such as `where`, `require`, or other keywords.
-**TBD:** I am considering requiring them to be indented as well.
-4. A `{` cannot start a scope unless it is in an expected place such as after
+3. Indentation is enforced.  Minimum indentation is two spaces,
+   but the Zurfur code base uses four.
+4. One statement per line, unless it's a continuation line.
+   It's a continuation line if:
+   1. The end of the previous line is `{`, `[`, `(`, or `,`.
+   2. The line begins with `"`, `{`, `]`, `)`, `,` or an operator.
+      Operators include `+`, `.`, `=`, etc.
+   3. A few exceptions where continuations are expected (e.g. `where`,
+      `require`, and a few other places)
+5. Continuation lines must not be separated by a blank line or comment-only line.
+6. Compound statements (e.g. `if`, `while`, `for`, etc.) may use curly braces
+   or may omit them.  When braces are omitted, the compound part of the statement:
+   1. Must be the inner most level (i.e, the compound
+      statement may not include another compound statement)
+   2. Must on the next line and be indented
+   3. Must not be empty
+   4. May use multiple lines and multiple statements
+   4. Must have all lines at the same indentation level
+7. A brace, `{`, cannot start a scope unless it is in an expected place such as after
 `if`, `while`, `scope`, etc., or a lambda expression.
-5. Compound statements without braces require the compound part to start on
-the next line, be indented at least two spaces, not contain another
-compound statement, and not be empty.  The compound statement can be any
-number of lines long, provided each line starts on the same column.
-The statement after the compound must line up with the statement above it.
-**Note:** I know some people hate braceless compound statements because of
-the problems they can cause, but I believe these safeties will prevent most
-problems.
-6. Modifiers must appear in the following order: `pub` (or `protected`, `private`),
+8. Modifiers must appear in the following order: `pub` (or `protected`, `private`),
 `unsafe`, `static` (or `const`), `unsealed`, `abstract` (or `virtual`, `override`,
 `new`), `ref`, `mut` (or `ro`)
-
 
 #### While and Do Statements
 
@@ -883,35 +888,18 @@ it is attempted.  Here are two examples of things to avoid:
             myIntList[i] += 1 // This will throw an exception if any element was removed
     }
  
-#### Switch
+#### Switch and Match
 
-The switch statement is mostly the same as C#, except that a `case` statement
-has an implicit `break` before it.  `break` is not allowed at the same
-level as a `case` statement.
+Both `switch` and `match` are reserved for future use.  For now, use `if`,
+`elif`, and `else` to simulate them:
 
-    switch expression
-    {
-    case 0, 1, 2:
-        DoStuff0()  // No fall through here.
-    case 3..6:      // Same as 3,4,5
-        DoStuff1()
-        break;      // SYNTAX ERROR: Break is illegal here
-    case 6,7,8:
-        DoStuff2()
-        if x==y
-            break  // Exit switch statement early, don't DoStuff3
-        DoStuff3()
-    default:
-    }
-
-**TBD:** `default` required unless all cases covered.
-
-#### Match
-
-The `match` keyword is reserved, but the syntax is identical to a regular function call.
-
-    @num = 3 + match(myConstant)[1:a, 2..5:b, 6:myFunc(), default: 0]
-
+    if myNum < 1
+        DoStuff()
+        DoOtherStuff()
+    elif myNum in 1..3
+        DoMoreStuff()
+    else myNum >= 3
+        DoTheLastThing()
 
 ## Errors and Exceptions
 

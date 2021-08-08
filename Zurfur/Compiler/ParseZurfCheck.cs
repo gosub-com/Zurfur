@@ -155,7 +155,7 @@ namespace Gosub.Zurfur.Compiler
                 var outerKeyword = field.ParentScope == null ? "" : field.ParentScope.Keyword;
 
                 if (!field.Simple && field.ParentScope is SyntaxType t && t.Simple)
-                    mParser.RejectToken(field.Name, "Fields may not be defined inside class/struct with parameters");
+                    mParser.RejectToken(field.Name, "Fields may not be defined inside a type with parameters");
 
                 switch (outerKeyword)
                 {
@@ -318,11 +318,10 @@ namespace Gosub.Zurfur.Compiler
                         mParser.RejectToken(token, "No code allowed after a local function has been defined");
                 }
 
-                if (token.Name == "else")
+                if (token.Name == "else" || token.Name == "elif")
                 {
-                    if (i == 0 || (expr[i - 1].Token.Name != "if" && expr[i - 1].Token.Name != "else"))
-                        mParser.RejectToken(token, "'else' must follow 'if'");
-
+                    if (i == 0 || (expr[i - 1].Token.Name != "if" && expr[i - 1].Token.Name != "elif"))
+                        mParser.RejectToken(token, $"'{token.Name}' must follow 'if' or 'elif'");
                 }
             }
         }

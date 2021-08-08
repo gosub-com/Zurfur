@@ -227,7 +227,7 @@
     <None Include="ZurfurLib\www\Test.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\ErrorTests.zurf">
+    <None Include="ZurfurLib\ZurfurLib\TestErrors.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="ZurfurLib\ZurfurLib\Unsafe.zurf">
@@ -262,7 +262,7 @@
     <Content Include="ZurfurLib\www\Zurfur.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <None Include="ZurfurLib\ZurfurLib\UnitTests.zurf">
+    <None Include="ZurfurLib\ZurfurLib\Test.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
