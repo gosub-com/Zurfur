@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 using Gosub.Zurfur.Lex;
 
@@ -12,16 +11,13 @@ namespace Gosub.Zurfur.Lex
     sealed class ScanZurf : Scanner
     {
         // NOTE: >=, >>, and >>= are omitted and handled at parser level.
-        public const string MULTI_CHAR_TOKENS = "<< <= == != && || += -= *= /= %= &= |= ~= <<= => -> !== === :: .. ... ++ -- ";
-        static Regex sFindUrl = new Regex(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
+        public const string MULTI_CHAR_TOKENS = "<< <= == != && || += -= *= /= %= &= |= ~= <<= => -> !== === :: .. ... ++ -- // ///";
         Dictionary<long, bool> mSpecialSymbols = new Dictionary<long, bool>();
         bool mSpecialSymbolsHas3Chars;
-        bool mTokenizeComments;
 
         public ScanZurf()
         {
             SetSpecialSymbols(MULTI_CHAR_TOKENS);
-            mTokenizeComments = true;
         }
 
         /// <summary>
@@ -88,16 +84,6 @@ namespace Gosub.Zurfur.Lex
                 tokens.Add(ScanNumber(line, ref charIndex, startIndex, mintern));
                 return;
             }
-            // Comment
-            if (mTokenizeComments && ch1 == '/')
-            {
-                if (charIndex + 1 < line.Length && line[charIndex + 1] == '/')
-                {
-                    ScanComment(line, startIndex, tokens, mintern);
-                    charIndex = line.Length;
-                    return;
-                }
-            }
 
             // Special symbols
             if (mSpecialSymbols.Count != 0 && charIndex + 1 < line.Length)
@@ -123,31 +109,6 @@ namespace Gosub.Zurfur.Lex
             tokens.Add(new Token(mintern[line[charIndex++].ToString()], startIndex, 0));
         }
 
-        void ScanComment(string comment, int startIndex, List<Token> tokens, MinTern mintern)
-        {
-            // TBD: This should probably go away and let the higher level parser do it
-            eTokenType commentType = startIndex + 2 < comment.Length && comment[startIndex + 2] == '/'
-                                        ? eTokenType.PublicComment : eTokenType.Comment;
-
-            // Chop up URLs in the comment
-            var m = sFindUrl.Match(comment, startIndex);
-            while (m.Success && startIndex < comment.Length)
-            {
-                var pre = comment.Substring(startIndex, m.Index - startIndex).TrimEnd();
-                if (pre != "")
-                    tokens.Add(new Token(pre, startIndex, 0, commentType));
-                tokens.Add(new Token(m.Value, m.Index, 0, commentType));
-                startIndex = m.Index + m.Length;
-                while (startIndex < comment.Length && char.IsWhiteSpace(comment[startIndex]))
-                    startIndex++;
-                m = sFindUrl.Match(comment, startIndex);
-            }
-
-            comment = mintern[comment.Substring(startIndex).TrimEnd()];
-            if (comment != "")
-                tokens.Add(new Token(comment, startIndex, 0, commentType));
-
-        }
 
         Token ScanNumber(string line, ref int charIndex, int startIndex, MinTern mintern)
         {

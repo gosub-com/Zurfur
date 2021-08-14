@@ -288,7 +288,7 @@ namespace Gosub.Zurfur.Compiler
                     methodParam.TypeName = ResolveType(methodParam, func.ExtensionType, file);
                     method.Children[methodParam.Name] = methodParam; // Extension method parameter name "$this_ex" is unique
                 }
-                else if (!method.Qualifiers.Contains("static"))
+                else if (!method.Qualifiers.Contains("static")) // TBD: Check if in type instead of namespace
                 {
                     // Non static method (first parameter is "$this")
                     var methodParam = new SymMethodParam(method, file, new Token("$this"), -1);
@@ -296,10 +296,6 @@ namespace Gosub.Zurfur.Compiler
                     {
                         methodParam.TypeName = tn;
                         method.Children[methodParam.Name] = methodParam;  // Method parameter "$this" is unique
-                    }
-                    else
-                    {
-                        Reject(func.Name, "Methods at the namespace level must be 'static' or an extension method");
                     }
                 }
 

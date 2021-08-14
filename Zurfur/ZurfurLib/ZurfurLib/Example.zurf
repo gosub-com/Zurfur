@@ -1,6 +1,6 @@
 //pragma ShowSemi       // Show invisible semicolons
-pragma ShowParse            // Show the parse tree (hover over a symbol)
-//pragma ShowMeta     // Show parser symbols
+pragma ShowParse        // Show the parse tree (hover over a symbol)
+//pragma ShowMeta       // Show parser symbols
 //pragma NoParse
 
 // Press F4 to see header file report
@@ -9,6 +9,27 @@ use Zurfur
 
 // http://zurfur.com
 namespace TestExample
+
+/// This is a public comment.
+fun Main() nil
+{
+    Log.Info("Hello world.  Let's count to 10.")
+    for @a in 1..11
+        Log.Info("Count={a}")
+}
+type SimpleType(FirstName str, LastName str)
+type ro SimpleImmutableType(FirstName str, LastName str)
+type ComplexType
+{
+    @list List<str> = ["Hello", "World"]   // Private mutable list
+    @map Map<str,int> = ["A":1, "B":2]     // Private mutable map
+    ro @roList List<int> = [1,2,3]      // Private immutable list
+    @Header str pub ref = "Zurfur"// Field with public ro property
+    @Text str pub mut ref = "fun" // Field with public mut property
+    pub fun GetInfo() str
+        return "Header: {Header}, Text: {Text}"
+}
+
 
 
 static fun test_HelloWorld() nil

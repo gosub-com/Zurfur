@@ -1273,7 +1273,7 @@ namespace Gosub.Zurfur
             var brush = overrides != null && overrides.ForeColor != null ? overrides.ForeColor : fontInfo.Brush;
             if (token.Meta)
             {
-                brush = Brushes.Orange;
+                brush = Brushes.Red;
                 x += 2;
                 y -= 2;
             }

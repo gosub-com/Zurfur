@@ -5,6 +5,7 @@ using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.Remoting.Messaging;
+using System.Text.RegularExpressions;
 using System.Text;
 
 using Gosub.Zurfur.Lex;
@@ -17,6 +18,7 @@ namespace Gosub.Zurfur.Compiler
     class ParseZurf
     {
         public const string VT_TYPE_ARG = "$"; // Differentiate from '<' (must be 1 char long)
+
         // TBD: Allow pragmas to be set externally
         static WordSet sPragmas = new WordSet("ShowParse ShowMeta ShowSemi NoParse");
 
@@ -24,16 +26,17 @@ namespace Gosub.Zurfur.Compiler
         ParseZurfCheck mZurfParseCheck;
 
         int                 mParseErrors;	// Number of errors
-        Lexer				mLexer;			// Lexer to be paresed
-        Lexer.Enumerator	mLexerEnum;		// Enumerator for the Lexer
-        string				mTokenName="*"; // Skipped by first accept
-        Token				mToken = new Token(";");
+        Lexer				mLexer;			// Lexer to be parsed
+        int                 mAcceptY = 0;
+        int                 mAcceptX = 0;
+        List<Token>         mStatements = new List<Token>();
+        string              mTokenName ="*"; // Skipped by first accept
+        Token               mToken = new Token(";");
         Token               mPrevToken = new Token(";");
+        Token               mNextStatementToken;  // Null unless at the end of a statement
         StringBuilder       mComments = new StringBuilder();
-        SyntaxField         mLastField;
         List<Token>         mMetaTokens = new List<Token>();
         int                 mTernaryLevel;
-        Token               mTokenAfterInsertedToken;
         bool                mShowMeta;
         bool                mShowSemi;
 
@@ -48,11 +51,12 @@ namespace Gosub.Zurfur.Compiler
         public int ParseErrors => mParseErrors;
 
         // Add semicolons to all lines, except for:
-        static WordSet sEndLineSkipSemicolon = new WordSet("{ [ ( , ;");
-        static WordSet sBeginLineForceSemicolon = new WordSet("} namespace pub fun afun extern imp static");
-        static WordSet sBeginLineSkipSemicolon = new WordSet("\" { ] ) , . + - * / % | & || && == != "
+        static WordSet sEndLineContinuation = new WordSet("[ ( , ;");
+        static WordSet sBeginLineNoContinuation = new WordSet("} namespace module pub fun afun extern imp static");
+        static WordSet sBeginLineContinuation = new WordSet("/// // \" { ] ) , . + - * / % | & || && == != "
                             + ": ? > << <= < => -> .. :: !== ===  is in as"
                             + "= += -= *= /= %= |= &= ~=");
+        WordSet sStringLiteralEscapes = new WordSet("{ \" }");
 
         static WordSet sReservedWords = new WordSet("abstract as base break case catch class const "
             + "continue default delegate do then else elif enum event explicit extern true false defer use "
@@ -78,7 +82,6 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sAllowConstraintKeywords = new WordSet("unmanaged");
         static WordSet sAllowUnderscore = new WordSet("_");
 
-
         public static WordSet sOverloadableOps = new WordSet("+ - * / % [ in");
         static WordSet sCompareOps = new WordSet("== != < <= > >= === !== in");
         static WordSet sRangeOps = new WordSet(".. ::");
@@ -91,7 +94,7 @@ namespace Gosub.Zurfur.Compiler
         // For now, do not allow more than one level.  Maybe we want to allow it later,
         // but definitely do not allow them to include compounds with curly braces.
         static WordSet sNoSubCompoundStatement = new WordSet("type class catch error " 
-                                + "get set pub private protected namespace static fun afun prop "
+                                + "get set pub private protected namespace module static fun afun prop "
                                 + "for do scope while if else elif");
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
@@ -100,15 +103,16 @@ namespace Gosub.Zurfur.Compiler
         // and #F<T1>(expression) to cast.
         static WordSet sTypeArgumentParameterSymbols = new WordSet("( ) .");
 
+        Regex sFindUrl = new Regex(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
+
         static WordSet sStatementEndings = new WordSet("; => }");
-        static WordSet sStatementsDone = new WordSet("} namespace type interface enum", true);
+        static WordSet sStatementsDone = new WordSet("} namespace module type interface enum", true);
         static WordSet sRejectAnyStop = new WordSet("=> ; { }", true);
         static WordSet sRejectForCondition = new WordSet("in");
         static WordSet sRejectFuncName = new WordSet("(");
         static WordSet sRejectFuncParam = new WordSet(", )");
         static WordSet sRejectTypeName = new WordSet("( )");
 
-        WordSet sStringLiteralEscapes = new WordSet("{ \" }");
         static WordMap<string> sStringLiterals = new WordMap<string>()
             { { "n", "\n" }, { "r", "\r"}, {"rn", "\r\n"}, {"t", "\t"}, {"b", "\b" } };
 
@@ -118,7 +122,6 @@ namespace Gosub.Zurfur.Compiler
         public ParseZurf(Lexer lexer)
         {
             mLexer = lexer;
-            mLexerEnum = new Lexer.Enumerator(lexer);
             mSyntax = new SyntaxFile();
             mSyntax.Lexer = lexer;
             mZurfParseCheck = new ParseZurfCheck(this);
@@ -262,6 +265,10 @@ namespace Gosub.Zurfur.Compiler
                         Accept();
                         RejectQualifiers(qualifiers, "Unexpected qualifiers");
                         RejectToken(keyword, "Unexpected '" + keyword + "'.  Expecting a keyword, such as 'type', 'fun', etc. before the start of a new scope.");
+                        break;
+
+                    case "pragma":
+                        ParsePragma();
                         break;
 
                     case "use":
@@ -428,7 +435,34 @@ namespace Gosub.Zurfur.Compiler
             }
             // Accumulate comments and keyword tokens for this namespace
             ns.Comments += " " + mComments;
+            mComments.Clear();
             ns.Path = namePath.ToArray();
+        }
+
+        void ParsePragma()
+        {
+            mToken.Type = eTokenType.ReservedControl;
+            Accept();
+            mToken.Type = eTokenType.Reserved;
+            if (mSyntax.Pragmas.ContainsKey(mTokenName))
+                RejectToken(mToken, "Duplicate pragma");
+            if (!sPragmas.Contains(mTokenName))
+                mToken.AddError("Unkown pragma");
+            mSyntax.Pragmas[mTokenName] = new SyntaxPragma(mToken);
+
+            if (mTokenName == "__fail")
+                throw new Exception("Parse fail test");
+            if (mTokenName == "ShowSemi")
+                mShowSemi = true;
+            if (mTokenName == "ShowMeta")
+                mShowMeta = true;
+            if (mTokenName == "NoParse")
+            {
+                while (Accept() != "")
+                { }
+                throw new NoCompilePragmaException();
+            }
+            Accept();
         }
 
         // Parse class, struct, interface, or enum
@@ -439,6 +473,7 @@ namespace Gosub.Zurfur.Compiler
             synClass.ParentScope = parentScope;
             synClass.NamePath = mNamePath;
             synClass.Comments = mComments.ToString();
+            mComments.Clear();
 
             // Parse class name and type parameters
             (synClass.Name, synClass.TypeArgs) = GetSimpleNameWithTypeArgs(ParseTypeName());
@@ -572,7 +607,7 @@ namespace Gosub.Zurfur.Compiler
             field.NamePath = mNamePath;
             field.Qualifiers = qualifiers.ToArray();
             field.Comments = mComments.ToString();
-            mLastField = field; // Allow us to pick up comments on this line
+            mComments.Clear();
 
             if (mTokenName != "=")
                 field.TypeName = ParseType();
@@ -623,9 +658,9 @@ namespace Gosub.Zurfur.Compiler
             field.NamePath = mNamePath;
             field.Qualifiers = qualifiers.ToArray();
             field.Comments = mComments.ToString();
+            mComments.Clear();
             field.TypeName = typeName;
             field.Initializer = initializer;
-            mLastField = field; // Allow us to pick up comments on this line
             AddField(field);
         }
 
@@ -640,8 +675,8 @@ namespace Gosub.Zurfur.Compiler
             field.NamePath = mNamePath;
             field.Qualifiers = qualifiers.ToArray();
             field.Comments = mComments.ToString();
+            mComments.Clear();
             name.Type = eTokenType.DefineField;
-            mLastField = field; // Allow us to pick up comments on this line
 
             // Optionally initialize
             if (AcceptMatch("="))
@@ -669,6 +704,7 @@ namespace Gosub.Zurfur.Compiler
             synFunc.ParentScope = parentScope;
             synFunc.NamePath = mNamePath;
             synFunc.Comments = mComments.ToString();
+            mComments.Clear();
             synFunc.Qualifiers = qualifiers.ToArray();
             synFunc.Name = propertyName;
             synFunc.MethodSignature = typeName;
@@ -710,6 +746,7 @@ namespace Gosub.Zurfur.Compiler
             synFunc.ParentScope = parentScope;
             synFunc.NamePath = mNamePath;
             synFunc.Comments = mComments.ToString();
+            mComments.Clear();
 
             //if (mTokenName == "^")
             //    qualifiers.Add(Accept());
@@ -903,11 +940,9 @@ namespace Gosub.Zurfur.Compiler
             if (mTokenName == "{")
                 return ParseStatements("'" + keyword.Name + "' statement");
 
-            // TBD: We could do a lot better error recovery for all the cases below.
+            // TBD: We could do better error recovery for all the cases below.
             //      The user is probably editing the top part of the compound statement,
             //      so we could parse anything that looks correct, but gray it out as we go.
-            //      On a side note, '{' and '}' in interpolated strings can destroy
-            //      the scope.  See note in `ParseStringLiteral`
 
             // Ignore compound statement on error
             var keywordColumn = mLexer.GetLineTokens(keyword.Y)[0].X;
@@ -916,8 +951,8 @@ namespace Gosub.Zurfur.Compiler
 
             // Expecting invisible meta semi-colon
             // Expecting next line to be indented
-            if (mToken.Meta && mTokenName == ";" && mTokenAfterInsertedToken != null
-                && mTokenAfterInsertedToken.X < keywordColumn + 2)
+            if (mToken.Meta && mTokenName == ";" && mNextStatementToken != null
+                && mNextStatementToken.X < keywordColumn + 2)
             {
                 RejectToken(mToken, $"Braceless compound statement '{keyword.Name}' is expecting '{{' or next line must be indented at least two spaces");
                 return new SyntaxError();
@@ -939,7 +974,7 @@ namespace Gosub.Zurfur.Compiler
                 return new SyntaxError();
             }
 
-            var compoundToken = mToken;
+            var compoundColumn = mToken.X;
             Token semicolon = mPrevToken;
             var statement = NewExprList();
             while (true)
@@ -951,27 +986,18 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 ParseStatement(statement, false);
-
                 if (mTokenName != ";")
-                {
-                    RejectToken(mToken, $"Braceless compound statement '{keyword.Name}' is expecting ';' or end of line");
+                    Reject($"Braceless compound statement '{keyword.Name}' is expecting ';' or end of line");
+                if (mTokenName == "}")
                     break;
-                }
 
-                var newColumn = mTokenAfterInsertedToken != null
-                    && mTokenAfterInsertedToken.Name != "}"
-                    && mTokenAfterInsertedToken.Name != "namespace"
-                    ? mTokenAfterInsertedToken.X : -1;
-
+                var newColumn = mNextStatementToken == null ? -1 : mNextStatementToken.X;
                 if (mToken.Meta && newColumn <= keywordColumn)
                     break;
 
                 AcceptMatch(";");
-                if (mPrevToken.Meta && newColumn != compoundToken.X)
-                {
+                if (mPrevToken.Meta && newColumn != compoundColumn)
                     RejectToken(mToken, $"Indentation in braceless compound statement '{keyword.Name}' must match the statement above it");
-                    Connect(mToken, compoundToken);
-                }
             }
 
             return new SyntaxMulti(NewVirtualToken(semicolon, "{"), FreeExprList(statement));
@@ -985,6 +1011,9 @@ namespace Gosub.Zurfur.Compiler
             // Require '{'
             if (!AcceptMatchOrReject("{"))
                 return new SyntaxError();
+
+            while (AcceptMatch(";"))
+                ;
 
             var openToken = mPrevToken;
             var statements = NewExprList();
@@ -1195,7 +1224,7 @@ namespace Gosub.Zurfur.Compiler
         {
             if (mTokenName != ">")
                 return;
-            var peek = mLexerEnum.PeekOnLine();
+            var peek = PeekOnLine();
             if (peek.X != mToken.X + mTokenName.Length)
                 return;
             if (peek != "=" && peek != ">")
@@ -1205,7 +1234,7 @@ namespace Gosub.Zurfur.Compiler
             var virtualToken = token.Name + peek;
             if (virtualToken == ">>")
             {
-                peek = mLexerEnum.PeekOnLine();
+                peek = PeekOnLine();
                 if (peek.X == token.X + virtualToken.Length && peek == "=")
                 {
                     Accept();
@@ -1639,9 +1668,7 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         SyntaxExpr ParseStringLiteral(Token prefix)
         {
-            const string STR_ESC = "%";
-            const string STR_ESC_ESC = "%%";
-            const string STR_PARAM = "%?";
+            const string STR_PARAM = "{?}";
             const string STR_TEMP_REPLACE = "\uF127"; // Anything unlikely to ever be seen in source code
 
             var quote = mToken;
@@ -1661,67 +1688,81 @@ namespace Gosub.Zurfur.Compiler
                 {
                     EndScoop(mToken);
                     RejectToken(mToken.Boln ? mPrevToken : mToken, "Expecting end quote before end of line");
+
+                    // Special case: Continue on next line even though this is an error.
                     if (AcceptMatchSkipMetaSemicolon("\""))
                     {
-                        // Special case: continue string on next line even though this is an error
                         BeginScoop(mPrevToken);
                         continue;
                     }
                     break; // End quoted string
                 }
 
-                if (sStringLiteralEscapes.Contains(mToken))
+                if (!sStringLiteralEscapes.Contains(mToken))
                 {
-                    EndScoop(mToken);
-                    Accept();
-                    if (ParseDouble(mPrevToken.Name))
-                    {
-                        BeginScoop(mPrevToken);
-                        continue;
-                    }
-
-                    if (mPrevToken.Name == "\"")
-                    {
-                        // Accept end quote, then continue on next line if possible
-                        literalTokens.Add(mPrevToken);
-                        if (mToken.Boln && AcceptMatch("\""))
-                        {
-                            BeginScoop(mPrevToken);
-                            literalTokens.Add(mPrevToken);
-                            continue;  // Continue quoted string on next line
-                        }
-                        break; // End quoted string
-                    }
-
-                    if (mPrevToken.Name == "{")
-                    {
-                        if (mTokenName == "\\")
-                            ParseEscapes();
-                        else if (mTokenName != "\"") // String not allowed in string (user is probably typing)
-                            ParseInterpolatedExpression();
-
-                        if (mTokenName != "}")
-                            Reject("Expecting '}' to end string interpolation", new WordSet("} \""));
-                        AcceptMatch("}");
-
-                        BeginScoop(mPrevToken);
-                        continue; // Continue quoted string
-                    }
-                    if (mPrevToken.Name == "}")
-                    {
-                        RejectToken(mPrevToken, "Expecting another '}' in string literal");
-                        BeginScoop(mPrevToken);
-                        continue;  // Continue parsing quoted string
-                    }
+                    literalTokens.Add(Accept());
+                    continue;
                 }
 
-                literalTokens.Add(Accept());
+                EndScoop(mToken);
+                Accept();
+                if (ParseDouble(mPrevToken.Name))
+                {
+                    BeginScoop(mPrevToken);
+                    continue;
+                }
+
+                if (mPrevToken.Name == "\"")
+                {
+                    // Accept end quote, then continue on next line if possible
+                    literalTokens.Add(mPrevToken);
+                    if (mToken.Boln && AcceptMatch("\""))
+                    {
+                        BeginScoop(mPrevToken);
+                        literalTokens.Add(mPrevToken);
+                        continue;  // Continue quoted string on next line
+                    }
+                    break; // End quoted string
+                }
+                if (mPrevToken.Name == "{")
+                {
+                    mPrevToken.Type = eTokenType.ReservedControl;
+                    if (mToken.Meta)
+                        AcceptMatch(";");
+                    
+                    if (mTokenName == "\\")
+                        ParseEscapes();
+                    else if (mTokenName != "\"") // String not allowed in string (user is probably typing)
+                        ParseInterpolatedExpression();
+
+                    if (mToken.Meta && mToken.Name == ";" && mNextStatementToken != null && mNextStatementToken.Name == "}")
+                    {
+                        Accept();
+                        RejectToken(mPrevToken, "Expecting a continuation line or '}' to be on previous line");
+                    }
+                    if (AcceptMatch("}"))
+                        mPrevToken.Type = eTokenType.ReservedControl;
+                    else
+                        RejectToken(mToken, "Expecting '}' to end string interpolation");
+
+                    BeginScoop(mPrevToken);
+                    continue; // Continue quoted string
+                }
+                if (mPrevToken.Name == "}")
+                {
+                    mPrevToken.Type = eTokenType.ReservedControl;
+                    RejectToken(mPrevToken, "Expecting another '}' in string literal");
+                    BeginScoop(mPrevToken);
+                    continue;  // Continue parsing quoted string
+                }
             }
             EndScoop(mToken);
 
 
             // Show final string
-            var str = literalSb.ToString().Replace(STR_ESC, STR_ESC_ESC).Replace(STR_TEMP_REPLACE, STR_PARAM);
+            var str = literalSb.ToString();
+            var containsReplacement = str.Contains(STR_PARAM);
+            str = str.Replace(STR_TEMP_REPLACE, STR_PARAM);
             var strPrint = "'" + str
                 .Replace("\r\n", "{\\rn}")
                 .Replace("\r", "{\\r}")
@@ -1733,6 +1774,8 @@ namespace Gosub.Zurfur.Compiler
             {
                 if (token.Error)
                     continue;
+                if (containsReplacement && STR_PARAM.Contains(token.Name))
+                    RejectToken(token, $"Interpolated string literal may not contain {STR_PARAM}");
                 token.AddInfo(strPrint);
                 token.Type = eTokenType.Quote;
             }
@@ -1767,6 +1810,7 @@ namespace Gosub.Zurfur.Compiler
                     literalSb.Append(literalName);
                     if (mPrevToken.X + 1 != mToken.X)
                         RejectToken(mToken, "Unexpected space before this token");
+                    (literalName == "}" ? mToken : mPrevToken).Grayed = true;
                     literalTokens.Add(Accept());
                     return true;
                 }
@@ -1961,8 +2005,6 @@ namespace Gosub.Zurfur.Compiler
             return (type[0].Token, new SyntaxMulti(type.Token, FreeExprList(typeArgList)));
         }
 
-
-
         /// <summary>
         /// Parse type argument list: <Arg...>
         /// </summary>
@@ -2084,16 +2126,10 @@ namespace Gosub.Zurfur.Compiler
             return false;
         }
 
-        bool IsMatchPastMetaSemicolon(string match)
-        {
-            return mTokenName == match
-                || mToken.Meta && mTokenName == ";" && mTokenAfterInsertedToken != null && mTokenAfterInsertedToken.Name == match;
-        }
-
         bool AcceptMatchSkipMetaSemicolon(string match)
         {
             // Eat the meta ";" if the token after it matches
-            if (mToken.Meta && mTokenName == ";" && mTokenAfterInsertedToken != null && mTokenAfterInsertedToken.Name == match)
+            if (mToken.Meta && mTokenName == ";" && mNextStatementToken != null && mNextStatementToken.Name == match)
                 Accept();
             return AcceptMatch(match);
         }
@@ -2109,7 +2145,6 @@ namespace Gosub.Zurfur.Compiler
                 return AcceptMatch(matchToken);
             return false;
         }
-
         void AcceptSemicolonOrReject()
         {
             if (AcceptMatch(";"))
@@ -2122,51 +2157,60 @@ namespace Gosub.Zurfur.Compiler
             AcceptMatch(";");
         }
 
-
         struct ParsePoint
         {
-            public Lexer.Enumerator LexerEnum;
             public Token PrevToken;
             public Token Token;
             public eTokenType TokenType;
-            public Token Inserted;
+            public Token NextStatementToken;
             public int ParseErrors;
             public int MetaTokenCount;
+
+            public int AcceptY;
+            public int AcceptX;
+            public Token []Statements;
+
         }
 
         ParsePoint SaveParsePoint()
         {
             var p = new ParsePoint();
-            p.LexerEnum = mLexerEnum;
             p.PrevToken = mPrevToken;
             p.Token = mToken;
             p.TokenType = mToken.Type;
-            p.Inserted = mTokenAfterInsertedToken;
+            p.NextStatementToken = mNextStatementToken;
             p.ParseErrors = mParseErrors;
             p.MetaTokenCount = mMetaTokens.Count;
+
+            p.AcceptX = mAcceptX;
+            p.AcceptY = mAcceptY;
+            p.Statements = mStatements.ToArray();
             return p;
         }
 
         void RestoreParsePoint(ParsePoint p)
         {
-            mLexerEnum = p.LexerEnum;
             mPrevToken = p.PrevToken;
             mToken = p.Token;
             mToken.Type = p.TokenType;
             mTokenName = mToken.Name;
-            mTokenAfterInsertedToken = p.Inserted;
+            mNextStatementToken = p.NextStatementToken;
             mParseErrors = p.ParseErrors;
             while (mMetaTokens.Count > p.MetaTokenCount)
                 mMetaTokens.RemoveAt(mMetaTokens.Count-1);
+
+            mAcceptX = p.AcceptX;
+            mAcceptY = p.AcceptY;
+            mStatements.Clear();
+            mStatements.AddRange(p.Statements);
         }
 
-        Token Peek()
+        // Returns the next token on this line (or "" if at end or comment)
+        Token PeekOnLine()
         {
-            var pp = SaveParsePoint();
-            Accept();
-            var peek = mToken;
-            RestoreParsePoint(pp);
-            return peek;
+            if (mAcceptX >= mStatements.Count)
+                return Token.Empty;
+            return mStatements[mAcceptX];
         }
 
         // Accept the current token and advance to the next, skipping all comments.
@@ -2174,25 +2218,33 @@ namespace Gosub.Zurfur.Compiler
         // Returns the token that was accepted.  Token type is set.
         Token Accept()
         {
-            // Already at end of file?
-            if (mTokenName == "")
-                return mToken;
-
-            var prevToken = mToken;
-            mPrevToken = prevToken;
-            if (mTokenAfterInsertedToken != null)
+            mNextStatementToken = null;
+            if (mAcceptX >= mStatements.Count)
             {
-                mToken = mTokenAfterInsertedToken;
-                mTokenName = mToken.Name;
-                mTokenAfterInsertedToken = null;
-                return mPrevToken;
+                GetNextStatements();
+                mAcceptX = 0;
+                if (mStatements.Count == 0)
+                {
+                    mToken = mLexer.EndToken;
+                    mTokenName = "";
+                    return mToken;
+                }
             }
 
-            // Read next token (use "" as EOF flag)
-            GetNextToken();
+            mPrevToken = mToken;
+            mToken = mStatements[mAcceptX++];
+            mTokenName = mToken.Name;
+            bool meta = mToken.Meta;
+            mToken.Clear();
+            mToken.Meta = meta;
 
-            if (mTokenName == "//" || mTokenName == "///")
-                ParseComments();
+            if (mAcceptX == mStatements.Count
+                && mAcceptY < mLexer.LineCount)
+            {
+                var tokens = mLexer.GetLineTokens(mAcceptY);
+                if (tokens.Length != 0)
+                    mNextStatementToken = tokens[0];
+            }
 
             // Set token type
             if (mTokenName.Length == 0)
@@ -2216,160 +2268,175 @@ namespace Gosub.Zurfur.Compiler
             if (mTokenName.Length != 0 &&  (mTokenName[0] == '_' || mTokenName[mTokenName.Length-1] == '_') && mTokenName != "_")
                 RejectToken(mToken, "Identifiers may not begin or end with '_'");
 
-            // Insert a ';' after each non-continuation line
-            if (mToken.Y != prevToken.Y)
-            {
-                if ((!sEndLineSkipSemicolon.Contains(prevToken)
-                                || sBeginLineForceSemicolon.Contains(mTokenName))
-                        && !sBeginLineSkipSemicolon.Contains(mTokenName))
-                {
-                    // Mark at end of token, before any comment
-                    int x = prevToken.X + prevToken.Name.Length;
-                    mTokenAfterInsertedToken = mToken;
-                    mToken = new Token(";", x, prevToken.Y, eTokenBits.Meta);
-                    if (mShowSemi)
-                        mMetaTokens.Add(mToken);
-                    mTokenName = ";";
-                }
-                else
-                {
-                    // Continuation line - check for blank lines
-                    if (mToken.Y > prevToken.Y + 1 && prevToken.Name != "{" && prevToken.Y != 0)
-                        RejectToken(mToken, "Continuation line must immediately follow previous line.  No blank lines or comment only lines allowed.");
-                }
-            }
             return mPrevToken;
-        }
 
-        void ParseComments()
-        {
-            mComments.Clear();
-            while (mTokenName == "//" || mTokenName == "///")
+            /// <summary>
+            /// Get the next statement(s) into `mStatements`.  Can have multiple
+            /// statements when separated by visible semi-colons. The last token
+            /// is always a semi-colon (visible or and added meta ";").  Skip comments. 
+            /// </summary>
+            void GetNextStatements()
             {
-                var tokenType = mToken == "///" ? eTokenType.PublicComment : eTokenType.Comment;
-                mToken.Type = tokenType;
-                GetNextToken();
-                bool isCodeComment = false;
-                while (!mToken.Boln && mToken != "")
-                {
-                    mToken.Type = tokenType;
-                    if (tokenType == eTokenType.PublicComment)
-                    {
-                        // TBD: Need some work to reconstruct comment spacing properly
-                        mComments.Append(mToken.Name);
-                        mComments.Append(" ");
-                        if (mLastField != null && mLastField.Name.Y == mToken.Y)
-                        {
-                            mLastField.Comments += mComments.ToString();
-                            mComments.Clear();
-                        }
-                        mLastField = null;
-                    }
-                    var lcComment = mTokenName.ToLower();
-                    if (lcComment.StartsWith("http://") 
-                            || lcComment.StartsWith("https://")
-                            || lcComment.StartsWith("file://"))
-                    {
-                        mToken.Url = mToken.Name;
-                        mToken.Underline = true;
-                    }
-                    if (mTokenName == "`")
-                    {
-                        isCodeComment = !isCodeComment;
-                        mToken.Subtype = eTokenSubtype.Normal;
-                    }
-                    else
-                    {
-                        mToken.Subtype = isCodeComment ? eTokenSubtype.CodeInComment : eTokenSubtype.Normal;
-                    }
-                    GetNextToken();
-                }
-            }
-        }
+                mStatements.Clear();
+                //mComments.Clear();
+                var inQuote = false;
+                var inInterpolatedQuote = false;
 
-        // Lowest level function for getting the next token.  Ensure there are
-        // no tabs and no space or `;` at then end of the line.
-        void GetNextToken()
-        {
-            ScanLow();
-            while (mTokenName == "pragma")
-            {
-                var pragmaToken = mToken;
-                pragmaToken.Type = eTokenType.ReservedControl;
-                ScanLow();
-                if (mTokenName != "" && char.IsLetterOrDigit(mTokenName[0]) && mToken.Y == pragmaToken.Y)
+                while (mAcceptY < mLexer.LineCount)
                 {
-                    ParsePragma();
-                    ScanLow();
+                    GetNextLine(ref inQuote, ref inInterpolatedQuote);
+                    CheckLine();
+                    mAcceptY++;
+
+                    if (mStatements.Count == 0 || mAcceptY >= mLexer.LineCount)
+                        continue;
+
+                    var nextLine = mLexer.GetLineTokens(mAcceptY);
+                    if (nextLine.Length == 0)
+                        continue;
+
+                    if (inQuote && !inInterpolatedQuote)
+                        inQuote = false; // Missing end quote, error given by ParseStringLiteral
+
+                    var nextToken = nextLine[0];
+                    if (sBeginLineNoContinuation.Contains(nextToken.Name))
+                        break;
+
+                    var prevToken = mStatements[mStatements.Count - 1];
+                    if (!sEndLineContinuation.Contains(prevToken.Name)
+                            && !sBeginLineContinuation.Contains(nextToken.Name))
+                    {
+                        break;
+                    }
+
                 }
-                else
+                if (mStatements.Count != 0)
                 {
-                    RejectToken(pragmaToken, "Expecting an identifier on the same line as 'pragma'");
+                    var prevToken = mStatements[mStatements.Count - 1];
+                    if (prevToken.Name != ";")
+                    {
+                        var metaToken = new Token(";", prevToken.X + prevToken.Name.Length, prevToken.Y, eTokenBits.Meta);
+                        if (mShowSemi)
+                            mMetaTokens.Add(metaToken);
+                        mStatements.Add(metaToken);
+                    }
                 }
             }
 
-            // Check for tabs or white space at end of line
-            if (mToken.Boln)
+            void GetNextLine(ref bool inQuote, ref bool inInterpolatedQuote)
             {
+                var tokens = mLexer.GetLineTokens(mAcceptY);
+                for (int i = 0; i < tokens.Length; i++)
+                {
+                    // Skip comments, but not when part of a quoted string
+                    var token = tokens[i];
+                    var tokenName = token.Name;
+                    if ((tokenName == "//" || tokenName == "///") && (!inQuote || inInterpolatedQuote))
+                    {
+                        ParseComments(tokens, i);
+                        break;
+                    }
+                    // Get strings
+                    if (tokenName == "\"")
+                        inQuote = !inQuote;
+
+                    if (inQuote)
+                    {
+                        if (tokenName == "{" && i + 1 < tokens.Length && tokens[i + 1].Name != "{")
+                            inInterpolatedQuote = true;
+                        if (inInterpolatedQuote && tokenName == "}" && i + 1 < tokens.Length && tokens[i + 1].Name != "}")
+                            inInterpolatedQuote = false;
+                    }
+                    mStatements.Add(token);
+                }
+            }
+
+            void CheckLine()
+            {
+                // Ignore empty lines
+                var tokens = mLexer.GetLineTokens(mAcceptY);
+                var line = mLexer.GetLine(mAcceptY);
+                if (tokens.Length == 0 || line.Length == 0)
+                    return;
+                var lastToken = tokens[tokens.Length - 1];
+                if (lastToken.Type == eTokenType.Comment || lastToken.Type == eTokenType.PublicComment)
+                    return;
+
+                // NOTE: This is below the level of `Accept`, so need to add
+                //       a virtual token rather than mark the token itself.
+                // Illegal ';' at end of line
+                if (lastToken.Name == ";")
+                {
+                    RejectToken(new Token(" ", lastToken.X, lastToken.Y, eTokenBits.Meta),
+                        "Illegal semi-colon at end of line");
+                }
+                // Illegal space at end of line (don't record error if the cursor is there)
+                if (char.IsWhiteSpace(line[line.Length - 1]) && mLexer.Cursor.Y != mAcceptY)
+                {
+                    RejectToken(new Token(" ", line.Length - 1, mAcceptY, eTokenBits.Meta),
+                                "Illegal space at end of line");
+                }
                 // Illegal tabs
-                var line = mLexer.GetLine(mToken.Y);
                 var i = line.IndexOf('\t');
                 while (i >= 0)
                 {
-                    RejectToken(new Token(" ", i, mToken.Y, eTokenBits.Meta),
-                        "Illegal tab");
+                    RejectToken(new Token(" ", i, mAcceptY, eTokenBits.Meta), "Illegal tab");
                     i = line.IndexOf('\t', i + 1);
                 }
-                // ; at end of line
-                if (line.Length != 0 && line[line.Length - 1] == ';')
-                {
-                    RejectToken(new Token(" ", line.Length - 1, mToken.Y, eTokenBits.Meta),
-                        "Illegal semi-colon at end of line");
-                }
-                // Space at end of line (don't record error if our cursor is ther)
-                if (line.Length != 0 && char.IsWhiteSpace(line[line.Length - 1]) && mLexer.Cursor.Y != mToken.Y)
-                {
-                    RejectToken(new Token(" ", line.Length - 1, mToken.Y, eTokenBits.Meta),
-                        "Illegal white space at end of line");
-                }
             }
-        }
 
-        void ScanLow()
-        {
-            if (!mLexerEnum.MoveNext())
-                return;
-            mToken = mLexerEnum.Current;
-            if (mToken.Name != "")
-                mToken.Clear();
-            mTokenName = mToken.Name;
-        }
-
-        void ParsePragma()
-        {
-            mToken.Type = eTokenType.Reserved;
-            if (mSyntax.Pragmas.ContainsKey(mTokenName))
+            // Call with index pointing to "//" or "///"
+            void ParseComments(Token[] tokens, int index)
             {
-                RejectToken(mToken, "Duplicate pragma");
-                return;
-            }
-            if (!sPragmas.Contains(mTokenName))
-                mToken.AddWarning("Unkown pragma");
-            mSyntax.Pragmas[mTokenName] = new SyntaxPragma(mToken);
 
-            if (mTokenName == "__fail")
-                throw new Exception("Parse fail test");
-            if (mTokenName == "ShowSemi")
-                mShowSemi = true;
-            if (mTokenName == "ShowMeta")
-                mShowMeta = true;
-            if (mTokenName == "NoParse")
-            {
-                while (Accept() != "")
-                { }
-                throw new NoCompilePragmaException();
-            }
+                var commentToken = tokens[index];
+                var tokenType = commentToken == "///" ? eTokenType.PublicComment : eTokenType.Comment;
 
+                // Retrieve comment
+                var x = commentToken.X + commentToken.Name.Length;
+                var comment = mLexer.GetLine(commentToken.Y).Substring(x);
+                if (tokenType == eTokenType.PublicComment)
+                {
+                    mComments.Append(comment);
+                    mComments.Append(" ");
+                }
+
+                // Set comment color (use backtick to color code variables)
+                bool isCodeComment = false;
+                for (int i = index; i < tokens.Length; i++)
+                {
+                    var t = tokens[i];
+                    t.Type = tokenType;
+                    if (t.Name == "`")
+                    {
+                        isCodeComment = !isCodeComment;
+                        t.Subtype = eTokenSubtype.Normal;
+                    }
+                    else
+                    {
+                        // TBD: Subtype doesn't work here, so underline instead
+                        t.Subtype = isCodeComment ? eTokenSubtype.CodeInComment : eTokenSubtype.Normal;
+                        if (isCodeComment)
+                            t.Type = eTokenType.Reserved;  // TBD: Remove when Subtype is fixed
+                        t.Underline = isCodeComment;
+                    }
+                }
+
+                // Add link to comments that look like URL's
+                // TBD: Editor highlights each token individually.
+                //      Either use one meta token link, or change editor to group these somehow.
+                var m = sFindUrl.Matches(comment);
+                for (int i = 0;  i < m.Count;  i++)
+                {
+                    var url = m[i].Value.ToLower();
+                    if (!(url.StartsWith("http://") || url.StartsWith("https://") || url.StartsWith("file://")))
+                        continue;
+                    var tokenUrl = new TokenUrl(m[i].Value);
+                    foreach (var t in tokens)
+                        if (t.Y == commentToken.Y && t.X - x >= m[i].Index && t.X - x < m[i].Index + m[i].Length)
+                            t.AddInfo(tokenUrl);
+                }
+            }
         }
 
         public class ParseError : TokenError
