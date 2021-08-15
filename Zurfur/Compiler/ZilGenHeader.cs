@@ -338,13 +338,6 @@ namespace Gosub.Zurfur.Compiler
                         duplicate = true;
                         Reject(method.Token, $"Overloaded method parameter types must be different, but both are the same: '{mpi.ParamTypeNames}'");
                     }
-                    else if (siblingMpi.ReturnTypeNames != mpi.ReturnTypeNames)
-                    {
-                        // TBD: Also see through alias types
-                        duplicate = true;
-                        Reject(method.Token, $"Overloaded method return types must be the same, but are different: "
-                                             + $"'{mpi.ReturnTypeNames}' vs. '{siblingMpi.ReturnTypeNames}'");
-                    }
                 }
 
                 method.Token.AddInfo(method);

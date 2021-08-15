@@ -16,19 +16,19 @@ namespace Gosub.Zurfur.Compiler
 
         public Token LastToken;
 
-        static WordSet sRequireGlobalFieldQualifiers = new WordSet("const static");
-        static WordSet sFuncInInterfaceQualifiersAllowed = new WordSet("pub private protected static mut imp async error");
+        static WordSet sRequireGlobalFieldQualifiers = new WordSet("const");
+        static WordSet sFuncInInterfaceQualifiersAllowed = new WordSet("pub private protected noself mut youdo async error");
 
-        static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static");
+        static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal noself");
         static WordSet sClassQualifiers = new WordSet("pub pfublic protected private internal unsafe unsealed abstract ro boxed");
         static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe ref ro");
         static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
 
-        static WordSet sFieldInStructQualifiers = new WordSet("pub public static ro const");
+        static WordSet sFieldInStructQualifiers = new WordSet("pub public noself ro const");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
 
-        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe virtual override new mut ref static extern imp async error");
-        static WordSet sPropQualifiers = new WordSet("pub public protected private internal unsafe static virtual override new");
+        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe virtual override new mut ref noself extern youdo async error");
+        static WordSet sPropQualifiers = new WordSet("pub public protected private internal unsafe noself virtual override new");
 
         static WordSet sTopLevelStatements = new WordSet("{ ( = += -= *= /= %= &= |= ~= <<= >>= => @ "
             + "const var let mut defer use throw switch case return for break default while if else get set do unsafe error finally exit fun afun");
@@ -40,14 +40,14 @@ namespace Gosub.Zurfur.Compiler
         {
             { "pub", 1 }, { "public", 1 }, { "protected", 1 }, { "private", 1 }, { "internal", 1 },
             { "unsafe", 2 },
-            { "static", 4 },  {"const", 4 },
+            { "noself", 4 },  {"const", 4 },
             { "unsealed", 6 },
             { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
             { "ref", 10},
             { "ro", 11}, {"readonly", 11},
             { "mut", 12 },
             { "async", 13 },
-            { "extern", 14 }, { "imp", 14 },
+            { "extern", 14 }, { "youdo", 14 },
         };
 
         static WordMap<int> sOpClass = new WordMap<int>
@@ -162,7 +162,7 @@ namespace Gosub.Zurfur.Compiler
                     case "":
                     case "namespace":
                         if (!HasQualifier(field.Qualifiers, sRequireGlobalFieldQualifiers))
-                            mParser.RejectToken(field.Name, "Fields at the namespace level must be 'const' or 'static'");
+                            mParser.RejectToken(field.Name, "Fields at the namespace level must be 'const'");
                         break;
                     case "interface":
                         mParser.RejectToken(field.Name, "Fields are not allowed inside an interface");
@@ -362,7 +362,6 @@ namespace Gosub.Zurfur.Compiler
             if (expr == null)
                 return expr;
             expr.Token.AddInfo("Parse tree: " + expr.ToString());
-            mParser.RecordMetaToken(expr.Token);
             foreach (var e in expr)
                 ShowParseTree(e); // Subtrees without info token
             return expr;

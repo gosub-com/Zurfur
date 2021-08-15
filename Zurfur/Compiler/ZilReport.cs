@@ -165,10 +165,11 @@ namespace Gosub.Zurfur.Compiler
                     {
                         if (symbol.Qualifiers.Length != 0)
                             headerFile.Add($"        QUAL: {string.Join(",", symbol.Qualifiers)}");
+                        var tp = GetTypeParamNames(symbol);
+                        if (tp != "")
+                            headerFile.Add($"        TYPE PARAMS: {tp}");
                         foreach (var param in symbol.Children.Values)
                         {
-                            if (param is SymTypeParam stp)
-                                headerFile.Add($"        TYPE PARAM: {stp.Name}");
                             if (param is SymMethodParam smp)
                                 headerFile.Add($"        {(smp.IsReturn ? " OUT" : "  IN")}: {smp.Name} {smp.TypeName}");
                         }
@@ -177,6 +178,11 @@ namespace Gosub.Zurfur.Compiler
                     // Show type fields under the type
                     if (symbol is SymType)
                     {
+                        if (symbol.Qualifiers.Length != 0)
+                            headerFile.Add($"        QUAL: {string.Join(",", symbol.Qualifiers)}");
+                        var tp = GetTypeParamNames(symbol);
+                        if (tp != "")
+                            headerFile.Add($"        TYPE PARAMS: {tp}");
                         foreach (var f in symbol.Children.Values)
                         {
                             if (f is SymField sf)
@@ -186,13 +192,23 @@ namespace Gosub.Zurfur.Compiler
                                     qual = "CONST ";
                                 else if (sf.Qualifiers.Contains("static"))
                                     qual = "STATIC ";
-                                headerFile.Add($"         @{sf.Name} {qual} {sf.TypeName}");
+                                headerFile.Add($"        @{sf.Name} {qual} {sf.TypeName}");
                             }
                         }
 
                     }
 
                 }
+            }
+
+
+            string GetTypeParamNames(Symbol symbol)
+            {
+                var tParams = symbol.FindChildren<SymTypeParam>();
+                if (tParams.Count == 0)
+                    return "";
+                tParams.Sort((a, b) => a.Order.CompareTo(b.Order));
+                return "<" + string.Join(",", tParams.ConvertAll(a => a.Name).ToArray()) + ">";
             }
 
 

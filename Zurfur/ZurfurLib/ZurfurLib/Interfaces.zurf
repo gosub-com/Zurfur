@@ -4,45 +4,45 @@ namespace Zurfur
 /// Implement IEquatable on any object that can be stored in a Map.
 /// This is different than implementing just Equals
 /// in that NAN must compare to itself as true.
-pub static interface Equatable<T>
+pub noself interface Equatable<T>
 {
-    static fun GetHashCode(a T) uint imp
-    static fun Equals(a T, b T) bool imp
+    noself fun GetHashCode(a T) uint youdo
+    noself fun Equals(a T, b T) bool youdo
 }
 
 /// Implement IComparable on any object that can be sorted.
 /// This is different than implementing just Compare
 /// in that NAN must have a valid sort order.
-pub static interface Comparable<T>
+pub noself interface Comparable<T>
     implements Equatable<T>
 {
-    static fun Compare(a T, b T) int imp
+    noself fun Compare(a T, b T) int youdo
 }
 
-pub static interface IArithmetic<T>
+pub noself interface IArithmetic<T>
     implements Comparable<T>
 {
-    fun operator-(a T) T imp
-    fun operator-(a T, b T) T imp
-    fun operator+(a T, b T) T imp
-    fun operator*(a T, b T) T imp
-    fun operator/(a T, b T) T imp
-    fun operator%(a T, b T) T imp
-    static prop Identity T imp get
-    static prop Origin T imp get
+    fun operator-(a T) T youdo
+    fun operator-(a T, b T) T youdo
+    fun operator+(a T, b T) T youdo
+    fun operator*(a T, b T) T youdo
+    fun operator/(a T, b T) T youdo
+    fun operator%(a T, b T) T youdo
+    noself prop Identity T youdo get
+    noself prop Origin T youdo get
 }
 
 pub interface Collection<T>
     implements Iterable<T>
 {
-    prop Count int imp get
-    fun GetIterator() Iterator<T> imp
+    prop Count int youdo get
+    fun GetIterator() Iterator<T> youdo
 }
 
 
 pub interface Iterable<T>
 {
-    fun GetIterator() Iterator<T> imp
+    fun GetIterator() Iterator<T> youdo
 }
 
 pub interface Iterator<T>
@@ -50,7 +50,7 @@ pub interface Iterator<T>
     /// Get the next item from a collection.
     /// Returns null if there are no more items.
     /// Panic if collection is mutated while iterating.
-    fun mut Next() ?ref T imp
+    fun mut Next() ?ref T youdo
 }
 
 

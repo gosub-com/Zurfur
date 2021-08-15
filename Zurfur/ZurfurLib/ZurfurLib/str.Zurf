@@ -14,11 +14,11 @@ pub type ro str = Array<byte>
         return todo()
     pub fun operator[](range Range) Span<byte>
         return todo() // Slice
-    pub static fun GetHashCode(a str) uint
+    pub noself fun GetHashCode(a str) uint
         return todo()
-    pub static fun Equals(a str, b str) bool
+    pub noself fun Equals(a str, b str) bool
         return todo()
-    pub static fun Compare(a str, b str) int
+    pub noself fun Compare(a str, b str) int
         return todo()
         
     pub fun operator+(s1 str, s2 str) str { todo() }

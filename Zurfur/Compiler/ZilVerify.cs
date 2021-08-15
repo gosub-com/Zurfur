@@ -14,7 +14,6 @@ namespace Gosub.Zurfur.Compiler
         // TBD: Move from `ResolveMethod`:
         //      No overloading functions with generic type arguments
         //      Parameters may not be identical types
-        //      Return types must match
 
         public static void VerifyHeader(SymbolTable symbols)
         {

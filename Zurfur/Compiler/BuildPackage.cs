@@ -298,19 +298,9 @@ namespace Gosub.Zurfur.Compiler
             foreach (var fi in zurfFiles)
             {
                 foreach (var token in fi.Value.Lexer)
-                {
-                    token.RemoveInfo<Symbol>();
-                    token.RemoveInfo<ZilError>();
-                    token.RemoveInfo<ZilWarn>();
-
-                    // TBD: Move Error/Warn setting logic into Token class
-                    token.Error = false;
-                    token.Warn = false;
-                    if (token.GetInfo<TokenError>() != null)
-                        token.Error = true;
-                    else if (token.GetInfo<TokenWarn>() != null)
-                        token.Warn = true;
-                }
+                    RemoveZilInfo(token);
+                foreach (var token in fi.Value.Lexer.MetaTokens)
+                    RemoveZilInfo(token);
             }
 
             var dt2 = DateTime.Now;
@@ -336,6 +326,21 @@ namespace Gosub.Zurfur.Compiler
                 return;
             }
             StatusUpdate?.Invoke(this, new UpdatedEventArgs("Done"));
+        }
+
+        private static void RemoveZilInfo(Token token)
+        {
+            token.RemoveInfo<Symbol>();
+            token.RemoveInfo<ZilError>();
+            token.RemoveInfo<ZilWarn>();
+
+            // TBD: Move Error/Warn setting logic into Token class
+            token.Error = false;
+            token.Warn = false;
+            if (token.GetInfo<TokenError>() != null)
+                token.Error = true;
+            else if (token.GetInfo<TokenWarn>() != null)
+                token.Warn = true;
         }
 
         int CountErrors()

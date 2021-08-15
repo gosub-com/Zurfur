@@ -178,12 +178,7 @@ namespace Gosub.Zurfur.Compiler
         protected override string GetFullName()
         {
             var tp = FindChildren<SymTypeParam>();
-            if (tp.Count == 0)
-                return Parent.FullName + "." + Name;
-
-            tp.Sort((a, b) => a.Order.CompareTo(b.Order));
-            var names = string.Join(",", tp.ConvertAll(a => a.Name).ToArray());
-            return Parent.FullName + "." + Name + "<" + names + ">";
+            return Parent.FullName + "." + Name + (tp.Count == 0 ? "" : $"`{tp.Count}");
         }
     }
 
@@ -198,7 +193,7 @@ namespace Gosub.Zurfur.Compiler
 
         protected override string GetFullName()
         {
-            return "!" + Name;
+            return "!" + Order;
         }
     }
 
@@ -217,7 +212,6 @@ namespace Gosub.Zurfur.Compiler
 
     class SymMethod : Symbol
     {
-        // The actual name is the method group (this name will be $1, etc.)
         public SymMethod(Symbol parent, string name) : base(parent, name) { }
         public override string Kind => "method";
 

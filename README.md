@@ -95,15 +95,14 @@ The following are identical:
 
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
-    pub static fun Main(args Array<str>) nil
+    pub fun Main(args Array<str>) nil
         // This is a regular private comment
         Log.Info("Hello World, 2+2={2+2}")
 
 Functions are declared with the `fun` keyword. The type name comes after the
 argument, and the return type comes after the parameters.
 
-Static functions and extension methods are allowed at
-the namespace level:
+Extension methods are allowed at the namespace level:
 
     // Declare an extension method for strings
     pub str.Rest() str
@@ -135,7 +134,7 @@ make it easer to read or spot possible bugs.
 There are no `out` or `ref` parameters, but functions can return multiple values:
 
     // Multiple returns
-    pub static fun Circle(a f64, r f64) -> (x f64, y f64)
+    pub fun Circle(a f64, r f64) -> (x f64, y f64)
         return a.Cos()*r, a.Sin()*r
 
 The return parameters are always named, and can be used by the calling function:
@@ -479,7 +478,7 @@ There is shortcut syntax for lambda-only functions that move
 the code block outside the function:
 
 
-    pub static fun UseLambda() bool
+    pub fun UseLambda() bool
     {
         myList.For @a =>
         {
@@ -601,8 +600,8 @@ Array syntax translates directly to Span (not to Array like C#).
 The following definitions are identical:
 
     // The following definitions are identical:
-    afun mut Write(data Span<byte>) int error impl
-    afun mut Write(data []byte) int error impl
+    afun mut Write(data Span<byte>) int error youdo
+    afun mut Write(data []byte) int error youdo
 
 Spans are as fast, simple, and efficient as it gets.  They are just a pointer
 and count.  They are passed down the *execution stack* or stored on the async
@@ -741,14 +740,14 @@ only be used where they are expected, such as a function call or lambda.
 
 `+`, `-`, `*`, `/`, `%`, and `in` are the only operators that may be individually
 defined.  The `==` and `!=` operator may be defined together by implementing
-`static fun Equals(a myType, b myType) bool`.  All six comparison operators,
+`noself fun Equals(a myType, b myType) bool`.  All six comparison operators,
 `==`, `!=`, `<`, `<=`, `==`, `!=`, `>=`, and `>` can be implemented with just
-one function: `static fun Compare(a myType, b myType) int`.  If both functions
+one function: `noself fun Compare(a myType, b myType) int`.  If both functions
 are defined, `Equals` is used for equality comparisons, and `Compare` is used
 for the others.
 
-Overloads using the `operator` keyword are static.  Only static
-versions of `Equals` and `Compare` are used for the comparison operators.
+Overloads using the `operator` keyword are `noself` (formerly `static`).  Only
+noself versions of `Equals` and `Compare` are used for the comparison operators.
 Zurfur inherits this from C#, and Eric Lippert
 [gives a great explanation of why](https://blogs.msdn.microsoft.com/ericlippert/2007/05/14/why-are-overloaded-operators-always-static-in-c).
 
@@ -794,7 +793,7 @@ Here are the enforced style rules:
 7. A brace, `{`, cannot start a scope unless it is in an expected place such as after
 `if`, `while`, `scope`, etc., or a lambda expression.
 8. Modifiers must appear in the following order: `pub` (or `protected`, `private`),
-`unsafe`, `static` (or `const`), `unsealed`, `abstract` (or `virtual`, `override`,
+`unsafe`, `noself` (or `const`), `unsealed`, `abstract` (or `virtual`, `override`,
 `new`), `ref`, `mut` (or `ro`)
 
 #### While and Do Statements
@@ -915,9 +914,9 @@ an error handler, or 2) the function must have an error return value, or 3) both
 
 Any scope can catch an error.  Given the following definitions:
 
-    pub afun mut Open(name str, mode FileMode) File error => impl
-    pub afun mut Read(data mut Span<byte>) int error  => impl
-    pub afun mut Close() nil error => impl
+    pub afun mut Open(name str, mode FileMode) File error youdo
+    pub afun mut Read(data mut Span<byte>) int error  youdo
+    pub afun mut Close() nil error youdo
 
 We may decide to let errors percolate up:
 
@@ -977,71 +976,38 @@ Maybe `if try(File.Open(...)@stream) { use stream... }`  The above is still a WI
 
 ## Interfaces
 
-Interfaces are a cross between C#, GoLang, and Rust, but a little different
-from each.  They are similar to C# 8.0 (including default implementations, etc.)
-but also allow Golang style *explicit* conversion from any type that defines
-all the required functions.
+Interfaces are similar to Rust traits. 
 
 Here is `IEquatable<T>` from the standard library:
 
-    pub static interface IEquatable<T>
+    pub noself interface IEquatable<T>
     {
-        static fun GetHashCode(a T) uint => imp
-        static fun Equals(a T, b T) bool => imp
+        noself fun GetHashCode(a T) uint youdo
+        noself fun Equals(a T, b T) bool youdo
     }
 
 Unimplemented functions and properties are explicitly marked with
-`imp`.   Functions and properties must either have an implementation or
-specify `imp`, `default`, or `extern`.  
+`youdo`.   Functions and properties must either have an implementation or
+specify `youdo`, `default`, or `extern`.  
 
 NOTE: The implementation uses use fat pointers.  (see notes below)
 
 **TBD:** Describe syntax for creating externally defined traits, like
 in Rust.  For example `implement TRAIT for TYPE`
 
+**TBD:** Allow explicit structural typing.  Similar to golang, but
+requiring an explicit `cast`.
+[Some people don't like this.](https://bluxte.net/musings/2018/04/10/go-good-bad-ugly/#interfaces-are-structural-types)
 
-#### Structural Typing
+#### Noself Interfaces and Functions
 
-In C#, a type must explicitly support an interface.  This is good because
-it forces the type designers to consider the supported interfaces when
-making API changes.  Golang will convert any type to an interface as long
-as the type implements all the matching functions.  This is convenient, but
-there is no contract forcing the type designer to think about each supported interface. 
-[Some people don't seem to like this too much.](https://bluxte.net/musings/2018/04/10/go-good-bad-ugly/#interfaces-are-structural-types)
-
-Zurfur takes the middle ground.  Types should list the interfaces they
-support.  But, an *explicit* cast can be used to build any interface provided
-the type implements all the functions.  The explicit cast is to remind us
-that the type does not necessarily support the interface, and it's on the
-user (not the library writer) to make sure it's all kosher.
-
-#### Conversion Back to the Concrete Type
-
-A base type can be cast to a derived type, but it is impossible* to cast
-an interface back to its concrete type.  This prevents people from "fishing"
-around to get at the concrete type.  Can you believe people actually do that?
-Please don't look at my code :)
-
-* Impossible in safe code that is.  Unsafe code can get at the underlying pointer.
-
-#### Static Interfaces and Functions
-
-Interfaces may include static functions.  Static functions are
-a better fit than virtual functions for some operations.
-For instance,  `IComparable` has only static functions.  This is
-because, when you want to know if `a >= b`, it doesn't make sense
-to ask `a` (via virtual function dispatch) to compare itself to `b`
-which could be a different type.  What does it mean if they are
-different types?  `a` wouldn't know what `b` is.  Note that `a`
-and `b` can still be different types as long as the base type
-implements `IComparable`, but the comparison function is on the
-base type, not the derived type.
-
-`IArithmetic` is a static only interface, allowing this generic
+Interfaces may include `noself` (formerly `static`) functions.  Noself
+functions are a better fit than virtual functions for some operations.
+For instance, `IArithmetic` is a noself interface, allowing this generic
 function:
 
     // Return `value` if it `low`..`high` otherwise return `low` or `high`.  
-    pub static fun BoundValue<T>(value T, low T, high T) T
+    pub noself fun BoundValue<T>(value T, low T, high T) T
             where T is IAritmetic
     {
         if value <= low
@@ -1064,7 +1030,7 @@ this is a good design choice "*The key insight for Go was that in a statically
 typed language, type conversions happen far less often than method calls, so doing
 the work on the type conversion is actually quite cheap.*"
 
-Note that an interface containing only static functions can be implemented using
+Note that an interface containing only noself functions can be implemented using
 just a thin pointer to a VTable.
 
 

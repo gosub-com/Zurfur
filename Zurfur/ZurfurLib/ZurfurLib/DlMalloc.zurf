@@ -47,7 +47,7 @@ pub interface DlMallocMem
     /// the size of allocated memory if desired  (must be in units of page size).
     /// Returns null when out of memory or on error.
     /// </summary>
-    fun CallMoreCore(length mut xuint) *nil imp
+    fun CallMoreCore(length mut xuint) *nil youdo
 
     /// <summary>
     /// This was originally CALL_MUNMAP and is used to release memory pages
@@ -57,7 +57,7 @@ pub interface DlMallocMem
     /// Return true for success, or false for failure (in which
     /// case the pages are retained and used for future requests)
     /// </summary>
-    fun CallReleaseCore(address *nil, length xuint) bool imp
+    fun CallReleaseCore(address *nil, length xuint) bool youdo
 
     /// <summary>
     /// This is called after DlMalloc has been disposed.  Since CallReleaseCore
@@ -179,7 +179,7 @@ pub unsafe type DlMalloc
     const TREEBIN_SHIFT xuint = 8U
     const MIN_LARGE_SIZE xuint = SIZE_T_ONE << TREEBIN_SHIFT
     const MAX_SMALL_SIZE xuint = MIN_LARGE_SIZE - SIZE_T_ONE
-    static prop MAX_SMALL_REQUEST xuint
+    noself prop MAX_SMALL_REQUEST xuint
         return MAX_SMALL_SIZE - CHUNK_ALIGN_MASK - CHUNK_OVERHEAD
 
     @memMan DlMallocMem
@@ -347,9 +347,9 @@ pub unsafe type DlMalloc
     // ------------------- xuint and alignment properties --------------------
 
     // The byte and bit size of a xuint
-    static prop SIZE_T_SIZE xuint
+    noself prop SIZE_T_SIZE xuint
         return sizeof(xunit)
-    static prop SIZE_T_BITSIZE xuint
+    noself prop SIZE_T_BITSIZE xuint
         return sizeof(xuint) << 3
 
     // Some constants coerced to size_t
@@ -357,20 +357,20 @@ pub unsafe type DlMalloc
     const SIZE_T_ONE xuint = 1
     const SIZE_T_TWO xuint = 2
     const SIZE_T_FOUR xuint = 4
-    static prop TWO_SIZE_T_SIZES xuint
+    noself prop TWO_SIZE_T_SIZES xuint
         return SIZE_T_SIZE << 1
-    static prop FOUR_SIZE_T_SIZES xuint
+    noself prop FOUR_SIZE_T_SIZES xuint
         return SIZE_T_SIZE << 2
 
     // The bit mask value corresponding to MALLOC_ALIGNMENT
     const CHUNK_ALIGN_MASK xuint = MALLOC_ALIGNMENT - SIZE_T_ONE
 
     // True if address a has acceptable alignment
-    static fun is_aligned(a *nil) bool
+    noself fun is_aligned(a *nil) bool
         return (cast(xuint)a & CHUNK_ALIGN_MASK) == 0
 
     // the number of bytes to offset an address to align it
-    static fun align_offset(a *nil) xuint
+    noself fun align_offset(a *nil) xuint
         return (cast(xuint)a & CHUNK_ALIGN_MASK) == 0 ? 0
                 : (MALLOC_ALIGNMENT - (cast(xuint)a & CHUNK_ALIGN_MASK)) & CHUNK_ALIGN_MASK
 
@@ -528,66 +528,66 @@ pub unsafe type DlMalloc
         }
     }
 
-    static fun cinuse(p *mchunk) bool
+    noself fun cinuse(p *mchunk) bool
         return (p.head & CINUSE_BIT) != 0
-    static fun pinuse(p *mchunk) bool
+    noself fun pinuse(p *mchunk) bool
         return (p.head & PINUSE_BIT) != 0
-    static fun flag4inuse(p *mchunk) bool
+    noself fun flag4inuse(p *mchunk) bool
         return (p.head & FLAG4_BIT) != 0
-    static fun is_inuse(p *mchunk) bool
+    noself fun is_inuse(p *mchunk) bool
         return (p.head & INUSE_BITS) != PINUSE_BIT
-    static fun is_mmapped(p *mchunk) bool
+    noself fun is_mmapped(p *mchunk) bool
         return (p.head & INUSE_BITS) == 0
-    static fun chunksize(p *mchunk) xuint
+    noself fun chunksize(p *mchunk) xuint
         return p.head & ~FLAG_BITS
-    static fun clear_pinuse(p *mchunk) nil
+    noself fun clear_pinuse(p *mchunk) nil
         p.head &= ~PINUSE_BIT
-    static fun set_flag4(p *mchunk) nil
+    noself fun set_flag4(p *mchunk) nil
         p.head |= FLAG4_BIT
-    static fun clear_flag4(p *mchunk) nil
+    noself fun clear_flag4(p *mchunk) nil
         p.head &= ~FLAG4_BIT
-    static fun chunk_plus_offset(p *mchunk, s xuint) *mchunk
+    noself fun chunk_plus_offset(p *mchunk, s xuint) *mchunk
         return cast(*mchunk)(cast(*byte)p + s)
-    static fun chunk_minus_offset(p *mchunk, s xuint) *mchunk
+    noself fun chunk_minus_offset(p *mchunk, s xuint) *mchunk
         return cast(*mchunk)(cast(*byte)p - s)
-    static fun next_chunk(p *mchunk) *mchunk
+    noself fun next_chunk(p *mchunk) *mchunk
         return cast(*mchunk)(cast(*byte)p + (p.head & ~FLAG_BITS))
-    static fun prev_chunk(p *mchunk) *mchunk
+    noself fun prev_chunk(p *mchunk) *mchunk
         return cast(*mchunk)(cast(*byte)p - (p.prev_foot))
-    static fun next_pinuse(p *mchunk) bool
+    noself fun next_pinuse(p *mchunk) bool
         return ((next_chunk(p).head) & PINUSE_BIT) != 0
-    static fun get_foot(p *mchunk, s xuint) xuint
+    noself fun get_foot(p *mchunk, s xuint) xuint
         return ((cast(*mchunk)(cast(*byte)p + s)).prev_foot)
-    static fun set_foot(p *mchunk, s xuint) nil
+    noself fun set_foot(p *mchunk, s xuint) nil
         (cast(*mchunk)(cast(*byte)p + s)).prev_foot = s
-    static fun set_size_and_pinuse_of_free_chunk(p *mchunk, s xuint) nil
+    noself fun set_size_and_pinuse_of_free_chunk(p *mchunk, s xuint) nil
         p.head = s | PINUSE_BIT; set_foot(p, s)
-    static fun set_free_with_pinuse(p *mchunk, s xuint, n *mchunk) nil
+    noself fun set_free_with_pinuse(p *mchunk, s xuint, n *mchunk) nil
         clear_pinuse(n); set_size_and_pinuse_of_free_chunk(p, s)
 
     // ------------------- Chunks sizes and alignments -----------------------
 
-    static prop CHUNK_OVERHEAD xuint
+    noself prop CHUNK_OVERHEAD xuint
         return SIZE_T_SIZE
-    static prop MCHUNK_SIZE xuint
+    noself prop MCHUNK_SIZE xuint
         return sizeof(mchunk)
-    static prop MIN_CHUNK_SIZE xuint
+    noself prop MIN_CHUNK_SIZE xuint
         return (MCHUNK_SIZE + CHUNK_ALIGN_MASK) & ~CHUNK_ALIGN_MASK
-    static prop MAX_REQUEST xuint
+    noself prop MAX_REQUEST xuint
         return -MIN_CHUNK_SIZE << 2
-    static prop MIN_REQUEST xuint
+    noself prop MIN_REQUEST xuint
         return MIN_CHUNK_SIZE - CHUNK_OVERHEAD - SIZE_T_ONE
 
     // conversion from malloc headers to user pointers, and back
-    static fun chunk2mem(p *nil) *nil
+    noself fun chunk2mem(p *nil) *nil
         return cast(*nil)(cast(*byte)p + TWO_SIZE_T_SIZES)
-    static fun mem2chunk(mem *nil) *mchunk
+    noself fun mem2chunk(mem *nil) *mchunk
         return cast(*mchunk)(cast(*byte)mem - TWO_SIZE_T_SIZES)
-    static fun align_as_chunk(A *byte) *mchunk
+    noself fun align_as_chunk(A *byte) *mchunk
         return cast(*mchunk)(A + align_offset(chunk2mem(A)))
-    static fun pad_request(req xuint) xuint
+    noself fun pad_request(req xuint) xuint
         return ((req) + CHUNK_OVERHEAD + CHUNK_ALIGN_MASK) & ~CHUNK_ALIGN_MASK
-    static fun request2size(req xuint) xuint
+    noself fun request2size(req xuint) xuint
         return ((req) < MIN_REQUEST) ? MIN_CHUNK_SIZE : pad_request(req)
 
     // ------------------ Operations on head and foot fields -----------------
@@ -604,7 +604,7 @@ pub unsafe type DlMalloc
     const FLAG_BITS xuint = PINUSE_BIT | CINUSE_BIT | FLAG4_BIT
 
     // Head value for fenceposts
-    static prop FENCEPOST_HEAD xuint
+    noself prop FENCEPOST_HEAD xuint
         return INUSE_BITS | SIZE_T_SIZE
 
     // Get the internal overhead associated with chunk p
@@ -727,25 +727,25 @@ pub unsafe type DlMalloc
 
     }
 
-    static fun chunk_plus_offset(p *tchunk, s xuint) *mchunk
+    noself fun chunk_plus_offset(p *tchunk, s xuint) *mchunk
         return cast(*mchunk)(cast(*byte)p + s)
-    static fun is_inuse(p *tchunk) bool
+    noself fun is_inuse(p *tchunk) bool
         return (p.head & INUSE_BITS) != PINUSE_BIT
-    static fun chunksize(p *tchunk) xuint
+    noself fun chunksize(p *tchunk) xuint
         return p.head & ~FLAG_BITS
 
     // These are identical to the functions above, but with
     // different overloaded return parametrs.
     // TBD: Rename, then fix when the type system is working
-    //static fun next_chunk(p *tchunk) *tchunk
+    //noself fun next_chunk(p *tchunk) *tchunk
     //    return cast(*tchunk)(cast(*byte)p + (p.head & ~FLAG_BITS))
-    //static fun prev_chunk(p *tchunk) *tchunk
+    //noself fun prev_chunk(p *tchunk) *tchunk
     //    return cast(*tchunk)(cast(*byte)p - (p.prev_foot))
 
 
-    static fun next_pinuse(p *tchunk) bool
+    noself fun next_pinuse(p *tchunk) bool
         return ((next_chunk(p).head) & PINUSE_BIT) != 0
-    static fun leftmost_child(t *tchunk) *tchunk
+    noself fun leftmost_child(t *tchunk) *tchunk
         return t.child0 != null ? t.child0 : t.child1
 
 
@@ -816,9 +816,9 @@ pub unsafe type DlMalloc
         @sflags flag_t pub get set      // mmap and extern flag
     }
 
-    static fun is_mmapped_segment(s *msegment) bool
+    noself fun is_mmapped_segment(s *msegment) bool
         return (s.sflags & flag_t.USE_MMAP_BIT) != 0
-    static fun is_extern_segment(s *msegment) bool
+    noself fun is_extern_segment(s *msegment) bool
         return (s.sflags & flag_t.EXTERN_BIT) != 0
 
     // Everything is mmaped in this malloc, so these flags are mostly unused
@@ -873,7 +873,7 @@ pub unsafe type DlMalloc
         return granularity_align(s)
 
     // For sys_alloc, enough padding to ensure can malloc request on success
-    static prop SYS_ALLOC_PADDING xuint
+    noself prop SYS_ALLOC_PADDING xuint
         return TOP_FOOT_SIZE + MALLOC_ALIGNMENT
 
     fun is_page_aligned(s xuint) bool
@@ -920,7 +920,7 @@ pub unsafe type DlMalloc
     //  TOP_FOOT_SIZE is padding at the end of a segment, including space
     //  that may be needed to place segment records and fenceposts when new
     //  noncontiguous segments are added.
-    static prop TOP_FOOT_SIZE xuint
+    noself prop TOP_FOOT_SIZE xuint
        return align_offset(chunk2mem(cast(*mchunk)0)) + pad_request(sizeof(msegment)) + MIN_CHUNK_SIZE
 
     // -------------------------- Debugging setup ----------------------------
@@ -932,13 +932,13 @@ pub unsafe type DlMalloc
 
     // ---------------------------- Indexing Bins ----------------------------
 
-    static fun is_small(s xuint) bool
+    noself fun is_small(s xuint) bool
         return (s >> SMALLBIN_SHIFT) < NSMALLBINS
-    static fun small_index(s xuint) uint
+    noself fun small_index(s xuint) uint
         return s >> SMALLBIN_SHIFT
-    static fun small_index2size(i xuint) xuint
+    noself fun small_index2size(i xuint) xuint
         return i << SMALLBIN_SHIFT
-    static prop MIN_SMALL_INDEX xuint
+    noself prop MIN_SMALL_INDEX xuint
         return small_index(MIN_CHUNK_SIZE)
 
     // addressing by index. See above about smallbin repositioning
@@ -948,7 +948,7 @@ pub unsafe type DlMalloc
         return cast(**tchunk)&treebins[i]
 
     // Find tree index for size S
-    static fun compute_tree_index(s xuint) uint
+    noself fun compute_tree_index(s xuint) uint
     {
         @x = s >> TREEBIN_SHIFT
         if x == 0
@@ -970,22 +970,22 @@ pub unsafe type DlMalloc
 
 
     // Bit representing maximum resolved size in a treebin at i
-    static fun bit_for_tree_index(i xuint) xuint
+    noself fun bit_for_tree_index(i xuint) xuint
        return i == NTREEBINS - 1 ? SIZE_T_BITSIZE - 1 : (i >> 1) + TREEBIN_SHIFT - 2
 
     // Shift placing maximum resolved bit in a treebin at i as sign bit
-    static fun leftshift_for_tree_index(i xuint) int
+    noself fun leftshift_for_tree_index(i xuint) int
        return i == NTREEBINS - 1 ? 0 : SIZE_T_BITSIZE - SIZE_T_ONE - ((i >> 1) + TREEBIN_SHIFT - 2)
 
     // The size of the smallest chunk held in bin with index i
-    static fun minsize_for_tree_index(i xuint) xuint
+    noself fun minsize_for_tree_index(i xuint) xuint
        return SIZE_T_ONE << ((i >> 1) + TREEBIN_SHIFT) | ((i & SIZE_T_ONE)) << ((i >> 1) + TREEBIN_SHIFT - 1)
 
 
     // ------------------------ Operations on bin maps -----------------------
 
     // bit corresponding to given index
-    static fun idx2bit(i uint) uint
+    noself fun idx2bit(i uint) uint
         return 1u << i
 
     // Mark/Clear bits with given index
@@ -1007,19 +1007,19 @@ pub unsafe type DlMalloc
         return (treemap & idx2bit(i)) != 0
 
     // isolate the least set bit of a bitmap
-    static fun least_bit(x uint) uint
+    noself fun least_bit(x uint) uint
         return x & (-x)
 
     // mask with all bits to left of least bit of x on
-    static fun left_bits(x uint) uint
+    noself fun left_bits(x uint) uint
         return (x << 1) | (-(x << 1))
 
     // mask with all bits to left of or equal to least bit of x on
-    static fun same_or_left_bits(x uint) uint
+    noself fun same_or_left_bits(x uint) uint
         return x | (-x)
 
     // index corresponding to given bit.
-    static fun compute_bit2idx(x uint) uint
+    noself fun compute_bit2idx(x uint) uint
     {
         @y = x - 1
         @k = y >> (16 - 4) & 16
@@ -1061,41 +1061,41 @@ pub unsafe type DlMalloc
     // Check if address a is at least as high as any from MORECORE or MMAP
     fun ok_address(a *nil) bool
         return a >= least_addr
-    static fun ok_next(p *tchunk, n *mchunk) bool
+    noself fun ok_next(p *tchunk, n *mchunk) bool
         return cast(*byte)p < cast(*byte)n
-    static fun ok_next(p *mchunk, n *mchunk) bool
+    noself fun ok_next(p *mchunk, n *mchunk) bool
         return cast(*byte)p < cast(*byte)n
-    static fun ok_inuse(p *mchunk) bool
+    noself fun ok_inuse(p *mchunk) bool
         return is_inuse(p)
-    static fun ok_pinuse(p *mchunk) bool
+    noself fun ok_pinuse(p *mchunk) bool
         return pinuse(p)
 
 
     fun ok_magic() bool
         return magic == mparams.magic
 
-    static fun RTCHECK(e bool) bool
+    noself fun RTCHECK(e bool) bool
         return e
 
-    static fun set_inuse(p mut mchunk, s xuint) nil
+    noself fun set_inuse(p mut mchunk, s xuint) nil
         p.head = (p.head & PINUSE_BIT) | s | CINUSE_BIT
         cast(*mchunk)(cast(*byte)p + s).head |= PINUSE_BIT
 
-    static fun set_inuse_and_pinuse(p mut mchunk, s xuint) nil
+    noself fun set_inuse_and_pinuse(p mut mchunk, s xuint) nil
         p.head = s | PINUSE_BIT | CINUSE_BIT
         cast(*mchunk)(cast(*byte)p + s).head |= PINUSE_BIT
 
-    static fun set_inuse_and_pinuse(p mut tchunk, s xuint) nil
+    noself fun set_inuse_and_pinuse(p mut tchunk, s xuint) nil
         p.head = s | PINUSE_BIT | CINUSE_BIT
         cast(*mchunk)(cast(*byte)p + s).head |= PINUSE_BIT
 
-    static fun set_size_and_pinuse_of_inuse_chunk(p mut mchunk, s xuint) nil
+    noself fun set_size_and_pinuse_of_inuse_chunk(p mut mchunk, s xuint) nil
         p.head = s | PINUSE_BIT | CINUSE_BIT
 
     // ---------------------------- setting mparams --------------------------
 
     // Initialize mparams
-    static fun mut init_mparams() int
+    noself fun mut init_mparams() int
     {
         // Sanity-check configuration:
         // xuint must be unsigned and as wide as pointer type.
@@ -1105,13 +1105,13 @@ pub unsafe type DlMalloc
         @psize = Environment.SystemPageSize
         @gsize = DEFAULT_GRANULARITY != 0 ? DEFAULT_GRANULARITY : psize // dwAllocationGranularity
         if (sizeof(size_t) < sizeof(*byte))
-            || (MAX_SIZE_T < MIN_CHUNK_SIZE)
-            || (sizeof(int) < 4)
-            || (MALLOC_ALIGNMENT < 8)
-            || ((MALLOC_ALIGNMENT & (MALLOC_ALIGNMENT - SIZE_T_ONE)) != 0)
-            || ((MCHUNK_SIZE & (MCHUNK_SIZE - SIZE_T_ONE)) != 0)
-            || ((gsize & (gsize - SIZE_T_ONE)) != 0)
-            || ((psize & (psize - SIZE_T_ONE)) != 0)
+                || (MAX_SIZE_T < MIN_CHUNK_SIZE)
+                || (sizeof(int) < 4)
+                || (MALLOC_ALIGNMENT < 8)
+                || ((MALLOC_ALIGNMENT & (MALLOC_ALIGNMENT - SIZE_T_ONE)) != 0)
+                || ((MCHUNK_SIZE & (MCHUNK_SIZE - SIZE_T_ONE)) != 0)
+                || ((gsize & (gsize - SIZE_T_ONE)) != 0)
+                || ((psize & (psize - SIZE_T_ONE)) != 0)
             throw DlMallocException("Abort: Sanity check failed")
 
         if mparams.magic == 0
@@ -1128,7 +1128,7 @@ pub unsafe type DlMalloc
 
     // ------------------------- Debugging Support ---------------------------
 
-    static fun assert(c bool) nil
+    noself fun assert(c bool) nil
     {
         if (!c)
             throw DlMallocException("Malloc assert failed")

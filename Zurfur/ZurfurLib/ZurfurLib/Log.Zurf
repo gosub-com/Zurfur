@@ -10,21 +10,21 @@ pub type Log
     // TBD: Figure out how to get default file names and line numbers.
     //      Also figure out if this should be created per file
 
-    pub static prop LogLevel Level { todo() }
-    pub static fun Fatal(message str, li LogLine = default) nil { todo() }
-    pub static fun Error(message str, li LogLine = default) nil { todo() }
-    pub static fun Warn(message str, li LogLine = default) nil { todo() }
-    pub static fun Info(message str, li LogLine = default) nil { todo() }
-    pub static fun Debug(message str, li LogLine = default) nil { todo() }
+    pub noself prop LogLevel Level { todo() }
+    pub noself fun Fatal(message str, li LogLine = default) nil { todo() }
+    pub noself fun Error(message str, li LogLine = default) nil { todo() }
+    pub noself fun Warn(message str, li LogLine = default) nil { todo() }
+    pub noself fun Info(message str, li LogLine = default) nil { todo() }
+    pub noself fun Debug(message str, li LogLine = default) nil { todo() }
 
     /// Recoverable programming error.  In debug mode, stop and
     /// make the programmer look at it.  In production, log it
     /// and continue.
-    pub static fun PanicInDebugMode(message str, li LogLine = default) nil { todo() }
+    pub noself fun PanicInDebugMode(message str, li LogLine = default) nil { todo() }
 
-    pub static fun Time(name str, message str = "") nil { todo() }
-    pub static fun TimeBegin(name str, message str = "") nil { todo() }
-    pub static fun TimeEnd(name str, message str = "") nil { }
+    pub noself fun Time(name str, message str = "") nil { todo() }
+    pub noself fun TimeBegin(name str, message str = "") nil { todo() }
+    pub noself fun TimeEnd(name str, message str = "") nil { }
 
 
     type ro LogLine(FilePath str, Line int)
