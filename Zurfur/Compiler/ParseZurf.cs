@@ -994,7 +994,7 @@ namespace Gosub.Zurfur.Compiler
                     RejectToken(mToken, $"Indentation in braceless compound statement '{keyword.Name}' must match the statement above it");
             }
 
-            return new SyntaxMulti(NewMetaToken(semicolon, "{"), FreeExprList(statement));
+            return new SyntaxMulti(semicolon, FreeExprList(statement));
         }
 
         /// <summary>
@@ -1227,18 +1227,18 @@ namespace Gosub.Zurfur.Compiler
                 return;
             var token = mToken;
             Accept();
-            var virtualToken = token.Name + peek;
-            if (virtualToken == ">>")
+            var metaToken = token.Name + peek;
+            if (metaToken == ">>")
             {
                 peek = PeekOnLine();
-                if (peek.X == token.X + virtualToken.Length && peek == "=")
+                if (peek.X == token.X + metaToken.Length && peek == "=")
                 {
                     Accept();
-                    virtualToken = ">>=";
+                    metaToken = ">>=";
                 }
             }
             // Replace with a virtual token
-            mToken = NewMetaToken(token, virtualToken);
+            mToken = NewMetaToken(token, metaToken);
             mTokenName = mToken.Name;
         }
 
@@ -1277,22 +1277,23 @@ namespace Gosub.Zurfur.Compiler
             return result;
         }
 
-        ///  Parse expression (doesn't include ',' or '=' statements)
-        SyntaxExpr ParseExpr()
-        {
-            return ParsePair();
-        }
-
         SyntaxExpr ParsePair()
         {
-            var result = ParseLambda();
+            var result = ParseExpr();
             if (mTokenName == ":")
             {
-                result = new SyntaxBinary(Accept(), result, ParseLambda());
+                result = new SyntaxBinary(Accept(), result, ParseExpr());
                 if (mTokenName == ":")
                     Reject("Pair operator ':' is not associative, must use parentheses");
             }
             return result;
+        }
+
+
+        ///  Parse expression (doesn't include ',' '=', or ':' statements)
+        SyntaxExpr ParseExpr()
+        {
+            return ParseLambda();
         }
 
         SyntaxExpr ParseLambda()
@@ -1543,7 +1544,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     // Function call or array access
                     accepted = true;
-                    result = ParseParen(mTokenName, mToken, mTokenName == "(", result);
+                    result = ParseParen(mTokenName, result);
                 }
                 else if (mTokenName == ".")
                 {
@@ -1608,7 +1609,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 // Use ")" or "]" to differentiate between function call and ordering
                 var close = mTokenName == "(" ? ")" : "]";
-                var result = ParseParen(mTokenName, NewMetaToken(mToken, close), false);
+                var result = ParseParen(mTokenName, null);
 
                 // Disallow old style casts (and other)
                 if (close == ")" && (mTokenName == "(" || mToken.Type == eTokenType.Identifier))
@@ -1685,13 +1686,17 @@ namespace Gosub.Zurfur.Compiler
                     EndScoop(mToken);
                     RejectToken(mToken.Boln ? mPrevToken : mToken, "Expecting end quote before end of line");
 
-                    // Special case: Continue on next line even though this is an error.
+                    // Special case because user is typing.
+                    // Continue quoted string on next line.
                     if (AcceptMatchPastMetaSemicolon("\""))
                     {
                         BeginScoop(mPrevToken);
                         continue;
                     }
-                    break; // End quoted string
+                    // Special case because user is typing.
+                    // Begin interpolation on next line.
+                    if (!IsMatchPastMetaSemicolon("{"))
+                        break; // End quoted string
                 }
 
                 if (!sStringLiteralEscapes.Contains(mToken))
@@ -1718,7 +1723,15 @@ namespace Gosub.Zurfur.Compiler
                         literalTokens.Add(mPrevToken);
                         continue;  // Continue quoted string on next line
                     }
-                    break; // End quoted string
+                    // Special case because user is typing
+                    if (AcceptMatchPastMetaSemicolon("{"))
+                    {
+                        RejectToken(mPrevToken, "Begin interpolation '{' should be enclosed within quotes");
+                    }
+                    else
+                    {
+                        break; // End quoted string
+                    }
                 }
                 if (mPrevToken.Name == "{")
                 {
@@ -1732,7 +1745,7 @@ namespace Gosub.Zurfur.Compiler
                         ParseInterpolatedExpression();
 
                     if (mTokenName == ";" && mToken.Meta &&  AcceptMatchPastMetaSemicolon("}"))
-                        RejectToken(mPrevToken, "Expecting a continuation line or '}' to be on previous line");
+                        RejectToken(mPrevToken, "End interpolation '}' should be on previous line, or this should be a continuation line");
                     else if (AcceptMatchPastMetaSemicolon("}"))
                         mPrevToken.Type = eTokenType.ReservedControl;
                     else
@@ -1840,47 +1853,63 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Read the open '(' or '[' and then parse the parameters into parameters.
-        /// Use `keyword` as the expression token.
-        /// Optionally insert `first` expression at the beginning of the list
+        /// When primary has an expression, it is a function call or array index
+        /// and the open '(' or '[' is used as the token.  When primary is null,
+        /// it is a tuple or an array and the closing ')' or ']' is used.
         /// </summary>
-        SyntaxExpr ParseParen(string expecting, Token keyword, bool isFuncCall, SyntaxExpr first = null)
+        SyntaxExpr ParseParen(string expecting, SyntaxExpr primary)
         {
             var parameters = NewExprList();
-            if (first != null)
-                parameters.Add(first);
+            if (primary != null)
+                parameters.Add(primary);
 
             // Read open token, '(' or '['
             if (!AcceptMatchOrReject(expecting))
-                return new SyntaxError(mToken);
+                return new SyntaxError();
 
             // Parse parameters
             var openToken = mPrevToken;
             var expectedToken = openToken == "(" ? ")" : "]";
             if (mTokenName != expectedToken)
             {
-                parameters.Add(isFuncCall ? ParseFuncCallParameter() : ParseExpr());
+                parameters.Add(ParsePair());
                 while (AcceptMatch(","))
                 {
                     Connect(openToken, mPrevToken);
-                    parameters.Add(isFuncCall ? ParseFuncCallParameter() : ParseExpr());
+                    parameters.Add(ParsePair());
                 }
             }
 
+            var keyword = openToken;
             if (AcceptMatchOrReject(expectedToken, "or ','"))
-                Connect(openToken, mPrevToken);
-
-            return new SyntaxMulti(keyword, FreeExprList(parameters));
-        }
-
-        SyntaxExpr ParseFuncCallParameter()
-        {
-            // Allow 'ref' qualifier
-            if (mTokenName == "ref")
             {
-                return new SyntaxUnary(Accept(), ParseExpr());
+                Connect(openToken, mPrevToken);
+                if (primary != null)
+                    keyword = mPrevToken;
+
+                // Make key value pairs bold
+                if (expecting == "[")
+                {
+                    var isPairs = true;
+                    foreach (var e in parameters)
+                    {
+                        if (e.Token.Name != ":")
+                        {
+                            isPairs = false;
+                            break;
+                        }
+                    }
+                    if (isPairs)
+                    {
+                        openToken.Type = eTokenType.BoldSymbol;
+                        mPrevToken.Type = eTokenType.BoldSymbol;
+                        foreach (var e in parameters)
+                            e.Token.Type = eTokenType.BoldSymbol;
+                    }
+                }
             }
 
-            return ParseExpr();
+            return new SyntaxMulti(keyword, FreeExprList(parameters));
         }
 
         SyntaxExpr ParseTypeWithQualifiers(bool hasMut = false, bool hasRef = false, bool hasNullable = false)
@@ -2246,8 +2275,6 @@ namespace Gosub.Zurfur.Compiler
                 mToken.Type = eTokenType.Reserved;
             else if (char.IsLetter(mTokenName[0]) || mTokenName[0] == '_')
                 mToken.Type = eTokenType.Identifier;
-            else if (mTokenName == ":")
-                mToken.Type = eTokenType.BoldSymbol;
             else
                 mToken.Type = eTokenType.Normal;
 
@@ -2285,19 +2312,29 @@ namespace Gosub.Zurfur.Compiler
                         continue;
 
                     if (inQuote && !inInterpolatedQuote)
-                        inQuote = false; // Missing end quote, error given by ParseStringLiteral
+                    {
+                        // Missing end quote, error given by ParseStringLiteral
+                        inQuote = false;
+                    }
 
                     var nextToken = nextLine[0];
                     var prevToken = mStatements[mStatements.Count - 1];
-                    if (sContinuationNoBegin.Contains(nextToken.Name)
-                        || !sContinuationEnd.Contains(prevToken.Name)
-                                && !sContinuationBegin.Contains(nextToken.Name))
+                    bool isContinueLine = sContinuationEnd.Contains(prevToken.Name)
+                                            || sContinuationBegin.Contains(nextToken.Name)
+                                            || inInterpolatedQuote && prevToken.Name == "{"
+                                            || inInterpolatedQuote && nextToken == "{";
+
+
+
+
+                    if (sContinuationNoBegin.Contains(nextToken.Name) || !isContinueLine)
                     {
                         // Next line is not a continuation, check alignment
                         mNextStatementToken = nextToken;
-                        if (continuationColumn >= 0 && Math.Abs(continuationColumn - nextToken.X) < 2)
+                        if (continuationColumn >= 0 && Math.Abs(continuationColumn - nextToken.X) < 2
+                                && nextToken.Name != "}")
                             RejectToken(NewMetaToken(nextToken, " "),
-                                "Previous line was a continuation.  This line must be indented/outdented at least two spaces");
+                                "Previous line was a continuation.  This line must be indented or outdented at least two spaces");
                         break;
                     }
 
@@ -2305,10 +2342,11 @@ namespace Gosub.Zurfur.Compiler
                     if (!sContinuationNoCheckAlign.Contains(nextToken.Name))
                     {
                         continuationColumn = nextToken.X;
-                        if (Math.Abs(nextToken.X - mStatements[0].X) < 2)
+                        if (nextToken.X != 0 && nextToken.X < mStatements[0].X + 2)
                         {
-                            RejectToken(NewMetaToken(nextToken, " "),
-                                "Continuation line must be indented/outdented at least two spaces");
+                            continuationColumn = -1;
+                             RejectToken(NewMetaToken(nextToken, " "),
+                                "Continuation line must be indented two spaces or be all the way to the left");
                         }
                     }
                 }
@@ -2345,9 +2383,9 @@ namespace Gosub.Zurfur.Compiler
 
                     if (inQuote)
                     {
-                        if (tokenName == "{" && i + 1 < tokens.Length && tokens[i + 1].Name != "{")
+                        if (tokenName == "{" && (i+1 >= tokens.Length || tokens[i+1].Name != "{"))
                             inInterpolatedQuote = true;
-                        if (inInterpolatedQuote && tokenName == "}" && i + 1 < tokens.Length && tokens[i + 1].Name != "}")
+                        if (inInterpolatedQuote && tokenName == "}" && (i+1 >= tokens.Length || tokens[i+1].Name != "}"))
                             inInterpolatedQuote = false;
                     }
                     mStatements.Add(token);
@@ -2493,9 +2531,9 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         Token NewMetaToken(Token connectedToken, string text)
         {
-            var virtualToken = AddMetaToken(new Token(text, connectedToken.X, connectedToken.Y));
-            Connect(connectedToken, virtualToken);
-            return virtualToken;
+            var metaToken = AddMetaToken(new Token(text, connectedToken.X, connectedToken.Y));
+            Connect(connectedToken, metaToken);
+            return metaToken;
         }
 
         /// <summary>

@@ -309,7 +309,7 @@ namespace Gosub.Zurfur.Compiler
                 //      r1,r2... - Return types
                 var mpi = new  MethodParamInfo(method);
                 var genericsCount = mpi.TypeParams.Length;
-                method.Name = (genericsCount==0 ? "" : "<" + string.Join(",", mpi.TypeParams) + ">") 
+                method.Name = (genericsCount==0 ? "" : "``" + genericsCount) 
                                 + mpi.ParamTypeNames + mpi.ReturnTypeNames;
 
                 // TBD: Move this to `ZilVerify`
@@ -328,7 +328,6 @@ namespace Gosub.Zurfur.Compiler
                     var genericOverload = siblingMpi.TypeParams.Length != 0 || mpi.TypeParams.Length != 0;
                     if (genericOverload)
                     {
-                        //$"Duplicate symbol. There is a {duplicateParam.Kind} in this scope with the same name."
                         duplicate = true;
                         Reject(method.Token, "Duplicate symbol.  Functions with generic arguments may not be overloaded.");
                     }

@@ -693,7 +693,7 @@ with C and gives an error where not compatible:
 |&#124;&#124;|Conditional
 |a ? b : c| Not associative, no nesting (see below for restrictions)
 |=>|Lambda
-|key:Value|Pair
+|key:Value|Key value pair (only inside `()`, `[]` or where expected)
 |,|Comma Separator (not an expression)
 |= += -= *= /= %= &= |= ~= <<= >>=|Assignment Statements (not an expression)
 |=>|Statement Separator
