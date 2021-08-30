@@ -307,9 +307,8 @@ namespace Gosub.Zurfur.Compiler
 
             // TBD: Move to background thread (clone Lexer, parse tree, etc.)
             var zil = new ZilGenHeader();
-            zil.EnumerateSymbols(zurfFiles);
-            zil.ResolveTypeNames();
-            ZilVerify.VerifyHeader(zil.Symbols);
+            zil.GenerateHeader(zurfFiles);
+            ZilVerifyHeader.VerifyHeader(zil.Symbols);
             mReport = ZilReport.GenerateReport(zurfFiles, zil.Symbols);
 
             var dt3 = DateTime.Now;

@@ -236,7 +236,7 @@ namespace Gosub.Zurfur.Ide
                     }
                     else if (symbol is SymMethod symMethod)
                     {
-                        message += symbol.Kind.ToUpper() + ": " + symbol.FullName + "\r\n";
+                        message += symbol.Kind.ToUpper() + ": " + symbol.GetFullName() + "\r\n";
                         message += "PARAMS: \r\n";
                         foreach (var child in symMethod.Children)
                         {

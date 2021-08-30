@@ -58,16 +58,17 @@ namespace Gosub.Zurfur.Compiler
         WordSet sStringLiteralEscapes = new WordSet("{ \" }");
 
         static WordSet sReservedWords = new WordSet("abstract as base break case catch class const "
-            + "continue default delegate do then else elif enum event explicit extern true false defer use "
+            + "continue default delegate do then else elif enum explicit extern true false defer use "
             + "finally fixed for goto if implicit in interface internal is lock namespace module include "
             + "new null operator out override pub public private protected readonly ro ref dref mut "
             + "return unsealed unseal sealed sizeof stackalloc heapalloc struct switch this self throw try "
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "
             + "box boxed init move copy clone drop error dispose own owned "
-            + "trait extends youdo implements implement impl union fun afun def yield let cast "
-            + "any dyn loop select match event from to of on cofun cofunc global local val it throws atask task "
-            + "scope assign @ # and or not xor with cap exit pragma require ensure");
+            + "trait mixin extends youdo implements implement impl union fun afun def yield let cast "
+            + "any dyn loop select match event aevent from to of on cofun cofunc global local val it "
+            + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
+            + "of sync task except exception raise");
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
             + "noself unsealed abstract virtual override ro");
@@ -887,7 +888,7 @@ namespace Gosub.Zurfur.Compiler
         SyntaxExpr ParseMethodParams()
         {
             // Read open token, '('
-            if (!AcceptMatchOrReject("("))
+            if (!AcceptMatchPastMetaSemicolon("(")  && !AcceptMatchOrReject("("))
                 return new SyntaxError();
 
             // Parse parameters

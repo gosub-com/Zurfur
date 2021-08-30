@@ -137,10 +137,6 @@ namespace Gosub.Zurfur.Compiler
 
         // Only for fields/properties
         public bool IsProperty;
-        public Token GetToken;
-        public Token SetToken;
-        public Token GetSetVisibilityToken;
-
     }
 
 

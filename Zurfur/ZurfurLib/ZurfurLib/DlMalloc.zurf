@@ -36,7 +36,7 @@ namespace Zurfur.Internal.Memory
 pub type class DlMallocException
     extends Exception
 {
-    pub fun new(message str) nil { base(message) }
+    pub fun new(message str) void { base(message) }
 }
 
 pub interface DlMallocMem
@@ -47,7 +47,7 @@ pub interface DlMallocMem
     /// the size of allocated memory if desired  (must be in units of page size).
     /// Returns null when out of memory or on error.
     /// </summary>
-    fun CallMoreCore(length mut xuint) *nil youdo
+    fun CallMoreCore(length mut xuint) *void youdo
 
     /// <summary>
     /// This was originally CALL_MUNMAP and is used to release memory pages
@@ -57,20 +57,20 @@ pub interface DlMallocMem
     /// Return true for success, or false for failure (in which
     /// case the pages are retained and used for future requests)
     /// </summary>
-    fun CallReleaseCore(address *nil, length xuint) bool youdo
+    fun CallReleaseCore(address *void, length xuint) bool youdo
 
     /// <summary>
     /// This is called after DlMalloc has been disposed.  Since CallReleaseCore
     /// works with pages instead of allocation units, it may be more convenient
     /// to cleanup any left over memory allocations here.
     /// </summary>
-    fun CallDisposeFinal() nil { }
+    fun CallDisposeFinal() void { }
 
     /// <summary>
     /// Called when the heap is known to be corrupted.  Throws an exception
     /// and calls ResetOnError by default.
     /// </summary>
-    fun CallCorruptionErrorAction() nil
+    fun CallCorruptionErrorAction() void
         ResetOnError()
         throw DlMallocException("Malloc Corrupted: TBD: Give more info about address")
 
@@ -78,14 +78,14 @@ pub interface DlMallocMem
     /// Called when the malloc is used incorrectly.  Throws an exception
     /// and calls ResetOnError by default.
     /// </summary>
-    fun CallUsageErrorAction(m2 *nil) nil
+    fun CallUsageErrorAction(m2 *void) void
         ResetOnError()
         throw DlMallocException("Malloc Usage Error: TBD: Give more info about address")
 
     /// <summary>
     /// Called before malloc returns NULL.  The default action is to throw an exception
     /// </summary>
-    fun CallMallocFailureAction() nil
+    fun CallMallocFailureAction() void
         throw DlMallocException("Malloc out of memory")
 
 }
@@ -203,7 +203,7 @@ pub unsafe type DlMalloc
     @mparams malloc_params
 
 
-    fun new(memoryManager DlMallocMem, capacity xint) nil
+    fun new(memoryManager DlMallocMem, capacity xint) void
     {
         memMan = memoryManager
         
@@ -366,11 +366,11 @@ pub unsafe type DlMalloc
     const CHUNK_ALIGN_MASK xuint = MALLOC_ALIGNMENT - SIZE_T_ONE
 
     // True if address a has acceptable alignment
-    noself fun is_aligned(a *nil) bool
+    noself fun is_aligned(a *void) bool
         return (cast(xuint)a & CHUNK_ALIGN_MASK) == 0
 
     // the number of bytes to offset an address to align it
-    noself fun align_offset(a *nil) xuint
+    noself fun align_offset(a *void) xuint
         return (cast(xuint)a & CHUNK_ALIGN_MASK) == 0 ? 0
                 : (MALLOC_ALIGNMENT - (cast(xuint)a & CHUNK_ALIGN_MASK)) & CHUNK_ALIGN_MASK
 
@@ -511,15 +511,15 @@ pub unsafe type DlMalloc
     /// Originally malloc_chunk, now mchunk
     pub type mchunk
     {
-        @prev_foot_ptr *nil pub get set // Size of previous chunk (if free).
-        @head_ptr *nil  pub get set     // Size and inuse bits.
+        @prev_foot_ptr *void pub get set // Size of previous chunk (if free).
+        @head_ptr *void  pub get set     // Size and inuse bits.
         @fd *mchunk pub get set          // double links -- used only if free.
         @bk *mchunk pub get set
 
         pub prop prev_foot xuint
         {
             get: return cast(xuint)prev_foot_ptr
-            set: prev_foot_ptr = cast(*nil)value
+            set: prev_foot_ptr = cast(*void)value
         }
         pub prop head xuint
         {
@@ -540,11 +540,11 @@ pub unsafe type DlMalloc
         return (p.head & INUSE_BITS) == 0
     noself fun chunksize(p *mchunk) xuint
         return p.head & ~FLAG_BITS
-    noself fun clear_pinuse(p *mchunk) nil
+    noself fun clear_pinuse(p *mchunk) void
         p.head &= ~PINUSE_BIT
-    noself fun set_flag4(p *mchunk) nil
+    noself fun set_flag4(p *mchunk) void
         p.head |= FLAG4_BIT
-    noself fun clear_flag4(p *mchunk) nil
+    noself fun clear_flag4(p *mchunk) void
         p.head &= ~FLAG4_BIT
     noself fun chunk_plus_offset(p *mchunk, s xuint) *mchunk
         return cast(*mchunk)(cast(*byte)p + s)
@@ -558,11 +558,11 @@ pub unsafe type DlMalloc
         return ((next_chunk(p).head) & PINUSE_BIT) != 0
     noself fun get_foot(p *mchunk, s xuint) xuint
         return ((cast(*mchunk)(cast(*byte)p + s)).prev_foot)
-    noself fun set_foot(p *mchunk, s xuint) nil
+    noself fun set_foot(p *mchunk, s xuint) void
         (cast(*mchunk)(cast(*byte)p + s)).prev_foot = s
-    noself fun set_size_and_pinuse_of_free_chunk(p *mchunk, s xuint) nil
+    noself fun set_size_and_pinuse_of_free_chunk(p *mchunk, s xuint) void
         p.head = s | PINUSE_BIT; set_foot(p, s)
-    noself fun set_free_with_pinuse(p *mchunk, s xuint, n *mchunk) nil
+    noself fun set_free_with_pinuse(p *mchunk, s xuint, n *mchunk) void
         clear_pinuse(n); set_size_and_pinuse_of_free_chunk(p, s)
 
     // ------------------- Chunks sizes and alignments -----------------------
@@ -579,9 +579,9 @@ pub unsafe type DlMalloc
         return MIN_CHUNK_SIZE - CHUNK_OVERHEAD - SIZE_T_ONE
 
     // conversion from malloc headers to user pointers, and back
-    noself fun chunk2mem(p *nil) *nil
-        return cast(*nil)(cast(*byte)p + TWO_SIZE_T_SIZES)
-    noself fun mem2chunk(mem *nil) *mchunk
+    noself fun chunk2mem(p *void) *void
+        return cast(*void)(cast(*byte)p + TWO_SIZE_T_SIZES)
+    noself fun mem2chunk(mem *void) *mchunk
         return cast(*mchunk)(cast(*byte)mem - TWO_SIZE_T_SIZES)
     noself fun align_as_chunk(A *byte) *mchunk
         return cast(*mchunk)(A + align_offset(chunk2mem(A)))
@@ -704,8 +704,8 @@ pub unsafe type DlMalloc
     pub type tchunk
     {
         // The first four fields must be compatible with mchunk
-        @prev_foot_ptr *nil pub get set
-        @head_ptr *nil pub get set
+        @prev_foot_ptr *void pub get set
+        @head_ptr *void pub get set
         @fd *tchunk pub get set
         @bk *tchunk pub get set
 
@@ -717,7 +717,7 @@ pub unsafe type DlMalloc
         pub prop prev_foot xuint
         {
             get: return cast(xuint)prev_foot_ptr
-            set: prev_foot_ptr = cast(*nil)value
+            set: prev_foot_ptr = cast(*void)value
         }
         pub prop head xuint
         {
@@ -845,7 +845,7 @@ pub unsafe type DlMalloc
 
 
     // Ensure mparams initialized
-    fun ensure_initialization() nil
+    fun ensure_initialization() void
         { if mparams.magic == 0 { init_mparams() } }
 
     fun is_initialized() bool
@@ -858,7 +858,7 @@ pub unsafe type DlMalloc
     fun use_mmap() bool
         return (mflags & flag_t.USE_MMAP_BIT) != 0
         
-    fun enable_mmap() nil
+    fun enable_mmap() void
         mflags |= flag_t.USE_MMAP_BIT
 
     // page-align a size
@@ -883,7 +883,7 @@ pub unsafe type DlMalloc
         return (s & (mparams.granularity - SIZE_T_ONE)) == 0
 
     //  True if segment S holds address A
-    fun segment_holds(s *msegment, a *nil) bool
+    fun segment_holds(s *msegment, a *void) bool
         return a >= s.baseAddr && a < s.baseAddr + s.size
 
     // Return segment holding given address
@@ -925,10 +925,10 @@ pub unsafe type DlMalloc
 
     // -------------------------- Debugging setup ----------------------------
 
-    #Conditional("DEBUG") fun check_free_chunk(p *mchunk) nil{ do_check_free_chunk(p) }
-    #Conditional("DEBUG") fun check_inuse_chunk(p *mchunk) nil { do_check_inuse_chunk(p) }
-    #Conditional("DEBUG") fun check_malloced_chunk(mem *nil, s xuint) nil { do_check_malloced_chunk(mem, s) }
-    #Conditional("DEBUG") fun check_top_chunk(p *mchunk) nil { do_check_top_chunk(p) }
+    #Conditional("DEBUG") fun check_free_chunk(p *mchunk) void{ do_check_free_chunk(p) }
+    #Conditional("DEBUG") fun check_inuse_chunk(p *mchunk) void { do_check_inuse_chunk(p) }
+    #Conditional("DEBUG") fun check_malloced_chunk(mem *void, s xuint) void { do_check_malloced_chunk(mem, s) }
+    #Conditional("DEBUG") fun check_top_chunk(p *mchunk) void { do_check_top_chunk(p) }
 
     // ---------------------------- Indexing Bins ----------------------------
 
@@ -1059,7 +1059,7 @@ pub unsafe type DlMalloc
 
 
     // Check if address a is at least as high as any from MORECORE or MMAP
-    fun ok_address(a *nil) bool
+    fun ok_address(a *void) bool
         return a >= least_addr
     noself fun ok_next(p *tchunk, n *mchunk) bool
         return cast(*byte)p < cast(*byte)n
@@ -1077,19 +1077,19 @@ pub unsafe type DlMalloc
     noself fun RTCHECK(e bool) bool
         return e
 
-    noself fun set_inuse(p mut mchunk, s xuint) nil
+    noself fun set_inuse(p mut mchunk, s xuint) void
         p.head = (p.head & PINUSE_BIT) | s | CINUSE_BIT
         cast(*mchunk)(cast(*byte)p + s).head |= PINUSE_BIT
 
-    noself fun set_inuse_and_pinuse(p mut mchunk, s xuint) nil
+    noself fun set_inuse_and_pinuse(p mut mchunk, s xuint) void
         p.head = s | PINUSE_BIT | CINUSE_BIT
         cast(*mchunk)(cast(*byte)p + s).head |= PINUSE_BIT
 
-    noself fun set_inuse_and_pinuse(p mut tchunk, s xuint) nil
+    noself fun set_inuse_and_pinuse(p mut tchunk, s xuint) void
         p.head = s | PINUSE_BIT | CINUSE_BIT
         cast(*mchunk)(cast(*byte)p + s).head |= PINUSE_BIT
 
-    noself fun set_size_and_pinuse_of_inuse_chunk(p mut mchunk, s xuint) nil
+    noself fun set_size_and_pinuse_of_inuse_chunk(p mut mchunk, s xuint) void
         p.head = s | PINUSE_BIT | CINUSE_BIT
 
     // ---------------------------- setting mparams --------------------------
@@ -1128,19 +1128,19 @@ pub unsafe type DlMalloc
 
     // ------------------------- Debugging Support ---------------------------
 
-    noself fun assert(c bool) nil
+    noself fun assert(c bool) void
     {
         if (!c)
             throw DlMallocException("Malloc assert failed")
     }
 
     // Check properties of any chunk, whether free, inuse, mmapped etc
-    fun do_check_any_chunk(p *mchunk) nil
+    fun do_check_any_chunk(p *mchunk) void
         assert(is_aligned(chunk2mem(p)) || p.head == FENCEPOST_HEAD)
         assert(ok_address(p))
 
     // Check properties of top chunk
-    fun do_check_top_chunk(p *mchunk) nil
+    fun do_check_top_chunk(p *mchunk) void
         @sp = segment_holding(cast(*byte)p)
         @sz = p.head & ~INUSE_BITS // third-lowest bit can be set!
         assert(sp != null)
@@ -1153,7 +1153,7 @@ pub unsafe type DlMalloc
         assert(!pinuse(chunk_plus_offset(p, sz)))
 
     // Check properties of inuse chunks
-    fun do_check_inuse_chunk(p *mchunk) nil
+    fun do_check_inuse_chunk(p *mchunk) void
         do_check_any_chunk(p)
         assert(is_inuse(p))
         assert(next_pinuse(p))
@@ -1162,7 +1162,7 @@ pub unsafe type DlMalloc
         assert(!is_mmapped(p))
 
     // Check properties of free chunks
-    fun do_check_free_chunk(p *mchunk) nil
+    fun do_check_free_chunk(p *mchunk) void
     {
         @sz = chunksize(p)
         @next = chunk_plus_offset(p, sz)
@@ -1186,7 +1186,7 @@ pub unsafe type DlMalloc
     }
 
     // Check properties of malloced chunks at the point they are malloced
-    fun do_check_malloced_chunk(mem *nil, s xuint) nil
+    fun do_check_malloced_chunk(mem *void, s xuint) void
     {
         if mem != null
             @p = mem2chunk(mem)
@@ -1201,7 +1201,7 @@ pub unsafe type DlMalloc
     }
 
     // Check a tree and its subtrees.
-    fun do_check_tree(t *tchunk) nil
+    fun do_check_tree(t *tchunk) void
     {
         @head *tchunk = null
         @u = t
@@ -1251,7 +1251,7 @@ pub unsafe type DlMalloc
     }
 
     //  Check all the chunks in a treebin.
-    fun do_check_treebin(i uint) nil
+    fun do_check_treebin(i uint) void
     {
         @tb = treebin_at(i)
         @t = dref(tb)
@@ -1263,7 +1263,7 @@ pub unsafe type DlMalloc
     }
 
     //  Check all the chunks in a smallbin.
-    fun do_check_smallbin(i uint) nil
+    fun do_check_smallbin(i uint) void
     {
         @b = smallbin_at(i)
         @p = b.bk
@@ -1291,7 +1291,7 @@ pub unsafe type DlMalloc
     }
 
     // Find x in a bin. Used in other check functions.
-    fun bin_find(x *mchunk) nil
+    fun bin_find(x *mchunk) void
     {
         @size = chunksize(x)
         if is_small(size)
@@ -1438,7 +1438,7 @@ pub unsafe type DlMalloc
 
     // Link a free chunk into a smallbin
     #MethodImpl(MethodImplOptions.AggressiveInlining)
-    fun mut insert_small_chunk(p *mchunk, s xuint) nil
+    fun mut insert_small_chunk(p *mchunk, s xuint) void
     {
         @I = small_index(s)
         @B = smallbin_at(I)
@@ -1458,7 +1458,7 @@ pub unsafe type DlMalloc
 
     // Unlink a chunk from a smallbin
     #MethodImpl(MethodImplOptions.AggressiveInlining)
-    fun mut unlink_small_chunk(p *mchunk, s xuint) nil
+    fun mut unlink_small_chunk(p *mchunk, s xuint) void
     {
         @F = p.fd
         @B = p.bk
@@ -1483,7 +1483,7 @@ pub unsafe type DlMalloc
 
     // Unlink the first chunk from a smallbin
     #MethodImpl(MethodImplOptions.AggressiveInlining)
-    fun mut unlink_first_small_chunk(b *mchunk, p *mchunk, i uint) nil
+    fun mut unlink_first_small_chunk(b *mchunk, p *mchunk, i uint) void
     {
         @F = p.fd
         assert(p != b)
@@ -1501,7 +1501,7 @@ pub unsafe type DlMalloc
     // Replace dv node, binning the old one
     // Used only when dvsize known to be small
     #MethodImpl(MethodImplOptions.AggressiveInlining)
-    fun mut replace_dv(p *mchunk, s xuint) nil
+    fun mut replace_dv(p *mchunk, s xuint) void
     {
         @DVS = dvsize
         assert(is_small(DVS))
@@ -1515,7 +1515,7 @@ pub unsafe type DlMalloc
     // ------------------------- Operations on trees -------------------------
 
     // Insert chunk into tree
-    fun insert_large_chunk(x *tchunk, s xuint) nil
+    fun insert_large_chunk(x *tchunk, s xuint) void
     {
         @H **tchunk
         @I = compute_tree_index(s)
@@ -1586,7 +1586,7 @@ pub unsafe type DlMalloc
     //  3. If x is the base of a chain (i.e., has parent links) relink
     //     x's parent and children to x's replacement (or null if none).
 
-    fun unlink_large_chunk(x *tchunk) nil
+    fun unlink_large_chunk(x *tchunk) void
     {
         @XP = x.parent
         @R *tchunk
@@ -1681,7 +1681,7 @@ pub unsafe type DlMalloc
     // Relays to large vs small bin operations
 
     #MethodImpl(MethodImplOptions.AggressiveInlining)
-    fun mut insert_chunk(p *mchunk, s xuint) nil
+    fun mut insert_chunk(p *mchunk, s xuint) void
     {
         if is_small(s)
             insert_small_chunk(p, s)
@@ -1690,7 +1690,7 @@ pub unsafe type DlMalloc
     }
 
     #MethodImpl(MethodImplOptions.AggressiveInlining)
-    fun mut unlink_chunk(p *mchunk, s xuint) nil
+    fun mut unlink_chunk(p *mchunk, s xuint) void
     {
         if is_small(s)
             unlink_small_chunk(p, s)
@@ -1701,7 +1701,7 @@ pub unsafe type DlMalloc
     // -------------------------- mspace management --------------------------
 
     // Initialize top chunk and its size
-    fun mut init_top(p *mchunk, psize xuint) nil
+    fun mut init_top(p *mchunk, psize xuint) void
     {
         // Ensure alignment
         @offset = align_offset(chunk2mem(p))
@@ -1717,7 +1717,7 @@ pub unsafe type DlMalloc
     }
 
     // Initialize bins for a new mstate that is otherwise zeroed out
-    fun mut init_bins() nil
+    fun mut init_bins() void
     {
         // Establish circular links for smallbins
         for @i in NSMALLBINS
@@ -1729,7 +1729,7 @@ pub unsafe type DlMalloc
     /// <summary>
     /// Default corruption action - forget all allocated memory.
     /// </summary>
-    protected fun mut ResetOnError() nil
+    protected fun mut ResetOnError() void
     {
         @i int
         malloc_corruption_error_count += 1
@@ -1751,7 +1751,7 @@ pub unsafe type DlMalloc
     // Allocate chunk and prepend remainder with chunk in successor base.
     fun mut prepend_alloc(newbase *byte,
                           oldbase *byte,
-                          nb xuint) *nil
+                          nb xuint) *void
     {
         @p = align_as_chunk(newbase)
         @oldfirst = align_as_chunk(oldbase)
@@ -1793,7 +1793,7 @@ pub unsafe type DlMalloc
     }
 
     // Add a segment to hold a new noncontiguous region
-    fun mut add_segment(tbase *byte, tsize xuint, mmapped flag_t) nil
+    fun mut add_segment(tbase *byte, tsize xuint, mmapped flag_t) void
     {
         // Determine locations and sizes of segment, fenceposts, old top
         @old_top = cast(*byte)top
@@ -1849,7 +1849,7 @@ pub unsafe type DlMalloc
     // -------------------------- System allocation --------------------------
 
     // Get memory from system using MMAP
-    fun mut sys_alloc(nb xuint) *nil
+    fun mut sys_alloc(nb xuint) *void
     {
         @tbase *byte = null
         @tsize = 0
@@ -2040,7 +2040,7 @@ pub unsafe type DlMalloc
 
     // Consolidate and bin a chunk. Differs from exported versions
     //   of free mainly in that the chunk need not be marked as inuse.
-    fun mut dispose_chunk(p *mchunk, psize xuint) nil
+    fun mut dispose_chunk(p *mchunk, psize xuint) void
     {
         @next = chunk_plus_offset(p, psize)
         if !pinuse(p)
@@ -2110,7 +2110,7 @@ pub unsafe type DlMalloc
     // ---------------------------- malloc ---------------------------
 
     // allocate a large request from the best fitting chunk in a treebin
-    fun mut tmalloc_large(nb xuint) *nil
+    fun mut tmalloc_large(nb xuint) *void
     {
         @v *tchunk = null
         @rsize = cast(xuint)(-cast(xint)nb) // Unsigned negation
@@ -2190,7 +2190,7 @@ pub unsafe type DlMalloc
     }
 
     // allocate a small request from the best fitting chunk in a treebin
-    fun mut tmalloc_small(nb xuint) *nil
+    fun mut tmalloc_small(nb xuint) *void
     {
         @t *tchunk
         @v *tchunk
@@ -2233,7 +2233,7 @@ pub unsafe type DlMalloc
     }
 
     // Traversal
-    fun internal_inspect_all(handler fun(start *nil, next *nil, used u64)nil) nil
+    fun internal_inspect_all(handler fun(start *void, next *void, used u64)void) void
     {
         if !is_initialized()
             return
@@ -2248,7 +2248,7 @@ pub unsafe type DlMalloc
                 @next = next_chunk(q)
                 @sz = chunksize(q)
                 @used xuint
-                @start *nil
+                @start *void
                 if is_inuse(q)
                     used = sz - CHUNK_OVERHEAD // must not be mmapped
                     start = chunk2mem(q)
@@ -2257,11 +2257,11 @@ pub unsafe type DlMalloc
                     used = 0
                     if (is_small(sz))
                         // offset by possible bookkeeping
-                        start = cast(*nil)(cast(*byte)q + sizeof(mchunk))
+                        start = cast(*void)(cast(*byte)q + sizeof(mchunk))
                     else
-                        start = cast(*nil)(cast(*byte)q + sizeof(tchunk))
+                        start = cast(*void)(cast(*byte)q + sizeof(tchunk))
                 }
-                if start < cast(*nil)next  // skip if all space is bookkeeping
+                if start < cast(*void)next  // skip if all space is bookkeeping
                     handler(start, next, used)
                 if q == top2
                     break
@@ -2278,18 +2278,18 @@ pub unsafe type DlMalloc
     // ----------------------------- user mspaces ----------------------------
 
     // TBD: Optimize and move to standard library
-    fun MemClear(mem *nil, size i64) nil
+    fun MemClear(mem *void, size i64) void
     {
         @b = cast(*byte)mem
         for @s in 0..size
             dref(b) = 0; b += 1
     }
 
-    fun mut init_user_mstate(tbase *byte, tsize xuint) nil
+    fun mut init_user_mstate(tbase *byte, tsize xuint) void
     {
         @mn mchunk
         @msp = align_as_chunk(tbase)
-        @m *nil = chunk2mem(msp)
+        @m *void = chunk2mem(msp)
 
         smallbins = cast(**mchunk)(Marshal.AllocHGlobal(sizeof(*mchunk) * (((NSMALLBINS + 1) * 2))))
         treebins = cast(**tchunk)(Marshal.AllocHGlobal(sizeof(*tchunk) * (NTREEBINS)))
@@ -2319,7 +2319,7 @@ pub unsafe type DlMalloc
     //  of its memory back to the system, returning the total number of
     //  bytes freed. After destruction, the results of access to all memory
     //  used by the space become undefined.
-    pub fun mut Dispose() nil
+    pub fun mut Dispose() void
     {
         @sp = seg
         while (sp != null)
@@ -2348,7 +2348,7 @@ pub unsafe type DlMalloc
     /// <summary>
     /// Malloc can be exposed or used by the inheriting class
     /// </summary>
-    pub fun mut Malloc(length xuint) *nil
+    pub fun mut Malloc(length xuint) *void
     {
         //     Basic algorithm:
         //     If a small request (< 256 bytes minus per-chunk overhead):
@@ -2372,7 +2372,7 @@ pub unsafe type DlMalloc
         if !ok_magic()
             memMan.CallUsageErrorAction(null)
             return null
-        @mem *nil
+        @mem *void
         @nb xuint
         if length <= MAX_SMALL_REQUEST
         {
@@ -2493,7 +2493,7 @@ pub unsafe type DlMalloc
     /// <summary>
     /// Free can be exposed or used by the inheriting class
     /// </summary>
-    pub fun mut Free(mem *nil) nil
+    pub fun mut Free(mem *void) void
     {
         // Consolidate freed chunks with preceeding or succeeding bordering
         // free chunks, if they exist, and then place in a bin.  Intermixed
@@ -2591,7 +2591,7 @@ pub unsafe type DlMalloc
     }
 
 
-    pub fun InspectAll(handler fun(start *nil, next *nil, used u32)nil) nil
+    pub fun InspectAll(handler fun(start *void, next *void, used u32)void) void
     {
         if ok_magic()
             internal_inspect_all(handler)

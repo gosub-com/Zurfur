@@ -8,7 +8,7 @@ using System.Diagnostics;
 namespace Gosub.Zurfur.Compiler
 {
     // TBD: Move most compiler error checking here
-    class ZilVerify
+    class ZilVerifyHeader
     {
 
         // TBD: Move from `ResolveMethod`:
@@ -24,7 +24,7 @@ namespace Gosub.Zurfur.Compiler
                 if (symbol.Name == symbol.Parent.Name)
                 {
                     if (!symbol.Token.Error)
-                        symbol.Token.AddError("Name must not be same as parent scope");
+                        symbol.Token.AddError("Must not be same name as parent scope");
                 }
                 else if (symbol is SymTypeParam || symbol is SymMethodParam)
                 {
@@ -38,9 +38,15 @@ namespace Gosub.Zurfur.Compiler
                         if (parent.Children.TryGetValue(symbol.Name, out var s)
                                 && s is SymTypeParam)
                             if (!symbol.Token.Error)
-                                symbol.Token.AddError("A parent scope may not contain a type parameter with the same name");
+                                symbol.Token.AddError("Must not be same name as a type parameter in any parent scope");
                         parent = parent.Parent;
                     }
+                }
+                else if (symbol is SymField)
+                {
+                    if (symbol.Parent is SymNamespace)
+                        symbol.Token.AddError("A namespace may not directly contain fields");
+                    
                 }
             });
 

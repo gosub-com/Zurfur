@@ -14,8 +14,9 @@ about traits, mutability, nullability, ownership, and functional programming.
 **Status Update**
 
 I am working on header file generation.  Hit F4 to see what's generated.
-The syntax is still being developed, nothing is set in stone yet.  Feel
-free to send me comments letting me know what you think should be changed.
+Review [ZIL Specification](Doc/Zil.md).  The syntax is still being developed,
+nothing is set in stone yet.  Feel free to send me comments letting me know
+what you think should be changed.
 
 ![](Doc/IDE.png)
 
@@ -522,21 +523,56 @@ The one with flags allows `|` and `&`, etc but the other doesn't.
 
 ## Basic types
 
-    i8, u8, byte, i16, u16, i32, int, u32, uint, i64, u64, f32, f64, xint, xuint,
-    decimal, object, str, Array<T>, List<T>, Map<K,V>, Span<T>, Json,
+The ones we all know and love:
 
-`byte`, `int`, and `uint` are aliases for `u8`, `i32`, and `u32`.
-`xint` and `xuint` are extended integer types, which could be 32 or 64 bits
-depending on run-time architecture.
+    i8, u8, byte, i16, u16, i32, u32, i64, u64, int, uint, f32, f64, decimal
 
-**TBD:** Use lower case for `list`, `map`, `json`, `span`, and
-other common types?  
+`byte`, `int`, and `uint` are aliases for `u8`, `i64`, and `u64`.
+    
+Other types are a little different from C#:
+
+| Type | Description
+| :--- | :---
+| Array\<T\> | Immutable array with immutable elements and constant `Count`.
+| Buffer\<T\> | Mutable array with mutable elements, but with constant `Count`
+| List\<T\> | Dynamically sized mutable array with mutable elements
+| Span\<T\> | Span into `Array`, `Buffer`, or `List`.  Constant `Count`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `Buffer` or `List` is mutable)
+| str | String, `Array<byte>` with additional support for string literals and UTF-8
+| Map<K,V> | Unordered mutable map
+| RoMap<K,V> | Read only map (immutable map with immutable elements and constant count)
+| Json | Json data structure
+| xint | Either i32 or i64 depending on compilation target (32 bit target is i32, 64 bit target is i64)
+
+**TBD:** Use lower case for `array`, `buffer`, `list`, `span`, `map`, `json`?
+This would probably not apply to `RoMap`.
+
+#### Array, List, and Buffer
+
+`List` is the default data structure for working with mutable data.  Once the
+list has been created, it can be converted to an `Array` which is immutable.
+Assigning to an array is very fast since it is just copying a reference,
+whereas assigning to a `List` will create a copy unless it can be optimized
+to a move operation.
+
+
+    @x = [1,2,3]            // x is List<int>
+    @y = ["A", "B", "C"]    // y is List<str>
+    @z = [[1,2,3],[4,5,6]]  // z is List<List<int>>
+    x.Push(4)               // x contains [1,2,3,4]
+    x.Push([5,6])           // x contains [1,2,3,4,5,6]
+    @a = x.ToArray()        // a is Array<int>
+    fieldx = x              // fieldx is a copy of x (with optimization, x may have been moved)
+    fielda = a              // fielda is always a reference to the array `a`
+
+`List` should be used to build and manipulate mutable data, while `Array`
+should be used to store immutable data.  A `Buffer` is a list with a fixed
+size.  It is more efficient than a `List`, but less flexible.
 
 #### Strings
 
-Strings (i.e. `str`) are immutable byte arrays, generally assumed to hold
-UTF8 encoded characters.  However, there is no rule enforcing the UTF8 encoding
-so they may hold any binary data.
+Strings (i.e. `str`) are immutable byte arrays (i.e. `Array<byte>`), generally
+assumed to hold UTF8 encoded characters.  However, there is no rule enforcing
+the UTF8 encoding so they may hold any binary data.
 
 String literals start with a quote `"` or they can be translated at runtime
 using `tr"string"` syntax.  All strings are interpolated (i.e. they do not
@@ -553,46 +589,11 @@ There is no `StringBuilder` type, use `List<byte>` instead:
     sb.Push("Count to 10: ")
     for @count in 1::10
         sb.Push(" {count}")
-    return sb.ToStr()
-
-Strings can be sliced.  See `List` (below)
-
-#### Buffer
-
-A buffer is the most primitive dynamically sized heap object.  The buffer
-count is immutable, but elements are not.  Buffers are declared with
-`Buffer(count)` syntax, not with C# `[]type` syntax.  `[]type` translates
-to `Span<type>`.
-
-Buffers can be sliced.  See `List` (below)
-
-#### Array
-
-An array is an immutable list of items (i.e. an immutable version of `Buffer`).
-Arrays are declared with `Array(count)` syntax, not with C# `[]type` syntax.
-`[]type` translates to `Span<type>`.
-
-Arrays can be sliced.  See `List` (below)
-
-
-#### List
-
-`List` is a dynamically sized mutable array.  It has a `Count` and `Capacity`
-that changes as items are added or removed:
-
-    @a = [1,2,3]                // a is List<int>
-    @b = ["A", "B", "C"]        // b is List<str>
-    @c = [[1,2,3],[4,5,6]]      // c is List<List<int>>
-
-List acts like a C# array in that a field of an element can be modified, like so:
-
-    type MyPoint(X int, Y int)
-    @a List<MyPoint> = [(1,2),(3,4),(5,6)]  // Use array intializer with MyPoint constructor
-    a[1].Y = 12                             // Now a contains [(1,2),(3,12),(5,6)]
+    return sb.ToArray()
 
 #### Span
 
-Span is a view into a string, array, or list.  They are `ref type` and
+Span is a view into a string, array, buffer, or list.  They are `ref type` and
 may never be stored on the heap.  Unlike in C#, a span can be used to pass
 data to an async function.  
 
@@ -615,23 +616,22 @@ the list is a change to the span and a change to the span is a change to the lis
     @c = a[2::2]                // c is a span, with c[0] == "c" (c aliases ["c","d"])
     c[0] = "hello"              // now a = ["a","b","hello","d","e"], and b=["b","hello","d"]
 
-When the count or capacity of a list changes, all spans pointing into it
+When the `Count` or `Capacity` of a list changes, all spans pointing into it
 become detached.  A new buffer is cloned and used by the list, but the old
 spans continue aliasing the old data. 
 
-        @list = List<byte>()
-        list.Push("Hello Pat")  // list is "Hello Pat"
-        @slice = a[6::3]        // slice is "Pat"
-        slice[0] = "M"[0]       // slice is "Mat", list is "Hello Mat"
-        list.Push("!")          // DEBUG PANIC - slice is now detached, list is "Hello Mat!"
-        slice[0] = "C"[0]       // slice is "Cat", list is still "Hello Mat!"
+    @list = List<byte>()
+    list.Push("Hello Pat")  // list is "Hello Pat"
+    @slice = a[6::3]        // slice is "Pat"
+    slice[0] = "M"[0]       // slice is "Mat", list is "Hello Mat"
+    list.Push("!")          // DEBUG PANIC - slice is now detached, list is "Hello Mat!"
+    slice[0] = "C"[0]       // slice is "Cat", list is still "Hello Mat!"
 
 Mutating the size of a list (not the elements of it) while there is a span
-pointing into it is a programming error; however it is not memory unsafe.
-Therefore, when running in a debugger, it will stop and complain, but when
-running in production it will log an error and continue.
+pointing into it is a programming error and will throw an exception, the
+same as indexing outside of array bounds.
 
-#### Map
+#### Map and RoMap
 
 `Map` is a hash table and is similar to `Dictionary` in C#.
 
@@ -640,6 +640,8 @@ running in production it will log an error and continue.
     @c = a["not found"]             // throws exception
     @d = a.Get("not found")         // d is 0
     @e = a.Get("not found", -1)     // e is -1
+
+`RoMap` is an immutable version of `Map`
 
 #### Json
 

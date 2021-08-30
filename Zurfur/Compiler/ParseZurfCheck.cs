@@ -16,7 +16,6 @@ namespace Gosub.Zurfur.Compiler
 
         public Token LastToken;
 
-        static WordSet sRequireGlobalFieldQualifiers = new WordSet("const");
         static WordSet sFuncInInterfaceQualifiersAllowed = new WordSet("pub private protected noself mut youdo async error");
 
         static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal noself");
@@ -159,11 +158,7 @@ namespace Gosub.Zurfur.Compiler
 
                 switch (outerKeyword)
                 {
-                    case "":
-                    case "namespace":
-                        if (!HasQualifier(field.Qualifiers, sRequireGlobalFieldQualifiers))
-                            mParser.RejectToken(field.Name, "Fields at the namespace level must be 'const'");
-                        break;
+                    // TBD: Move all this to ZilVerifyHeader
                     case "interface":
                         mParser.RejectToken(field.Name, "Fields are not allowed inside an interface");
                         break;

@@ -12,16 +12,16 @@ namespace TestSyntax
 
 
 static fun A() { } // Expecting a type name
-static fun A() nil{ } // Duplicate
+static fun A() void{ } // Duplicate
 static fun B() int { } // Duplicate
 static fun B() f32 { } // Duplicate
-static fun C(a int, a int) nil { } // Duplicate parameter
-static fun D<X,X>(a X) nil { } // Duplicate type parameter
-static fun E<X>(a Y) nil{ } // Unresolved type
+static fun C(a int, a int) void { } // Duplicate parameter
+static fun D<X,X>(a X) void { } // Duplicate type parameter
+static fun E<X>(a Y) void { } // Unresolved type
 
-type A { pub fun A() nil { } } // Same name as parent
+type A { pub fun A() void { } } // Same name as parent
 type C<T> { type D<T> { } } // Same type arg name as parent
-type B<T> { pub fun A<T>() nil { } } // Same type arg name as parent
+type B<T> { pub fun A<T>() void { } } // Same type arg name as parent
 
 
 pub type ro test
@@ -33,7 +33,7 @@ pub type ro test
 
 
     // Try to give good info at the end of each line
-    fun new(a i8) nil // Compound statement error
+    fun new(a i8) void // Compound statement error
     pub fun
     fun A
     fun B(
@@ -41,14 +41,14 @@ pub type ro test
     fun E(a int
     fun F(a int,
     fun G(a int, b
-    pub fun H(a int, b int) nil  // Compound error on this line (not next)
-    pub fun I(a int, b int) nil
+    pub fun H(a int, b int) void  // Compound error on this line (not next)
+    pub fun I(a int, b int) void
 
-    fun J(a int, x int) nil
+    fun J(a int, x int) void
     NoCompoundHere()
 
     // Error in 'fun' declaration still parses function after '{'
-    fun K(a int, x)  nil
+    fun K(a int, x)  void
     {
         if a > 3   // Error: Next line doesn't look like a compound
         a += 1
@@ -66,7 +66,7 @@ pub type ro test
 
 
     // TBD: The curly brace should be accepted as part of the `fun` declaration
-    fun K(a int, x) hello world nil
+    fun K(a int, x) hello world void
     {
     }
     

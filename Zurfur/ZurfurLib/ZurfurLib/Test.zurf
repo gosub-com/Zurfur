@@ -5,7 +5,7 @@
 
 namespace Zurfur.UnitTests
 
-noself fun test_HelloWorld() nil
+noself fun test_HelloWorld() void
 {
     Console.Log("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
@@ -35,7 +35,7 @@ pub type Example
         return Header + info     // Public property
 }
 
-noself fun test_ForSimple() nil
+noself fun test_ForSimple() void
 {
 
     @count int
@@ -64,7 +64,7 @@ noself fun test_ForSimple() nil
 }
 
 
-pub noself fun test_Convert() nil
+pub noself fun test_Convert() void
 {
     @a = List<float>()
     @b = List<int>()
@@ -80,14 +80,14 @@ pub type class TestGuiForm extends Form
     @Message3 Label pub get set
 
 
-    fun new() nil
+    fun new() void
     {
         InitializeComponent()
     }
    
    
     #NewCallableAttribute()
-    fun InitializeComponent() nil
+    fun InitializeComponent() void
     {
     
         Message1 = Label(Text: "Message 1",

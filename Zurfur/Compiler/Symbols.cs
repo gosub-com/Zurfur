@@ -5,102 +5,77 @@ using Gosub.Zurfur.Lex;
 
 namespace Gosub.Zurfur.Compiler
 {
-    class SymFile
-    {
-        public string Name = "";
-        public string Path = "";
-        public SyntaxFile SyntaxFile;
-        public string[] Use = new string[0];
-
-        public SymFile(string path, SyntaxFile syntaxFile)
-        {
-            Path = path;
-            Name = System.IO.Path.GetFileName(path);
-            SyntaxFile = syntaxFile;
-        }
-
-        public override string ToString()
-        {
-            return Name;
-        }
-    }
-
     /// <summary>
     /// Symbol location (file + token)
     /// </summary>
     readonly struct SymLoc
     {
-        public readonly SymFile File;
+        public readonly string File;
         public readonly Token Token;
-        public SymLoc(SymFile file, Token token) { File = file; Token = token; }
+        public SymLoc(string file, Token token) { File = file; Token = token; }
     }
 
     abstract class Symbol
     {
         public abstract string Kind { get; }
 
-        public Symbol Parent { get; private set; }
-        string mName = "";
-        string mFullNameCache;
+        public Symbol Parent { get; }
+        public string Name { get; }
+        public int Order { get; private set; } = -1;
         public string Comments = "";
         public string[] Qualifiers = Array.Empty<string>();
         public List<SymLoc> Locations = new List<SymLoc>();
-        public Dictionary<string, Symbol> Children = new Dictionary<string, Symbol>();
+        
+        Dictionary<string, Symbol> mChildren = new Dictionary<string, Symbol>();
+        public RoDict<string, Symbol> Children { get; private set; }
 
-        public Symbol(Symbol parent, SymFile file, Token token)
+        public Symbol(Symbol parent, string file, Token token)
         {
+            Children = new RoDict<string, Symbol>(mChildren);
             Parent = parent;
-            mName = token.Name;
+            Name = token.Name;
             AddLocation(file, token);
         }
 
         public Symbol(Symbol parent, string name)
         {
+            Children = new RoDict<string, Symbol>(mChildren);
             Parent = parent;
-            mName = name;
+            Name = name;
+        }
+        
+        public struct RoDict<TKey, TValue>
+        {
+            Dictionary<TKey, TValue> Map;
+
+            public RoDict(Dictionary<TKey, TValue> map) { Map = map; }
+            public int Count => Map.Count;
+            public bool ContainsKey(TKey key) => Map.ContainsKey(key);
+            public bool TryGetValue(TKey key, out TValue symbol) => Map.TryGetValue(key, out symbol);
+            public TValue this[TKey key] => Map[key];
+            public Dictionary<TKey, TValue>.ValueCollection Values => Map.Values;
+            public Dictionary<TKey, TValue>.Enumerator GetEnumerator() => Map.GetEnumerator();
         }
 
         /// <summary>
-        /// Short name
+        /// This should only be called by functions in SymbolTable.
+        /// It sets the symbol Order to the number of children.
         /// </summary>
-        public string Name
+        internal void SetChildInternal(string key, Symbol value)
         {
-            get { return mName; }
-            set
-            {
-                mName = value;
-                ClearFullNameCache();
-            }
+            value.Order = mChildren.Count;
+            mChildren[key] = value;
         }
 
-        void ClearFullNameCache()
-        {
-            mFullNameCache = null;
-            foreach (var child in Children.Values)
-                child.ClearFullNameCache();
-        }
 
-        /// <summary>
-        /// Fully qualified name (namespaces, types, functions, and fields) or short name (parameters)
-        /// </summary>
-        public string FullName
-        {
-            get
-            {
-                if (mFullNameCache == null)
-                    mFullNameCache = GetFullName();
-                return mFullNameCache;
-            }
-        }
-
-        protected virtual string GetFullName()
+        public virtual string GetFullName()
         {
             if (Parent == null || Parent.Name == "")
                 return Name;
-            return Parent.FullName + "." + Name;
+            return Parent.GetFullName() + "." + Name;
         }
 
-        public void AddLocation(SymFile file, Token token)
+        public void AddLocation(string file, Token token)
         {
             Locations.Add(new SymLoc(file, token));
         }
@@ -132,11 +107,11 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Throws exception if not a unique symbol with exactly one location
         /// </summary>
-        public SymFile File => Location.File;
+        public string File => Location.File;
 
         public override string ToString()
         {
-            return FullName;
+            return GetFullName();
         }
 
         /// <summary>
@@ -161,7 +136,7 @@ namespace Gosub.Zurfur.Compiler
 
     class SymNamespace : Symbol
     {
-        public SymNamespace(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
+        public SymNamespace(Symbol parent, string file, Token token) : base(parent, file, token) { }
         public override string Kind => "namespace";
     }
 
@@ -170,43 +145,40 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     class SymType : Symbol
     {
-        public string TypeKeyword = "";
-        public SymType(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
+        public SymType(Symbol parent, string file, Token token) : base(parent, file, token) { }
         public SymType(Symbol parent, string name) : base(parent, name) { }
         public override string Kind => "type";
 
-        protected override string GetFullName()
+        public override string GetFullName()
         {
             var tp = FindChildren<SymTypeParam>();
-            return Parent.FullName + "." + Name + (tp.Count == 0 ? "" : $"`{tp.Count}");
+            return Parent.GetFullName() + "." + Name + (tp.Count == 0 ? "" : $"`{tp.Count}");
         }
     }
 
-    class SymTypeParam : SymType
+    class SymTypeParam : Symbol
     {
-        public SymTypeParam(Symbol parent, SymFile file, Token token, int index) : base(parent, file, token)
+        public SymTypeParam(Symbol parent, string file, Token token) : base(parent, file, token)
         {
-            Order = index;
         }
         public override string Kind => "type parameter";
-        public int Order;
 
-        protected override string GetFullName()
+        public override string GetFullName()
         {
-            return "!" + Order;
+            return "!" + Name;
         }
     }
 
     class SymField : Symbol
     {
-        public SymField(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
+        public SymField(Symbol parent, string file, Token token) : base(parent, file, token) { }
         public override string Kind => "field";
-        public SymType TypeName;
+        public string TypeName;
     }
 
     class SymMethodGroup : Symbol
     {
-        public SymMethodGroup(Symbol parent, SymFile file, Token token) : base(parent, file, token) { }
+        public SymMethodGroup(Symbol parent, string file, Token token) : base(parent, file, token) { }
         public override string Kind => "methods";
     }
 
@@ -215,25 +187,25 @@ namespace Gosub.Zurfur.Compiler
         public SymMethod(Symbol parent, string name) : base(parent, name) { }
         public override string Kind => "method";
 
-        protected override string GetFullName()
+        public override string GetFullName()
         {
-            return Parent + Name;
+            return Parent.GetFullName() + Name;
         }
     }
 
     class SymMethodParam : Symbol
     {
-        public SymMethodParam(Symbol parent, SymFile file, Token token, int order) : base(parent, file, token)
-            { Order = order; }
+        public SymMethodParam(Symbol parent, string file, Token token) : base(parent, file, token)
+        {
+        }
         public override string Kind => "parameter";
 
         public bool IsReturn;
-        public int Order;
-        public SymType TypeName;
+        public string TypeName;
 
-        protected override string GetFullName()
+        public override string GetFullName()
         {
-            return "#" + Name;
+            return "##" + Name;
         }
 
     }
@@ -250,14 +222,14 @@ namespace Gosub.Zurfur.Compiler
 
         public override string Kind => "specialized type";
 
-        public SymSpecializedType(string name, string[] typeParams)
-            : base(new SymEmpty(name), "<" + TypeParamsFullName(typeParams) + ">")
+        public SymSpecializedType(Symbol parent, string name, string[] typeParams)
+            : base(parent, ":SPECIALIZED:" + name + "<" + TypeParamsFullName(typeParams) + ">")
         {
             Params = typeParams;
             Returns = Array.Empty<string>();
         }
-        public SymSpecializedType(string name, string[] typeParams, string[] typeReturns)
-            : base(new SymEmpty(name), ParamsFuncFullName(typeParams, typeReturns))
+        public SymSpecializedType(Symbol parent, string name, string[] typeParams, string[] typeReturns)
+            : base(parent, ":SPECIALIZED:" + name + "." + ParamsFuncFullName(typeParams, typeReturns))
         {
             Params = typeParams;
             Returns = typeReturns;

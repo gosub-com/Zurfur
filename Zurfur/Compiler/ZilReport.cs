@@ -124,7 +124,7 @@ namespace Gosub.Zurfur.Compiler
                 mSymbols.VisitAll((s) =>
                 {
                     if (s is SymNamespace n)
-                        namespaces.Add(n.FullName);
+                        namespaces.Add(n.GetFullName());
                 });
                 namespaces.Sort((a, b) => a.CompareTo(b));
 
@@ -138,7 +138,7 @@ namespace Gosub.Zurfur.Compiler
 
             void ShowTypes()
             {
-                var ds = SymbolTable.GetSymbols(mSymbols.Root);
+                var ds = SymbolTable.GetSymbolsNoParams(mSymbols.Root);
                 var ls = new List<string>(ds.Keys);
                 ls.Sort((a, b) => a.CompareTo(b));
 

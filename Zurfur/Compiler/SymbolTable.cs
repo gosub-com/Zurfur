@@ -13,17 +13,58 @@ namespace Gosub.Zurfur.Compiler
     class SymbolTable
     {
         SymNamespace mRoot;
-
-        // TBD: Add quick lookup for namespaces, types, and methods.
         Dictionary<string, Symbol> mLookup = new Dictionary<string, Symbol>();
 
         public SymbolTable()
         {
-            var preRoot = new SymNamespace(null, new SymFile("", new SyntaxFile()), new Token(""));
-            mRoot = new SymNamespace(preRoot, new SymFile("", new SyntaxFile()), new Token(""));
+            var preRoot = new SymNamespace(null, "", new Token(""));
+            mRoot = new SymNamespace(preRoot, "", new Token(""));
         }
 
         public Symbol Root => mRoot;
+
+
+        /// <summary>
+        /// Generates a lookup table for namespaces and types.
+        /// Must be called before using `Lookup`
+        /// </summary>
+        public void GenerateLookup()
+        {
+            mLookup.Clear();
+            VisitAll((s) => 
+            {
+                if (s is SymNamespace || s.GetType() == typeof(SymType))
+                {
+                    var fullName = s.GetFullName();
+                    Debug.Assert(!mLookup.ContainsKey(fullName));
+                    mLookup[fullName] = s;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Lookup a type.
+        /// Call `GenerateLookup` before calling this.
+        /// Returns NULL if name doesn't exist.
+        /// </summary>
+        public SymType LookupType(string name)
+        {
+            if (!mLookup.TryGetValue(name, out var symbol))
+                return null;
+            return symbol as SymType;
+        }
+
+        /// <summary>
+        /// Find the namespace, return NULL if not found or it's not a namespace.
+        /// The namespace is a path in dotted format (e.g. "Zurfur.SecialNamespace")
+        /// </summary>
+        public SymNamespace LookupNamespace(string name)
+        {
+            if (!mLookup.TryGetValue(name, out var symbol))
+                return null;
+            return symbol as SymNamespace;
+        }
+
 
         /// <summary>
         /// Visit all symbols
@@ -33,23 +74,26 @@ namespace Gosub.Zurfur.Compiler
             VisitAll(mRoot, visit);
         }
 
-        public static Dictionary<string, Symbol> GetSymbols(Symbol root)
+        /// <summary>
+        /// Returns dictionary of full names of all symbols without method or type parameters
+        /// </summary>
+        public static Dictionary<string, Symbol> GetSymbolsNoParams(Symbol root)
         {
             var symbols = new Dictionary<string, Symbol>();
             VisitAll(root, (symbol) => 
             {
                 if (symbol is SymTypeParam || symbol is SymMethodParam)
                     return;
-                Debug.Assert(!symbols.ContainsKey(symbol.FullName));
-                symbols[symbol.FullName] = symbol;
+                Debug.Assert(!symbols.ContainsKey(symbol.GetFullName()));
+                symbols[symbol.GetFullName()] = symbol;
             });
             return symbols;
         }
 
-        // Recursively call visit(fullName, Symbol) for each symbol in the root.
+        // Recursively call visit for each symbol in the root.
         public static void VisitAll(Symbol root, Action<Symbol> visit)
         {
-            if (root.FullName != "")
+            if (root.GetFullName() != "")
                 visit(root);
             foreach (var sym in root.Children)
             {
@@ -59,56 +103,35 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
+        /// Check to make sure the given symbol belongs to this symbol table
+        /// </summary>
+        bool SymbolBelongs(Symbol symbol)
+        {
+            while (symbol != null)
+            {
+                if (symbol == mRoot)
+                    return true;
+                symbol = symbol.Parent;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Add a new symbol to its parent, mark duplicates if there is a collision.
         /// Returns true if it was added (false for duplicate).
         /// </summary>
-        public bool Add(Symbol newSymbol)
+        public bool AddOrReject(Symbol newSymbol)
         {
+            Debug.Assert(SymbolBelongs(newSymbol));
             var parentSymbol = newSymbol.Parent;
             if (!parentSymbol.Children.TryGetValue(newSymbol.Name, out var remoteSymbol))
             {
-                parentSymbol.Children[newSymbol.Name] = newSymbol;
+                parentSymbol.SetChildInternal(newSymbol.Name, newSymbol);
                 return true;
             }
             Reject(newSymbol.Token, $"Duplicate symbol. There is a {remoteSymbol.Kind} in this scope with the same name.");
             return false;
         }
-
-        /// <summary>
-        /// Find the namespace, return NULL if not found or it's not a namespace.
-        /// The namespace is a path in dotted format (e.g. "Zurfur.SecialNamespace")
-        /// </summary>
-        public SymNamespace FindNamespace(string name)
-        {
-            var sym = (Symbol)mRoot;
-            foreach (var n in name.Split('.'))
-            {
-                if (!sym.Children.TryGetValue(n, out sym))
-                    return null;
-                if (sym as SymNamespace == null)
-                    return null;
-            }
-            return sym as SymNamespace;
-        }
-
-        /// <summary>
-        /// Find the symbol in the scope, or null if it is not found.
-        /// Does not search use statements.
-        /// </summary>
-        public Symbol FindScope(string name, Symbol scope)
-        {
-            while (scope.Name != "")
-            {
-                if (scope.Children.TryGetValue(name, out var symbol))
-                    return symbol;
-                scope = scope.Parent;
-            }
-            if (scope.Children.TryGetValue(name, out var symbol2))
-                return symbol2;
-
-            return null;
-        }
-
 
         /// <summary>
         /// Returns the symbol at the given path in the package.  Generates exception if not found.
@@ -144,24 +167,52 @@ namespace Gosub.Zurfur.Compiler
             return symbol;
         }
 
+
+        /// <summary>
+        /// Find the symbol in the scope, or null if it is not found.
+        /// Does not search use statements.
+        /// </summary>
+        public Symbol FindInScope(string name, Symbol scope)
+        {
+            while (scope.Name != "")
+            {
+                if (scope.Children.TryGetValue(name, out var symbol))
+                    return symbol;
+                scope = scope.Parent;
+            }
+            if (scope.Children.TryGetValue(name, out var symbol2))
+                return symbol2;
+
+            return null;
+        }
+
+        public Symbol FindInScopeOrReject(Token name, Symbol scope)
+        {
+            var sym = FindInScope(name.Name, scope);
+            if (sym == null)
+                Reject(name, "Undefined symbol");
+            return sym;
+        }
+
         /// <summary>
         /// Find a symbol in the current scope.  If it's not found, scan
         /// use statements for all occurences. 
+        /// Must call GenerateLookup to enter all namespaces before calling this.
         /// Marks an error if undefined or duplicate.  Returns null on error.
         /// 
         /// TBD: If symbol is unique in this package, but duplicated in an
         /// external package, is that an error?  Yes for now.
         /// </summary>
-        public Symbol FindUse(Token name, Symbol scope, string[] use)
+        public Symbol FindInScopeOrUseOrReject(Token name, Symbol scope, string[] use)
         {
-            var symbol = FindScope(name.Name, scope);
+            var symbol = FindInScope(name.Name, scope);
             if (symbol != null)
                 return symbol;
 
             var symbols = new List<Symbol>(); // TBD: Be kind to GC
             foreach (var u in use)
             {
-                var ns = FindNamespace(u);
+                var ns = LookupNamespace(u);
                 Debug.Assert(ns != null);
                 if (ns != null 
                     && ns.Children.TryGetValue(name.Name, out var newSymbol))
@@ -177,8 +228,8 @@ namespace Gosub.Zurfur.Compiler
             }
             if (symbols.Count > 1)
             {
-                Reject(name, "Multiple symbols defined.  Found in '" + symbols[0].Locations[0].File.Path
-                    + "' and '" + symbols[1].Locations[0].File.Path + "'");
+                Reject(name, "Multiple symbols defined.  Found in '" + symbols[0].Locations[0].File
+                    + "' and '" + symbols[1].Locations[0].File + "'");
                 return null;
             }
             return symbols[0];

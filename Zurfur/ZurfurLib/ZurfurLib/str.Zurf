@@ -7,9 +7,9 @@ pub type ro str = Array<byte>
     //       and its implicit conversion to Span
 
 
-    pub fun new() nil { todo() }
-    pub fun new(s str) nil { todo() }
-    pub fun new(s Span<byte>) nil { todo() }
+    pub fun new() void { todo() }
+    pub fun new(s str) void { todo() }
+    pub fun new(s Span<byte>) void { todo() }
     pub fun operator[](index int) byte
         return todo()
     pub fun operator[](range Range) Span<byte>

@@ -6,7 +6,7 @@
 
 namespace Zurfur
 
-pub type nil { }
+pub type void { }
 pub type object { }
 pub type int = i32
 pub type uint = u32
@@ -25,7 +25,7 @@ pub type xuint = u32
 pub type ro bool
     implements Equatable<bool>
 {
-    pub noself fun new(a bool) nil extern
+    pub noself fun new(a bool) void extern
     pub noself fun GetHashCode(a bool) uint extern
     pub noself fun Equals(a bool, b bool) bool extern
 
@@ -44,7 +44,7 @@ pub type ro i8
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a i8) nil extern
+    pub fun new(a i8) void extern
     pub fun cast(a u8) i8 extern
     pub fun cast(a i16) i8 extern
     pub fun cast(a u16) i8 extern
@@ -78,7 +78,7 @@ pub type ro u8
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a u8) nil extern
+    pub fun new(a u8) void extern
     
     pub fun cast(a i8) u8 extern
     pub fun cast(a i16) u8 extern
@@ -115,7 +115,7 @@ pub type ro i16
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a i16) nil extern
+    pub fun new(a i16) void extern
 
     pub fun cast(a u16) i16 extern
     pub fun cast(a i32) i16 extern
@@ -147,7 +147,7 @@ pub type ro u16
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a u16) nil extern
+    pub fun new(a u16) void extern
 
     pub fun cast(a i8) u16 extern
     pub fun cast(a i16) u16 extern
@@ -181,7 +181,7 @@ pub type ro i32
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a i32) nil extern
+    pub fun new(a i32) void extern
 
     pub fun cast(a u32) i32 extern
     pub fun cast(a i64) i32 extern
@@ -236,7 +236,7 @@ pub type ro u32
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a u32) nil extern
+    pub fun new(a u32) void extern
 
     pub fun cast(a i8) u32 extern
     pub fun cast(a i16) u32 extern
@@ -293,7 +293,7 @@ pub type ro i64
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a i64) nil extern
+    pub fun new(a i64) void extern
 
     pub fun cast(a u64) i64 extern
     pub fun cast(a f32) i64 extern
@@ -344,7 +344,7 @@ pub type ro u64
     pub const Origin u64 = 0
     pub const Identity u64 = 1
 
-    pub fun new(a u64) nil extern
+    pub fun new(a u64) void extern
 
     pub fun cast(a i8) u64 extern
     pub fun cast(a i16) u64 extern
@@ -399,7 +399,7 @@ pub type ro f32
     pub const Origin f32 = 0
     pub const Identity f32 = 1
 
-    pub fun new(a f32) nil extern
+    pub fun new(a f32) void extern
 
     pub fun cast(a f64) f32 extern
     pub fun cast(a decimal) f32 extern
@@ -477,7 +477,7 @@ pub type ro f64
     pub const Origin f64 = 0
     pub const Identity f64 = 1
 
-    pub fun new(a f64) nil extern
+    pub fun new(a f64) void extern
     pub fun cast(a decimal) f64 extern
     
     pub fun implicit(a f64) decimal extern
@@ -544,7 +544,7 @@ pub type ro f64
 pub type ro decimal
     implements IArithmetic<decimal>
 {
-    pub fun new(a decimal) nil extern
+    pub fun new(a decimal) void extern
 
     pub const MaxValue decimal = 1E+1000M
     pub const MinValue decimal = -1E+1000M
