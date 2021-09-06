@@ -68,7 +68,7 @@ pub interface IGeneric<Q>
 pub type MyGeneric<QQ>
     implements IGeneric<QQ>
 {
-    pub fun IGeneric<QQ>.A<T>(a QQ) int { }
+    pub fun IGeneric<QQ>::A<T>(a QQ) int { }
 }
 
 /// Compiler implemented interface created for all structs that are blittable.

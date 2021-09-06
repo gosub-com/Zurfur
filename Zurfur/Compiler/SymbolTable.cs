@@ -33,7 +33,7 @@ namespace Gosub.Zurfur.Compiler
             mLookup.Clear();
             VisitAll((s) => 
             {
-                if (s is SymNamespace || s.GetType() == typeof(SymType))
+                if (s is SymNamespace || s.GetType() == typeof(SymType) || s is SymParameterizedType)
                 {
                     var fullName = s.GetFullName();
                     Debug.Assert(!mLookup.ContainsKey(fullName));

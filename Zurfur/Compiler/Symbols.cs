@@ -215,43 +215,46 @@ namespace Gosub.Zurfur.Compiler
     /// The symbol name is a combination of both parentName<T0,T1,T2...>
     /// or for generic functions fun(T0,T1)(R0,R1)
     /// </summary>
-    class SymSpecializedType : SymType
+    class SymParameterizedType : SymType
     {
-        public readonly string[] Params;
-        public readonly string[] Returns;
+        public readonly Symbol[] Params;
+        public readonly Symbol[] Returns;
 
-        public override string Kind => "specialized type";
+        public override string Kind => "parameterized type";
 
-        public SymSpecializedType(Symbol parent, string name, string[] typeParams)
-            : base(parent, ":SPECIALIZED:" + name + "<" + TypeParamsFullName(typeParams) + ">")
+        // Constructor for generic type name: F<p1,p2...>
+        public SymParameterizedType(Symbol parent, Symbol[] typeParams)
+            : base(parent, "$PARAMETERIZED:<" + FullNameTypeParams(typeParams) + ">")
         {
             Params = typeParams;
-            Returns = Array.Empty<string>();
+            Returns = Array.Empty<Symbol>();
         }
-        public SymSpecializedType(Symbol parent, string name, string[] typeParams, string[] typeReturns)
-            : base(parent, ":SPECIALIZED:" + name + "." + ParamsFuncFullName(typeParams, typeReturns))
+
+        // Constructor for generic function name: F<p1,p2...><r1,r2...>
+        public SymParameterizedType(Symbol parent, Symbol[] typeParams, Symbol[] typeReturns)
+            : base(parent, "$PARAMETERIZED:" + FullNameFuncParams(typeParams, typeReturns))
         {
             Params = typeParams;
             Returns = typeReturns;
         }
 
-        public static string ParamsFuncFullName(string[] typeParams, string[] typeReturns)
+        public static string FullNameFuncParams(Symbol[] typeParams, Symbol[] typeReturns)
         {
-            return "(" + TypeParamsFullName(typeParams) + ")(" + TypeParamsFullName(typeReturns) + ")";
+            return "(" + FullNameTypeParams(typeParams) + ")(" + FullNameTypeParams(typeReturns) + ")";
         }
 
-        static string TypeParamsFullName(string[] typeParams)
+        static string FullNameTypeParams(Symbol[] typeParams)
         {
             if (typeParams.Length == 0)
                 return "";
             if (typeParams.Length == 1)
-                return typeParams[0];
+                return typeParams[0].GetFullName();
             StringBuilder sb = new StringBuilder();
-            sb.Append(typeParams[0]);
+            sb.Append(typeParams[0].GetFullName());
             for (int i = 1; i < typeParams.Length; i++)
             {
                 sb.Append(",");
-                sb.Append(typeParams[i]);
+                sb.Append(typeParams[i].GetFullName());
             }
             return sb.ToString();
         }

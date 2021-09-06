@@ -1,7 +1,9 @@
 ﻿// Misc compiler testing
+pragma ShowParse
 use Zurfur
 
 namespace AATest
+
 
 type aStruct(a int)
 
@@ -13,7 +15,7 @@ pub type AGenericTest<T, QQQ>
 
     pub fun new(a int) void
         nop()
-
+   
     pub fun P1() void { return 0; }
     pub fun P2<Quack>(a Quack, b QQQ) void { return (a.ToStr() + b.ToStr()).Length; }
     pub fun P3<Z>() void { return 0; }
@@ -25,14 +27,20 @@ pub type AGenericTest<T, QQQ>
     @XField0 int = 0
     @Xfield1 Inner1<str, aStruct>
     @Xfield2 Inner1<str, T>
-    @Xfield3 Inner1<QQQ, T>.Inner2<int, int> // TBD: Follow the dot
-    @Xfield4 Inner1<int, int>.Inner2<int, int> // TBD: Follow the dot
-    @Xfield5 Zurfur.int
+    @Xfield4a AATest.AGenericTest<T>.Inner1<QQQ, T>.T<int, int> // TBD: Bug (undefined T)
+    @Xfield4b AATest.AGenericTest<T>.Inner1<QQQ, T>.Inner2<int> // TBD: Bug (wrong num of params for Inner2)
+    @Xfield4c AATest.AGenericTest<T>.Inner1<QQQ, T>.Inner1<int, int> // TBD: Bug (Inner1 not acceptable)
+    @Xfield4 AATest.AGenericTest<T>.Inner1<QQQ, T>.Inner2<int, int>
+        = AATest.AGenericTest[T].Inner1[QQQ, T].Inner2[int, int]
+    @Xfield3 AGenericTest<T>.Inner1<QQQ, T>.Inner2<int, int>
+    @Xfield5 Inner1<int, int>.Inner2<int, int>
+    @Xfield6 Zurfur.int
+    @Xfield7 AATest.AGenericTest<T>.Inner1<QQQ, T>.Inner2<int, int> // TBD: Follow the dot
 
     // TBD: Error because Inner1 requires 2 type parameters
-    @Xfield6 Inner1<int>
-    @Xfield7 XField0
-    @Xfield8 Zurfur
+    @Xfield8 Inner1<int>
+    @Xfield9 XField0
+    @Xfield10 Zurfur
 
     // TBD: Follow the dot
     pub fun UseIt(x Zurfur.int, y List<Inner1>, z List<str<int>>) void

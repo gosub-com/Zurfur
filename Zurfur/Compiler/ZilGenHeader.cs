@@ -19,37 +19,40 @@ namespace Gosub.Zurfur.Compiler
 
     class ZilGenHeader
     {
-        static WordSet sTypeSymbols = new WordSet("? * ^ [ " + ParseZurf.VT_TYPE_ARG);
         static WordSet sTypeAttributes = new WordSet("in out mut ro ref");
 
         SymbolTable mSymbols = new SymbolTable();
+        Dictionary<string, SymType> sUnaryTypeSymbols = new Dictionary<string, SymType>();
 
         // TBD: Still figuring out how to deal with these.
-        SymbolTable mSpecializedTypes = new SymbolTable();
-        SymbolTable mFuncTypes = new SymbolTable();
+        Dictionary<string, SymParameterizedType> mSpecializedTypes = new Dictionary<string, SymParameterizedType>();
 
         public SymbolTable Symbols => mSymbols;
 
         public ZilGenHeader()
         {
+            sUnaryTypeSymbols["*"] = new SymType(mSymbols.Root, "$ptr");
+            sUnaryTypeSymbols["^"] = new SymType(mSymbols.Root, "$ref");
+            sUnaryTypeSymbols["["] = new SymType(mSymbols.Root, "$span");
+            sUnaryTypeSymbols["?"] = new SymType(mSymbols.Root, "$nullable");
+            sUnaryTypeSymbols["fun"] = new SymType(mSymbols.Root, "$fun");
+            sUnaryTypeSymbols["afun"] = new SymType(mSymbols.Root, "$afun");
+            foreach (var v in sUnaryTypeSymbols.Values)
+                mSymbols.AddOrReject(v);
         }
 
 
-        /// <summary>
-        /// Step 1: Find all the symbols in this package.
-        /// Load namespaces, types, fields, and method group names.
-        /// Each file is independent, requires nothing from other packages.
-        /// The methods themselves can't be added until we have complete type info.
-        /// </summary>
         public void GenerateHeader(Dictionary<string, SyntaxFile> syntaxFiles)
         {
+            // Does not require symbols from external packages
             Dictionary<string, string[]> fileUses = new Dictionary<string, string[]>();
-
             AddNamespaces();
             mSymbols.GenerateLookup();
             AddTypes();
             AddFields();
             AddMethodGroups();
+
+            // This requires symbols from external packages
             ProcessUseStatements();
             ResolveFieldTypes();
             ResolveMethodGroups();
@@ -378,7 +381,7 @@ namespace Gosub.Zurfur.Compiler
         /// and given a full name (e.g. 'int' -> 'Zufur.int').  Generic types
         /// must have all type arguments resolved as well.
         /// Return symbol is always a namespace, type, or type parameter.
-        /// All others are marked with an error.
+        /// Null is returned for error, and the error is marked.
         /// </summary>
         Symbol ResolveTypeScope(SyntaxExpr typeExpr, bool top, Symbol scope, string []useScope, string file)
         {
@@ -399,9 +402,6 @@ namespace Gosub.Zurfur.Compiler
                 return rightSymbol;
             }
 
-            if (typeExpr.Token == "fun" || typeExpr.Token == "afun")
-                return ResolveTypeFun();
-
             if (sTypeAttributes.Contains(typeExpr.Token))
             {
                 // TBD: Figure out what to do about the attributes.  For now skip them.
@@ -412,7 +412,10 @@ namespace Gosub.Zurfur.Compiler
                 return null;
             }
 
-            if (sTypeSymbols.Contains(typeExpr.Token))
+            if (typeExpr.Token == "fun" || typeExpr.Token == "afun")
+                return ResolveTypeFun();
+
+            if (sUnaryTypeSymbols.ContainsKey(typeExpr.Token) || typeExpr.Token == ParseZurf.VT_TYPE_ARG)
                 return ResolveTypeGenericSymbol();
 
             // Resolve regular symbol
@@ -442,28 +445,30 @@ namespace Gosub.Zurfur.Compiler
                 //foreach (var generic in typeExpr[0])
                 //    mSymbols.Add(new SymTypeArg(scope, file, generic.Token, 0));
 
-                var paramTypes = new List<string>();
-                var returnTypes = new List<string>();
+                var paramTypes = new List<Symbol>();
+                var returnTypes = new List<Symbol>();
                 var resolved1 = ResolveTypeFunParams(typeExpr[0], paramTypes);
                 var resolved2 = ResolveTypeFunParams(typeExpr[1], returnTypes);
                 if (!resolved1 || !resolved2)
                     return null;
 
-                if (typeExpr[2].Token.Name != "") // error attribute
-                    returnTypes.Add(typeExpr[2].Token.Name);
+                // TBD: Figure out what to do with this (error/exit attribute)
+                //if (typeExpr[2].Token.Name != "") // error attribute
+                //    returnTypes.Add(typeExpr[2].Token.Name);
 
-                var spec = new SymSpecializedType(mFuncTypes.Root, typeExpr.Token, paramTypes.ToArray(), returnTypes.ToArray());
+                var typeParent = sUnaryTypeSymbols[typeExpr.Token.Name];
+                var spec = new SymParameterizedType(typeParent, paramTypes.ToArray(), returnTypes.ToArray());
 
                 // Return the one in the symbol table, if it exists
-                if (mFuncTypes.Root.Children.TryGetValue(spec.Name, out var specExists))
-                    spec = (SymSpecializedType)specExists;
+                if (mSpecializedTypes.TryGetValue(spec.GetFullName(), out var specExists))
+                    spec = specExists;
                 else
-                    mFuncTypes.AddOrReject(spec);
+                    mSpecializedTypes[spec.GetFullName()] = spec;
                 return spec;
             }
 
             // Resolve "fun" or "afun" parameter types
-            bool ResolveTypeFunParams(SyntaxExpr paramExprs, List<string> paramTypes)
+            bool ResolveTypeFunParams(SyntaxExpr paramExprs, List<Symbol> paramTypes)
             {
                 bool resolved = true;
                 foreach (var pType in paramExprs)
@@ -471,7 +476,7 @@ namespace Gosub.Zurfur.Compiler
                     var sym = ResolveTypeScope(pType[0], true, scope, useScope, file);
                     if (sym is SymType || sym is SymTypeParam)
                     {
-                        paramTypes.Add(sym.GetFullName());
+                        paramTypes.Add(sym);
                         var newMethodParam = new SymMethodParam(scope, file, pType.Token);
                         newMethodParam.Token.AddInfo(newMethodParam);
                         mSymbols.AddOrReject(newMethodParam); // TBD: Fix
@@ -493,36 +498,43 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 }
                 // Resolve type parameters
-                var typeParams = new List<string>();
+                var typeParams = new List<Symbol>();
                 if (!ResolveTypeGenericParams(typeParams))
                     return null;
-                var typeParent = typeParams[0];
-                typeParams.RemoveAt(0);
 
-                // Generic type parameters (e.g. List<int>) or unary symbol (e.g. *int)
-                SymSpecializedType spec;
-                if (typeExpr.Token.Name == ParseZurf.VT_TYPE_ARG)
-                    spec = new SymSpecializedType(mSpecializedTypes.Root, typeParent, typeParams.ToArray());
+                // Process special unary type operators here
+                Symbol typeParent;
+                if (typeExpr.Token == ParseZurf.VT_TYPE_ARG)
+                {
+                    // Type argument list: F<t1,t2...>
+                    typeParent = typeParams[0];
+                    typeParams.RemoveAt(0);
+                }
                 else
-                    spec = new SymSpecializedType(mSpecializedTypes.Root, typeExpr.Token.Name, new string[] { typeParent });
+                {
+                    // Unary type: '*type', etc.
+                    typeParent = sUnaryTypeSymbols[typeExpr.Token];
+                }
+
+                var sym = new SymParameterizedType(typeParent, typeParams.ToArray());
 
                 // Return the one in the symbol table, if it exists
-                if (mSpecializedTypes.Root.Children.TryGetValue(spec.Name, out var specExists))
-                    spec = (SymSpecializedType)specExists;
+                if (mSpecializedTypes.TryGetValue(sym.GetFullName(), out var specExists))
+                    sym = specExists;
                 else
-                    mSpecializedTypes.AddOrReject(spec);
-                return spec;
+                    mSpecializedTypes[sym.GetFullName()] = sym;
+                return sym;
             }
 
 
-            bool ResolveTypeGenericParams(List<string> typeParams)
+            bool ResolveTypeGenericParams(List<Symbol> typeParams)
             {
                 var resolved = true;
                 foreach (var typeArg in typeExpr)
                 {
                     var sym = ResolveTypeScope(typeArg, true, scope, useScope, file);
                     if (sym is SymType || sym is SymTypeParam)
-                        typeParams.Add(sym.GetFullName());
+                        typeParams.Add(sym);
                     else
                         resolved = false;
                 }

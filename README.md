@@ -106,7 +106,7 @@ argument, and the return type comes after the parameters.
 Extension methods are allowed at the namespace level:
 
     // Declare an extension method for strings
-    pub str.Rest() str
+    pub str::Rest() str
         return Count == 0 ? "" : str(this[1..])
 
 By default, functions pass parameters as read-only reference.  The exception
