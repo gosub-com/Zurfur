@@ -77,8 +77,9 @@ namespace Gosub.Zurfur.Compiler
                 // Count symbols
                 int count = 0;
                 int types = 0;
-                int simpleTypes = 0;
-                int genericTypes = 0;
+                int typesNonGeneric = 0;
+                int typesGeneric = 0;
+                int typeSpecializations = 0;
                 int typeParams = 0;
                 int methodGroups = 0;
                 int methods = 0;
@@ -93,10 +94,12 @@ namespace Gosub.Zurfur.Compiler
                         var t = sym as SymType;
                         var numGeneric = t.FindChildren<SymTypeParam>().Count;
                         if (numGeneric == 0)
-                            simpleTypes++;
+                            typesNonGeneric++;
                         else
-                            genericTypes++;
+                            typesGeneric++;
                     }
+                    if (sym.GetType() == typeof(SymParameterizedType))
+                        typeSpecializations++;
                     if (sym.GetType() == typeof(SymTypeParam))
                         typeParams++;
                     if (sym.GetType() == typeof(SymMethod))
@@ -110,7 +113,8 @@ namespace Gosub.Zurfur.Compiler
                 });
 
                 headerFile.Add("SYMBOLS: " + count);
-                headerFile.Add($"    Types: {types} ({simpleTypes} non-generic, {genericTypes} generic)");
+                headerFile.Add($"    Types: {types} ({typesNonGeneric} non-generic, {typesGeneric} generic)");
+                headerFile.Add($"    Specializations: {typeSpecializations}");
                 headerFile.Add($"    Type parameters: {typeParams}");
                 headerFile.Add($"    Methods: {methods} ({methodParams} parameters, {methodGroups} groups)");
                 headerFile.Add($"    Fields: {fields}");
@@ -147,15 +151,12 @@ namespace Gosub.Zurfur.Compiler
                 {
                     var symbol = ds[s];
 
-                    if (symbol is SymMethodGroup)
-                        continue;
-                    if (symbol is SymMethodParam)
-                        continue;
-                    if (symbol is SymTypeParam)
-                        continue;
-                    if (symbol is SymNamespace)
-                        continue;
-                    if (symbol is SymField)
+                    if (symbol is SymMethodGroup
+                            || symbol is SymMethodParam
+                            || symbol is SymTypeParam
+                            || symbol is SymNamespace
+                            || symbol is SymField
+                            || symbol is SymParameterizedType)
                         continue;
 
                     headerFile.Add($"    {symbol.Kind}: {s}");

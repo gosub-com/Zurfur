@@ -330,16 +330,10 @@ namespace Gosub.Zurfur.Compiler
         private static void RemoveZilInfo(Token token)
         {
             token.RemoveInfo<Symbol>();
-            token.RemoveInfo<ZilError>();
-            token.RemoveInfo<ZilWarn>();
-
-            // TBD: Move Error/Warn setting logic into Token class
-            token.Error = false;
-            token.Warn = false;
-            if (token.GetInfo<TokenError>() != null)
-                token.Error = true;
-            else if (token.GetInfo<TokenWarn>() != null)
-                token.Warn = true;
+            if (token.Error)
+                token.RemoveInfo<ZilError>();
+            if (token.Warn)
+                token.RemoveInfo<ZilWarn>();
         }
 
         int CountErrors()

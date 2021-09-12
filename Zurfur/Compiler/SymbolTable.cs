@@ -13,6 +13,8 @@ namespace Gosub.Zurfur.Compiler
     class SymbolTable
     {
         SymNamespace mRoot;
+
+        // Lookup table for namespaces and types
         Dictionary<string, Symbol> mLookup = new Dictionary<string, Symbol>();
 
         public SymbolTable()
@@ -43,15 +45,36 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
+        /// TBD: I am still figuring out if this is a good way to deal with specializations.
+        /// For now, just dump them in the master symbol table so we can look them up.
+        /// Call this after calling `GenerateLookup`.
+        /// </summary>
+        public void AddSpecializations(Dictionary<string, SymParameterizedType> specializations)
+        {
+            foreach (var kv in specializations)
+            {
+                var symbol = kv.Value;
+                var fullName = symbol.GetFullName();
+                Debug.Assert(kv.Key == fullName);
+                Debug.Assert(!mLookup.ContainsKey(fullName));
+                Debug.Assert(SymbolBelongs(symbol));
+                symbol.Parent.SetChildInternal(symbol);
+                mLookup[fullName] = kv.Value;
+            }
+        }
+
+        /// <summary>
         /// Lookup a type.
         /// Call `GenerateLookup` before calling this.
-        /// Returns NULL if name doesn't exist.
+        /// Returns NULL if name doesn't exist or it's not a type of some sort.
         /// </summary>
-        public SymType LookupType(string name)
+        public Symbol LookupType(string name)
         {
             if (!mLookup.TryGetValue(name, out var symbol))
                 return null;
-            return symbol as SymType;
+            if (symbol is SymType || symbol is SymParameterizedType || symbol is SymTypeParam)
+                return symbol;
+            return null;
         }
 
         /// <summary>
@@ -126,7 +149,7 @@ namespace Gosub.Zurfur.Compiler
             var parentSymbol = newSymbol.Parent;
             if (!parentSymbol.Children.TryGetValue(newSymbol.Name, out var remoteSymbol))
             {
-                parentSymbol.SetChildInternal(newSymbol.Name, newSymbol);
+                parentSymbol.SetChildInternal(newSymbol);
                 return true;
             }
             Reject(newSymbol.Token, $"Duplicate symbol. There is a {remoteSymbol.Kind} in this scope with the same name.");

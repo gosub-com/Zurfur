@@ -11,13 +11,13 @@ use Zurfur
 namespace TestSyntax
 
 
-static fun A() { } // Expecting a type name
-static fun A() void{ } // Duplicate
-static fun B() int { } // Duplicate
-static fun B() f32 { } // Duplicate
-static fun C(a int, a int) void { } // Duplicate parameter
-static fun D<X,X>(a X) void { } // Duplicate type parameter
-static fun E<X>(a Y) void { } // Unresolved type
+fun A() { } // Expecting a type name
+fun A() void{ } // Duplicate
+fun B() int { } // Duplicate
+fun B() f32 { } // Duplicate
+fun C(a int, a int) void { } // Duplicate parameter
+fun D<X,X>(a X) void { } // Duplicate type parameter
+fun E<X>(a Y) void { } // Unresolved type
 
 type A { pub fun A() void { } } // Same name as parent
 type C<T> { type D<T> { } } // Same type arg name as parent

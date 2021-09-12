@@ -42,7 +42,9 @@ namespace Gosub.Zurfur.Lex
         Meta = 8,
         Underline = 16,
         ReadOnlyMask = Eoln | Boln,
-        Shrink = 32
+        Shrink = 32,
+        Continuation = 64,
+        VerticalLine = 128
     }
 
     /// <summary>
@@ -138,24 +140,21 @@ namespace Gosub.Zurfur.Lex
 
         /// <summary>
         /// Alias for Subtype == Error
-        /// TBD: This bit should be readonly under total control of this class
-        ///      (i.e.  AddInfo and RemoveInfo set bits accordingly)
+        /// TBD: Resetting an error does not check to see if there is a warning
         /// </summary>
         public bool Error
         {
             get => Subtype == eTokenSubtype.Error;
-            set { Subtype = value ? eTokenSubtype.Error : eTokenSubtype.Normal; }
+            private set { Subtype = value ? eTokenSubtype.Error : eTokenSubtype.Normal; }
         }
 
         /// <summary>
         /// Alias for Subtype == Warn (but does not set if the token already has an error)
-        /// TBD: This bit should be readonly under total control of this class
-        ///      (i.e.  AddInfo and RemoveInfo set bits accordingly)
         /// </summary>
         public bool Warn
         {
             get => Subtype == eTokenSubtype.Warn;
-            set { if (Subtype != eTokenSubtype.Error) Subtype = value ? eTokenSubtype.Warn : eTokenSubtype.Normal; }
+            private set { if (Subtype != eTokenSubtype.Error) Subtype = value ? eTokenSubtype.Warn : eTokenSubtype.Normal; }
         }
 
         public bool Grayed
@@ -188,6 +187,16 @@ namespace Gosub.Zurfur.Lex
             get => (mBits & eTokenBits.Shrink) != 0;
             set { mBits = mBits & ~eTokenBits.Shrink | (value ? eTokenBits.Shrink : 0); }
         }
+        public bool Continuation
+        {
+            get => (mBits & eTokenBits.Continuation) != 0;
+            set { mBits = mBits & ~eTokenBits.Continuation | (value ? eTokenBits.Continuation : 0); }
+        }
+
+        public bool VerticalLine
+        {
+            get => (mBits & eTokenBits.VerticalLine) != 0;
+        }
 
         public void SetEolnByLexerOnly()
         {
@@ -210,10 +219,33 @@ namespace Gosub.Zurfur.Lex
             mInfo = new ObjectBag();
         }
 
-        public bool HasInfo() => mInfo.HasInfo();
-        public void AddInfo(object info) => mInfo.AddInfo(info);
-        public void RemoveInfo<T>() => mInfo.RemoveInfo<T>();
-        public void SetInfo<T>(T info) => mInfo.SetInfo(info);
+        public void AddInfo<T>(T info)
+        {
+            if (info is TokenVerticalLine)
+                mBits |= eTokenBits.VerticalLine;
+            if (info is TokenError)
+                Error = true;
+            if (info is TokenWarn)
+                Warn = true;
+            mInfo.AddInfo(info);
+        }
+        public void RemoveInfo<T>()
+        {
+            mInfo.RemoveInfo<T>();
+            if (typeof(T) == typeof(TokenVerticalLine) || typeof(T).IsSubclassOf(typeof(TokenVerticalLine)))
+                mBits &= ~eTokenBits.VerticalLine;
+            if (typeof(T) == typeof(TokenError) || typeof(T).IsSubclassOf(typeof(TokenError)))
+                if (GetInfo<TokenError>() == null)
+                    Error = false;
+            if (typeof(T) == typeof(TokenWarn) || typeof(T).IsSubclassOf(typeof(TokenWarn)))
+                if (GetInfo<TokenWarn>() == null)
+                    Warn = false;
+        }
+        public void SetInfo<T>(T info)
+        {
+            RemoveInfo<T>();
+            AddInfo(info);
+        }
         public T GetInfo<T>() => mInfo.GetInfo<T>();
         public T[] GetInfos<T>() => mInfo.GetInfos<T>();
         public string GetInfoString() => mInfo.GetInfoString();
@@ -224,7 +256,6 @@ namespace Gosub.Zurfur.Lex
         public void AddError(string errorMessage)
         {
             // Display error message
-            Error = true;
             AddInfo(new TokenError(errorMessage));
         }
 
@@ -233,7 +264,6 @@ namespace Gosub.Zurfur.Lex
         /// </summary>
         public void AddError(TokenError error)
         {
-            Error = true;
             AddInfo(error);
         }
 
@@ -242,7 +272,6 @@ namespace Gosub.Zurfur.Lex
         /// </summary>
         public void AddWarning(string warnMessage)
         {
-            Warn = true;
             AddInfo(new TokenWarn(warnMessage));
         }
 
@@ -251,7 +280,6 @@ namespace Gosub.Zurfur.Lex
         /// </summary>
         public void AddWarning(TokenWarn warnMessage)
         {
-            Warn = true;
             AddInfo(warnMessage);
         }
 
@@ -260,8 +288,12 @@ namespace Gosub.Zurfur.Lex
         /// </summary>
         public void SetUrl(string file, Token token)
         {
-            RemoveInfo<TokenUrl>();
-            AddInfo(new TokenUrl("File://" + file + "?x=" + token.X + "&y=" + token.Y));
+            SetInfo(new TokenUrl("File://" + file + "?x=" + token.X + "&y=" + token.Y));
+        }
+
+        public void SetVerticalLine(TokenVerticalLine info)
+        {
+            SetInfo(info);
         }
 
         public string Url
@@ -273,8 +305,7 @@ namespace Gosub.Zurfur.Lex
             }
             set
             {
-                RemoveInfo<TokenUrl>();
-                AddInfo(new TokenUrl(value));
+                SetInfo(new TokenUrl(value));
             }
         }
 
@@ -324,11 +355,6 @@ namespace Gosub.Zurfur.Lex
         {
             object mInfo;
 
-            public bool HasInfo()
-            {
-                return mInfo != null;
-            }
-
             public void AddInfo(object info)
             {
                 var obj = mInfo;
@@ -376,12 +402,6 @@ namespace Gosub.Zurfur.Lex
                         if (list[i] is T)
                             list[i] = null;
                 }
-            }
-
-            public void SetInfo<T>(T info)
-            {
-                RemoveInfo<T>();
-                AddInfo(info);
             }
 
             public T GetInfo<T>()
@@ -538,6 +558,15 @@ namespace Gosub.Zurfur.Lex
         {
             return Message;
         }
+    }
+
+    public class TokenVerticalLine
+    {
+        public int X;
+        public int Y;
+        public int Lines;
+        public string HoverMessage = "";
+        public bool Error;
     }
 
 }

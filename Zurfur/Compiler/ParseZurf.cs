@@ -20,7 +20,7 @@ namespace Gosub.Zurfur.Compiler
         public const string VT_TYPE_ARG = "$"; // Differentiate from '<' (must be 1 char long)
 
         // TBD: Allow pragmas to be set externally
-        static WordSet sPragmas = new WordSet("ShowParse ShowMeta NoParse");
+        static WordSet sPragmas = new WordSet("ShowParse ShowMeta NoParse AllowUnderscoreDefinitions");
 
 
         ParseZurfCheck mZurfParseCheck;
@@ -37,6 +37,7 @@ namespace Gosub.Zurfur.Compiler
         StringBuilder       mComments = new StringBuilder();
         int                 mTernaryLevel;
         bool                mShowMeta;
+        bool                mAllowUnderscoreDefinitions;
 
         // Be kind to GC
         Queue<List<SyntaxExpr>>   mExprCache = new Queue<List<SyntaxExpr>>();
@@ -60,7 +61,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sReservedWords = new WordSet("abstract as base break case catch class const "
             + "continue default delegate do then else elif enum explicit extern true false defer use "
             + "finally fixed for goto if implicit in interface internal is lock namespace module include "
-            + "new null operator out override pub public private protected readonly ro ref dref mut "
+            + "new null operator out override pub public private protected readonly ro ref dref mut imut "
             + "return unsealed unseal sealed sizeof stackalloc heapalloc struct switch this self throw try "
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "
@@ -68,7 +69,7 @@ namespace Gosub.Zurfur.Compiler
             + "trait mixin extends youdo implements implement impl union fun afun def yield let cast "
             + "any dyn loop select match event aevent from to of on cofun cofunc global local val it "
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
-            + "of sync task except exception raise");
+            + "of sync task except exception raise loc local global");
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
             + "noself unsealed abstract virtual override ro");
@@ -94,8 +95,7 @@ namespace Gosub.Zurfur.Compiler
         // For now, do not allow more than one level.  Maybe we want to allow it later,
         // but definitely do not allow them to include compounds with curly braces.
         static WordSet sNoSubCompoundStatement = new WordSet("type class catch error " 
-                                + "get set pub private protected namespace module static noself fun afun prop "
-                                + "for do scope while if else elif");
+                                + "get set pub private protected namespace module static noself fun afun prop ");
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
         // The following symbols allow us to call functions, create types, access static members, and cast
@@ -149,6 +149,22 @@ namespace Gosub.Zurfur.Compiler
             mLexer.EndToken.Clear();
             mLexer.MetaTokens.Clear();
             mLexer.MetaTokens.Add(mLexer.EndToken);
+
+            // TBD: Pre-process all continuations before parsing.
+            //      Then insert ";" using that info.
+            //      Also, make this into a function.
+            for (int lineIndex = 0;  lineIndex < mLexer.LineCount;  lineIndex++)
+            {
+                var line = mLexer.GetLineTokens(lineIndex);
+                if (line.Length != 0)
+                {
+                    var token = line[0];
+                    token.Continuation = false;
+                    if (token.VerticalLine)
+                        token.RemoveInfo<TokenVerticalLine>();
+                }
+            }
+
             if (Debugger.IsAttached)
             {
                 // Failure causes error in dubugger
@@ -398,6 +414,7 @@ namespace Gosub.Zurfur.Compiler
                 if (!AcceptIdentifier("Expecting a namespace identifier"))
                     break;
                 namePath.Add(mPrevToken);
+                RejectUnderscoreDefinition(mPrevToken);
             } while (AcceptMatch("."));
 
             if (namePath.Count == 0)
@@ -451,6 +468,8 @@ namespace Gosub.Zurfur.Compiler
                 throw new Exception("Parse fail test");
             if (mTokenName == "ShowMeta")
                 mShowMeta = true;
+            if (mTokenName == "AllowUnderscoreDefinitions")
+                mAllowUnderscoreDefinitions = true;
             if (mTokenName == "NoParse")
             {
                 while (Accept() != "")
@@ -476,6 +495,7 @@ namespace Gosub.Zurfur.Compiler
                 return; // TBD: Could try to recover (user probably editing class name)
 
             AddType(synClass);
+            RejectUnderscoreDefinition(synClass.Name);
 
             // Push new path
             var oldPath = mNamePath;
@@ -537,11 +557,24 @@ namespace Gosub.Zurfur.Compiler
                 var openToken = mPrevToken;
                 ParseScopeStatements(synClass);
 
+                bool error = false;
                 if (AcceptMatchOrReject("}", "while parsing " + synClass.Keyword.Name + " body of '" + synClass.Name + "'"))
+                {
                     Connect(openToken, mPrevToken);
+                }
                 else
+                {
+                    error = true;
                     RejectToken(openToken, mTokenName == "" ? "This scope has no closing brace"
                                                             : "This scope has an error on its closing brace");
+                }
+                openToken.AddInfo(new TokenVerticalLine
+                {
+                    X = openToken.X,
+                    Y = openToken.Y + 1,
+                    Lines = mPrevToken.Y - openToken.Y,
+                    Error = error
+                });
             }
             else
             {
@@ -595,9 +628,11 @@ namespace Gosub.Zurfur.Compiler
         {
             if (!AcceptIdentifier("Expecting field name"))
                 return null;
-            mPrevToken.Type = eTokenType.DefineField;
+            var newVarName = mPrevToken;
+            newVarName.Type = eTokenType.DefineField;
+            RejectUnderscoreDefinition(newVarName);
 
-            var field = new SyntaxField(mPrevToken);
+            var field = new SyntaxField(newVarName);
             field.ParentScope = parentScope;
             field.NamePath = mNamePath;
             field.Qualifiers = qualifiers.ToArray();
@@ -620,6 +655,7 @@ namespace Gosub.Zurfur.Compiler
                 return;
             var newVarName = mPrevToken;
             newVarName.Type = eTokenType.DefineField;
+            RejectUnderscoreDefinition(newVarName);
 
 
             foreach (var token in qualifiers)
@@ -672,6 +708,8 @@ namespace Gosub.Zurfur.Compiler
             field.Comments = mComments.ToString();
             mComments.Clear();
             name.Type = eTokenType.DefineField;
+            RejectUnderscoreDefinition(name);
+
 
             // Optionally initialize
             if (AcceptMatch("="))
@@ -689,6 +727,7 @@ namespace Gosub.Zurfur.Compiler
                 return;
             var propertyName = mPrevToken;
             propertyName.Type = eTokenType.DefineField;
+            RejectUnderscoreDefinition(propertyName);
 
             var typeName = ParseType();
             if (mToken.Error)
@@ -858,6 +897,7 @@ namespace Gosub.Zurfur.Compiler
             funcName = mToken;
             if (!CheckIdentifier("Expecting a function or type name", sRejectTypeName))
                 return false;
+            RejectUnderscoreDefinition(funcName);
 
             // TBD: Convert this to use "." instead of requiring "::" to
             //      separate extension method type from function name.
@@ -912,7 +952,8 @@ namespace Gosub.Zurfur.Compiler
                 if (!AcceptIdentifier("Expecting a variable name", sRejectFuncParam))
                     return new SyntaxError();
                 name = mPrevToken;
-                mPrevToken.Type = eTokenType.DefineParam;
+                name.Type = eTokenType.DefineParam;
+                RejectUnderscoreDefinition(name);
             }
 
             var type = ParseType();
@@ -931,7 +972,8 @@ namespace Gosub.Zurfur.Compiler
             //      so we could parse anything that looks correct, but gray it out as we go.
 
             // Ignore compound statement on error
-            var keywordColumn = mLexer.GetLineTokens(keyword.Y)[0].X;
+            var keywordColumnToken = mLexer.GetLineTokens(keyword.Y)[0];
+            var keywordColumn = keywordColumnToken.X;
             if (mToken.Error)
                 return new SyntaxError(mToken);
 
@@ -947,13 +989,16 @@ namespace Gosub.Zurfur.Compiler
             if (!AcceptMatch(";"))
             {
                 Reject($"Braceless compound statement '{keyword.Name}' is expecting '{{' or end of line");
-                return new SyntaxError();
+                if (!mToken.Meta || mTokenName != ";")
+                    return new SyntaxError();
+                Accept(); // Continue parsing for better error recovery
             }
-            if (!mPrevToken.Meta)
+            else if (!mPrevToken.Meta)
             {
                 RejectToken(mPrevToken, $"Braceless compound statement '{keyword.Name}' is expecting '{{' or end of line");
                 return new SyntaxError();
             }
+
             if (mTokenName == "}" || mTokenName == ";")
             {
                 RejectToken(mPrevToken, $"Braceless compound statement '{keyword.Name}' is expecting '{{' or non-empty statement");
@@ -966,15 +1011,12 @@ namespace Gosub.Zurfur.Compiler
             while (true)
             {
                 if (sNoSubCompoundStatement.Contains(mTokenName))
-                {
                     RejectToken(mToken, $"Braceless compound statement '{keyword.Name}' may not embed '{mTokenName}' statement");
-                    return new SyntaxError();
-                }
 
                 ParseStatement(statement, false);
                 if (mTokenName != ";")
                     Reject($"Braceless compound statement '{keyword.Name}' is expecting end of line");
-                if (mTokenName == "}")
+                if (mTokenName == "}" || mTokenName == "")
                     break;
 
                 var newColumn = mNextStatementToken == null ? -1 : mNextStatementToken.X;
@@ -984,6 +1026,23 @@ namespace Gosub.Zurfur.Compiler
                 AcceptMatch(";");
                 if (mPrevToken.Meta && newColumn != compoundColumn)
                     RejectToken(mToken, $"Indentation in braceless compound statement '{keyword.Name}' must match the statement above it");
+            }
+
+            // Draw scope lines
+            // TBD: Should use a bit more intelligence to hide lines for short
+            //      paragraphs.  Also, need to make sure if...elif...else
+            //      shows consistent scope lines (all or none).
+            //      Also, turn this into a function and combine with
+            //      other TokenVerticalLines.
+            int scopeLines = mPrevToken.Y - keywordColumnToken.Y;
+            if (scopeLines >= 3)
+            {
+                keywordColumnToken.AddInfo(new TokenVerticalLine
+                {
+                    X = keywordColumn,
+                    Y = keywordColumnToken.Y + 1,
+                    Lines = scopeLines
+                });
             }
 
             return new SyntaxMulti(semicolon, FreeExprList(statement));
@@ -999,11 +1058,11 @@ namespace Gosub.Zurfur.Compiler
                 Accept();
             if (!AcceptMatchOrReject("{"))
                 return new SyntaxError();
+            var openToken = mPrevToken;
 
             while (AcceptMatch(";"))
                 ;
 
-            var openToken = mPrevToken;
             var statements = NewExprList();
             var (x, y) = (mToken.X, mToken.Y);
             while (!sStatementsDone.Contains(mTokenName))
@@ -1014,11 +1073,24 @@ namespace Gosub.Zurfur.Compiler
                 ParseStatement(statements, true);
             }
 
+            bool error = false;
             if (AcceptMatchOrReject("}", "while parsing " + errorMessage))
+            {
                 Connect(openToken, mPrevToken);
+            }
             else
+            {
+                error = true;
                 RejectToken(openToken, mTokenName == "" ? "This scope has no closing brace"
                                                         : "This scope has an error on its closing brace");
+            }
+            openToken.SetInfo(new TokenVerticalLine
+            {
+                X = openToken.X,
+                Y = openToken.Y + 1,
+                Lines = mPrevToken.Y - openToken.Y - 1,
+                Error = error
+            });
 
             return new SyntaxMulti(openToken, FreeExprList(statements));
         }
@@ -1070,6 +1142,7 @@ namespace Gosub.Zurfur.Compiler
 
                 case "do":
                     // DO (condition) (body)
+                    mToken.Type = eTokenType.ReservedControl;
                     var doKeyword = Accept();
                     var doStatements = ParseStatements("'do' statement");
                     var doExpr = (SyntaxExpr)new SyntaxError();
@@ -1115,6 +1188,7 @@ namespace Gosub.Zurfur.Compiler
                         RejectToken(mToken, "Expecting '@'");
                     var forVariable = new SyntaxToken(ParseIdentifier("Expecting a loop variable", sRejectForCondition));
                     forVariable.Token.Type = eTokenType.DefineLocal;
+                    RejectUnderscoreDefinition(forVariable.Token);
                     AcceptMatchOrReject("in");
                     var forCondition = ParseExpr();
                     statements.Add(new SyntaxMulti(keyword, forVariable, forCondition, 
@@ -1241,7 +1315,10 @@ namespace Gosub.Zurfur.Compiler
 
             var newVarName = mPrevToken;
             if (newVarName.Name != "_")
+            {
                 newVarName.Type = eTokenType.DefineLocal;
+                RejectUnderscoreDefinition(newVarName);
+            }
 
             SyntaxExpr typeName;
             if (mTokenName != "=")
@@ -1476,20 +1553,22 @@ namespace Gosub.Zurfur.Compiler
             return ParsePrimary();
         }
 
-
+        /// <summary>
+        /// Parse a function taking a type name (cast, sizeof, typeof, etc)
+        /// </summary>
         private SyntaxExpr ParseTypeFunc(bool parseUnaryAfter)
         {
-            var castToken = Accept();
+            var funcName = Accept();
             if (!AcceptMatchOrReject("("))
                 return new SyntaxError(mToken);
-            var castOpenToken = mPrevToken;
-            var castType = ParseType();
+            var funcOpenToken = mPrevToken;
+            var funType = ParseType();
             if (AcceptMatchOrReject(")"))
-                Connect(mPrevToken, castOpenToken);
+                Connect(mPrevToken, funcOpenToken);
             if (parseUnaryAfter)
-                return new SyntaxBinary(castToken, castType, ParseUnary());
+                return new SyntaxBinary(funcName, funType, ParseUnary());
             else
-                return new SyntaxUnary(castToken, castType);
+                return new SyntaxUnary(funcName, funType);
         }
 
         private SyntaxExpr ParseNewVarExpr()
@@ -1504,10 +1583,11 @@ namespace Gosub.Zurfur.Compiler
                     {
                         mPrevToken.Type = eTokenType.DefineLocal;
                         newVarList.Add(new SyntaxToken(mPrevToken));
+                        RejectUnderscoreDefinition(mPrevToken);
                     }
                 } while (AcceptMatch(","));
 
-                if (AcceptMatchOrReject(")"))
+                if (AcceptMatchOrReject(")", "or ','"))
                     Connect(open, mPrevToken);
             }
             else
@@ -1517,6 +1597,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     mPrevToken.Type = eTokenType.DefineLocal;
                     newVarList.Add(new SyntaxToken(mPrevToken));
+                    RejectUnderscoreDefinition(mPrevToken);
                 }
             }
 
@@ -2135,7 +2216,11 @@ namespace Gosub.Zurfur.Compiler
         {
             // Eat the meta ";" if the token after it matches
             if (mToken.Meta && mTokenName == ";" && mNextStatementToken != null && mNextStatementToken.Name == match)
+            {
                 Accept();
+                if (mToken.Name != "{" && mToken.Name != "}")
+                    mToken.Continuation = true;
+            }
             return AcceptMatch(match);
         }
 
@@ -2243,9 +2328,13 @@ namespace Gosub.Zurfur.Compiler
             mPrevToken = mToken;
             mToken = mStatements[mAcceptX++];
             mTokenName = mToken.Name;
+
+            // Clear all errors and formatting, but preserve meta and continuation bits
             bool meta = mToken.Meta;
+            bool continuation = mToken.Continuation;
             mToken.Clear();
             mToken.Meta = meta;
+            mToken.Continuation = continuation;
 
             // Set token type
             if (mTokenName.Length == 0)
@@ -2263,9 +2352,6 @@ namespace Gosub.Zurfur.Compiler
 
             if (mToken.OnlyTokenOnLine && (mTokenName == "{" || mTokenName == "}"))
                 mToken.Shrink = true;
-
-            if (mTokenName.Length != 0 &&  (mTokenName[0] == '_' || mTokenName[mTokenName.Length-1] == '_') && mTokenName != "_")
-                RejectToken(mToken, "Identifiers may not begin or end with '_'");
 
             return mPrevToken;
 
@@ -2307,21 +2393,23 @@ namespace Gosub.Zurfur.Compiler
                                             || inInterpolatedQuote && prevToken.Name == "{"
                                             || inInterpolatedQuote && nextToken == "{";
 
-
-
-
                     if (sContinuationNoBegin.Contains(nextToken.Name) || !isContinueLine)
                     {
                         // Next line is not a continuation, check alignment
                         mNextStatementToken = nextToken;
                         if (continuationColumn >= 0 && Math.Abs(continuationColumn - nextToken.X) < 2
                                 && nextToken.Name != "}")
+                        {
+                            // TBD: Maybe move this error to previous line?
                             RejectToken(NewMetaToken(nextToken, " "),
-                                "Previous line was a continuation.  This line must be indented or outdented at least two spaces");
+                                "Previous line was a continuation, and this is not allowed to line up under it.  "
+                                +"Indent/outdent this line or the previous line.");
+                        }
                         break;
                     }
 
                     // Continuation line, check alignment
+                    nextToken.Continuation = true;
                     if (!sContinuationNoCheckAlign.Contains(nextToken.Name))
                     {
                         continuationColumn = nextToken.X;
@@ -2394,12 +2482,6 @@ namespace Gosub.Zurfur.Compiler
                     RejectToken(AddMetaToken(new Token(" ", lastToken.X, lastToken.Y)),
                         "Illegal semi-colon at end of line");
                 }
-                // Illegal space at end of line (don't record error if the cursor is there)
-                if (char.IsWhiteSpace(line[line.Length - 1]) && mLexer.Cursor.Y != mAcceptY)
-                {
-                    RejectToken(AddMetaToken(new Token(" ", line.Length - 1, mAcceptY)),
-                                "Illegal space at end of line");
-                }
                 // Illegal tabs
                 var i = line.IndexOf('\t');
                 while (i >= 0)
@@ -2467,6 +2549,17 @@ namespace Gosub.Zurfur.Compiler
         {
             public ParseError(string message) : base(message) { }
         }
+
+        // Reject definitions beginning or ending with '_'
+        void RejectUnderscoreDefinition(Token token)
+        {
+            if (mAllowUnderscoreDefinitions)
+                return;
+            var name = token.Name;
+            if (name.Length != 0 && (name[0] == '_' || name[token.Name.Length - 1] == '_'))
+                RejectToken(token, "Definition may not begin or end with '_'");
+        }
+
 
         // Reject the given token
         public void RejectToken(Token token, string errorMessage)

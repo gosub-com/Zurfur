@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Gosub.Zurfur.Lex;
+using System.Diagnostics;
 
 namespace Gosub.Zurfur.Compiler
 {
@@ -61,10 +62,11 @@ namespace Gosub.Zurfur.Compiler
         /// This should only be called by functions in SymbolTable.
         /// It sets the symbol Order to the number of children.
         /// </summary>
-        internal void SetChildInternal(string key, Symbol value)
+        internal void SetChildInternal(Symbol value)
         {
             value.Order = mChildren.Count;
-            mChildren[key] = value;
+            Debug.Assert(!mChildren.ContainsKey(value.Name));
+            mChildren[value.Name] = value;
         }
 
 
@@ -117,13 +119,38 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Find direct children of specific type
         /// </summary>
-        public List<T>FindChildren<T>()
+        public List<T> FindChildren<T>()
         {
             var children = new List<T>();
             foreach (var child in Children.Values)
                 if (child is T symChild)
                     children.Add(symChild);
             return children;
+        }
+
+        public int CountChildren<T>()
+        {
+            int count = 0;
+            foreach (var child in Children.Values)
+                if (child is T)
+                    count++;
+            return count;
+        }
+
+        /// <summary>
+        /// Get total number of generic parameters expected
+        /// (e.g, `MyClass<T1,T2>.MyFunc<T>()` expects 3 parameters)
+        /// </summary>
+        public int GenericParamCount()
+        {
+            var count = CountChildren<SymTypeParam>();
+            var p = Parent;
+            while (p is SymType || p is SymMethod || p is SymMethodGroup)
+            {
+                count += p.CountChildren<SymTypeParam>();
+                p = p.Parent;
+            }
+            return count;
         }
 
     }
@@ -173,7 +200,7 @@ namespace Gosub.Zurfur.Compiler
     {
         public SymField(Symbol parent, string file, Token token) : base(parent, file, token) { }
         public override string Kind => "field";
-        public string TypeName;
+        public string TypeName = "";
     }
 
     class SymMethodGroup : Symbol
@@ -215,7 +242,7 @@ namespace Gosub.Zurfur.Compiler
     /// The symbol name is a combination of both parentName<T0,T1,T2...>
     /// or for generic functions fun(T0,T1)(R0,R1)
     /// </summary>
-    class SymParameterizedType : SymType
+    class SymParameterizedType : Symbol
     {
         public readonly Symbol[] Params;
         public readonly Symbol[] Returns;
@@ -224,7 +251,7 @@ namespace Gosub.Zurfur.Compiler
 
         // Constructor for generic type name: F<p1,p2...>
         public SymParameterizedType(Symbol parent, Symbol[] typeParams)
-            : base(parent, "$PARAMETERIZED:<" + FullNameTypeParams(typeParams) + ">")
+            : base(parent, "$PTYPE<" + FullNameTypeParams(typeParams) + ">")
         {
             Params = typeParams;
             Returns = Array.Empty<Symbol>();
@@ -232,7 +259,7 @@ namespace Gosub.Zurfur.Compiler
 
         // Constructor for generic function name: F<p1,p2...><r1,r2...>
         public SymParameterizedType(Symbol parent, Symbol[] typeParams, Symbol[] typeReturns)
-            : base(parent, "$PARAMETERIZED:" + FullNameFuncParams(typeParams, typeReturns))
+            : base(parent, "$FTYPE" + FullNameFuncParams(typeParams, typeReturns))
         {
             Params = typeParams;
             Returns = typeReturns;

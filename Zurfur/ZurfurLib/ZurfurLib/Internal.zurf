@@ -1,4 +1,70 @@
 ﻿
+pragma AllowUnderscoreDefinitions
+
+namespace Zurfur
+
+
+/// Internal stuff for compiler, heap, and GC
+namespace Zurfur.Internal
+
+
+/// Internal definition of a reference.
+pub type ro _ref<T>
+{
+    ro @r *T
+
+    pub fun new(reference *T) void
+        require reference != null
+        r = reference
+        
+    pub fun Get() T extern
+    pub fun SetRef(value ref T) void extern
+    pub fun SetVal(value T) void extern
+    pub unsafe fun Index(offset int) mut ref T extern
+    pub unsafe fun ByteOffset(offset int) *void extern
+}
+
+
+/// Owned reference.  This is specific to reference counting
+/// and wouldn't exist for a different kind of GC.
+
+pub type ro _oref<T>
+{
+    @r *T
+    @owner ?*_heap<T>
+
+    /// Owner is null when on the stack
+    pub fun new(reference *T, owner ?*_heap) void
+        require reference != null
+        r = reference
+        this.owner = owner
+
+    pub fun drop() void
+        if owner != null
+            owner.Dec()
+        
+    pub fun Get() T extern
+    pub fun SetRef(value ref T) void extern
+    pub fun SetVal(value T) void extern
+    pub unsafe fun Index(offset int) mut ref T extern
+    pub unsafe fun ByteOffset(offset int) *void extern
+}
+
+
+/// All objects on the heap start with this header.
+/// This is specific to reference counted GC.
+pub type _heap<T>
+{
+    @vtable *void // TBD: Type info for GC and metadata
+    @refCount xint
+
+    pub fun Inc() void
+        refCount += 1
+        if refCount < 0
+            todo() // TBD: Queue to call drop and reclaim memory
+}
+
+
 namespace Zurfur.Compiler
 
 pub type ro Attribute { }

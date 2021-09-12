@@ -18,6 +18,8 @@ namespace Gosub.Zurfur
         readonly float SHRUNK_FONT_SCALE = 0.65f;
         readonly PointF SHRUNK_FONT_OFFSET = new PointF(0.2f, -0.12f); // Scaled by font size
         const int FILL_X_OFFSET = 3;
+        const int LEFT_MARGIN = 0; // TBD: Change to variable and increase to add line numbers
+
 
 
         // Lexer and text
@@ -75,6 +77,8 @@ namespace Gosub.Zurfur
         Brush       mErrorColor = Brushes.Pink;
         Brush       mWarnColor = Brushes.Yellow;
         Brush       mCodeInCommentColor = new SolidBrush(Color.FromArgb(208, 255, 208));
+        Brush       mContinuationBrush = Brushes.LightGray;
+        Pen         mScopeLinePen = new Pen(Color.LightGray);
         static Token sNormalToken = new Token();
 
         TokenColorOverride[]mTokenColorOverrides;
@@ -130,6 +134,7 @@ namespace Gosub.Zurfur
         {
             mLexer = new Lexer();
             InitializeComponent();
+            mScopeLinePen.DashPattern = new float[] { 4, 4 };
         }
 
         /// <summary>
@@ -375,12 +380,32 @@ namespace Gosub.Zurfur
             return Math.Max(0, (int)(ClientRectangle.Width / mFontSize.Width)-1);
         }
 
+        // Set the top left corner of the viewport
+        void SetTopLeft(int col, int line)
+        {
+            mTopLeft = new Point((int)PointXAbs(col), (int)PointYAbs(line));
+        }
+
+        float PointXAbs(int col)
+        {
+            return col * mFontSize.Width;
+        }
+
+        float PointYAbs(int line)
+        {
+            if (line < 0 || mLineTops.Length == 0)
+                return line * mFontSize.Height;
+            if (line < mLineTops.Length)
+                return mLineTops[line];
+            return mLineTops[mLineTops.Length - 1] + (line - mLineTops.Length + 1) * mFontSize.Height;
+        }
+
         /// <summary>
         /// Return X position in window, given the column number
         /// </summary>
         float PointX(int col)
         {
-            return col*mFontSize.Width - mTopLeft.X;
+            return PointXAbs(col) - mTopLeft.X + LEFT_MARGIN;
         }
 
         /// <summary>
@@ -388,16 +413,12 @@ namespace Gosub.Zurfur
         /// </summary>
         float PointY(int line)
         {
-            if (line < 0 || mLineTops.Length == 0)
-                return line*mFontSize.Height - mTopLeft.Y;
-            if (line < mLineTops.Length)
-                return mLineTops[line] - mTopLeft.Y;
-            return mLineTops[mLineTops.Length-1] + (line-mLineTops.Length+1)*mFontSize.Height - mTopLeft.Y;
+            return PointYAbs(line) - mTopLeft.Y;
         }
 
         Point ScreenToText(int x, int y)
         {
-            x += mTopLeft.X;
+            x += mTopLeft.X - LEFT_MARGIN;
             y += mTopLeft.Y;
             var pointX = (int)(x / mFontSize.Width + 0.5f);
             if (y < 0 || mLineTops.Length == 0)
@@ -1166,49 +1187,102 @@ namespace Gosub.Zurfur
             return false;
         }
 
+        private TokenColorOverride FindColorOverride(Token token)
+        {
+            if (mTokenColorOverrides != null && mTokenColorOverrides.Length != 0)
+                foreach (var over in mTokenColorOverrides)
+                    if (over.Token == token)
+                        return over;
+            return null;
+        }
 
         /// <summary>
-        /// Draw the selection background
+        /// Paint the screen
         /// </summary>
-        void DrawSelection(Graphics gr)
+        protected override void OnPaint(PaintEventArgs e)
         {
-            if (!HasSel())
+            e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+            MeasureFont(e);
+            DrawTokens(e.Graphics, true);
+            DrawSelection(e.Graphics);
+            DrawTokens(e.Graphics, false);
+            DrawLines(e.Graphics);
+            DrawCursor(e);
+
+            // Set the scroll bar properties
+            // TBD - Do only when text is changed
+            SetupScrollBars();
+
+            base.OnPaint(e);
+        }
+
+        private void MeasureFont(PaintEventArgs e)
+        {
+            if (!mMeasureFont)
                 return;
+            // Measure the font size
+            mMeasureFont = false;
+            var normalFont = GetFontInfo(sNormalToken).Font;
+            SizeF size1 = e.Graphics.MeasureString("MM\r\nMM", normalFont);
+            SizeF size2 = e.Graphics.MeasureString("MMM\r\nMMM\r\nMMM", normalFont);
+            mFontSize.Width = Math.Max(1, size2.Width - size1.Width);
+            mFontSize.Height = Math.Max(1, (int)(size2.Height - size1.Height + 1 + 0.5f));
+            for (int i = 0; i < mTabSpacing.Length; i++)
+                mTabSpacing[i] = mFontSize.Width * mTabSize;
+            mTabSpacing[0] = 0;
+            RecalcLineTops();
+            SetupScrollBars();
+            SetTopLeft(hScrollBar.Value, vScrollBar.Value);
+            UpdateCursorBlinker();
+            UpdateMouseHoverToken();
+        }
 
-            // Get selection start/end
-            TokenLoc selStart = mSelStart;
-            TokenLoc selEnd = mSelEnd;
-            TokenLoc.FixOrder(ref selStart, ref selEnd);
+        /// <summary>
+        /// Draw tokens on the screen (either the foreground or background).
+        /// When gr is NULL, a test is performed to see if the token is
+        /// under the cursor (mTestPoint) and the result is put in to mTestToken.
+        /// </summary>
+        void DrawTokens(Graphics gr, bool background)
+        {
+            GetTextClipRegion(gr, out var startLine, out var endLine);
 
-            float mMinY = -mFontSize.Height;
-            for (int line = Math.Max(0, selStart.Y);
-                 line <= selEnd.Y && line < LineCount;
-                 line++)
+            // Draw metatokens
+            foreach (var metaToken in mLexer.MetaTokens)
+                if (metaToken.Y >= startLine && metaToken.Y <= endLine)
+                    if (background || mLexer.ShowMetaTokens)
+                        DrawToken(gr, metaToken, background);
+
+            // Draw all tokens on the screen
+            foreach (Token token in mLexer.GetEnumeratorStartAtLine(startLine))
             {
-                // Skip lines not in window
-                float y = PointY(line);
-                if (y < mMinY)
-                    continue;
-                if (y > ClientRectangle.Height)
+                // Quick exit when drawing below screen
+                if (token.Y >= endLine)
                     break;
 
-                // Get default start and end of draw location
-                float x = 0;
-                float xEnd = mFontSize.Width;
-
-                // Middle line xEnd
-                if (GetLine(line).Length != 0)
-                    xEnd = IndexToCol(GetLine(line), GetLine(line).Length)*mFontSize.Width;
-
-                // Start/end lines
-                if (line == selStart.Y)
-                    x = PointX(IndexToCol(selStart));
-                if (line == selEnd.Y)
-                    xEnd = PointX(IndexToCol(selEnd));
-
-                gr.FillRectangle(Focused ? mSelectColor : mSelectColorNoFocus,
-                    new RectangleF(x+FILL_X_OFFSET, y, Math.Max(0, xEnd-x), (int)(PointY(line+1)-y)));
+                DrawToken(gr, token, background);
             }
+        }
+
+        private void GetTextClipRegion(Graphics gr, out int startLine, out int endLine)
+        {
+            // Get clipping region (entire screen when gr is NULL)
+            float minY = -mFontSize.Height - 1;
+            float maxY = ClientRectangle.Height + 1;
+            if (gr != null)
+            {
+                // Optionally adjust clipping region
+                minY = gr.VisibleClipBounds.Top - mFontSize.Height - 1;
+                maxY = gr.VisibleClipBounds.Bottom + 1;
+            }
+
+            // Find first and last visible line
+            startLine = TopVisibleLine;
+            while (startLine < LineCount && PointY(startLine) < minY)
+                startLine++;
+            endLine = startLine;
+            while (endLine <= LineCount && PointY(endLine) < maxY)
+                endLine++;
         }
 
         /// <summary>
@@ -1264,13 +1338,15 @@ namespace Gosub.Zurfur
             if (tabStartColumn != mTabStartColumnPrevious && token.Name.IndexOf('\t') >= 0)
             {
                 mTabStartColumnPrevious = tabStartColumn;
-                mTabFormat.SetTabStops(tabStartColumn*mFontSize.Width, mTabSpacing);
+                mTabFormat.SetTabStops(tabStartColumn * mFontSize.Width, mTabSpacing);
             }
 
             // Font color
             FontInfo fontInfo = GetFontInfo(token);
             var font = overrides != null && overrides.Font != null ? overrides.Font : fontInfo.Font;
             var brush = overrides != null && overrides.ForeColor != null ? overrides.ForeColor : fontInfo.Brush;
+
+            // Shift and color meta tokens
             if (token.Meta)
             {
                 brush = Brushes.Red;
@@ -1295,117 +1371,109 @@ namespace Gosub.Zurfur
                 gr.DrawRectangle(overrides.OutlineColor, backRect);
         }
 
-        private TokenColorOverride FindColorOverride(Token token)
-        {
-            if (mTokenColorOverrides != null && mTokenColorOverrides.Length != 0)
-                foreach (var over in mTokenColorOverrides)
-                    if (over.Token == token)
-                        return over;
-            return null;
-        }
-
         /// <summary>
-        /// Draw tokens on the screen (either the foreground or background).
-        /// When gr is NULL, a test is performed to see if the token is
-        /// under the cursor (mTestPoint) and the result is put in to mTestToken.
+        /// Draw the selection background
         /// </summary>
-        void DrawScreen(Graphics gr, bool background)
+        void DrawSelection(Graphics gr)
         {
-            // Get clipping region (entire screen when gr is NULL)
-            float minY = -mFontSize.Height - 1;
-            float maxY = ClientRectangle.Height + 1;
-            if (gr != null)
+            if (!HasSel())
+                return;
+
+            // Get selection start/end
+            TokenLoc selStart = mSelStart;
+            TokenLoc selEnd = mSelEnd;
+            TokenLoc.FixOrder(ref selStart, ref selEnd);
+
+            float mMinY = -mFontSize.Height;
+            for (int line = Math.Max(0, selStart.Y);
+                 line <= selEnd.Y && line < LineCount;
+                 line++)
             {
-                // Optionally adjust clipping region
-                minY = gr.VisibleClipBounds.Top - mFontSize.Height - 1;
-                maxY = gr.VisibleClipBounds.Bottom + 1;
-            }
-
-            // Find first and last visible line
-            int startLine = TopVisibleLine;
-            while (startLine < LineCount && PointY(startLine) < minY)
-                startLine++;
-            int endLine = startLine;
-            while (endLine <= LineCount && PointY(endLine) < maxY)
-                endLine++;
-
-            // Draw metatokens
-            foreach (var metaToken in mLexer.MetaTokens)
-                if (metaToken.Y >= startLine && metaToken.Y <= endLine)
-                    if (background || mLexer.ShowMetaTokens)
-                        DrawToken(gr, metaToken, background);
-
-            // Draw all tokens on the screen
-            foreach (Token token in mLexer.GetEnumeratorStartAtLine(startLine))
-            {
-                // Quick exit when drawing below screen
-                if (token.Y >= endLine)
+                // Skip lines not in window
+                float y = PointY(line);
+                if (y < mMinY)
+                    continue;
+                if (y > ClientRectangle.Height)
                     break;
 
-                DrawToken(gr, token, background);
-            }
+                // Get default start and end of draw location
+                float x = 0;
+                float xEnd = mFontSize.Width;
 
+                // Middle line xEnd
+                if (GetLine(line).Length != 0)
+                    xEnd = IndexToCol(GetLine(line), GetLine(line).Length) * mFontSize.Width;
+
+                // Start/end lines
+                if (line == selStart.Y)
+                    x = PointX(IndexToCol(selStart));
+                if (line == selEnd.Y)
+                    xEnd = PointX(IndexToCol(selEnd));
+
+                gr.FillRectangle(Focused ? mSelectColor : mSelectColorNoFocus,
+                    new RectangleF(x + FILL_X_OFFSET, y, Math.Max(0, xEnd - x), (int)(PointY(line + 1) - y)));
+            }
         }
 
-        /// <summary>
-        /// Paint the screen
-        /// </summary>
-        protected override void OnPaint(PaintEventArgs e)
+        void DrawLines(Graphics gr)
         {
-            e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
-
-            // Initialize fonts (or setup when changed)
-            if (mMeasureFont)
+            // Draw continuation lines
+            GetTextClipRegion(gr, out var startLine, out var endLine);
+            for (int i = 0;  i < mLexer.LineCount;  i++)
             {
-                // Measure the font size
-                mMeasureFont = false;
-                var normalFont = GetFontInfo(sNormalToken).Font;
-                SizeF size1 = e.Graphics.MeasureString("MM\r\nMM", normalFont);
-                SizeF size2 = e.Graphics.MeasureString("MMM\r\nMMM\r\nMMM", normalFont);
-                mFontSize.Width = Math.Max(1, size2.Width - size1.Width);
-                mFontSize.Height = Math.Max(1, (int)(size2.Height - size1.Height+1 + 0.5f));
-                for (int i = 0; i < mTabSpacing.Length; i++)
-                    mTabSpacing[i] = mFontSize.Width*mTabSize;
-                mTabSpacing[0] = 0;
-                RecalcLineTops();
-                SetupScrollBars();
-                mTopLeft = new Point(); // Necessary since below functions use mTopLeft
-                mTopLeft = new Point((int)PointX(hScrollBar.Value), (int)PointY(vScrollBar.Value));
-                UpdateCursorBlinker();
-                UpdateMouseHoverToken();
-            }
+                var line = mLexer.GetLineTokens(i);
+                if (line.Length == 0)
+                    continue;
 
-            // Draw the graphics
-            //e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
-            DrawScreen(e.Graphics, true);
-            DrawSelection(e.Graphics);
-            DrawScreen(e.Graphics, false);
-
-            // Draw the cursor
-            if (mCursorVisible)
-            {
-                // Draw the cursor
-                e.Graphics.FillRectangle(Brushes.DarkBlue, mCursorRect);
-
-                // Draw text under cursor in over-write mode
-                if (mOverwriteMode && !HasSel()
-                        && CursorLoc.Y < LineCount 
-                        && CursorLoc.X >= 0 
-                        && CursorLoc.X < GetLine(CursorLoc.Y).Length)
+                // Draw continuation marks
+                var token = line[0];
+                if (i >= startLine && i < endLine && token.Continuation)
                 {
-                    float x = PointX(IndexToCol(CursorLoc));
-                    float y = PointY(CursorLoc.Y);
-                    e.Graphics.DrawString(GetLine(CursorLoc.Y)[CursorLoc.X].ToString(),
-                                            GetFontInfo(sNormalToken).Font, Brushes.White, x, y);
+                    var col = IndexToCol(line[0].Location);
+                    var x = (int)PointX(col - 1) - 2;
+                    var y = (int)PointY(i);
+                    gr.DrawString("►", Font, mContinuationBrush, new PointF(x, y));
                 }
+
+                // Draw vertical lines
+                if (token.VerticalLine && token.Y < endLine)
+                {
+                    var verticleLine = token.GetInfo<TokenVerticalLine>();
+                    if (verticleLine != null 
+                        && verticleLine.Y + verticleLine.Lines >= startLine
+                        && verticleLine.Lines > 0)
+                    {
+                        var col = IndexToCol(line[0].Location);
+                        var x = (int)PointX(col) + mFontSize.Width/2;
+                        var y = (int)PointY(verticleLine.Y) + 2;
+                        var y2 = (int)PointY(verticleLine.Y + verticleLine.Lines) - 4;
+                        gr.DrawLine(verticleLine.Error ? Pens.Red : mScopeLinePen, x, y, x, y2);
+                    }
+                }
+
             }
-
-            // Set the scroll bar properties
-            // TBD - Do only when text is changed
-            SetupScrollBars();
-
-            base.OnPaint(e);
         }
+
+        private void DrawCursor(PaintEventArgs e)
+        {
+            if (!mCursorVisible)
+                return;
+            // Draw the cursor
+            e.Graphics.FillRectangle(Brushes.DarkBlue, mCursorRect);
+
+            // Draw text under cursor in over-write mode
+            if (mOverwriteMode && !HasSel()
+                    && CursorLoc.Y < LineCount
+                    && CursorLoc.X >= 0
+                    && CursorLoc.X < GetLine(CursorLoc.Y).Length)
+            {
+                float x = PointX(IndexToCol(CursorLoc));
+                float y = PointY(CursorLoc.Y);
+                e.Graphics.DrawString(GetLine(CursorLoc.Y)[CursorLoc.X].ToString(),
+                                        GetFontInfo(sNormalToken).Font, Brushes.White, x, y);
+            }
+        }
+
 
         /// <summary>
         /// Caluclate locations of lines whenever the text or font changes
@@ -1627,7 +1695,7 @@ namespace Gosub.Zurfur
             // Draw to NULL graphics to find the point
             mTestPoint = PointToClient(Form.MousePosition);
             mTestToken = null;
-            DrawScreen(null, true);
+            DrawTokens(null, true);
 
             // Set new mouse hover token
             if (forceEvent || mTestToken != mMouseHoverToken)
@@ -1670,8 +1738,7 @@ namespace Gosub.Zurfur
         /// </summary>
         void ScrollBar_Changed()
         {
-            mTopLeft = new Point(); // Necessary since below functions use mTopLeft
-            mTopLeft = new Point((int)PointX(hScrollBar.Value), (int)PointY(vScrollBar.Value));
+            SetTopLeft(hScrollBar.Value, vScrollBar.Value);
             UpdateCursorBlinker();
             UpdateMouseHoverToken();
             Invalidate();

@@ -39,6 +39,7 @@ namespace Gosub.Zurfur.Compiler
             sUnaryTypeSymbols["afun"] = new SymType(mSymbols.Root, "$afun");
             foreach (var v in sUnaryTypeSymbols.Values)
                 mSymbols.AddOrReject(v);
+            mSymbols.AddOrReject(new SymTypeParam(sUnaryTypeSymbols["*"], "", new Token("T")));
         }
 
 
@@ -57,7 +58,7 @@ namespace Gosub.Zurfur.Compiler
             ResolveFieldTypes();
             ResolveMethodGroups();
             mSymbols.GenerateLookup();
-
+            mSymbols.AddSpecializations(mSpecializedTypes);
             return;
 
             void AddNamespaces()
@@ -337,7 +338,7 @@ namespace Gosub.Zurfur.Compiler
             string ResolveType(Symbol scope, SyntaxExpr typeExpr, string file)
             {
                 var symbol = ResolveTypeScope(typeExpr, true, scope, fileUses[file], file);
-                if (symbol is SymType || symbol is SymTypeParam)
+                if (symbol is SymType || symbol is SymTypeParam || symbol is SymParameterizedType)
                     return symbol.GetFullName();
 
                 if (symbol == null)
@@ -393,7 +394,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 var leftSymbol = ResolveTypeScope(typeExpr[0], top, scope, useScope, file);
                 if (leftSymbol == null 
-                        || !(leftSymbol is SymNamespace) && !(leftSymbol is SymType)
+                        || !(leftSymbol is SymNamespace) && !(leftSymbol is SymType) && !(leftSymbol is SymParameterizedType)
                         || typeExpr.Count != 2)
                     return null;
 
@@ -474,7 +475,7 @@ namespace Gosub.Zurfur.Compiler
                 foreach (var pType in paramExprs)
                 {
                     var sym = ResolveTypeScope(pType[0], true, scope, useScope, file);
-                    if (sym is SymType || sym is SymTypeParam)
+                    if (sym is SymType || sym is SymTypeParam || sym is SymParameterizedType)
                     {
                         paramTypes.Add(sym);
                         var newMethodParam = new SymMethodParam(scope, file, pType.Token);
@@ -490,7 +491,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Resolve List<int>, etc.
-            SymType ResolveTypeGenericSymbol()
+            Symbol ResolveTypeGenericSymbol()
             {
                 if (typeExpr.Count == 0)
                 {
@@ -533,7 +534,7 @@ namespace Gosub.Zurfur.Compiler
                 foreach (var typeArg in typeExpr)
                 {
                     var sym = ResolveTypeScope(typeArg, true, scope, useScope, file);
-                    if (sym is SymType || sym is SymTypeParam)
+                    if (sym is SymType || sym is SymTypeParam || sym is SymParameterizedType)
                         typeParams.Add(sym);
                     else
                         resolved = false;
@@ -545,7 +546,7 @@ namespace Gosub.Zurfur.Compiler
         // Does not reject if there is already an error there
         void Reject(Token token, string message)
         {
-            //if (!token.Error)
+            if (!token.Error)
                 token.AddError(new ZilError(message));
         }
 

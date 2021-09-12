@@ -204,7 +204,6 @@ pub unsafe type DlMalloc
 
 
     fun new(memoryManager DlMallocMem, capacity xint) void
-    {
         memMan = memoryManager
         
         ensure_initialization()
@@ -216,20 +215,17 @@ pub unsafe type DlMalloc
             seg.sflags = flag_t.USE_MMAP_BIT
         else
             throw DlMallocException("Out of memory, cannot initialize malloc.")
-    }
     
 
     /// Returns the number of malloc segments, which represents
     /// the number of discontiguous memory regions.
     pub prop SegmentCount int
-    {
         @count = 0
         @segment = seg
         while segment != null
             count += 1
             segment = segment.next
         return count
-    }
 
     //  Supported pointer/size_t representation:       4 or 8 bytes
     //  Alignment:                                     8 bytes (minimum)
@@ -528,7 +524,7 @@ pub unsafe type DlMalloc
         }
     }
 
-    noself fun cinuse(p *mchunk) bool
+    noself fun cinuse(p *mchunk) bool 
         return (p.head & CINUSE_BIT) != 0
     noself fun pinuse(p *mchunk) bool
         return (p.head & PINUSE_BIT) != 0
@@ -846,7 +842,8 @@ pub unsafe type DlMalloc
 
     // Ensure mparams initialized
     fun ensure_initialization() void
-        { if mparams.magic == 0 { init_mparams() } }
+        if mparams.magic == 0
+            init_mparams()
 
     fun is_initialized() bool
         return top != null
@@ -888,31 +885,23 @@ pub unsafe type DlMalloc
 
     // Return segment holding given address
     fun segment_holding(addr *byte) *msegment
-    {
         @sp = seg
         while true
-        {
             if addr >= sp.baseAddr && addr < sp.baseAddr + sp.size
                 return sp
             sp = sp.next
             if sp == null
                 return null
-        }
-    }
 
     // Return true if segment contains a segment link
     fun has_segment_link(ss *msegment) bool
-    {
         @sp = seg
         while true
-        {
             if cast(*byte)sp >= ss.baseAddr && cast(*byte)sp < ss.baseAddr + ss.size
                 return true
             sp = sp.next
             if sp == null
                 return false
-        }
-    }
 
     fun should_trim(s xuint) bool
        return s > trim_check
@@ -949,7 +938,6 @@ pub unsafe type DlMalloc
 
     // Find tree index for size S
     noself fun compute_tree_index(s xuint) uint
-    {
         @x = s >> TREEBIN_SHIFT
         if x == 0
             return 0
@@ -966,7 +954,6 @@ pub unsafe type DlMalloc
         y <<= k
         k = 14 - n + (y >> 15)
         return (k << 1) + ((s >> (k + TREEBIN_SHIFT - 1)) & 1)
-    }
 
 
     // Bit representing maximum resolved size in a treebin at i
@@ -1020,7 +1007,6 @@ pub unsafe type DlMalloc
 
     // index corresponding to given bit.
     noself fun compute_bit2idx(x uint) uint
-    {
         @y = x - 1
         @k = y >> (16 - 4) & 16
         @n = k
@@ -1038,7 +1024,6 @@ pub unsafe type DlMalloc
         n += k
         y >>= k
         return n + y
-    }
 
 
 
@@ -1096,7 +1081,6 @@ pub unsafe type DlMalloc
 
     // Initialize mparams
     noself fun mut init_mparams() int
-    {
         // Sanity-check configuration:
         // xuint must be unsigned and as wide as pointer type.
         // ints must be at least 4 bytes.
@@ -1124,15 +1108,12 @@ pub unsafe type DlMalloc
             magic &= ~7U   // improve chances of fault for bad values
             mparams.magic = magic
         return 1
-    }
 
     // ------------------------- Debugging Support ---------------------------
 
     noself fun assert(c bool) void
-    {
-        if (!c)
+        if !c
             throw DlMallocException("Malloc assert failed")
-    }
 
     // Check properties of any chunk, whether free, inuse, mmapped etc
     fun do_check_any_chunk(p *mchunk) void
@@ -1163,7 +1144,6 @@ pub unsafe type DlMalloc
 
     // Check properties of free chunks
     fun do_check_free_chunk(p *mchunk) void
-    {
         @sz = chunksize(p)
         @next = chunk_plus_offset(p, sz)
         do_check_any_chunk(p)
@@ -1171,7 +1151,6 @@ pub unsafe type DlMalloc
         assert(!next_pinuse(p))
         assert(!is_mmapped(p))
         if p != dv && p != top
-        {
             if sz >= MIN_CHUNK_SIZE
                 assert((sz & CHUNK_ALIGN_MASK) == 0)
                 assert(is_aligned(chunk2mem(p)))
@@ -1182,12 +1161,9 @@ pub unsafe type DlMalloc
                 assert(p.bk.fd == p)
             else  // markers are always of size SIZE_T_SIZE
                 assert(sz == SIZE_T_SIZE)
-        }
-    }
 
     // Check properties of malloced chunks at the point they are malloced
     fun do_check_malloced_chunk(mem *void, s xuint) void
-    {
         if mem != null
             @p = mem2chunk(mem)
             @sz = p.head & ~INUSE_BITS
@@ -1198,11 +1174,9 @@ pub unsafe type DlMalloc
             // unless mmapped, size is less than MIN_CHUNK_SIZE more than request
             assert(sz < (s + MIN_CHUNK_SIZE))
             assert(!is_mmapped(p))
-    }
 
     // Check a tree and its subtrees.
     fun do_check_tree(t *tchunk) void
-    {
         @head *tchunk = null
         @u = t
         @tindex = t.index
@@ -1227,7 +1201,6 @@ pub unsafe type DlMalloc
                 assert(u.child0 == null)
                 assert(u.child1 == null)
             else
-            {
                 assert(head == null) // only one node on chain has parent
                 head = u
                 assert(u.parent != u)
@@ -1244,15 +1217,12 @@ pub unsafe type DlMalloc
                     do_check_tree(u.child1)
                 if u.child0 != null && u.child1 != null
                     assert(chunksize(u.child0) < chunksize(u.child1))
-            }
             u = u.fd
         } while u != t
         assert(head != null)
-    }
 
     //  Check all the chunks in a treebin.
     fun do_check_treebin(i uint) void
-    {
         @tb = treebin_at(i)
         @t = dref(tb)
         @empty = (treemap & (1U << i)) == 0
@@ -1260,20 +1230,16 @@ pub unsafe type DlMalloc
             assert(empty)
         if !empty
             do_check_tree(t)
-    }
 
     //  Check all the chunks in a smallbin.
     fun do_check_smallbin(i uint) void
-    {
         @b = smallbin_at(i)
         @p = b.bk
         @empty = (smallmap & (1U << i)) == 0
         if p == b
             assert(empty)
         if !empty
-        {
             while p != b
-            {
                 @size = chunksize(p)
                 @q *mchunk
                 // each chunk claims to be free
@@ -1286,55 +1252,36 @@ pub unsafe type DlMalloc
                 if q.head != FENCEPOST_HEAD
                     do_check_inuse_chunk(q)
                 p = p.bk
-            }
-        }
-    }
 
     // Find x in a bin. Used in other check functions.
     fun bin_find(x *mchunk) void
-    {
         @size = chunksize(x)
         if is_small(size)
-        {
             @sidx = small_index(size)
             @b = smallbin_at(sidx)
             if smallmap_is_marked(sidx)
-            {
                 @p = b
-                do
-                {
+                do {
                     if p == x
                         return true
                     p = p.fd
                 } while p != b
-            }
-        }
         else
-        {
             @tidx = compute_tree_index(size)
             if treemap_is_marked(tidx)
-            {
                 @t = dref(treebin_at(tidx))
                 @sizebits = size << leftshift_for_tree_index(tidx)
                 while t != null && chunksize(t) != size
-                {
                     t = ((sizebits >> (SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 ? t.child0 : t.child1
                     sizebits <<= 1
-                }
                 if t != null
-                {
                     @u = t
-                    do
-                    {
+                    do {
                         if u == cast(*tchunk)x
                             return true
                         u = u.fd
                     } while u != t
-                }
-            }
-        }
         return false
-    }
 
     pub type HeapStats
     {
@@ -1345,18 +1292,15 @@ pub unsafe type DlMalloc
         @FreeBytes i64 pub get set
 
         pub fun ToStr() str
-        {
             return "HeapSize={HeapSize}"
                     ", UB={UsedBytes}"
                     ", FB={FreeBytes}"
                     ", UC={UsedChunks}"
                     ", FC={FreeChunks}"
-        }
     }
 
     // Check all properties of malloc_state.
     pub fun CheckHeap() HeapStats
-    {
         assert(is_initialized())
 
         // check bins
@@ -1388,7 +1332,6 @@ pub unsafe type DlMalloc
         // Walk segments
         @s = seg
         while (s != null)
-        {
             @q = align_as_chunk(s.baseAddr)
             @lastq = null
             assert(pinuse(q))
@@ -1396,7 +1339,6 @@ pub unsafe type DlMalloc
             // Walk chunks
             while (segment_holds(s, q)
                     && q != top && q.head != FENCEPOST_HEAD)
-            {
                 @chunkSize = cast(i64)chunksize(q)
                 heapSize += chunkSize
                 if (is_inuse(q))
@@ -1412,9 +1354,7 @@ pub unsafe type DlMalloc
                     do_check_free_chunk(q)
                 lastq = q
                 q = next_chunk(q)
-            }
             s = s.next
-        }
 
 
         assert(heapSize <= cast(i64)footprint)
@@ -1427,7 +1367,6 @@ pub unsafe type DlMalloc
         stats.UsedChunks = usedChunks
         stats.UsedBytes = usedBytes
         return stats
-    }
 
     // ----------------------- Operations on smallbins -----------------------
 
@@ -1439,7 +1378,6 @@ pub unsafe type DlMalloc
     // Link a free chunk into a smallbin
     #MethodImpl(MethodImplOptions.AggressiveInlining)
     fun mut insert_small_chunk(p *mchunk, s xuint) void
-    {
         @I = small_index(s)
         @B = smallbin_at(I)
         @F = B
@@ -1454,12 +1392,10 @@ pub unsafe type DlMalloc
         F.bk = p
         p.fd = F
         p.bk = B
-    }
 
     // Unlink a chunk from a smallbin
     #MethodImpl(MethodImplOptions.AggressiveInlining)
     fun mut unlink_small_chunk(p *mchunk, s xuint) void
-    {
         @F = p.fd
         @B = p.bk
         @I = small_index(s)
@@ -1467,7 +1403,6 @@ pub unsafe type DlMalloc
         assert(p != F)
         assert(chunksize(p) == small_index2size(I))
         if RTCHECK(F == smallbin_at(I) || (ok_address(F) && F.bk == p))
-        {
             if B == F
                 clear_smallmap(I)
             elif RTCHECK(B == smallbin_at(I)
@@ -1476,15 +1411,12 @@ pub unsafe type DlMalloc
                 B.fd = F
             else
                 memMan.CallCorruptionErrorAction()
-        }
         else
             memMan.CallCorruptionErrorAction()
-    }
 
     // Unlink the first chunk from a smallbin
     #MethodImpl(MethodImplOptions.AggressiveInlining)
     fun mut unlink_first_small_chunk(b *mchunk, p *mchunk, i uint) void
-    {
         @F = p.fd
         assert(p != b)
         assert(p != F)
@@ -1496,13 +1428,11 @@ pub unsafe type DlMalloc
             b.fd = F
         else
             memMan.CallCorruptionErrorAction()
-    }
 
     // Replace dv node, binning the old one
     // Used only when dvsize known to be small
     #MethodImpl(MethodImplOptions.AggressiveInlining)
     fun mut replace_dv(p *mchunk, s xuint) void
-    {
         @DVS = dvsize
         assert(is_small(DVS))
         if DVS != 0
@@ -1510,13 +1440,11 @@ pub unsafe type DlMalloc
             insert_small_chunk(DV, DVS)
         dvsize = s
         dv = p
-    }
 
     // ------------------------- Operations on trees -------------------------
 
     // Insert chunk into tree
     fun insert_large_chunk(x *tchunk, s xuint) void
-    {
         @H **tchunk
         @I = compute_tree_index(s)
         H = treebin_at(I)
@@ -1524,21 +1452,16 @@ pub unsafe type DlMalloc
         x.child0 = null
         x.child1 = null
         if !treemap_is_marked(I)
-        {
             mark_treemap(I)
             dref(H) = x
             x.parent = cast(*tchunk)H
             x.fd = x
             x.bk = x
-        }
         else
-        {
             @T = dref(H)
             @K = s << leftshift_for_tree_index(I)
             while true
-            {
                 if chunksize(T) != s
-                {
                     @C = ((K >> (SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 ? &T.child0 : &T.child1
                     K <<= 1
                     if dref(C) != null
@@ -1552,9 +1475,7 @@ pub unsafe type DlMalloc
                     else
                         memMan.CallCorruptionErrorAction()
                         break
-                }
                 else
-                {
                     @F = T.fd
                     if RTCHECK(ok_address(T) && ok_address(F))
                         T.fd = x
@@ -1566,10 +1487,6 @@ pub unsafe type DlMalloc
                     else
                         memMan.CallCorruptionErrorAction()
                         break
-                }
-            }
-        }
-    }
 
     //  Unlink steps:
     //
@@ -1587,11 +1504,9 @@ pub unsafe type DlMalloc
     //     x's parent and children to x's replacement (or null if none).
 
     fun unlink_large_chunk(x *tchunk) void
-    {
         @XP = x.parent
         @R *tchunk
         if x.bk != x
-        {
             @F = x.fd
             R = x.bk
             if RTCHECK(ok_address(F) && F.bk == x && R.fd == x)
@@ -1599,9 +1514,7 @@ pub unsafe type DlMalloc
                 R.fd = F
             else
                 memMan.CallCorruptionErrorAction()
-        }
         else
-        {
             @RP **tchunk
             RP = &x.child1
             R = dref(RP)
@@ -1609,100 +1522,75 @@ pub unsafe type DlMalloc
                 RP = &x.child0
                 R = dref(RP)
             if R != null
-            {
                 @CP **tchunk
                 CP = &R.child1
                 if dref(CP) == null
                     CP = &R.child0
                 while dref(CP) != null
-                {
                     RP = CP
                     R = dref(RP)
                     CP = &R.child1
                     if dref(CP) == null
                         CP = &R.child0
-                }
                 if RTCHECK(ok_address(RP))
                     dref(RP) = null
                 else
                     memMan.CallCorruptionErrorAction()
-            }
-        }
         if XP != null
-        {
             @H = treebin_at(x.index)
             if x == dref(H)
-            {
                 dref(H) = R
                 if R == null
                     clear_treemap(x.index)
-            }
             elif RTCHECK(ok_address(XP))
-            {
                 if (XP.child0 == x)
                     XP.child0 = R
                 else
                     XP.child1 = R
-            }
             else
                 memMan.CallCorruptionErrorAction()
             if R != null
-            {
                 if RTCHECK(ok_address(R))
-                {
                     @C0 *tchunk
                     @C1 *tchunk
                     R.parent = XP
                     C0 = x.child0
                     if C0 != null
-                    {
                         if RTCHECK(ok_address(C0))
                             R.child0 = C0
                             C0.parent = R
                         else
                             memMan.CallCorruptionErrorAction()
-                    }
                     C1 = x.child1
                     if C1 != null
-                    {
                         if RTCHECK(ok_address(C1))
                             R.child1 = C1
                             C1.parent = R
                         else
                             memMan.CallCorruptionErrorAction()
-                    }
-                }
                 else
                     memMan.CallCorruptionErrorAction()
-            }
-        }
-    }
 
     // Relays to large vs small bin operations
 
     #MethodImpl(MethodImplOptions.AggressiveInlining)
     fun mut insert_chunk(p *mchunk, s xuint) void
-    {
         if is_small(s)
             insert_small_chunk(p, s)
         else
             insert_large_chunk(cast(*tchunk)p, s)
-    }
 
     #MethodImpl(MethodImplOptions.AggressiveInlining)
     fun mut unlink_chunk(p *mchunk, s xuint) void
-    {
         if is_small(s)
             unlink_small_chunk(p, s)
         else
             unlink_large_chunk(cast(*tchunk)p)
-    }
 
     // -------------------------- mspace management --------------------------
 
     // Initialize top chunk and its size
     fun mut init_top(p *mchunk, psize xuint) void
-    {
         // Ensure alignment
         @offset = align_offset(chunk2mem(p))
         p = cast(*mchunk)(cast(*byte)p + offset)
@@ -1714,23 +1602,19 @@ pub unsafe type DlMalloc
         // set size of fake trailing chunk holding overhead space only once
         chunk_plus_offset(p, psize).head = TOP_FOOT_SIZE
         trim_check = mparams.trim_threshold // reset on each update
-    }
 
     // Initialize bins for a new mstate that is otherwise zeroed out
     fun mut init_bins() void
-    {
         // Establish circular links for smallbins
         for @i in NSMALLBINS
             @bin = smallbin_at(i)
             bin.bk = bin
             bin.fd = bin
-    }
 
     /// <summary>
     /// Default corruption action - forget all allocated memory.
     /// </summary>
     protected fun mut ResetOnError() void
-    {
         @i int
         malloc_corruption_error_count += 1
         // Reinitialize fields to forget about all memory
@@ -1746,13 +1630,11 @@ pub unsafe type DlMalloc
         for @i in NTREEBINS
             dref(treebin_at(i)) = null
         init_bins()
-    }
 
     // Allocate chunk and prepend remainder with chunk in successor base.
     fun mut prepend_alloc(newbase *byte,
                           oldbase *byte,
                           nb xuint) *void
-    {
         @p = align_as_chunk(newbase)
         @oldfirst = align_as_chunk(oldbase)
         @psize = cast (xuint)(cast(*byte)oldfirst - cast(*byte)p)
@@ -1777,7 +1659,6 @@ pub unsafe type DlMalloc
             dv = q
             set_size_and_pinuse_of_free_chunk(q, dsize)
         else
-        {
             if !is_inuse(oldfirst)
                 @nsize = chunksize(oldfirst)
                 unlink_chunk(oldfirst, nsize)
@@ -1786,15 +1667,12 @@ pub unsafe type DlMalloc
             set_free_with_pinuse(q, qsize, oldfirst)
             insert_chunk(q, qsize)
             check_free_chunk(q)
-        }
 
         check_malloced_chunk(chunk2mem(p), nb)
         return chunk2mem(p)
-    }
 
     // Add a segment to hold a new noncontiguous region
     fun mut add_segment(tbase *byte, tsize xuint, mmapped flag_t) void
-    {
         // Determine locations and sizes of segment, fenceposts, old top
         @old_top = cast(*byte)top
         @oldsp = segment_holding(old_top)
@@ -1824,7 +1702,6 @@ pub unsafe type DlMalloc
 
         // Insert trailing fenceposts
         while true
-        {
             @nextp = chunk_plus_offset(p, SIZE_T_SIZE)
             p.head = FENCEPOST_HEAD
             nfences += 1
@@ -1832,7 +1709,6 @@ pub unsafe type DlMalloc
                 p = nextp
             else
                 break
-        }
         assert(nfences >= 2)
 
         // Insert the rest of old top into a bin as an ordinary free chunk
@@ -1844,13 +1720,11 @@ pub unsafe type DlMalloc
             insert_chunk(q, psize)
 
         check_top_chunk(top)
-    }
 
     // -------------------------- System allocation --------------------------
 
     // Get memory from system using MMAP
     fun mut sys_alloc(nb xuint) *void
-    {
         @tbase *byte = null
         @tsize = 0
         @mmap_flag flag_t = 0
@@ -1869,17 +1743,14 @@ pub unsafe type DlMalloc
         // not on boundary, and round this up to a granularity unit.
 
         if tbase == null
-        {
             // Try MMAP
             @mp = cast(*byte)memMan.CallMoreCore(ref asize)
             if mp != null
                 tbase = mp
                 tsize = asize
                 mmap_flag = flag_t.USE_MMAP_BIT
-        }
 
         if tbase != null
-        {
             footprint += tsize
             if footprint > max_footprint
                 max_footprint = footprint
@@ -1901,7 +1772,6 @@ pub unsafe type DlMalloc
                 sp.size += tsize
                 init_top(top, topsize + tsize)
             else
-            {
                 if tbase < least_addr
                     least_addr = tbase
                 sp = seg
@@ -1916,7 +1786,6 @@ pub unsafe type DlMalloc
                     return prepend_alloc(tbase, oldbase, nb)
                 else
                     add_segment(tbase, tsize, mmap_flag)
-            }
 
             if nb < topsize
                 // Allocate from new or extended top space
@@ -1930,35 +1799,29 @@ pub unsafe type DlMalloc
                 check_top_chunk(top)
                 check_malloced_chunk(chunk2mem(p), nb)
                 return chunk2mem(p)
-        }
 
         memMan.CallMallocFailureAction()
         return null
-    }
 
 
     // -----------------------  system deallocation --------------------------
 
     // Unmap and unlink any mmapped segments that don't contain used chunks
     fun mut release_unused_segments() xuint
-    {
         @released xuint = 0
         @nsegs = 0
         @pred = seg
         @sp = pred.next
         while sp != null
-        {
             @baseAddr = sp.baseAddr
             @size = sp.size
             @next = sp.next
             nsegs += 1
             if is_mmapped_segment(sp) && !is_extern_segment(sp)
-            {
                 @p = align_as_chunk(baseAddr)
                 @psize = chunksize(p)
                 // Can unmap if first chunk holds entire segment and not pinned
                 if !is_inuse(p) && cast(*byte)p + psize >= baseAddr + size - TOP_FOOT_SIZE
-                {
                     @tp = cast(*tchunk)p
                     assert(segment_holds(sp, cast(*byte)sp))
                     if p == dv
@@ -1975,30 +1838,23 @@ pub unsafe type DlMalloc
                     else
                         // back out if cannot unmap
                         insert_large_chunk(tp, psize)
-                }
-            }
             if NO_SEGMENT_TRAVERSAL // scan only first segment
                 break
             pred = sp
             sp = next
-        }
         // Reset check counter
         release_checks = cast (xuint)nsegs > cast (xuint)MAX_RELEASE_CHECK_RATE
                             ? cast (xuint)nsegs
                             : cast (xuint)MAX_RELEASE_CHECK_RATE
         return released
-    }
 
     fun mut sys_trim(pad xuint) int
-    {
         @released xuint = 0
         ensure_initialization()
         if pad < MAX_REQUEST && is_initialized()
-        {
             pad += TOP_FOOT_SIZE // ensure enough room for segment overhead
 
             if topsize > pad
-            {
                 // Shrink top space in granularity-size units, keeping at least one
                 @unit = mparams.granularity
                 @extra = ((topsize - pad + (unit - SIZE_T_ONE)) / unit
@@ -2006,26 +1862,19 @@ pub unsafe type DlMalloc
                 @sp = segment_holding(cast(*byte)top)
 
                 if !is_extern_segment(sp)
-                {
                     if is_mmapped_segment(sp)
-                    {
                         if sp.size >= extra
-                            && !has_segment_link(sp)
-                        {
+                                && !has_segment_link(sp)
                             // can't shrink if pinned
                             @newsize = sp.size - extra
                             if memMan.CallReleaseCore(sp.baseAddr + newsize, extra)
                                 released = extra
-                        }
-                    }
-                }
 
                 if released != 0
                     sp.size -= released
                     footprint -= released
                     init_top(top, topsize - released)
                     check_top_chunk(top)
-            }
 
             // Unmap any unused mmapped segments
             released += release_unused_segments()
@@ -2033,25 +1882,20 @@ pub unsafe type DlMalloc
             // On failure, disable autotrim to avoid repeated failed future calls
             if released == 0 && topsize > trim_check
                 trim_check = MAX_SIZE_T
-        }
 
         return released != 0 ? 1 : 0
-    }
 
     // Consolidate and bin a chunk. Differs from exported versions
     //   of free mainly in that the chunk need not be marked as inuse.
     fun mut dispose_chunk(p *mchunk, psize xuint) void
-    {
         @next = chunk_plus_offset(p, psize)
         if !pinuse(p)
-        {
             @prev *mchunk
             @prevsize = p.prev_foot
             prev = chunk_minus_offset(p, prevsize)
             psize += prevsize
             p = prev
             if RTCHECK(ok_address(prev))
-            {
                 // consolidate backward
                 if p != dv
                     unlink_chunk(p, prevsize)
@@ -2059,18 +1903,13 @@ pub unsafe type DlMalloc
                     dvsize = psize
                     set_free_with_pinuse(p, psize, next)
                     return
-            }
             else
                 memMan.CallCorruptionErrorAction()
                 return
-        }
         if RTCHECK(ok_address(next))
-        {
             if !cinuse(next)
-            {
                 // consolidate forward
                 if next == top
-                {
                     topsize += psize
                     @tsize = topsize
                     top = p
@@ -2079,17 +1918,13 @@ pub unsafe type DlMalloc
                         dv = null
                         dvsize = 0
                     return
-                }
                 elif next == dv
-                {
                     dvsize += psize
                     @dsize = dvsize
                     dv = p
                     set_size_and_pinuse_of_free_chunk(p, dsize)
                     return
-                }
                 else
-                {
                     @nsize = chunksize(next)
                     psize += nsize
                     unlink_chunk(next, nsize)
@@ -2097,42 +1932,33 @@ pub unsafe type DlMalloc
                     if p == dv
                         dvsize = psize
                         return
-                }
-            }
             else
                 set_free_with_pinuse(p, psize, next)
             insert_chunk(p, psize)
-        }
         else
             memMan.CallCorruptionErrorAction()
-    }
 
     // ---------------------------- malloc ---------------------------
 
     // allocate a large request from the best fitting chunk in a treebin
     fun mut tmalloc_large(nb xuint) *void
-    {
         @v *tchunk = null
         @rsize = cast(xuint)(-cast(xint)nb) // Unsigned negation
         @t *tchunk
         @idx = compute_tree_index(nb)
         t = dref(treebin_at(idx))
         if t != null
-        {
             // Traverse tree for this bin looking for node with size == nb
             @sizebits = nb << leftshift_for_tree_index(idx)
             @rst = null  // The deepest untaken right subtree
             while true
-            {
                 @rt *tchunk
                 @trem = chunksize(t) - nb
                 if trem < rsize
-                {
                     v = t
                     rsize = trem
                     if rsize == 0
                         break
-                }
                 rt = t.child1
                 t = ((sizebits >> cast(int)(SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0
                         ? t.child0 : t.child1
@@ -2142,38 +1968,29 @@ pub unsafe type DlMalloc
                     t = rst // set t to least subtree holding sizes > nb
                     break
                 sizebits <<= 1
-            }
-        }
         if t == null && v == null
-        {
             // set t to root of next non-empty treebin
             @leftbits = left_bits(idx2bit(idx)) & treemap
             if leftbits != 0
                 @leastbit = least_bit(leftbits)
                 @i = compute_bit2idx(leastbit)
                 t = dref(treebin_at(i))
-        }
 
         while t != null
-        {
             // find smallest of tree or subtree
             @trem = chunksize(t) - nb
             if trem < rsize
                 rsize = trem
                 v = t
             t = leftmost_child(t)
-        }
 
         // If dv is a better fit, return 0 so malloc will use it
         if v != null && rsize < cast(xuint)(dvsize - nb)
-        {
             if RTCHECK(ok_address(v))
-            {
                 // split
                 @r = chunk_plus_offset(v, nb)
                 assert(chunksize(v) == rsize + nb)
                 if RTCHECK(ok_next(v, r))
-                {
                     unlink_large_chunk(v)
                     if rsize < MIN_CHUNK_SIZE
                         set_inuse_and_pinuse(v, (rsize + nb))
@@ -2182,16 +1999,11 @@ pub unsafe type DlMalloc
                         set_size_and_pinuse_of_free_chunk(r, rsize)
                         insert_chunk(r, rsize)
                     return chunk2mem(v)
-                }
-            }
             memMan.CallCorruptionErrorAction()
-        }
         return null
-    }
 
     // allocate a small request from the best fitting chunk in a treebin
     fun mut tmalloc_small(nb xuint) *void
-    {
         @t *tchunk
         @v *tchunk
         @rsize xuint
@@ -2203,20 +2015,16 @@ pub unsafe type DlMalloc
 
         t = leftmost_child(t)
         while t != null
-        {
             @trem = chunksize(t) - nb
             if trem < rsize
                 rsize = trem
                 v = t
             t = leftmost_child(t)
-        }
 
         if RTCHECK(ok_address(v))
-        {
             @r = chunk_plus_offset(v, nb)
             assert(chunksize(v) == rsize + nb)
             if RTCHECK(ok_next(v, r))
-            {
                 unlink_large_chunk(v)
                 if rsize < MIN_CHUNK_SIZE
                     set_inuse_and_pinuse(v, (rsize + nb))
@@ -2225,26 +2033,20 @@ pub unsafe type DlMalloc
                     set_size_and_pinuse_of_free_chunk(r, rsize)
                     replace_dv(r, rsize)
                 return chunk2mem(v)
-            }
-        }
 
         memMan.CallCorruptionErrorAction()
         return null
-    }
 
     // Traversal
     fun internal_inspect_all(handler fun(start *void, next *void, used u64)void) void
-    {
         if !is_initialized()
             return
 
         @top2 = top
         @s = seg
         while s != null
-        {
             @q = align_as_chunk(s.baseAddr)
             while segment_holds(s, q) && q.head != FENCEPOST_HEAD
-            {
                 @next = next_chunk(q)
                 @sz = chunksize(q)
                 @used xuint
@@ -2253,23 +2055,18 @@ pub unsafe type DlMalloc
                     used = sz - CHUNK_OVERHEAD // must not be mmapped
                     start = chunk2mem(q)
                 else
-                {
                     used = 0
                     if (is_small(sz))
                         // offset by possible bookkeeping
                         start = cast(*void)(cast(*byte)q + sizeof(mchunk))
                     else
                         start = cast(*void)(cast(*byte)q + sizeof(tchunk))
-                }
                 if start < cast(*void)next  // skip if all space is bookkeeping
                     handler(start, next, used)
                 if q == top2
                     break
                 q = next
-            }
             s = s.next
-        }
-    }
 
     // ------------------ Exported realloc, memalign, etc --------------------
 
@@ -2279,14 +2076,11 @@ pub unsafe type DlMalloc
 
     // TBD: Optimize and move to standard library
     fun MemClear(mem *void, size i64) void
-    {
         @b = cast(*byte)mem
         for @s in 0..size
             dref(b) = 0; b += 1
-    }
 
     fun mut init_user_mstate(tbase *byte, tsize xuint) void
-    {
         @mn mchunk
         @msp = align_as_chunk(tbase)
         @m *void = chunk2mem(msp)
@@ -2313,17 +2107,14 @@ pub unsafe type DlMalloc
         mn = next_chunk(mem2chunk(m))
         init_top(mn, cast (xuint)((tbase + tsize) - cast(*byte)mn) - TOP_FOOT_SIZE)
         check_top_chunk(top)
-    }
 
     //  destroy_mspace destroys the given space, and attempts to return all
     //  of its memory back to the system, returning the total number of
     //  bytes freed. After destruction, the results of access to all memory
     //  used by the space become undefined.
     pub fun mut Dispose() void
-    {
         @sp = seg
         while (sp != null)
-        {
             @baseAddr = sp.baseAddr
             @size = sp.size
             @flag = sp.sflags
@@ -2334,7 +2125,6 @@ pub unsafe type DlMalloc
             {
                 //freed += size
             }
-        }
         Marshal.FreeHGlobal(smallbins)
         Marshal.FreeHGlobal(treebins)
         Marshal.FreeHGlobal(seg)
@@ -2343,13 +2133,11 @@ pub unsafe type DlMalloc
         seg = null
         top = null
         memMan.CallDisposeFinal()
-    }
 
     /// <summary>
     /// Malloc can be exposed or used by the inheriting class
     /// </summary>
     pub fun mut Malloc(length xuint) *void
-    {
         //     Basic algorithm:
         //     If a small request (< 256 bytes minus per-chunk overhead):
         //       1. If one exists, use a remainderless chunk in associated smallbin.
@@ -2375,7 +2163,6 @@ pub unsafe type DlMalloc
         @mem *void
         @nb xuint
         if length <= MAX_SMALL_REQUEST
-        {
             @idx uint
             @smallbits uint
             nb = (length < MIN_REQUEST) ? MIN_CHUNK_SIZE : pad_request(length)
@@ -2396,9 +2183,7 @@ pub unsafe type DlMalloc
                 check_malloced_chunk(mem, nb)
                 return mem
             elif nb > dvsize
-            {
                 if smallbits != 0
-                {
                     // Use chunk in next nonempty smallbin
                     @b *mchunk
                     @p *mchunk
@@ -2423,35 +2208,23 @@ pub unsafe type DlMalloc
                     mem = chunk2mem(p)
                     check_malloced_chunk(mem, nb)
                     return mem
-                }
                 else
-                {
                     if treemap != 0
-                    {
                         mem = tmalloc_small(nb)
                         if mem != null
                             check_malloced_chunk(mem, nb)
                             return mem
-                    }
-                }
-            }
-        }
         elif length >= MAX_REQUEST
             nb = MAX_SIZE_T// Too big to allocate. Force failure (in sys alloc)
         else
-        {
             nb = pad_request(length)
             if treemap != 0
-            {
                 mem = tmalloc_large(nb)
                 if mem != null
                     check_malloced_chunk(mem, nb)
                     return mem
-            }
-        }
 
         if nb <= dvsize
-        {
             @rsize = dvsize - nb
             @p = dv
             if (rsize >= MIN_CHUNK_SIZE)
@@ -2470,7 +2243,6 @@ pub unsafe type DlMalloc
             mem = chunk2mem(p)
             check_malloced_chunk(mem, nb)
             return mem
-        }
         elif nb < topsize
             // Split top
             topsize -= nb
@@ -2486,15 +2258,12 @@ pub unsafe type DlMalloc
             return mem
 
         mem = sys_alloc(nb)
-
         return mem
-    }
 
     /// <summary>
     /// Free can be exposed or used by the inheriting class
     /// </summary>
     pub fun mut Free(mem *void) void
-    {
         // Consolidate freed chunks with preceeding or succeeding bordering
         // free chunks, if they exist, and then place in a bin.  Intermixed
         // with special cases for top, dv, mmapped chunks, and usage errors.
@@ -2515,13 +2284,11 @@ pub unsafe type DlMalloc
         @psize = chunksize(p)
         @next = chunk_plus_offset(p, psize)
         if !pinuse(p)
-        {
             @prevsize = p.prev_foot
             @prev = chunk_minus_offset(p, prevsize)
             psize += prevsize
             p = prev
             if (RTCHECK(ok_address(prev)))
-            {
                 // consolidate backward
                 if (p != dv)
                     unlink_chunk(p, prevsize)
@@ -2529,19 +2296,14 @@ pub unsafe type DlMalloc
                     dvsize = psize
                     set_free_with_pinuse(p, psize, next)
                     return
-            }
             else
                 memMan.CallUsageErrorAction(p)
                 return
-        }
 
         if (RTCHECK(ok_next(p, next) && ok_pinuse(next)))
-        {
             if !cinuse(next)
-            {
                 // consolidate forward
                 if next == top
-                {
                     topsize += psize
                     @tsize = topsize
                     top = p
@@ -2552,7 +2314,6 @@ pub unsafe type DlMalloc
                     if (should_trim(tsize))
                         sys_trim(0)
                     return
-                }
                 elif (next == dv)
                     dvsize += psize
                     @dsize = dvsize
@@ -2560,7 +2321,6 @@ pub unsafe type DlMalloc
                     set_size_and_pinuse_of_free_chunk(p, dsize)
                     return
                 else
-                {
                     @nsize = chunksize(next)
                     psize += nsize
                     unlink_chunk(next, nsize)
@@ -2568,8 +2328,6 @@ pub unsafe type DlMalloc
                     if (p == dv)
                         dvsize = psize
                         return
-                }
-            }
             else
                 set_free_with_pinuse(p, psize, next)
 
@@ -2577,35 +2335,27 @@ pub unsafe type DlMalloc
                 insert_small_chunk(p, psize)
                 check_free_chunk(p)
             else
-            {
                 @tp = cast(*tchunk)p
                 insert_large_chunk(tp, psize)
                 check_free_chunk(p)
                 release_checks -= 1
                 if (release_checks == 0)
                     release_unused_segments()
-            }
             return
-        }
         memMan.CallUsageErrorAction(p)
-    }
 
 
     pub fun InspectAll(handler fun(start *void, next *void, used u32)void) void
-    {
         if ok_magic()
             internal_inspect_all(handler)
         else
             memMan.CallUsageErrorAction(null)
-    }
 
     pub fun mut Trim(pad xuint) int
-    {
         @result = 0
         if ok_magic()
             result = sys_trim(pad)
         else
             memMan.CallUsageErrorAction(null)
         return result
-    }
 }
