@@ -20,7 +20,7 @@ namespace Gosub.Zurfur.Compiler
         public const string VT_TYPE_ARG = "$"; // Differentiate from '<' (must be 1 char long)
 
         // TBD: Allow pragmas to be set externally
-        static WordSet sPragmas = new WordSet("ShowParse ShowMeta NoParse AllowUnderscoreDefinitions");
+        static WordSet sPragmas = new WordSet("ShowParse ShowMeta NoParse AllowUnderscoreDefinitions SuppressVerifier");
 
 
         ParseZurfCheck mZurfParseCheck;
@@ -44,7 +44,7 @@ namespace Gosub.Zurfur.Compiler
 
         string mNamespaceBaseStr = "";
         string[] mNamespaceBasePath = Array.Empty<string>();
-        string[] mNamePath = new string[0];
+        Token[] mNamePath = Array.Empty<Token>();
         SyntaxFile mSyntax;
 
         public int ParseErrors => mParseErrors;
@@ -435,11 +435,12 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Collect base namespace
-            mNamePath = namePath.ConvertAll(token => token.Name).ToArray();
-            var namePathStr = string.Join(".", mNamePath);
+            mNamePath = namePath.ToArray();
+            var namePathStrArray = namePath.ConvertAll(token => token.Name).ToArray();
+            var namePathStr = string.Join(".", namePathStrArray);
             if (mNamespaceBasePath.Length == 0)
             {
-                mNamespaceBasePath = mNamePath;
+                mNamespaceBasePath = namePathStrArray;
                 mNamespaceBaseStr = namePathStr;
             }
             if (!mSyntax.Namespaces.TryGetValue(namePathStr, out var ns))
@@ -489,8 +490,11 @@ namespace Gosub.Zurfur.Compiler
             synClass.Comments = mComments.ToString();
             mComments.Clear();
 
+            if (!CheckIdentifier("Expecting an identifier possibly followed by type parameters (e.g. 'Name<T1>', etc)"))
+                return; // TBD: Could try to recover (user probably editing class name)
+
             // Parse class name and type parameters
-            (synClass.Name, synClass.TypeArgs) = GetSimpleNameWithTypeArgs(ParseTypeIdentifier());
+            (synClass.Name, synClass.TypeArgs) = GetSimpleNameWithTypeArgs(ParseType());
             if (synClass.Name.Type != eTokenType.TypeName)
                 return; // TBD: Could try to recover (user probably editing class name)
 
@@ -499,7 +503,7 @@ namespace Gosub.Zurfur.Compiler
 
             // Push new path
             var oldPath = mNamePath;
-            var namePath = new List<string>(mNamePath);
+            var namePath = new List<Token>(mNamePath);
             namePath.Add(synClass.Name);
             mNamePath = namePath.ToArray();
 
@@ -897,7 +901,6 @@ namespace Gosub.Zurfur.Compiler
             funcName = mToken;
             if (!CheckIdentifier("Expecting a function or type name", sRejectTypeName))
                 return false;
-            RejectUnderscoreDefinition(funcName);
 
             // TBD: Convert this to use "." instead of requiring "::" to
             //      separate extension method type from function name.
@@ -910,6 +913,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             (funcName, typeArgs) = GetSimpleNameWithTypeArgs(funName);
+            RejectUnderscoreDefinition(funcName);
             var validMethodName = funcName.Type == eTokenType.TypeName;
             if (validMethodName)
                 funcName.Type = eTokenType.DefineMethod;
@@ -1986,17 +1990,6 @@ namespace Gosub.Zurfur.Compiler
         }
 
 
-        /// <summary>
-        /// Type name starting with identifier and optional type args:  TypeName<Arg...>
-        /// </summary>
-        SyntaxExpr ParseTypeIdentifier()
-        {
-            if (!CheckIdentifier("Expecting a type name", sRejectTypeName))
-                return new SyntaxError(mLexer.EndToken);
-            return ParseType();
-        }
-
-
         SyntaxExpr ParseType()
         {
             if (sTypeUnaryOps.Contains(mTokenName))
@@ -2086,7 +2079,7 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// After calling `ParseTypeIdentifier`, call this to get the simple name
+        /// After calling `ParseType`, call this to get the simple name
         /// with type arguments and mark anything else with an error.
         /// No sub-embedded types, just this: TypeName<Arg1, Arg2, ...>
         /// RETURNS: (name, type args)

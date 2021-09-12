@@ -159,23 +159,25 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Returns the symbol at the given path in the package.  Generates exception if not found.
         /// </summary>
-        public Symbol FindPath(string[] path)
+        public Symbol FindPath(Token[] path)
         {
             var symbol = (Symbol)mRoot;
             foreach (var name in path)
             {
-                if (!symbol.Children.TryGetValue(name, out var child))
-                    throw new Exception("Compiler error: Could not find parent symbol '" + string.Join(".", path) + "'");
+                if (!symbol.Children.TryGetValue(name.Name, out var child))
+                    throw new Exception("Compiler error: Could not find parent symbol '" 
+                        + string.Join(".", Array.ConvertAll(path, t=>t.Name)) + "'");
                 symbol = child;
             }
             return symbol;
         }
 
+
         /// <summary>
         /// Returns the symbol at the given path in the package.
         /// Returns null and marks an error if not found.
         /// </summary>
-        public Symbol FindPath(Token[] path)
+        public Symbol FindPathOrReject(Token[] path)
         {
             var symbol = (Symbol)mRoot;
             foreach (var name in path)
@@ -262,7 +264,7 @@ namespace Gosub.Zurfur.Compiler
         void Reject(Token token, string message)
         {
             if (!token.Error)
-                token.AddError(new ZilError(message));
+                token.AddError(new ZilHeaderError(message));
         }
 
 

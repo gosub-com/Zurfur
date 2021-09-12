@@ -207,81 +207,95 @@ namespace Gosub.Zurfur.Ide
         /// </summary>
         void DisplayHoverForm()
         {
-            if (mActiveEditor != null
+            var showForm = mActiveEditor != null
                     && mHoverToken != null
                     && mHoverToken.Type != eTokenType.Comment
-                    && (mHoverToken.GetInfoString() != "" 
+                    && (mHoverToken.GetInfoString() != ""
                             || mHoverToken.GetInfo<Symbol>() != null
                             || mHoverToken.GetInfo<TokenError>() != null
                             || mHoverToken.GetInfo<TokenWarn>() != null)
-                    && !mHoverMessageForm.Visible)
+                    && !mHoverMessageForm.Visible;
+            if (!showForm)
+                return;
+
+            // Show symbol info
+            var message = GetSymbolInfo();
+
+            foreach (var error in mHoverToken.GetInfos<TokenError>())
             {
-                // Show symbol info
-                string message = "";
-                var symbols = mHoverToken.GetInfos<Symbol>();
-                foreach (var symbol in symbols)
-                {
-                    // Top level symbol info
-
-                    // Field type info
-                    if (symbol is SymField symField)
-                    {
-                        message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
-                        message += "TYPE: " + symField.TypeName + "\r\n";
-                    }
-                    else if (symbol is SymMethodParam symMethodArg)
-                    {
-                        message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
-                        message += "TYPE: " + symMethodArg.TypeName + "\r\n";
-                    }
-                    else if (symbol is SymMethod symMethod)
-                    {
-                        message += symbol.Kind.ToUpper() + ": " + symbol.GetFullName() + "\r\n";
-                        message += "PARAMS: \r\n";
-                        foreach (var child in symMethod.Children)
-                        {
-                            if (child.Value is SymMethodParam arg)
-                                message += "    " + child.Key + ": " + arg.TypeName + "\r\n";
-                            else
-                                message += "    " + child.Key + ": Error - unknown type\r\n";
-                        }
-                    }
-                    else
-                    {
-                        message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
-                    }
-
-                    // Comments
-                    if (symbol.Comments != "")
-                        message += symbol.Comments + "\r\n";
-                    message += "\r\n";
-                    
-                    // Only show one symbol, but if there are duplicates let us know about them
-                    if (symbols.Length != 1)
-                    {
-                        // TBD: Multiples probably mean an error
-                        message += "DUPLICATE: " + symbols.Length + "\r\n";
-                        break;  // TBD: Do something with duplicates
-                    }
-                }
-
-                foreach (var error in mHoverToken.GetInfos<TokenError>())
-                    message += "ERROR:" + error.ToString() + "\r\n";
-                foreach (var error in mHoverToken.GetInfos<TokenWarn>())
-                    message += "WARN:" + error.ToString() + "\r\n";
-
-                message += mHoverToken.GetInfoString();
-                mHoverMessageForm.Message.Text = message.Trim();
-
-                // Show form with proper size and location
-                var size = mHoverMessageForm.Message.Size;
-                mHoverMessageForm.ClientSize = new Size(size.Width + 8, size.Height + 8);
-                var location = mActiveEditor.PointToScreen(mActiveEditor.LocationToken(mHoverToken.Location));
-                location.Y += mActiveEditor.FontSize.Height + 8;
-                location.X = Form.MousePosition.X;
-                mHoverMessageForm.Location = location;
-                mHoverMessageForm.Show(mActiveEditor.ParentForm);
+                var errorType = "";
+                if (error is ParseZurf.ParseError)
+                    errorType = " (parse)";
+                else if (error is ZilHeaderError)
+                    errorType = " (gen header)";
+                else if (error is VerifyHeaderError)
+                    errorType = " (verify header)";
+                message += $"ERROR{errorType}: {error}\r\n";
             }
+
+            foreach (var error in mHoverToken.GetInfos<TokenWarn>())
+                message += $"WARN {error.GetType().Name}: {error}\r\n";
+
+            message += mHoverToken.GetInfoString();
+            mHoverMessageForm.Message.Text = message.Trim();
+
+            // Show form with proper size and location
+            var size = mHoverMessageForm.Message.Size;
+            mHoverMessageForm.ClientSize = new Size(size.Width + 8, size.Height + 8);
+            var location = mActiveEditor.PointToScreen(mActiveEditor.LocationToken(mHoverToken.Location));
+            location.Y += mActiveEditor.FontSize.Height + 8;
+            location.X = Form.MousePosition.X;
+            mHoverMessageForm.Location = location;
+            mHoverMessageForm.Show(mActiveEditor.ParentForm);
+        }
+
+        private string GetSymbolInfo()
+        {
+            var message = "";
+            var symbols = mHoverToken.GetInfos<Symbol>();
+            if (symbols.Length == 0)
+                return "";
+
+            var symbol = symbols[0];
+            if (symbol is SymField symField)
+            {
+                message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
+                message += "TYPE: " + symField.TypeName + "\r\n";
+            }
+            else if (symbol is SymMethodParam symMethodArg)
+            {
+                message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
+                message += "TYPE: " + symMethodArg.TypeName + "\r\n";
+            }
+            else if (symbol is SymMethod symMethod)
+            {
+                message += symbol.Kind.ToUpper() + ": " + symbol.GetFullName() + "\r\n";
+                message += "PARAMS: \r\n";
+                foreach (var child in symMethod.Children)
+                {
+                    if (child.Value is SymMethodParam arg)
+                        message += "    " + child.Key + ": " + arg.TypeName + "\r\n";
+                    else
+                        message += "    " + child.Key + ": Error - unknown type\r\n";
+                }
+            }
+            else
+            {
+                message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
+            }
+
+            // Comments
+            if (symbol.Comments != "")
+                message += symbol.Comments + "\r\n";
+            message += "\r\n";
+
+            // Only show one symbol, but if there are duplicates let us know about them
+            if (symbols.Length != 1)
+            {
+                // We get this when there are parse errors
+                message += "DUPLICATE SYMBOL ERROR: There are " + symbols.Length + " symbols\r\n";
+            }
+            return message;
         }
 
         void UpdateScrollBars(TextEditor editor)

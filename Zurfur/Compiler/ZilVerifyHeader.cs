@@ -8,9 +8,9 @@ using Gosub.Zurfur.Lex;
 
 namespace Gosub.Zurfur.Compiler
 {
-    public class VerifyError : TokenError
+    public class VerifyHeaderError : TokenError
     {
-        public VerifyError(string message) : base(message) { }
+        public VerifyHeaderError(string message) : base(message) { }
     }
 
     // Some compiler error checking can be done here and reported directly
@@ -19,14 +19,12 @@ namespace Gosub.Zurfur.Compiler
     // the symbol it has access to, such as the field or parameter, whereas
     // the compiler can show an error directly at the type name token that
     // failed).
-    //
-    // Therefore, much of this may be redundant but all of it is necessary
-    // to ensure packages are correct.
     class ZilVerifyHeader
     {
 
         public static void VerifyHeader(SymbolTable symbols)
         {
+            //return;
             symbols.VisitAll((symbol) =>
             {
                 if (symbol.Name == "")
@@ -95,7 +93,7 @@ namespace Gosub.Zurfur.Compiler
             void Reject(Token token, string message)
             {
                 if (!token.Error)
-                    token.AddError(new VerifyError(message));
+                    token.AddError(new VerifyHeaderError(message));
             }
 
 

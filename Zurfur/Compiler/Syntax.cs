@@ -51,7 +51,7 @@ namespace Gosub.Zurfur.Compiler
 
         public Token Keyword => Token; // class, struct, func, prop, blank for field, etc.
         public SyntaxScope ParentScope;
-        public string[] NamePath;
+        public Token[] NamePath;
         public string Comments;
         public Token[] Qualifiers;
         public Token Name;
@@ -60,7 +60,7 @@ namespace Gosub.Zurfur.Compiler
         {
             get
             {
-                return string.Join(".", NamePath) + ":" + Name;
+                return string.Join(".", Array.ConvertAll(NamePath, t=>t.Name)) + ":" + Name;
             }
         }
         public override string ToString() => FullName;

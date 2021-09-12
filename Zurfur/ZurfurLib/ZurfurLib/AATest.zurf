@@ -27,8 +27,8 @@ pub type AGenericTest<T, QQQ>
     pub fun F1(a List) void { } // TBD: Need error here
     pub fun F2(a List<int>) void { }
     pub fun F3(a List<int,int>) void { } // TBD: Need error here
-    pub fun F4(a List<int,hello>) void { } // TBD: need better error message
-    pub fun F5(a List<List<x>>) void { } // TBD: need better error message
+    pub fun F4(a List<int,hello>) void { }
+    pub fun F5(a List<List<x>>) void { }
 
 
     @a List<int>
