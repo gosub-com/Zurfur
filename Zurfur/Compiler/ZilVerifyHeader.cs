@@ -24,7 +24,7 @@ namespace Gosub.Zurfur.Compiler
 
         public static void VerifyHeader(SymbolTable symbols)
         {
-            //return;
+            return;
             symbols.VisitAll((symbol) =>
             {
                 if (symbol.Name == "")

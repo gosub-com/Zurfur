@@ -118,7 +118,7 @@ pub type ro GcRefArray<T>
     }
 
     // TBD: Need access to 'this' pointer (use 'ref' on property?)
-    pub unsafe prop Data *T
+    pub unsafe get Data *T
         return cast(*T)(cast(xuint)&this + sizeof(GcRefArray<T>))
 
     // TBD: Need access to 'this' pointer (use 'ref' on function?)

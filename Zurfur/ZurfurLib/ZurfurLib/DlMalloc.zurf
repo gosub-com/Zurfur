@@ -179,7 +179,7 @@ pub unsafe type DlMalloc
     const TREEBIN_SHIFT xuint = 8U
     const MIN_LARGE_SIZE xuint = SIZE_T_ONE << TREEBIN_SHIFT
     const MAX_SMALL_SIZE xuint = MIN_LARGE_SIZE - SIZE_T_ONE
-    noself prop MAX_SMALL_REQUEST xuint
+    noself get MAX_SMALL_REQUEST xuint
         return MAX_SMALL_SIZE - CHUNK_ALIGN_MASK - CHUNK_OVERHEAD
 
     @memMan DlMallocMem
@@ -219,7 +219,7 @@ pub unsafe type DlMalloc
 
     /// Returns the number of malloc segments, which represents
     /// the number of discontiguous memory regions.
-    pub prop SegmentCount int
+    pub get SegmentCount int
         @count = 0
         @segment = seg
         while segment != null
@@ -343,9 +343,9 @@ pub unsafe type DlMalloc
     // ------------------- xuint and alignment properties --------------------
 
     // The byte and bit size of a xuint
-    noself prop SIZE_T_SIZE xuint
+    noself get SIZE_T_SIZE xuint
         return sizeof(xunit)
-    noself prop SIZE_T_BITSIZE xuint
+    noself get SIZE_T_BITSIZE xuint
         return sizeof(xuint) << 3
 
     // Some constants coerced to size_t
@@ -353,9 +353,9 @@ pub unsafe type DlMalloc
     const SIZE_T_ONE xuint = 1
     const SIZE_T_TWO xuint = 2
     const SIZE_T_FOUR xuint = 4
-    noself prop TWO_SIZE_T_SIZES xuint
+    noself get TWO_SIZE_T_SIZES xuint
         return SIZE_T_SIZE << 1
-    noself prop FOUR_SIZE_T_SIZES xuint
+    noself get FOUR_SIZE_T_SIZES xuint
         return SIZE_T_SIZE << 2
 
     // The bit mask value corresponding to MALLOC_ALIGNMENT
@@ -512,16 +512,16 @@ pub unsafe type DlMalloc
         @fd *mchunk pub get set          // double links -- used only if free.
         @bk *mchunk pub get set
 
-        pub prop prev_foot xuint
-        {
-            get: return cast(xuint)prev_foot_ptr
-            set: prev_foot_ptr = cast(*void)value
-        }
-        pub prop head xuint
-        {
-            get: return cast(xuint)head_ptr
-            set: head_ptr = cast(xuint)value
-        }
+        pub get prev_foot xuint
+            return cast(xuint)prev_foot_ptr
+        pub set
+            prev_foot_ptr = cast(*void)value
+        
+        pub get head xuint        
+            return cast(xuint)head_ptr
+        pub set
+            head_ptr = cast(xuint)value
+        
     }
 
     noself fun cinuse(p *mchunk) bool 
@@ -563,15 +563,15 @@ pub unsafe type DlMalloc
 
     // ------------------- Chunks sizes and alignments -----------------------
 
-    noself prop CHUNK_OVERHEAD xuint
+    noself get CHUNK_OVERHEAD xuint
         return SIZE_T_SIZE
-    noself prop MCHUNK_SIZE xuint
+    noself get MCHUNK_SIZE xuint
         return sizeof(mchunk)
-    noself prop MIN_CHUNK_SIZE xuint
+    noself get MIN_CHUNK_SIZE xuint
         return (MCHUNK_SIZE + CHUNK_ALIGN_MASK) & ~CHUNK_ALIGN_MASK
-    noself prop MAX_REQUEST xuint
+    noself get MAX_REQUEST xuint
         return -MIN_CHUNK_SIZE << 2
-    noself prop MIN_REQUEST xuint
+    noself get MIN_REQUEST xuint
         return MIN_CHUNK_SIZE - CHUNK_OVERHEAD - SIZE_T_ONE
 
     // conversion from malloc headers to user pointers, and back
@@ -600,7 +600,7 @@ pub unsafe type DlMalloc
     const FLAG_BITS xuint = PINUSE_BIT | CINUSE_BIT | FLAG4_BIT
 
     // Head value for fenceposts
-    noself prop FENCEPOST_HEAD xuint
+    noself get FENCEPOST_HEAD xuint
         return INUSE_BITS | SIZE_T_SIZE
 
     // Get the internal overhead associated with chunk p
@@ -710,16 +710,15 @@ pub unsafe type DlMalloc
         @parent *tchunk pub get set
         @index uint pub get set
 
-        pub prop prev_foot xuint
-        {
-            get: return cast(xuint)prev_foot_ptr
-            set: prev_foot_ptr = cast(*void)value
-        }
-        pub prop head xuint
-        {
-            get: return cast(xuint)head_ptr
-            set: head_ptr = cast(xuint)value
-        }
+        pub get prev_foot xuint
+            return cast(xuint)prev_foot_ptr
+        pub set
+            prev_foot_ptr = cast(*void)value
+        
+        pub get head xuint
+            return cast(xuint)head_ptr
+        pub set
+            head_ptr = cast(xuint)value
 
     }
 
@@ -870,7 +869,7 @@ pub unsafe type DlMalloc
         return granularity_align(s)
 
     // For sys_alloc, enough padding to ensure can malloc request on success
-    noself prop SYS_ALLOC_PADDING xuint
+    noself get SYS_ALLOC_PADDING xuint
         return TOP_FOOT_SIZE + MALLOC_ALIGNMENT
 
     fun is_page_aligned(s xuint) bool
@@ -909,7 +908,7 @@ pub unsafe type DlMalloc
     //  TOP_FOOT_SIZE is padding at the end of a segment, including space
     //  that may be needed to place segment records and fenceposts when new
     //  noncontiguous segments are added.
-    noself prop TOP_FOOT_SIZE xuint
+    noself get TOP_FOOT_SIZE xuint
        return align_offset(chunk2mem(cast(*mchunk)0)) + pad_request(sizeof(msegment)) + MIN_CHUNK_SIZE
 
     // -------------------------- Debugging setup ----------------------------
@@ -927,7 +926,7 @@ pub unsafe type DlMalloc
         return s >> SMALLBIN_SHIFT
     noself fun small_index2size(i xuint) xuint
         return i << SMALLBIN_SHIFT
-    noself prop MIN_SMALL_INDEX xuint
+    noself get MIN_SMALL_INDEX xuint
         return small_index(MIN_CHUNK_SIZE)
 
     // addressing by index. See above about smallbin repositioning

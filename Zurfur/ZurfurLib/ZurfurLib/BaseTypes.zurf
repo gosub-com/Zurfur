@@ -416,13 +416,13 @@ pub type ro f32
     pub noself fun Equatable<f32>::Equals(a f32, b f32) bool extern
     pub noself fun Comparable<f32>::Compare(a f32, b f32) int extern
     
-    pub prop IsInfinity bool
+    pub get IsInfinity bool
         return todo()
-    pub prop IsNaN bool
+    pub get IsNaN bool
         return todo()
-    pub prop IsNegativeInfinity bool
+    pub get IsNegativeInfinity bool
         return todo()
-    pub prop IsPositiveInfinity bool
+    pub get IsPositiveInfinity bool
         return todo()
 
     // Overloadable operators
@@ -491,13 +491,13 @@ pub type ro f64
     pub noself fun Equatable<f32>::Equals(a f64, b f64) bool extern
     pub noself fun Comparable<f32>::Compare(a f64, b f64) int extern
     
-    pub prop IsInfinity bool
+    pub get IsInfinity bool
         return todo()
-    pub prop IsNaN bool
+    pub get IsNaN bool
         return todo()
-    pub prop IsNegativeInfinity bool
+    pub get IsNegativeInfinity bool
         return todo()
-    pub prop IsPositiveInfinity bool
+    pub get IsPositiveInfinity bool
         return todo()
     
     // Overloadable operators
@@ -554,13 +554,13 @@ pub type ro decimal
     pub const Origin decimal = 0
     pub const Identity decimal = 1
     
-    pub prop IsInfinity bool
+    pub get IsInfinity bool
         return todo()
-    pub prop IsNaN bool
+    pub get IsNaN bool
         return todo()
-    pub prop IsNegativeInfinity bool
+    pub get IsNegativeInfinity bool
         return todo()
-    pub prop IsPositiveInfinity bool
+    pub get IsPositiveInfinity bool
         return todo()
 
     // Normal comparisons

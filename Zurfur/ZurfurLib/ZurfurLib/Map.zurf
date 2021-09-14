@@ -10,7 +10,7 @@ pub type Map<TKey, TValue>
         return todo()
     pub fun new(keyValues Collection<Pair<TKey, TValue>>) void
         return todo()
-    pub prop Count int
+    pub get Count int
         return todo()
     pub fun operator in(a TKey) bool
         return todo()
@@ -24,9 +24,9 @@ pub type Map<TKey, TValue>
         return todo()
     pub fun TryGet(key TKey) ?TValue
         return todo()
-    pub prop Keys Collection<TKey>
+    pub get Keys Collection<TKey>
         return todo()
-    pub prop Values Collection<TValue>
+    pub get Values Collection<TValue>
         return todo()
     pub fun mut Clear() void
         return todo()

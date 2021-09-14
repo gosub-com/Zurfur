@@ -497,6 +497,8 @@ namespace Gosub.Zurfur.Compiler
                 bool resolved = true;
                 foreach (var pType in paramExprs)
                 {
+                    if (pType is SyntaxError)
+                        continue;
                     var sym = ResolveTypeScopeOrReject(pType[0], true, scope, useScope, file);
                     if (sym == null)
                     {

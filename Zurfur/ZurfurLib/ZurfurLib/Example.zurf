@@ -113,7 +113,7 @@ pub noself fun Iterable<T>::AlphaLengthWise<T, L>(
 
 pub type Example
 {
-    pub prop MyConst str
+    pub get MyConst str
         return "Hello"
     
     @a1 str
@@ -136,7 +136,7 @@ pub type Example
         return info+a
     pub fun GetInfo(a str) str
         return a
-    pub prop Info str
+    pub get Info str
         return info
 
     @a Zim<void>
@@ -261,10 +261,10 @@ pub type MutableTest
     pub fun getMyObjectAt(i int) MyObject { todo() }
     pub fun getMyObjects() List<MyObject> { todo() }
     pub fun getMyObjects2() List<MyObject> { todo() }
-    pub prop P1 MyObject { return i }
-    pub prop P2 MyObject { return i }
+    pub get P1 MyObject { return i }
+    pub get P2 MyObject { return i }
     
-    pub prop P str { return Header + info }
+    pub get P str { return Header + info }
     fun getListObject(i mut int) ref mut MyObject
         return a[i]
 
@@ -276,11 +276,10 @@ pub type MyMutablePoint(X int, Y int)
     pub fun mut SetY(y int) void
         Y = y
         
-    pub prop PropX int
-    {
-        get: return X
-        set: X = value
-    }
+    pub get PropX int
+        return x
+    pub set
+        X = value
 }
 
 
@@ -292,7 +291,7 @@ pub type Example_x
     @field2 int pub
     @ChangedTime DateTime pub get = DateTime.Now
 
-    pub prop Prop str
+    pub get Prop str
         return Header + info
     pub fun A(a int, b int, c f32) f32
         return  a+1
@@ -387,15 +386,15 @@ pub type Example2<Q>  // YES, errors working
     @f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
-    pub prop P1 int
+    pub get P1 int
         return 1
-    pub prop P2 f32
+    pub get P2 f32
         return f1 + f2
-    pub prop P5 int
-    {
-        get: return p1
-        set: p1 = value
-    }
+        
+    pub get P5 int
+        return p1
+    pub set
+        p1 = value
     
     pub fun operator[](index int) int
         return index

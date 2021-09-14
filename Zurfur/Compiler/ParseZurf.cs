@@ -234,6 +234,7 @@ namespace Gosub.Zurfur.Compiler
             bool topScope = parentScope == null;
             var qualifiers = new List<Token>();
             Token alignment = null;
+            SyntaxFunc prevProperty = null;
             while (mTokenName != "" && (mTokenName != "}" || topScope))
             {
                 if (alignment == null)
@@ -264,6 +265,11 @@ namespace Gosub.Zurfur.Compiler
                 {
                     qualifiers.Add(Accept());
                 }
+
+                // 'set' must come immediately after 'get' without
+                // intervening fields, functions, or types, etc.
+                if (mTokenName != "set" && mTokenName != "aset")
+                    prevProperty = null;
 
                 var keyword = mToken;
                 switch (mTokenName)
@@ -320,11 +326,17 @@ namespace Gosub.Zurfur.Compiler
                         AddMethod(ParseMethod(keyword, parentScope, qualifiers));
                         break;
 
-                    case "prop":
-                    case "aprop":
+                    case "get":
+                    case "aget":
+                    case "set":
+                    case "aset":
                         mToken.Type = eTokenType.ReservedControl;
                         Accept();
-                        ParseProperty(keyword, parentScope, qualifiers);
+                        var prop = ParseProperty(prevProperty, keyword, parentScope, qualifiers);
+                        AddMethod(prop);
+                        prevProperty = null;
+                        if (keyword == "get" || keyword == "aget")
+                            prevProperty = prop;
                         break;
 
                     case "@":
@@ -724,18 +736,32 @@ namespace Gosub.Zurfur.Compiler
             return field;
         }
 
-        private void ParseProperty(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
+        private SyntaxFunc ParseProperty(SyntaxFunc prevProperty, Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
         {
-            // Property name
-            if (!AcceptIdentifier("Expecting a property name"))
-                return;
-            var propertyName = mPrevToken;
-            propertyName.Type = eTokenType.DefineField;
-            RejectUnderscoreDefinition(propertyName);
-
-            var typeName = ParseType();
-            if (mToken.Error)
-                return;
+            Token name = null;
+            SyntaxExpr signature = null;
+            if (keyword == "get" || keyword == "aget")
+            {
+                // Parse name and type
+                if (!AcceptIdentifier("Expecting a property name"))
+                    return null;
+                name = mPrevToken;
+                name.Type = eTokenType.DefineField;
+                RejectUnderscoreDefinition(name);
+                signature = ParseType();
+                if (mToken.Error)
+                    return null;
+            }
+            else
+            {
+                if (prevProperty == null)
+                {
+                    RejectToken(keyword, "Expecting this setter to be directly under the getter");
+                    return null; ;
+                }
+                name = prevProperty.Name;
+                signature = prevProperty.MethodSignature;
+            }
 
             var synFunc = new SyntaxFunc(keyword);
             synFunc.IsProperty = true;
@@ -744,8 +770,8 @@ namespace Gosub.Zurfur.Compiler
             synFunc.Comments = mComments.ToString();
             mComments.Clear();
             synFunc.Qualifiers = qualifiers.ToArray();
-            synFunc.Name = propertyName;
-            synFunc.MethodSignature = typeName;
+            synFunc.Name = name;
+            synFunc.MethodSignature = signature;
 
             // Body
             if (AcceptMatchPastMetaSemicolon("extern") || AcceptMatchPastMetaSemicolon("youdo"))
@@ -769,8 +795,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 synFunc.Statements = ParseCompoundStatement(keyword);
             }
-
-            AddMethod(synFunc);
+            return synFunc;
         }
 
 
@@ -1228,11 +1253,7 @@ namespace Gosub.Zurfur.Compiler
                 //    statements.Add(new SyntaxBinary(Accept(), ParseExpr(), ParseStatements("'switch' statement")));
                 //    break;
 
-                case "get":
-                case "set":
                 case "finally":
-                    if (keyword == "get" || keyword == "set")
-                        keyword.Type = eTokenType.ReservedControl;
                     Accept();
                     AcceptMatchOrReject(":");
                     statements.Add(new SyntaxToken(keyword));

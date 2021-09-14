@@ -10,7 +10,7 @@ pub type Log
     // TBD: Figure out how to get default file names and line numbers.
     //      Also figure out if this should be created per file
 
-    pub noself prop LogLevel Level { todo() }
+    pub noself get LogLevel Level { todo() }
     pub noself fun Fatal(message str, li LogLine = default) void { todo() }
     pub noself fun Error(message str, li LogLine = default) void { todo() }
     pub noself fun Warn(message str, li LogLine = default) void { todo() }
