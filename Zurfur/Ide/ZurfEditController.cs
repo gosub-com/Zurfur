@@ -234,7 +234,7 @@ namespace Gosub.Zurfur.Ide
             }
 
             foreach (var error in mHoverToken.GetInfos<TokenWarn>())
-                message += $"WARN {error.GetType().Name}: {error}\r\n";
+                message += $"WARNING: {error}\r\n";
 
             message += mHoverToken.GetInfoString();
             mHoverMessageForm.Message.Text = message.Trim();

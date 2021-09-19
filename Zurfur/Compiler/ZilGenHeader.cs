@@ -21,6 +21,7 @@ namespace Gosub.Zurfur.Compiler
     {
         static WordSet sTypeAttributes = new WordSet("in out mut ro ref");
 
+        bool mNoCompilerChecks;
         SymbolTable mSymbols = new SymbolTable();
         Dictionary<string, SymType> sUnaryTypeSymbols = new Dictionary<string, SymType>();
 
@@ -40,6 +41,16 @@ namespace Gosub.Zurfur.Compiler
             foreach (var v in sUnaryTypeSymbols.Values)
                 mSymbols.AddOrReject(v);
             mSymbols.AddOrReject(new SymTypeParam(sUnaryTypeSymbols["*"], "", new Token("T")));
+        }
+
+        public bool NoCompilerChecks
+        {
+            get { return mNoCompilerChecks; }
+            set 
+            {
+                mNoCompilerChecks = value;
+                mSymbols.NoCompilerChecks = value;
+            }
         }
 
 
@@ -214,6 +225,8 @@ namespace Gosub.Zurfur.Compiler
                             continue;
                         }
                         symField.TypeName = ResolveTypeOrReject(symField, field.TypeName, syntaxFile.Key);
+                        if (symField.TypeName == "" && !NoCompilerChecks)
+                            symField.Token.AddInfo(new VerifySuppressError());
                     }
                 }
             }
@@ -251,9 +264,8 @@ namespace Gosub.Zurfur.Compiler
                     return;
                 }
 
-                // Give each function a unique name
-                var typeParams = func.TypeArgs.Count == 0 ? "" : "``" + func.TypeArgs.Count;
-                var method = new SymMethod(scope, $"{typeParams}#{scope.Children.Count}");
+                // Give each function a unique name (final name calculated below)
+                var method = new SymMethod(scope, $"#LOADING...#{scope.Children.Count}");
                 method.Qualifiers = Array.ConvertAll(func.Qualifiers, a => a.Name);
                 method.AddLocation(file, func.Name);
                 method.Comments = func.Comments;
@@ -270,6 +282,8 @@ namespace Gosub.Zurfur.Compiler
                     // Resolve extension method type name (first parameter is "$this_ex")
                     var methodParam = new SymMethodParam(method, file, new Token("$this_ex"));
                     methodParam.TypeName = ResolveTypeOrReject(methodParam, func.ExtensionType, file);
+                    if (methodParam.TypeName == "" && !NoCompilerChecks)
+                        methodParam.Token.AddInfo(new VerifySuppressError());
                     mSymbols.AddOrReject(methodParam); // Extension method parameter name "$this_ex" is unique
                 }
                 else if (!method.Qualifiers.Contains("static")) // TBD: Check if in type instead of namespace
@@ -302,36 +316,10 @@ namespace Gosub.Zurfur.Compiler
                 //      r1,r2... - Return types
                 var mpi = new  MethodParamInfo(method);
                 var genericsCount = mpi.TypeParams.Length;
-
-                // TBD: Move this to `ZilVerify`
-                // Reject duplicate symbols, but allow overloading of non-generic functions.
-                // Reject overloads with different return types
-                // TBD: This needs to see through alias types.
-                // TBD: Need to reject more (extension methods with same name
-                //      as members, etc.)
-                var duplicate = false;
-                foreach (var sibling in scope.Children.Values)
-                {
-                    Debug.Assert(sibling is SymMethod);
-                    if (!(sibling is SymMethod siblingMethod))
-                        continue;
-                    var siblingMpi = new MethodParamInfo(siblingMethod);
-                    var genericOverload = siblingMpi.TypeParams.Length != 0 || mpi.TypeParams.Length != 0;
-                    if (genericOverload)
-                    {
-                        duplicate = true;
-                        Reject(method.Token, "Duplicate symbol.  Functions with generic arguments may not be overloaded.");
-                    }
-                    else if (siblingMpi.ParamTypeNames == mpi.ParamTypeNames)
-                    {
-                        // TBD: Must see through alias types.  Also need to protect against implicit operator overloading.
-                        duplicate = true;
-                        Reject(method.Token, $"Overloaded method parameter types must be different, but both are the same: '{mpi.ParamTypeNames}'");
-                    }
-                }
-
-                if (!duplicate)
-                    mSymbols.AddOrReject(method);
+                var methodName = (genericsCount == 0 ? "" : "`" + genericsCount)
+                            + mpi.ParamTypeNames + "->" + mpi.ReturnTypeNames;
+                method.SetName(methodName);
+                mSymbols.AddOrReject(method);
             }
 
             void ResolveMethodParams(string file, SymMethod method, SyntaxExpr parameters, bool isReturn)
@@ -348,21 +336,23 @@ namespace Gosub.Zurfur.Compiler
                     var methodParam = new SymMethodParam(method, file, name);
                     methodParam.IsReturn = isReturn;
                     methodParam.TypeName = ResolveTypeOrReject(methodParam, expr[0], file);
+                    if (methodParam.TypeName == "" && !NoCompilerChecks)
+                        methodParam.Token.AddInfo(new VerifySuppressError());
                     mSymbols.AddOrReject(methodParam);
                 }
             }
 
             string ResolveTypeOrReject(Symbol scope, SyntaxExpr typeExpr, string file)
             {
-                var symbol = ResolveTypeScopeOrReject(typeExpr, true, scope, fileUses[file], file);
+                var symbol = this.ResolveTypeOrReject(typeExpr, true, scope, fileUses[file], file);
                 if (symbol == null)
-                    return "$UnresolvedType";
+                    return "";
 
-                if (symbol is SymType || symbol is SymTypeParam || symbol is SymParameterizedType)
+                if (symbol is SymType || symbol is SymTypeParam || symbol is SymParameterizedType || NoCompilerChecks)
                     return symbol.GetFullName();
 
                 Reject(typeExpr.Token, "The symbol is not a type, it is a " + symbol.Kind);
-                return "$UnresolvedType";
+                return "";
             }
 
         }
@@ -398,7 +388,12 @@ namespace Gosub.Zurfur.Compiler
         /// Return symbol is always a namespace, type, or type parameter.
         /// Null is returned for error, and the error is marked.
         /// </summary>
-        Symbol ResolveTypeScopeOrReject(SyntaxExpr typeExpr, bool top, Symbol scope, string []useScope, string file)
+        Symbol ResolveTypeOrReject(SyntaxExpr typeExpr,
+                                   bool top,
+                                   Symbol scope,
+                                   string []useScope,
+                                   string file,
+                                   bool hasGenericParams = false)
         {
             // There will also be a syntax error
             if (typeExpr == null || typeExpr.Token.Name == "")
@@ -406,7 +401,7 @@ namespace Gosub.Zurfur.Compiler
 
             if (typeExpr.Token.Name == ".")
             {
-                var leftSymbol = ResolveTypeScopeOrReject(typeExpr[0], top, scope, useScope, file);
+                var leftSymbol = ResolveTypeOrReject(typeExpr[0], top, scope, useScope, file);
                 if (leftSymbol == null)
                     return null;
                 if (typeExpr.Count != 2)
@@ -422,7 +417,7 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 // TBD: Specialized type needs to belong to this symbol table with correct parent
-                var rightSymbol = ResolveTypeScopeOrReject(typeExpr[1], false, leftSymbol, useScope, file);
+                var rightSymbol = ResolveTypeOrReject(typeExpr[1], false, leftSymbol, useScope, file);
                 return rightSymbol;
             }
 
@@ -431,7 +426,7 @@ namespace Gosub.Zurfur.Compiler
                 // TBD: Figure out what to do about the attributes.  For now skip them.
                 //Warning(typeExpr.Token, "Attribute not processed yet");
                 if (typeExpr.Count == 1)
-                    return ResolveTypeScopeOrReject(typeExpr[0], top, scope, useScope, file);
+                    return ResolveTypeOrReject(typeExpr[0], top, scope, useScope, file);
                 Reject(typeExpr.Token, "Index error");
                 return null;
             }
@@ -448,13 +443,19 @@ namespace Gosub.Zurfur.Compiler
             if (symbol == null)
                 return null; // Error already marked
 
-            // Mark symbol or error
-            typeExpr.Token.AddInfo(symbol);
-            if (symbol is SymNamespace || symbol is SymType || symbol is SymTypeParam)
-                return symbol;
+            if (!hasGenericParams && symbol.GenericParamCount() != 0)
+            {
+                Reject(typeExpr.Token, $"Expecting {symbol.GenericParamCount()} generic parameter(s), but got 0");
+                if (!NoCompilerChecks)
+                    return null;
+            }
 
-            Reject(typeExpr.Token, "The symbol is not a type, it is a " + symbol.Kind);
-            return null;
+            if (!(symbol is SymNamespace) && !(symbol is SymType) && !(symbol is SymTypeParam))
+            {
+                Reject(typeExpr.Token, "The symbol is not a type, it is a " + symbol.Kind);
+                return NoCompilerChecks ? symbol : null;
+            }
+            return symbol;
 
             // Resolve "fun" or "afun" types
             Symbol ResolveTypeFunOrReject()
@@ -499,7 +500,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     if (pType is SyntaxError)
                         continue;
-                    var sym = ResolveTypeScopeOrReject(pType[0], true, scope, useScope, file);
+                    var sym = ResolveTypeOrReject(pType[0], true, scope, useScope, file);
                     if (sym == null)
                     {
                         resolved = false;
@@ -521,7 +522,9 @@ namespace Gosub.Zurfur.Compiler
                 return resolved;
             }
 
-            // Resolve List<int>, etc.
+            // Resolve 'List<int>', 'Map<str,str>', *<int>, etc.
+            // First token is '$' for 'List<int>', but can also
+            // be any unary type symbol ('*', '?', '^', etc)
             Symbol ResolveTypeGenericSymbolOrReject()
             {
                 if (typeExpr.Count == 0)
@@ -562,9 +565,11 @@ namespace Gosub.Zurfur.Compiler
             bool ResolveTypeGenericParamsOrReject(List<Symbol> typeParams)
             {
                 var resolved = true;
+                bool genericParams = true;
                 foreach (var typeArg in typeExpr)
                 {
-                    var sym = ResolveTypeScopeOrReject(typeArg, true, scope, useScope, file);
+                    var sym = ResolveTypeOrReject(typeArg, true, scope, useScope, file, genericParams);
+                    genericParams = false;
                     if (sym == null)
                     {
                         resolved = false;
@@ -580,6 +585,13 @@ namespace Gosub.Zurfur.Compiler
                         resolved = false;
                     }
                 }
+                // For example, `List<int,int>`
+                if (resolved && typeParams[0].GenericParamCount() != typeParams.Count-1)
+                {
+                    Reject(typeExpr[0].Token, $"Expecting {typeParams[0].GenericParamCount()} generic parameter(s), but got {typeParams.Count - 1}");
+                    if (!NoCompilerChecks)
+                        resolved = false;
+                }
                 return resolved;
             }
         }
@@ -587,8 +599,16 @@ namespace Gosub.Zurfur.Compiler
         // Does not reject if there is already an error there
         void Reject(Token token, string message)
         {
-            if (!token.Error)
-                token.AddError(new ZilHeaderError(message));
+            if (NoCompilerChecks)
+            {
+                if (!token.Warn)
+                    token.AddWarning(new ZilWarn("(No compiler checks): " + message));
+            }
+            else
+            {
+                if (!token.Error)
+                    token.AddError(new ZilHeaderError(message));
+            }
         }
 
         // Does not add a warning if there is already an error there

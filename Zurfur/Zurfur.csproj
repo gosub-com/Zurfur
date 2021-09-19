@@ -227,10 +227,10 @@
     <None Include="ZurfurLib\www\Test.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\TestGenZilHeader.zurf">
+    <None Include="ZurfurLib\ZurfurLib\TestCompiler.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\TestParseErrors.zurf">
+    <None Include="ZurfurLib\ZurfurLib\TestParser.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="ZurfurLib\ZurfurLib\TestVerifier.zurf">

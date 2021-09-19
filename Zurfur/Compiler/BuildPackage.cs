@@ -295,7 +295,8 @@ namespace Gosub.Zurfur.Compiler
             //       lexer, thereby allowing us to keep the lexer and syntax tree
             //       immutable.  That would probably be the best thing to do.
             // INSTEAD: Clear all the metadata generated in this phase (yucky)
-            var suppressVerifier = false;
+            var noVerify = false;
+            var noCompilerChecks = false;
             foreach (var fi in zurfFiles)
             {
                 foreach (var token in fi.Value.Lexer)
@@ -303,16 +304,19 @@ namespace Gosub.Zurfur.Compiler
                 foreach (var token in fi.Value.Lexer.MetaTokens)
                     RemoveZilInfo(token);
 
-                if (fi.Value.Pragmas.ContainsKey("SuppressVerifier"))
-                    suppressVerifier = true;
+                if (fi.Value.Pragmas.ContainsKey("NoVerify"))
+                    noVerify = true;
+                if (fi.Value.Pragmas.ContainsKey("NoCompilerChecks"))
+                    noCompilerChecks = true;
             }
 
             var dt2 = DateTime.Now;
 
             // TBD: Move to background thread (clone Lexer, parse tree, etc.)
             var zil = new ZilGenHeader();
+            zil.NoCompilerChecks = noCompilerChecks;
             zil.GenerateHeader(zurfFiles);
-            if (!suppressVerifier)
+            if (!noVerify)
                 ZilVerifyHeader.VerifyHeader(zil.Symbols);
             mReport = ZilReport.GenerateReport(zurfFiles, zil.Symbols);
 
@@ -336,7 +340,10 @@ namespace Gosub.Zurfur.Compiler
         {
             token.RemoveInfo<Symbol>();
             if (token.Error)
+            {
                 token.RemoveInfo<ZilHeaderError>();
+                token.RemoveInfo<VerifyHeaderError>();
+            }
             if (token.Warn)
                 token.RemoveInfo<ZilWarn>();
         }

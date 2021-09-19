@@ -7,18 +7,51 @@ namespace TestVerifier
 // Comment out the next line to see verification errors
 pragma NoParse
 
-type aStruct(a int)
+// Disable compiler type checking so we can see verifier errors
+pragma NoCompilerChecks
+
+type VerifyErrors<T>
+{
+    // Duplicate
+    fun VerifyErrors() void {}
+    fun Y(Y int) void {}
+    fun X(T int) void {}
+    type i1Struct<T>(a int)
+    type i2Struct<X>(T int)
+    type i3Struct<X> { fun T() void {} }
+    type i4Struct<X> { fun A(T int) void {} }
+    type i5Struct<X> { fun A()->(T int) {} }
+    fun IllegalGenericOverload<X>(a int) void { }
+    fun IllegalGenericOverload(a byte) void { }
+
+    // Undefined/unresolved
+    @field1 hello
+    @field2 List<List<hello>>
+    pub fun F4(a List<int,hello>) void { }
+    pub fun F5(a List<List<x>>) void { }
+
+    // Wrong number of type parameters
+    pub fun F1(a List) void { }
+    pub fun F3(a List<int,int>) void { }
+    @a List
+    @b List<int,int>
+
+    pub fun fun1(a List<List<x>>) void { } // Undefined generic symbol
+    pub fun fun2(a List) void { } // Wrong number of generic parameters
+    pub fun fun3(a List<int,int>) void { } // Wrong number of generic parameters
+    pub fun fun4(a List<List>) void { } // Wrong number of generic parameters
+    pub fun fun5(a List<List<int,int>>) void { } // Wrong number of generic parameters
+    pub fun fun6(a Zurfur) void {} // Symbol is a namespace
+    pub fun fun7(a field1) void {} // Symbol is a field
+    pub fun fun8(a fun1) void {} // Symbol is a method
+    
+
+}
+
 
 pub type AGenericTest<T, QQQ>
     where QQQ is x//: new() where T : new()
 {
-    pub fun new() void
-        nop()
-
-    pub fun new(a int) void
-        nop()
-   
-    pub fun P1() void { return 0; }
     pub fun P2<Quack>(a Quack, b QQQ) void { return (a.ToStr() + b.ToStr()).Length; }
     pub fun P3<Z>() void { return 0; }
     pub fun P4<Quack, Quack1>() void { return 0; }
@@ -26,17 +59,8 @@ pub type AGenericTest<T, QQQ>
     pub fun GenericTest<Q1, Q2>(a Q1, b Q2) void
         return a.ToStr().Length + b.ToStr().Length
 
-    pub fun F1(a List) void { } // TBD: Need error here
-    pub fun F2(a List<int>) void { }
-    pub fun F3(a List<int,int>) void { } // TBD: Need error here
-    pub fun F4(a List<int,hello>) void { } // TBD: need better error message
-    pub fun F5(a List<List<x>>) void { } // TBD: need better error message
 
 
-    @a List<int>
-    @b List<int,int>
-    @c List // TBD: Fix
-    @XField0 int = 0
     @Xfield1 Inner1<str, aStruct>
     @Xfield2 Inner1<str, T>
     @Xfield3 Inner1<QQQ,T>

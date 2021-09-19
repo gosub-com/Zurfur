@@ -20,7 +20,7 @@ namespace Gosub.Zurfur.Compiler
         public const string VT_TYPE_ARG = "$"; // Differentiate from '<' (must be 1 char long)
 
         // TBD: Allow pragmas to be set externally
-        static WordSet sPragmas = new WordSet("ShowParse ShowMeta NoParse AllowUnderscoreDefinitions SuppressVerifier");
+        static WordSet sPragmas = new WordSet("ShowParse ShowMeta NoParse NoCompilerChecks NoVerify AllowUnderscoreDefinitions");
 
 
         ParseZurfCheck mZurfParseCheck;
@@ -1064,7 +1064,7 @@ namespace Gosub.Zurfur.Compiler
             //      Also, turn this into a function and combine with
             //      other TokenVerticalLines.
             int scopeLines = mPrevToken.Y - keywordColumnToken.Y;
-            if (scopeLines >= 3)
+            if (scopeLines >= 2)
             {
                 keywordColumnToken.AddInfo(new TokenVerticalLine
                 {

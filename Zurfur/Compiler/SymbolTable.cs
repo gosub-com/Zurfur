@@ -13,6 +13,7 @@ namespace Gosub.Zurfur.Compiler
     class SymbolTable
     {
         SymNamespace mRoot;
+        public bool NoCompilerChecks;
 
         // Lookup table for namespaces and types
         Dictionary<string, Symbol> mLookup = new Dictionary<string, Symbol>();
@@ -263,8 +264,16 @@ namespace Gosub.Zurfur.Compiler
         // Does not reject if there is already an error there
         void Reject(Token token, string message)
         {
-            if (!token.Error)
-                token.AddError(new ZilHeaderError(message));
+            if (NoCompilerChecks)
+            {
+                if (!token.Warn)
+                    token.AddWarning(new ZilWarn("NoCompilerChecks: " + message));
+            }
+            else
+            {
+                if (!token.Error)
+                    token.AddError(new ZilHeaderError(message));
+            }
         }
 
 

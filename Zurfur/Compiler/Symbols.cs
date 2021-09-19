@@ -21,7 +21,7 @@ namespace Gosub.Zurfur.Compiler
         public abstract string Kind { get; }
 
         public Symbol Parent { get; }
-        public string Name { get; }
+        public string Name { get; private set; }
         public int Order { get; private set; } = -1;
         public string Comments = "";
         public string[] Qualifiers = Array.Empty<string>();
@@ -42,6 +42,15 @@ namespace Gosub.Zurfur.Compiler
         {
             Children = new RoDict<string, Symbol>(mChildren);
             Parent = parent;
+            Name = name;
+        }
+
+        /// <summary>
+        /// Do not set the symbol name after it has been added to the symbol table.
+        /// </summary>
+        public void SetName(string name)
+        {
+            Debug.Assert(!Parent.Children.ContainsKey(Name));
             Name = name;
         }
         
@@ -138,10 +147,10 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Get total number of generic parameters expected
-        /// (e.g, `MyClass<T1,T2>.MyFunc<T>()` expects 3 parameters)
+        /// Get total generic parameter count, including encolsing scopes:
+        /// (e.g, In`MyClass<T1,T2>.MyFunc<T>()`, MyFunc expects 3 parameters)
         /// </summary>
-        public int GenericParamCount()
+        public int GenericParamTotal()
         {
             var count = CountChildren<SymTypeParam>();
             var p = Parent;
@@ -151,6 +160,14 @@ namespace Gosub.Zurfur.Compiler
                 p = p.Parent;
             }
             return count;
+        }
+
+        /// <summary>
+        /// Get generic parameter count at this level.
+        /// </summary>
+        public int GenericParamCount()
+        {
+            return CountChildren<SymTypeParam>();
         }
 
     }
@@ -228,7 +245,7 @@ namespace Gosub.Zurfur.Compiler
         public override string Kind => "parameter";
 
         public bool IsReturn;
-        public string TypeName;
+        public string TypeName = "";
 
         public override string GetFullName()
         {
