@@ -220,6 +220,14 @@ namespace Gosub.Zurfur.Compiler
             return sym;
         }
 
+        public Symbol FindAtScopeOrReject(Token name, Symbol scope)
+        {
+            if (scope.Children.TryGetValue(name, out var symbol))
+                return symbol;
+            Reject(name, $"'{name}' is not a member of '{scope}'");
+            return null;
+        }
+
         /// <summary>
         /// Find a symbol in the current scope.  If it's not found, scan
         /// use statements for all occurences. 
@@ -229,11 +237,15 @@ namespace Gosub.Zurfur.Compiler
         /// TBD: If symbol is unique in this package, but duplicated in an
         /// external package, is that an error?  Yes for now.
         /// </summary>
-        public Symbol FindInScopeOrUseOrReject(Token name, Symbol scope, string[] use)
+        public Symbol FindInScopeOrUseOrReject(Token name, Symbol scope, string[] use, out bool foundInScope)
         {
             var symbol = FindInScope(name.Name, scope);
             if (symbol != null)
+            {
+                foundInScope = true;
                 return symbol;
+            }
+            foundInScope = false;
 
             var symbols = new List<Symbol>(); // TBD: Be kind to GC
             foreach (var u in use)

@@ -22,11 +22,14 @@ namespace Gosub.Zurfur.Compiler
 
         public Symbol Parent { get; }
         public string Name { get; private set; }
-        public int Order { get; private set; } = -1;
         public string Comments = "";
         public string[] Qualifiers = Array.Empty<string>();
         public List<SymLoc> Locations = new List<SymLoc>();
-        
+
+        // Set by `SetChildInternal`.  Type parameters are always first.
+        public int Order { get; private set; } = -1; 
+
+
         Dictionary<string, Symbol> mChildren = new Dictionary<string, Symbol>();
         public RoDict<string, Symbol> Children { get; private set; }
 
@@ -207,10 +210,6 @@ namespace Gosub.Zurfur.Compiler
         }
         public override string Kind => "type parameter";
 
-        public override string GetFullName()
-        {
-            return "!" + Name;
-        }
     }
 
     class SymField : Symbol
@@ -266,28 +265,32 @@ namespace Gosub.Zurfur.Compiler
 
         public override string Kind => "parameterized type";
 
-        // Constructor for generic type name: F<p1,p2...>
-        public SymParameterizedType(Symbol parent, Symbol[] typeParams)
-            : base(parent, "$PTYPE<" + FullNameTypeParams(typeParams) + ">")
+        // Constructor for generic type argument
+        public SymParameterizedType(Symbol parent, string name)
+            : base(parent, name)
         {
-            Params = typeParams;
+            Params = Array.Empty<Symbol>();
             Returns = Array.Empty<Symbol>();
         }
 
-        // Constructor for generic function name: F<p1,p2...><r1,r2...>
-        public SymParameterizedType(Symbol parent, Symbol[] typeParams, Symbol[] typeReturns)
-            : base(parent, "$FTYPE" + FullNameFuncParams(typeParams, typeReturns))
+
+        // Constructor for generic type 'F<T>' or function 'F(p1,p2...)(r1,r2...)'
+        public SymParameterizedType(Symbol parent, Symbol[] typeParams, Symbol[] typeReturns = null)
+            : base(parent, FullTypeParamNames(typeParams, typeReturns))
         {
+            Debug.Assert(parent is SymType);
             Params = typeParams;
-            Returns = typeReturns;
+            Returns = typeReturns != null ? typeReturns : Array.Empty<Symbol>();
         }
 
-        public static string FullNameFuncParams(Symbol[] typeParams, Symbol[] typeReturns)
+        public static string FullTypeParamNames(Symbol[] typeParams, Symbol[] typeReturns)
         {
-            return "(" + FullNameTypeParams(typeParams) + ")(" + FullNameTypeParams(typeReturns) + ")";
+            if (typeReturns == null || typeReturns.Length == 0)
+                return "<" + TypeParamNames(typeParams) + ">";
+            return "(" + TypeParamNames(typeParams) + ")(" + TypeParamNames(typeReturns) + ")";
         }
 
-        static string FullNameTypeParams(Symbol[] typeParams)
+        static string TypeParamNames(Symbol[] typeParams)
         {
             if (typeParams.Length == 0)
                 return "";

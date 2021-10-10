@@ -24,6 +24,7 @@ namespace Gosub.Zurfur.Compiler
         bool mNoCompilerChecks;
         SymbolTable mSymbols = new SymbolTable();
         Dictionary<string, SymType> sUnaryTypeSymbols = new Dictionary<string, SymType>();
+        //SymType mUnresolvedType;
 
         // TBD: Still figuring out how to deal with these.
         Dictionary<string, SymParameterizedType> mSpecializedTypes = new Dictionary<string, SymParameterizedType>();
@@ -32,6 +33,10 @@ namespace Gosub.Zurfur.Compiler
 
         public ZilGenHeader()
         {
+            //mUnresolvedType = new SymType(mSymbols.Root, "$unresolved");
+            //mSymbols.AddOrReject(mUnresolvedType);
+
+            // Add built in types
             sUnaryTypeSymbols["*"] = new SymType(mSymbols.Root, "$ptr");
             sUnaryTypeSymbols["^"] = new SymType(mSymbols.Root, "$ref");
             sUnaryTypeSymbols["["] = new SymType(mSymbols.Root, "$span");
@@ -40,7 +45,14 @@ namespace Gosub.Zurfur.Compiler
             sUnaryTypeSymbols["afun"] = new SymType(mSymbols.Root, "$afun");
             foreach (var v in sUnaryTypeSymbols.Values)
                 mSymbols.AddOrReject(v);
+
+            // Add generic types
             mSymbols.AddOrReject(new SymTypeParam(sUnaryTypeSymbols["*"], "", new Token("T")));
+            mSymbols.AddOrReject(new SymTypeParam(sUnaryTypeSymbols["^"], "", new Token("T")));
+            mSymbols.AddOrReject(new SymTypeParam(sUnaryTypeSymbols["["], "", new Token("T")));
+            mSymbols.AddOrReject(new SymTypeParam(sUnaryTypeSymbols["?"], "", new Token("T")));
+
+
         }
 
         public bool NoCompilerChecks
@@ -224,7 +236,7 @@ namespace Gosub.Zurfur.Compiler
                                 Reject(field.Name, "Expecting symbol to have an explicitly named type");
                             continue;
                         }
-                        symField.TypeName = ResolveTypeOrReject(symField, field.TypeName, syntaxFile.Key);
+                        symField.TypeName = ResolveTypeNameOrReject(symField, field.TypeName, syntaxFile.Key);
                         if (symField.TypeName == "" && !NoCompilerChecks)
                             symField.Token.AddInfo(new VerifySuppressError());
                     }
@@ -281,7 +293,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     // Resolve extension method type name (first parameter is "$this_ex")
                     var methodParam = new SymMethodParam(method, file, new Token("$this_ex"));
-                    methodParam.TypeName = ResolveTypeOrReject(methodParam, func.ExtensionType, file);
+                    methodParam.TypeName = ResolveTypeNameOrReject(methodParam, func.ExtensionType, file);
                     if (methodParam.TypeName == "" && !NoCompilerChecks)
                         methodParam.Token.AddInfo(new VerifySuppressError());
                     mSymbols.AddOrReject(methodParam); // Extension method parameter name "$this_ex" is unique
@@ -310,14 +322,18 @@ namespace Gosub.Zurfur.Compiler
                 }
 
 
-                // Set the final function name: "<#>(t1,t2...)(r1,r2...)"
+                // Set the final function name: "`#(t1,t2...)->(r1,r2...)"
                 //      # - Number of generic parameters
                 //      t1,t2... - Parameter types
                 //      r1,r2... - Return types
-                var mpi = new  MethodParamInfo(method);
-                var genericsCount = mpi.TypeParams.Length;
+                var genericsCount = method.GenericParamCount();
+                var mp = method.FindChildren<SymMethodParam>();
+                mp.Sort((a, b) => a.Order.CompareTo(b.Order));
+                var xParams = mp.FindAll(a => !a.IsReturn).ToArray();
+                var xReturns = mp.FindAll(a => a.IsReturn).ToArray();
                 var methodName = (genericsCount == 0 ? "" : "`" + genericsCount)
-                            + mpi.ParamTypeNames + "->" + mpi.ReturnTypeNames;
+                            + "(" + string.Join(",", Array.ConvertAll(xParams, a => a.TypeName)) + ")"
+                            + "->" + "(" + string.Join(",", Array.ConvertAll(xReturns, a => a.TypeName)) + ")";
                 method.SetName(methodName);
                 mSymbols.AddOrReject(method);
             }
@@ -335,16 +351,16 @@ namespace Gosub.Zurfur.Compiler
                     var name = expr.Token == "" ? new Token("$return") : expr.Token;
                     var methodParam = new SymMethodParam(method, file, name);
                     methodParam.IsReturn = isReturn;
-                    methodParam.TypeName = ResolveTypeOrReject(methodParam, expr[0], file);
+                    methodParam.TypeName = ResolveTypeNameOrReject(methodParam, expr[0], file);
                     if (methodParam.TypeName == "" && !NoCompilerChecks)
                         methodParam.Token.AddInfo(new VerifySuppressError());
                     mSymbols.AddOrReject(methodParam);
                 }
             }
 
-            string ResolveTypeOrReject(Symbol scope, SyntaxExpr typeExpr, string file)
+            string ResolveTypeNameOrReject(Symbol scope, SyntaxExpr typeExpr, string file)
             {
-                var symbol = this.ResolveTypeOrReject(typeExpr, true, scope, fileUses[file], file);
+                var symbol = ResolveTypeOrReject(typeExpr, false, scope, fileUses[file], file);
                 if (symbol == null)
                     return "";
 
@@ -357,30 +373,6 @@ namespace Gosub.Zurfur.Compiler
 
         }
 
-        public class MethodParamInfo
-        {
-            public string[] TypeParams;
-            public string ParamTypeNames;
-            public string ReturnTypeNames;
-            public SymMethodParam[] Params;
-            public SymMethodParam[] Returns;
-            public MethodParamInfo(SymMethod method)
-            {
-                var tp = method.FindChildren<SymTypeParam>();
-                tp.Sort((a, b) => a.Order.CompareTo(b.Order));
-                TypeParams = tp.ConvertAll(a => a.Name).ToArray();
-
-                var mp = method.FindChildren<SymMethodParam>();
-                mp.Sort((a, b) => a.Order.CompareTo(b.Order));
-                Params = mp.FindAll(a => !a.IsReturn).ToArray();
-                Returns = mp.FindAll(a => a.IsReturn).ToArray();
-
-                ParamTypeNames = "(" + string.Join(",", Array.ConvertAll(Params, a => a.TypeName)) + ")";
-                ReturnTypeNames = "(" + string.Join(",", Array.ConvertAll(Returns, a => a.TypeName)) + ")";
-            }
-        }
-
-
         /// <summary>
         /// Resolve a type.  Non-generic types are found in the symbol table
         /// and given a full name (e.g. 'int' -> 'Zufur.int').  Generic types
@@ -389,7 +381,7 @@ namespace Gosub.Zurfur.Compiler
         /// Null is returned for error, and the error is marked.
         /// </summary>
         Symbol ResolveTypeOrReject(SyntaxExpr typeExpr,
-                                   bool top,
+                                   bool isDot,
                                    Symbol scope,
                                    string []useScope,
                                    string file,
@@ -398,10 +390,85 @@ namespace Gosub.Zurfur.Compiler
             // There will also be a syntax error
             if (typeExpr == null || typeExpr.Token.Name == "")
                 return null;
+            Debug.Assert(!(scope is SymParameterizedType));
 
             if (typeExpr.Token.Name == ".")
+                return ResolveDotOrReject();
+
+            if (typeExpr.Token == "fun" || typeExpr.Token == "afun")
+                return ResolveFunOrReject();
+
+            if (sUnaryTypeSymbols.ContainsKey(typeExpr.Token) || typeExpr.Token == ParseZurf.VT_TYPE_ARG)
+                return ResolveGenericTypeOrReject();
+
+            if (sTypeAttributes.Contains(typeExpr.Token))
             {
-                var leftSymbol = ResolveTypeOrReject(typeExpr[0], top, scope, useScope, file);
+                // TBD: Figure out what to do about the attributes.  For now skip them.
+                //Warning(typeExpr.Token, "Attribute not processed yet");
+                if (typeExpr.Count == 1)
+                    return ResolveTypeOrReject(typeExpr[0], false, scope, useScope, file);
+                Reject(typeExpr.Token, "Index error");
+                return null;
+            }
+
+            // Resolve regular symbol
+            bool foundInScope = false;
+            var symbol = isDot ? mSymbols.FindAtScopeOrReject(typeExpr.Token, scope)
+                               : mSymbols.FindInScopeOrUseOrReject(typeExpr.Token, scope, useScope, out foundInScope);
+            if (symbol == null)
+                return null; // Error already marked
+
+            if (!hasGenericParams && symbol.GenericParamCount() != 0)
+            {
+                Reject(typeExpr.Token, $"Expecting {symbol.GenericParamCount()} generic parameter(s), but got 0");
+                if (!NoCompilerChecks)
+                    return null;
+            }
+
+            // Type parameter
+            if (symbol is SymTypeParam)
+            {
+                var totalParamsAbove = symbol.Parent.Parent.GenericParamTotal();
+                var argNum = totalParamsAbove + symbol.Order;
+                return GetGenericParam(argNum);
+            }
+
+            if (!(symbol is SymNamespace) && !(symbol is SymType))
+            {
+                Reject(typeExpr.Token, "The symbol is not a type, it is a " + symbol.Kind);
+                return NoCompilerChecks ? symbol : null;
+            }
+
+            // Type inference: Add implied types to inner types
+            // e.g: InnerType => OuterType<T>.InnterType
+            if (!isDot && symbol is SymType && symbol.Parent is SymType && foundInScope)
+            {
+                var genericParamCount = symbol.Parent.GenericParamTotal();
+                if (genericParamCount != 0)
+                {
+                    var genericParams = new List<Symbol>();
+                    for (int i = 0; i < genericParamCount; i++)
+                        genericParams.Add(GetGenericParam(i));
+                    return new SymParameterizedType(symbol, genericParams.ToArray());
+
+                }
+            }
+
+            return symbol;
+
+            SymParameterizedType GetGenericParam(int argNum)
+            {
+                var name = "!" + argNum;
+                if (mSpecializedTypes.ContainsKey(name))
+                    return mSpecializedTypes[name];
+                var spec = new SymParameterizedType(mSymbols.Root, name);
+                mSpecializedTypes[name] = spec;
+                return spec;
+            }
+
+            Symbol ResolveDotOrReject()
+            {
+                var leftSymbol = ResolveTypeOrReject(typeExpr[0], isDot, scope, useScope, file);
                 if (leftSymbol == null)
                     return null;
                 if (typeExpr.Count != 2)
@@ -416,49 +483,27 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 }
 
-                // TBD: Specialized type needs to belong to this symbol table with correct parent
-                var rightSymbol = ResolveTypeOrReject(typeExpr[1], false, leftSymbol, useScope, file);
+                // The right side of the "." is only a type name identifier, excluding generic parameters.
+                var leftScope = leftSymbol is SymParameterizedType ? leftSymbol.Parent : leftSymbol;
+                var rightSymbol = ResolveTypeOrReject(typeExpr[1], true, leftScope, useScope, file, hasGenericParams);
+                if (rightSymbol == null)
+                    return null;
+
+                if (!(rightSymbol is SymType))
+                {
+                    Reject(typeExpr[1].Token, "Must be a concrete type (not a type parameter, parameterized type, or namespace)");
+                    return null;
+                }
+
+                if (leftSymbol is SymParameterizedType pt)
+                    return new SymParameterizedType(rightSymbol, pt.Params);
+
                 return rightSymbol;
             }
 
-            if (sTypeAttributes.Contains(typeExpr.Token))
-            {
-                // TBD: Figure out what to do about the attributes.  For now skip them.
-                //Warning(typeExpr.Token, "Attribute not processed yet");
-                if (typeExpr.Count == 1)
-                    return ResolveTypeOrReject(typeExpr[0], top, scope, useScope, file);
-                Reject(typeExpr.Token, "Index error");
-                return null;
-            }
-
-            if (typeExpr.Token == "fun" || typeExpr.Token == "afun")
-                return ResolveTypeFunOrReject();
-
-            if (sUnaryTypeSymbols.ContainsKey(typeExpr.Token) || typeExpr.Token == ParseZurf.VT_TYPE_ARG)
-                return ResolveTypeGenericSymbolOrReject();
-
-            // Resolve regular symbol
-            var symbol = top ? mSymbols.FindInScopeOrUseOrReject(typeExpr.Token, scope, useScope)
-                             : mSymbols.FindInScopeOrReject(typeExpr.Token, scope);
-            if (symbol == null)
-                return null; // Error already marked
-
-            if (!hasGenericParams && symbol.GenericParamCount() != 0)
-            {
-                Reject(typeExpr.Token, $"Expecting {symbol.GenericParamCount()} generic parameter(s), but got 0");
-                if (!NoCompilerChecks)
-                    return null;
-            }
-
-            if (!(symbol is SymNamespace) && !(symbol is SymType) && !(symbol is SymTypeParam))
-            {
-                Reject(typeExpr.Token, "The symbol is not a type, it is a " + symbol.Kind);
-                return NoCompilerChecks ? symbol : null;
-            }
-            return symbol;
 
             // Resolve "fun" or "afun" types
-            Symbol ResolveTypeFunOrReject()
+            Symbol ResolveFunOrReject()
             {
                 if (typeExpr.Count < 3)
                 {
@@ -500,7 +545,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     if (pType is SyntaxError)
                         continue;
-                    var sym = ResolveTypeOrReject(pType[0], true, scope, useScope, file);
+                    var sym = ResolveTypeOrReject(pType[0], false, scope, useScope, file);
                     if (sym == null)
                     {
                         resolved = false;
@@ -525,19 +570,20 @@ namespace Gosub.Zurfur.Compiler
             // Resolve 'List<int>', 'Map<str,str>', *<int>, etc.
             // First token is '$' for 'List<int>', but can also
             // be any unary type symbol ('*', '?', '^', etc)
-            Symbol ResolveTypeGenericSymbolOrReject()
+            Symbol ResolveGenericTypeOrReject()
             {
-                if (typeExpr.Count == 0)
-                {
-                    Reject(typeExpr.Token, "Unexpected empty type argument list");
-                    return null;
-                }
                 // Resolve type parameters
                 var typeParams = new List<Symbol>();
                 if (!ResolveTypeGenericParamsOrReject(typeParams))
                     return null;
 
-                // Process special unary type operators here
+                if (typeParams.Count == 0)
+                {
+                    Reject(typeExpr.Token, "Syntax error, unexpected empty type argument list");
+                    return null;
+                }
+
+                // Type argument list or unary type operator
                 Symbol typeParent;
                 if (typeExpr.Token == ParseZurf.VT_TYPE_ARG)
                 {
@@ -547,13 +593,33 @@ namespace Gosub.Zurfur.Compiler
                 }
                 else
                 {
-                    // Unary type: '*type', etc.
+                    // Unary type: *type, ?type, etc.
                     typeParent = sUnaryTypeSymbols[typeExpr.Token];
                 }
 
-                var sym = new SymParameterizedType(typeParent, typeParams.ToArray());
+
+                // Reject incorrect number of type arguments, for example, `List<int,int>`
+                var concreteType = typeParent is SymParameterizedType ? typeParent.Parent : typeParent;
+                if (concreteType.GenericParamCount() != typeParams.Count)
+                {
+                    var errorToken = typeExpr[0].Token;
+                    if (errorToken.Name == "." && typeExpr[0].Count >= 2)
+                        errorToken = typeExpr[0][1].Token; // Put error after "." (e.g. 'List' in 'Zurfur.List<int,int>')
+
+                    Reject(errorToken, $"Expecting {concreteType.GenericParamCount()} generic parameter(s), but got {typeParams.Count}");
+                    if (!NoCompilerChecks)
+                        return null;
+                }
+
+                if (typeParent is SymParameterizedType pt)
+                {
+                    Debug.Assert(pt.Returns.Length == 0); // TBD: Fix for functions
+                    for (int i = 0; i < pt.Params.Length; i++)
+                        typeParams.Insert(i, pt.Params[i]);
+                }
 
                 // Return the one in the symbol table, if it exists
+                var sym = new SymParameterizedType(concreteType, typeParams.ToArray());
                 if (mSpecializedTypes.TryGetValue(sym.GetFullName(), out var specExists))
                     sym = specExists;
                 else
@@ -568,7 +634,7 @@ namespace Gosub.Zurfur.Compiler
                 bool genericParams = true;
                 foreach (var typeArg in typeExpr)
                 {
-                    var sym = ResolveTypeOrReject(typeArg, true, scope, useScope, file, genericParams);
+                    var sym = ResolveTypeOrReject(typeArg, false, scope, useScope, file, genericParams);
                     genericParams = false;
                     if (sym == null)
                     {
@@ -585,16 +651,10 @@ namespace Gosub.Zurfur.Compiler
                         resolved = false;
                     }
                 }
-                // For example, `List<int,int>`
-                if (resolved && typeParams[0].GenericParamCount() != typeParams.Count-1)
-                {
-                    Reject(typeExpr[0].Token, $"Expecting {typeParams[0].GenericParamCount()} generic parameter(s), but got {typeParams.Count - 1}");
-                    if (!NoCompilerChecks)
-                        resolved = false;
-                }
                 return resolved;
             }
         }
+
 
         // Does not reject if there is already an error there
         void Reject(Token token, string message)

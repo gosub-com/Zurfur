@@ -9,16 +9,9 @@ use Zurfur
 // http://zurfur.com
 namespace TestExample
 
-TBD: // Move noself and pub to after `fun` and `type`.
-     // Allow braceless `type`s
+TBD: // Allow braceless `type`s
      // Require `loc` keyword for private local functions
      // Formalize symbol names:  namespace.namespace.class:class/field??
-     //     Use !# for generic args
-     //     Use just 1 backtick or explanation point
-     //     Do not allow func overloading with generic parameters
-     //         (currently checks if the func takes generic params,
-     //         but also need check for any generic parameter)
-     // Disable compiler type checking to unit test verfier
      
 
 /// This is a public comment.
