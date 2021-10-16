@@ -1284,11 +1284,11 @@ pub unsafe type DlMalloc
 
     pub type HeapStats
     {
-        @HeapSize i64 pub get set
-        @UsedChunks i64 pub get set
-        @UsedBytes i64 pub get set
-        @FreeChunks i64 pub get set
-        @FreeBytes i64 pub get set
+        @HeapSize int pub get set
+        @UsedChunks int pub get set
+        @UsedBytes int pub get set
+        @FreeChunks int pub get set
+        @FreeBytes int pub get set
 
         pub fun ToStr() str
             return "HeapSize={HeapSize}"
@@ -1323,10 +1323,10 @@ pub unsafe type DlMalloc
 
         @usedChunks = 0
         @freeChunks = 0
-        @freeBytes i64 = 0
-        @usedBytes i64 = 0
-        @heapSize i64 = 0
-        heapSize += cast(i64)(topsize + TOP_FOOT_SIZE)
+        @freeBytes int = 0
+        @usedBytes int = 0
+        @heapSize int = 0
+        heapSize += topsize + TOP_FOOT_SIZE
 
         // Walk segments
         @s = seg
@@ -1338,7 +1338,7 @@ pub unsafe type DlMalloc
             // Walk chunks
             while (segment_holds(s, q)
                     && q != top && q.head != FENCEPOST_HEAD)
-                @chunkSize = cast(i64)chunksize(q)
+                @chunkSize = cast(int)chunksize(q)
                 heapSize += chunkSize
                 if (is_inuse(q))
                     usedBytes += chunkSize
@@ -1356,7 +1356,7 @@ pub unsafe type DlMalloc
             s = s.next
 
 
-        assert(heapSize <= cast(i64)footprint)
+        assert(heapSize <= cast(int)footprint)
         assert(footprint <= max_footprint)
 
         @stats = HeapStats()
@@ -2037,7 +2037,7 @@ pub unsafe type DlMalloc
         return null
 
     // Traversal
-    fun internal_inspect_all(handler fun(start *void, next *void, used u64)void) void
+    fun internal_inspect_all(handler fun(start *void, next *void, used int)void) void
         if !is_initialized()
             return
 
@@ -2074,7 +2074,7 @@ pub unsafe type DlMalloc
     // ----------------------------- user mspaces ----------------------------
 
     // TBD: Optimize and move to standard library
-    fun MemClear(mem *void, size i64) void
+    fun MemClear(mem *void, size int) void
         @b = cast(*byte)mem
         for @s in 0..size
             dref(b) = 0; b += 1

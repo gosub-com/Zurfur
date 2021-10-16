@@ -9,7 +9,7 @@ use Zurfur
 // http://zurfur.com
 namespace TestExample
 
-TBD: // Allow braceless `type`s
+TBD: // Allow braceless `type`s???
      // Require `loc` keyword for private local functions
      // Formalize symbol names:  namespace.namespace.class:class/field??
      
@@ -135,15 +135,12 @@ pub type Example
     @a Zim<void>
     @b Zim<object>
     @c Zim<i8>
-    @d Zim<u8>
     @e Zim<byte>
     @f Zim<i16>
     @g Zim<u16>
     @h Zim<i32>
     @i Zim<u32>
     @j Zim<int>
-    @k Zim<u64>
-    @l Zim<i64>
     @m Zim<f64>
     @n Zim<f32>
     @o Zim<str>

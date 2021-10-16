@@ -24,9 +24,9 @@ enum SeekOrigin { begin; current; end }
 
 interface Seeker
 {
-    get Length i64 youdo get
-    get Position i64 youdo get set
-    afun mut Seek(offset i64, origin SeekOrigin) void error youdo
+    get Length int youdo get
+    get Position int youdo get set
+    afun mut Seek(offset int, origin SeekOrigin) void error youdo
 }
 
 

@@ -1,16 +1,16 @@
-/// Define the simple types.
-/// i8, u8, i16, u16, i32, u32,
-/// i64, u64, f32, f64, decimal.
-/// byte, int, uint are aliases for u8, i32, and u32
+/// Define the simple types:
+///     i8, byte, i16, u16, i32, u32, int, uint, f32, f64, decimal.
+///
+/// int and uint are 64 bits
 /// xint and xuint are pointer sized integers (32 or 64 bits)
 
 namespace Zurfur
 
 pub type void { }
 pub type object { }
-pub type int = i32
-pub type uint = u32
-pub type byte = u8
+pub type u8 = byte
+pub type i64 = int
+pub type u64 = uint
 
 
 // TBD: Needs to be an actual type to enforce proper typing and casting rules
@@ -25,7 +25,6 @@ pub type xuint = u32
 pub type ro bool
     implements Equatable<bool>
 {
-    pub noself fun new(a bool) void extern
     pub noself fun GetHashCode(a bool) uint extern
     pub noself fun Equals(a bool, b bool) bool extern
 
@@ -44,24 +43,13 @@ pub type ro i8
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a i8) void extern
-    pub fun cast(a u8) i8 extern
-    pub fun cast(a i16) i8 extern
-    pub fun cast(a u16) i8 extern
-    pub fun cast(a i32) i8 extern
-    pub fun cast(a u32) i8 extern
-    pub fun cast(a i64) i8 extern
-    pub fun cast(a u64) i8 extern
-    pub fun cast(a f32) i8 extern
-    pub fun cast(a f64) i8 extern
-    pub fun cast(a decimal) i8 extern
-    
-    //pub fun implicit(a i8) i16
-    //pub fun implicit(a i8) i32
-    //pub fun implicit(a i8) i64
-    //pub fun implicit(a i8) f32
-    //pub fun implicit(a i8) f64
-    //pub fun implicit(a i8) decimal
+    pub fun ToByteMask() byte extern
+    pub fun ToI16() i16 extern
+    pub fun ToI32() i32 extern
+    pub fun ToInt() int extern
+    pub fun ToF32() f32 extern
+    pub fun ToF64() f64 extern
+    pub fun ToDecimal() decimal extern
     
     pub noself fun GetHashCode(a i8) uint extern
     pub noself fun Equals(a i8, b i8) bool extern
@@ -69,41 +57,30 @@ pub type ro i8
 }
 
 
-/// u8 (0..255) same as byte
-pub type ro u8
-    implements Comparable<u8>
+/// byte (0..255) same as byte
+pub type ro byte
+    implements Comparable<byte>
 {
-    pub const MaxValue u8 = 255
-    pub const MinValue u8 = 0
-    pub const Origin i8 = 0
-    pub const Identity i8 = 1
+    pub const MaxValue byte = 255
+    pub const MinValue byte = 0
+    pub const Origin byte = 0
+    pub const Identity byte = 1
 
-    pub fun new(a u8) void extern
-    
-    pub fun cast(a i8) u8 extern
-    pub fun cast(a i16) u8 extern
-    pub fun cast(a u16) u8 extern
-    pub fun cast(a i32) u8 extern
-    pub fun cast(a u32) u8 extern
-    pub fun cast(a i64) u8 extern
-    pub fun cast(a u64) u8 extern
-    pub fun cast(a f32) u8 extern
-    pub fun cast(a f64) u8 extern
-    pub fun cast(a decimal) u8 extern
+    pub fun ToI8Mask() i8 extern
+    pub fun ToI16() i16 extern
+    pub fun ToU16() u16 extern
+    pub fun ToI32() i32 extern
+    pub fun ToU32() u32 extern
+    pub fun ToInt() int extern
+    pub fun ToUInt() uint extern
+    pub fun ToF32() f32 extern
+    pub fun ToF64() f64 extern
+    pub fun ToDecimal() decimal extern
 
-    //pub fun implicit(a u8) i16
-    //pub fun implicit(a u8) u16
-    //pub fun implicit(a u8) i32
-    //pub fun implicit(a u8) u32
-    //pub fun implicit(a u8) i64
-    //pub fun implicit(a u8) u64
-    //pub fun implicit(a u8) f32
-    //pub fun implicit(a u8) f64
-    //pub fun implicit(a u8) decimal
     
-    pub noself fun GetHashCode(a u8) uint extern
-    pub noself fun Equals(a u8, b u8) bool extern
-    pub noself fun Compare(a u8, b u8) int extern
+    pub noself fun GetHashCode(a byte) uint extern
+    pub noself fun Equals(a byte, b byte) bool extern
+    pub noself fun Compare(a byte, b byte) int extern
 }
 
 /// i16 (-32768..32768)
@@ -115,22 +92,14 @@ pub type ro i16
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a i16) void extern
-
-    pub fun cast(a u16) i16 extern
-    pub fun cast(a i32) i16 extern
-    pub fun cast(a u32) i16 extern
-    pub fun cast(a i64) i16 extern
-    pub fun cast(a u64) i16 extern
-    pub fun cast(a f32) i16 extern
-    pub fun cast(a f64) i16 extern
-    pub fun cast(a decimal) i16 extern
-
-    //pub fun implicit(a i16) i32
-    //pub fun implicit(a i16) i64
-    //pub fun implicit(a i16) f32
-    //pub fun implicit(a i16) f64
-    //pub fun implicit(a i16) decimal
+    pub fun ToI8Mask() i8 extern
+    pub fun ToByteMask() byte extern
+    pub fun ToU16Mask() u16 extern
+    pub fun ToI32() i32 extern
+    pub fun ToInt() int extern
+    pub fun ToF32() f32 extern
+    pub fun ToF64() f64 extern
+    pub fun ToDecimal() decimal extern
 
     pub noself fun GetHashCode(a i16) uint extern
     pub noself fun Equals(a i16, b i16) bool extern
@@ -147,25 +116,16 @@ pub type ro u16
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a u16) void extern
-
-    pub fun cast(a i8) u16 extern
-    pub fun cast(a i16) u16 extern
-    pub fun cast(a i32) u16 extern
-    pub fun cast(a u32) u16 extern
-    pub fun cast(a i64) u16 extern
-    pub fun cast(a u64) u16 extern
-    pub fun cast(a f32) u16 extern
-    pub fun cast(a f64) u16 extern
-    pub fun cast(a decimal) u16 extern
-
-    //pub fun implicit(a u16) i32
-    //pub fun implicit(a u16) u32
-    //pub fun implicit(a u16) i64
-    //pub fun implicit(a u16) u64
-    //pub fun implicit(a u16) f32
-    //pub fun implicit(a u16) f64
-    //pub fun implicit(a u16) decimal
+    pub fun ToI8Mask() i8 extern
+    pub fun ToByteMask() byte extern
+    pub fun ToI16Mask() i16 extern
+    pub fun ToI32() i32 extern
+    pub fun ToU32() u32 extern
+    pub fun ToInt() int extern
+    pub fun ToUInt() uint extern
+    pub fun ToF32() f32 extern
+    pub fun ToF64() f64 extern
+    pub fun ToDecimal() decimal extern
 
     pub noself fun GetHashCode(a u16) uint extern
     pub noself fun Equals(a u16, b u16) bool extern
@@ -181,19 +141,15 @@ pub type ro i32
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a i32) void extern
-
-    pub fun cast(a u32) i32 extern
-    pub fun cast(a i64) i32 extern
-    pub fun cast(a u64) i32 extern
-    pub fun cast(a f32) i32 extern
-    pub fun cast(a f64) i32 extern
-    pub fun cast(a decimal) i32 extern
-    
-    //pub fun implicit(a i32) i64
-    //pub fun implicit(a i32) f32
-    //pub fun implicit(a i32) f64
-    //pub fun implicit(a i32) decimal
+    pub fun ToI8Mask() i8 extern
+    pub fun ToByteMask() byte extern
+    pub fun ToI16Mask() i16 extern
+    pub fun ToU16Mask() u16 extern
+    pub fun ToU32Mask() u32 extern
+    pub fun ToInt() int extern
+    pub fun ToF32() f32 extern
+    pub fun ToF64() f64 extern
+    pub fun ToDecimal() decimal extern
 
     // Comparisons
     pub noself fun GetHashCode(a i32) uint extern
@@ -236,22 +192,16 @@ pub type ro u32
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a u32) void extern
-
-    pub fun cast(a i8) u32 extern
-    pub fun cast(a i16) u32 extern
-    pub fun cast(a i32) u32 extern
-    pub fun cast(a i64) u32 extern
-    pub fun cast(a u64) u32 extern
-    pub fun cast(a f32) u32 extern
-    pub fun cast(a f64) u32 extern
-    pub fun cast(a decimal) u32 extern
-    
-    //pub fun implicit(a u32) i64
-    //pub fun implicit(a u32) u64
-    //pub fun implicit(a u32) decimal
-    //pub fun implicit(a u32) f32
-    //pub fun implicit(a u32) f64
+    pub fun ToI8Mask() i8 extern
+    pub fun ToByteMask() byte extern
+    pub fun ToI16Mask() i16 extern
+    pub fun ToU16Mask() u16 extern
+    pub fun ToI32Mask() i32 extern
+    pub fun ToInt() int extern
+    pub fun ToUInt() uint extern
+    pub fun ToF32() f32 extern
+    pub fun ToF64() f64 extern
+    pub fun ToDecimal() decimal extern
     
     // Comparisons
     pub noself fun GetHashCode(a u32) uint extern
@@ -285,106 +235,105 @@ pub type ro u32
 }
 
 /// A 64 bit integer
-pub type ro i64
-    implements IArithmetic<i64>
+pub type ro int
+    implements IArithmetic<int>
 {
-    pub const MaxValue i64 = 9223372036854775807
-    pub const MinValue i64 = -9223372036854775808
+    pub const MaxValue int = 9223372036854775807
+    pub const MinValue int = -9223372036854775808
     pub const Origin i8 = 0
     pub const Identity i8 = 1
 
-    pub fun new(a i64) void extern
-
-    pub fun cast(a u64) i64 extern
-    pub fun cast(a f32) i64 extern
-    pub fun cast(a f64) i64 extern
-    pub fun cast(a decimal) i64 extern
-    
-    //pub fun implicit(a i64) decimal
-    //pub fun implicit(a i64) f64
+    pub fun ToI8Mask() i8 extern
+    pub fun ToByteMask() byte extern
+    pub fun ToI16Mask() i16 extern
+    pub fun ToU16Mask() u16 extern
+    pub fun ToI32Mask() i32 extern
+    pub fun ToU32Mask() u32 extern
+    pub fun ToUIntMask() uint extern
+    pub fun ToF32() f32 extern
+    pub fun ToF64() f64 extern
+    pub fun ToDecimal() decimal extern
 
     // Comparisons
-    pub noself fun GetHashCode(a i64) uint extern
-    pub noself fun Equals(a i64, b i64) bool extern
-    pub noself fun Compare(a i64, b i64) int extern
+    pub noself fun GetHashCode(a int) uint extern
+    pub noself fun Equals(a int, b int) bool extern
+    pub noself fun Compare(a int, b int) int extern
 
     // Overloadable operators
-    pub fun operator-(a i64) i64 extern
-    pub fun operator+(a i64, b i64) i64 extern
-    pub fun operator-(a i64, b i64) i64 extern
-    pub fun operator*(a i64, b i64) i64 extern
-    pub fun operator/(a i64, b i64) i64 extern
-    pub fun operator%(a i64, b i64) i64 extern
+    pub fun operator-(a int) int extern
+    pub fun operator+(a int, b int) int extern
+    pub fun operator-(a int, b int) int extern
+    pub fun operator*(a int, b int) int extern
+    pub fun operator/(a int, b int) int extern
+    pub fun operator%(a int, b int) int extern
     
-    pub fun GetIterator() RangeIterator<i64>
-        return RangeIterator<i64>(0, this)
+    pub fun GetIterator() RangeIterator<int>
+        return RangeIterator<int>(0, this)
 
     // Not overloadable, but these are supplied specially for this type
-    // fun operator~(a i64) i64
-    // fun operator~(a i64, b i64) i64
-    // fun operator|(a i64, b i64) i64
-    // fun operator&(a i64, b i64) i64
-    // fun operator<<(a i64, b i32) i64
-    // fun operator>>(a i64, b i32) i64
+    // fun operator~(a int) int
+    // fun operator~(a int, b int) int
+    // fun operator|(a int, b int) int
+    // fun operator&(a int, b int) int
+    // fun operator<<(a int, b i32) int
+    // fun operator>>(a int, b i32) int
 
-    pub fun Abs() i64 extern
-    pub fun Clamp(min i64, max i64) i64 extern
-    pub fun Max(n2 i64) i64 extern
-    pub fun Min(n2 i64) i64 extern
+    pub fun Abs() int extern
+    pub fun Clamp(min int, max int) int extern
+    pub fun Max(n2 int) int extern
+    pub fun Min(n2 int) int extern
     pub fun Sign() int extern
-    pub fun Sq() i64 extern
+    pub fun Sq() int extern
 }
 
 /// 64 bit unsigned integer
-pub type ro u64
-    implements IArithmetic<u64>
+pub type ro uint
+    implements IArithmetic<uint>
 {
-    pub const MaxValue u64 = 18446744073709551615
-    pub const MinValue u64 = 0
-    pub const Origin u64 = 0
-    pub const Identity u64 = 1
+    pub const MaxValue uint = 18446744073709551615
+    pub const MinValue uint = 0
+    pub const Origin uint = 0
+    pub const Identity uint = 1
 
-    pub fun new(a u64) void extern
-
-    pub fun cast(a i8) u64 extern
-    pub fun cast(a i16) u64 extern
-    pub fun cast(a i32) u64 extern
-    pub fun cast(a i64) u64 extern
-    pub fun cast(a f32) u64 extern
-    pub fun cast(a f64) u64 extern
-    pub fun cast(a decimal) u64 extern
-    
-    //pub fun implicit(a u64) decimal
-    //pub fun implicit(a u64) f64
+    pub fun ToI8Mask() i8 extern
+    pub fun ToByteMask() byte extern
+    pub fun ToI16Mask() i16 extern
+    pub fun ToU16Mask() u16 extern
+    pub fun ToI32Mask() i32 extern
+    pub fun ToU32Mask() u32 extern
+    pub fun ToIntMask() int extern
+    pub fun ToF32() f32 extern
+    pub fun ToF64() f64 extern
+    pub fun ToDecimal() decimal extern
 
     // Comparisons
-    pub noself fun GetHashCode(a u64) uint extern
-    pub noself fun Equals(a u64, b u64) bool extern
-    pub noself fun Compare(a u64, b u64) int extern
+    pub noself fun GetHashCode(a uint) uint extern
+    pub noself fun Equals(a uint, b uint) bool extern
+    pub noself fun Compare(a uint, b uint) int extern
     
     // Overloadable operators
-    pub fun operator-(a u64) u64 extern
-    pub fun operator+(a u64, b u64) u64 extern
-    pub fun operator-(a u64, b u64) u64 extern
-    pub fun operator*(a u64, b u64) u64 extern
-    pub fun operator/(a u64, b u64) u64 extern
-    pub fun operator%(a u64, b u64) u64 extern
+    pub fun operator-(a uint) uint extern
+    pub fun operator+(a uint, b uint) uint extern
+    pub fun operator-(a uint, b uint) uint extern
+    pub fun operator*(a uint, b uint) uint extern
+    pub fun operator/(a uint, b uint) uint extern
+    pub fun operator%(a uint, b uint) uint extern
 
-    pub fun GetIterator() RangeIterator<u64>
-        return RangeIterator<u64>(0, this)
+    pub fun GetIterator() RangeIterator<uint>
+        return RangeIterator<uint>(0, this)
 
     // Not overloadable, but these are supplied specially for this type
-    // fun operator~(a u64)
-    // fun operator~(a u64, b u64)
-    // fun operator|(a u64, b u64)
-    // fun operator&(a u64, b u64)
-    // fun operator<<(a u64, b i32)
-    // fun operator>>(a u64, b i32)
+    // fun operator~(a uint)
+    // fun operator~(a uint, b uint)
+    // fun operator|(a uint, b uint)
+    // fun operator&(a uint, b uint)
+    // fun operator<<(a uint, b i32)
+    // fun operator>>(a uint, b i32)
 
-    pub fun Clamp(min u64, max u64) u64 extern
-    pub fun Max(n2 u64) u64 extern
-    pub fun Min(n2 u64) u64 extern
-    pub fun Sq() u64 extern
+    pub fun Clamp(min uint, max uint) uint extern
+    pub fun Max(n2 uint) uint extern
+    pub fun Min(n2 uint) uint extern
+    pub fun Sq() uint extern
 }
 
 pub type ro f32
@@ -399,13 +348,16 @@ pub type ro f32
     pub const Origin f32 = 0
     pub const Identity f32 = 1
 
-    pub fun new(a f32) void extern
-
-    pub fun cast(a f64) f32 extern
-    pub fun cast(a decimal) f32 extern
-    
-    //pub fun implicit(a f32) f64
-    //pub fun implicit(a f32) decimal
+    pub fun ToI8Mask() i8 extern
+    pub fun ToByteMask() byte extern
+    pub fun ToI16Mask() i16 extern
+    pub fun ToU16Mask() u16 extern
+    pub fun ToI32Mask() i32 extern
+    pub fun ToU32Mask() u32 extern
+    pub fun ToIntMask() int extern
+    pub fun ToUIntMask() uint extern
+    pub fun ToF64() f64 extern
+    pub fun ToDecimal() decimal extern
 
     // Normal f32 comparisons
     pub noself fun Equals(a f32, b f32) bool extern
@@ -477,10 +429,16 @@ pub type ro f64
     pub const Origin f64 = 0
     pub const Identity f64 = 1
 
-    pub fun new(a f64) void extern
-    pub fun cast(a decimal) f64 extern
-    
-    pub fun implicit(a f64) decimal extern
+    pub fun ToI8Mask() i8 extern
+    pub fun ToByteMask() byte extern
+    pub fun ToI16Mask() i16 extern
+    pub fun ToU16Mask() u16 extern
+    pub fun ToI32Mask() i32 extern
+    pub fun ToU32Mask() u32 extern
+    pub fun ToIntMask() int extern
+    pub fun ToUIntMask() uint extern
+    pub fun ToF32() f32 extern
+    pub fun ToDecimal() decimal extern
 
     // Normal f64 comparisons
     pub noself fun Equals(a f64, b f64) bool extern
@@ -562,6 +520,17 @@ pub type ro decimal
         return todo()
     pub get IsPositiveInfinity bool
         return todo()
+
+    pub fun ToI8Mask() i8 extern
+    pub fun ToByteMask() byte extern
+    pub fun ToI16Mask() i16 extern
+    pub fun ToU16Mask() u16 extern
+    pub fun ToI32Mask() i32 extern
+    pub fun ToU32Mask() u32 extern
+    pub fun ToIntMask() int extern
+    pub fun ToUIntMask() uint extern
+    pub fun ToF32() f32 extern
+    pub fun ToF64() f64 extern
 
     // Normal comparisons
     pub noself fun Equals(a decimal, b decimal) bool extern

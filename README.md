@@ -525,11 +525,10 @@ The one with flags allows `|` and `&`, etc but the other doesn't.
 
 The ones we all know and love:
 
-    i8, u8, byte, i16, u16, i32, u32, i64, u64, int, uint, f32, f64, decimal
+    i8, byte, i16, u16, i32, u32, int, uint, f32, f64, decimal
 
-`byte`, `int`, and `uint` are aliases for `u8`, `i64`, and `u64`.
-    
-Other types are a little different from C#:
+Except that `int` and `uint` are 64 bits.  `u8`, `i64`, and `u64` are
+aliases for `byte`, `int`, and `uint`.
 
 | Type | Description
 | :--- | :---

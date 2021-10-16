@@ -212,14 +212,6 @@ namespace Gosub.Zurfur.Compiler
             return null;
         }
 
-        public Symbol FindInScopeOrReject(Token name, Symbol scope)
-        {
-            var sym = FindInScope(name.Name, scope);
-            if (sym == null)
-                Reject(name, "Undefined symbol");
-            return sym;
-        }
-
         public Symbol FindAtScopeOrReject(Token name, Symbol scope)
         {
             if (scope.Children.TryGetValue(name, out var symbol))
@@ -237,7 +229,7 @@ namespace Gosub.Zurfur.Compiler
         /// TBD: If symbol is unique in this package, but duplicated in an
         /// external package, is that an error?  Yes for now.
         /// </summary>
-        public Symbol FindInScopeOrUseOrReject(Token name, Symbol scope, string[] use, out bool foundInScope)
+        public Symbol FindInScopeOrUseOrReject(string symbolType, Token name, Symbol scope, string[] use, out bool foundInScope)
         {
             var symbol = FindInScope(name.Name, scope);
             if (symbol != null)
@@ -261,7 +253,7 @@ namespace Gosub.Zurfur.Compiler
 
             if (symbols.Count == 0)
             {
-                Reject(name, "Undefined symbol");
+                Reject(name, "Undefined " + symbolType);
                 return null;
             }
             if (symbols.Count > 1)

@@ -414,7 +414,7 @@ namespace Gosub.Zurfur.Compiler
             // Resolve regular symbol
             bool foundInScope = false;
             var symbol = isDot ? mSymbols.FindAtScopeOrReject(typeExpr.Token, scope)
-                               : mSymbols.FindInScopeOrUseOrReject(typeExpr.Token, scope, useScope, out foundInScope);
+                               : mSymbols.FindInScopeOrUseOrReject("type name", typeExpr.Token, scope, useScope, out foundInScope);
             if (symbol == null)
                 return null; // Error already marked
 

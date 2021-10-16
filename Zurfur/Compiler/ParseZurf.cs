@@ -150,21 +150,6 @@ namespace Gosub.Zurfur.Compiler
             mLexer.MetaTokens.Clear();
             mLexer.MetaTokens.Add(mLexer.EndToken);
 
-            // TBD: Pre-process all continuations before parsing.
-            //      Then insert ";" using that info.
-            //      Also, make this into a function.
-            for (int lineIndex = 0;  lineIndex < mLexer.LineCount;  lineIndex++)
-            {
-                var line = mLexer.GetLineTokens(lineIndex);
-                if (line.Length != 0)
-                {
-                    var token = line[0];
-                    token.Continuation = false;
-                    if (token.VerticalLine)
-                        token.RemoveInfo<TokenVerticalLine>();
-                }
-            }
-
             if (Debugger.IsAttached)
             {
                 // Failure causes error in dubugger
@@ -209,6 +194,7 @@ namespace Gosub.Zurfur.Compiler
         {
             try
             {
+                ClearMetaData();
                 Accept();
                 while (mTokenName != "")
                 {
@@ -223,6 +209,23 @@ namespace Gosub.Zurfur.Compiler
             catch (NoCompilePragmaException)
             {
 
+            }
+        }
+
+        // TBD: Pre-process all continuations before parsing.
+        //      Then insert ";" using that info.
+        void ClearMetaData()
+        {
+            for (int lineIndex = 0; lineIndex < mLexer.LineCount; lineIndex++)
+            {
+                var line = mLexer.GetLineTokens(lineIndex);
+                if (line.Length != 0)
+                {
+                    var token = line[0];
+                    token.Continuation = false;
+                    if (token.VerticalLine)
+                        token.RemoveInfo<TokenVerticalLine>();
+                }
             }
         }
 
@@ -1058,9 +1061,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Draw scope lines
-            // TBD: Should use a bit more intelligence to hide lines for short
-            //      paragraphs.  Also, need to make sure if...elif...else
-            //      shows consistent scope lines (all or none).
+            // TBD: Make if...elif...else consistent, all or none.
             //      Also, turn this into a function and combine with
             //      other TokenVerticalLines.
             int scopeLines = mPrevToken.Y - keywordColumnToken.Y;
