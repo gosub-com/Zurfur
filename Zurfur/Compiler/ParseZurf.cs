@@ -95,7 +95,7 @@ namespace Gosub.Zurfur.Compiler
         // For now, do not allow more than one level.  Maybe we want to allow it later,
         // but definitely do not allow them to include compounds with curly braces.
         static WordSet sNoSubCompoundStatement = new WordSet("type class catch error " 
-                                + "get set pub private protected namespace module static noself fun afun prop ");
+                                + "get set pub private protected namespace module static noself fun afun ");
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
         // The following symbols allow us to call functions, create types, access static members, and cast
@@ -237,7 +237,6 @@ namespace Gosub.Zurfur.Compiler
             bool topScope = parentScope == null;
             var qualifiers = new List<Token>();
             Token alignment = null;
-            SyntaxFunc prevProperty = null;
             while (mTokenName != "" && (mTokenName != "}" || topScope))
             {
                 if (alignment == null)
@@ -269,17 +268,12 @@ namespace Gosub.Zurfur.Compiler
                     qualifiers.Add(Accept());
                 }
 
-                // 'set' must come immediately after 'get' without
-                // intervening fields, functions, or types, etc.
-                if (mTokenName != "set" && mTokenName != "aset")
-                    prevProperty = null;
-
                 var keyword = mToken;
                 switch (mTokenName)
                 {
                     case ";":
                         if (qualifiers.Count != 0)
-                            RejectToken(keyword, "Expecting a type/fun/prop, etc. or field definition");
+                            RejectToken(keyword, "Expecting a type/fun, property or field definition");
                         break;
 
                     case "{":
@@ -335,11 +329,8 @@ namespace Gosub.Zurfur.Compiler
                     case "aset":
                         mToken.Type = eTokenType.ReservedControl;
                         Accept();
-                        var prop = ParseProperty(prevProperty, keyword, parentScope, qualifiers);
+                        var prop = ParseProperty(keyword, parentScope, qualifiers);
                         AddMethod(prop);
-                        prevProperty = null;
-                        if (keyword == "get" || keyword == "aget")
-                            prevProperty = prop;
                         break;
 
                     case "@":
@@ -361,7 +352,7 @@ namespace Gosub.Zurfur.Compiler
                         else
                         {
                             Accept();
-                            RejectToken(keyword, "Expecting a field, type, function, property ('@', 'type', 'fun', 'prop', 'const', etc.) or qualifier ('pub', etc.)");
+                            RejectToken(keyword, "Expecting a field, type, function, property ('@', 'type', 'fun', 'get', 'const', etc.) or qualifier ('pub', etc.)");
                         }
                         break;
                 }
@@ -739,32 +730,17 @@ namespace Gosub.Zurfur.Compiler
             return field;
         }
 
-        private SyntaxFunc ParseProperty(SyntaxFunc prevProperty, Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
+        private SyntaxFunc ParseProperty(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
         {
-            Token name = null;
-            SyntaxExpr signature = null;
-            if (keyword == "get" || keyword == "aget")
-            {
-                // Parse name and type
-                if (!AcceptIdentifier("Expecting a property name"))
-                    return null;
-                name = mPrevToken;
-                name.Type = eTokenType.DefineField;
-                RejectUnderscoreDefinition(name);
-                signature = ParseType();
-                if (mToken.Error)
-                    return null;
-            }
-            else
-            {
-                if (prevProperty == null)
-                {
-                    RejectToken(keyword, "Expecting this setter to be directly under the getter");
-                    return null; ;
-                }
-                name = prevProperty.Name;
-                signature = prevProperty.MethodSignature;
-            }
+            // Parse name and type
+            if (!AcceptIdentifier("Expecting a property name"))
+                return null;
+            var name = mPrevToken;
+            name.Type = eTokenType.DefineField;
+            RejectUnderscoreDefinition(name);
+            var signature = ParseType();
+            if (mToken.Error)
+                return null;
 
             var synFunc = new SyntaxFunc(keyword);
             synFunc.IsProperty = true;

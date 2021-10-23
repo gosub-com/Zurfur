@@ -514,12 +514,12 @@ pub unsafe type DlMalloc
 
         pub get prev_foot xuint
             return cast(xuint)prev_foot_ptr
-        pub set
+        pub set prev_foot xuint
             prev_foot_ptr = cast(*void)value
         
         pub get head xuint        
             return cast(xuint)head_ptr
-        pub set
+        pub set head xuint
             head_ptr = cast(xuint)value
         
     }
@@ -712,12 +712,12 @@ pub unsafe type DlMalloc
 
         pub get prev_foot xuint
             return cast(xuint)prev_foot_ptr
-        pub set
+        pub set prev_foot xuint
             prev_foot_ptr = cast(*void)value
         
         pub get head xuint
             return cast(xuint)head_ptr
-        pub set
+        pub set head xuint
             head_ptr = cast(xuint)value
 
     }

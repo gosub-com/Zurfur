@@ -10,6 +10,8 @@ pragma NoParse
 // Disable compiler type checking so we can see verifier errors
 pragma NoCompilerChecks
 
+type OneGeneric<T> { } // No error expected here
+
 type VerifyErrors<T>
 {
     // Duplicate
@@ -44,6 +46,8 @@ type VerifyErrors<T>
     pub fun fun6(a Zurfur) void {} // Symbol is a namespace
     pub fun fun7(a field1) void {} // Symbol is a field
     pub fun fun8(a fun1) void {} // Symbol is a method
+    pub fun fun9(a *?OneGeneric) void { }
+
     
 
 }

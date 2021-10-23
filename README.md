@@ -525,10 +525,10 @@ The one with flags allows `|` and `&`, etc but the other doesn't.
 
 The ones we all know and love:
 
-    i8, byte, i16, u16, i32, u32, int, uint, f32, f64, decimal
+    i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, decimal
+    byte, int, uint
 
-Except that `int` and `uint` are 64 bits.  `u8`, `i64`, and `u64` are
-aliases for `byte`, `int`, and `uint`.
+`byte`, `int`, and `uint` are aliases for `u8`, `i64`, and `u64`
 
 | Type | Description
 | :--- | :---

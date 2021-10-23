@@ -268,7 +268,7 @@ pub type MyMutablePoint(X int, Y int)
         
     pub get PropX int
         return x
-    pub set
+    pub set PropX int
         X = value
 }
 
@@ -383,7 +383,7 @@ pub type Example2<Q>  // YES, errors working
         
     pub get P5 int
         return p1
-    pub set
+    pub set P5 int
         p1 = value
     
     pub fun operator[](index int) int

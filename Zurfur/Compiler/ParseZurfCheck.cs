@@ -26,8 +26,8 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sFieldInStructQualifiers = new WordSet("pub public noself ro const");
         static WordSet sFieldInEnumQualifiers = new WordSet("");
 
-        static WordSet sFuncQualifiers = new WordSet("pub public protected private internal unsafe virtual override new mut ref noself extern youdo async error");
-        static WordSet sPropQualifiers = new WordSet("pub public protected private internal unsafe noself virtual override new");
+        static WordSet sFuncQualifiers = new WordSet(". pub public protected private internal unsafe virtual override new mut ref noself extern youdo async error");
+        static WordSet sPropQualifiers = new WordSet(". pub public protected private internal unsafe noself virtual override new");
 
         static WordSet sTopLevelStatements = new WordSet("{ ( = += -= *= /= %= &= |= ~= <<= >>= => @ "
             + "const var let mut defer use throw switch case return for break default while if else get set do unsafe error finally exit fun afun");
@@ -109,6 +109,9 @@ namespace Gosub.Zurfur.Compiler
                 }
             }
 
+            // TBD: The setter must not be separated from the getter
+            //      by a field or type (this only checks for methods)
+            SyntaxFunc prevProp = null;
             foreach (var func in unit.Methods)
             {
                 LastToken = func.Keyword;
@@ -133,14 +136,27 @@ namespace Gosub.Zurfur.Compiler
 
                 switch (keyword)
                 {
-                    case "prop":
-                        RejectQualifiers(func.Qualifiers, sPropQualifiers, "Qualifier does not apply to properties");
-                        break;
                     case "fun":
                     case "func":
                     case "afun":
                     case "afunc":
                         RejectQualifiers(func.Qualifiers, sFuncQualifiers, "Qualifier does not apply to functions");
+                        prevProp = null;
+                        break;
+                    case "get":
+                        RejectQualifiers(func.Qualifiers, sPropQualifiers, "Qualifier does not apply to properties");
+                        prevProp = func;
+                        break;
+                    case "set":
+                        RejectQualifiers(func.Qualifiers, sPropQualifiers, "Qualifier does not apply to properties");
+                        if (prevProp == null)
+                            mParser.RejectToken(func.Keyword, "The 'set' must immediately follow a 'get' or 'set' with the same name");
+                        else if (prevProp.Name.Name != func.Name.Name)
+                            mParser.RejectToken(func.Name, "The 'set' must immediately follow a 'get' or 'set' with the same name");
+                        prevProp = func;
+                        break;
+                    default:
+                        prevProp = null;
                         break;
                 }
             }

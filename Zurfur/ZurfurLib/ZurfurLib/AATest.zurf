@@ -4,6 +4,8 @@ use Zurfur
 
 namespace AATest
 
+type OneGeneric<T> { } 
+
 pub type AGenericTest<T, QQQ>
     where QQQ is x//: new() where T : new()
 {
@@ -17,6 +19,8 @@ pub type AGenericTest<T, QQQ>
     //pub fun P2<Quack>(a Quack, b QQQ) void { return (a.ToStr() + b.ToStr()).Length; }
     pub fun P3<Z>() void { return 0; }
     pub fun P4<Quack, Quack1>() void { return 0; }
+    pub fun fun9(a *?OneGeneric<List<int>>) void { }
+
 
     pub fun GenericTest<Q1, Q2>(a Q1, b Q2) void
         return a.ToStr().Length + b.ToStr().Length

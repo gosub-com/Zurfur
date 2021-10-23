@@ -7,6 +7,8 @@ pragma NoParse
 // Disable the verifier so we can see only compiler errors
 pragma NoVerify
 
+type OneGeneric<T> { } // No error expected here
+
 type DupType
 {
     @a int
@@ -40,6 +42,7 @@ type TestFails
     pub fun fun6(a Zurfur) void {} // Symbol is a namespace
     pub fun fun7(a field0) void {} // Symbol is a field
     pub fun fun8(a fun0) void {} // Symbol is a method
+    pub fun fun9(a *?OneGeneric) void { } // Expecting 1 generic parameter, got 0
 
     pub fun F1(a List) void { }
     pub fun F3(a List<int,int>) void { }
