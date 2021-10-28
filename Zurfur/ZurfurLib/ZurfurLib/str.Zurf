@@ -7,18 +7,18 @@ pub type ro str = Array<byte>
     //       and its implicit conversion to Span
 
 
-    pub fun new() void { todo() }
-    pub fun new(s str) void { todo() }
-    pub fun new(s Span<byte>) void { todo() }
-    pub fun operator[](index int) byte
+    pub fun new() { todo() }
+    pub fun new(s str) { todo() }
+    pub fun new(s Span<byte>) { todo() }
+    pub fun operator[](index int) byte:
         return todo()
-    pub fun operator[](range Range) Span<byte>
+    pub fun operator[](range Range<int>) Span<byte>:
         return todo() // Slice
-    pub noself fun GetHashCode(a str) uint
+    pub noself fun GetHashCode(a str) uint:
         return todo()
-    pub noself fun Equals(a str, b str) bool
+    pub noself fun Equals(a str, b str) bool:
         return todo()
-    pub noself fun Compare(a str, b str) int
+    pub noself fun Compare(a str, b str) int:
         return todo()
         
     pub fun operator+(s1 str, s2 str) str { todo() }

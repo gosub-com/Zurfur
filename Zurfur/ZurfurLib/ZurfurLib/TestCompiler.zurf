@@ -109,7 +109,7 @@ pub type AGenericTest<T, QQQ>
             {
                 return InnerP5() + InnerP5() + a + b.ToStr().Length + c
 
-                fun InnerP5() void
+                fun InnerP5() void:
                     return ToStr().Length
             }
 
@@ -129,7 +129,7 @@ pub type AGenericTest<T, QQQ>
                 {
                     return InnerP5() + InnerP5() + a + b.ToStr().Length + c
                     
-                    fun InnerP5() int
+                    fun InnerP5() int:
                         return ToStr().Length
                 }
 

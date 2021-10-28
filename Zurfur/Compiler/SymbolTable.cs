@@ -47,7 +47,7 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// TBD: I am still figuring out if this is a good way to deal with specializations.
-        /// For now, just dump them in the master symbol table so we can look them up.
+        /// For now, just dump them in the lookup table so we can look them up.
         /// Call this after calling `GenerateLookup`.
         /// </summary>
         public void AddSpecializations(Dictionary<string, SymParameterizedType> specializations)
@@ -59,7 +59,6 @@ namespace Gosub.Zurfur.Compiler
                 Debug.Assert(kv.Key == fullName);
                 Debug.Assert(!mLookup.ContainsKey(fullName));
                 Debug.Assert(SymbolBelongs(symbol));
-                symbol.Parent.SetChildInternal(symbol);
                 mLookup[fullName] = kv.Value;
             }
         }

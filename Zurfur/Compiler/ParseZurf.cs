@@ -881,7 +881,13 @@ namespace Gosub.Zurfur.Compiler
             else
             {
                 var returns = NewExprList();
-                returns.Add(ParseMethodParam(false));
+                if (mToken.Type == eTokenType.Identifier 
+                    || sTypeUnaryOps.Contains(mTokenName)
+                    || mTokenName == "fun" || mTokenName == "afun")
+                {
+
+                    returns.Add(new SyntaxBinary(new Token(), ParseType(), SyntaxExpr.Empty));
+                }
                 returnParams = new SyntaxMulti(mLexer.EndToken, FreeExprList(returns));
             }
 
@@ -982,34 +988,41 @@ namespace Gosub.Zurfur.Compiler
             // Ignore compound statement on error
             var keywordColumnToken = mLexer.GetLineTokens(keyword.Y)[0];
             var keywordColumn = keywordColumnToken.X;
-            if (mToken.Error)
-                return new SyntaxError(mToken);
+
+            if (!AcceptMatch(":"))
+                RejectToken(mToken, $"Compound statement '{keyword.Name}' is expecting '{{' or ':'");
+
+            if (IsMatchPastMetaSemicolon("{"))
+            {
+                RejectToken(mPrevToken, "Use either ':' or '{', but not both");
+                return ParseStatements("'" + keyword.Name + "' statement");
+            }
 
             // Expecting invisible meta semi-colon
             // Expecting next line to be indented
             if (mToken.Meta && mTokenName == ";" && mNextStatementToken != null
                 && mNextStatementToken.X < keywordColumn + 2)
             {
-                RejectToken(mToken, $"Braceless compound statement '{keyword.Name}' is expecting '{{' or next line must be indented at least two spaces");
+                RejectToken(mToken, $"Braceless compound statement '{keyword.Name}' is expecting next line to be indented at least two spaces");
                 return new SyntaxError();
             }
 
             if (!AcceptMatch(";"))
             {
-                Reject($"Braceless compound statement '{keyword.Name}' is expecting '{{' or end of line");
+                Reject($"Braceless compound statement '{keyword.Name}' is expecting end of line");
                 if (!mToken.Meta || mTokenName != ";")
                     return new SyntaxError();
                 Accept(); // Continue parsing for better error recovery
             }
             else if (!mPrevToken.Meta)
             {
-                RejectToken(mPrevToken, $"Braceless compound statement '{keyword.Name}' is expecting '{{' or end of line");
+                RejectToken(mPrevToken, $"Braceless compound statement '{keyword.Name}' is expecting end of line");
                 return new SyntaxError();
             }
 
             if (mTokenName == "}" || mTokenName == ";")
             {
-                RejectToken(mPrevToken, $"Braceless compound statement '{keyword.Name}' is expecting '{{' or non-empty statement");
+                RejectToken(mPrevToken, $"Braceless compound statement '{keyword.Name}' is expecting non-empty statement");
                 return new SyntaxError();
             }
 

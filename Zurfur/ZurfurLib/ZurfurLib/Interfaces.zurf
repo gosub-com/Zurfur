@@ -60,7 +60,7 @@ pub type Pair<TKey, TValue>(Key TKey, Value TValue)
 /// This is a test
 pub interface IGeneric<Q>
 {
-    fun A<T>(m Q) int
+    fun A<T>(m Q) int:
         return 0
 }
 

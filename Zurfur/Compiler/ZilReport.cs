@@ -150,6 +150,16 @@ namespace Gosub.Zurfur.Compiler
                 foreach (var s in ls)
                 {
                     var symbol = ds[s];
+                    if (symbol is SymMethodGroup)
+                        continue;
+                    headerFile.Add($"    {symbol.Kind,10}: {s}");
+                }
+                return;
+
+                // TBD: Maybe add this back in, or delete
+                foreach (var s in ls)
+                {
+                    var symbol = ds[s];
 
                     if (symbol is SymMethodGroup
                             || symbol is SymMethodParam

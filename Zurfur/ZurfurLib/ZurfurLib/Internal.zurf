@@ -13,13 +13,13 @@ pub type ro _ref<T>
 {
     ro @r *T
 
-    pub fun new(reference *T) void
-        require reference != null
+    pub fun new(reference *T)
+        require reference != null:
         r = reference
         
     pub fun Get() T extern
-    pub fun SetRef(value ref T) void extern
-    pub fun SetVal(value T) void extern
+    pub fun SetRef(value ref T) extern
+    pub fun SetVal(value T) extern
     pub unsafe fun Index(offset int) mut ref T extern
     pub unsafe fun ByteOffset(offset int) *void extern
 }
@@ -34,18 +34,18 @@ pub type ro _oref<T>
     @owner ?*_heap<T>
 
     /// Owner is null when on the stack
-    pub fun new(reference *T, owner ?*_heap) void
-        require reference != null
+    pub fun new(reference *T, owner ?*_heap)
+        require reference != null:
         r = reference
         this.owner = owner
 
-    pub fun drop() void
-        if owner != null
+    pub fun drop():
+        if owner != null:
             owner.Dec()
         
     pub fun Get() T extern
-    pub fun SetRef(value ref T) void extern
-    pub fun SetVal(value T) void extern
+    pub fun SetRef(value ref T) extern
+    pub fun SetVal(value T) extern
     pub unsafe fun Index(offset int) mut ref T extern
     pub unsafe fun ByteOffset(offset int) *void extern
 }
@@ -58,9 +58,9 @@ pub type _heap<T>
     @vtable *void // TBD: Type info for GC and metadata
     @refCount xint
 
-    pub fun Inc() void
+    pub fun Inc():
         refCount += 1
-        if refCount < 0
+        if refCount < 0:
             todo() // TBD: Queue to call drop and reclaim memory
 }
 
@@ -112,18 +112,18 @@ pub type ro GcRefArray<T>
     @RefCount uint pub get set
     @Count uint pub get
 
-    pub fun new() void
+    pub fun new()
     {
         Type = todo()
     }
 
     // TBD: Need access to 'this' pointer (use 'ref' on property?)
-    pub unsafe get Data *T
+    pub unsafe get Data *T:
         return cast(*T)(cast(xuint)&this + sizeof(GcRefArray<T>))
 
     // TBD: Need access to 'this' pointer (use 'ref' on function?)
     /// No bounds checking
-    pub unsafe fun operator[](index int) *T
+    pub unsafe fun operator[](index int) *T:
         return unsafe cast(*T)(cast(xuint)&this
                                 + sizeof(GcRefArray<T>)
                                 + sizeof(T)*index)

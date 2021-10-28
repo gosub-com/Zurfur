@@ -60,7 +60,7 @@ pub type AGenericTest<T, QQQ>
     pub fun P3<Z>() void { return 0; }
     pub fun P4<Quack, Quack1>() void { return 0; }
 
-    pub fun GenericTest<Q1, Q2>(a Q1, b Q2) void
+    pub fun GenericTest<Q1, Q2>(a Q1, b Q2) void:
         return a.ToStr().Length + b.ToStr().Length
 
 
@@ -115,7 +115,7 @@ pub type AGenericTest<T, QQQ>
             {
                 return InnerP5() + InnerP5() + a + b.ToStr().Length + c
 
-                fun InnerP5() void
+                fun InnerP5() void:
                     return ToStr().Length
             }
 
@@ -135,7 +135,7 @@ pub type AGenericTest<T, QQQ>
                 {
                     return InnerP5() + InnerP5() + a + b.ToStr().Length + c
                     
-                    fun InnerP5() int
+                    fun InnerP5() int:
                         return ToStr().Length
                 }
 

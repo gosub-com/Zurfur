@@ -11,20 +11,20 @@ pub type Log
     //      Also figure out if this should be created per file
 
     pub noself get LogLevel Level { todo() }
-    pub noself fun Fatal(message str, li LogLine = default) void { todo() }
-    pub noself fun Error(message str, li LogLine = default) void { todo() }
-    pub noself fun Warn(message str, li LogLine = default) void { todo() }
-    pub noself fun Info(message str, li LogLine = default) void { todo() }
-    pub noself fun Debug(message str, li LogLine = default) void { todo() }
+    pub noself fun Fatal(message str, li LogLine = default) { todo() }
+    pub noself fun Error(message str, li LogLine = default) { todo() }
+    pub noself fun Warn(message str, li LogLine = default) { todo() }
+    pub noself fun Info(message str, li LogLine = default) { todo() }
+    pub noself fun Debug(message str, li LogLine = default) { todo() }
 
     /// Recoverable programming error.  In debug mode, stop and
     /// make the programmer look at it.  In production, log it
     /// and continue.
-    pub noself fun PanicInDebugMode(message str, li LogLine = default) void { todo() }
+    pub noself fun PanicInDebugMode(message str, li LogLine = default) { todo() }
 
-    pub noself fun Time(name str, message str = "") void { todo() }
-    pub noself fun TimeBegin(name str, message str = "") void { todo() }
-    pub noself fun TimeEnd(name str, message str = "") void { }
+    pub noself fun Time(name str, message str = "") { todo() }
+    pub noself fun TimeBegin(name str, message str = "") { todo() }
+    pub noself fun TimeEnd(name str, message str = "") { }
 
 
     type ro LogLine(FilePath str, Line int)

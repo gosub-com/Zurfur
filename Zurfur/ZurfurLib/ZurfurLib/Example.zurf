@@ -15,9 +15,9 @@ TBD: // Allow braceless `type`s???
      
 
 /// This is a public comment.
-fun Main() void
+fun Main():
     Log.Info("Hello world.  Let's count to 10.")
-    for @a in 1..11
+    for @a in 1..11:
         Log.Info("Count={a}")
 
 type SimpleType(FirstName str, LastName str)
@@ -29,75 +29,75 @@ type ComplexType
     ro @roList List<int> = [1,2,3]      // Private immutable list
     @Header str pub ref = "Zurfur"// Field with public ro property
     @Text str pub mut ref = "fun" // Field with public mut property
-    pub fun GetInfo() str
+    pub fun GetInfo() str:
         return "Header: {Header}, Text: {Text}"
 }
 
 
 
-noself fun test_HelloWorld() void
-    while a == 3
+noself fun test_HelloWorld():
+    while a == 3:
         doit()
         doit2()
     Console.Log("Hello World.  Let's count from 1 to 10.")
-    for @a in 1..11
+    for @a in 1..11:
         doita
         doitb
-        while a == 3
+        while a == 3:
             doit1
             doit2
         hello
-        if a
+        if a:
             doit4
             
 
 pub type boxed AGenericType<Q>(FirstName str, LastName str)
 {
-    pub fun Circle1(a f64, r f64) -> (x f64, y f64)
+    pub fun Circle1(a f64, r f64) -> (x f64, y f64):
         return Cos(a)*r, Sin(a)*r
 
-    pub fun Circle2(a int, r int) int
+    pub fun Circle2(a int, r int) int:
         return Cos(a)*r, Sin(a)*r
 
 
-    pub fun Circle3(a f64, r f64) -> (x f64, y f64)
+    pub fun Circle3(a f64, r f64) -> (x f64, y f64):
         return Cos(a)*r, Sin(a)*r
 
-    pub fun MyVoid1() void
+    pub fun MyVoid1():
         return 0
 
-    pub fun MyVoid2() int
+    pub fun MyVoid2() int:
         return 0
        
 
 
     // TBD: Move to failed unit t
     // Overloaded generic functions are illegal
-    //fun GenericFunc1<T>() void
+    //fun GenericFunc1<T>():
     //    return "{LastName}, {FirstName}"
-    //fun GenericFunc1<X>() void
+    //fun GenericFunc1<X>():
     //    return "x"
 
     // Overloaded functions with same parameters are illegal
-    //fun GenericFunc2(a int) void
+    //fun GenericFunc2(a int):
     //    return "x"
-    //fun GenericFunc2(a int) void
+    //fun GenericFunc2(a int):
     //    return "x"
 
     // Overloaded functions with different return parameters are illegal
     //fun GenericFunc3(a f64) int
     //    return "x"
-    //fun GenericFunc3(a int) void
+    //fun GenericFunc3(a int):
     //    return "x"
 }
 
 
-pub noself fun Circle3(a f64, b f64) -> (c int, d int)
+pub noself fun Circle3(a f64, b f64) -> (c int, d int):
     return 0
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
 pub noself fun Iterable<T>::AlphaLengthWise<T, L>(
-               lengthProvider fun(t T) L) Iterable<T>
+               lengthProvider fun(t T) L) Iterable<T>:
     return this
         .OrderBy(@a => lengthProvider(a))
         .ThenBy(@a => a)
@@ -106,7 +106,7 @@ pub noself fun Iterable<T>::AlphaLengthWise<T, L>(
 
 pub type Example
 {
-    pub get MyConst str
+    pub get MyConst str:
         return "Hello"
     
     @a1 str
@@ -125,11 +125,11 @@ pub type Example
     ro @map3 Map<str,int> pub init               // Read only, init in constructor or allow public init
     
 
-    pub fun GetInfo(a int) str
+    pub fun GetInfo(a int) str:
         return info+a
-    pub fun GetInfo(a str) str
+    pub fun GetInfo(a str) str:
         return a
-    pub get Info str
+    pub get Info str:
         return info
 
     @a Zim<void>
@@ -156,7 +156,7 @@ pub type Zim<T>
 
 /// This is a public documentation comment.  Do not use XML.
 /// Use `name` to refer to variables in the code.
-pub noself fun test_Main(args Array<str>) void
+pub noself fun test_Main(args Array<str>)
 {
     test_compose()
 
@@ -165,22 +165,22 @@ pub noself fun test_Main(args Array<str>) void
 
     @v = ""
 
-    if myString[32]@q == "x"
+    if myString[32]@q == "x":
         v = "x"
-    elif q == "y"  || q=="z"
+    elif q == "y"  || q=="z":
         v = "y or z"
-    elif q >= "a" || q <= "z"
+    elif q >= "a" || q <= "z":
         v = "lower"
-    elif q >= "A" || q <= "Z"
+    elif q >= "A" || q <= "Z":
         v = "upper"
-    else
+    else:
         v = "none"
     
 
     a = tr"Column 1{\t}Column 2{\rn}"
     data = "Name:{name}{\t}Occupation:{lastName}{\rn}"
     
-    while stream.Read(buffer)@size != 0
+    while stream.Read(buffer)@size != 0:
         @a = MyFun as Hello
 
 
@@ -201,12 +201,12 @@ pub noself fun test_Main(args Array<str>) void
 
     return
 
-    fun test_compose() void
+    fun test_compose()
     {
         @squareTriple = compose(&square, &triple)
         Debug.Assert(squareTriple(2) == 36)
     
-        for @v in 1..23
+        for @v in 1..23:
             Log.Info("Count={v}")
     }
 
@@ -217,23 +217,23 @@ pub noself fun test_Main(args Array<str>) void
         return @x => f(g(x))
     }
 
-    fun triple(x int) int
+    fun triple(x int) int:
         return x*3
-    fun square(x int) int
+    fun square(x int) int:
         return x*x
 }
 
 pub type Token(a str)
 
-pub noself fun AcceptMatch(name str) ?Token
+pub noself fun AcceptMatch(name str) ?Token:
     return name == "(" ? Token() : null
 
 // Regular noself function
-pub noself fun add(a int, b int) int
+pub noself fun add(a int, b int) int:
     return a + b
 
 // Multiple returns
-pub noself fun Circle(a f64, r f64) -> (x f64, y f64)
+pub noself fun Circle(a f64, r f64) -> (x f64, y f64):
     return Cos(a)*r, Sin(a)*r
 
 
@@ -255,7 +255,7 @@ pub type MutableTest
     pub get P2 MyObject { return i }
     
     pub get P str { return Header + info }
-    fun getListObject(i mut int) ref mut MyObject
+    fun getListObject(i mut int) ref mut MyObject:
         return a[i]
 
 }
@@ -263,12 +263,12 @@ pub type MutableTest
 // Mutable point
 pub type MyMutablePoint(X int, Y int)
 {
-    pub fun mut SetY(y int) void
+    pub fun mut SetY(y int):
         Y = y
         
-    pub get PropX int
+    pub get PropX int:
         return x
-    pub set PropX int
+    pub set PropX int:
         X = value
 }
 
@@ -281,29 +281,29 @@ pub type Example_x
     @field2 int pub
     @ChangedTime DateTime pub get = DateTime.Now
 
-    pub get Prop str
+    pub get Prop str:
         return Header + info
-    pub fun A(a int, b int, c f32) f32
+    pub fun A(a int, b int, c f32) f32:
         return  a+1
-    pub fun A(a f32) f32
+    pub fun A(a f32) f32:
         return a+1
-    pub fun B(a f32) f32
+    pub fun B(a f32) f32:
         return a+1
 
     type DateTime { }
         
-    pub fun E() void
+    pub fun E():
         list.binarysearch(1, 23, @(a,b) => a.compare(b) )
         const MY_CONST = 23
         @a = f(x)
         @b = f(MY_CONST)
     
 }
-pub fun Example::MyExtension2() void
+pub fun Example::MyExtension2():
     return Func1(10)
 
 
-pub fun Example::MyExtension() void
+pub fun Example::MyExtension():
     @a = Map<str,int>(["A":1, "B":2, "C":3])
     @b Map<str,int> = ["A":1, "B":2, "C":3]
     @c Map<int,PointXY> = [0:(3,4), 1:(5,6)]
@@ -326,12 +326,12 @@ pub fun Example::MyExtension() void
 pub type PointXY<T>(X int, Y int)
     implements IArithmetic<T>
 {
-    pub fun operator+(a PointXY<T>, b PointXY<T>) PointXY<T>
+    pub fun operator+(a PointXY<T>, b PointXY<T>) PointXY<T>:
         return todo()
 }
 
-pub fun Example::Extension() void
-    for @a in 1..23
+pub fun Example::Extension():
+    for @a in 1..23:
         F(ref x, a)
         F(y, a)
     @i = 32
@@ -376,53 +376,53 @@ pub type Example2<Q>  // YES, errors working
     @f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
-    pub get P1 int
+    pub get P1 int:
         return 1
-    pub get P2 f32
+    pub get P2 f32:
         return f1 + f2
         
-    pub get P5 int
+    pub get P5 int:
         return p1
-    pub set P5 int
+    pub set P5 int:
         p1 = value
     
-    pub fun operator[](index int) int
+    pub fun operator[](index int) int:
         return index
     
     // Function
-    fun fun1(a int) f32
+    fun fun1(a int) f32:
         return f1 + f2 + a
-    fun fun2(a int) void { }
+    fun fun2(a int) { }
     fun fun3(a str) bool {}
-    fun fun4(a mut MyStruct) void {}
-    fun fun5(a Array<Array<int>>) void {}
-    fun fun6(a List<int>) void { }
-    fun fun7(a mut List<List<int>>) void { }
-    fun fun8(a Map<str,List<int>>) void { }
+    fun fun4(a mut MyStruct) {}
+    fun fun5(a Array<Array<int>>) {}
+    fun fun6(a List<int>) { }
+    fun fun7(a mut List<List<int>>) { }
+    fun fun8(a Map<str,List<int>>) { }
 
 
-    pub fun CompareY(a int, b void) int
+    pub fun CompareY(a int, b int) int:
         return -1
 
-    pub fun CompareZ(a Q, b Q) void
+    pub fun CompareZ(a Q, b Q) int:
         return -1
 
-    pub fun CompareX<T>(a T, b T) int
+    pub fun CompareX<T>(a T, b T) int:
         return -1
     
-    pub fun Sort<T>(greaterThan fun(a T,b T)bool) void
+    pub fun Sort<T>(greaterThan fun(a T,b T)bool):
         return Todo()
 
 
     
-    @MyFieldFunc fun(a object,b str)void pub get
+    @MyFieldFunc fun(a object,b str) pub get
 
 
     pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
     
-    fun fun9(a mut List<List<int>>) void { }
+    fun fun9(a mut List<List<int>>) { }
     
-    pub noself fun Main(args Array<str>) void
+    pub noself fun Main(args Array<str>):
         @a = use OpenFile("My File")
         defer file.close()
         
@@ -473,7 +473,7 @@ pub type Example2<Q>  // YES, errors working
         list.Sort(@(a, b) => { return a < b })
 
         // In operator
-        if myStr in myMap || myIn in 1..23
+        if myStr in myMap || myIn in 1..23:
             DoSomething()
 
         // Match expressions
@@ -507,56 +507,56 @@ pub type Example2<Q>  // YES, errors working
 }
 
 
-pub fun Example::IfTests() void
+pub fun Example::IfTests():
     // In operator
-    if myStr in myMap || myIn in 1..23
+    if myStr in myMap || myIn in 1..23:
         DoSomething()
         break
         return
     
-    while f(x)
+    while f(x):
         x = x + 1
     
-    if myStr in myMap || myIn in 1..23
+    if myStr in myMap || myIn in 1..23:
         DoSomething()
         hello()
     
     
-    if a
+    if a:
         todo1()
         todo2()
-    elif b
+    elif b:
         todo()
-    elif c
+    elif c:
         todo()
     
-    if a
+    if a:
         f(x)
     
 
-    if myStr in myMap || myIn in 1..23
+    if myStr in myMap || myIn in 1..23:
         DoSomething()
         hello()
-    else
+    else:
         f(a)
 
-    if myStr in myMap || myIn in 1..23
+    if myStr in myMap || myIn in 1..23:
         DoSomething()
         hello()
-    else
+    else:
         f(a)
         
 
-    for @a in 1..23
+    for @a in 1..23:
       F(b, c)
 
 
-    for @a in 1..23
+    for @a in 1..23:
         F(b, c)
 
 pub type MyPoint(X int, Y int)
 {
-    pub override fun ToStr() void
+    pub override fun ToStr():
         return "({X}, {Y})"
 }
 
@@ -576,7 +576,7 @@ pub interface MyInterfaceTest
     fun A() int youdo
     protected fun C() int youdo
         
-    pub fun B() int
+    pub fun B() int:
         return A() + 1
         
     pub type Astruct { @a int pub get }
@@ -587,24 +587,24 @@ pub interface MyInterfaceTest
 pub type MyClass1
     implements MyInterfaceTest
 {
-    pub fun A() int
+    pub fun A() int:
         return 3
-    pub fun MyInterfaceTest::C() int
+    pub fun MyInterfaceTest::C() int:
         return 3
 
 }
 
 
-pub noself fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool) void
+pub noself fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool):
     // Simple selection sort
-    for @i in s.Count-1
+    for @i in s.Count-1:
         @lowElem = s[i]
         @lowIndex = i
-        for @j in i+1..s.Count
-            if lessThan(s[j], lowElem)
+        for @j in i+1..s.Count:
+            if lessThan(s[j], lowElem):
                 lowElem = s[j]
                 lowIndex = j
-        if lowIndex != i
+        if lowIndex != i:
             s[lowIndex] = s[i]
             s[i] = lowElem
 
@@ -612,64 +612,62 @@ pub noself fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool) void
 pub type class Matrix2d<T>
     extends VariableSizedObject<T>
 {
-    fun new(len1 int, len2 int) void
+    fun new(len1 int, len2 int):
         todo()
-    pub fun operator[](i1 int, i2 int) ref T
+    pub fun operator[](i1 int, i2 int) ref T:
         return todo()
 }
 
 
 
-pub noself fun MemCopy(dest *void, source *void, length xint) void
+pub noself fun MemCopy(dest *void, source *void, length xint):
     @d = cast(xint)dest
     @s = cast(xint)source
     
-    if length <= 0
+    if length <= 0:
         return
 
     // Align `d` on i32
-    while d & 3 != 0 && length != 0
+    while d & 3 != 0 && length != 0:
         dref(cast(*byte)d) = dref(cast(*byte)s)
         d+=1;  s+=1;  length-=1
     
-    if s & 3 == 0
+    if s & 3 == 0:
         MemCopy32(cast(*void)d, cast(*void)s, length)
         return
     
     // Byte copy
     @end = d + length
-    while end-d >= 4
+    while end-d >= 4:
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
-    while d != end
+    while d != end:
         dref(cast(*byte)d) = dref(castx<*byte>(s)); d+=1; s+=1
 
-pub noself fun MemCopy32(dest *void, source *void, length xint) void
+pub noself fun MemCopy32(dest *void, source *void, length xint):
     @d = cast (xint)dest
     @s = cast (xint)source
 
-    if length <= 0
+    if length <= 0:
         return
 
     // Try 64 bit copy first
     @end = d + length
-    if (d~s) & 4 == 0 && length >= 8
-    {
+    if (d~s) & 4 == 0 && length >= 8:
         if d & 4 != 0
             { dref(cast(*i32)d) = dref(cast(*i32)s); d+=4; s+=4 }
         while end - d >= 8
             { dref(cast(*i64)d) = dref(cast(*i64)s); d+=8; s+=8 }
-    }
-    while end-d >= 4
+    while end-d >= 4:
         dref(cast(*i32)d) = dref(cast(*i32)s); d+=4; s+=4
-    while d != end
+    while d != end:
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
 
 namespace TestExample.ExampleNs1.HelloWorld
 
-noself fun F1() void
+noself fun F1():
     return todo()
 
 type ClassEx1
@@ -682,7 +680,7 @@ type ClassEx1
 
 namespace TestExample.ExampleNs1
 
-noself fun F1() void
+noself fun F1():
     return todo()
     
 namespace TestExample.ExampleNs1.InnerEx1
@@ -717,7 +715,7 @@ type ClassEx2
 
 namespace TestExample.ExampleNs2
 
-noself fun F1() void
+noself fun F1():
     return todo()
 
 type ClassEx1

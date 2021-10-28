@@ -12,62 +12,62 @@ pub type List<T>
     @Count int pub get
     @Version int pub get  // Increment when Count changes
     
-    pub fun new(capacity int) void
+    pub fun new(capacity int):
         SetCapacity(capacity)
 
-    pub fun IncVersion() void
+    pub fun IncVersion():
         Version += 1
 
 
-    pub fun operator[](index int) ref mut T
-        require index in 0..Count
+    pub fun operator[](index int) mut ref T
+        require index in 0..Count:
         return ref buffer[index]
 
     pub fun operator[](range Range<int>) mut []T
         require range.Low in 0..Count
         require range.High in 0..Count
-        require range.Low <= range.High
+        require range.Low <= range.High:
         return ref buffer[range]
 
     /// Grow the capacity to be at least minCapacity size.
     /// If minCapacity is <= capacity nothing happens,
     /// otherwise the list is expanded exponentially.
-    pub fun Grow(minCapacity int) void
-        if minCapacity <= buffer.Count
+    pub fun Grow(minCapacity int):
+        if minCapacity <= buffer.Count:
             return
         @newCap = Math.Max(capacity*2, minCount)
-        if sizeof(T) == 1
+        if sizeof(T) == 1:
             newCap = Math.Max(newCap, 12)
-        elif sizeof(T) <= 64
+        elif sizeof(T) <= 64:
             newCap = Math.Max(newCap, 4)
-        else
+        else:
             newCap = Math.Max(newCap, 1)
         SetCapacity(newCap)
     
-    pub fun Trim(extra int = 0) void
+    pub fun Trim(extra int = 0):
         SetCapacity(Count + extra)
     
     // Set the capacity, won't shrink below count.
-    fun SetCapacity(capacity int) void
+    fun SetCapacity(capacity int):
         IncVersion()
         @capacity = Math.Max(capacity, Count)
-        if capacity == buffer.Count
+        if capacity == buffer.Count:
             return
         Debug.PanicIf(uint(capacity) > MaxItems)
         
         // Copy items into new array
         @newBuffer = Buffer<T>(capacity)
-        for @i in 0..Count
+        for @i in 0..Count:
             newBuffer[i] = move_tbd(buffer[i]) // TBD: Use move reserved word here
         buffer = newBuffer
 
 
-    pub fun new(items []T) void
+    pub fun new(items []T):
         buffer = Buffer<T>(items.Count)
-        for @i in 0..items.Count
+        for @i in 0..items.Count:
             buffer[i] = items[i]
     
-    pub fun new(items Collection<T>) void
+    pub fun new(items Collection<T>)
     {
     }
 
@@ -75,45 +75,45 @@ pub type List<T>
     /// replaced by `seqReplace`.
     // TBD: Is it confusing to have this function be an in-place replacement,
     //      but Array.Replace to be immutable?
-    pub fun Replace(seqSearch []T, seqReplace[]T) void
+    pub fun Replace(seqSearch []T, seqReplace[]T):
         return todo()
 
     // NOTE: Find/Sort, etc. are defined in Span<T>
 
 
-    pub fun mut Clear(item T = default) void
+    pub fun mut Clear(item T = default):
         return todo()
-    pub fun mut Push(item T) void
+    pub fun mut Push(item T):
         return todo()
-    pub fun mut Push(items []T) void
+    pub fun mut Push(items []T):
         return todo()
-    pub fun mut PushDup(item T, count int) void
+    pub fun mut PushDup(item T, count int):
         return todo()
-    pub fun mut Pop() ?T
+    pub fun mut Pop() ?T:
         return todo()
-    pub fun mut Insert(index int, item T) void
+    pub fun mut Insert(index int, item T):
         return todo()
-    pub fun mut Insert(index int, items []T) void
+    pub fun mut Insert(index int, items []T):
         return todo()
-    pub fun mut Insert(index int, items Collection<T>) void
+    pub fun mut Insert(index int, items Collection<T>):
         return todo()
-    pub fun mut Remove(index int) void
+    pub fun mut Remove(index int):
         return todo()
-    pub fun mut Remove(range Range<int>) void
+    pub fun mut Remove(range Range<int>):
         return todo()
-    pub fun Convert<Tout>(f fun(item T)Tout) void
+    pub fun Convert<Tout>(f fun(item T)Tout):
         return todo()
 
-    pub fun Remove(test fun(item T) bool exit)  void exit
+    pub fun Remove(test fun(item T) bool exit) exit
     {
         @v = Version
         @si = 0
         @di = 0
-        while si < Count
+        while si < Count:
             @remove = test(buffer[si])
-            if v != Version
+            if v != Version:
                 throw InvalidIteratorException()
-            if !remove
+            if !remove:
                 if si != di
                     { buffer[di] = buffer[si]}
                 di += 1
@@ -121,22 +121,22 @@ pub type List<T>
         Remove(di:si)
         return
     error:
-        if v != Version
+        if v != Version:
             throw InvalidIteratorException()
         Remove(di:si)
     }
 
     // Usage: myList.For @item => DoStuffWithItem()
-    pub fun For(f fun(item mut T) void exit) void exit
+    pub fun For(f fun(item mut T) exit) exit:
         @v = Version
-        for @i in Count
+        for @i in Count:
             f(buffer[i])
-            if v != Version
+            if v != Version:
                 throw InvalidIteratorException()
 
     // TBD: Verify that it's impossible to get a mutable
     //      ListIterator from an immutable list reference
-    pub fun ref GetIterator() ListIterator<T>
+    pub fun ref GetIterator() ListIterator:
         return ListIterator(this)
 
     pub type ref ListIterator
@@ -146,15 +146,15 @@ pub type List<T>
         @version int
         @index int = -1
         
-        pub fun new(list ref List<T>) void
+        pub fun new(list ref List<T>):
             this.list = ref list
             version = list.Version
             
-        pub fun mut Next() ?ref T
-            if version != list.Version
+        pub fun mut Next() ?ref T:
+            if version != list.Version:
                 throw InvalidIteratorException()
             index += 1
-            if index < list.Count
+            if index < list.Count:
                 return ref list[index]
             return null
 

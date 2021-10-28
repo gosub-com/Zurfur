@@ -10,7 +10,7 @@ pub type boxed ro Array<T> = Buffer<T>
     /// replaced by `seqReplace`.
     // TBD: Is it confusing to have this function be immutable,
     //      but List.Replace to be an in-place replacement
-    pub fun Replace(seqSearch []T, seqReplace[]T) Array<T>
+    pub fun Replace(seqSearch []T, seqReplace[]T) Array<T>:
         return todo()
 
 }

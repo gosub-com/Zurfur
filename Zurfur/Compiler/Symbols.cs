@@ -175,12 +175,6 @@ namespace Gosub.Zurfur.Compiler
 
     }
 
-    class SymEmpty : Symbol
-    {
-        public SymEmpty(string name) : base(null, name) { }
-        public override string Kind => "Empty";
-    }
-
     class SymNamespace : Symbol
     {
         public SymNamespace(Symbol parent, string file, Token token) : base(parent, file, token) { }
@@ -199,7 +193,10 @@ namespace Gosub.Zurfur.Compiler
         public override string GetFullName()
         {
             var tp = FindChildren<SymTypeParam>();
-            return Parent.GetFullName() + "." + Name + (tp.Count == 0 ? "" : $"`{tp.Count}");
+            var name = Name + (tp.Count == 0 ? "" : $"`{tp.Count}");
+            if (Parent == null || Parent.Name == "")
+                return name;
+            return Parent.GetFullName() + "/" + name;
         }
     }
 
@@ -217,12 +214,23 @@ namespace Gosub.Zurfur.Compiler
         public SymField(Symbol parent, string file, Token token) : base(parent, file, token) { }
         public override string Kind => "field";
         public string TypeName = "";
+
+        public override string GetFullName()
+        {
+            return Parent.GetFullName() + "@" + Name;
+        }
     }
 
     class SymMethodGroup : Symbol
     {
         public SymMethodGroup(Symbol parent, string file, Token token) : base(parent, file, token) { }
         public override string Kind => "methods";
+
+        public override string GetFullName()
+        {
+            return Parent.GetFullName() + ":" + Name;
+        }
+
     }
 
     class SymMethod : Symbol
@@ -305,6 +313,12 @@ namespace Gosub.Zurfur.Compiler
             }
             return sb.ToString();
         }
+
+        public override string GetFullName()
+        {
+            return Parent.GetFullName() + Name;
+        }
+
 
     }
 

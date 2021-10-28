@@ -7,14 +7,14 @@ pub type Range<T>(Low T, High T)
     implements Iterable<T>
     where T is IArithmetic<T>
 {
-    pub fun GetIterator() Iterator<T>
+    pub fun GetIterator() Iterator<T>:
         return RangeIterator<T>(this)
 
     // Usage: myRange.For @index => DoStuffWithItem()
-    pub fun For(f fun(item T) void exit) void exit
+    pub fun For(f fun(item T) exit) exit
     {
         @i = Low
-        while @i < High && f(i)
+        while @i < High && f(i):
             i += 1
         
     }
@@ -28,15 +28,13 @@ pub type RangeIterator<T>
     @index T
     @high T
     
-    pub fun new(r Range<T>) void
-    {
+    pub fun new(r Range<T>):
         index = r.Low-1
-    }
 
     pub fun mut Next(range Range<T>) ?ref T
     {
         index += 1
-        if index < high
+        if index < high:
             return ref index
         return null
     }

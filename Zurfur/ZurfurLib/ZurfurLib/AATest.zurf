@@ -9,22 +9,29 @@ type OneGeneric<T> { }
 pub type AGenericTest<T, QQQ>
     where QQQ is x//: new() where T : new()
 {
-    pub fun new() void
+    pub fun new():
         nop()
 
-    pub fun new(a int) void
+    pub fun new(a int):
         nop()
    
-    pub fun P1() void { return 0; }
-    //pub fun P2<Quack>(a Quack, b QQQ) void { return (a.ToStr() + b.ToStr()).Length; }
-    pub fun P3<Z>() void { return 0; }
-    pub fun P4<Quack, Quack1>() void { return 0; }
-    pub fun fun9(a *?OneGeneric<List<int>>) void { }
+    pub fun P1() { return 0 }
+    pub fun P2()->() { return 0}
+    //pub fun P2<Quack>(a Quack, b QQQ) { return (a.ToStr() + b.ToStr()).Length; }
+    pub fun P3<Z>() { return 0; }
+    pub fun P4<Quack, Quack1>() { return 0; }
+    pub fun fun9(a *?OneGeneric<List<int>>) { }
 
 
-    pub fun GenericTest<Q1, Q2>(a Q1, b Q2) void
+    pub fun GenericTest<Q1, Q2>(a Q1, b Q2):
         return a.ToStr().Length + b.ToStr().Length
 
+
+    @f0 **int
+    @f1 List<List<int>>
+    @f3 fun()->()
+
+    
     @field0 T = 0
     @field1 Inner1<str, T>
     @field2 Inner1<QQQ,T>
@@ -37,7 +44,7 @@ pub type AGenericTest<T, QQQ>
     @field7 AATest.AGenericTest<int,int>.Inner1<QQQ, T>.Inner2<int, int>
 
 
-    pub fun UseIt(x Zurfur.int, y List<Inner1<int,int>>, z List<str>) void
+    pub fun UseIt(x Zurfur.int, y List<Inner1<int,int>>, z List<str>)
     {
         XField0.ToStr()
         // Xfield2<str, T>.P3<T>(); - Xfield2 can't use type parameters
@@ -56,23 +63,23 @@ pub type AGenericTest<T, QQQ>
     
     pub type Inner1<Ta, Qa>
     {
-        pub fun P1() void { return 0; }
-        pub fun P2<Quack>() void { return 0; }
-        pub fun P3<Z>() void { return 0; }
-        pub fun P4<Z, Quack>() void { return 0; }
-        pub fun P5<Quack, Quack1, Quack3>() void{ return 0; }
+        pub fun P1() { return 0; }
+        pub fun P2<Quack>() { return 0; }
+        pub fun P3<Z>() { return 0; }
+        pub fun P4<Z, Quack>() { return 0; }
+        pub fun P5<Quack, Quack1, Quack3>() { return 0; }
 
         pub type Inner2<Tb, Qb>
         {
-            pub fun P1() void { return 0; }
-            pub fun P2<Quack>() void { return 0; }
-            pub fun P3<Z>() void { return 0; }
-            pub fun P4<Z, Quack>() void { return 0; }
-            pub fun P5<Quack, Quack1, Quack3>(a int, b Quack1, c u16) void
+            pub fun P1() { return 0; }
+            pub fun P2<Quack>() { return 0; }
+            pub fun P3<Z>() { return 0; }
+            pub fun P4<Z, Quack>() { return 0; }
+            pub fun P5<Quack, Quack1, Quack3>(a int, b Quack1, c u16)
             {
                 return InnerP5() + InnerP5() + a + b.ToStr().Length + c
 
-                fun InnerP5() void
+                fun InnerP5():
                     return ToStr().Length
             }
 
@@ -82,17 +89,17 @@ pub type AGenericTest<T, QQQ>
 
             pub type Inner3<A, B>
             {
-                pub fun P1() void { return 0; }
-                pub fun P2<Quack>() void { return 0; }
-                pub fun P3<Z>() void { return 0; }
-                pub fun P4<Z, Quack>() void { return 0; }
+                pub fun P1() { return 0; }
+                pub fun P2<Quack>() { return 0; }
+                pub fun P3<Z>() { return 0; }
+                pub fun P4<Z, Quack>() { return 0; }
                 pub fun AAA<Quack, Quack1, Quack3>
                     (a Quack, b Quack1, c Quack3, d A)
                         ->(x T, y QQQ, z List<QQQ>, w List<int>)
                 {
                     return InnerP5() + InnerP5() + a + b.ToStr().Length + c
                     
-                    fun InnerP5() int
+                    fun InnerP5() int:
                         return ToStr().Length
                 }
 

@@ -23,7 +23,7 @@ namespace Gosub.Zurfur.Compiler
 
         bool mNoCompilerChecks;
         SymbolTable mSymbols = new SymbolTable();
-        Dictionary<string, SymType> sUnaryTypeSymbols = new Dictionary<string, SymType>();
+        Dictionary<string, SymType> mUnaryTypeSymbols = new Dictionary<string, SymType>();
         //SymType mUnresolvedType;
 
         // TBD: Still figuring out how to deal with these.
@@ -36,22 +36,14 @@ namespace Gosub.Zurfur.Compiler
             //mUnresolvedType = new SymType(mSymbols.Root, "$unresolved");
             //mSymbols.AddOrReject(mUnresolvedType);
 
-            // Add built in types
-            sUnaryTypeSymbols["*"] = new SymType(mSymbols.Root, "*");
-            sUnaryTypeSymbols["^"] = new SymType(mSymbols.Root, "^");
-            sUnaryTypeSymbols["["] = new SymType(mSymbols.Root, "[]");
-            sUnaryTypeSymbols["?"] = new SymType(mSymbols.Root, "?");
-            sUnaryTypeSymbols["fun"] = new SymType(mSymbols.Root, "$fun");
-            sUnaryTypeSymbols["afun"] = new SymType(mSymbols.Root, "$afun");
-            foreach (var v in sUnaryTypeSymbols.Values)
-                mSymbols.AddOrReject(v);
-
-            // Add generic types
-            mSymbols.AddOrReject(new SymTypeParam(sUnaryTypeSymbols["*"], "", new Token("T")));
-            mSymbols.AddOrReject(new SymTypeParam(sUnaryTypeSymbols["^"], "", new Token("T")));
-            mSymbols.AddOrReject(new SymTypeParam(sUnaryTypeSymbols["["], "", new Token("T")));
-            mSymbols.AddOrReject(new SymTypeParam(sUnaryTypeSymbols["?"], "", new Token("T")));
-
+            // Add built in unary generic types
+            foreach (var genericType in "* ^ [ ? fun afun ref".Split(' '))
+            {
+                var sym = new SymType(mSymbols.Root, genericType);
+                mUnaryTypeSymbols[genericType] = sym;
+                mSymbols.AddOrReject(sym);
+                mSymbols.AddOrReject(new SymTypeParam(sym, "", new Token("T")));
+            }
 
         }
 
@@ -321,8 +313,7 @@ namespace Gosub.Zurfur.Compiler
                     return;
                 }
 
-
-                // Set the final function name: "`#(t1,t2...)->(r1,r2...)"
+                // Set the final function name: "`#(t1,t2...)(r1,r2...)"
                 //      # - Number of generic parameters
                 //      t1,t2... - Parameter types
                 //      r1,r2... - Return types
@@ -333,7 +324,7 @@ namespace Gosub.Zurfur.Compiler
                 var xReturns = mp.FindAll(a => a.IsReturn).ToArray();
                 var methodName = (genericsCount == 0 ? "" : "`" + genericsCount)
                             + "(" + string.Join(",", Array.ConvertAll(xParams, a => a.TypeName)) + ")"
-                            + "->" + "(" + string.Join(",", Array.ConvertAll(xReturns, a => a.TypeName)) + ")";
+                            + "(" + string.Join(",", Array.ConvertAll(xReturns, a => a.TypeName)) + ")";
                 method.SetName(methodName);
                 mSymbols.AddOrReject(method);
             }
@@ -398,7 +389,7 @@ namespace Gosub.Zurfur.Compiler
             if (typeExpr.Token == "fun" || typeExpr.Token == "afun")
                 return ResolveFunOrReject();
 
-            if (sUnaryTypeSymbols.ContainsKey(typeExpr.Token) || typeExpr.Token == ParseZurf.VT_TYPE_ARG)
+            if (mUnaryTypeSymbols.ContainsKey(typeExpr.Token) || typeExpr.Token == ParseZurf.VT_TYPE_ARG)
                 return ResolveGenericTypeOrReject();
 
             if (sTypeAttributes.Contains(typeExpr.Token))
@@ -527,7 +518,7 @@ namespace Gosub.Zurfur.Compiler
                 //if (typeExpr[2].Token.Name != "") // error attribute
                 //    returnTypes.Add(typeExpr[2].Token.Name);
 
-                var typeParent = sUnaryTypeSymbols[typeExpr.Token.Name];
+                var typeParent = mUnaryTypeSymbols[typeExpr.Token.Name];
                 var spec = new SymParameterizedType(typeParent, paramTypes.ToArray(), returnTypes.ToArray());
 
                 // Return the one in the symbol table, if it exists
@@ -628,7 +619,7 @@ namespace Gosub.Zurfur.Compiler
                 if (typeExpr.Token != ParseZurf.VT_TYPE_ARG)
                 {
                     // Unary type symbol symbol
-                    typeParent = sUnaryTypeSymbols[typeExpr.Token];
+                    typeParent = mUnaryTypeSymbols[typeExpr.Token];
                 }
                 else
                 {
