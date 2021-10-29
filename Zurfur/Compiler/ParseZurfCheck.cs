@@ -27,7 +27,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sFieldInEnumQualifiers = new WordSet("");
 
         static WordSet sFuncQualifiers = new WordSet(". pub public protected private internal unsafe virtual override new mut ref noself extern youdo async error");
-        static WordSet sPropQualifiers = new WordSet(". pub public protected private internal unsafe noself virtual override new");
+        static WordSet sPropQualifiers = new WordSet(". pub public protected private internal unsafe noself virtual override new extern youdo async error");
 
         static WordSet sTopLevelStatements = new WordSet("{ ( = += -= *= /= %= &= |= ~= <<= >>= => @ "
             + "const var let mut defer use throw switch case return for break default while if else get set do unsafe error finally exit fun afun");

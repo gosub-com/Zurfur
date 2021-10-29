@@ -19,8 +19,6 @@ namespace Gosub.Zurfur.Compiler
 
     class ZilGenHeader
     {
-        static WordSet sTypeAttributes = new WordSet("in out mut ro ref");
-
         bool mNoCompilerChecks;
         SymbolTable mSymbols = new SymbolTable();
         Dictionary<string, SymType> mUnaryTypeSymbols = new Dictionary<string, SymType>();
@@ -37,7 +35,7 @@ namespace Gosub.Zurfur.Compiler
             //mSymbols.AddOrReject(mUnresolvedType);
 
             // Add built in unary generic types
-            foreach (var genericType in "* ^ [ ? fun afun ref".Split(' '))
+            foreach (var genericType in "* ^ [ ? fun afun ref own mut".Split(' '))
             {
                 var sym = new SymType(mSymbols.Root, genericType);
                 mUnaryTypeSymbols[genericType] = sym;
@@ -391,16 +389,6 @@ namespace Gosub.Zurfur.Compiler
 
             if (mUnaryTypeSymbols.ContainsKey(typeExpr.Token) || typeExpr.Token == ParseZurf.VT_TYPE_ARG)
                 return ResolveGenericTypeOrReject();
-
-            if (sTypeAttributes.Contains(typeExpr.Token))
-            {
-                // TBD: Figure out what to do about the attributes.  For now skip them.
-                //Warning(typeExpr.Token, "Attribute not processed yet");
-                if (typeExpr.Count == 1)
-                    return ResolveTypeOrReject(typeExpr[0], false, scope, useScope, file);
-                Reject(typeExpr.Token, "Index error");
-                return null;
-            }
 
             // Resolve regular symbol
             bool foundInScope = false;

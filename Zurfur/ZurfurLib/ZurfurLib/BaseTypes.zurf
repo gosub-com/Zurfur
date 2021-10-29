@@ -395,6 +395,11 @@ pub type ro f32
     pub const Origin f32 = 0
     pub const Identity f32 = 1
 
+    pub get IsInfinity() bool extern
+    pub get IsNaN() bool extern
+    pub get IsNegativeInfinity() bool extern
+    pub get IsPositiveInfinity() bool extern    
+
     pub fun I8Mask() i8 extern
     pub fun U8Mask() u8 extern
     pub fun I16Mask() i16 extern
@@ -425,15 +430,6 @@ pub type ro f32
     pub noself fun Equatable<f32>::Equals(a f32, b f32) bool extern
     pub noself fun Comparable<f32>::Compare(a f32, b f32) i64 extern
     
-    pub get IsInfinity bool:
-        return todo()
-    pub get IsNaN bool:
-        return todo()
-    pub get IsNegativeInfinity bool:
-        return todo()
-    pub get IsPositiveInfinity bool:
-        return todo()
-
     // Overloadable operators
     pub fun operator-(a f32) f32 extern
     pub fun operator+(a f32, b f32) f32 extern
@@ -486,6 +482,11 @@ pub type ro f64
     pub const Origin f64 = 0
     pub const Identity f64 = 1
 
+    pub get IsInfinity() bool extern
+    pub get IsNaN() bool extern
+    pub get IsNegativeInfinity() bool extern
+    pub get IsPositiveInfinity() bool extern    
+
     pub fun I8Mask() i8 extern
     pub fun U8Mask() u8 extern
     pub fun I16Mask() i16 extern
@@ -516,16 +517,7 @@ pub type ro f64
     pub noself fun GetHashCode(a f64) i64 extern
     pub noself fun Equatable<f32>::Equals(a f64, b f64) bool extern
     pub noself fun Comparable<f32>::Compare(a f64, b f64) i64 extern
-    
-    pub get IsInfinity bool:
-        return todo()
-    pub get IsNaN bool:
-        return todo()
-    pub get IsNegativeInfinity bool:
-        return todo()
-    pub get IsPositiveInfinity bool:
-        return todo()
-    
+        
     // Overloadable operators
     pub fun operator-(a f64) f64 extern
     pub fun operator+(a f64, b f64) f64 extern
@@ -580,14 +572,10 @@ pub type ro decimal
     pub const Origin decimal = 0
     pub const Identity decimal = 1
     
-    pub get IsInfinity bool:
-        return todo()
-    pub get IsNaN bool:
-        return todo()
-    pub get IsNegativeInfinity bool:
-        return todo()
-    pub get IsPositiveInfinity bool:
-        return todo()
+    pub get IsInfinity() bool extern
+    pub get IsNaN() bool extern
+    pub get IsNegativeInfinity() bool extern
+    pub get IsPositiveInfinity() bool extern
 
     pub fun I8Mask() i8 extern
     pub fun U8Mask() u8 extern

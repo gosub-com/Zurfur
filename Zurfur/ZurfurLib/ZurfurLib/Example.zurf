@@ -12,6 +12,9 @@ namespace TestExample
 TBD: // Allow braceless `type`s???
      // Require `loc` keyword for private local functions
      // Formalize symbol names:  namespace.namespace.class:class/field??
+     // Figure out GET/SET common cases:
+     //     Changed event
+     //     Default set used like so: map["undefined"] += 1 or map["undefined"].a += 5
      
 
 /// This is a public comment.
@@ -106,7 +109,7 @@ pub noself fun Iterable<T>::AlphaLengthWise<T, L>(
 
 pub type Example
 {
-    pub get MyConst str:
+    pub get MyConst() str:
         return "Hello"
     
     @a1 str
@@ -129,7 +132,7 @@ pub type Example
         return info+a
     pub fun GetInfo(a str) str:
         return a
-    pub get Info str:
+    pub get Info() str:
         return info
 
     @a Zim<void>
@@ -251,10 +254,10 @@ pub type MutableTest
     pub fun getMyObjectAt(i int) MyObject { todo() }
     pub fun getMyObjects() List<MyObject> { todo() }
     pub fun getMyObjects2() List<MyObject> { todo() }
-    pub get P1 MyObject { return i }
-    pub get P2 MyObject { return i }
+    pub get P1() MyObject { return i }
+    pub get P2() MyObject { return i }
     
-    pub get P str { return Header + info }
+    pub get P() str { return Header + info }
     fun getListObject(i mut int) ref mut MyObject:
         return a[i]
 
@@ -266,9 +269,9 @@ pub type MyMutablePoint(X int, Y int)
     pub fun mut SetY(y int):
         Y = y
         
-    pub get PropX int:
+    pub get PropX() int:
         return x
-    pub set PropX int:
+    pub set PropX(value int):
         X = value
 }
 
@@ -281,7 +284,7 @@ pub type Example_x
     @field2 int pub
     @ChangedTime DateTime pub get = DateTime.Now
 
-    pub get Prop str:
+    pub get Prop() str:
         return Header + info
     pub fun A(a int, b int, c f32) f32:
         return  a+1
@@ -376,14 +379,14 @@ pub type Example2<Q>  // YES, errors working
     @f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
     
     // Properties
-    pub get P1 int:
+    pub get P1() int:
         return 1
-    pub get P2 f32:
+    pub get P2() f32:
         return f1 + f2
         
-    pub get P5 int:
+    pub get P5() int:
         return p1
-    pub set P5 int:
+    pub set P5(value int):
         p1 = value
     
     pub fun operator[](index int) int:

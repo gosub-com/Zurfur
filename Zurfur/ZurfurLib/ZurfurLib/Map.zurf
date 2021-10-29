@@ -10,14 +10,15 @@ pub type Map<TKey, TValue>
         return todo()
     pub fun new(keyValues Collection<Pair<TKey, TValue>>):
         return todo()
-    pub get Count int:
+    pub get Count() int:
         return todo()
     pub fun operator in(a TKey) bool:
         return todo()
 
-    // TBD: pub get operator[](key TKey) mut ?ref TValue
-    //      pub set operator[](key TKey) mut ref TValue
-    pub fun operator[](key TKey) mut ?ref TValue:
+    // TBD: Figure out map["Hello"] += 1 
+    pub get operator[](key TKey) ?ref mut TValue:
+        return todo()
+    pub set operator[](key TKey, value own TValue):
         return todo()
 
 
@@ -29,9 +30,9 @@ pub type Map<TKey, TValue>
         return todo()
     pub fun TryGet(key TKey) ?TValue:
         return todo()
-    pub get Keys Collection<TKey>:
+    pub get Keys() Collection<TKey>:
         return todo()
-    pub get Values Collection<TValue>:
+    pub get Values() Collection<TValue>:
         return todo()
     pub fun mut Clear():
         return todo()

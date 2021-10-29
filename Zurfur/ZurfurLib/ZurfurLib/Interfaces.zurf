@@ -28,14 +28,14 @@ pub noself interface IArithmetic<T>
     fun operator*(a T, b T) T youdo
     fun operator/(a T, b T) T youdo
     fun operator%(a T, b T) T youdo
-    noself get Identity T youdo get
-    noself get Origin T youdo get
+    noself get Identity() T youdo
+    noself get Origin() T youdo
 }
 
 pub interface Collection<T>
     implements Iterable<T>
 {
-    get Count int youdo get
+    get Count() int youdo
     fun GetIterator() Iterator<T> youdo
 }
 

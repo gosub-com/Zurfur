@@ -67,7 +67,7 @@ namespace Gosub.Zurfur.Compiler
             + "async await astart func afunc get set aset aget global partial var where when nameof "
             + "box boxed init move copy clone drop error dispose own owned "
             + "trait mixin extends youdo implements implement impl union fun afun def yield let cast "
-            + "any dyn loop select match event aevent from to of on cofun cofunc global local val it "
+            + "any dyn dynamic loop select match event aevent from to of on cofun cofunc global local val it "
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
             + "of sync task except exception raise loc local global");
 
@@ -77,7 +77,7 @@ namespace Gosub.Zurfur.Compiler
 
         static WordSet sReservedUserFuncNames = new WordSet("new drop cast default implicit");
         static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default base new cast dref");
-        static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref mut");
+        static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref mut own");
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sAllowConstraintKeywords = new WordSet("unmanaged");
@@ -315,22 +315,16 @@ namespace Gosub.Zurfur.Compiler
                         ParseClass(keyword, parentScope, qualifiers);
                         break;
 
+                    case "get":
+                    case "aget":
+                    case "set":
+                    case "aset":
                     case "fun":
                     case "afun":
                         mToken.Type = eTokenType.ReservedControl;
                         Accept();
                         keyword.Type = eTokenType.ReservedControl;  // Fix keyword to make it control
                         AddMethod(ParseMethod(keyword, parentScope, qualifiers));
-                        break;
-
-                    case "get":
-                    case "aget":
-                    case "set":
-                    case "aset":
-                        mToken.Type = eTokenType.ReservedControl;
-                        Accept();
-                        var prop = ParseProperty(keyword, parentScope, qualifiers);
-                        AddMethod(prop);
                         break;
 
                     case "@":
@@ -730,56 +724,8 @@ namespace Gosub.Zurfur.Compiler
             return field;
         }
 
-        private SyntaxFunc ParseProperty(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
-        {
-            // Parse name and type
-            if (!AcceptIdentifier("Expecting a property name"))
-                return null;
-            var name = mPrevToken;
-            name.Type = eTokenType.DefineField;
-            RejectUnderscoreDefinition(name);
-            var signature = ParseType();
-            if (mToken.Error)
-                return null;
-
-            var synFunc = new SyntaxFunc(keyword);
-            synFunc.IsProperty = true;
-            synFunc.ParentScope = parentScope;
-            synFunc.NamePath = mNamePath;
-            synFunc.Comments = mComments.ToString();
-            mComments.Clear();
-            synFunc.Qualifiers = qualifiers.ToArray();
-            synFunc.Name = name;
-            synFunc.MethodSignature = signature;
-
-            // Body
-            if (AcceptMatchPastMetaSemicolon("extern") || AcceptMatchPastMetaSemicolon("youdo"))
-            {
-                qualifiers.Add(mPrevToken);
-                if (mPrevToken.Name == "youdo")
-                {
-                    if (mTokenName == "get")
-                    {
-                        qualifiers.Add(Accept());
-                        if (mTokenName == "set")
-                            qualifiers.Add(Accept());
-                    }
-                    else
-                    {
-                        RejectToken(mToken, "Expecting 'get'");
-                    }
-                }
-            }
-            else
-            {
-                synFunc.Statements = ParseCompoundStatement(keyword);
-            }
-            return synFunc;
-        }
-
-
         /// <summary>
-        /// Func, construct, operator
+        /// Function, property, operator
         /// </summary>
         SyntaxFunc ParseMethod(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
         {
@@ -798,9 +744,37 @@ namespace Gosub.Zurfur.Compiler
                 qualifiers.Add(Accept());
 
 
-            // Parse method name: operator, reserved, or extension.name<args...>
-            var validMethodName = false;
+            synFunc.TypeArgs = ParseMethodName(synFunc, out var validMethodName);
+            synFunc.MethodSignature = ParseMethodSignature(keyword);
+            synFunc.Constraints = ParseConstraints();
+
+            while (AcceptMatchPastMetaSemicolon("require"))
+            {
+                // TBD: Store in parse tree
+                ParseExpr();
+            }
+
+            // Body
+            if (AcceptMatchPastMetaSemicolon("extern") || AcceptMatchPastMetaSemicolon("youdo"))
+            {
+                qualifiers.Add(mPrevToken);
+            }
+            else
+            {
+                synFunc.Statements = ParseCompoundStatement(keyword);
+            }
+
+            synFunc.Qualifiers = qualifiers.ToArray();
+
+            if (!validMethodName)
+                return null;
+            return synFunc;
+        }
+
+        private SyntaxExpr ParseMethodName(SyntaxFunc synFunc, out bool validMethodName)
+        {
             SyntaxExpr typeArgs;
+            validMethodName = false;
             if (AcceptMatch("operator"))
             {
                 // Operator
@@ -830,35 +804,41 @@ namespace Gosub.Zurfur.Compiler
             else
             {
                 // Regular function name: extension.name<args...>
-                validMethodName = ParseMethodName(out synFunc.ExtensionType, out synFunc.Name, out typeArgs);
+                validMethodName = ParseMethodNameWithExtension(out synFunc.ExtensionType, out synFunc.Name, out typeArgs);
             }
-
-            synFunc.TypeArgs = typeArgs;
-            synFunc.MethodSignature = ParseMethodSignature(keyword);
-            synFunc.Constraints = ParseConstraints();
-
-            while (AcceptMatchPastMetaSemicolon("require"))
-            {
-                // TBD: Store in parse tree
-                ParseExpr();
-            }
-
-            // Body
-            if (AcceptMatchPastMetaSemicolon("extern") || AcceptMatchPastMetaSemicolon("youdo"))
-            {
-                qualifiers.Add(mPrevToken);
-            }
-            else
-            {
-                synFunc.Statements = ParseCompoundStatement(keyword);
-            }
-
-            synFunc.Qualifiers = qualifiers.ToArray();
-            
-            if (!validMethodName)
-                return null;
-            return synFunc;
+            return typeArgs;
         }
+
+        /// <summary>
+        /// Returns true if we are a valid method name
+        /// </summary>
+        bool ParseMethodNameWithExtension(out SyntaxExpr className, out Token funcName, out SyntaxExpr typeArgs)
+        {
+            className = null;
+            typeArgs = new SyntaxToken(mLexer.EndToken);
+
+            funcName = mToken;
+            if (!CheckIdentifier("Expecting a function or property name", sRejectTypeName))
+                return false;
+
+            // TBD: Convert this to use "." instead of requiring "::" to
+            //      separate extension method type from function name.
+            //      Probably a simple chnage to GetSimpleNameWithTypeArgs.
+            var funName = ParseType();
+            if (AcceptMatch("::") && CheckIdentifier("Expecting a function or property name", sRejectTypeName))
+            {
+                className = funName;
+                funName = ParseType();
+            }
+
+            (funcName, typeArgs) = GetSimpleNameWithTypeArgs(funName);
+            RejectUnderscoreDefinition(funcName);
+            var validMethodName = funcName.Type == eTokenType.TypeName;
+            if (validMethodName)
+                funcName.Type = eTokenType.DefineMethod;
+            return validMethodName;
+        }
+
 
         /// <summary>
         /// returns SyntaxExpr:
@@ -900,35 +880,6 @@ namespace Gosub.Zurfur.Compiler
             return new SyntaxMulti(keyword, funcParams, returnParams, qualifier);
         }
 
-        /// <summary>
-        /// Returns true if we are a valid method name
-        /// </summary>
-        bool ParseMethodName(out SyntaxExpr className, out Token funcName, out SyntaxExpr typeArgs)
-        {
-            className = null;
-            typeArgs = new SyntaxToken(mLexer.EndToken);
-
-            funcName = mToken;
-            if (!CheckIdentifier("Expecting a function or type name", sRejectTypeName))
-                return false;
-
-            // TBD: Convert this to use "." instead of requiring "::" to
-            //      separate extension method type from function name.
-            //      Probably a simple chnage to GetSimpleNameWithTypeArgs.
-            var funName = ParseType();
-            if (AcceptMatch("::") && CheckIdentifier("Expecting a function or type name", sRejectTypeName))
-            {
-                className = funName;
-                funName = ParseType();
-            }
-
-            (funcName, typeArgs) = GetSimpleNameWithTypeArgs(funName);
-            RejectUnderscoreDefinition(funcName);
-            var validMethodName = funcName.Type == eTokenType.TypeName;
-            if (validMethodName)
-                funcName.Type = eTokenType.DefineMethod;
-            return validMethodName;
-        }
 
         SyntaxExpr ParseMethodParams()
         {
