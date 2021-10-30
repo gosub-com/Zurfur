@@ -42,17 +42,15 @@ pub type ro i8
     pub const Identity i8 = 1
 
 
-    // TBD: These will become properties when
-    //      the code generator process them
     pub fun U8Mask() u8 extern
     pub fun U8Fail() u8 extern
     
-    pub fun I16() i16 extern
-    pub fun I32() i32 extern
-    pub fun I64() i64 extern
-    pub fun F32() f32 extern
-    pub fun F64() f64 extern
-    pub fun Decimal() decimal extern
+    pub get I16() i16 extern
+    pub get I32() i32 extern
+    pub get I64() i64 extern
+    pub get F32() f32 extern
+    pub get F64() f64 extern
+    pub get Decimal() decimal extern
     
     pub noself fun GetHashCode(a i8) i64 extern
     pub noself fun Equals(a i8, b i8) bool extern
@@ -72,15 +70,15 @@ pub type ro u8
     pub fun I8Mask() i8 extern
     pub fun I8Fail() i8 extern
     
-    pub fun I16() i16 extern
-    pub fun U16() u16 extern
-    pub fun I32() i32 extern
-    pub fun U32() u32 extern
-    pub fun I64() i64 extern
-    pub fun U64() u64 extern
-    pub fun F32() f32 extern
-    pub fun F64() f64 extern
-    pub fun Decimal() decimal extern
+    pub get I16() i16 extern
+    pub get U16() u16 extern
+    pub get I32() i32 extern
+    pub get U32() u32 extern
+    pub get I64() i64 extern
+    pub get U64() u64 extern
+    pub get F32() f32 extern
+    pub get F64() f64 extern
+    pub get Decimal() decimal extern
 
     
     pub noself fun GetHashCode(a u8) i64 extern
@@ -105,11 +103,11 @@ pub type ro i16
     pub fun U8Fail() u8 extern
     pub fun U16Fail() u16 extern
 
-    pub fun I32() i32 extern
-    pub fun I64() i64 extern
-    pub fun F32() f32 extern
-    pub fun F64() f64 extern
-    pub fun Decimal() decimal extern
+    pub get I32() i32 extern
+    pub get I64() i64 extern
+    pub get F32() f32 extern
+    pub get F64() f64 extern
+    pub get Decimal() decimal extern
 
     pub noself fun GetHashCode(a i16) i64 extern
     pub noself fun Equals(a i16, b i16) bool extern
@@ -134,13 +132,13 @@ pub type ro u16
     pub fun U8Fail() u8 extern
     pub fun I16Fail() i16 extern
 
-    pub fun I32() i32 extern
-    pub fun U32() u32 extern
-    pub fun I64() i64 extern
-    pub fun U64() u64 extern
-    pub fun F32() f32 extern
-    pub fun F64() f64 extern
-    pub fun Decimal() decimal extern
+    pub get I32() i32 extern
+    pub get U32() u32 extern
+    pub get I64() i64 extern
+    pub get U64() u64 extern
+    pub get F32() f32 extern
+    pub get F64() f64 extern
+    pub get Decimal() decimal extern
 
     pub noself fun GetHashCode(a u16) i64 extern
     pub noself fun Equals(a u16, b u16) bool extern
@@ -168,10 +166,10 @@ pub type ro i32
     pub fun U16Fail() u16 extern
     pub fun U32Fail() u32 extern
 
-    pub fun I64() i64 extern
-    pub fun F32() f32 extern
-    pub fun F64() f64 extern
-    pub fun Decimal() decimal extern
+    pub get I64() i64 extern
+    pub get F32() f32 extern
+    pub get F64() f64 extern
+    pub get Decimal() decimal extern
 
     // Comparisons
     pub noself fun GetHashCode(a i32) i64 extern
@@ -226,11 +224,11 @@ pub type ro u32
     pub fun U16Fail() u16 extern
     pub fun I32Fail() i32 extern
 
-    pub fun I64() i64 extern
-    pub fun U64() u64 extern
-    pub fun F32() f32 extern
-    pub fun F64() f64 extern
-    pub fun Decimal() decimal extern
+    pub get I64() i64 extern
+    pub get U64() u64 extern
+    pub get F32() f32 extern
+    pub get F64() f64 extern
+    pub get Decimal() decimal extern
     
     // Comparisons
     pub noself fun GetHashCode(a u32) i64 extern
@@ -288,9 +286,9 @@ pub type ro i64
     pub fun U32Fail() u32 extern
     pub fun U64Fail() u64 extern
     
-    pub fun F32() f32 extern
-    pub fun F64() f64 extern
-    pub fun Decimal() decimal extern
+    pub get F32() f32 extern
+    pub get F64() f64 extern
+    pub get Decimal() decimal extern
 
     // Comparisons
     pub noself fun GetHashCode(a i64) i64 extern
@@ -349,9 +347,9 @@ pub type ro u64
     pub fun U32Fail() u32 extern
     pub fun I64Fail() i64 extern
     
-    pub fun F32() f32 extern
-    pub fun F64() f64 extern
-    pub fun Decimal() decimal extern
+    pub get F32() f32 extern
+    pub get F64() f64 extern
+    pub get Decimal() decimal extern
 
     // Comparisons
     pub noself fun GetHashCode(a u64) i64 extern
@@ -418,8 +416,8 @@ pub type ro f32
     pub fun I64Fail() i64 extern
     pub fun U64Fail() u64 extern
     
-    pub fun F64() f64 extern
-    pub fun Decimal() decimal extern
+    pub get F64() f64 extern
+    pub get Decimal() decimal extern
 
     // Normal f32 comparisons
     pub noself fun Equals(a f32, b f32) bool extern
@@ -507,7 +505,7 @@ pub type ro f64
     pub fun U64Fail() u64 extern
     pub fun F32Fail() f32 extern
 
-    pub fun Decimal() decimal extern
+    pub get Decimal() decimal extern
 
     // Normal f64 comparisons
     pub noself fun Equals(a f64, b f64) bool extern

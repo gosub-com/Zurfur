@@ -397,7 +397,7 @@ namespace Gosub.Zurfur.Lex
             {
                 if (mIndexToken+i < mCurrentLine.Length)
                     return mCurrentLine[mIndexToken+i];
-                return Token.Empty;
+                return mLexer.EndToken;
             }
 
             public void Reset()

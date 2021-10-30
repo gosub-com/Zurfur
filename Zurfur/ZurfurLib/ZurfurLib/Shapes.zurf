@@ -1,0 +1,65 @@
+﻿
+
+
+use Zurfur
+
+
+/// Basic shapes for use with 2d drawing library
+namespace Zurfur.Shapes
+
+fun test_Shape():
+    @rect = Rect<int>(1,2,3,4)
+    rect.Location.Y = 30 // This should work
+    Assert(rect == Rect<int>(1,30,3,4))
+    
+
+
+type Point<T>(X T, Y T)
+    where T is IAritmetic
+{
+    fun operator+(a Point<T>, b Point<T>) { return Point(a.X+b.X, a.Y+b.Y) }
+    fun operator-(a Point<T>) { return Point(-a.X, -a.Y) }
+    fun operator-(a Point<T>, b Point<T>) { return Point(a.X-b.X, a.Y-b.Y) }
+    fun operator*(a T, b Point<T>) { return Point(a*b.X, a*b.Y) }
+    fun operator*(a Point<T>, b T) { return Point(a.X*b, a.Y*b) }
+    fun operator/(a T, b Point<T>) { return Point(a/b.X, a/b.Y) }
+    fun operator/(a Point<T>, b T) { return Point(a.X/b, a.Y/b) }
+    get ToSize() Size<T> { return Size(X, Y) }
+}
+
+// Get this to work
+get Point<T>::Size() Size<T> { return Size(X, Y) }
+
+
+type Size<T>(Width T, Height T)
+    where T is IAritmetic
+{
+    // TBD: Same as Point<T>
+    get ToPoint() Point<T> { return Point(Width, Height) }
+}
+
+type Rect<T>(X T, Y T, Width T, Height T)
+    where T is IArithmetic
+{
+    // TBD: Operators (add, multiply, divide, sizes, etc.)
+    fun new(location Point<T>, size Zurfur.Shapes.Size<T>):
+        Location = location
+        Size = size
+
+    get Left() T { return X }
+    set Left(value T) { X = value }
+    get Right() T { return X + Width }
+    set Right(value T) { Width = value-X }
+    get Top() T { return Y }
+    set Top(value T) { Y = value }
+    get Bottom() T { return Y + Height }
+    set Bottom(value T) { Height = value-Y }
+    get Location() Point<T> { return Point<T>(X, Y) }
+    set Location(value T) { X = value.X;  Y = value.Y }
+
+    // TBD: Get size to work
+}
+
+// TBD: Get size to work here
+get Rect<T>::X() Point<T> { return Point<T>(X, Y) }
+set Rect<T>::Size(value T) { X = value.X;  Y = value.Y }

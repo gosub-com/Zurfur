@@ -303,6 +303,7 @@ namespace Gosub.Zurfur.Compiler
                     RemoveZilInfo(token);
                 foreach (var token in fi.Value.Lexer.MetaTokens)
                     RemoveZilInfo(token);
+                RemoveZilInfo(fi.Value.Lexer.EndToken);
 
                 if (fi.Value.Pragmas.ContainsKey("NoVerify"))
                     noVerify = true;
@@ -339,6 +340,7 @@ namespace Gosub.Zurfur.Compiler
         private static void RemoveZilInfo(Token token)
         {
             token.RemoveInfo<Symbol>();
+            token.RemoveInfo<VerifySuppressError>();
             if (token.Error)
             {
                 token.RemoveInfo<ZilHeaderError>();

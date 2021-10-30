@@ -56,19 +56,6 @@ namespace Gosub.Zurfur.Lex
     {
         public static readonly Token[] EmptyArray = new Token[0];
 
-        /// <summary>
-        /// Wow, this is awful.  Since it was "readonly" only at the top
-        /// level, I accidentally added info to the "Empty" one and it
-        /// accumulated junk forever.  -1 for static mutable data.
-        /// This temp fix just clears the accumulated data, but really,
-        /// this should be removed.
-        /// </summary>
-        public static Token Empty
-        {
-            get { sEmpty.Clear();  return sEmpty; }
-        }
-        static readonly Token sEmpty = new Token();
-
         // Fields
         public readonly string Name = "";
         public TokenLoc Location;

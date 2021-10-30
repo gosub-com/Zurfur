@@ -127,6 +127,10 @@ namespace Gosub.Zurfur.Compiler
             mZurfParseCheck = new ParseZurfCheck(this);
         }
 
+        Token EmptyToken => mLexer.EndToken;
+        SyntaxToken EmptyExpr => new SyntaxToken(EmptyToken);
+        SyntaxError SyntaxError => new SyntaxError(EmptyToken);
+
         // Be kind to GC
         List<SyntaxExpr> NewExprList()
         {
@@ -866,16 +870,16 @@ namespace Gosub.Zurfur.Compiler
                     || mTokenName == "fun" || mTokenName == "afun")
                 {
 
-                    returns.Add(new SyntaxBinary(new Token(), ParseType(), SyntaxExpr.Empty));
+                    returns.Add(new SyntaxBinary(EmptyToken, ParseType(), EmptyExpr));
                 }
-                returnParams = new SyntaxMulti(mLexer.EndToken, FreeExprList(returns));
+                returnParams = new SyntaxMulti(EmptyToken, FreeExprList(returns));
             }
 
             SyntaxToken qualifier;
             if (mTokenName == "error" || mTokenName == "exit")
                 qualifier = new SyntaxToken(Accept());
             else
-                qualifier = new SyntaxToken(mLexer.EndToken);
+                qualifier = EmptyExpr;
 
             return new SyntaxMulti(keyword, funcParams, returnParams, qualifier);
         }
@@ -885,17 +889,17 @@ namespace Gosub.Zurfur.Compiler
         {
             // Read open token, '('
             if (!AcceptMatchPastMetaSemicolon("(")  && !AcceptMatchOrReject("("))
-                return new SyntaxError();
+                return SyntaxError;
 
             // Parse parameters
             var openToken = mPrevToken;
             var parameters = NewExprList();
             if (mTokenName != ")")
-                parameters.Add(ParseMethodParam(true));
+                parameters.Add(ParseMethodParam());
             while (AcceptMatch(","))
             {
                 Connect(openToken, mPrevToken);
-                parameters.Add(ParseMethodParam(true));
+                parameters.Add(ParseMethodParam());
             }
 
             // Ellipse to signify repeated parameters
@@ -905,24 +909,20 @@ namespace Gosub.Zurfur.Compiler
             if (AcceptMatchOrReject(")", " or ','"))
                 Connect(openToken, mPrevToken);
 
-            return new SyntaxMulti(mLexer.EndToken, FreeExprList(parameters));
+            return new SyntaxMulti(EmptyToken, FreeExprList(parameters));
         }
 
         // Syntax Tree: (name, type, initializer)
-        SyntaxExpr ParseMethodParam(bool requireName)
+        SyntaxExpr ParseMethodParam()
         {
-            var name = Token.Empty;
-            if (requireName)
-            {
-                if (!AcceptIdentifier("Expecting a variable name", sRejectFuncParam))
-                    return new SyntaxError();
-                name = mPrevToken;
-                name.Type = eTokenType.DefineParam;
-                RejectUnderscoreDefinition(name);
-            }
+            if (!AcceptIdentifier("Expecting a variable name", sRejectFuncParam))
+                return SyntaxError;
+            var name = mPrevToken;
+            name.Type = eTokenType.DefineParam;
+            RejectUnderscoreDefinition(name);
 
             var type = ParseType();
-            var initializer = AcceptMatch("=") ? ParseExpr() : SyntaxExpr.Empty;
+            var initializer = AcceptMatch("=") ? ParseExpr() : EmptyExpr;
 
             return new SyntaxBinary(name, type, initializer);
         }
@@ -955,26 +955,26 @@ namespace Gosub.Zurfur.Compiler
                 && mNextStatementToken.X < keywordColumn + 2)
             {
                 RejectToken(mToken, $"Braceless compound statement '{keyword.Name}' is expecting next line to be indented at least two spaces");
-                return new SyntaxError();
+                return SyntaxError;
             }
 
             if (!AcceptMatch(";"))
             {
                 Reject($"Braceless compound statement '{keyword.Name}' is expecting end of line");
                 if (!mToken.Meta || mTokenName != ";")
-                    return new SyntaxError();
+                    return SyntaxError;
                 Accept(); // Continue parsing for better error recovery
             }
             else if (!mPrevToken.Meta)
             {
                 RejectToken(mPrevToken, $"Braceless compound statement '{keyword.Name}' is expecting end of line");
-                return new SyntaxError();
+                return SyntaxError;
             }
 
             if (mTokenName == "}" || mTokenName == ";")
             {
                 RejectToken(mPrevToken, $"Braceless compound statement '{keyword.Name}' is expecting non-empty statement");
-                return new SyntaxError();
+                return SyntaxError;
             }
 
             var compoundColumn = mToken.X;
@@ -1027,7 +1027,7 @@ namespace Gosub.Zurfur.Compiler
             if (mToken.Meta && mTokenName == ";")
                 Accept();
             if (!AcceptMatchOrReject("{"))
-                return new SyntaxError();
+                return SyntaxError;
             var openToken = mPrevToken;
 
             while (AcceptMatch(";"))
@@ -1115,7 +1115,7 @@ namespace Gosub.Zurfur.Compiler
                     mToken.Type = eTokenType.ReservedControl;
                     var doKeyword = Accept();
                     var doStatements = ParseStatements("'do' statement");
-                    var doExpr = (SyntaxExpr)new SyntaxError();
+                    var doExpr = (SyntaxExpr)SyntaxError;
                     if (AcceptMatchOrReject("while"))
                         doExpr = ParseExpr();
                     mToken.Type = eTokenType.ReservedControl;
@@ -1277,7 +1277,7 @@ namespace Gosub.Zurfur.Compiler
         SyntaxExpr ParseNewVarStatment(bool allowUnderscore)
         {
             if (!AcceptIdentifier("Expecting variable name", null, allowUnderscore ? sAllowUnderscore : null))
-                return new SyntaxError();
+                return SyntaxError;
 
             var newVarName = mPrevToken;
             if (newVarName.Name != "_")
@@ -1290,13 +1290,13 @@ namespace Gosub.Zurfur.Compiler
             if (mTokenName != "=")
                 typeName = ParseType();
             else
-                typeName = new SyntaxToken(mLexer.EndToken);
+                typeName = EmptyExpr;
 
             SyntaxExpr initializer;
             if (mTokenName == "=")
                 initializer = new SyntaxUnary(Accept(), ParseRightSideOfAssignment());
             else
-                initializer = new SyntaxToken(mLexer.EndToken);
+                initializer = EmptyExpr;
 
             return new SyntaxBinary(newVarName, typeName, initializer);
         }
@@ -1416,11 +1416,11 @@ namespace Gosub.Zurfur.Compiler
 
         SyntaxExpr ParseRange()
         {
-            var result = sRangeOps.Contains(mTokenName) ? new SyntaxToken(mLexer.EndToken) : ParseAdd();
+            var result = sRangeOps.Contains(mTokenName) ? EmptyExpr : ParseAdd();
             if (sRangeOps.Contains(mTokenName))
             {
                 result = new SyntaxBinary(Accept(), result, 
-                    mTokenName == ")" || mTokenName == "]" ? new SyntaxToken(mLexer.EndToken) : ParseAdd());
+                    mTokenName == ")" || mTokenName == "]" ? EmptyExpr : ParseAdd());
                 if (sRangeOps.Contains(mTokenName))
                     Reject("Range operator is not associative, must use parentheses");
             }
@@ -1567,7 +1567,7 @@ namespace Gosub.Zurfur.Compiler
                 }
             }
 
-            return new SyntaxMulti(mLexer.EndToken, FreeExprList(newVarList));
+            return new SyntaxMulti(EmptyToken, FreeExprList(newVarList));
         }
 
         SyntaxExpr ParsePrimary()
@@ -1904,7 +1904,7 @@ namespace Gosub.Zurfur.Compiler
 
             // Read open token, '(' or '['
             if (!AcceptMatchOrReject(expecting))
-                return new SyntaxError();
+                return SyntaxError;
 
             // Parse parameters
             var openToken = mPrevToken;
@@ -1982,7 +1982,7 @@ namespace Gosub.Zurfur.Compiler
             if (mToken.Type != eTokenType.Identifier)
             {
                 AcceptIdentifier("Expecting a type name", sRejectTypeName);
-                return new SyntaxError(mLexer.EndToken);
+                return SyntaxError;
             }
 
             mToken.Type = eTokenType.TypeName;
@@ -1996,7 +1996,7 @@ namespace Gosub.Zurfur.Compiler
                     accepted = true;
                     var dot = Accept();
                     if (!CheckIdentifier("Expecting type name"))
-                        return new SyntaxError(mLexer.EndToken);
+                        return SyntaxError;
                     mToken.Type = eTokenType.TypeName;
                     result = new SyntaxBinary(dot, result, new SyntaxToken(Accept()));
                 }
@@ -2055,7 +2055,7 @@ namespace Gosub.Zurfur.Compiler
                     RejectToken(type.Token, "Expecting an identifier possibly followed by type parameters (e.g. 'Name<T1>', etc)");
                 if (type.Count != 0)
                     RejectToken(type[0].Token, "Expecting an identifier possibly followed by type parameters (e.g. 'Name<T1>', etc)");
-                return (type.Token, new SyntaxToken(mLexer.EndToken));
+                return (type.Token, EmptyExpr);
             }
             // Type args, verify no other stuff in there
             var typeArgList = NewExprList();
@@ -2259,7 +2259,7 @@ namespace Gosub.Zurfur.Compiler
         Token PeekOnLine()
         {
             if (mAcceptX >= mStatements.Count)
-                return Token.Empty;
+                return EmptyToken;
             return mStatements[mAcceptX];
         }
 
@@ -2274,7 +2274,7 @@ namespace Gosub.Zurfur.Compiler
                 mAcceptX = 0;
                 if (mStatements.Count == 0)
                 {
-                    mToken = mLexer.EndToken;
+                    mToken = EmptyToken;
                     mTokenName = "";
                     return mToken;
                 }

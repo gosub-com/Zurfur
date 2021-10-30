@@ -289,7 +289,7 @@ namespace Gosub.Zurfur
         {
             var errorMessage = "";
             var tokens = new List<Token>();
-            var lastToken = Token.Empty;
+            var lastToken = new Token();
             foreach (var token in lexer.GetEnumeratorStartAtLine(cursor.Y))
             {
                 if (token.Y != cursor.Y)
@@ -762,6 +762,14 @@ namespace Gosub.Zurfur
             foreach (var editor in mvEditors.Editors)
                 if (editor.FilePath == mBuildPackage.OutputFile)
                     editor.LoadFile(mBuildPackage.OutputFile);
+        }
+
+        private void pictureMenuIcon_Click(object sender, EventArgs e)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
         }
     }
 }

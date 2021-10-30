@@ -17,8 +17,6 @@ namespace Gosub.Zurfur.Compiler
         public abstract SyntaxExpr this[int index] { get; }
         public abstract IEnumerator<SyntaxExpr> GetEnumerator();
 
-        public static readonly SyntaxExpr Empty = new SyntaxToken(Token.Empty);
-
         public SyntaxExpr(Token token, int count)
         {
             Token = token ?? throw new ArgumentNullException("Token must not be null");
@@ -89,7 +87,6 @@ namespace Gosub.Zurfur.Compiler
 
     class SyntaxError : SyntaxToken
     {
-        public SyntaxError() : base(Token.Empty) {  }
         public SyntaxError(Token token) : base(token) { }
     }
 
