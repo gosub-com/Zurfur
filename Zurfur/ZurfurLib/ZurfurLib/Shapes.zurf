@@ -42,24 +42,20 @@ type Rect<T>(X T, Y T, Width T, Height T)
     where T is IArithmetic
 {
     // TBD: Operators (add, multiply, divide, sizes, etc.)
-    fun new(location Point<T>, size Zurfur.Shapes.Size<T>):
+    pub fun new(location Point<T>, size Zurfur.Shapes.Size<T>):
         Location = location
         Size = size
 
-    get Left() T { return X }
-    set Left(value T) { X = value }
-    get Right() T { return X + Width }
-    set Right(value T) { Width = value-X }
-    get Top() T { return Y }
-    set Top(value T) { Y = value }
-    get Bottom() T { return Y + Height }
-    set Bottom(value T) { Height = value-Y }
-    get Location() Point<T> { return Point<T>(X, Y) }
-    set Location(value T) { X = value.X;  Y = value.Y }
+    pub get Left() T { return X }
+    pub get Right() T { return X + Width }
+    pub get Top() T { return Y }
+    pub get Bottom() T { return Y + Height }
+    pub get Location() Point<T> { return Point<T>(X, Y) }
+    pub set Location(value T) { X = value.X;  Y = value.Y }
 
     // TBD: Get size to work
 }
 
 // TBD: Get size to work here
-get Rect<T>::X() Point<T> { return Point<T>(X, Y) }
-set Rect<T>::Size(value T) { X = value.X;  Y = value.Y }
+get Rect<T>::Size<T>() Point<T> { return Point<T>(X, Y) }
+set Rect<T>::Size<T>(value T) { X = value.X;  Y = value.Y }

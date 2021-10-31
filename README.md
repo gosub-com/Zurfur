@@ -741,14 +741,14 @@ only be used where they are expected, such as a function call or lambda.
 
 `+`, `-`, `*`, `/`, `%`, and `in` are the only operators that may be individually
 defined.  The `==` and `!=` operator may be defined together by implementing
-`noself fun Equals(a myType, b myType) bool`.  All six comparison operators,
+`static fun Equals(a myType, b myType) bool`.  All six comparison operators,
 `==`, `!=`, `<`, `<=`, `==`, `!=`, `>=`, and `>` can be implemented with just
-one function: `noself fun Compare(a myType, b myType) int`.  If both functions
+one function: `static fun Compare(a myType, b myType) int`.  If both functions
 are defined, `Equals` is used for equality comparisons, and `Compare` is used
 for the others.
 
-Overloads using the `operator` keyword are `noself` (formerly `static`).  Only
-noself versions of `Equals` and `Compare` are used for the comparison operators.
+Overloads using the `operator` keyword are automatically `static`.  Only
+static versions of `Equals` and `Compare` are used for the comparison operators.
 Zurfur inherits this from C#, and Eric Lippert
 [gives a great explanation of why](https://blogs.msdn.microsoft.com/ericlippert/2007/05/14/why-are-overloaded-operators-always-static-in-c).
 
@@ -794,7 +794,7 @@ Here are the enforced style rules:
 7. A brace, `{`, cannot start a scope unless it is in an expected place such as after
 `if`, `while`, `scope`, etc., or a lambda expression.
 8. Modifiers must appear in the following order: `pub` (or `protected`, `private`),
-`unsafe`, `noself` (or `const`), `unsealed`, `abstract` (or `virtual`, `override`,
+`unsafe`, `static` (or `const`), `unsealed`, `abstract` (or `virtual`, `override`,
 `new`), `ref`, `mut` (or `ro`)
 
 #### While and Do Statements
@@ -981,10 +981,10 @@ Interfaces are similar to Rust traits.
 
 Here is `IEquatable<T>` from the standard library:
 
-    pub noself interface IEquatable<T>
+    pub static interface IEquatable<T>
     {
-        noself fun GetHashCode(a T) uint youdo
-        noself fun Equals(a T, b T) bool youdo
+        static fun GetHashCode(a T) uint youdo
+        static fun Equals(a T, b T) bool youdo
     }
 
 Unimplemented functions and properties are explicitly marked with
@@ -1000,15 +1000,15 @@ in Rust.  For example `implement TRAIT for TYPE`
 requiring an explicit `cast`.
 [Some people don't like this.](https://bluxte.net/musings/2018/04/10/go-good-bad-ugly/#interfaces-are-structural-types)
 
-#### Noself Interfaces and Functions
+#### Static Interfaces and Functions
 
-Interfaces may include `noself` (formerly `static`) functions.  Noself
+Interfaces may include `static` functions.  Static
 functions are a better fit than virtual functions for some operations.
-For instance, `IArithmetic` is a noself interface, allowing this generic
+For instance, `IArithmetic` is a static interface, allowing this generic
 function:
 
     // Return `value` if it `low`..`high` otherwise return `low` or `high`.  
-    pub noself fun BoundValue<T>(value T, low T, high T) T
+    pub static fun BoundValue<T>(value T, low T, high T) T
             where T is IAritmetic
     {
         if value <= low
@@ -1031,7 +1031,7 @@ this is a good design choice "*The key insight for Go was that in a statically
 typed language, type conversions happen far less often than method calls, so doing
 the work on the type conversion is actually quite cheap.*"
 
-Note that an interface containing only noself functions can be implemented using
+Note that an interface containing only static functions can be implemented using
 just a thin pointer to a VTable.
 
 

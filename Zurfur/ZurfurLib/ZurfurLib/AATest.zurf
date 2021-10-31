@@ -4,7 +4,14 @@ use Zurfur
 
 namespace AATest
 
+get Point<T>::Size<T>() Size<T> { return Size(X, Y) }
+//get PAoint<T>::Size() Size<T> { return Size(X, Y) }
 type OneGeneric<T> { } 
+type Point<T>(X T, Y T){}
+type Size<T>(Width T, Height T){}
+
+pub fun int::aaa(){}
+
 
 pub type AGenericTest<T, QQQ>
     where QQQ is x//: new() where T : new()
@@ -14,6 +21,9 @@ pub type AGenericTest<T, QQQ>
 
     pub fun new(a int):
         nop()
+
+
+    pub fun aaa(a Zurfur.Shapes.Size<int>) {}
    
     pub fun P1() { return 0 }
     pub fun P2()->() { return 0}
@@ -30,6 +40,7 @@ pub type AGenericTest<T, QQQ>
     @f0 **int
     @f1 List<List<int>>
     @f3 fun()->()
+
 
     
     @field0 T = 0

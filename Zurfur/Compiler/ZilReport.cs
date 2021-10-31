@@ -140,19 +140,27 @@ namespace Gosub.Zurfur.Compiler
 
             }
 
+            // Put fields on top, classes on bottom
+            int Compare(string a, string b)
+            {
+                a = a.Replace("/", "~").Replace("@", " ");
+                b = b.Replace("/", "~").Replace("@", " ");
+                return a.CompareTo(b);
+            }
+
             void ShowTypes()
             {
                 var ds = SymbolTable.GetSymbolsNoParams(mSymbols.Root);
                 var ls = new List<string>(ds.Keys);
-                ls.Sort((a, b) => a.CompareTo(b));
+                ls.Sort((a, b) => Compare(a, b));
 
                 headerFile.Add("SYMBOLS:");
                 foreach (var s in ls)
                 {
                     var symbol = ds[s];
-                    if (symbol is SymMethodGroup)
-                        continue;
-                    headerFile.Add($"    {symbol.Kind,10}: {s}");
+                    //if (symbol is SymMethodGroup)
+                    //    continue;
+                    headerFile.Add($"    {symbol.Kind,16}: {s}");
                 }
                 return;
 

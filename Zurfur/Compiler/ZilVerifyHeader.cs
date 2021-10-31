@@ -39,12 +39,35 @@ namespace Gosub.Zurfur.Compiler
                     return;
                 if (symbol.Name == symbol.Parent.Name)
                 {
-                    if (!symbol.Token.Error)
-                        Reject(symbol.Token, "Must not be same name as parent scope");
+                    Reject(symbol.Token, "Must not be same name as parent scope");
                 }
                 else if (symbol is SymTypeParam)
                 {
                     RejectDuplicateTypeParameterName(symbol, symbol.Parent.Parent); // Skip containing type or method
+                }
+                else if (symbol is SymMethodGroup methodGroup)
+                {
+                    RejectDuplicateTypeParameterName(symbol, symbol.Parent.Parent); // Skip containing type or method
+                    RejectIllegalOverloads(methodGroup);
+                }
+                else if (symbol is SymMethod method)
+                {
+                    if (!(symbol.Parent is SymMethodGroup))
+                        Reject(symbol.Token, "Compiler error: Expecting parent symbol to be method group");
+                    if (symbol.Parent.Parent is SymNamespace && symbol.Qualifiers.Contains("static"))
+                        Reject(symbol.Token, "Methods in a namespace may not be static");
+                    if (symbol.Parent.Parent.Name == "$ext" && !(symbol.Parent.Parent.Parent is SymNamespace))
+                        Reject(symbol.Token, "Extension method must be defined only at the namespace level");
+                    if (symbol.Qualifiers.Contains("get") || symbol.Qualifiers.Contains("aget"))
+                        if (symbol.Parent.Name != "operator["
+                                && CountMethodParams(symbol) != (symbol.Qualifiers.Contains("static") ? 0 : 1))
+                            Reject(symbol.Token, "Getter must have no parameters");
+                    if (symbol.Qualifiers.Contains("set") || symbol.Qualifiers.Contains("aset"))
+                        if (symbol.Parent.Name != "operator["
+                                && CountMethodParams(symbol) != (symbol.Qualifiers.Contains("static") ? 1 : 2))
+                            Reject(symbol.Token, "Setter must have 1 parameter");
+
+
                 }
                 else if (symbol is SymMethodParam methodParam)
                 {
@@ -52,11 +75,6 @@ namespace Gosub.Zurfur.Compiler
                         Reject(symbol.Token, "Most not be same name as method");
                     RejectDuplicateTypeParameterName(symbol, symbol.Parent.Parent); // Skip containing type or method
                     CheckType(methodParam.Token, methodParam.TypeName);
-                }
-                else if (symbol is SymMethodGroup methodGroup)
-                {
-                    RejectDuplicateTypeParameterName(symbol, symbol.Parent.Parent); // Skip containing type or method
-                    RejectIllegalOverloads(methodGroup);
                 }
                 else if (symbol is SymField field)
                 {
@@ -112,7 +130,7 @@ namespace Gosub.Zurfur.Compiler
                     if (parent.Children.TryGetValue(symbol.Name, out var s)
                             && s is SymTypeParam)
                         if (!symbol.Token.Error)
-                            Reject(symbol.Token, "Must not be same name as a type parameter in any parent scope");
+                            Reject(symbol.Token, "Must not be same name as a type parameter in any enclosing scope");
                     parent = parent.Parent;
                 }
             }
@@ -127,6 +145,21 @@ namespace Gosub.Zurfur.Compiler
                 if (methodGroup.Children.Count <= 1)
                     return;
 
+                // Static and non-static may not coexist
+                bool hasStatic = false;
+                bool hasNonStatic = false;
+                foreach (var child in methodGroup.Children.Values)
+                    if (child.Qualifiers.Contains("static"))
+                        hasStatic = true;
+                    else
+                        hasNonStatic = true;
+                if (hasStatic && hasNonStatic)
+                {
+                    foreach (var child in methodGroup.Children.Values)
+                        Reject(child.Token, "Illegal overload: Static and non-static methods may not be overloaded in the same scope");
+                }
+
+                // Generic and non generic may not coexist
                 var hasGenericParameters = false;
                 foreach (var child in methodGroup.Children.Values)
                     if (child.GenericParamCount() != 0)
@@ -134,16 +167,14 @@ namespace Gosub.Zurfur.Compiler
                         hasGenericParameters = true;
                         break;
                     }
-                if (!hasGenericParameters)
-                    return;
-
-                foreach (var child in methodGroup.Children.Values)
-                {
-                    if (child.GenericParamCount() == 0)
-                        Reject(child.Token, "There is a generic method with the same name.  Generic methods may not be overloaded.");
-                    else
-                        Reject(child.Token, "There is a method with the same name.  Generic methods may not be overloaded.");
-                }
+                if (hasGenericParameters)
+                    foreach (var child in methodGroup.Children.Values)
+                    {
+                        if (child.GenericParamCount() == 0)
+                            Reject(child.Token, "Illegal overload: Generic methods may not be overloaded.  There is a generic method with the same name in this scope.");
+                        else
+                            Reject(child.Token, "Illegal overload: Generic methods may not be overloaded.");
+                    }
             }
 
             // Does not reject if there is already an error there
@@ -164,6 +195,13 @@ namespace Gosub.Zurfur.Compiler
 
         }
 
-
+        private static int CountMethodParams(Symbol symbol)
+        {
+            int paramCount = 0;
+            foreach (var s in symbol.Children.Values)
+                if (s is SymMethodParam p && !p.IsReturn)
+                    paramCount++;
+            return paramCount;
+        }
     }
 }

@@ -5,7 +5,7 @@
 
 namespace Zurfur.UnitTests
 
-noself fun test_HelloWorld()
+fun test_HelloWorld()
 {
     Console.Log("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
@@ -31,11 +31,11 @@ pub type Example
     ro @Header str pub get = "Zurfur"       // Public immutable string
     pub fun F(a int) int:
         return m["A"]+10   // Public function
-    pub get P str:
+    pub get P() str:
         return Header + info     // Public property
 }
 
-noself fun test_ForSimple()
+fun test_ForSimple()
 {
 
     @count int
@@ -64,7 +64,7 @@ noself fun test_ForSimple()
 }
 
 
-pub noself fun test_Convert():
+pub fun test_Convert():
     @a = List<float>()
     @b = List<int>()
     @c = a.Convert(@ => int(i))
@@ -103,7 +103,7 @@ pub type class TestGuiForm extends Form
                       "List":[1,2,3]]
     }
     
-    pub noself fun Create(message1 str, message2 str) TestGuiForm
+    pub static fun Create(message1 str, message2 str) TestGuiForm
     {
         return TestGuiForm(Message1.Text: message1,
                            Message2.Text: message2)

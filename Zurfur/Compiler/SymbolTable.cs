@@ -172,7 +172,6 @@ namespace Gosub.Zurfur.Compiler
             return symbol;
         }
 
-
         /// <summary>
         /// Returns the symbol at the given path in the package.
         /// Returns null and marks an error if not found.
@@ -190,78 +189,6 @@ namespace Gosub.Zurfur.Compiler
                 symbol = child;
             }
             return symbol;
-        }
-
-
-        /// <summary>
-        /// Find the symbol in the scope, or null if it is not found.
-        /// Does not search use statements.
-        /// </summary>
-        public Symbol FindInScope(string name, Symbol scope)
-        {
-            while (scope.Name != "")
-            {
-                if (scope.Children.TryGetValue(name, out var symbol))
-                    return symbol;
-                scope = scope.Parent;
-            }
-            if (scope.Children.TryGetValue(name, out var symbol2))
-                return symbol2;
-
-            return null;
-        }
-
-        public Symbol FindAtScopeOrReject(Token name, Symbol scope)
-        {
-            if (scope.Children.TryGetValue(name, out var symbol))
-                return symbol;
-            Reject(name, $"'{name}' is not a member of '{scope}'");
-            return null;
-        }
-
-        /// <summary>
-        /// Find a symbol in the current scope.  If it's not found, scan
-        /// use statements for all occurences. 
-        /// Must call GenerateLookup to enter all namespaces before calling this.
-        /// Marks an error if undefined or duplicate.  Returns null on error.
-        /// 
-        /// TBD: If symbol is unique in this package, but duplicated in an
-        /// external package, is that an error?  Yes for now.
-        /// </summary>
-        public Symbol FindInScopeOrUseOrReject(string symbolType, Token name, Symbol scope, string[] use, out bool foundInScope)
-        {
-            var symbol = FindInScope(name.Name, scope);
-            if (symbol != null)
-            {
-                foundInScope = true;
-                return symbol;
-            }
-            foundInScope = false;
-
-            var symbols = new List<Symbol>(); // TBD: Be kind to GC
-            foreach (var u in use)
-            {
-                var ns = LookupNamespace(u);
-                Debug.Assert(ns != null);
-                if (ns != null 
-                    && ns.Children.TryGetValue(name.Name, out var newSymbol))
-                {
-                    symbols.Add(newSymbol);
-                }
-            }
-
-            if (symbols.Count == 0)
-            {
-                Reject(name, "Undefined " + symbolType);
-                return null;
-            }
-            if (symbols.Count > 1)
-            {
-                Reject(name, "Multiple symbols defined.  Found in '" + symbols[0].Locations[0].File
-                    + "' and '" + symbols[1].Locations[0].File + "'");
-                return null;
-            }
-            return symbols[0];
         }
 
         // Does not reject if there is already an error there

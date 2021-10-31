@@ -15,6 +15,7 @@ TBD: // Allow braceless `type`s???
      //     : for member function
      //     :: for static function
      //     ::: for extension method???
+     //     Extension methods must be defined directly in a namespace
      // Figure out GET/SET common cases:
      //     Changed event
      //     Default set used like so: map["undefined"] += 1 or map["undefined"].a += 5
@@ -41,7 +42,7 @@ type ComplexType
 
 
 
-noself fun test_HelloWorld():
+fun test_HelloWorld():
     while a == 3:
         doit()
         doit2()
@@ -98,11 +99,11 @@ pub type boxed AGenericType<Q>(FirstName str, LastName str)
 }
 
 
-pub noself fun Circle3(a f64, b f64) -> (c int, d int):
+pub fun Circle3(a f64, b f64) -> (c int, d int):
     return 0
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-pub noself fun Iterable<T>::AlphaLengthWise<T, L>(
+pub fun Iterable<T>::AlphaLengthWise<T, L>(
                lengthProvider fun(t T) L) Iterable<T>:
     return this
         .OrderBy(@a => lengthProvider(a))
@@ -162,7 +163,7 @@ pub type Zim<T>
 
 /// This is a public documentation comment.  Do not use XML.
 /// Use `name` to refer to variables in the code.
-pub noself fun test_Main(args Array<str>)
+pub fun test_Main(args Array<str>)
 {
     test_compose()
 
@@ -231,15 +232,15 @@ pub noself fun test_Main(args Array<str>)
 
 pub type Token(a str)
 
-pub noself fun AcceptMatch(name str) ?Token:
+pub fun AcceptMatch(name str) ?Token:
     return name == "(" ? Token() : null
 
-// Regular noself function
-pub noself fun add(a int, b int) int:
+// Regular static function
+pub fun add(a int, b int) int:
     return a + b
 
 // Multiple returns
-pub noself fun Circle(a f64, r f64) -> (x f64, y f64):
+pub fun Circle(a f64, r f64) -> (x f64, y f64):
     return Cos(a)*r, Sin(a)*r
 
 
@@ -428,7 +429,7 @@ pub type Example2<Q>  // YES, errors working
     
     fun fun9(a mut List<List<int>>) { }
     
-    pub noself fun Main(args Array<str>):
+    pub static fun Main(args Array<str>):
         @a = use OpenFile("My File")
         defer file.close()
         
@@ -464,7 +465,7 @@ pub type Example2<Q>  // YES, errors working
         
         @myTranslation = tr"jeremy"
 
-        // noself assigments
+        // static assigments
         M<str>.Hello = 6
         M<str,int.x<T>.y>.Hello2 = f(1, 2, "Jeremy")
         M<str,int>.Hello2 = f(1, 2, @(x, y) => x < y)
@@ -601,7 +602,7 @@ pub type MyClass1
 }
 
 
-pub noself fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool):
+pub fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool):
     // Simple selection sort
     for @i in s.Count-1:
         @lowElem = s[i]
@@ -626,7 +627,7 @@ pub type class Matrix2d<T>
 
 
 
-pub noself fun MemCopy(dest *void, source *void, length xint):
+pub fun MemCopy(dest *void, source *void, length xint):
     @d = cast(xint)dest
     @s = cast(xint)source
     
@@ -652,7 +653,7 @@ pub noself fun MemCopy(dest *void, source *void, length xint):
     while d != end:
         dref(cast(*byte)d) = dref(castx<*byte>(s)); d+=1; s+=1
 
-pub noself fun MemCopy32(dest *void, source *void, length xint):
+pub fun MemCopy32(dest *void, source *void, length xint):
     @d = cast (xint)dest
     @s = cast (xint)source
 
@@ -673,7 +674,7 @@ pub noself fun MemCopy32(dest *void, source *void, length xint):
 
 namespace TestExample.ExampleNs1.HelloWorld
 
-noself fun F1():
+fun F1():
     return todo()
 
 type ClassEx1
@@ -686,7 +687,7 @@ type ClassEx1
 
 namespace TestExample.ExampleNs1
 
-noself fun F1():
+fun F1():
     return todo()
     
 namespace TestExample.ExampleNs1.InnerEx1
@@ -721,7 +722,7 @@ type ClassEx2
 
 namespace TestExample.ExampleNs2
 
-noself fun F1():
+fun F1():
     return todo()
 
 type ClassEx1

@@ -37,6 +37,6 @@ interface FileStream
 
 type File
 {
-    pub noself fun Open(file str) FileStream error:
+    pub static fun Open(file str) FileStream error:
         return todo()
 }

@@ -4,22 +4,22 @@ namespace Zurfur
 /// Implement IEquatable on any object that can be stored in a Map.
 /// This is different than implementing just Equals
 /// in that NAN must compare to itself as true.
-pub noself interface Equatable<T>
+pub static interface Equatable<T>
 {
-    noself fun GetHashCode(a T) uint youdo
-    noself fun Equals(a T, b T) bool youdo
+    static fun GetHashCode(a T) uint youdo
+    static fun Equals(a T, b T) bool youdo
 }
 
 /// Implement IComparable on any object that can be sorted.
 /// This is different than implementing just Compare
 /// in that NAN must have a valid sort order.
-pub noself interface Comparable<T>
+pub static interface Comparable<T>
     implements Equatable<T>
 {
-    noself fun Compare(a T, b T) int youdo
+    static fun Compare(a T, b T) int youdo
 }
 
-pub noself interface IArithmetic<T>
+pub static interface IArithmetic<T>
     implements Comparable<T>
 {
     fun operator-(a T) T youdo
@@ -28,8 +28,8 @@ pub noself interface IArithmetic<T>
     fun operator*(a T, b T) T youdo
     fun operator/(a T, b T) T youdo
     fun operator%(a T, b T) T youdo
-    noself get Identity() T youdo
-    noself get Origin() T youdo
+    static get Identity() T youdo
+    static get Origin() T youdo
 }
 
 pub interface Collection<T>
@@ -64,12 +64,6 @@ pub interface IGeneric<Q>
         return 0
 }
 
-// Test generic type
-pub type MyGeneric<QQ>
-    implements IGeneric<QQ>
-{
-    pub fun IGeneric<QQ>::A<T>(a QQ) int { }
-}
 
 /// Compiler implemented interface created for all structs that are blittable.
 /// A blittable struct does not contain references, but may contain pointers.

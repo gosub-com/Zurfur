@@ -51,7 +51,7 @@ namespace Gosub.Zurfur.Compiler
 
         // Add semicolons to all lines, except for:
         static WordSet sContinuationEnd = new WordSet("[ ( ,");
-        static WordSet sContinuationNoBegin = new WordSet("} namespace module pub fun afun extern implement youdo static noself");
+        static WordSet sContinuationNoBegin = new WordSet("} namespace module pub fun afun extern implement youdo static");
         static WordSet sContinuationBegin = new WordSet("\" ] ) , . + - * / % | & || && == != "
                             + ": ? > << <= < => -> .. :: !== ===  is in as "
                             + "= += -= *= /= %= |= &= ~=");
@@ -72,7 +72,7 @@ namespace Gosub.Zurfur.Compiler
             + "of sync task except exception raise loc local global");
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "noself unsealed abstract virtual override ro");
+            + "static unsealed abstract virtual override ro");
         static WordSet sPostFieldQualifiers = new WordSet("init ref set get mut");
 
         static WordSet sReservedUserFuncNames = new WordSet("new drop cast default implicit");
@@ -95,7 +95,7 @@ namespace Gosub.Zurfur.Compiler
         // For now, do not allow more than one level.  Maybe we want to allow it later,
         // but definitely do not allow them to include compounds with curly braces.
         static WordSet sNoSubCompoundStatement = new WordSet("type class catch error " 
-                                + "get set pub private protected namespace module static noself fun afun ");
+                                + "get set pub private protected namespace module static static fun afun ");
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
         // The following symbols allow us to call functions, create types, access static members, and cast
@@ -106,7 +106,7 @@ namespace Gosub.Zurfur.Compiler
         Regex sFindUrl = new Regex(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
 
         static WordSet sStatementEndings = new WordSet("; => }");
-        static WordSet sStatementsDone = new WordSet("} namespace module type interface enum noself", true);
+        static WordSet sStatementsDone = new WordSet("} namespace module type interface enum static", true);
         static WordSet sRejectAnyStop = new WordSet("=> ; { }", true);
         static WordSet sRejectForCondition = new WordSet("in");
         static WordSet sRejectFuncName = new WordSet("(");
@@ -668,7 +668,7 @@ namespace Gosub.Zurfur.Compiler
 
             foreach (var token in qualifiers)
             {
-                if (token.Name != "ro" && token.Name != "noself")
+                if (token.Name != "ro" && token.Name != "static")
                     token.AddError("This qualifier is not applicable to fields.");
             }
 
@@ -746,6 +746,8 @@ namespace Gosub.Zurfur.Compiler
                 qualifiers.Add(Accept());
             if (mTokenName == "ref")
                 qualifiers.Add(Accept());
+            qualifiers.Add(keyword);
+
 
 
             synFunc.TypeArgs = ParseMethodName(synFunc, out var validMethodName);
