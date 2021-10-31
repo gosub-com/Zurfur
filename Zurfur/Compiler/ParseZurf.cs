@@ -748,8 +748,6 @@ namespace Gosub.Zurfur.Compiler
                 qualifiers.Add(Accept());
             qualifiers.Add(keyword);
 
-
-
             synFunc.TypeArgs = ParseMethodName(synFunc, out var validMethodName);
             synFunc.MethodSignature = ParseMethodSignature(keyword);
             synFunc.Constraints = ParseConstraints();

@@ -30,6 +30,30 @@ namespace Gosub.Zurfur.Compiler
     class ZilVerifyHeader
     {
 
+        /// <summary>
+        /// What to do when an error is detected and it has been suppressed
+        /// by the compiler.  All code must be verified in strict mode before
+        /// being executed.
+        /// </summary>
+        enum SuppressErrorMode
+        {
+            Strict, // Untrusted source, always make an error
+            Warn,   // We are debugging, generate warning so we can see it
+            Ignore  // Trusted source, ignore suppressed errors
+        }
+
+        /// <summary>
+        /// This is still a WIP.  Since the compiler can generate errors
+        /// closer to where the problem is, it adds VerifySuppressError
+        /// to the token that the verifier would mark.  Multipler error
+        /// messages is confusing, so ignore them if the compiler told
+        /// us there is an error.
+        /// 
+        /// HOWEVER: We must still run the verifier in strict mode
+        /// just in case the compiler made a mistake.
+        /// </summary>
+        static SuppressErrorMode sSuppressErrors = SuppressErrorMode.Ignore;
+
         public static void VerifyHeader(SymbolTable symbols)
         {
             //return;
@@ -58,14 +82,22 @@ namespace Gosub.Zurfur.Compiler
                         Reject(symbol.Token, "Methods in a namespace may not be static");
                     if (symbol.Parent.Parent.Name == "$ext" && !(symbol.Parent.Parent.Parent is SymNamespace))
                         Reject(symbol.Token, "Extension method must be defined only at the namespace level");
-                    if (symbol.Qualifiers.Contains("get") || symbol.Qualifiers.Contains("aget"))
+                    if (method.IsGetter)
+                    {
                         if (symbol.Parent.Name != "operator["
-                                && CountMethodParams(symbol) != (symbol.Qualifiers.Contains("static") ? 0 : 1))
+                                && CountMethodParams(symbol, false) != (symbol.HasQualifier("static") ? 0 : 1))
                             Reject(symbol.Token, "Getter must have no parameters");
-                    if (symbol.Qualifiers.Contains("set") || symbol.Qualifiers.Contains("aset"))
+                        if (CountMethodParams(symbol, true) == 0)
+                            Reject(symbol.Token, "Getter must have a return value");
+                    }
+                    if (method.IsSetter)
+                    {
                         if (symbol.Parent.Name != "operator["
-                                && CountMethodParams(symbol) != (symbol.Qualifiers.Contains("static") ? 1 : 2))
+                                && CountMethodParams(symbol, false) != (symbol.HasQualifier("static") ? 1 : 2))
                             Reject(symbol.Token, "Setter must have 1 parameter");
+                        if (CountMethodParams(symbol, true) != 0)
+                            Reject(symbol.Token, "Setter must have no return value");
+                    }
 
 
                 }
@@ -180,26 +212,37 @@ namespace Gosub.Zurfur.Compiler
             // Does not reject if there is already an error there
             void Reject(Token token, string message)
             {
-                if (!token.Error)
+                if (token.Error)
+                    return; // Ignore multiple errors, the first one is the msot important
+
+                switch (sSuppressErrors)
                 {
-                    if (token.GetInfo<VerifySuppressError>() == null)
-                    {
+                    case SuppressErrorMode.Strict:
                         token.AddError(new VerifyHeaderError(message));
-                    }
-                    else
-                    {
-                        token.AddWarning(new TokenWarn("(Error suppressed): " + message));
-                    }
+                        break;
+
+                    case SuppressErrorMode.Warn:
+                        if (token.GetInfo<VerifySuppressError>() == null)
+                            token.AddError(new VerifyHeaderError(message));
+                        else
+                            token.AddWarning(new TokenWarn("(Error suppressed): " + message));
+                        break;
+
+                    case SuppressErrorMode.Ignore:
+                        if (token.GetInfo<VerifySuppressError>() == null)
+                            token.AddError(new VerifyHeaderError(message));
+                        break;
                 }
+
             }
 
         }
 
-        private static int CountMethodParams(Symbol symbol)
+        private static int CountMethodParams(Symbol symbol, bool returns)
         {
             int paramCount = 0;
             foreach (var s in symbol.Children.Values)
-                if (s is SymMethodParam p && !p.IsReturn)
+                if (s is SymMethodParam p && p.IsReturn == returns)
                     paramCount++;
             return paramCount;
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 using Gosub.Zurfur.Lex;
 using System.Diagnostics;
 
@@ -128,6 +129,11 @@ namespace Gosub.Zurfur.Compiler
             return GetFullName();
         }
 
+        public bool HasQualifier(string qualifier)
+        {
+            return Qualifiers.Contains(qualifier);
+        }
+
         /// <summary>
         /// Find direct children of specific type
         /// </summary>
@@ -242,6 +248,10 @@ namespace Gosub.Zurfur.Compiler
         {
             return Parent.GetFullName() + Name;
         }
+
+        public bool IsGetter => Name.Contains("$get(") || Name.Contains("$aget(");
+        public bool IsSetter => Name.Contains("$set(") || Name.Contains("$aset(");
+        public bool IsFunc => Name.Contains("!(");
     }
 
     class SymMethodParam : Symbol

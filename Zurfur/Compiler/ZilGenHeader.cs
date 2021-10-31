@@ -17,6 +17,25 @@ namespace Gosub.Zurfur.Compiler
         public ZilWarn(string message) : base(message) { }
     }
 
+    /// <summary>
+    /// Symbol symbols:
+    ///     .   Namespace
+    ///     /   Type name
+    ///     @   Field name
+    ///     :   Method group
+    ///     !   Method prototype, followed by '(' for function, '$get', etc. for property
+    ///     `   Number of generic arguments, suffix for type name, prefix for method prototype
+    ///     ()  Method parameters
+    ///     <>  Generic parameters
+    ///     $   Special symbol, e.g. $this, $ext, etc.
+    ///    
+    /// Sepecial symbols (prefixed with $):
+    ///     this        Implicit extension/member method parameter
+    ///     return      Implicit return parameter name
+    ///     ext         Extension type (container for extension methods)
+    ///     get/aget    Prefix for getters
+    ///     set/aset    Prefix for setters
+    /// </summary>
     class ZilGenHeader
     {
         bool mNoCompilerChecks;
@@ -28,6 +47,8 @@ namespace Gosub.Zurfur.Compiler
         Dictionary<string, SymParameterizedType> mSpecializedTypes = new Dictionary<string, SymParameterizedType>();
 
         public SymbolTable Symbols => mSymbols;
+
+        static WordSet sPropertyQualifiers = new WordSet("get aget set aset");
 
         public ZilGenHeader()
         {
@@ -284,7 +305,7 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 // Give each function a unique name (final name calculated below)
-                var method = new SymMethod(scope, $"#LOADING...#{scope.Children.Count}");
+                var method = new SymMethod(scope, $"$LOADING...${scope.Children.Count}");
                 method.Qualifiers = Array.ConvertAll(func.Qualifiers, a => a.Name);
                 method.AddLocation(file, func.Name);
                 method.Comments = func.Comments;
@@ -299,12 +320,12 @@ namespace Gosub.Zurfur.Compiler
                 var isExtension = func.ExtensionType != null && func.ExtensionType.Token != "";
                 if (isExtension)
                 {
-                    // Resolve extension method type name (first parameter is "$this_ex")
-                    var methodParam = new SymMethodParam(method, file, new Token("$this_ex"));
+                    // Resolve extension method type name (first parameter is "$this")
+                    var methodParam = new SymMethodParam(method, file, new Token("$this"));
                     methodParam.TypeName = ResolveTypeNameOrReject(methodParam, func.ExtensionType, file);
                     if (methodParam.TypeName == "" && !NoCompilerChecks)
                         methodParam.Token.AddInfo(new VerifySuppressError());
-                    mSymbols.AddOrReject(methodParam); // Extension method parameter name "$this_ex" is unique
+                    mSymbols.AddOrReject(methodParam); // Extension method parameter name "$this" is unique
                 }
                 else if (!method.Qualifiers.Contains("static")) // TBD: Check if in type instead of namespace
                 {
@@ -338,7 +359,10 @@ namespace Gosub.Zurfur.Compiler
                 mp.Sort((a, b) => a.Order.CompareTo(b.Order));
                 var xParams = mp.FindAll(a => !a.IsReturn).ToArray();
                 var xReturns = mp.FindAll(a => a.IsReturn).ToArray();
+                var propQualifier = Array.Find(method.Qualifiers, f => sPropertyQualifiers.Contains(f));
                 var methodName = (genericsCount == 0 ? "" : "`" + genericsCount)
+                            + "!"
+                            + (propQualifier == null ? "" : "$" + propQualifier)
                             + "(" + string.Join(",", Array.ConvertAll(xParams, a => a.TypeName)) + ")"
                             + "(" + string.Join(",", Array.ConvertAll(xReturns, a => a.TypeName)) + ")";
                 method.SetName(methodName);
@@ -487,9 +511,9 @@ namespace Gosub.Zurfur.Compiler
                 if (rightSymbol == null)
                     return null;
 
-                if (!(rightSymbol is SymType))
+                if (!(rightSymbol is SymNamespace) && !(rightSymbol is SymType) && !(rightSymbol is SymParameterizedType))
                 {
-                    Reject(typeExpr[1].Token, "Must be a concrete type (not a type parameter, parameterized type, or namespace)");
+                    Reject(typeExpr[1].Token, $"The right side of the '.' must evaluate to a namespace or type, but it is a {rightSymbol.Kind}");
                     return null;
                 }
 

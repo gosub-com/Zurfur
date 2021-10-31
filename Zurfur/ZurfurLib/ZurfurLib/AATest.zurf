@@ -4,13 +4,25 @@ use Zurfur
 
 namespace AATest
 
-get Point<T>::Size<T>() Size<T> { return Size(X, Y) }
+pub fun int::aaa(){}
+
+
 //get PAoint<T>::Size() Size<T> { return Size(X, Y) }
 type OneGeneric<T> { } 
-type Point<T>(X T, Y T){}
-type Size<T>(Width T, Height T){}
+type Point<T>(X T, Y T)
+{
+    get a() int {}
+    set a(v int) {}
+    pub fun aaa(a Zurfur.Shapes.Size<int>) {}
+    
+}
+type Size<T>(Width T, Height T)
+{
+}
 
-pub fun int::aaa(){}
+get Point<T>::Sizex<T>() Size<T> { return Size(X, Y) }
+get Size<T>::Sizex<T>() Size<T> { }
+
 
 
 pub type AGenericTest<T, QQQ>
