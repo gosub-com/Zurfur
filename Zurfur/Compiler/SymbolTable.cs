@@ -20,8 +20,8 @@ namespace Gosub.Zurfur.Compiler
 
         public SymbolTable()
         {
-            var preRoot = new SymNamespace(null, "", new Token(""));
-            mRoot = new SymNamespace(preRoot, "", new Token(""));
+            var preRoot = new SymNamespace(null, "");
+            mRoot = new SymNamespace(preRoot, "");
         }
 
         public Symbol Root => mRoot;
@@ -38,7 +38,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 if (s is SymNamespace || s.GetType() == typeof(SymType) || s is SymParameterizedType)
                 {
-                    var fullName = s.GetFullName();
+                    var fullName = s.FullName;
                     Debug.Assert(!mLookup.ContainsKey(fullName));
                     mLookup[fullName] = s;
                 }
@@ -55,7 +55,7 @@ namespace Gosub.Zurfur.Compiler
             foreach (var kv in specializations)
             {
                 var symbol = kv.Value;
-                var fullName = symbol.GetFullName();
+                var fullName = symbol.FullName;
                 Debug.Assert(kv.Key == fullName);
                 Debug.Assert(!mLookup.ContainsKey(fullName));
                 Debug.Assert(SymbolBelongs(symbol));
@@ -100,15 +100,13 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Returns dictionary of full names of all symbols without method or type parameters
         /// </summary>
-        public static Dictionary<string, Symbol> GetSymbolsNoParams(Symbol root)
+        public static Dictionary<string, Symbol> GetSymbols(Symbol root)
         {
             var symbols = new Dictionary<string, Symbol>();
             VisitAll(root, (symbol) => 
             {
-                if (symbol is SymTypeParam || symbol is SymMethodParam)
-                    return;
-                Debug.Assert(!symbols.ContainsKey(symbol.GetFullName()));
-                symbols[symbol.GetFullName()] = symbol;
+                Debug.Assert(!symbols.ContainsKey(symbol.FullName));
+                symbols[symbol.FullName] = symbol;
             });
             return symbols;
         }
@@ -116,7 +114,7 @@ namespace Gosub.Zurfur.Compiler
         // Recursively call visit for each symbol in the root.
         public static void VisitAll(Symbol root, Action<Symbol> visit)
         {
-            if (root.GetFullName() != "")
+            if (root.FullName != "")
                 visit(root);
             foreach (var sym in root.Children)
             {

@@ -96,7 +96,7 @@ The following are identical:
 
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
-    pub fun Main(args Array<str>) nil
+    pub fun Main(args Array<str>):
         // This is a regular private comment
         Log.Info("Hello World, 2+2={2+2}")
 
@@ -106,7 +106,7 @@ argument, and the return type comes after the parameters.
 Extension methods are allowed at the namespace level:
 
     // Declare an extension method for strings
-    pub str::Rest() str
+    pub str::Rest() str:
         return Count == 0 ? "" : str(this[1..])
 
 By default, functions pass parameters as read-only reference.  The exception
@@ -132,10 +132,10 @@ call to see if it is mutating a parameter.  Annotating all call sites with
 `mut` feels like it would unecessarily clutter the code.  OTOH, maybe it would
 make it easer to read or spot possible bugs.
 
-There are no `out` or `ref` parameters, but functions can return multiple values:
+There are no `out` parameters, but functions can return multiple values:
 
     // Multiple returns
-    pub fun Circle(a f64, r f64) -> (x f64, y f64)
+    pub fun Circle(a f64, r f64) -> (x f64, y f64):
         return a.Cos()*r, a.Sin()*r
 
 The return parameters are always named, and can be used by the calling function:
@@ -308,31 +308,28 @@ When the type is not immutable, any field can be made immutable using `ro`.
 
 ### Simple Types
 
-Simple types can declare thier fields in parentheses.  All fields are public
-and no additional fields may be defined in the body.  The entire type must
-be either mutable or `ro`, no mixing.
+Simple types can declare fields in parentheses.  All fields are public
+and no additional fields may be defined in the body.  Simple types are
+mutable by default, but can also be immutable by adding the `ro` qualifier.
 
     // Simple types
     pub type SpecialPoint(X int, Y int)
     pub type Line(p1 Point, p2 Point)
     pub type WithInitialization(X int = 1, Y int = 2)
-    pub type ro Person(Id int, FirstName str, LastName str, BirthYear int)
+    pub type ro ReadOnlyPerson(Id int, FirstName str, LastName str, BirthYear int)
 
     // A simple type may define properties, functions, and
-    // constructors in the body but no additional fields or
-    // field backed properties
+    // constructors in the body but no additional fields
     pub type Point(X int, Y int)
     {
-        fun new(p int) nil
+        fun new(p int):
             todo()
-        pub fun mut SetY (y int) nil   // Mutable functions are marked `mut`
+        pub fun mut SetY (y int):       // Mutable functions are marked `mut`
             Y = y
-        pub prop PropX int
-        {
-            get: return X
-            set: X = value
-        }
-        pub prop Illegal int get set    // ILLEGAL, no additional fields
+        pub get PropX() int:
+            return X
+        pub set PropX(value int):
+            X = value
     }
 
 The default constructor can take all the fields in positional order, or any
@@ -359,44 +356,46 @@ know to call the setter after the value is modified.  Same for `PropX`.
 
 ### Complex Types
 
-If a type requires multiple constructors or private fields, it must declare
-all fields in the body.  
+A complex type must define all of its fields in the body. Fields are declared
+with `@` and are private by default.  Adding `pub ref` or `pub mut ref` gives
+read or read/write acesss via reference.  `pub get` and `pub set` allow reading
+or writing a copy.
 
     pub type Example
     {
         // Mutable fields
-        text str // Private string initialized to ""
-        pub MyNumbers List<int> = [1,2,3]
-        pub MyStrings List<str> = ["Hello", "World"]
-        pub MyMap Map<str,int> = ["A":1, "B":2]
+        @text1 str = "hello"                // Private, no public access
+        @text2 str pub ref = "hello"        // Public read only access
+        @text3 str pub mut ref = "hello"    // Public read/write access
+        @list List<int> pub get = [1,2,3]   // Returns a copy (not a ref)
 
-        // Read-only fields and properties with backing fields
-        pub ro HelloInit str = "Hello"                      // Constructor can override
-        pub prop HelloNoInit str get private set = "Hello"  // Constructor cannot override
-        pub prop MutableWithBackingField str get set
-        pub ro Points List<MutablePointXY> = [(1,2),(3,4),(5,6)]
+        // Read-only fields
+        ro @roText1 str                     // Constructor can override
+        ro @roText2 str = "Hello"           // Constructor cannot override
+        ro @roText3 str pub init = "Hello"  // Constructor or client construction can override
         
-        // Functions and properties
-        pub fun HelloText() str => "Hello: " text       // Member function
-        pub fun mut SetText(a str) nil { text = a }    // Member function that mutates
-        pub prop Prop1 str => text                      // Property returning text
-        pub prop Text str
-        {
-        get => top
-        set:
-            if value == text
-                return 
-            text = value
+        // Getter returning a copy
+        pub get Text() str:
+            return text1
+
+        // Setter
+        pub set Text(value str)
+            if value == text:
+                return
+            text1 = value
             SendTextChangedEvent()
-        }
+
+        // Getter returning a reference (same as the `text2` field definition above)
+        pub get MyText2() ref str:
+            return ref text2
+
+        // Getter allowing client code to set (same as `text3` field definition above)
+        pub get MyMutText3() mut ref str:
+            return ref text3
     }
 
 Fields can use `ro` to indicate read only.  Unlike in C#, when `ro`
 is used, the children are also read onyl (e.g. `Points[1].x = 0` is illegal)
-
-The `prop` keyword is used to define a property.  When followd by `get`, it
-has a backing field.  If there is no `set` or there is a `private set`, the
-field is protected from changes via `clone` or default constructor. 
 
 There is a default constructor taking all public fields and settable properties
 as named parameters.  There is also a `clone` function. The default constructor
@@ -411,9 +410,6 @@ have a public setter. **TBD:** Is that rule too easy to forget?
     @e5 = Example(HelloNoInit: "Hi")        // Illegal, no public setter
     @e6 = e1.clone(HelloNoInit: "Hi")       // Illegal, same rule as constructor
 
-Classes are sealed by default.  Use the `unsealed` keword to open them up.
-
-**TBD:** Require `@` for field definitions?  Consider requiring `var` keyword instead.
 
 ### Anonymous Type
 
@@ -479,8 +475,7 @@ There is shortcut syntax for lambda-only functions that move
 the code block outside the function:
 
 
-    pub fun UseLambda() bool
-    {
+    pub fun UseLambda() bool:
         myList.For @a =>
         {
             if a < 1
@@ -491,7 +486,6 @@ the code block outside the function:
                 return false // Return out of the function, not the lambda
         }
         return true
-    }
 
 **TBD:** Consider how to `break` out of the lambda.  Use a return type of `Breakable`?
 
@@ -799,35 +793,31 @@ Here are the enforced style rules:
 
 #### While and Do Statements
 
-The `while` loop is the same as C#.  The `do` loop is also the same as C#
-except that the condition executes inside the scope of the loop:
+The `while` loop is the same as C#.  The `do` loop is similar to C#
+except that `dowhile` is used at the end of the loop, and the condition
+executes inside the scope of the loop:
 
-    do
-    {
+    do:
         @accepted = SomeBooleanFunc()
         DoSomethingElse()
-    } while accepted
+    dowhile accepted
 
 #### Scope Statement
 
 The `scope` statement creates a new scope:
 
-    scope
-    {
+    scope:
         @file = use File.Open("My File")
         DoStuff(file)
-    }
     // File variable is out of scope here
 
 
 The `scope` statement can be turned into a loop using the `continue` statement:
 
-    scope
-    {
+    scope:
         DoSomething()
         if WeWantToRepeat()
             continue
-    }
 
 Likewise, `break` can be used to exit early.
 
@@ -838,28 +828,28 @@ The new variable is read-only and its scope is limited to within the `for` loop 
 The simplest form of the for loop is when the expression evaluates to an integer:
 
     // Print the numbers 0 to 9
-    for @i in 10
+    for @i in 10:
         Console.WriteLine(i)   // `i` is an integer
 
     // Increment all the numbers in an list
-    for @i in list.Count
+    for @i in list.Count:
         list[i] += 1
 
 The range operators can be used as follows:
 
     // Print all the numbers in the list
-    for @i in 0..list.Count
+    for @i in 0..list.Count:
         Console.WriteLine(list[i])
 
     // Collect elements 5,6, and 7 into myList
-    for @i in 5::3
+    for @i in 5::3:
         myList.Add(myArray[i])
 
 Any object that supplies an enumerator (or has a `get` indexer and a `Count` property)
 can be enumerated.  The `Map` enumerator supplies key value pairs:
 
     // Print key value pairs of all elements in a map
-    for @kv in map
+    for @kv in map:
         Console.WriteLine("Key: " + kv.Key.ToString() + " is " + kv.Value.ToString())
 
 The expression after `in` is evaluated at the start of the loop and never
@@ -867,7 +857,7 @@ changes once calculated:
 
     // Print the numbers from 1 to 9
     @x = 10
-    for @i in 1..x
+    for @i in 1..x:
         x = x + 5               // This does not affect the loop bounds 
         Console.WriteLine(i)
 
@@ -875,105 +865,46 @@ When iterating over a collection, just like in C#, it is illegal to add
 or remove elements from the collection.  An exception is thrown if
 it is attempted.  Here are two examples of things to avoid:
 
-    for @i in myIntList
+    for @i in myIntList:
         myIntList.Add(1)   // Exception thrown on next iteration
 
     // This does not remove 0's and increment the remaining elements
     // The count is evaluated only at the beginning of the loop.
-    for @i in myIntList.Count
-    {
-        if myIntList[i] == 0
+    for @i in myIntList.Count:
+        if myIntList[i] == 0:
             RemoveAt(i)        // There are at least two problems with this
-        else
+        else:
             myIntList[i] += 1 // This will throw an exception if any element was removed
-    }
  
 #### Switch and Match
 
 Both `switch` and `match` are reserved for future use.  For now, use `if`,
 `elif`, and `else` to simulate them:
 
-    if myNum < 1
+    if myNum < 1:
         DoStuff()
         DoOtherStuff()
-    elif myNum in 1..3
+    elif myNum in 1..3:
         DoMoreStuff()
-    else myNum >= 3
+    else myNum >= 3:
         DoTheLastThing()
 
 ## Errors and Exceptions
 
-Errors are return values which can be caught, stored, or explicitly ignored.
-Exceptions are programming errors that stop the debugger and complain loudly.
-They cannot be caught, however, they are memory safe and do enough cleanup
-so that a production system can log the error and continue running. (i.e.
-they actually can be caught in special places, but never in synchronous code)
+We will try for something similar to this: [Midori](http://joeduffyblog.com/2016/02/07/the-error-model/).
 
-A function marked with `error` may either return a result or return an error.
-If the result is used without error checking, either 1) the function must have
-an error handler, or 2) the function must have an error return value, or 3) both.
+|Error Type | Action | Examples
+| :--- | :--- | :---
+|Normal | Checked by caller | File not found, network io, permissions, etc.
+|Exceptional | Stack unwind & cleanup | Array bounds, `require` failed, etc.
+|Critical | End process | Memory corruptiopn
 
-Any scope can catch an error.  Given the following definitions:
+Most errors should follow the normal path.  A function marked with `error` may
+either return a result or an error, for example:
 
-    pub afun mut Open(name str, mode FileMode) File error youdo
     pub afun mut Read(data mut Span<byte>) int error  youdo
-    pub afun mut Close() nil error youdo
 
-We may decide to let errors percolate up:
-
-<pre>
-    pub afun ReadFileIntoString(name str) str <b>error</b>
-    {
-        @result = List<byte>()
-        @buffer = List<byte>(256, byte(0)) // Fill with 256 0 bytes
-        @stream = <b>use</b> File.<b>Open</b>(name, FileMode.ReadOnly)
-        while stream.<b>Read</b>(buffer)@count != 0
-            result.Push(buffer[0::count])
-        return str(result)
-    }
-</pre>
-    
-There are 3 functions that can generate an error, `use`, `Open`, and `Read`.
-They are highlighted by the IDE to let you know each one could immediately
-generate an error and exit the function.  If the function were not marked
-`error`, the code would fail to compile.  But we could handle those errors
-in the function instead percolating them up.
-
-<pre>
-    // This is not an example of something that should be done
-    pub afun ReadFileOrErrorIntoString(name str) str // not marked with `error`
-    {
-        @result = List<byte>();
-        @buffer = List<byte>(256, byte(0))
-        @stream = <b>use</b> File.<b>Open</b>(name, FileMode.ReadOnly)
-        while stream.<b>Read</b>(buffer)@count != 0
-            result.Push(buffer[0::count])
-        return str(result);
-    error e FileNotFound:
-        return "ERROR: Can`t even open the file, " e.Message
-    error e:
-        return "ERROR: Can't read the file, " e.Message ", here is part of it: " str(result)
-    }
-</pre>
-
-A scope can have only one error handler at the end of it, but it may have
-multiple error cases.  Any un-tested error jumps directly to it.  It has
-access to only the variables declared before the first un-caught error.
-In this case it has access to `result` and `buffer`, but not `stream`.
-
-An error handler at the end of a function requires the use of `return` above
-it, even if the function is `nil`.  Each case of the error handler must terminate
-with either `return` to suppress the error or with `raise` to percolate the
-error up.  Only when the final error case catches all errors (i.e. `error e:`)
-and also `return`'s, can the the error be fully suppressed and the
-function not marked with `error`.
-
-Error handlers nested inside a scope must use `return`, `break`, or `continue`
-
-**TBD:** Figure out how to test for an error instead of catching it.
-Maybe `if try(File.Open(...)@stream) { use stream... }`  The above is still a WIP
-[Midori](http://joeduffyblog.com/2016/02/07/the-error-model/)
-
+Exceptional cases can be recovered, but they should never be used intentionally.
 
 ## Interfaces
 
@@ -1009,14 +940,12 @@ function:
 
     // Return `value` if it `low`..`high` otherwise return `low` or `high`.  
     pub static fun BoundValue<T>(value T, low T, high T) T
-            where T is IAritmetic
-    {
-        if value <= low
+            where T is IAritmetic:
+        if value <= low:
             return low
-        if value >= high
+        if value >= high:
             return high
-        return value;
-    }
+        return value
 
 #### Implementation Note
 
@@ -1086,12 +1015,10 @@ to have access to mutable data used by another thread.
 The unary `*` operator dereferences a pointer.  The `.` operator is used to access fields
 or members of a pointer to the type (so `->` is not used for pointers). 
  
-    pub static fun strcpy(dest *byte, source *byte) nil
-    {
+    pub static fun strcpy(dest *byte, source *byte):
         while *source != 0
             { *dest = *source;  dest += 1;  source += 1 }
         *dest = 0
-    }
 
 #### Pointer Safety
 
@@ -1157,13 +1084,11 @@ For the time being, async is built into the type system but it looks and
 acts as if it were sync.  Calling an async function from async code blocks
 without using the `await` keyword:
 
-    afun MySlowIoFunctionAsync(server str) str 
-    {
+    afun MySlowIoFunctionAsync(server str) str:
         // In C# `await` would be needed before both function calls
         @a = MakeXhrCallToServerAsync(server)    // Blocks without await keyword
         Task.Delay(100);                            // Also blocks without a keyword
         return a;
-    }
 
 Notice that async functions are defined with the `afun` keyword.
 
@@ -1171,8 +1096,7 @@ Async code normally looks and acts as if it were sync.  But, when we want
 to start or wait for multiple tasks, we can also use the `astart` and
 `await` keywords.
 
-    afun GetStuffFromSeveralServers() str 
-    {
+    afun GetStuffFromSeveralServers() str:
         // Start the functions, but do not block
         @a = astart { MySlowIoFunctionAsync("server1") }
         @b = astart { MySlowIoFunctionAsync("server2") }
@@ -1186,8 +1110,7 @@ to start or wait for multiple tasks, we can also use the `astart` and
 
         // Collect the results in the order they complete order
         @sum = new list<str>()
-        await a, b, c, timeout
-        {
+        await a, b, c, timeout:
             case a.HasResult: sum += a.Result
             case b.HasResult: sum += b.Result
             case c.HasResult: sum += c.Result
@@ -1197,17 +1120,16 @@ to start or wait for multiple tasks, we can also use the `astart` and
             case timeout.HasException: break         // The user has canceled the operation early
             // TBD: break cancels all remaining tasks
             // TBD: If `c` throws, all remaining tasks are canceled.
-        }
+
         // TBD: The only way to get out of an `await` is when all of the awaited
         // tasks have completed completed (possibly with an exception)
 
         // Not strictly necessary, but TBD good practice? 
         // TBD: Make sure Task functions can use `FinalizeNotify` to clean up
         timeout.Cancel()
-    }
 
 A sync function cannot implicitly call an async function, but it can start it
-using the `astart` keyword, like this: `fun MySyncFunction() nil { astart MyAsyncFunction() }`
+using the `astart` keyword, like this: `fun MySyncFunction() { astart MyAsyncFunction() }`
 
 #### Async Implementation 
 

@@ -34,7 +34,7 @@ pub type ro _oref<T>
     @owner ?*_heap<T>
 
     /// Owner is null when on the stack
-    pub fun new(reference *T, owner ?*_heap)
+    pub fun new(reference *T, owner ?*_heap<T>)
         require reference != null:
         r = reference
         this.owner = owner

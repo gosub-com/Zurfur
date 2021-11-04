@@ -67,15 +67,15 @@ namespace Gosub.Zurfur.Compiler
                 }
                 else if (symbol is SymTypeParam)
                 {
-                    RejectDuplicateTypeParameterName(symbol, symbol.Parent.Parent); // Skip containing type or method
+                    RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
                 }
                 else if (symbol is SymMethodGroup methodGroup)
                 {
-                    RejectDuplicateTypeParameterName(symbol, symbol.Parent.Parent); // Skip containing type or method
                     RejectIllegalOverloads(methodGroup);
                 }
                 else if (symbol is SymMethod method)
                 {
+                    RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
                     if (!(symbol.Parent is SymMethodGroup))
                         Reject(symbol.Token, "Compiler error: Expecting parent symbol to be method group");
                     if (symbol.Parent.Parent is SymNamespace && symbol.Qualifiers.Contains("static"))
@@ -98,21 +98,19 @@ namespace Gosub.Zurfur.Compiler
                         if (CountMethodParams(symbol, true) != 0)
                             Reject(symbol.Token, "Setter must have no return value");
                     }
-
-
                 }
                 else if (symbol is SymMethodParam methodParam)
                 {
                     if (symbol.Name == symbol.Parent.Parent.Name)
                         Reject(symbol.Token, "Most not be same name as method");
-                    RejectDuplicateTypeParameterName(symbol, symbol.Parent.Parent); // Skip containing type or method
+                    RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
                     CheckType(methodParam.Token, methodParam.TypeName);
                 }
                 else if (symbol is SymField field)
                 {
                     if (symbol.Parent is SymNamespace)
                         Reject(symbol.Token, "A namespace may not directly contain fields");
-                    RejectDuplicateTypeParameterName(symbol, symbol.Parent.Parent);
+                    RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent);
                     CheckType(field.Token, field.TypeName);
                 }
             });
@@ -147,23 +145,23 @@ namespace Gosub.Zurfur.Compiler
                     if (genericParams != genericArgs)
                         Reject(token, $"The type '{typeName}' requires {genericParams} generic type parameters, but {genericArgs} were supplied");
                     foreach (var t in ptype.Params)
-                        CheckType(token, t.GetFullName());
+                        CheckType(token, t.FullName);
                     foreach (var t in ptype.Returns)
-                        CheckType(token, t.GetFullName());
+                        CheckType(token, t.FullName);
                 }
             }
 
             // A type parameter in any enclosing scope prevents
             // children scopes from declaring that symbol.
-            void RejectDuplicateTypeParameterName(Symbol symbol, Symbol parent)
+            void RejectDuplicateTypeParameterName(Token token, Symbol scope)
             {
-                while (!(parent is SymNamespace))
+                while (!(scope is SymNamespace))
                 {
-                    if (parent.Children.TryGetValue(symbol.Name, out var s)
+                    if (scope.Children.TryGetValue(token.Name, out var s)
                             && s is SymTypeParam)
-                        if (!symbol.Token.Error)
-                            Reject(symbol.Token, "Must not be same name as a type parameter in any enclosing scope");
-                    parent = parent.Parent;
+                        if (!token.Error)
+                            Reject(token, "Must not be same name as a type parameter in any enclosing scope");
+                    scope = scope.Parent;
                 }
             }
 
@@ -174,39 +172,83 @@ namespace Gosub.Zurfur.Compiler
             //      as members, etc.)
             void RejectIllegalOverloads(SymMethodGroup methodGroup)
             {
-                if (methodGroup.Children.Count <= 1)
-                    return;
-
-                // Static and non-static may not coexist
+                bool hasNonMethod = false;
                 bool hasStatic = false;
                 bool hasNonStatic = false;
+                bool hasFunction = false;
+                bool hasProperty = false;
                 foreach (var child in methodGroup.Children.Values)
+                {
+                    if (!(child is SymMethod method))
+                    {
+                        Reject(child.Token, $"Compiler error: All symbols in this group must be methods. '{child.FullName}' is a '{child.GetType()}'");
+                        hasNonMethod = true;
+                        continue;
+                    }
                     if (child.Qualifiers.Contains("static"))
                         hasStatic = true;
                     else
                         hasNonStatic = true;
+                    if (method.IsGetter || method.IsSetter)
+                        hasProperty = true;
+                    else if (method.IsFunc)
+                        hasFunction = true;
+                    else
+                    {
+                        Reject(child.Token, $"Compiler error: Illegal symbol name: {child.FullName}");
+                        hasNonMethod = true;
+                    }
+                }
+                if (hasNonMethod)
+                    return;
+
+                // Static/non-static may not coexist
                 if (hasStatic && hasNonStatic)
                 {
-                    foreach (var child in methodGroup.Children.Values)
-                        Reject(child.Token, "Illegal overload: Static and non-static methods may not be overloaded in the same scope");
+                    RejectChildren(methodGroup, "Illegal overload: Static and non-static methods may not be overloaded in the same scope");
+                    return;
                 }
 
-                // Generic and non generic may not coexist
-                var hasGenericParameters = false;
-                foreach (var child in methodGroup.Children.Values)
-                    if (child.GenericParamCount() != 0)
-                    {
-                        hasGenericParameters = true;
-                        break;
-                    }
-                if (hasGenericParameters)
+                // Function/property may not coexist
+                if (hasFunction && hasProperty)
+                {
+                    RejectChildren(methodGroup, "Illegal overload: Functions and properties may not be overloaded in the same scope");
+                    return;
+                }
+
+                if (methodGroup.Parent.Name == "$ext")
+                {
+                    // TBD: There is a lot we need to verify here.
+                    //      1. Need to separate them by concrete type
+                    //      2. Need to ensure they don't cover a member function
+                    //      3. Need to prevent generic function overloads (like below)
+                    //              but allow generic parameter for the type it is an extension of
+                }
+                else
+                {
+                    // Generic functions may not be overloaded
+                    var hasGenericParameters = false;
                     foreach (var child in methodGroup.Children.Values)
-                    {
-                        if (child.GenericParamCount() == 0)
-                            Reject(child.Token, "Illegal overload: Generic methods may not be overloaded.  There is a generic method with the same name in this scope.");
-                        else
-                            Reject(child.Token, "Illegal overload: Generic methods may not be overloaded.");
-                    }
+                        if (child.GenericParamCount() != 0)
+                        {
+                            hasGenericParameters = true;
+                            break;
+                        }
+                    if (hasGenericParameters && methodGroup.Children.Count != 1)
+                        foreach (var child in methodGroup.Children.Values)
+                        {
+                            if (child.GenericParamCount() == 0)
+                                Reject(child.Token, "Illegal overload: Generic methods may not be overloaded.  There is a generic method with the same name in this scope.");
+                            else
+                                Reject(child.Token, "Illegal overload: Generic methods may not be overloaded.");
+                        }
+                }
+            }
+
+            void RejectChildren(Symbol s, string message)
+            {
+                foreach (var child in s.Children.Values)
+                    Reject(child.Token, message);
             }
 
             // Does not reject if there is already an error there

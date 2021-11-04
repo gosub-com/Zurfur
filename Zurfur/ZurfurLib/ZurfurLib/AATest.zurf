@@ -5,6 +5,32 @@ use Zurfur
 namespace AATest
 
 pub fun int::aaa(){}
+pub type AAFun
+{
+    fun aaf1(a int, b int)int { }
+    fun aaf2(v AAFunc<int, int>) { }
+    fun aaf3<T1,T2>(i T1)T2 { }
+    static fun aaf1s(a int, b int)int { }
+    static fun aaf2s(v AAFunc<int, int>) { }
+    static fun aaf3s<T1,T2>(i T1)T2 { }
+    
+    @aaf4 fun(a int, b int) int
+    @aaf5 AAFunc<int, int>
+
+    @aaf6 fun()->()
+    @aaf7 fun()
+    @aaf8 fun()int
+    @aaf9 fun(a int)
+    @aaf9a fun(a int) int
+    @aaf9b fun(a int)->(x int)
+
+    fun af6(p fun(v int)bool) {}
+    fun af7<X>(p fun(v X)bool) {}
+
+
+    @af10 fun(v int)int
+}
+
 
 
 //get PAoint<T>::Size() Size<T> { return Size(X, Y) }
@@ -23,11 +49,30 @@ type Size<T>(Width T, Height T)
 get Point<T>::Sizex<T>() Size<T> { return Size(X, Y) }
 get Size<T>::Sizex<T>() Size<T> { }
 
+pub type AAFunc<T1,T2>
+{
+    fun Invoke(v T1) T2 { }
+}
 
 
 pub type AGenericTest<T, QQQ>
     where QQQ is x//: new() where T : new()
 {
+    
+    @af0 fun()->()
+    @af1 fun()
+    @af2 fun()int
+    @af3 fun(a int)
+    @af4 fun(a int) int
+    @af5 fun(a int)->(x int)
+
+    fun af6(p fun(v int)bool) {}
+    fun af7<X>(p fun(v X)bool) {}
+
+    fun af8<T1,T2>(i T1)T2 { }
+
+    fun Q<T1>() {}
+
     pub fun new():
         nop()
 
@@ -46,13 +91,7 @@ pub type AGenericTest<T, QQQ>
 
 
     pub fun GenericTest<Q1, Q2>(a Q1, b Q2):
-        return a.ToStr().Length + b.ToStr().Length
-
-
-    @f0 **int
-    @f1 List<List<int>>
-    @f3 fun()->()
-
+        return a.ToStr().Length + b.ToStr().Length    
 
     
     @field0 T = 0

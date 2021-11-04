@@ -422,7 +422,7 @@ pub type ro f32
     pub get Log() f32 extern
     pub get Log2() f32 extern
     pub get Log10() f32 extern
-    pub fun Log(b f32) f32 extern
+    pub fun LogBase(b f32) f32 extern // TBD: Allow fun overload here?
     pub fun Max(n2 f32) f32 extern
     pub fun Min(n2 f32) f32 extern
     pub fun Pow(y f32) f32 extern
@@ -510,7 +510,7 @@ pub type ro f64
     pub get Log() f64 extern
     pub get Log2() f64 extern
     pub get Log10() f64 extern
-    pub fun Log(b f64) f64 extern
+    pub fun LogBase(b f64) f64 extern // TBD: Allow fun overload here?
     pub fun Max(n2 f64) f64 extern
     pub fun Min(n2 f64) f64 extern
     pub fun Pow(y f64) f64 extern

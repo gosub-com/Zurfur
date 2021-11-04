@@ -7,41 +7,124 @@ using System.Diagnostics;
 
 namespace Gosub.Zurfur.Compiler
 {
-    /// <summary>
-    /// Symbol location (file + token)
-    /// </summary>
-    readonly struct SymLoc
-    {
-        public readonly string File;
-        public readonly Token Token;
-        public SymLoc(string file, Token token) { File = file; Token = token; }
-    }
 
+    /// <summary>
+    /// Symbol symbols:
+    ///     .   Namespace
+    ///     /   Type name
+    ///     @   Field name
+    ///     :   Method group (all overloads with the same name)
+    ///     !   Method, followed by prototype
+    ///     #   Generic argument (followed by argument number)
+    ///     ~   Parameter name
+    ///     `   Number of generic arguments, suffix for type name
+    ///     ()  Method parameters
+    ///     <>  Generic parameters
+    ///     $   Special symbol, e.g. $this, $ext, etc.
+    ///    
+    /// Sepecial symbols (prefixed with $):
+    ///     this        Implicit extension/member method parameter
+    ///     return      Implicit return parameter name
+    ///     ext         Extension type (container for extension methods)
+    ///     fun         Function
+    ///     get/aget    Prefix for getters
+    ///     set/aset    Prefix for setters
+    /// </summary>
     abstract class Symbol
     {
-        public abstract string Kind { get; }
-
         public Symbol Parent { get; }
-        public string Name { get; private set; }
+        string mFile;
+        Token mToken;
         public string Comments = "";
         public string[] Qualifiers = Array.Empty<string>();
-        public List<SymLoc> Locations = new List<SymLoc>();
+        Dictionary<string, Symbol> mChildren = new Dictionary<string, Symbol>();
+        public abstract string Kind { get; }
 
         // Set by `SetChildInternal`.  Type parameters are always first.
-        public int Order { get; private set; } = -1; 
+        public int Order { get; private set; } = -1;
+        string mFullNameCache = null;
 
+        /// <summary>
+        /// Name as it appears in the lookup table.  For most types, it is
+        /// the same as the source code token.  The exceptions are SymMethod
+        /// and SymParameterizedType which include type info.
+        /// </summary>        
+        public string Name { get; private set; }
 
-        Dictionary<string, Symbol> mChildren = new Dictionary<string, Symbol>();
+        /// <summary>
+        /// Prefix for the kind of symbol:
+        ///     .   Namespace
+        ///     /   Type name
+        ///     @   Field name
+        ///     :   Method group (all overloads with the same name)
+        ///     !   Method, followed by prototype
+        ///     #   Generic argument (followed by argument number)
+        ///     ~   Parameter name
+        /// </summary>
+        protected abstract string Separator { get; }
+
+        /// <summary>
+        /// Only for type names with generic parameters.  A backtick followed
+        /// by a number (e.g. "`2" for a type with two generic parameters).
+        /// </summary>
+        protected virtual string Suffix => "";
+
+        /// <summary>
+        /// Source code token if it exists.  Throws an exception for
+        /// SymMethodGroup, SymParameterizedType, SymNamespace and built
+        /// in SymType's like "$ext" and "ref"
+        /// </summary>
+        public Token Token
+        {
+            get
+            {
+                if (mToken == null)
+                    throw new Exception($"Invalid symbol location for '{Kind}' named '{FullName}'");
+                return mToken;
+            }
+        }
+
+        /// <summary>
+        /// Source code token if it exists.  Throws an exception for
+        /// SymMethodGroup, SymParameterizedType, SymNamespace and built
+        /// in SymType's like "$ext" and "ref"
+        /// </summary>
+        public string File
+        {
+            get
+            {
+                if (mFile == null)
+                    throw new Exception($"Invalid symbol location for '{Kind}' named '{FullName}'");
+                return mFile;
+            }
+        }
+
+        /// <summary>
+        /// Read-only access to the children.  The key always matches
+        /// the child symbol Name.
+        /// </summary>
         public RoDict<string, Symbol> Children { get; private set; }
 
-        public Symbol(Symbol parent, string file, Token token)
+        /// <summary>
+        /// Create a symbol that is unique in the soruce code (e.g. SymMethod,
+        /// SymType, SymField, etc.) and can be marked with token information.
+        /// The name doesn't need to match the token.  e.g. For "fun A(){}",
+        /// the name is "$fun()()", but the token is "A".
+        /// </summary>
+        public Symbol(Symbol parent, string file, Token token, string name = null)
         {
             Children = new RoDict<string, Symbol>(mChildren);
             Parent = parent;
-            Name = token.Name;
-            AddLocation(file, token);
+            Name = name == null ? token.Name : name;
+            mFile = file;
+            mToken = token;
         }
 
+        /// <summary>
+        /// Create a symbol that is non-existent or not unique in the source
+        /// code (e.g. SymMethodGroup, SymParameterizedType, SymNamespace,
+        /// and built-in types like "$ext", "ref", "*", etc.)
+        /// </summary>
         public Symbol(Symbol parent, string name)
         {
             Children = new RoDict<string, Symbol>(mChildren);
@@ -56,21 +139,9 @@ namespace Gosub.Zurfur.Compiler
         {
             Debug.Assert(!Parent.Children.ContainsKey(Name));
             Name = name;
+            mFullNameCache = null;
         }
         
-        public struct RoDict<TKey, TValue>
-        {
-            Dictionary<TKey, TValue> Map;
-
-            public RoDict(Dictionary<TKey, TValue> map) { Map = map; }
-            public int Count => Map.Count;
-            public bool ContainsKey(TKey key) => Map.ContainsKey(key);
-            public bool TryGetValue(TKey key, out TValue symbol) => Map.TryGetValue(key, out symbol);
-            public TValue this[TKey key] => Map[key];
-            public Dictionary<TKey, TValue>.ValueCollection Values => Map.Values;
-            public Dictionary<TKey, TValue>.Enumerator GetEnumerator() => Map.GetEnumerator();
-        }
-
         /// <summary>
         /// This should only be called by functions in SymbolTable.
         /// It sets the symbol Order to the number of children.
@@ -82,51 +153,23 @@ namespace Gosub.Zurfur.Compiler
             mChildren[value.Name] = value;
         }
 
-
-        public virtual string GetFullName()
-        {
-            if (Parent == null || Parent.Name == "")
-                return Name;
-            return Parent.GetFullName() + "." + Name;
-        }
-
-        public void AddLocation(string file, Token token)
-        {
-            Locations.Add(new SymLoc(file, token));
-        }
-
-        /// <summary>
-        /// Retrieve the file containing the symbol definition.
-        /// Types, functions, and fields should have exactly one location.
-        /// Namespaces and function groups may have multiples.
-        /// Throws an exception if file location is not present or if
-        /// multiple location exist.
-        /// </summary>
-        SymLoc Location
+        public string FullName
         {
             get
             {
-                if (Locations.Count == 0)
-                    throw new Exception("Symbol location cannot be found");
-                if (Locations.Count > 1)
-                    throw new Exception("Symbol has multiple locations");
-                return Locations[0];
+                if (mFullNameCache != null)
+                    return mFullNameCache;
+                if (Parent == null || Parent.Name == "")
+                    mFullNameCache = Name + Suffix;
+                else
+                    mFullNameCache = Parent.FullName + Separator + Name + Suffix;
+                return mFullNameCache;
             }
         }
 
-        /// <summary>
-        /// Throws exception if not a unique symbol with exactly one location
-        /// </summary>
-        public Token Token => Location.Token;
-
-        /// <summary>
-        /// Throws exception if not a unique symbol with exactly one location
-        /// </summary>
-        public string File => Location.File;
-
         public override string ToString()
         {
-            return GetFullName();
+            return FullName;
         }
 
         public bool HasQualifier(string qualifier)
@@ -179,30 +222,43 @@ namespace Gosub.Zurfur.Compiler
             return CountChildren<SymTypeParam>();
         }
 
+        public struct RoDict<TKey, TValue>
+        {
+            Dictionary<TKey, TValue> Map;
+            public RoDict(Dictionary<TKey, TValue> map) { Map = map; }
+            public int Count => Map.Count;
+            public bool ContainsKey(TKey key) => Map.ContainsKey(key);
+            public bool TryGetValue(TKey key, out TValue symbol) => Map.TryGetValue(key, out symbol);
+            public TValue this[TKey key] => Map[key];
+            public Dictionary<TKey, TValue>.ValueCollection Values => Map.Values;
+            public Dictionary<TKey, TValue>.Enumerator GetEnumerator() => Map.GetEnumerator();
+            public override string ToString() => Map.ToString();
+        }
+
+
     }
 
     class SymNamespace : Symbol
     {
-        public SymNamespace(Symbol parent, string file, Token token) : base(parent, file, token) { }
+        public SymNamespace(Symbol parent, string name) : base(parent, name) { }
         public override string Kind => "namespace";
+        protected override string Separator => ".";
     }
 
-    /// <summary>
-    /// Class, struct, enum, interface
-    /// </summary>
     class SymType : Symbol
     {
         public SymType(Symbol parent, string file, Token token) : base(parent, file, token) { }
         public SymType(Symbol parent, string name) : base(parent, name) { }
         public override string Kind => "type";
+        protected override string Separator => "/";
 
-        public override string GetFullName()
+        protected override string Suffix
         {
-            var tp = FindChildren<SymTypeParam>();
-            var name = Name + (tp.Count == 0 ? "" : $"`{tp.Count}");
-            if (Parent == null || Parent.Name == "")
-                return name;
-            return Parent.GetFullName() + "/" + name;
+            get
+            {
+                var tp = FindChildren<SymTypeParam>();
+                return tp.Count == 0 ? "" : $"`{tp.Count}";
+            }
         }
     }
 
@@ -212,6 +268,7 @@ namespace Gosub.Zurfur.Compiler
         {
         }
         public override string Kind => "type parameter";
+        protected override string Separator => "~";
 
     }
 
@@ -220,38 +277,26 @@ namespace Gosub.Zurfur.Compiler
         public SymField(Symbol parent, string file, Token token) : base(parent, file, token) { }
         public override string Kind => "field";
         public string TypeName = "";
-
-        public override string GetFullName()
-        {
-            return Parent.GetFullName() + "@" + Name;
-        }
+        protected override string Separator => "@";
     }
 
     class SymMethodGroup : Symbol
     {
-        public SymMethodGroup(Symbol parent, string file, Token token) : base(parent, file, token) { }
+        public SymMethodGroup(Symbol parent, string name) : base(parent, name) { }
         public override string Kind => "methods";
-
-        public override string GetFullName()
-        {
-            return Parent.GetFullName() + ":" + Name;
-        }
+        protected override string Separator => ":";
 
     }
 
     class SymMethod : Symbol
     {
-        public SymMethod(Symbol parent, string name) : base(parent, name) { }
+        public SymMethod(Symbol parent, string file, Token token, string name) : base(parent, file, token, name) { }
         public override string Kind => "method";
-
-        public override string GetFullName()
-        {
-            return Parent.GetFullName() + Name;
-        }
+        protected override string Separator => "!";
 
         public bool IsGetter => Name.Contains("$get(") || Name.Contains("$aget(");
         public bool IsSetter => Name.Contains("$set(") || Name.Contains("$aset(");
-        public bool IsFunc => Name.Contains("!(");
+        public bool IsFunc => Name.Contains("$fun(");
     }
 
     class SymMethodParam : Symbol
@@ -260,14 +305,9 @@ namespace Gosub.Zurfur.Compiler
         {
         }
         public override string Kind => "parameter";
-
+        protected override string Separator => "~";
         public bool IsReturn;
         public string TypeName = "";
-
-        public override string GetFullName()
-        {
-            return "##" + Name;
-        }
 
     }
 
@@ -282,6 +322,7 @@ namespace Gosub.Zurfur.Compiler
         public readonly Symbol[] Returns;
 
         public override string Kind => "parameterized type";
+        protected override string Separator => "";
 
         // Constructor for generic type argument
         public SymParameterizedType(Symbol parent, string name)
@@ -305,7 +346,7 @@ namespace Gosub.Zurfur.Compiler
         {
             if (typeReturns == null || typeReturns.Length == 0)
                 return "<" + TypeParamNames(typeParams) + ">";
-            return "(" + TypeParamNames(typeParams) + ")(" + TypeParamNames(typeReturns) + ")";
+            return "<" + TypeParamNames(typeParams) + "><" + TypeParamNames(typeReturns) + ">";
         }
 
         static string TypeParamNames(Symbol[] typeParams)
@@ -313,22 +354,16 @@ namespace Gosub.Zurfur.Compiler
             if (typeParams.Length == 0)
                 return "";
             if (typeParams.Length == 1)
-                return typeParams[0].GetFullName();
+                return typeParams[0].FullName;
             StringBuilder sb = new StringBuilder();
-            sb.Append(typeParams[0].GetFullName());
+            sb.Append(typeParams[0].FullName);
             for (int i = 1; i < typeParams.Length; i++)
             {
                 sb.Append(",");
-                sb.Append(typeParams[i].GetFullName());
+                sb.Append(typeParams[i].FullName);
             }
             return sb.ToString();
         }
-
-        public override string GetFullName()
-        {
-            return Parent.GetFullName() + Name;
-        }
-
 
     }
 

@@ -224,7 +224,7 @@
     <None Include="ZurfurLib\ZurfurLib\Range.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Shapes.zurf">
+    <None Include="ZurfurLib\ZurfurLib\Draw2d.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="ZurfurLib\ZurfurLib\str.Zurf">

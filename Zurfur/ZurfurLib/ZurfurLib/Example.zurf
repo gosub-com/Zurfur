@@ -11,11 +11,6 @@ namespace TestExample
 
 TBD: // Allow braceless `type`s???
      // Require `loc` keyword for private local functions
-     // Formalize symbol names:  namespace.namespace.class:class/field??
-     //     : for member function
-     //     :: for static function
-     //     ::: for extension method???
-     //     Extension methods must be defined directly in a namespace
      // Figure out GET/SET common cases:
      //     Changed event
      //     Default set used like so: map["undefined"] += 1 or map["undefined"].a += 5
