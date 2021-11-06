@@ -1,4 +1,4 @@
-﻿namespace Zurfur
+﻿module Zurfur
 
 /// String is a wrapper for a read only array of bytes with support for UTF8
 pub type ro str = Array<byte>

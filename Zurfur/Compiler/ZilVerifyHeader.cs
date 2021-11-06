@@ -86,10 +86,10 @@ namespace Gosub.Zurfur.Compiler
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
                     if (!(symbol.Parent is SymMethodGroup))
                         Reject(symbol.Token, "Compiler error: Expecting parent symbol to be method group");
-                    if (symbol.Parent.Parent is SymNamespace && symbol.Qualifiers.Contains("static"))
-                        Reject(symbol.Token, "Methods in a namespace may not be static");
-                    if (symbol.Parent.Parent.Name == "$ext" && !(symbol.Parent.Parent.Parent is SymNamespace))
-                        Reject(symbol.Token, "Extension method must be defined only at the namespace level");
+                    if (symbol.Parent.Parent is SymModule && symbol.Qualifiers.Contains("static"))
+                        Reject(symbol.Token, "Methods in a module may not have the static qualifier");
+                    if (symbol.Parent.Parent.Name == "$ext" && !(symbol.Parent.Parent.Parent is SymModule))
+                        Reject(symbol.Token, "Extension method must be defined only at the module level");
                     if (method.IsGetter)
                     {
                         if (symbol.Parent.Name != "operator["
@@ -116,8 +116,6 @@ namespace Gosub.Zurfur.Compiler
                 }
                 else if (symbol is SymField field)
                 {
-                    if (symbol.Parent is SymNamespace)
-                        Reject(symbol.Token, "A namespace may not directly contain fields");
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent);
                     CheckType(field.Token, field.TypeName);
                 }
@@ -163,7 +161,7 @@ namespace Gosub.Zurfur.Compiler
             // children scopes from declaring that symbol.
             void RejectDuplicateTypeParameterName(Token token, Symbol scope)
             {
-                while (!(scope is SymNamespace))
+                while (!(scope is SymModule))
                 {
                     if (scope.Children.TryGetValue(token.Name, out var s)
                             && s is SymTypeParam)

@@ -109,7 +109,7 @@ There are no mutable reference types.  Given `fun f(a List<MyType>)`, it
 would be impossible for `f[0].MyTypeVar = 1` to change the value of
 `f[1].MyTypeVar`.  In C#, `f[0]` and `f[1]` could point to the same object,
 but in Zurfur they cannot.  Assuming `MyType` is a C# class, the equivalent
-definition in Zurfur is `fun f(a List<^MyType>)`.
+definition in Zurfur is `fun f(a List<?^MyType>)`.
 
 There are immutable reference types, such as `Array` and `str`.  Since they
 are immutable and boxed (i.e. `type ro boxed`), they can be copied quickly
@@ -179,7 +179,7 @@ There are no `out` parameters, but functions can return multiple values:
 
     // Multiple returns
     pub fun Circle(a f64, r f64) -> (x f64, y f64):
-        return cos(a)*r, sin(a)*r
+        return Cos(a)*r, Sin(a)*r
 
 The return parameters are always named, and can be used by the calling function:
 
@@ -190,8 +190,8 @@ Functions and properties can return a mutable or immutable references to a field
 
     pub fun ListRoFun() ref List<int> { return ref myList}           // Read only ref
     pub fun ListMutFun() mut ref List<int> { return mut ref myList } // Mutable ref
-    pub get ListRoProp() ref List<int> { return ref myList }         // Read only ref
-    pub get ListMutProp() mut ref List<int> { return ref myList}     // Mutable ref
+    get ListRoProp() ref List<int> { return ref myList }             // Read only ref
+    get ListMutProp() mut ref List<int> { return ref myList}         // Mutable ref
 
 
 ## Types
@@ -1102,23 +1102,33 @@ as an old C style cast, except the keyword `cast` must be used.
 
     @b = cast(*int)myFloatPtr   // Cast myFloatPtr to *int
 
-## Namespaces
+## Packages and Modules
 
-Namespaces are similar to C#, but can also contain static functions,
-and extension methods.  `use Zurfur.Math` imports the intrinsic
-math functions, `Cos`, `Sin`, etc. into the global symbol table.  If you
-want to froce them to be prefixed with `Math.`, it can be done with
-`use Math=Zurfur.Math`.
+A package is like a C# assembly.  It is the basic unit for distributing
+a library or application and is a .`zip` file with a `.zil` extension.
+It will be defined here [ZIL Specification](Doc/Zil.md).
 
-Namespaces do not nest or require curly braces.  The namespace must be
-declared at the top of each file, after `use` statements, and before
-function or type definitions. All other namespaces in a file must be
-sub-namespaces of the top one:
+Modules are like a C# static class and namespace combined.  They can contain
+static functions, fields, and extension methods.  From within a package,
+module names act like namespaces and stitch together just as they do in C#.
+From outside the package, they look and act like a C# static class.
 
-    namespace MyCompany.MyProject               // Top level namespace
-    namespace MyCompany.MyProject.Utils         // Sub-namespace, ok in same file
-    namespace MyCompany.MyProject.OtherUtils    // Another sub-namespace, also ok
-    namespace MyCompany.MyOtherProject          // ILLEGAL when in the same file
+The `module` keyword does not nest, or require curly braces.  The module name
+must be declared at the top of each file, after `use` statements, and before
+type, function, or field definitions.  A file may contain other modules, but
+all of them must be nested inside the top level module:
+
+
+    module MyCompany.MyProject               // Top level module
+    module MyCompany.MyProject.Utils         // Ok since it is nested in the top level
+    module MyCompany.MyProject.OtherUtils    // Ok since it is also nested
+    module MyCompany.MyOtherProject          // ILLEGAL since it is not nested
+
+Package names should be unique across the world, such as a domain name
+followed by a project (e.g. `com.gosub.zurfur`).  For now, top level module
+names must be unique across an entire project.  If there are any top level
+module name clashes, the project will fail to build.  In the future, there
+may be syntax or project settings to resolve that.
 
 ## Async
 

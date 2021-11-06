@@ -127,7 +127,7 @@ namespace Gosub.Zurfur.Compiler
                 var namespaces = new List<string>();
                 mSymbols.VisitAll((s) =>
                 {
-                    if (s is SymNamespace n)
+                    if (s is SymModule n)
                         namespaces.Add(n.FullName);
                 });
                 namespaces.Sort((a, b) => a.CompareTo(b));
@@ -172,7 +172,7 @@ namespace Gosub.Zurfur.Compiler
                     if (symbol is SymMethodGroup
                             || symbol is SymMethodParam
                             || symbol is SymTypeParam
-                            || symbol is SymNamespace
+                            || symbol is SymModule
                             || symbol is SymField
                             || symbol is SymParameterizedType)
                         continue;

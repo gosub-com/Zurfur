@@ -2,7 +2,7 @@
 pragma ShowParse
 use Zurfur
 
-namespace AATest
+module AATest
 
 pub fun int::aaa(){}
 pub type AAFun

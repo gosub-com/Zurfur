@@ -2,7 +2,7 @@
 pragma ShowParse
 use Zurfur
 
-namespace TestVerifier
+module TestVerifier
 
 // Comment out the next line to see verification errors
 pragma NoParse
@@ -26,7 +26,7 @@ type VerifyErrors<T>
     fun IllegalGenericOverload<X>(a int) void { }
     fun IllegalGenericOverload(a byte) void { }
 
-    fun int::Hello() { } // Extension method only at namespace level
+    fun int::Hello() { } // Extension method only at module level
 
     fun BadOverload(a int) {  } // Dummy
     fun BadOverload(a int) int{  } // TBD: This overload should faile    
@@ -48,7 +48,7 @@ type VerifyErrors<T>
     pub fun fun3(a List<int,int>) void { } // Wrong number of generic parameters
     pub fun fun4(a List<List>) void { } // Wrong number of generic parameters
     pub fun fun5(a List<List<int,int>>) void { } // Wrong number of generic parameters
-    pub fun fun6(a Zurfur) void {} // Symbol is a namespace
+    pub fun fun6(a Zurfur) void {} // Symbol is a module
     pub fun fun7(a field1) void {} // Symbol is a field
     pub fun fun8(a fun1) void {} // Symbol is a method
     pub fun fun9(a *?OneGeneric) void { }    

@@ -4,7 +4,7 @@
 /// int and uint are 64 bits
 /// xint and xuint are pointer sized integers (32 or 64 bits)
 
-namespace Zurfur
+module Zurfur
 
 pub type void { }
 pub type object { }

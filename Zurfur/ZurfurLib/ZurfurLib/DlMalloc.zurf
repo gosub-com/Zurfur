@@ -31,7 +31,7 @@
 
 use Zurfur
 
-namespace Zurfur.Internal.Memory
+module Zurfur.Internal.Memory
 
 pub type class DlMallocException
     extends Exception

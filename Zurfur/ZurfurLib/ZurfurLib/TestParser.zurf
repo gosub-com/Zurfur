@@ -12,7 +12,7 @@ pragma NoParse
 
 use Zurfur
 
-namespace TestSyntax
+module TestSyntax
 
 
 fun A() { } // Expecting a type name

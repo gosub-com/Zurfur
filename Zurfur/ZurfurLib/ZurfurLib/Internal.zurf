@@ -1,11 +1,11 @@
 ﻿
 pragma AllowUnderscoreDefinitions
 
-namespace Zurfur
+module Zurfur
 
 
 /// Internal stuff for compiler, heap, and GC
-namespace Zurfur.Internal
+module Zurfur.Internal
 
 
 /// Internal definition of a reference.
@@ -65,7 +65,7 @@ pub type _heap<T>
 }
 
 
-namespace Zurfur.Compiler
+module Zurfur.Compiler
 
 pub type ro Attribute { }
 
@@ -76,7 +76,7 @@ pub type class ro AlignAttribute
 }
 
 
-namespace Zurfur.Compiler.Internal
+module Zurfur.Compiler.Internal
 
 // TBD: This will contain compiler generated metadata for each type
 pub type GcType { }

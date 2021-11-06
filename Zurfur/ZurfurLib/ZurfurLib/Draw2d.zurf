@@ -2,7 +2,7 @@
 use Zurfur
 
 /// Basic shapes for use with 2d drawing library
-namespace Zurfur.Draw2d
+module Zurfur.Draw2d
 
 fun test_Shape():
     @rect = Rect<int>(1,2,3,4)

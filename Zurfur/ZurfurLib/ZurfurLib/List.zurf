@@ -1,7 +1,7 @@
 ﻿use Zurfur.Unsafe
 use Zurfur.Compiler.Internal
 
-namespace Zurfur
+module Zurfur
 
 pub type List<T>
     implements Collection<T>

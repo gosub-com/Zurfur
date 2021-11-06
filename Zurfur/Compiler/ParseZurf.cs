@@ -42,9 +42,9 @@ namespace Gosub.Zurfur.Compiler
         // Be kind to GC
         Queue<List<SyntaxExpr>>   mExprCache = new Queue<List<SyntaxExpr>>();
 
-        string mNamespaceBaseStr = "";
-        string[] mNamespaceBasePath = Array.Empty<string>();
-        Token[] mNamePath = Array.Empty<Token>();
+        string mModuleBaseStr = "";
+        string[] mModuleBasePath = Array.Empty<string>();
+        Token[] mModulePath = Array.Empty<Token>();
         SyntaxFile mSyntax;
 
         public int ParseErrors => mParseErrors;
@@ -234,7 +234,7 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Parse using, namespace, enum, interface, struct, class, func, or field
+        /// Parse using, module, enum, interface, struct, class, func, or field
         /// </summary>
         void ParseScopeStatements(SyntaxScope parentScope)
         {
@@ -296,17 +296,17 @@ namespace Gosub.Zurfur.Compiler
                         Accept();
                         mSyntax.Using.Add(ParseUsingStatement(keyword));
                         RejectQualifiers(qualifiers, "Qualifiers are not allowed on the 'use' statement");
-                        if (mNamespaceBasePath.Length != 0)
-                            RejectToken(keyword, "Using statements must come before the namespace");
+                        if (mModuleBasePath.Length != 0)
+                            RejectToken(keyword, "'use' statement must come before the 'module' statement");
                         break;
 
-                    case "namespace":
+                    case "module":
                         mToken.Type = eTokenType.ReservedControl;
                         Accept();
-                        RejectQualifiers(qualifiers, "Qualifiers are not allowed on the 'namespace' statement");
+                        RejectQualifiers(qualifiers, "Qualifiers are not allowed on the 'module' statement");
                         if (parentScope != null)
-                            RejectToken(keyword, "Namespace statements must not be inside a type/enum/interface body");
-                        ParseNamespaceStatement(keyword);
+                            RejectToken(keyword, "'module' statement must not be inside a type/enum/interface body");
+                        ParseModuleStatement(keyword);
                         break;
 
                     case "interface":
@@ -362,9 +362,9 @@ namespace Gosub.Zurfur.Compiler
         {
             if (type == null)
                 return; // Error already marked while parsing definition
-            if (mNamespaceBasePath.Length == 0)
+            if (mModuleBasePath.Length == 0)
             {
-                RejectToken(type.Name, "The namespace must be defined before the method");
+                RejectToken(type.Name, "The module name must be defined before the method");
                 return;
             }
             mSyntax.Types.Add(type);
@@ -373,9 +373,9 @@ namespace Gosub.Zurfur.Compiler
         {
             if (field == null)
                 return; // Error already marked while parsing definition
-            if (mNamespaceBasePath.Length == 0)
+            if (mModuleBasePath.Length == 0)
             {
-                RejectToken(field.Name, "The namespace must be defined before the field");
+                RejectToken(field.Name, "The module name must be defined before the field");
                 return;
             }
             mSyntax.Fields.Add(field);
@@ -385,9 +385,9 @@ namespace Gosub.Zurfur.Compiler
         {
             if (method == null)
                 return; // Error already marked while parsing definition
-            if (mNamespaceBasePath.Length == 0)
+            if (mModuleBasePath.Length == 0)
             {
-                RejectToken(method.Name, "The namespace must be defined before the method");
+                RejectToken(method.Name, "The module name must be defined before the method");
                 return;
             }
             mSyntax.Methods.Add(method);
@@ -405,17 +405,17 @@ namespace Gosub.Zurfur.Compiler
             var synUsing = new SyntaxUsing();
             synUsing.Keyword = keyword;
             var tokens = new List<Token>();
-            ParseQualifiedIdentifier(tokens, "Expecting a namespace identifier");
+            ParseQualifiedIdentifier(tokens, "Expecting a module name identifier");
             synUsing.NamePath = tokens.ToArray();
             return synUsing;
         }
 
-        void ParseNamespaceStatement(Token keyword)
+        void ParseModuleStatement(Token keyword)
         {
             var namePath = new List<Token>();
             do
             {
-                if (!AcceptIdentifier("Expecting a namespace identifier"))
+                if (!AcceptIdentifier("Expecting a module name identifier"))
                     break;
                 namePath.Add(mPrevToken);
                 RejectUnderscoreDefinition(mPrevToken);
@@ -424,35 +424,35 @@ namespace Gosub.Zurfur.Compiler
             if (namePath.Count == 0)
                 return; // Rejected above
 
-            // Check for file namespace prefix
-            for (int i = 0; i < Math.Min(namePath.Count, mNamespaceBasePath.Length); i++)
+            // Check for file module prefix
+            for (int i = 0; i < Math.Min(namePath.Count, mModuleBasePath.Length); i++)
             {
-                if (namePath[i].Name != mNamespaceBasePath[i])
+                if (namePath[i].Name != mModuleBasePath[i])
                 {
-                    RejectToken(namePath[i], "Expecting namespace to start with '" + mNamespaceBaseStr + "'");
+                    RejectToken(namePath[i], "Expecting module name to start with '" + mModuleBaseStr + "'");
                 }
             }
             // Reject if not full prefix
-            if (namePath.Count < mNamespaceBasePath.Length)
+            if (namePath.Count < mModuleBasePath.Length)
             {
-                RejectToken(namePath[namePath.Count-1], "Expecting namespace to start with '" + mNamespaceBaseStr + "'");
+                RejectToken(namePath[namePath.Count-1], "Expecting module name to start with '" + mModuleBaseStr + "'");
             }
 
-            // Collect base namespace
-            mNamePath = namePath.ToArray();
+            // Collect base module name
+            mModulePath = namePath.ToArray();
             var namePathStrArray = namePath.ConvertAll(token => token.Name).ToArray();
             var namePathStr = string.Join(".", namePathStrArray);
-            if (mNamespaceBasePath.Length == 0)
+            if (mModuleBasePath.Length == 0)
             {
-                mNamespaceBasePath = namePathStrArray;
-                mNamespaceBaseStr = namePathStr;
+                mModuleBasePath = namePathStrArray;
+                mModuleBaseStr = namePathStr;
             }
-            if (!mSyntax.Namespaces.TryGetValue(namePathStr, out var ns))
+            if (!mSyntax.Modules.TryGetValue(namePathStr, out var ns))
             {
-                ns = new SyntaxNamespace();
-                mSyntax.Namespaces[namePathStr] = ns;
+                ns = new SyntaxModule();
+                mSyntax.Modules[namePathStr] = ns;
             }
-            // Accumulate comments and keyword tokens for this namespace
+            // Accumulate comments and keyword tokens for this module
             ns.Comments += " " + mComments;
             mComments.Clear();
             ns.Path = namePath.ToArray();
@@ -490,7 +490,7 @@ namespace Gosub.Zurfur.Compiler
             var synClass = new SyntaxType(keyword);
             synClass.Qualifiers = qualifiers.ToArray();
             synClass.ParentScope = parentScope;
-            synClass.NamePath = mNamePath;
+            synClass.ModulePath = mModulePath;
             synClass.Comments = mComments.ToString();
             mComments.Clear();
 
@@ -506,10 +506,10 @@ namespace Gosub.Zurfur.Compiler
             RejectUnderscoreDefinition(synClass.Name);
 
             // Push new path
-            var oldPath = mNamePath;
-            var namePath = new List<Token>(mNamePath);
+            var oldPath = mModulePath;
+            var namePath = new List<Token>(mModulePath);
             namePath.Add(synClass.Name);
-            mNamePath = namePath.ToArray();
+            mModulePath = namePath.ToArray();
 
             // Simple class or struct
             bool isClass = qualifiers.FindIndex(a => a.Name == "class") >= 0;
@@ -591,7 +591,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Restore old path
-            mNamePath = oldPath;
+            mModulePath = oldPath;
         }
 
         private SyntaxConstraint[] ParseConstraints()
@@ -642,7 +642,7 @@ namespace Gosub.Zurfur.Compiler
 
             var field = new SyntaxField(newVarName);
             field.ParentScope = parentScope;
-            field.NamePath = mNamePath;
+            field.ModulePath = mModulePath;
             field.Qualifiers = qualifiers.ToArray();
             field.Comments = mComments.ToString();
             mComments.Clear();
@@ -693,7 +693,7 @@ namespace Gosub.Zurfur.Compiler
 
             var field = new SyntaxField(newVarName);
             field.ParentScope = parentScope;
-            field.NamePath = mNamePath;
+            field.ModulePath = mModulePath;
             field.Qualifiers = qualifiers.ToArray();
             field.Comments = mComments.ToString();
             mComments.Clear();
@@ -710,7 +710,7 @@ namespace Gosub.Zurfur.Compiler
         {
             var field = new SyntaxField(name);
             field.ParentScope = parentScope;
-            field.NamePath = mNamePath;
+            field.ModulePath = mModulePath;
             field.Qualifiers = qualifiers.ToArray();
             field.Comments = mComments.ToString();
             mComments.Clear();
@@ -734,7 +734,7 @@ namespace Gosub.Zurfur.Compiler
             // Parse func keyword
             var synFunc = new SyntaxFunc(keyword);
             synFunc.ParentScope = parentScope;
-            synFunc.NamePath = mNamePath;
+            synFunc.ModulePath = mModulePath;
             synFunc.Comments = mComments.ToString();
             mComments.Clear();
 

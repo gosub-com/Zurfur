@@ -12,7 +12,7 @@ namespace Gosub.Zurfur.Compiler
         public Lexer Lexer = new Lexer();
         public Dictionary<string, SyntaxPragma> Pragmas = new Dictionary<string, SyntaxPragma>();
         public List<SyntaxUsing> Using = new List<SyntaxUsing>();
-        public Dictionary<string, SyntaxNamespace> Namespaces = new Dictionary<string, SyntaxNamespace>();
+        public Dictionary<string, SyntaxModule> Modules = new Dictionary<string, SyntaxModule>();
         public List<SyntaxType> Types = new List<SyntaxType>();
         public List<SyntaxFunc> Methods = new List<SyntaxFunc>();
         public List<SyntaxField> Fields = new List<SyntaxField>();
@@ -51,7 +51,7 @@ namespace Gosub.Zurfur.Compiler
 
         public Token Keyword => Token; // class, struct, func, prop, blank for field, etc.
         public SyntaxScope ParentScope;
-        public Token[] NamePath;
+        public Token[] ModulePath;
         public string Comments;
         public Token[] Qualifiers;
         public Token Name;
@@ -60,13 +60,13 @@ namespace Gosub.Zurfur.Compiler
         {
             get
             {
-                return string.Join(".", Array.ConvertAll(NamePath, t=>t.Name)) + ":" + Name;
+                return string.Join(".", Array.ConvertAll(ModulePath, t=>t.Name)) + ":" + Name;
             }
         }
         public override string ToString() => FullName;
     }
 
-    class SyntaxNamespace
+    class SyntaxModule
     {
         public Token[] Path;
         public string Comments = "";

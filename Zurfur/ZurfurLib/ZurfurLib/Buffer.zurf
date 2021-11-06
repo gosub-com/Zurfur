@@ -1,4 +1,4 @@
-﻿namespace Zurfur
+﻿module Zurfur
 
 /// Mutable array with immutable Count.  This is the base
 /// of all dynamically sized objects and is one of the few

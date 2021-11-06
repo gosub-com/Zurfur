@@ -8,7 +8,7 @@ pragma ShowParse        // Show the parse tree (hover over a symbol)
 use Zurfur
 
 // http://zurfur.com
-namespace TestExample
+module TestExample
 
 // Get this to work
 type Point(X int, Y int)
@@ -36,7 +36,7 @@ pub type ComplexType
 
     /// Public function.  This is a public comment.
     pub fun CountToTen() str:
-        Log.info("Hello world.  Let's count to 10.")
+        Log.Info("Hello world.  Let's count to 10.")
         for @a in 1..11:
             Log.info("Count={a}, Text={text}")
 }

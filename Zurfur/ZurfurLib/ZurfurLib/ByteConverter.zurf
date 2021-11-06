@@ -14,7 +14,7 @@
 ///     myList[index::4].SetBytesU32(myU32)
 ///     myList.PushBytesU32(myU32)
 ///
-namespace Zurfur.ByteConverter
+module Zurfur.ByteConverter
 
 
 fun Test_ConvertExample():

@@ -1,6 +1,6 @@
 ﻿
 
-namespace Zurfur.Io
+module Zurfur.Io
 
 
 interface Reader

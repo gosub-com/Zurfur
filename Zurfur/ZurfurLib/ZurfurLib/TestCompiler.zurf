@@ -1,6 +1,6 @@
 ﻿use Zurfur
 
-namespace TestCompiler
+module TestCompiler
 // Comment out the next line to see compiler errors
 pragma NoParse
 
@@ -29,7 +29,7 @@ type TestFails
     
     @field0 int     // Duplicate name
     @field1 hello  //  Undefined
-    @field2 Zurfur // Symbol is a namespace
+    @field2 Zurfur // Symbol is a module
     @field3 field0  // Symbol is a field
     @field4 fun0      // Symbol is a method
 
@@ -39,7 +39,7 @@ type TestFails
     pub fun fun3(a List<int,int>) void { } // Wrong number of generic parameters
     pub fun fun4(a List<List>) void { } // Wrong number of generic parameters
     pub fun fun5(a List<List<int,int>>) void { } // Wrong number of generic parameters
-    pub fun fun6(a Zurfur) void {} // Symbol is a namespace
+    pub fun fun6(a Zurfur) void {} // Symbol is a module
     pub fun fun7(a field0) void {} // Symbol is a field
     pub fun fun8(a fun0) void {} // Symbol is a method
     pub fun fun9(a *?OneGeneric) void { } // Expecting 1 generic parameter, got 0

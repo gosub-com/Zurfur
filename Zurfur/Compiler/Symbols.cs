@@ -9,8 +9,15 @@ namespace Gosub.Zurfur.Compiler
 {
 
     /// <summary>
+    /// NOTE: This is all strictly internal to the compiler.
+    /// The public definitions are contained in PackageDefinitions.cs.
+    /// For example, `SymMethodGroup` doesn't exist in the header file json
+    /// and type names are stored here without the separator or generic
+    /// arguments parameter. (e.g. 'Range' is used here, but '/Range`1'
+    /// is stored as the name in the json)
+    /// 
     /// Symbol symbols:
-    ///     .   Namespace
+    ///     .   Module
     ///     /   Type name
     ///     @   Field name
     ///     :   Method group (all overloads with the same name)
@@ -53,7 +60,7 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Prefix for the kind of symbol:
-        ///     .   Namespace
+        ///     .   Module
         ///     /   Type name
         ///     @   Field name
         ///     :   Method group (all overloads with the same name)
@@ -71,7 +78,7 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Source code token if it exists.  Throws an exception for
-        /// SymMethodGroup, SymParameterizedType, SymNamespace and built
+        /// SymMethodGroup, SymParameterizedType, SymModule and built
         /// in SymType's like "$ext" and "ref"
         /// </summary>
         public Token Token
@@ -86,7 +93,7 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Source code token if it exists.  Throws an exception for
-        /// SymMethodGroup, SymParameterizedType, SymNamespace and built
+        /// SymMethodGroup, SymParameterizedType, SymModule and built
         /// in SymType's like "$ext" and "ref"
         /// </summary>
         public string File
@@ -122,7 +129,7 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Create a symbol that is non-existent or not unique in the source
-        /// code (e.g. SymMethodGroup, SymParameterizedType, SymNamespace,
+        /// code (e.g. SymMethodGroup, SymParameterizedType, SymModule,
         /// and built-in types like "$ext", "ref", "*", etc.)
         /// </summary>
         public Symbol(Symbol parent, string name)
@@ -238,10 +245,10 @@ namespace Gosub.Zurfur.Compiler
 
     }
 
-    class SymNamespace : Symbol
+    class SymModule : Symbol
     {
-        public SymNamespace(Symbol parent, string name) : base(parent, name) { }
-        public override string Kind => "namespace";
+        public SymModule(Symbol parent, string name) : base(parent, name) { }
+        public override string Kind => "module";
         protected override string Separator => ".";
     }
 
@@ -280,6 +287,10 @@ namespace Gosub.Zurfur.Compiler
         protected override string Separator => "@";
     }
 
+    /// <summary>
+    /// This is strictly internal to the compiler, so we can deal with
+    /// overloaded functions.
+    /// </summary>
     class SymMethodGroup : Symbol
     {
         public SymMethodGroup(Symbol parent, string name) : base(parent, name) { }
@@ -296,7 +307,7 @@ namespace Gosub.Zurfur.Compiler
 
         public bool IsGetter => Name.Contains("$get(") || Name.Contains("$aget(");
         public bool IsSetter => Name.Contains("$set(") || Name.Contains("$aset(");
-        public bool IsFunc => Name.Contains("$fun(");
+        public bool IsFunc => Name.Contains("$fun(") || Name.Contains("$afun(");
     }
 
     class SymMethodParam : Symbol

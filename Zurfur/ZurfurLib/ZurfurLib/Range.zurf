@@ -1,6 +1,6 @@
 ﻿use Zurfur
 
-namespace Zurfur
+module Zurfur
 
 
 pub type passcopy Range<T>(Low T, High T)

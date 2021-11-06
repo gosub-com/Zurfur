@@ -1,4 +1,4 @@
-﻿namespace Zurfur
+﻿module Zurfur
 
 
 // The compiler will create a new object for each file

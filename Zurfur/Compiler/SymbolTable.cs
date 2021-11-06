@@ -7,28 +7,28 @@ using System.Diagnostics;
 namespace Gosub.Zurfur.Compiler
 {
     /// <summary>
-    /// The master symbol table is a tree holding namespaces at the top
+    /// The master symbol table is a tree holding modules at the top
     /// level, and types, functions, and parameters at lower levels.
     /// </summary>
     class SymbolTable
     {
-        SymNamespace mRoot;
+        SymModule mRoot;
         public bool NoCompilerChecks;
 
-        // Lookup table for namespaces and types
+        // Lookup table for modules and types
         Dictionary<string, Symbol> mLookup = new Dictionary<string, Symbol>();
 
         public SymbolTable()
         {
-            var preRoot = new SymNamespace(null, "");
-            mRoot = new SymNamespace(preRoot, "");
+            var preRoot = new SymModule(null, "");
+            mRoot = new SymModule(preRoot, "");
         }
 
         public Symbol Root => mRoot;
 
 
         /// <summary>
-        /// Generates a lookup table for namespaces and types.
+        /// Generates a lookup table for modules and types.
         /// Must be called before using `Lookup`
         /// </summary>
         public void GenerateLookup()
@@ -36,7 +36,7 @@ namespace Gosub.Zurfur.Compiler
             mLookup.Clear();
             VisitAll((s) => 
             {
-                if (s is SymNamespace || s.GetType() == typeof(SymType) || s is SymParameterizedType)
+                if (s is SymModule || s.GetType() == typeof(SymType) || s is SymParameterizedType)
                 {
                     var fullName = s.FullName;
                     Debug.Assert(!mLookup.ContainsKey(fullName));
@@ -78,14 +78,14 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Find the namespace, return NULL if not found or it's not a namespace.
-        /// The namespace is a path in dotted format (e.g. "Zurfur.SecialNamespace")
+        /// Find the module, return NULL if not found or it's not a module.
+        /// The module is a path in dotted format (e.g. "Zurfur.Draw2d")
         /// </summary>
-        public SymNamespace LookupNamespace(string name)
+        public SymModule LookupModule(string name)
         {
             if (!mLookup.TryGetValue(name, out var symbol))
                 return null;
-            return symbol as SymNamespace;
+            return symbol as SymModule;
         }
 
 
@@ -181,7 +181,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 if (!symbol.Children.TryGetValue(name, out var child))
                 {
-                    Reject(name, "Namespace or type name not found");
+                    Reject(name, "Module or type name not found");
                     return null;
                 }
                 symbol = child;

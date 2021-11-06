@@ -1,4 +1,4 @@
-﻿namespace Zurfur
+﻿module Zurfur
 
 /// Immutable array
 pub type boxed ro Array<T> = Buffer<T>

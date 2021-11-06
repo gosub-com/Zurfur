@@ -1,5 +1,5 @@
 ﻿
-namespace Zurfur
+module Zurfur
 
 /// Implement IEquatable on any object that can be stored in a Map.
 /// This is different than implementing just Equals

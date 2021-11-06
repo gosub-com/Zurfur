@@ -3,7 +3,7 @@
 /// Nothing works yet.
 ///
 
-namespace Zurfur.UnitTests
+module Zurfur.UnitTests
 
 fun test_HelloWorld()
 {

@@ -1,6 +1,6 @@
 ﻿use Zurfur
 
-namespace Zurfur
+module Zurfur
 
 pub type Map<TKey, TValue>
     where TKey is IEquatable<TKey>

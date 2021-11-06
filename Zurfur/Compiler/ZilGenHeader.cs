@@ -67,7 +67,7 @@ namespace Gosub.Zurfur.Compiler
         {
             // Does not require symbols from external packages
             Dictionary<string, string[]> fileUses = new Dictionary<string, string[]>();
-            AddNamespaces();
+            AddModules();
             mSymbols.GenerateLookup();
             AddTypes();
             AddFields();
@@ -81,42 +81,42 @@ namespace Gosub.Zurfur.Compiler
             mSymbols.AddSpecializations(mSpecializedTypes);
             return;
 
-            void AddNamespaces()
+            void AddModules()
             {
                 foreach (var syntaxFile in syntaxFiles)
                 {
-                    foreach (var ns in syntaxFile.Value.Namespaces)
+                    foreach (var ns in syntaxFile.Value.Modules)
                     {
-                        var symbol = AddNamespace(syntaxFile.Key, ns.Value.Path);
+                        var symbol = AddModule(syntaxFile.Key, ns.Value.Path);
                         symbol.Comments += " " + ns.Value.Comments;
                     }
                 }
             }
 
-            // Add the namespace, or return the one we already have
-            Symbol AddNamespace(string file, Token[] path)
+            // Add the module, or return the one we already have
+            Symbol AddModule(string file, Token[] path)
             {
                 var childrenSymbols = mSymbols.Root.Children;
                 Symbol parentSymbol = mSymbols.Root;
-                Symbol newNamespace = null;
+                Symbol newModule = null;
                 foreach (var token in path)
                 {
-                    if (childrenSymbols.TryGetValue(token.Name, out var childNamespace))
+                    if (childrenSymbols.TryGetValue(token.Name, out var childModule))
                     {
-                        Debug.Assert(childNamespace is SymNamespace);
-                        newNamespace = childNamespace;
+                        Debug.Assert(childModule is SymModule);
+                        newModule = childModule;
                     }
                     else
                     {
-                        newNamespace = new SymNamespace(parentSymbol, token.Name);
-                        token.AddInfo(newNamespace);
-                        mSymbols.AddOrReject(newNamespace);
+                        newModule = new SymModule(parentSymbol, token.Name);
+                        token.AddInfo(newModule);
+                        mSymbols.AddOrReject(newModule);
                     }
 
-                    parentSymbol = newNamespace;
-                    childrenSymbols = newNamespace.Children;
+                    parentSymbol = newModule;
+                    childrenSymbols = newModule.Children;
                 }
-                return newNamespace;
+                return newModule;
             }
 
             void AddTypes()
@@ -125,7 +125,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var type in syntaxFile.Value.Types)
                     {
-                        var newType = new SymType(mSymbols.FindPath(type.NamePath), syntaxFile.Key, type.Name);
+                        var newType = new SymType(mSymbols.FindPath(type.ModulePath), syntaxFile.Key, type.Name);
                         newType.Comments = type.Comments;
                         newType.Token.AddInfo(newType);
                         if (mSymbols.AddOrReject(newType))
@@ -148,11 +148,11 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var field in syntaxFile.Value.Fields)
                     {
-                        var newField = new SymField(mSymbols.FindPath(field.NamePath), syntaxFile.Key, field.Name);
+                        var newField = new SymField(mSymbols.FindPath(field.ModulePath), syntaxFile.Key, field.Name);
                         newField.Qualifiers = Array.ConvertAll(field.Qualifiers, a => a.Name);
                         newField.Comments = field.Comments;
                         newField.Token.AddInfo(newField);
-                        var scopeParent = field.NamePath[field.NamePath.Length-1];
+                        var scopeParent = field.ModulePath[field.ModulePath.Length-1];
                         if (scopeParent.Error)
                         {
                             Warning(newField.Token, $"Symbol not processed because '{scopeParent}' has an error");
@@ -169,7 +169,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var method in syntaxFile.Value.Methods)
                     {
-                        var scope = mSymbols.FindPath(method.NamePath);
+                        var scope = mSymbols.FindPath(method.ModulePath);
 
                         // Move extensions to $ext type
                         var isExtension = method.ExtensionType != null && method.ExtensionType.Token != "";
@@ -197,7 +197,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 foreach (var syntaxFile in syntaxFiles)
                 {
-                    var useNamespaces = new List<string>();
+                    var useModules = new List<string>();
                     foreach (var use in syntaxFile.Value.Using)
                     {
                         var symbol = mSymbols.FindPathOrReject(use.NamePath);
@@ -205,20 +205,20 @@ namespace Gosub.Zurfur.Compiler
                             continue;  // Error marked by function
 
                         var lastToken = use.NamePath[use.NamePath.Length - 1];
-                        if (!(symbol is SymNamespace))
+                        if (!(symbol is SymModule))
                         {
-                            Reject(lastToken, "Must be a namespace, not a " + symbol.Kind);
+                            Reject(lastToken, "Must be a module, not a " + symbol.Kind);
                             continue;
                         }
 
-                        if (useNamespaces.Contains(symbol.FullName))
+                        if (useModules.Contains(symbol.FullName))
                         {
                             Reject(lastToken, "Already included in previous use statement");
                             continue;
                         }
-                        useNamespaces.Add(symbol.FullName);
+                        useModules.Add(symbol.FullName);
                     }
-                    fileUses[syntaxFile.Key] = useNamespaces.ToArray();
+                    fileUses[syntaxFile.Key] = useModules.ToArray();
                 }
             }
 
@@ -228,10 +228,10 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var field in syntaxFile.Value.Fields)
                     {
-                        if (field.NamePath[field.NamePath.Length - 1].Error)
+                        if (field.ModulePath[field.ModulePath.Length - 1].Error)
                             continue; // Warning given by AddFields
 
-                        var symField = mSymbols.FindPath(field.NamePath).Children[field.Name] as SymField;
+                        var symField = mSymbols.FindPath(field.ModulePath).Children[field.Name] as SymField;
                         if (symField == null)
                         {
                             Reject(field.Name, "Compiler error"); // Shouldn't happen
@@ -262,7 +262,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var func in syntaxFile.Value.Methods)
                     {
-                        var scope = mSymbols.FindPath(func.NamePath);
+                        var scope = mSymbols.FindPath(func.ModulePath);
 
                         // Extension functions are located in $ext
                         if (func.ExtensionType != null && func.ExtensionType.Token != "")
@@ -313,7 +313,7 @@ namespace Gosub.Zurfur.Compiler
                         methodParam.Token.AddInfo(new VerifySuppressError());
                     mSymbols.AddOrReject(methodParam); // Extension method parameter name "$this" is unique
                 }
-                else if (!method.Qualifiers.Contains("static")) // TBD: Check if in type instead of namespace
+                else if (!method.Qualifiers.Contains("static")) // TBD: Check if in type instead of module
                 {
                     // Non static method (first parameter is "$this")
                     var methodParam = new SymMethodParam(method, file, new Token("$this"));
@@ -329,7 +329,7 @@ namespace Gosub.Zurfur.Compiler
                 ResolveMethodParams(file, method, func.MethodSignature[1], true);  // Returns
 
                 method.Token.AddInfo(method);
-                var scopeParent = func.NamePath[func.NamePath.Length - 1];
+                var scopeParent = func.ModulePath[func.ModulePath.Length - 1];
                 if (scopeParent.Error)
                 {
                     Warning(func.Token, $"Symbol not processed because '{scopeParent}' has an error");
@@ -395,7 +395,7 @@ namespace Gosub.Zurfur.Compiler
         /// Resolve a type.  Non-generic types are found in the symbol table
         /// and given a full name (e.g. 'int' -> 'Zufur.int').  Generic types
         /// must have all type arguments resolved as well.
-        /// Return symbol is always a namespace, type, or type parameter.
+        /// Return symbol is always a module, type, or type parameter.
         /// Null is returned for error, and the error is marked.
         /// </summary>
         Symbol ResolveTypeOrReject(SyntaxExpr typeExpr,
@@ -426,7 +426,7 @@ namespace Gosub.Zurfur.Compiler
             if (symbol == null)
                 return null; // Error already marked
 
-            if (!(symbol is SymNamespace) && !(symbol is SymType) && !(symbol is SymTypeParam))
+            if (!(symbol is SymModule) && !(symbol is SymType) && !(symbol is SymTypeParam))
             {
                 Reject(typeExpr.Token, "The symbol is not a type, it is a " + symbol.Kind);
                 return NoCompilerChecks ? symbol : null;
@@ -486,9 +486,9 @@ namespace Gosub.Zurfur.Compiler
                     Reject(typeExpr.Token, $"Syntax error");
                     return null;
                 }
-                if (!(leftSymbol is SymNamespace) && !(leftSymbol is SymType) && !(leftSymbol is SymParameterizedType))
+                if (!(leftSymbol is SymModule) && !(leftSymbol is SymType) && !(leftSymbol is SymParameterizedType))
                 {
-                    Reject(typeExpr.Token, $"The left side of the '.' must evaluate to a namespace or type, but it is a {leftSymbol.Kind}");
+                    Reject(typeExpr.Token, $"The left side of the '.' must evaluate to a module or type, but it is a {leftSymbol.Kind}");
                     return null;
                 }
 
@@ -498,9 +498,9 @@ namespace Gosub.Zurfur.Compiler
                 if (rightSymbol == null)
                     return null;
 
-                if (!(rightSymbol is SymNamespace) && !(rightSymbol is SymType) && !(rightSymbol is SymParameterizedType))
+                if (!(rightSymbol is SymModule) && !(rightSymbol is SymType) && !(rightSymbol is SymParameterizedType))
                 {
-                    Reject(typeExpr[1].Token, $"The right side of the '.' must evaluate to a namespace or type, but it is a {rightSymbol.Kind}");
+                    Reject(typeExpr[1].Token, $"The right side of the '.' must evaluate to a module or type, but it is a {rightSymbol.Kind}");
                     return null;
                 }
 
@@ -724,7 +724,7 @@ namespace Gosub.Zurfur.Compiler
             var symbols = new List<Symbol>(); // TBD: Be kind to GC
             foreach (var u in use)
             {
-                var ns = mSymbols.LookupNamespace(u);
+                var ns = mSymbols.LookupModule(u);
                 Debug.Assert(ns != null);
                 if (ns != null
                     && ns.Children.TryGetValue(name.Name, out var newSymbol))
