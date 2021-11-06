@@ -3,7 +3,7 @@
 namespace Zurfur
 
 
-pub type Range<T>(Low T, High T)
+pub type passcopy Range<T>(Low T, High T)
     implements Iterable<T>
     where T is IArithmetic<T>
 {
@@ -21,7 +21,7 @@ pub type Range<T>(Low T, High T)
     
 }
 
-pub type RangeIterator<T>
+pub type passcopy RangeIterator<T>
     implements Iterator<T>
     where T is IArithmetic<T>
 {

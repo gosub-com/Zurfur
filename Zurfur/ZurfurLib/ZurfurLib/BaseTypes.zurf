@@ -1,5 +1,5 @@
 /// Define the simple types:
-///     i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, decimal.
+///     i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, Decimal.
 ///
 /// int and uint are 64 bits
 /// xint and xuint are pointer sized integers (32 or 64 bits)
@@ -21,7 +21,7 @@ pub type xuint = u32
 pub fun nop() {}
 
 /// bool (true or false)
-pub type ro bool
+pub type ro passcopy bool
     implements Equatable<bool>
 {
     pub static fun GetHashCode(a bool) i64 extern
@@ -34,7 +34,7 @@ pub type ro bool
 }
 
 /// i8 (-128..127)
-pub type ro i8
+pub type ro passcopy i8
     implements Comparable<i8>
 {
     pub const MaxValue i8 = 127
@@ -52,10 +52,10 @@ pub get i8::i32() i32 extern
 pub get i8::i64() i64 extern
 pub get i8::f32() f32 extern
 pub get i8::f64() f64 extern
-pub get i8::decimal() decimal extern
+pub get i8::Decimal() Decimal extern
 
 /// u8 (0..255) same as byte
-pub type ro u8
+pub type ro passcopy u8
     implements Comparable<u8>
 {
     pub const MaxValue u8 = 255
@@ -76,11 +76,11 @@ pub get u8::i64() i64 extern
 pub get u8::u64() u64 extern
 pub get u8::f32() f32 extern
 pub get u8::f64() f64 extern
-pub get u8::decimal() decimal extern
+pub get u8::Decimal() Decimal extern
 
 
 /// i16 (-32768..32768)
-pub type ro i16
+pub type ro passcopy i16
     implements Comparable<i16>
 {
     pub const MaxValue i16 = 32767
@@ -101,11 +101,11 @@ pub get i16::i32() i32 extern
 pub get i16::i64() i64 extern
 pub get i16::f32() f32 extern
 pub get i16::f64() f64 extern
-pub get i16::decimal() decimal extern
+pub get i16::Decimal() Decimal extern
 
 
 /// u16 (0..65535)
-pub type ro u16
+pub type ro passcopy u16
     implements Comparable<u16>
 {
     pub const MaxValue u16 = 65535
@@ -128,10 +128,10 @@ pub get u16::i64() i64 extern
 pub get u16::u64() u64 extern
 pub get u16::f32() f32 extern
 pub get u16::f64() f64 extern
-pub get u16::decimal() decimal extern
+pub get u16::Decimal() Decimal extern
 
 /// A 32 bit integer
-pub type ro i32
+pub type ro passcopy i32
     implements IArithmetic<i32>
 {
     pub const MaxValue i32 = 2147483647
@@ -183,10 +183,10 @@ pub type ro i32
 pub get i32::i64() i64 extern
 pub get i32::f32() f32 extern
 pub get i32::f64() f64 extern
-pub get i32::decimal() decimal extern
+pub get i32::Decimal() Decimal extern
 
 /// 32 bit unsigned integer
-pub type ro u32
+pub type ro passcopy u32
     implements IArithmetic<u32>
 {
     pub const MaxValue u32 = 4294967295
@@ -239,10 +239,10 @@ pub get u32::i64() i64 extern
 pub get u32::u64() u64 extern
 pub get u32::f32() f32 extern
 pub get u32::f64() f64 extern
-pub get u32::decimal() decimal extern
+pub get u32::Decimal() Decimal extern
 
 /// A 64 bit integer (same as int)
-pub type ro i64
+pub type ro passcopy i64
     implements IArithmetic<i64>
 {
     pub const MaxValue i64 = 9223372036854775807
@@ -298,11 +298,11 @@ pub type ro i64
 }
 pub get i64::f32() f32 extern
 pub get i64::f64() f64 extern
-pub get i64::decimal() decimal extern
+pub get i64::Decimal() Decimal extern
     
 
 /// 64 bit unsigned integer
-pub type ro u64
+pub type ro passcopy u64
     implements IArithmetic<u64>
 {
     pub const MaxValue u64 = 18446744073709551615
@@ -357,9 +357,9 @@ pub type ro u64
 }
 pub get u64::f32() f32 extern
 pub get u64::f64() f64 extern
-pub get u64::decimal() decimal extern
+pub get u64::Decimal() Decimal extern
 
-pub type ro f32
+pub type ro passcopy f32
     implements IArithmetic<f32>
 {
     pub const MaxValue f32 = 3.40282347E+38F
@@ -437,7 +437,7 @@ pub type ro f32
     pub get Trunc() f32 extern
 }
 pub get f64::f64() f64 extern
-pub get decimal::decimal() decimal extern
+pub get Decimal::Decimal() Decimal extern
 
 // Sort order (these are true): NAN>infinity, NAN==NAN, -0==+0
 pub static fun Equatable<f32>::GetHashCode(a f32) i64 extern
@@ -445,7 +445,7 @@ pub static fun Equatable<f32>::Equals(a f32, b f32) bool extern
 pub static fun Comparable<f32>::Compare(a f32, b f32) i64 extern
 
 
-pub type ro f64
+pub type ro passcopy f64
     implements IArithmetic<f64>
 {
     pub const MaxValue f64 = 1.7976931348623157E+308
@@ -524,7 +524,7 @@ pub type ro f64
     pub get Tanh() f64 extern
     pub get Trunc() f64 extern
 }
-pub get f64::decimal() decimal extern
+pub get f64::Decimal() Decimal extern
 
 // Sort order (these are true): NAN>infinity, NAN==NAN, -0==+0
 pub static fun Equatable<f64>::GetHashCode(a f64) i64 extern
@@ -534,18 +534,18 @@ pub static fun Comparable<f64>::Compare(a f64, b f64) i64 extern
 
 /// 128 bit decimal integer.  This will support NAN, infinity, and
 /// exponents covering the entire range of f64 with more precision.
-pub type ro decimal
-    implements IArithmetic<decimal>
+pub type ro passcopy Decimal
+    implements IArithmetic<Decimal>
 {
-    pub fun new(a decimal) extern
+    pub fun new(a Decimal) extern
 
-    pub const MaxValue decimal = 1E+1000M
-    pub const MinValue decimal = -1E+1000M
-    pub const PositiveInfinity decimal = 1.0/0.0
-    pub const NegativeInfinity decimal = -1.0/0.0
-    pub const NaN decimal = 0.0/0.0
-    pub const Origin decimal = 0
-    pub const Identity decimal = 1
+    pub const MaxValue Decimal = 1E+1000M
+    pub const MinValue Decimal = -1E+1000M
+    pub const PositiveInfinity Decimal = 1.0/0.0
+    pub const NegativeInfinity Decimal = -1.0/0.0
+    pub const NaN Decimal = 0.0/0.0
+    pub const Origin Decimal = 0
+    pub const Identity Decimal = 1
     
     pub get IsInfinity() bool extern
     pub get IsNaN() bool extern
@@ -572,27 +572,27 @@ pub type ro decimal
     pub get u64Fail() u64 extern
 
     // Normal comparisons
-    pub static fun GetHashCode(a decimal) i64 extern
-    pub static fun Equals(a decimal, b decimal) bool extern
-    pub static fun Compare(a decimal, b decimal) i64 extern
+    pub static fun GetHashCode(a Decimal) i64 extern
+    pub static fun Equals(a Decimal, b Decimal) bool extern
+    pub static fun Compare(a Decimal, b Decimal) i64 extern
         
     // Overloadable operators
-    pub fun operator-(a decimal) decimal extern
-    pub fun operator+(a decimal, b decimal) decimal extern
-    pub fun operator-(a decimal, b decimal) decimal extern
-    pub fun operator*(a decimal, b decimal) decimal extern
-    pub fun operator/(a decimal, b decimal) decimal extern
-    pub fun operator%(a decimal, b decimal) decimal extern
+    pub fun operator-(a Decimal) Decimal extern
+    pub fun operator+(a Decimal, b Decimal) Decimal extern
+    pub fun operator-(a Decimal, b Decimal) Decimal extern
+    pub fun operator*(a Decimal, b Decimal) Decimal extern
+    pub fun operator/(a Decimal, b Decimal) Decimal extern
+    pub fun operator%(a Decimal, b Decimal) Decimal extern
 
-    pub get Abs() decimal extern
-    pub fun Clamp(min decimal, max decimal) decimal extern
-    pub fun Max(n2 decimal) decimal extern
-    pub fun Min(n2 decimal) decimal extern
+    pub get Abs() Decimal extern
+    pub fun Clamp(min Decimal, max Decimal) Decimal extern
+    pub fun Max(n2 Decimal) Decimal extern
+    pub fun Min(n2 Decimal) Decimal extern
     pub get Sign() i64 extern
-    pub get Sq() decimal extern
+    pub get Sq() Decimal extern
 }
 
 // Sort order (these are true): NAN>infinity, NAN==NAN, -0==+0
-pub static fun Equatable<decimal>::GetHashCode(a decimal) i64 extern
-pub static fun Equatable<decimal>::Equals(a decimal, b decimal) bool extern
-pub static fun Comparable<decimal>::Compare(a decimal, b decimal) i64 extern
+pub static fun Equatable<Decimal>::GetHashCode(a Decimal) i64 extern
+pub static fun Equatable<Decimal>::Equals(a Decimal, b Decimal) bool extern
+pub static fun Comparable<Decimal>::Compare(a Decimal, b Decimal) i64 extern

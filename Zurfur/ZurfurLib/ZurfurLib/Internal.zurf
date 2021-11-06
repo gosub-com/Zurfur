@@ -11,7 +11,7 @@ namespace Zurfur.Internal
 /// Internal definition of a reference.
 pub type ro _ref<T>
 {
-    ro @r *T
+    @r ro *T
 
     pub fun new(reference *T)
         require reference != null:

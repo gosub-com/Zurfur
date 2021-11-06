@@ -1186,8 +1186,7 @@ pub unsafe type DlMalloc
         assert(tsize >= minsize_for_tree_index(idx))
         assert((idx == NTREEBINS - 1) || (tsize < minsize_for_tree_index((idx + 1))))
 
-        do
-        {
+        do:
             // traverse through chain of same-sized nodes
             do_check_any_chunk((cast(*mchunk)u))
             assert(u.index == tindex)
@@ -1217,7 +1216,7 @@ pub unsafe type DlMalloc
                 if u.child0 != null && u.child1 != null:
                     assert(chunksize(u.child0) < chunksize(u.child1))
             u = u.fd
-        } while u != t
+        dowhile u != t
         assert(head != null)
 
     //  Check all the chunks in a treebin.
@@ -1260,11 +1259,11 @@ pub unsafe type DlMalloc
             @b = smallbin_at(sidx)
             if smallmap_is_marked(sidx):
                 @p = b
-                do {
+                do:
                     if p == x:
                         return true
                     p = p.fd
-                } while p != b
+                dowhile p != b
         else:
             @tidx = compute_tree_index(size)
             if treemap_is_marked(tidx):
@@ -1275,11 +1274,11 @@ pub unsafe type DlMalloc
                     sizebits <<= 1
                 if t != null:
                     @u = t
-                    do {
+                    do:
                         if u == cast(*tchunk)x:
                             return true
                         u = u.fd
-                    } while u != t
+                    dowhile u != t
         return false
 
     pub type HeapStats

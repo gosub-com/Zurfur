@@ -27,8 +27,8 @@ pub type Example
     @info str                  // Private string initialized to ""
     @array Array<int> = [1,2,3]             // Private mutable array
     @list List<str> = ["Hello", "World"]    // Private mutable list
-    ro @m Map<str,int> = ["A":1, "B":2]     // Private immutable map
-    ro @Header str pub get = "Zurfur"       // Public immutable string
+    @m ro Map<str,int> = ["A":1, "B":2]     // Private immutable map
+    @Header ro str pub get = "Zurfur"       // Public immutable string
     pub fun F(a int) int:
         return m["A"]+10   // Public function
     pub get P() str:

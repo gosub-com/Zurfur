@@ -65,19 +65,19 @@ namespace Gosub.Zurfur.Compiler
             + "return unsealed unseal sealed sizeof stackalloc heapalloc struct switch this self throw try "
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "
-            + "box boxed init move copy clone drop error dispose own owned "
+            + "box boxed init move copy passcopy clone drop error dispose own "
             + "trait mixin extends youdo implements implement impl union fun afun def yield let cast "
-            + "any dyn dynamic loop select match event aevent from to of on cofun cofunc global local val it "
+            + "any dyn dynamic loop select match event aevent from to of on cofun cofunc global local it "
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
             + "of sync task except exception raise loc local global");
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static unsealed abstract virtual override ro");
-        static WordSet sPostFieldQualifiers = new WordSet("init ref set get mut");
+            + "static unsealed abstract virtual override");
+        static WordSet sPostFieldQualifiers = new WordSet("init set get mut ro");
 
         static WordSet sReservedUserFuncNames = new WordSet("new drop cast default implicit");
         static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default base new cast dref");
-        static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref mut own");
+        static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref mut own ro");
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sAllowConstraintKeywords = new WordSet("unmanaged");
@@ -90,7 +90,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sXorOps = new WordSet("~");
         static WordSet sMultiplyOps = new WordSet("* / % &");
         static WordSet sAssignOps = new WordSet("= += -= *= /= %= |= &= ~= <<= >>=");
-        static WordSet sUnaryOps = new WordSet("+ - ! & ~ use unsafe ref");
+        static WordSet sUnaryOps = new WordSet("+ - ! & ~ use unsafe ref mut");
 
         // For now, do not allow more than one level.  Maybe we want to allow it later,
         // but definitely do not allow them to include compounds with curly braces.
@@ -314,7 +314,7 @@ namespace Gosub.Zurfur.Compiler
                     case "type":
                         mToken.Type = eTokenType.ReservedControl;
                         Accept();
-                        while (AcceptMatch("ref") || AcceptMatch("ro") || AcceptMatch("boxed") || AcceptMatch("class"))
+                        while (AcceptMatch("ref") || AcceptMatch("ro") || AcceptMatch("boxed") || AcceptMatch("class") || AcceptMatch("passcopy"))
                             qualifiers.Add(mPrevToken);
                         ParseClass(keyword, parentScope, qualifiers);
                         break;
@@ -665,7 +665,6 @@ namespace Gosub.Zurfur.Compiler
             newVarName.Type = eTokenType.DefineField;
             RejectUnderscoreDefinition(newVarName);
 
-
             foreach (var token in qualifiers)
             {
                 if (token.Name != "ro" && token.Name != "static")
@@ -681,10 +680,10 @@ namespace Gosub.Zurfur.Compiler
             // Post field qualifiers
             if (keyword != "const" && (mTokenName == "pub" || mTokenName == "protected"))
             {
+                // TBD: Distinguish "ro @a int" from "@a int pub ro", same for "pub"
                 qualifiers.Insert(0, Accept());
                 while (sPostFieldQualifiers.Contains(mTokenName))
-                    //qualifiers.Add(Accept());
-                    Accept();
+                    qualifiers.Add(Accept());
             }
 
             // Initializer
@@ -717,7 +716,6 @@ namespace Gosub.Zurfur.Compiler
             mComments.Clear();
             name.Type = eTokenType.DefineField;
             RejectUnderscoreDefinition(name);
-
 
             // Optionally initialize
             if (AcceptMatch("="))
@@ -946,7 +944,7 @@ namespace Gosub.Zurfur.Compiler
             if (IsMatchPastMetaSemicolon("{"))
             {
                 RejectToken(mPrevToken, "Use either ':' or '{', but not both");
-                return ParseStatements("'" + keyword.Name + "' statement");
+                AcceptMatchPastMetaSemicolon("{");
             }
 
             // Expecting invisible meta semi-colon
@@ -988,6 +986,7 @@ namespace Gosub.Zurfur.Compiler
                 ParseStatement(statement, false);
                 if (mTokenName != ";")
                     Reject($"Braceless compound statement '{keyword.Name}' is expecting end of line");
+
                 if (mTokenName == "}" || mTokenName == "")
                     break;
 

@@ -4,35 +4,41 @@ pragma ShowParse        // Show the parse tree (hover over a symbol)
 
 // Press F4 to see header file report
 
+
 use Zurfur
 
 // http://zurfur.com
 namespace TestExample
 
-TBD: // Allow braceless `type`s???
-     // Require `loc` keyword for private local functions
-     // Figure out GET/SET common cases:
-     //     Changed event
-     //     Default set used like so: map["undefined"] += 1 or map["undefined"].a += 5
-     
+// Get this to work
+type Point(X int, Y int)
+get Point<T>::Size() Point<T> { return Point(X, Y) }
 
-/// This is a public comment.
-fun Main():
-    Log.Info("Hello world.  Let's count to 10.")
-    for @a in 1..11:
-        Log.Info("Count={a}")
 
-type SimpleType(FirstName str, LastName str)
-type ro SimpleImmutableType(FirstName str, LastName str)
-type ComplexType
+// Simple types, fields are public:
+pub type SimpleType(FirstName str, LastName str)
+pub type ro SimpleImmutableType(FirstName str, LastName str)
+
+pub type ComplexType
 {
-    @list List<str> = ["Hello", "World"]   // Private mutable list
-    @map Map<str,int> = ["A":1, "B":2]     // Private mutable map
-    ro @roList List<int> = [1,2,3]      // Private immutable list
-    @Header str pub ref = "Zurfur"// Field with public ro property
-    @Text str pub mut ref = "fun" // Field with public mut property
-    pub fun GetInfo() str:
-        return "Header: {Header}, Text: {Text}"
+    // Fields are private (the last two have public properties)
+    @map Map<str,int> = ["A":1, "B":2]  // Private, read/write
+    @list ro List<int> = [1,2,3]        // Private, read only
+    @Header str pub ro = "Zurfur"  // Private with public read
+    @Text str pub mut = "fun"      // Public read and write
+
+    // Properties are public by default
+    get MapProperty() ref Map<str, int>:
+        return ref map // Return a read only reference
+    set MapProperty(v own Map<str, int>):
+        map = v
+        MapChangedEvent()
+
+    /// Public function.  This is a public comment.
+    pub fun CountToTen() str:
+        Log.info("Hello world.  Let's count to 10.")
+        for @a in 1..11:
+            Log.info("Count={a}, Text={text}")
 }
 
 
@@ -71,26 +77,6 @@ pub type boxed AGenericType<Q>(FirstName str, LastName str)
     pub fun MyVoid2() int:
         return 0
        
-
-
-    // TBD: Move to failed unit t
-    // Overloaded generic functions are illegal
-    //fun GenericFunc1<T>():
-    //    return "{LastName}, {FirstName}"
-    //fun GenericFunc1<X>():
-    //    return "x"
-
-    // Overloaded functions with same parameters are illegal
-    //fun GenericFunc2(a int):
-    //    return "x"
-    //fun GenericFunc2(a int):
-    //    return "x"
-
-    // Overloaded functions with different return parameters are illegal
-    //fun GenericFunc3(a f64) int
-    //    return "x"
-    //fun GenericFunc3(a int):
-    //    return "x"
 }
 
 
@@ -122,9 +108,9 @@ pub type Example
     //pub a9 private set List<int>
     //pub private set a9 List<int>
 
-    ro @map1 Map<str,int> = ["A":1,"B":2]        // Immutable map
-    ro @map2 mut Map<str,int> = ["A":1,"B":2]    // Can't be assigned, can be mutated
-    ro @map3 Map<str,int> pub init               // Read only, init in constructor or allow public init
+    @map1 ro Map<str,int> = ["A":1,"B":2]        // Immutable map
+    @map2 ro mut Map<str,int> = ["A":1,"B":2]    // Can't be assigned, can be mutated
+    @map3 ro Map<str,int> pub init               // Read only, init in constructor or allow public init
     
 
     pub fun GetInfo(a int) str:
@@ -146,7 +132,7 @@ pub type Example
     @m Zim<f64>
     @n Zim<f32>
     @o Zim<str>
-    @p Zim<decimal>
+    @p Zim<Decimal>
     
 }
 
@@ -239,29 +225,6 @@ pub fun Circle(a f64, r f64) -> (x f64, y f64):
     return Cos(a)*r, Sin(a)*r
 
 
-pub type MutableTest
-{
-    pub type MyObject { }
-
-    @a MyObject
-    @b List<MyObject>
-
-    @c mut MyObject
-    ro @d mut List<MyObject>
-    @e mut List<MyObject>
-
-    pub fun getMyObjectAt(i int) MyObject { todo() }
-    pub fun getMyObjects() List<MyObject> { todo() }
-    pub fun getMyObjects2() List<MyObject> { todo() }
-    pub get P1() MyObject { return i }
-    pub get P2() MyObject { return i }
-    
-    pub get P() str { return Header + info }
-    fun getListObject(i mut int) ref mut MyObject:
-        return a[i]
-
-}
-
 // Mutable point
 pub type MyMutablePoint(X int, Y int)
 {
@@ -275,56 +238,6 @@ pub type MyMutablePoint(X int, Y int)
 }
 
 
-/// Example class, a test of hover comments and `code` comments
-pub type Example_x
-{
-    pub const CONST_FIELD int = 234
-    @field1 f32 pub get
-    @field2 int pub
-    @ChangedTime DateTime pub get = DateTime.Now
-
-    pub get Prop() str:
-        return Header + info
-    pub fun A(a int, b int, c f32) f32:
-        return  a+1
-    pub fun A(a f32) f32:
-        return a+1
-    pub fun B(a f32) f32:
-        return a+1
-
-    type DateTime { }
-        
-    pub fun E():
-        list.binarysearch(1, 23, @(a,b) => a.compare(b) )
-        const MY_CONST = 23
-        @a = f(x)
-        @b = f(MY_CONST)
-    
-}
-pub fun Example::MyExtension2():
-    return Func1(10)
-
-
-pub fun Example::MyExtension():
-    @a = Map<str,int>(["A":1, "B":2, "C":3])
-    @b Map<str,int> = ["A":1, "B":2, "C":3]
-    @c Map<int,PointXY> = [0:(3,4), 1:(5,6)]
-    
-    @d = 3                              // `a` is an int
-    @e = "Hello World"                  // `b` is a str
-    @f = MyFunction()                   // `c` is whatever type is returned by MyFunction
-    @g = List<int>([1,2,3])             // `d` is a list of integers, intialized with {1,2,3}
-    @h = Map<str,int>(["A":1,"B":2])    // `e` is a map of <str, int>
-    @i = Json(["A":1,"B":[1,2,3]])      // `f` is a Json object containing a number and an array
-   
-    @j int = MyIntFunc()                // Error if MyIntFunc returns a float
-    @k str                              // `b` is a string, initialized to ""
-    @l List<int>                        // `c` is an empty List<int>
-    @m List<int> = [1, 2, 3]
-    @n Map<str,int> = MyMapFunc()       // Error if MyMapFunc doesn't return Map<str,int>
-    @o Map<int,str> = [0:"a", 1:"b"]
-
-
 pub type PointXY<T>(X int, Y int)
     implements IArithmetic<T>
 {
@@ -332,270 +245,7 @@ pub type PointXY<T>(X int, Y int)
         return todo()
 }
 
-pub fun Example::Extension():
-    for @a in 1..23:
-        F(ref x, a)
-        F(y, a)
-    @i = 32
-    @j = 15
-    @k int = 64
-
 type MyStruct(a int)
-
-// Test class
-pub type Example2<Q>  // YES, errors working
-{
-    // Todo List:
-    //    .. operator doesn't need parameters at beginning or end
-    //    Support for :: operator (start::count)
-    //    Editor should always use spaces (or tabs, just pick one and be done)
-    //    Editor should comment out blocks with CTRL-'/'
-    //    Implement switch (doesn't use break)
-    //    Switch statement
-
-    // Fields initialized to zero, null, or "" for string
-    @f1 int          // Initialized to 0
-    @f2 f32      // Initialized to 0.0
-    @f3 str          // Initialized to "", not NULL
-    
-    @f4 Array<int> = [1,2,3,4]
-    @f5 Array<Array<int>>
-    @f7 Map<str,List<int>>
-    @f9 *int        // Same as Pointer<int>
-
-    /// TBD: Maybe allow these
-    //f10 = int(FuncReturnsInt())
-    //f11 = Array<int>()            // Array, Count=0
-    //f12 = Array<int>(32)          // Array, Count=32
-    //f13 = Array<int>([1,2,3])     // Array initialized with 1, 2, 3
-    //f13a = List<int>(32)          // Empty List, Capacity=32
-    //f14 = Map<str,str>()          // Empty map
-    
-    @f15 int = 32
-    @f16 int = FuncReturnsInt() >> 4
-    @f17 f32 = FuncReturnsf32orInt()
-    @f18 str = "Hello"
-    @f19 *int = GetIntPtr()      // Same as Pointer<int> = `GetIntPtr()`
-    
-    // Properties
-    pub get P1() int:
-        return 1
-    pub get P2() f32:
-        return f1 + f2
-        
-    pub get P5() int:
-        return p1
-    pub set P5(value int):
-        p1 = value
-    
-    pub fun operator[](index int) int:
-        return index
-    
-    // Function
-    fun fun1(a int) f32:
-        return f1 + f2 + a
-    fun fun2(a int) { }
-    fun fun3(a str) bool {}
-    fun fun4(a mut MyStruct) {}
-    fun fun5(a Array<Array<int>>) {}
-    fun fun6(a List<int>) { }
-    fun fun7(a mut List<List<int>>) { }
-    fun fun8(a Map<str,List<int>>) { }
-
-
-    pub fun CompareY(a int, b int) int:
-        return -1
-
-    pub fun CompareZ(a Q, b Q) int:
-        return -1
-
-    pub fun CompareX<T>(a T, b T) int:
-        return -1
-    
-    pub fun Sort<T>(greaterThan fun(a T,b T)bool):
-        return Todo()
-
-
-    
-    @MyFieldFunc fun(a object,b str) pub get
-
-
-    pub fun M<A,B>(a A, b B, c List<int>) List<int> {}
-    
-    fun fun9(a mut List<List<int>>) { }
-    
-    pub static fun Main(args Array<str>):
-        @a = use OpenFile("My File")
-        defer file.close()
-        
-        // Function calls vs parameter lists
-        @a1 = MyType<a,b,c>()
-        @a2 = MyType(a,b,c)()
-        @a3 = List<List<int>>()
-        @a4 = List(List(int))()
-        @a5 = M<str,int.x<T>.y>.Hello2<x.x>()
-        @a6 = M(str,int.x(T).y).Hello2(x.x)()
-        @a7 = f(f<a>())(a+b)
-
-        // Casts
-        @b = dref(cast(*int)myVoidPointer)
-
-
-        // Local variables declared in a function
-        @myString = "Hello World"
-        @myInt = 3
-        @myList1 = [1,2,3]
-        @myMap1 = ["A":1,"B":2]
-        @myList2 = List<int>([1,2,3])
-        @myMap = Map<str,int>(["A":1,"B":2])
-        @myOtherMap = MyMapReturningFunction()
-       
-        @myStr str = MyStrFunc()    // Error if MyStrFunc returns an int
-        @myInt int = MyIntFunc()    // Error if MyIntFunc returns a f32
-        @a str                      // `a` is a string, initialized to ""
-        @b List<int>                // `b` is a List<int>, initialized to empty
-    
-        @myNullStr ?str         // String is null
-        @myEmptyStr ?str = ""   // String is ""
-        
-        @myTranslation = tr"jeremy"
-
-        // static assigments
-        M<str>.Hello = 6
-        M<str,int.x<T>.y>.Hello2 = f(1, 2, "Jeremy")
-        M<str,int>.Hello2 = f(1, 2, @(x, y) => x < y)
-        
-        @a = x>y
-        if MyFieldFunc != null
-            { MyFieldFunc(this, "hello") }
-
-        @l1 = @ => { return 23 }
-        @l2 = @a => 23
-        list.Sort(@(a, b) => a < b)
-        list.Sort(@(a, b) => { return a < b })
-
-        // In operator
-        if myStr in myMap || myIn in 1..23:
-            DoSomething()
-
-        // Match expressions
-        //@num = 3 + match(myConstant)[1:a, 2..5:b, 6:myFunc(), default: 0]
-
-        // Switch statement
-        //switch a
-        //{
-        //case 1:
-        //    DoIt(1) // No break necessary
-        //case 2, 3:
-        //    DoIt2()
-        //default:
-        //    doit3()
-        //}
-        
-        @a json = [
-             "TestArray": [
-                 [
-                     "Field1": "A",
-                     "Field2": "B",
-                     "Field3": "C"
-                 ],
-                 [
-                     "Field1": "A",
-                     "Field2": "B",
-                     "Field3": "C"
-                 ]
-             ]
-         ]
-}
-
-
-pub fun Example::IfTests():
-    // In operator
-    if myStr in myMap || myIn in 1..23:
-        DoSomething()
-        break
-        return
-    
-    while f(x):
-        x = x + 1
-    
-    if myStr in myMap || myIn in 1..23:
-        DoSomething()
-        hello()
-    
-    
-    if a:
-        todo1()
-        todo2()
-    elif b:
-        todo()
-    elif c:
-        todo()
-    
-    if a:
-        f(x)
-    
-
-    if myStr in myMap || myIn in 1..23:
-        DoSomething()
-        hello()
-    else:
-        f(a)
-
-    if myStr in myMap || myIn in 1..23:
-        DoSomething()
-        hello()
-    else:
-        f(a)
-        
-
-    for @a in 1..23:
-      F(b, c)
-
-
-    for @a in 1..23:
-        F(b, c)
-
-pub type MyPoint(X int, Y int)
-{
-    pub override fun ToStr():
-        return "({X}, {Y})"
-}
-
-
-pub enum MyEnum
-{
-    A          // A=0
-    B; C      // B=1, C=2
-    D = 23
-    E = 48
-    F; G  // F=49, G=50
-}
-
-
-pub interface MyInterfaceTest
-{
-    fun A() int youdo
-    protected fun C() int youdo
-        
-    pub fun B() int:
-        return A() + 1
-        
-    pub type Astruct { @a int pub get }
-    pub enum Aenum { a; b; c}
-    pub type Aclass { @a int pub get }
-}
-
-pub type MyClass1
-    implements MyInterfaceTest
-{
-    pub fun A() int:
-        return 3
-    pub fun MyInterfaceTest::C() int:
-        return 3
-
-}
-
 
 pub fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool):
     // Simple selection sort
@@ -609,17 +259,6 @@ pub fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool):
         if lowIndex != i:
             s[lowIndex] = s[i]
             s[i] = lowElem
-
-// The matrix class is used to implement square 2d arrays
-pub type class Matrix2d<T>
-    extends VariableSizedObject<T>
-{
-    fun new(len1 int, len2 int):
-        todo()
-    pub fun operator[](i1 int, i2 int) ref T:
-        return todo()
-}
-
 
 
 pub fun MemCopy(dest *void, source *void, length xint):
@@ -666,79 +305,3 @@ pub fun MemCopy32(dest *void, source *void, length xint):
         dref(cast(*i32)d) = dref(cast(*i32)s); d+=4; s+=4
     while d != end:
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
-
-namespace TestExample.ExampleNs1.HelloWorld
-
-fun F1():
-    return todo()
-
-type ClassEx1
-{
-    @a int
-    @b int
-}
-
-
-
-namespace TestExample.ExampleNs1
-
-fun F1():
-    return todo()
-    
-namespace TestExample.ExampleNs1.InnerEx1
-
-namespace TestExample.ExampleNs1.InnerEx2
-
-namespace TestExample.ExampleNs1
-
-type ClassEx1
-{
-    @a int
-    @b int
-    type Inner1
-    {
-    }
-
-    type Inner2
-    {
-    }
-}
-type ClassEx2
-{
-    type Inner1
-    {
-    }
-
-    type Inner2
-    {
-    }
-}
-
-
-namespace TestExample.ExampleNs2
-
-fun F1():
-    return todo()
-
-type ClassEx1
-{
-    @a int
-    @b int
-    type Inner1
-    {
-    }
-
-    type Inner2
-    {
-    }
-}
-type ClassEx2
-{
-    type Inner1
-    {
-    }
-
-    type Inner2
-    {
-    }
-}

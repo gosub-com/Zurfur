@@ -33,7 +33,7 @@ namespace Gosub.Zurfur.Compiler
         public ZilGenHeader()
         {
             // Add built in unary generic types
-            foreach (var genericType in "* ^ [ ? ref own mut".Split(' '))
+            foreach (var genericType in "* ^ [ ? ref own mut ro".Split(' '))
             {
                 SymType sym = AddRootType(genericType, 1);
                 mUnaryTypeSymbols[genericType] = sym;
@@ -237,13 +237,16 @@ namespace Gosub.Zurfur.Compiler
                             Reject(field.Name, "Compiler error"); // Shouldn't happen
                             continue;
                         }
-                        // Skip enum and errors
+                        if (field.ParentScope != null && field.ParentScope.Keyword == "enum")
+                        {
+                            // The feild has it's parent enumeration type
+                            symField.TypeName = symField.Parent.FullName;
+                            continue;
+                        }
+                        // Skip errors, user probably typing
                         if (field.TypeName == null || field.TypeName.Token.Name == "")
                         {
-                            if (field.ParentScope !=null && field.ParentScope.Keyword == "enum")
-                                Warning(field.Name, "TBD: Process enum");
-                            else
-                                Reject(field.Name, "Expecting symbol to have an explicitly named type");
+                            Reject(field.Name, "Expecting symbol to have an explicitly named type");
                             continue;
                         }
                         symField.TypeName = ResolveTypeNameOrReject(symField, field.TypeName, syntaxFile.Key);
@@ -281,11 +284,6 @@ namespace Gosub.Zurfur.Compiler
 
             void ResolveMethodTypes(SymMethodGroup scope, SyntaxFunc func, string file)
             {
-                if (func.IsProperty)
-                {
-                    Warning(func.Name, "TBD: Property not processed yet");
-                    return;
-                }
                 if (func.MethodSignature.Count != 3)
                 {
                     Reject(func.Name, "Syntax error or compiler error");
@@ -301,7 +299,8 @@ namespace Gosub.Zurfur.Compiler
                 foreach (var expr in func.TypeArgs)
                 {
                     var typeSym = new SymTypeParam(method, file, expr.Token);
-                    mSymbols.AddOrReject(typeSym);
+                    if (mSymbols.AddOrReject(typeSym))
+                        expr.Token.AddInfo(typeSym);
                 }
 
                 var isExtension = func.ExtensionType != null && func.ExtensionType.Token != "";

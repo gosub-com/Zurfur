@@ -26,6 +26,11 @@ type VerifyErrors<T>
     fun IllegalGenericOverload<X>(a int) void { }
     fun IllegalGenericOverload(a byte) void { }
 
+    fun int::Hello() { } // Extension method only at namespace level
+
+    fun BadOverload(a int) {  } // Dummy
+    fun BadOverload(a int) int{  } // TBD: This overload should faile    
+
     // Undefined/unresolved
     @field1 hello
     @field2 List<List<hello>>
@@ -46,10 +51,7 @@ type VerifyErrors<T>
     pub fun fun6(a Zurfur) void {} // Symbol is a namespace
     pub fun fun7(a field1) void {} // Symbol is a field
     pub fun fun8(a fun1) void {} // Symbol is a method
-    pub fun fun9(a *?OneGeneric) void { }
-
-    
-
+    pub fun fun9(a *?OneGeneric) void { }    
 }
 
 

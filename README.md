@@ -57,10 +57,10 @@ Here are some key features:
 * [Zig](https://ziglang.org/) - A better and safer C
 * [Pinecone](https://github.com/wmww/Pinecone/blob/master/readme.md) - Inspiration to keep plugging away
 
-## Local Variables
+## Variables
 
-Within a function, variables are declared and initialized with the `@` 
-operator (i.e. the `var` keyword from C#):
+Variables are declared and initialized with the `@` operator
+(i.e. the `var` keyword from C#):
 
     @a = 3                          // a is an int
     @b = "Hello World"              // b is a str
@@ -80,9 +80,11 @@ typed variable with optional assignment from an expression.
     @e Map<str,f32> = ["A":1, "B:1.2]   // Create Map<str,f32>
     @f Json = ["A":1,"B":[1,2,3.5]]     // Create a Json
 
-An array of expressions `[e1, e2, e3...]` is used to initialize a list and
-an array of pairs `[K1:V1, K2:V2, K3:V3...]` is used to initialize a map.
-Brackets `[]` are used for both arrays and maps. Curly braces are reserved
+This form is required for field definitions.
+
+A list of expressions `[e1, e2, e3...]` is used to initialize a `List`
+and a list of pairs `[K1:V1, K2:V2, K3:V3...]` is used to initialize a `Map`.
+Brackets `[]` are used for both lists and maps. Curly braces are reserved
 for statement level constructs.  Constructors can be called with `()`.
 The following are identical:
 
@@ -91,8 +93,36 @@ The following are identical:
     @d Map<str, MyPointXY> = ["A": (X:1,Y:2), "B": (X:3,Y:4)]   // MyPointXY field initializer
     @a = ["A": MyPointXY(1,2), "B": MyPointXY(3,4)]
 
+## Immutability and References
 
-## Functions
+`ro` means read-only, not just at the top level, but at all levels.  When
+a field is `ro`, there is no way to modify or mutate any part of it:
+
+    @a List<MyType>         // `a[0].MyTypeVar = 1` is legal
+    @b ro List<MyType>>     // `b[0].MyTypeVar = 1` is not legal
+
+All mutable types are owned, and there is no *implicit* way to accidentally
+create a circular reference.  An object may be boxed (i.e. `^type`) to 
+*explicitly* create circular references.  
+
+There are no mutable reference types.  Given `fun f(a List<MyType>)`, it
+would be impossible for `f[0].MyTypeVar = 1` to change the value of
+`f[1].MyTypeVar`.  In C#, `f[0]` and `f[1]` could point to the same object,
+but in Zurfur they cannot.  Assuming `MyType` is a C# class, the equivalent
+definition in Zurfur is `fun f(a List<^MyType>)`.
+
+There are immutable reference types, such as `Array` and `str`.  Since they
+are immutable and boxed (i.e. `type ro boxed`), they can be copied quickly
+and there is no chance of them aliasing each other.
+
+Other references are short lived and allowed only on the stack.  Most of them
+require using the `ref` keyword.  The one exception is that most types are
+passed by immutable reference without the `ref` keyword.
+
+## Functions and Properties
+
+Functions are declared with the `fun` keyword. The type name comes after the
+argument, and the return type comes after the parameters:
 
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
@@ -100,48 +130,69 @@ The following are identical:
         // This is a regular private comment
         Log.Info("Hello World, 2+2={2+2}")
 
-Functions are declared with the `fun` keyword. The type name comes after the
-argument, and the return type comes after the parameters.
-
-Extension methods are allowed at the namespace level:
+Extension methods are declared at the namespace level:
 
     // Declare an extension method for strings
     pub str::Rest() str:
-        return Count == 0 ? "" : str(this[1..])
+        return this.Count == 0 ? "" : str(this[1..])
 
+Properties are public by default, and are defined with `get` and `set` keywords:
+
+    get MyString() str:
+        return myString
+
+    set MyString(v str):
+        myString = v
+        MyStringChangedEvent()
+  
 By default, functions pass parameters as read-only reference.  The exception
-is that small types (e.g. `int`, and `Span<T>`) may be passed by value
-when it is more efficient to do so.  In this example, `a` is passed by value.
+is that small types (e.g. `int`, and `Span<T>`) are passed by copy because
+it is more efficient to do so:
 
-    pub fun Test(a        int,          // Pass by value since that's more efficient
-                 b    mut int,          // Illegal since `int` is an immutable type (i.e. `type ro`)
-                 c        MyMutType,    // Read-only, pass by value or reference whichever is more efficient
-                 d    mut MyMutType)    // Mutable, but `ro` fields are preserved
+    pub fun Test(
+        a               int,  // Pass a copy (i.e. `type passcopy`)
+        b           mut int,  // Illegal since `int` is an immutable type (i.e. `type ro`)
+        c       mut ref int,  // Pass by ref, allow assignment
+        d           own int,  // Illegal since `int` is passed by value
+        e               str,  // Pass by ref since `str` is immutable boxed (i.e.`type ro boxed`)
+                              //    other qualifiers for `str` are the same as for `int`
+        f         List<int>,  // Pass by ref, read-only
+        g     mut List<int>,  // Pass by ref, allow mutable operations, but not assignment
+        h ref mut List<int>,  // Pass by ref, allow mutable operations and assignment
+        i     own List<int>,  // Take ownership of the list
+        j        MyMutType,   // Read-only, pass by value or reference depending on type
+        k    mut MyMutType)   // Mutable, but `ro` fields are preserved
 
-If `c` is big, such as a matrix containing 16 floats, it is passed by
-reference.  If it is small, such as a single `int` or `Span<type>`, it is
-passed by value.  A type containing three integers might be passed by value
-or by reference depending on the compiler, options, and optimizations.
-`d` is always passed by referece.  
+When an argument is passed by `mut`, it does not need to be annotated at the
+call site.  This is because it is obvious that `f(myList)` could possibly
+mutate `myList` and it's easy enough to see if `f` does that just by hovering
+over the definition of `f`.  Also, `f(myList)` can never replace `myList`,
+it can only modify it.
 
-**TBD:** `d` does not need to be annotated at the call site.  I am still
-undecided on this.  If you are passing an immutable type, (e.g. `int`,
-`Array`, etc.) it wouldn't apply because the type is immutable.  If you
-are passing a mutable type (e.g. `List`), you can hover over the function
-call to see if it is mutating a parameter.  Annotating all call sites with
-`mut` feels like it would unecessarily clutter the code.  OTOH, maybe it would
-make it easer to read or spot possible bugs.
+When an argument is pased by `mut ref`, it must be annotated at the call site
+(e.g. `f(ref myInt)`).  This is because it is not quickly obvious that the
+entire object could be replaced.  Furthermore, it would not be obvious that
+`f(myInt)` or `f(myString)` would change the value.  Therefore, if passed by
+`mut ref`, the call site need annotation such as `f(ref myInt)` or `f(ref myStr)`.
 
 There are no `out` parameters, but functions can return multiple values:
 
     // Multiple returns
     pub fun Circle(a f64, r f64) -> (x f64, y f64):
-        return a.Cos()*r, a.Sin()*r
+        return cos(a)*r, sin(a)*r
 
 The return parameters are always named, and can be used by the calling function:
 
     @location = Circle(a, r)
     Log.Info("X: {location.x}, Y:{location.y}")
+
+Functions and properties can return a mutable or immutable references to a field:
+
+    pub fun ListRoFun() ref List<int> { return ref myList}           // Read only ref
+    pub fun ListMutFun() mut ref List<int> { return mut ref myList } // Mutable ref
+    pub get ListRoProp() ref List<int> { return ref myList }         // Read only ref
+    pub get ListMutProp() mut ref List<int> { return ref myList}     // Mutable ref
+
 
 ## Types
 

@@ -63,7 +63,15 @@ namespace Gosub.Zurfur.Compiler
                     return;
                 if (symbol.Name == symbol.Parent.Name)
                 {
-                    Reject(symbol.Token, "Must not be same name as parent scope");
+                    if (symbol is SymMethodGroup group)
+                    {
+                        foreach (var s in group.Children)
+                            Reject(s.Value.Token, "Must not be same name as parent scope");
+                    }
+                    else
+                    {
+                        Reject(symbol.Token, "Must not be same name as parent scope");
+                    }
                 }
                 else if (symbol is SymTypeParam)
                 {

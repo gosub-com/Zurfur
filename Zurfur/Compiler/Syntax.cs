@@ -134,9 +134,6 @@ namespace Gosub.Zurfur.Compiler
         public SyntaxExpr MethodSignature;
         public SyntaxConstraint[] Constraints;
         public SyntaxExpr Statements;
-
-        // Only for fields/properties
-        public bool IsProperty;
     }
 
 

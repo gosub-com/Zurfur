@@ -39,7 +39,7 @@ type Point<T>(X T, Y T)
 {
     get a() int {}
     set a(v int) {}
-    pub fun aaa(a Zurfur.Shapes.Size<int>) {}
+    pub fun aaa(a Zurfur.Draw2d.Size<int>) {}
     
 }
 type Size<T>(Width T, Height T)
@@ -80,7 +80,7 @@ pub type AGenericTest<T, QQQ>
         nop()
 
 
-    pub fun aaa(a Zurfur.Shapes.Size<int>) {}
+    pub fun aaa(a Zurfur.Draw2d.Size<int>) {}
    
     pub fun P1() { return 0 }
     pub fun P2()->() { return 0}

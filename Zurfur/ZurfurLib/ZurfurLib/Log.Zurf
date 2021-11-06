@@ -27,6 +27,6 @@ pub type Log
     pub static fun TimeEnd(name str, message str = "") { }
 
 
-    type ro LogLine(FilePath str, Line int)
+    type passcopy ro LogLine(FilePath str, Line int)
 
 }

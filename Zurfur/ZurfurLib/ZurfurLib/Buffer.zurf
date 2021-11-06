@@ -5,7 +5,7 @@
 /// types implmeneted partially by the compiler.
 pub type boxed Buffer<T>
 {
-    ro @Count int pub get
+    @Count ro int pub get
 
     pub fun operator[](index int) mut ref T
         require index in 0..Count
