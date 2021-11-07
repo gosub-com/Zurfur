@@ -13,30 +13,29 @@ assume they are files and subdirectories.
 
 The top level directory contains:
 
-* Info.json - Information about the author, project, compiler, etc.
-* Manifest.json - Optional list of all files (used for signing)
-* Namespace directories - One for each top level namespace (`com.MyDomain.MyProject`, etc.)
+* Info.json: Information about the author, project, compiler, etc.
+* Manifest.json: Optional list of all files (used for signing)
+* Package directories: One for each top level package (`com.MyDomain.MyProject`, etc.)
 
-Top level namespace directories contain:
+## Package Directory Layout
 
-* Header.json - Header file, stripped of all private symbols.
-* Code.json - All symbols (both public and private) and code
-* Resources - Directory holding project resources (images, text files, translations, data, etc.)
+* Header.json: Header file, stripped of all private symbols.
+* HeaderAll.json: Superset of Header.json, containing all symbols.
+* Code.txt: Source code in text format (Zurfur intermediate language)
+* Resources: Directory holding project resources (images, text files, translations, data, etc.)
 
-**TBD:** Describe Info.json and Manifest.json
-
-## Header.json
+## Header and HeaderAll
 
 The `Header.json` file contains only public symbols needed by other packages
-so they can be compiled independently.  For speed, it should not be compressed.
-For verification, every symbol in the header must have an exact match in `Code.json`
+so they can be compiled independently.  For speed, it might not be compressed.
+For verification, every symbol in the header must have an exact match in
+`HeaderAll.json`
 
-**TBD**: Describe json layout
+The `HeaderAll.json` file contains all public and private symbols in the
+package.  It is an exact superset of `Header.json`.
 
-## Code.json
+## Code
 
-The `Code.json` file contains all symbols (public and private) and all code
-needed to compile the package.
+The `Code.txt` file contains Zurfur intermediate language.  TBD
 
-**TBD:** Describe json layout and Zil code format
 

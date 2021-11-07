@@ -16,6 +16,8 @@ namespace Gosub.Zurfur.Compiler
         {
             var headerFile = new List<string>();
 
+            headerFile.Add("DATE: " + DateTime.Now.ToString("s"));
+            headerFile.Add("");
             ShowErrors();
             ShowCounts();
             ShowOverview();

@@ -63,8 +63,12 @@ namespace Gosub.Zurfur.Compiler
                 Accept();
             else if (mTokenName == "\"")
                 ParseString();
-            else if (mTokenName[0] >= '0' && mTokenName[0] <= '9')
+            else if (mTokenName[0] >= '0' && mTokenName[0] <= '9' || mToken == "-" || mToken == "+")
+            {
                 Accept();
+                while (mTokenName != "" && mTokenName[0] >= '0' && mTokenName[0] <= '9' || mToken == "-" || mToken == "+")
+                    Accept();
+            }
             else if (mTokenName == "{")
                 ParseObject();
             else if (mTokenName == "[")
@@ -91,15 +95,18 @@ namespace Gosub.Zurfur.Compiler
         void ParseArray()
         {
             var open = Accept();
-            ParseValue();
-            if (!sEndArrayValue.Contains(mTokenName))
-                Reject("Expecting ',' or ']'", sEndArrayValue);
-            while (mTokenName == ",")
+            if (mToken != "]")
             {
-                Accept();
                 ParseValue();
                 if (!sEndArrayValue.Contains(mTokenName))
                     Reject("Expecting ',' or ']'", sEndArrayValue);
+                while (mTokenName == ",")
+                {
+                    Accept();
+                    ParseValue();
+                    if (!sEndArrayValue.Contains(mTokenName))
+                        Reject("Expecting ',' or ']'", sEndArrayValue);
+                }
             }
             if (AcceptMatch("]"))
                 Connect(open, mPrevToken);
@@ -108,11 +115,14 @@ namespace Gosub.Zurfur.Compiler
         void ParseObject()
         {
             var open = Accept();
-            ParseObjectKv();
-            while (mTokenName == ",")
+            if (mToken != "}")
             {
-                Accept();
                 ParseObjectKv();
+                while (mTokenName == ",")
+                {
+                    Accept();
+                    ParseObjectKv();
+                }
             }
             if (AcceptMatch("}"))
                 Connect(open, mPrevToken);

@@ -747,21 +747,23 @@ namespace Gosub.Zurfur
 
         private async void menuDebugViewOutput_Click(object sender, EventArgs e)
         {
-            await mBuildPackage.ReCompile();
+            await mBuildPackage.GeneratePackage();
 
-            // For now, just write it to path.  This should probably be moved to build system.
-            var report = mBuildPackage.GetReport();
-
-            if (!Directory.Exists(mBuildPackage.OutputDir))
-                Directory.CreateDirectory(mBuildPackage.OutputDir);
-
-            File.WriteAllLines(mBuildPackage.OutputFile, report);
             projectTree.RefreshFiles();
-            projectTree.OpenAndSelect(mBuildPackage.OutputFile);
-            LoadFile(mBuildPackage.OutputFile);
+            var files = new List<string> {
+                mBuildPackage.OutputFileReport,
+                mBuildPackage.OutputFileHeader,
+                mBuildPackage.OutputFileHeaderAll
+                };
+            foreach (var name in files)
+            {
+                projectTree.OpenAndSelect(name);
+                LoadFile(name);
+            }
+
             foreach (var editor in mvEditors.Editors)
-                if (editor.FilePath == mBuildPackage.OutputFile)
-                    editor.LoadFile(mBuildPackage.OutputFile);
+                if (files.Contains(editor.FilePath))
+                    editor.LoadFile(editor.FilePath);
         }
 
         private void pictureMenuIcon_Click(object sender, EventArgs e)

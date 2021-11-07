@@ -53,6 +53,7 @@
   <ItemGroup>
     <Compile Include="Compiler\BuildPackage.cs" />
     <Compile Include="Compiler\PackageDefinitions.cs" />
+    <Compile Include="Compiler\PackageGen.cs" />
     <Compile Include="Compiler\Symbols.cs" />
     <Compile Include="Compiler\ZilReport.cs" />
     <Compile Include="Compiler\ZilVerifyHeader.cs" />

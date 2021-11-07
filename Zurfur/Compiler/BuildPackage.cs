@@ -10,9 +10,7 @@ using Gosub.Zurfur.Compiler;
 using Gosub.Zurfur.Lex;
 using System.Diagnostics;
 using System.Windows.Forms;
-using System.Reflection;
-using System.Data;
-using System.CodeDom.Compiler;
+using Newtonsoft.Json;
 
 namespace Gosub.Zurfur.Compiler
 {
@@ -29,7 +27,6 @@ namespace Gosub.Zurfur.Compiler
         /// Hard code for now
         /// </summary>
         const string OUTPUT_DIR = "Output\\Debug";
-        const string OUTPUT_FILE = "PackageHeader.txt";
 
         public int SLOW_DOWN_MS = 0;
         public delegate void UpdateEventHandler(object sender, UpdatedEventArgs e);
@@ -50,9 +47,13 @@ namespace Gosub.Zurfur.Compiler
 
         List<TaskCompletionSource<bool>> mCompileDoneTasks = new List<TaskCompletionSource<bool>>();
         List<string> mReport = new List<string>();
-        public List<string> GetReport() => mReport;
-        public string OutputFile => Path.Combine(mBaseDir, OUTPUT_DIR, OUTPUT_FILE);
+        string mHeader = "Header.json";
+        string mHeaderAll = "HeaderAll.json";
+
         public string OutputDir => Path.Combine(mBaseDir, OUTPUT_DIR);
+        public string OutputFileReport => Path.Combine(mBaseDir, OUTPUT_DIR, "BuildReport.txt");
+        public string OutputFileHeader => Path.Combine(mBaseDir, OUTPUT_DIR, "Header.json");
+        public string OutputFileHeaderAll => Path.Combine(mBaseDir, OUTPUT_DIR, "HeaderAll.json");
 
         /// <summary>
         /// For status, Message: Build step (Loading, Parsing, Linking, etc.)
@@ -131,6 +132,23 @@ namespace Gosub.Zurfur.Compiler
             Compile();
         }
 
+        /// <summary>
+        /// Wait for compile to finish, then write files to disk
+        /// </summary>
+        public async Task GeneratePackage()
+        {
+            await ReCompile();
+            if (!Directory.Exists(OutputDir))
+                Directory.CreateDirectory(OutputDir);
+            await Task.Run(() => 
+            {
+                File.WriteAllLines(OutputFileReport, mReport);
+                File.WriteAllText(OutputFileHeader, mHeader);
+                File.WriteAllText(OutputFileHeaderAll, mHeaderAll);
+            });
+        }
+
+
         // If in the process of building, the task completes when it is done.
         // Otherwise, trigger a new build.
         public Task ReCompile()
@@ -172,10 +190,12 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
+        bool SourceCodeChanged => mLoadQueue.Count != 0 || mParseQueue.Count != 0;
+
         private async Task TryCompile()
         {
-            // Load, Lex, and Parse all files in the queue
-            while (mLoadQueue.Count != 0 || mParseQueue.Count != 0)
+            // Load, Lex, and Parse all files in the queue.
+            while (SourceCodeChanged)
             {
                 // Allow load and parse to run concurrently since
                 // one is mostly IO and the other mostly CPU.
@@ -184,9 +204,7 @@ namespace Gosub.Zurfur.Compiler
                 var parseTask = Parse();
                 await loadTask;
                 await parseTask;
-
-                if (mLoadQueue.Count == 0 && mParseQueue.Count == 0)
-                    await Generate();
+                await Generate();
             }
 
             foreach (var tcs in mCompileDoneTasks)
@@ -279,7 +297,12 @@ namespace Gosub.Zurfur.Compiler
 
         async Task Generate()
         {
+            // Abandon code generation when the source code changes
+            if (SourceCodeChanged)
+                return;
+
             await Task.Delay(SLOW_DOWN_MS);
+            StatusUpdate?.Invoke(this, new UpdatedEventArgs("Compiling headers"));
 
             var dt1 = DateTime.Now;
 
@@ -313,20 +336,41 @@ namespace Gosub.Zurfur.Compiler
 
             var dt2 = DateTime.Now;
 
-            // TBD: Move to background thread (clone Lexer, parse tree, etc.)
+            // TBD: This needs to move to a background thread, but it can't
+            // until we clone everything (Lexer, parse tree, etc.)
             var zil = new ZilGenHeader();
             zil.NoCompilerChecks = noCompilerChecks;
             zil.GenerateHeader(zurfFiles);
             if (!noVerify)
                 ZilVerifyHeader.VerifyHeader(zil.Symbols);
+
+            FileUpdate(this, new UpdatedEventArgs(""));
+
+            // Abandon code generation when the source code changes
+            if (SourceCodeChanged)
+                return;
+
+            StatusUpdate?.Invoke(this, new UpdatedEventArgs("Generating reports"));
             mReport = ZilReport.GenerateReport(zurfFiles, zil.Symbols);
+
+
+            // WIP: Serialize to json
+            // NOTE: Tokens in symbol table should be stable, so can run in a background thread
+            await Task.Run(() => 
+            {
+                var packageGen = new PackageGen();
+                var header = packageGen.MakeHeaderFile(zil.Symbols.Root, false);
+                var headerAll = packageGen.MakeHeaderFile(zil.Symbols.Root, true);
+                mHeader = JsonConvert.SerializeObject(header, Formatting.Indented);
+                mHeaderAll = JsonConvert.SerializeObject(headerAll, Formatting.Indented);
+            });
 
             var dt3 = DateTime.Now;
             var ts1 = dt2 - dt1;
             var ts2 = dt3 - dt2;
 
 
-            FileUpdate(this, new UpdatedEventArgs(""));
+            //FileUpdate(this, new UpdatedEventArgs(""));
 
             int errors = CountErrors();
             if (errors != 0)

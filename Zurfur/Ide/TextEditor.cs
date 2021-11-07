@@ -462,8 +462,15 @@ namespace Gosub.Zurfur
         /// </summary>
         public int IndexToCol(string line, int charIndex)
         {
-            int col = 0;
-            for (int i = 0; i < charIndex && i < line.Length; i++)
+            // For long lines, this is horrendously slow.  Need to fix. 
+            var tabIndex = line.IndexOf('\t');
+            if (tabIndex < 0)
+                return Math.Min(charIndex, line.Length);
+            if (charIndex < tabIndex)
+                return charIndex;
+
+            int col = tabIndex;
+            for (int i = tabIndex; i < charIndex && i < line.Length; i++)
             {
                 if (line[i] == '\t')
                     col += mTabSize - col%mTabSize;
@@ -1295,9 +1302,14 @@ namespace Gosub.Zurfur
             int col = IndexToCol(token.Location);
             float x = PointX(col);
             float y = PointY(token.Y);
+            if (x > Width || y > Height)
+                return; // Off screen
+
             int tokenLength = token.Name.Length == 0 ? 4 : token.Name.Length; // Give EOF some width
             float xEnd = PointX(col + tokenLength);
             float yEnd = PointY(token.Y + 1);
+            if (xEnd < 0 || yEnd < 0)
+                return; // Off screen
 
             // Check if mTestToken is under mTestPoint, keep first hit which is the meta token
             if (mTestToken == null

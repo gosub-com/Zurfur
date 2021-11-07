@@ -20,10 +20,10 @@ namespace Gosub.Zurfur.Compiler
     ///     .   Module
     ///     /   Type name
     ///     @   Field name
-    ///     :   Method group (all overloads with the same name)
-    ///     !   Method, followed by prototype
+    ///     :   Method, followed by prototype (contains $fun, $get, etc.)
     ///     #   Generic argument (followed by argument number)
-    ///     ~   Parameter name
+    ///     ~   Method parameter (followed by ! for parameter or ` for return)
+    ///     ~~  Generic parameter
     ///     `   Number of generic arguments, suffix for type name
     ///     ()  Method parameters
     ///     <>  Generic parameters
@@ -59,14 +59,7 @@ namespace Gosub.Zurfur.Compiler
         public string Name { get; private set; }
 
         /// <summary>
-        /// Prefix for the kind of symbol:
-        ///     .   Module
-        ///     /   Type name
-        ///     @   Field name
-        ///     :   Method group (all overloads with the same name)
-        ///     !   Method, followed by prototype
-        ///     #   Generic argument (followed by argument number)
-        ///     ~   Parameter name
+        /// Prefix for the kind of symbol.  See `Symbol` for more info.
         /// </summary>
         protected abstract string Separator { get; }
 
@@ -75,6 +68,10 @@ namespace Gosub.Zurfur.Compiler
         /// by a number (e.g. "`2" for a type with two generic parameters).
         /// </summary>
         protected virtual string Suffix => "";
+
+        public string FullNameWithoutParent => Separator + Name + Suffix;
+
+        public bool HasToken => mToken != null && mFile != null;
 
         /// <summary>
         /// Source code token if it exists.  Throws an exception for
@@ -160,6 +157,9 @@ namespace Gosub.Zurfur.Compiler
             mChildren[value.Name] = value;
         }
 
+        /// <summary>
+        /// The complete name of the symbol, including all parents up the tree.
+        /// </summary>
         public string FullName
         {
             get
@@ -275,7 +275,7 @@ namespace Gosub.Zurfur.Compiler
         {
         }
         public override string Kind => "type parameter";
-        protected override string Separator => "~";
+        protected override string Separator => "~~";
 
     }
 
@@ -303,7 +303,7 @@ namespace Gosub.Zurfur.Compiler
     {
         public SymMethod(Symbol parent, string file, Token token, string name) : base(parent, file, token, name) { }
         public override string Kind => "method";
-        protected override string Separator => "!";
+        protected override string Separator => ""; // The method group is the separator
 
         public bool IsGetter => Name.Contains("$get(") || Name.Contains("$aget(");
         public bool IsSetter => Name.Contains("$set(") || Name.Contains("$aset(");
@@ -312,14 +312,14 @@ namespace Gosub.Zurfur.Compiler
 
     class SymMethodParam : Symbol
     {
-        public SymMethodParam(Symbol parent, string file, Token token) : base(parent, file, token)
+        public SymMethodParam(Symbol parent, string file, Token token, bool isReturn) : base(parent, file, token)
         {
+            IsReturn = isReturn;
         }
         public override string Kind => "parameter";
-        protected override string Separator => "~";
-        public bool IsReturn;
+        protected override string Separator => IsReturn ? "~!" : "~`";
+        public bool IsReturn { get; private set; }
         public string TypeName = "";
-
     }
 
     /// <summary>
