@@ -35,20 +35,13 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// See `PackageSymbolsJson` for info
         /// </summary>
-        public PackageSymbolJson Symbols = new PackageSymbolJson();
+        public List<PackageSymbolJson> Symbols = new List<PackageSymbolJson>();
     }
+
 
     /// <summary>
     /// This is the sanitized version of `Symbol` so we have a clear separation
     /// between internal compiler data structures and the public API.
-    /// 
-    /// Names include the separator in front of the symbol, and are verified
-    /// to be correct (e.g. modules begin with `.`, types begine with `/`, etc.)
-    /// 
-    /// Type names include the number of generic parameters
-    /// (e.g. '/Range`1').  Method names include the group name
-    /// (e.g. ':GetHashCode!$fun(Zurfur/bool)(Zurfur/i64)').
-    /// 
     /// Names will be verified to be correct.  Exact rules still TBD.
     /// </summary>
     public class PackageSymbolJson
@@ -57,37 +50,34 @@ namespace Gosub.Zurfur.Compiler
         /// The name includes the separator at the beginning and suffix
         /// at the end.  The type of the symbol is determined by the
         /// separator at the beginning and is one of the following:
-        ///     .   Module
-        ///     /   Type name
+        ///     .   Module or type name
         ///     @   Field name
-        ///     :   Method, followed by prototype (contains $fun, $get, etc.)
+        ///     :   Method name (no parameter types)
         ///     #   Generic argument (followed by argument number)
-        ///     ~   Method parameter (followed by ! for parameter or ` for return)
-        ///     ~~  Generic parameter
+        ///     ~   Method or type parameter
         /// </summary>
         public string Name = "";
-        public string[] Qualifiers = Array.Empty<string>();
-        public string Comments = "";
-
-        /// <summary>
-        /// Optional token location in source code (File index, X, Y).
-        /// When not present, FI is negative.
-        /// </summary>
-        public int FI = -1, X, Y;
+        public string[] Qualifiers;
+        public string Comments;
 
         /// <summary>
         /// Type args and function parameters MUST be saved in the same order
         /// they are declared in the source code.
         /// </summary>
-        public List<PackageSymbolJson> Symbols = new List<PackageSymbolJson>();
+        public List<PackageSymbolJson> Symbols;
 
         // Anything not needed for this type can be omitted
-        public string TypeName = ""; // Field, 
+        // by leaving it at the default value
+        public string Type; // Field, method parameter
 
-        public override string ToString()
-        {
-            return Name;
-        }
-
+        public override string ToString() => Name;
     }
+
+
+    public class PackageMethodJson : PackageSymbolJson
+    {
+        
+    }
+
+
 }

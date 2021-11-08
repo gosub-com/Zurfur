@@ -9,21 +9,17 @@ namespace Gosub.Zurfur.Compiler
 {
 
     /// <summary>
-    /// NOTE: This is all strictly internal to the compiler.
+    /// NOTE: This data structure is all internal to the compiler.
     /// The public definitions are contained in PackageDefinitions.cs.
-    /// For example, `SymMethodGroup` doesn't exist in the header file json
-    /// and type names are stored here without the separator or generic
-    /// arguments parameter. (e.g. 'Range' is used here, but '/Range`1'
-    /// is stored as the name in the json)
+    /// For example, `SymMethodGroup` doesn't exist in the header file
+    /// json, and there can be other differences.
     /// 
     /// Symbol symbols:
-    ///     .   Module
-    ///     /   Type name
+    ///     .   Module or type
     ///     @   Field name
-    ///     :   Method, followed by prototype (contains $fun, $get, etc.)
+    ///     :   Method, followed by prototype
     ///     #   Generic argument (followed by argument number)
-    ///     ~   Method parameter (followed by ! for parameter or ` for return)
-    ///     ~~  Generic parameter
+    ///     ~   Parameter (method or type)
     ///     `   Number of generic arguments, suffix for type name
     ///     ()  Method parameters
     ///     <>  Generic parameters
@@ -33,9 +29,6 @@ namespace Gosub.Zurfur.Compiler
     ///     this        Implicit extension/member method parameter
     ///     return      Implicit return parameter name
     ///     ext         Extension type (container for extension methods)
-    ///     fun         Function
-    ///     get/aget    Prefix for getters
-    ///     set/aset    Prefix for setters
     /// </summary>
     abstract class Symbol
     {
@@ -112,8 +105,6 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Create a symbol that is unique in the soruce code (e.g. SymMethod,
         /// SymType, SymField, etc.) and can be marked with token information.
-        /// The name doesn't need to match the token.  e.g. For "fun A(){}",
-        /// the name is "$fun()()", but the token is "A".
         /// </summary>
         public Symbol(Symbol parent, string file, Token token, string name = null)
         {
@@ -257,7 +248,7 @@ namespace Gosub.Zurfur.Compiler
         public SymType(Symbol parent, string file, Token token) : base(parent, file, token) { }
         public SymType(Symbol parent, string name) : base(parent, name) { }
         public override string Kind => "type";
-        protected override string Separator => "/";
+        protected override string Separator => ".";
 
         protected override string Suffix
         {
@@ -275,7 +266,7 @@ namespace Gosub.Zurfur.Compiler
         {
         }
         public override string Kind => "type parameter";
-        protected override string Separator => "~~";
+        protected override string Separator => "~";
 
     }
 
@@ -305,9 +296,9 @@ namespace Gosub.Zurfur.Compiler
         public override string Kind => "method";
         protected override string Separator => ""; // The method group is the separator
 
-        public bool IsGetter => Name.Contains("$get(") || Name.Contains("$aget(");
-        public bool IsSetter => Name.Contains("$set(") || Name.Contains("$aset(");
-        public bool IsFunc => Name.Contains("$fun(") || Name.Contains("$afun(");
+        public bool IsGetter => Qualifiers.Contains("get") || Qualifiers.Contains("aget");
+        public bool IsSetter => Qualifiers.Contains("set") || Qualifiers.Contains("aset");
+        public bool IsFunc => Qualifiers.Contains("fun") || Qualifiers.Contains("afun");
     }
 
     class SymMethodParam : Symbol
@@ -317,7 +308,7 @@ namespace Gosub.Zurfur.Compiler
             IsReturn = isReturn;
         }
         public override string Kind => "parameter";
-        protected override string Separator => IsReturn ? "~!" : "~`";
+        protected override string Separator => "~";
         public bool IsReturn { get; private set; }
         public string TypeName = "";
     }

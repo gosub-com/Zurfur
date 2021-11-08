@@ -462,20 +462,18 @@ namespace Gosub.Zurfur
         /// </summary>
         public int IndexToCol(string line, int charIndex)
         {
+            const int MAX_TAB_COL = 128;
             // For long lines, this is horrendously slow.  Need to fix. 
-            var tabIndex = line.IndexOf('\t');
-            if (tabIndex < 0)
-                return Math.Min(charIndex, line.Length);
-            if (charIndex < tabIndex)
-                return charIndex;
-
-            int col = tabIndex;
-            for (int i = tabIndex; i < charIndex && i < line.Length; i++)
+            // As a quick & dirty fix, just ignore tabs past column MAX_TAB_COL
+            int col = 0;
+            for (int i = 0; i < charIndex && i < line.Length; i++)
             {
                 if (line[i] == '\t')
                     col += mTabSize - col%mTabSize;
                 else
                     col++;
+                if (i > MAX_TAB_COL)
+                    return col + charIndex - i;
             }
             return col;
         }
@@ -1261,14 +1259,18 @@ namespace Gosub.Zurfur
                         DrawToken(gr, metaToken, background);
 
             // Draw all tokens on the screen
-            foreach (Token token in mLexer.GetEnumeratorStartAtLine(startLine))
+            for (int y = startLine;  y < mLexer.LineCount && y <= endLine;  y++)
             {
-                // Quick exit when drawing below screen
-                if (token.Y >= endLine)
-                    break;
-
-                DrawToken(gr, token, background);
+                var line = mLexer.GetLineTokens(y);
+                for (int x = 0;  x < line.Length;  x++)
+                {
+                    var token = line[x];
+                    if (PointX(token.X) > Width)
+                        break;  // Ignore tabs here which can only push text out
+                    DrawToken(gr, token, background);
+                }
             }
+
         }
 
         private void GetTextClipRegion(Graphics gr, out int startLine, out int endLine)

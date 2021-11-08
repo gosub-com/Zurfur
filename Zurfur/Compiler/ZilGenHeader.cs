@@ -110,6 +110,7 @@ namespace Gosub.Zurfur.Compiler
                     else
                     {
                         newModule = new SymModule(parentSymbol, token.Name);
+                        newModule.Qualifiers = new string[] { "pub", "module" }; // TBD: Allow private/internal
                         token.AddInfo(newModule);
                         mSymbols.AddOrReject(newModule);
                     }
@@ -128,7 +129,7 @@ namespace Gosub.Zurfur.Compiler
                     {
                         var newType = new SymType(mSymbols.FindPath(type.ModulePath), syntaxFile.Key, type.Name);
                         newType.Comments = type.Comments;
-                        newType.Qualifiers = Array.ConvertAll(type.Qualifiers, a => a.Name);
+                        newType.Qualifiers = Array.ConvertAll(type.Qualifiers, a => a.Name).Append("type").ToArray();
                         newType.Token.AddInfo(newType);
                         if (mSymbols.AddOrReject(newType))
                         {
@@ -180,6 +181,7 @@ namespace Gosub.Zurfur.Compiler
                             if (!scope.Children.TryGetValue("$ext", out var extensionScope))
                             {
                                 extensionScope = new SymType(scope, "$ext");
+                                extensionScope.Qualifiers = new string[] { "pub", "type", "ext" };
                                 if (!mSymbols.AddOrReject(extensionScope))
                                     Debug.Assert(false);  // Can't fail
                             }
@@ -347,9 +349,7 @@ namespace Gosub.Zurfur.Compiler
                 mp.Sort((a, b) => a.Order.CompareTo(b.Order));
                 var xParams = mp.FindAll(a => !a.IsReturn).ToArray();
                 var xReturns = mp.FindAll(a => a.IsReturn).ToArray();
-                var propQualifier = Array.Find(method.Qualifiers, f => sPropertyQualifiers.Contains(f));
                 var methodName = (genericsCount == 0 ? "" : "`" + genericsCount)
-                            + (propQualifier == null ? "$fun" : "$" + propQualifier)
                             + "(" + string.Join(",", Array.ConvertAll(xParams, a => a.TypeName)) + ")"
                             + "(" + string.Join(",", Array.ConvertAll(xReturns, a => a.TypeName)) + ")";
                 method.SetName(methodName);

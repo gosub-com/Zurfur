@@ -47,13 +47,13 @@ namespace Gosub.Zurfur.Compiler
 
         List<TaskCompletionSource<bool>> mCompileDoneTasks = new List<TaskCompletionSource<bool>>();
         List<string> mReport = new List<string>();
-        string mHeader = "Header.json";
-        string mHeaderAll = "HeaderAll.json";
+        string mHeaderPublic = "Header.json";
+        string mHeaderPrivate = "HeaderAll.json";
 
         public string OutputDir => Path.Combine(mBaseDir, OUTPUT_DIR);
         public string OutputFileReport => Path.Combine(mBaseDir, OUTPUT_DIR, "BuildReport.txt");
-        public string OutputFileHeader => Path.Combine(mBaseDir, OUTPUT_DIR, "Header.json");
-        public string OutputFileHeaderAll => Path.Combine(mBaseDir, OUTPUT_DIR, "HeaderAll.json");
+        public string OutputFileHeaderPublic => Path.Combine(mBaseDir, OUTPUT_DIR, "HeaderPublic.json");
+        public string OutputFileHeaderPrivate => Path.Combine(mBaseDir, OUTPUT_DIR, "HeaderPrivate.json");
 
         /// <summary>
         /// For status, Message: Build step (Loading, Parsing, Linking, etc.)
@@ -143,8 +143,8 @@ namespace Gosub.Zurfur.Compiler
             await Task.Run(() => 
             {
                 File.WriteAllLines(OutputFileReport, mReport);
-                File.WriteAllText(OutputFileHeader, mHeader);
-                File.WriteAllText(OutputFileHeaderAll, mHeaderAll);
+                File.WriteAllText(OutputFileHeaderPublic, mHeaderPublic);
+                File.WriteAllText(OutputFileHeaderPrivate, mHeaderPrivate);
             });
         }
 
@@ -359,10 +359,12 @@ namespace Gosub.Zurfur.Compiler
             await Task.Run(() => 
             {
                 var packageGen = new PackageGen();
-                var header = packageGen.MakeHeaderFile(zil.Symbols.Root, false);
-                var headerAll = packageGen.MakeHeaderFile(zil.Symbols.Root, true);
-                mHeader = JsonConvert.SerializeObject(header, Formatting.Indented);
-                mHeaderAll = JsonConvert.SerializeObject(headerAll, Formatting.Indented);
+                var headerPublic = packageGen.MakeHeaderFile(zil.Symbols.Root, true);
+                var headerPrivate = packageGen.MakeHeaderFile(zil.Symbols.Root, false);
+                mHeaderPublic = JsonConvert.SerializeObject(headerPublic, Formatting.None,
+                    new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore });
+                mHeaderPrivate = JsonConvert.SerializeObject(headerPrivate,
+                    new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore });
             });
 
             var dt3 = DateTime.Now;

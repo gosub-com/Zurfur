@@ -19,20 +19,21 @@ The top level directory contains:
 
 ## Package Directory Layout
 
-* Header.json: Header file, stripped of all private symbols.
-* HeaderAll.json: Superset of Header.json, containing all symbols.
+* HeaderPublic.json: Header file, stripped of all private symbols.
+* HeaderPrivate.json: Superset of Header.json, containing all symbols.
 * Code.txt: Source code in text format (Zurfur intermediate language)
 * Resources: Directory holding project resources (images, text files, translations, data, etc.)
 
-## Header and HeaderAll
+## HeaderPublic and HeaderPrivate
 
-The `Header.json` file contains only public symbols needed by other packages
+The `HeaderPublic.json` file contains only public symbols needed by other packages
 so they can be compiled independently.  For speed, it might not be compressed.
-For verification, every symbol in the header must have an exact match in
-`HeaderAll.json`
+For verification, every symbol in the public header must have an exact match in
+`HeaderPrivate.json`
 
-The `HeaderAll.json` file contains all public and private symbols in the
-package.  It is an exact superset of `Header.json`.
+The `HeaderPrivate.json` file contains all public and private symbols in the
+package.  It is a superset of `HeaderPublic.json`.
+
 
 ## Code
 
