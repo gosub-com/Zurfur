@@ -925,7 +925,7 @@ namespace Gosub.Zurfur
         /// delegate can be called and the undo buffer maintained.
         /// RETURNS: The end of the replaced text
         /// </summary>
-        TokenLoc ReplaceText(string[] replacementText,
+        public TokenLoc ReplaceText(string[] replacementText,
                          TokenLoc start, TokenLoc end)
         {
             TokenLoc.FixOrder(ref start, ref end);
@@ -1084,9 +1084,7 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Gets/sets the lexer to hold and lex the text.
         /// When set, if the text is different, the undo-redo
-        /// is deleted.
-        /// WARNING: Do not change the text from the lexer, or else
-        ///          it gets out of sync with this control.  
+        /// is deleted.  Use TextEditor.ReplaceText to handle undo.
         /// </summary>
         public Lexer Lexer
         {

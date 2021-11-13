@@ -12,17 +12,13 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// This may be called after all steps have been completed.
         /// </summary>
-        static public List<string> GenerateReport(Dictionary<string, SyntaxFile> mFiles, SymbolTable mSymbols)
+        static public void GenerateReport(List<string> headerFile, Dictionary<string, SyntaxFile> mFiles, SymbolTable mSymbols)
         {
-            var headerFile = new List<string>();
-
-            headerFile.Add("DATE: " + DateTime.Now.ToString("s"));
-            headerFile.Add("");
             ShowErrors();
             ShowCounts();
             ShowOverview();
             ShowTypes();
-            return headerFile;
+            return;
 
             void ShowErrors()
             {
@@ -166,70 +162,6 @@ namespace Gosub.Zurfur.Compiler
                 }
                 return;
 
-                // TBD: Maybe add this back in, or delete
-                foreach (var s in ls)
-                {
-                    var symbol = ds[s];
-
-                    if (symbol is SymMethodGroup
-                            || symbol is SymMethodParam
-                            || symbol is SymTypeParam
-                            || symbol is SymModule
-                            || symbol is SymField
-                            || symbol is SymParameterizedType)
-                        continue;
-
-                    headerFile.Add($"    {symbol.Kind}: {s}");
-
-                    // Show method parameters under the method
-                    if (symbol is SymMethod)
-                    {
-                        if (symbol.Qualifiers.Length != 0)
-                            headerFile.Add($"        QUAL: {string.Join(",", symbol.Qualifiers)}");
-                        var tp = GetTypeParamNames(symbol);
-                        if (tp != "")
-                            headerFile.Add($"        TYPE PARAMS: {tp}");
-                        foreach (var param in symbol.Children.Values)
-                        {
-                            if (param is SymMethodParam smp)
-                                headerFile.Add($"        {(smp.IsReturn ? " OUT" : "  IN")}: {smp.Name} {smp.TypeName}");
-                        }
-                    }
-
-                    // Show type fields under the type
-                    if (symbol is SymType)
-                    {
-                        if (symbol.Qualifiers.Length != 0)
-                            headerFile.Add($"        QUAL: {string.Join(",", symbol.Qualifiers)}");
-                        var tp = GetTypeParamNames(symbol);
-                        if (tp != "")
-                            headerFile.Add($"        TYPE PARAMS: {tp}");
-                        foreach (var f in symbol.Children.Values)
-                        {
-                            if (f is SymField sf)
-                            {
-                                var qual = "";
-                                if (sf.Qualifiers.Contains("const"))
-                                    qual = "CONST ";
-                                else if (sf.Qualifiers.Contains("static"))
-                                    qual = "STATIC ";
-                                headerFile.Add($"        @{sf.Name} {qual} {sf.TypeName}");
-                            }
-                        }
-
-                    }
-
-                }
-            }
-
-
-            string GetTypeParamNames(Symbol symbol)
-            {
-                var tParams = symbol.FindChildren<SymTypeParam>();
-                if (tParams.Count == 0)
-                    return "";
-                tParams.Sort((a, b) => a.Order.CompareTo(b.Order));
-                return "<" + string.Join(",", tParams.ConvertAll(a => a.Name).ToArray()) + ">";
             }
 
 

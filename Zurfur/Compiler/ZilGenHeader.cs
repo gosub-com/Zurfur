@@ -35,22 +35,11 @@ namespace Gosub.Zurfur.Compiler
             // Add built in unary generic types
             foreach (var genericType in "* ^ [ ? ref own mut ro".Split(' '))
             {
-                SymType sym = AddRootType(genericType, 1);
+                SymType sym = mSymbols.FindOrAddIntrinsicType(genericType, 1);
                 mUnaryTypeSymbols[genericType] = sym;
             }
         }
 
-        private SymType AddRootType(string type, int numGenerics)
-        {
-            var sym = new SymType(mSymbols.Root, type);
-            mSymbols.AddOrReject(sym);
-            for (int i = 0; i < numGenerics; i++)
-            {
-                var tn = "T" + (numGenerics == 1 ? "" : $"{i + 1}");
-                mSymbols.AddOrReject(new SymTypeParam(sym, "", new Token(tn)));
-            }
-            return sym;
-        }
 
         public bool NoCompilerChecks
         {
@@ -174,13 +163,13 @@ namespace Gosub.Zurfur.Compiler
                     {
                         var scope = mSymbols.FindPath(method.ModulePath);
 
-                        // Move extensions to $ext type
+                        // Move extensions to $extension type
                         var isExtension = method.ExtensionType != null && method.ExtensionType.Token != "";
                         if (isExtension)
                         {
-                            if (!scope.Children.TryGetValue("$ext", out var extensionScope))
+                            if (!scope.Children.TryGetValue("$extension", out var extensionScope))
                             {
-                                extensionScope = new SymType(scope, "$ext");
+                                extensionScope = new SymType(scope, "$extension");
                                 extensionScope.Qualifiers = new string[] { "pub", "type", "ext" };
                                 if (!mSymbols.AddOrReject(extensionScope))
                                     Debug.Assert(false);  // Can't fail
@@ -268,9 +257,9 @@ namespace Gosub.Zurfur.Compiler
                     {
                         var scope = mSymbols.FindPath(func.ModulePath);
 
-                        // Extension functions are located in $ext
+                        // Extension functions are located in $extension
                         if (func.ExtensionType != null && func.ExtensionType.Token != "")
-                            scope = scope.Children["$ext"];
+                            scope = scope.Children["$extension"];
 
                         var group = scope.Children[func.Name];
                         if (!(group is SymMethodGroup))
@@ -546,11 +535,9 @@ namespace Gosub.Zurfur.Compiler
                 //    returnTypes.Add(typeExpr[2].Token.Name);
 
                 // Add generic "$fun#" symbol to root, where # is the number of generic arguments
-                var name = "$" + typeExpr.Token.Name + (paramTypes.Count + returnTypes.Count);
-                if (!mSymbols.Root.Children.TryGetValue(name, out var genericFunType))
-                {
-                    genericFunType = AddRootType(name, paramTypes.Count + returnTypes.Count);
-                }
+                var numGenerics = paramTypes.Count + returnTypes.Count;
+                var name = "$" + typeExpr.Token.Name + numGenerics;
+                Symbol genericFunType = mSymbols.FindOrAddIntrinsicType(name, numGenerics);
 
                 var typeParent = genericFunType;
                 var spec = new SymParameterizedType(typeParent, paramTypes.ToArray(), returnTypes.ToArray());
@@ -705,7 +692,7 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Find a symbol in the current scope, excluding $ext.
+        /// Find a symbol in the current scope, excluding $extension.
         /// If it's not found, scan use statements for all occurences. 
         /// Marks an error if undefined or duplicate.  Returns null on error.
         /// TBD: If symbol is unique in this package, but duplicated in an
@@ -750,14 +737,14 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Find the symbol in the scope, excluding $ext, or null if it is not found.
+        /// Find the symbol in the scope, excluding $extension, or null if it is not found.
         /// Does not search use statements.
         /// </summary>
         public Symbol FindInScopeNoExtension(string name, Symbol scope)
         {
             while (scope.Name != "")
             {
-                if (scope.Name != "$ext" && scope.Children.TryGetValue(name, out var symbol))
+                if (scope.Name != "$extension" && scope.Children.TryGetValue(name, out var symbol))
                     return symbol;
                 scope = scope.Parent;
             }

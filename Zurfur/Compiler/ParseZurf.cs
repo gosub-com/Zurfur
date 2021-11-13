@@ -53,12 +53,12 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sContinuationEnd = new WordSet("[ ( ,");
         static WordSet sContinuationNoBegin = new WordSet("} namespace module pub fun afun extern implement youdo static");
         static WordSet sContinuationBegin = new WordSet("\" ] ) , . + - * / % | & || && == != "
-                            + ": ? > << <= < => -> .. :: !== ===  is in as "
+                            + ": ? > << <= < => -> .. :: !== ===  is in as has "
                             + "= += -= *= /= %= |= &= ~=");
         static WordSet sContinuationNoCheckAlign = new WordSet("] ) {");
         WordSet sStringLiteralEscapes = new WordSet("{ \" }");
 
-        static WordSet sReservedWords = new WordSet("abstract as base break case catch class const "
+        static WordSet sReservedWords = new WordSet("abstract as has base break case catch class const "
             + "continue default delegate do then else elif enum explicit extern true false defer use "
             + "finally fixed for goto if implicit in interface internal is lock namespace module include "
             + "new null operator out override pub public private protected readonly ro ref dref mut imut "
@@ -269,6 +269,7 @@ namespace Gosub.Zurfur.Compiler
                 qualifiers.Clear();
                 while (sClassFieldQualifiers.Contains(mTokenName))
                 {
+                    mToken.Type = eTokenType.ReservedControl;
                     qualifiers.Add(Accept());
                 }
 
@@ -576,13 +577,7 @@ namespace Gosub.Zurfur.Compiler
                     RejectToken(openToken, mTokenName == "" ? "This scope has no closing brace"
                                                             : "This scope has an error on its closing brace");
                 }
-                openToken.AddInfo(new TokenVerticalLine
-                {
-                    X = openToken.X,
-                    Y = openToken.Y + 1,
-                    Lines = mPrevToken.Y - openToken.Y,
-                    Error = error
-                });
+                Token.AddScopeLines(mLexer, openToken.Y, mPrevToken.Y - openToken.Y, error);
             }
             else
             {
@@ -1005,14 +1000,7 @@ namespace Gosub.Zurfur.Compiler
             //      other TokenVerticalLines.
             int scopeLines = mPrevToken.Y - keywordColumnToken.Y;
             if (scopeLines >= 2)
-            {
-                keywordColumnToken.AddInfo(new TokenVerticalLine
-                {
-                    X = keywordColumn,
-                    Y = keywordColumnToken.Y + 1,
-                    Lines = scopeLines
-                });
-            }
+                Token.AddScopeLines(mLexer, keywordColumnToken.Y, scopeLines, false);
 
             return new SyntaxMulti(semicolon, FreeExprList(statement));
         }
@@ -1053,16 +1041,11 @@ namespace Gosub.Zurfur.Compiler
                 RejectToken(openToken, mTokenName == "" ? "This scope has no closing brace"
                                                         : "This scope has an error on its closing brace");
             }
-            openToken.SetInfo(new TokenVerticalLine
-            {
-                X = openToken.X,
-                Y = openToken.Y + 1,
-                Lines = mPrevToken.Y - openToken.Y - 1,
-                Error = error
-            });
+            Token.AddScopeLines(mLexer, openToken.Y, mPrevToken.Y - openToken.Y - 1, error);
 
             return new SyntaxMulti(openToken, FreeExprList(statements));
         }
+
         private void ParseStatement(List<SyntaxExpr> statements, bool requireSemicolon)
         {
             var keyword = mToken;

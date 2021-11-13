@@ -8,15 +8,20 @@ namespace Gosub.Zurfur.Compiler
 {
 
     /// <summary>
-    /// This is the package header, in the file "Header.json".
-    /// See Zil.md
+    /// This is the package json, contained in both "Header.json" and
+    /// "Code.json".  The difference is that the header only contains public
+    /// symbols whereas the code has all symbols along with the code.
     /// </summary>
-    public class PackageHeaderJson
+    public class PackageJson
     {
         // Compiler info
         public string CompilerName = "Zurfur";
         public string CompilerVersion = "0.0.0";
-        public int FormatVersion = 0; // Increment for each incompatible change
+
+        /// <summary>
+        /// Increment for each incompatible change
+        /// </summary>
+        public int FormatVersion = 0;
 
         // Project info
         public string Name = "";            // Unique across the world, e.g 'com.gosub.zurfur'
@@ -35,28 +40,25 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// See `PackageSymbolsJson` for info
         /// </summary>
-        public List<PackageSymbolJson> Symbols = new List<PackageSymbolJson>();
+        public List<PackageSymbolJson> Symbols;
+        public PackageCodeJson Code;
+
+        /// <summary>
+        /// EXPERIMENT: Modules, types, methods.  
+        /// </summary>
+        public Dictionary<string, PackageSymbolJson> SymbolsMapExperiment;
+
     }
 
 
     /// <summary>
     /// This is the sanitized version of `Symbol` so we have a clear separation
     /// between internal compiler data structures and the public API.
-    /// Names will be verified to be correct.  Exact rules still TBD.
     /// </summary>
     public class PackageSymbolJson
     {
-        /// <summary>
-        /// The name includes the separator at the beginning and suffix
-        /// at the end.  The type of the symbol is determined by the
-        /// separator at the beginning and is one of the following:
-        ///     .   Module or type name
-        ///     @   Field name
-        ///     :   Method name (no parameter types)
-        ///     #   Generic argument (followed by argument number)
-        ///     ~   Method or type parameter
-        /// </summary>
-        public string Name = "";
+        public string Kind; // module, type, field, method, param, return, param_type
+        public string Name;
         public string[] Qualifiers;
         public string Comments;
 
@@ -68,16 +70,22 @@ namespace Gosub.Zurfur.Compiler
 
         // Anything not needed for this type can be omitted
         // by leaving it at the default value
-        public string Type; // Field, method parameter
+        public string Type;     // Type of field or method parameter
+        public string Where;    // Where clause for type args (TBD: Will probably be a class)
+        public string Requires; // Require clause for methods (TBD: Make into a class) 
 
         public override string ToString() => Name;
     }
 
 
-    public class PackageMethodJson : PackageSymbolJson
+    public class PackageCodeJson
     {
-        
+        public Dictionary<string, PackageCodeMethodJson> Methods;
     }
 
+    public class PackageCodeMethodJson 
+    {
+        public string[] Zil;
+    }
 
 }

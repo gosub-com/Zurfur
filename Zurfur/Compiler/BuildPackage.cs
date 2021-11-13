@@ -36,6 +36,7 @@ namespace Gosub.Zurfur.Compiler
         string mBaseDir = "";
         bool mIsCompiling;
         int mCompileCount;
+        TimeSpan mLexAndParseTime;
 
 
         Dictionary<string, FileInfo> mPackageFiles = new Dictionary<string, FileInfo>();
@@ -47,13 +48,13 @@ namespace Gosub.Zurfur.Compiler
 
         List<TaskCompletionSource<bool>> mCompileDoneTasks = new List<TaskCompletionSource<bool>>();
         List<string> mReport = new List<string>();
-        string mHeaderPublic = "Header.json";
-        string mHeaderPrivate = "HeaderAll.json";
+        string mHeaderJson = "";
+        string mCodeJson = "";
 
         public string OutputDir => Path.Combine(mBaseDir, OUTPUT_DIR);
         public string OutputFileReport => Path.Combine(mBaseDir, OUTPUT_DIR, "BuildReport.txt");
-        public string OutputFileHeaderPublic => Path.Combine(mBaseDir, OUTPUT_DIR, "HeaderPublic.json");
-        public string OutputFileHeaderPrivate => Path.Combine(mBaseDir, OUTPUT_DIR, "HeaderPrivate.json");
+        public string OutputFileHeader => Path.Combine(mBaseDir, OUTPUT_DIR, "Header.json");
+        public string OutputFileHeaderCode => Path.Combine(mBaseDir, OUTPUT_DIR, "Code.json");
 
         /// <summary>
         /// For status, Message: Build step (Loading, Parsing, Linking, etc.)
@@ -143,8 +144,8 @@ namespace Gosub.Zurfur.Compiler
             await Task.Run(() => 
             {
                 File.WriteAllLines(OutputFileReport, mReport);
-                File.WriteAllText(OutputFileHeaderPublic, mHeaderPublic);
-                File.WriteAllText(OutputFileHeaderPrivate, mHeaderPrivate);
+                File.WriteAllText(OutputFileHeader, mHeaderJson);
+                File.WriteAllText(OutputFileHeaderCode, mCodeJson);
             });
         }
 
@@ -197,13 +198,18 @@ namespace Gosub.Zurfur.Compiler
             // Load, Lex, and Parse all files in the queue.
             while (SourceCodeChanged)
             {
-                // Allow load and parse to run concurrently since
-                // one is mostly IO and the other mostly CPU.
-                // Other than that, we won't try to multi-task for now.
-                var loadTask = LoadAndLex();
-                var parseTask = Parse();
-                await loadTask;
-                await parseTask;
+                var lexStartTime = DateTime.Now;
+                while (SourceCodeChanged)
+                {
+                    // Allow load and parse to run concurrently since
+                    // one is mostly IO and the other mostly CPU.
+                    // Other than that, we won't try to multi-task for now.
+                    var loadTask = LoadAndLex();
+                    var parseTask = Parse();
+                    await loadTask;
+                    await parseTask;
+                }
+                mLexAndParseTime = DateTime.Now - lexStartTime;
                 await Generate();
             }
 
@@ -266,7 +272,6 @@ namespace Gosub.Zurfur.Compiler
             var lexer = fi.Lexer.Clone();
             await Task.Run(() => 
             {
-                var dt1 = DateTime.Now;
                 switch (fi.Extension)
                 {
                     case ".zurf":
@@ -282,8 +287,6 @@ namespace Gosub.Zurfur.Compiler
                         fi.ParseErrors = jsonParse.ParseErrors;
                         break;
                 }
-                var dt2 = DateTime.Now;
-                var ts1 = dt2 - dt1;
             });
 
             // If requested to compile again, throw away the intermediate results
@@ -304,7 +307,7 @@ namespace Gosub.Zurfur.Compiler
             await Task.Delay(SLOW_DOWN_MS);
             StatusUpdate?.Invoke(this, new UpdatedEventArgs("Compiling headers"));
 
-            var dt1 = DateTime.Now;
+            var dtStart = DateTime.Now;
 
             // Generate Header for each file (only ".zurf")
             var zurfFiles = new Dictionary<string, SyntaxFile>();
@@ -334,7 +337,7 @@ namespace Gosub.Zurfur.Compiler
                     noCompilerChecks = true;
             }
 
-            var dt2 = DateTime.Now;
+            var dtClear = DateTime.Now;
 
             // TBD: This needs to move to a background thread, but it can't
             // until we clone everything (Lexer, parse tree, etc.)
@@ -344,32 +347,57 @@ namespace Gosub.Zurfur.Compiler
             if (!noVerify)
                 ZilVerifyHeader.VerifyHeader(zil.Symbols);
 
+            var dtCompile = DateTime.Now;
+
             FileUpdate(this, new UpdatedEventArgs(""));
 
             // Abandon code generation when the source code changes
             if (SourceCodeChanged)
                 return;
 
-            StatusUpdate?.Invoke(this, new UpdatedEventArgs("Generating reports"));
-            mReport = ZilReport.GenerateReport(zurfFiles, zil.Symbols);
+            StatusUpdate?.Invoke(this, new UpdatedEventArgs("Generating code"));
 
 
-            // WIP: Serialize to json
-            // NOTE: Tokens in symbol table should be stable, so can run in a background thread
-            await Task.Run(() => 
+            // NOTE: Tokens in symbol table should be stable, so can run in a background thread.
+            await Task.Run(() =>
             {
-                var packageGen = new PackageGen();
-                var headerPublic = packageGen.MakeHeaderFile(zil.Symbols.Root, true);
-                var headerPrivate = packageGen.MakeHeaderFile(zil.Symbols.Root, false);
-                mHeaderPublic = JsonConvert.SerializeObject(headerPublic, Formatting.None,
+                // Header
+                var package = new PackageJson();
+                package.BuildDate = DateTime.Now.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
+                package.Symbols = zil.Symbols.Save(true);
+                package.SymbolsMapExperiment = zil.Symbols.SaveMapExperiment(true);
+                mHeaderJson = JsonConvert.SerializeObject(package, Formatting.None,
                     new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore });
-                mHeaderPrivate = JsonConvert.SerializeObject(headerPrivate,
+
+                // Code
+                package.Symbols = zil.Symbols.Save(false);
+                package.SymbolsMapExperiment = zil.Symbols.SaveMapExperiment(false);
+                mCodeJson = JsonConvert.SerializeObject(package, Formatting.None,
                     new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore });
+
+                //DebugVerifySymbolTables(zil, package);
+
             });
 
-            var dt3 = DateTime.Now;
-            var ts1 = dt2 - dt1;
-            var ts2 = dt3 - dt2;
+            var dtGenPackage = DateTime.Now;
+
+
+            var tsClear = dtClear - dtStart;
+            var tsCompile = dtCompile - dtClear;
+            var tsGenPackage = dtGenPackage - dtCompile;
+
+            mReport.Clear();
+            mReport.Add("Compile Times:");
+            mReport.Add($"    DATE: {DateTime.Now.ToString("s").Replace("T", " ")}");
+            mReport.Add($"    Lex and parse changed files: {mLexAndParseTime.TotalSeconds}");
+            mReport.Add($"    Clear tokens: {tsClear.TotalSeconds}");
+            mReport.Add($"    Compile and verify header: {tsCompile.TotalSeconds}");
+            mReport.Add($"    Generate package: {tsCompile.TotalSeconds}");
+            mReport.Add("");
+
+            ZilReport.GenerateReport(mReport, zurfFiles, zil.Symbols);
+
+            
 
 
             //FileUpdate(this, new UpdatedEventArgs(""));
@@ -381,6 +409,38 @@ namespace Gosub.Zurfur.Compiler
                 return;
             }
             StatusUpdate?.Invoke(this, new UpdatedEventArgs("Done"));
+        }
+
+        [Conditional("DEBUG")]
+        private static void DebugVerifySymbolTables(ZilGenHeader zil, PackageJson package)
+        {
+            var reloadSymbols = new SymbolTable().Load(package.Symbols);
+            var savedTable = zil.Symbols.GetSymbols();
+            var loadedTable = reloadSymbols.GetSymbols();
+
+            foreach (var savedSym in savedTable.Values)
+            {
+                if (savedSym.IsIntrinsic)
+                    continue;
+                if (loadedTable.TryGetValue(savedSym.FullName, out var loadedSym))
+                {
+                    if (loadedSym.TypeName != savedSym.TypeName)
+                    {
+                        Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}', but loaded '{loadedSym.FullName}'");
+                        Debug.Assert(false);
+                    }
+                    if (loadedSym.Order != savedSym.Order)
+                    {
+                        Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' order is '{savedSym.Order}', loaded order is '{loadedSym.Order}'");
+                        Debug.Assert(false);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Internal consistency check: '{savedSym.FullName}' not found");
+                    Debug.Assert(false);
+                }
+            }
         }
 
         private static void RemoveZilInfo(Token token)

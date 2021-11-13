@@ -333,6 +333,24 @@ namespace Gosub.Zurfur.Lex
         }
 
         /// <summary>
+        /// Add a vertical line on the left most token of the line with the open symbol.
+        /// </summary>
+        public static void AddScopeLines(Lexer lexer, int y, int lines, bool error)
+        {
+            if (lines <= 0)
+                return;
+            var leftToken = lexer.GetLineTokens(y)[0];
+            leftToken.SetInfo(new TokenVerticalLine
+            {
+                X = leftToken.X,// openToken.X,
+                Y = leftToken.Y + 1,
+                Lines = lines,
+                Error = error
+            });
+        }
+
+
+        /// <summary>
         /// Minimalist implementation of List of object, but is much
         /// smaller and doesn't use any heap to store one object since
         /// that's the most common case.  Do not copy, because the

@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-
 using Gosub.Zurfur.Lex;
 using Gosub.Zurfur.Compiler;
+using System.IO;
+using Newtonsoft.Json;
 
 namespace Gosub.Zurfur.Ide
 {
@@ -20,6 +21,8 @@ namespace Gosub.Zurfur.Ide
         static WordSet sBoldHighlightConnectors = new WordSet("( ) [ ] { } < >");
 
         FormHoverMessage mHoverMessageForm;
+        ContextMenu mContextMenuJson = new ContextMenu();
+
         Token mHoverToken;
         TextEditor mActiveEditor;
         Timer mTimer = new Timer() { Interval = 20 };
@@ -31,6 +34,7 @@ namespace Gosub.Zurfur.Ide
         {
             mHoverMessageForm = new FormHoverMessage();
             mTimer.Tick += mTimer_Tick;
+            mContextMenuJson.MenuItems.Add("Format Json", new EventHandler(FormatJson));
         }
 
         public void AddEditor(TextEditor editor)
@@ -62,13 +66,24 @@ namespace Gosub.Zurfur.Ide
         /// <summary>
         /// Set the active editor, or null if none is active
         /// </summary>
-        public void ActiveViewChanged(TextEditor editor)
+        public async void ActiveViewChanged(TextEditor editor)
         {
             mActiveEditor = editor;
             if (editor != null)
             {
                 UpdateScrollBars(editor);
                 editor_MouseTokenChanged(editor, null, null);
+
+                // Show Format Json context menu
+                if (Path.GetExtension(editor.FilePath).ToLower() == ".json"
+                    && editor.Lexer.LineCount == 1
+                    && editor.Lexer.GetLine(0).Length > 80)
+                {
+                    // The control is invisible, so wait a short period for it to appear
+                    await System.Threading.Tasks.Task.Delay(50);
+                    if (editor.Visible)
+                        mContextMenuJson.Show(editor, new Point(20, 30));
+                }
             }
         }
 
@@ -178,13 +193,43 @@ namespace Gosub.Zurfur.Ide
             mHoverMessageForm.Visible = false;
         }
 
+        private void FormatJson(object sender, EventArgs e)
+        {
+            try
+            {
+                var editor = mActiveEditor;
+                if (editor == null)
+                    return;
+
+                var s = string.Join("", editor.Lexer.GetText(new TokenLoc(0, 0), new TokenLoc(1000000, 1000000)));
+                var json = JsonConvert.DeserializeObject(s);
+                s = JsonConvert.SerializeObject(json, Formatting.Indented);
+                editor.ReplaceText(s.Split('\n'), new TokenLoc(0, 0), new TokenLoc(1000000, 1000000));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"ERROR: {ex.Message}");
+            }
+        }
+
+
         /// <summary>
         /// Open web browser
         /// </summary>
         private void editor_MouseClick(object sender, MouseEventArgs e)
         {
-            var token = ((TextEditor)sender).MouseHoverToken;
-            if (token != null && (Control.ModifierKeys & Keys.Control) == Keys.Control
+            var editor = (TextEditor)sender;
+            if (e.Button == MouseButtons.Right
+                && Path.GetExtension(editor.FilePath).ToLower() == ".json")
+            {
+                mContextMenuJson.Show(editor, editor.PointToClient(Cursor.Position));
+            }
+
+
+            var token = editor.MouseHoverToken;
+            if (token != null 
+                && e.Button == MouseButtons.Left
+                && (Control.ModifierKeys & Keys.Control) == Keys.Control
                 && (token.Url != "" || token.GetInfo<Symbol>() != null))
             {
                 if (token.Url.ToLower().StartsWith("http"))
@@ -200,6 +245,7 @@ namespace Gosub.Zurfur.Ide
                     MessageBox.Show("TBD: Still working on this:)", "Zurfur");
                 }
             }
+
         }
 
         /// <summary>
@@ -275,8 +321,10 @@ namespace Gosub.Zurfur.Ide
                 {
                     if (child.Value is SymMethodParam arg)
                         message += "    " + child.Key + ": " + arg.TypeName + "\r\n";
+                    else if (child.Value is SymTypeParam)
+                        message += "    " + child.Key + ": Type parameter\r\n";
                     else
-                        message += "    " + child.Key + ": Error - unknown type\r\n";
+                        message += "    " + child.Key + ": COMPILER ERROR\r\n";
                 }
             }
             else

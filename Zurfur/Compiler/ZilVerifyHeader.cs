@@ -88,7 +88,7 @@ namespace Gosub.Zurfur.Compiler
                         Reject(symbol.Token, "Compiler error: Expecting parent symbol to be method group");
                     if (symbol.Parent.Parent is SymModule && symbol.Qualifiers.Contains("static"))
                         Reject(symbol.Token, "Methods in a module may not have the static qualifier");
-                    if (symbol.Parent.Parent.Name == "$ext" && !(symbol.Parent.Parent.Parent is SymModule))
+                    if (symbol.Parent.Parent.Name == "$extension" && !(symbol.Parent.Parent.Parent is SymModule))
                         Reject(symbol.Token, "Extension method must be defined only at the module level");
                     if (method.IsGetter)
                     {
@@ -161,7 +161,7 @@ namespace Gosub.Zurfur.Compiler
             // children scopes from declaring that symbol.
             void RejectDuplicateTypeParameterName(Token token, Symbol scope)
             {
-                while (!(scope is SymModule))
+                while (scope.Name != "")
                 {
                     if (scope.Children.TryGetValue(token.Name, out var s)
                             && s is SymTypeParam)
@@ -222,7 +222,7 @@ namespace Gosub.Zurfur.Compiler
                     return;
                 }
 
-                if (methodGroup.Parent.Name == "$ext")
+                if (methodGroup.Parent.Name == "$extension")
                 {
                     // TBD: There is a lot we need to verify here.
                     //      1. Need to separate them by concrete type

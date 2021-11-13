@@ -751,8 +751,8 @@ namespace Gosub.Zurfur
 
             projectTree.RefreshFiles();
             var files = new List<string> {
-                mBuildPackage.OutputFileHeaderPublic,
-                mBuildPackage.OutputFileHeaderPrivate,
+                mBuildPackage.OutputFileHeader,
+                mBuildPackage.OutputFileHeaderCode,
                 mBuildPackage.OutputFileReport,
                 };
             foreach (var name in files)

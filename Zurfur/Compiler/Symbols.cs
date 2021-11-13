@@ -15,20 +15,19 @@ namespace Gosub.Zurfur.Compiler
     /// json, and there can be other differences.
     /// 
     /// Symbol symbols:
-    ///     .   Module or type
-    ///     @   Field name
-    ///     :   Method, followed by prototype
-    ///     #   Generic argument (followed by argument number)
-    ///     ~   Parameter (method or type)
+    ///     .   Module, type, or method separator
+    ///     @   Field name separator
+    ///     ~   Parameter (method or type) separator
     ///     `   Number of generic arguments, suffix for type name
+    ///     #   Generic argument (followed by argument number)
     ///     ()  Method parameters
     ///     <>  Generic parameters
-    ///     $   Special symbol, e.g. $this, $ext, etc.
+    ///     $   Special symbol, e.g. $this, $extension, etc.
     ///    
     /// Sepecial symbols (prefixed with $):
-    ///     this        Implicit extension/member method parameter
-    ///     return      Implicit return parameter name
-    ///     ext         Extension type (container for extension methods)
+    ///     $this        Implicit extension/member method parameter
+    ///     $return      Implicit return parameter name
+    ///     $extension   Extension type (container for extension methods)
     /// </summary>
     abstract class Symbol
     {
@@ -39,6 +38,12 @@ namespace Gosub.Zurfur.Compiler
         public string[] Qualifiers = Array.Empty<string>();
         Dictionary<string, Symbol> mChildren = new Dictionary<string, Symbol>();
         public abstract string Kind { get; }
+
+        /// <summary>
+        /// True for built in unary types that don't get serialized,
+        /// such as "? * ^ ref", etc.
+        /// </summary>
+        public bool IsIntrinsic;
 
         // Set by `SetChildInternal`.  Type parameters are always first.
         public int Order { get; private set; } = -1;
@@ -52,7 +57,7 @@ namespace Gosub.Zurfur.Compiler
         public string Name { get; private set; }
 
         /// <summary>
-        /// Prefix for the kind of symbol.  See `Symbol` for more info.
+        /// Prefix for the kind of symbol. 
         /// </summary>
         protected abstract string Separator { get; }
 
@@ -60,16 +65,19 @@ namespace Gosub.Zurfur.Compiler
         /// Only for type names with generic parameters.  A backtick followed
         /// by a number (e.g. "`2" for a type with two generic parameters).
         /// </summary>
-        protected virtual string Suffix => "";
-
-        public string FullNameWithoutParent => Separator + Name + Suffix;
+        public virtual string Suffix => "";
 
         public bool HasToken => mToken != null && mFile != null;
 
         /// <summary>
+        /// Field or parameter type name
+        /// </summary>
+        public string TypeName = "";
+
+        /// <summary>
         /// Source code token if it exists.  Throws an exception for
         /// SymMethodGroup, SymParameterizedType, SymModule and built
-        /// in SymType's like "$ext" and "ref"
+        /// in SymType's like "$extension" and "ref"
         /// </summary>
         public Token Token
         {
@@ -84,7 +92,7 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Source code token if it exists.  Throws an exception for
         /// SymMethodGroup, SymParameterizedType, SymModule and built
-        /// in SymType's like "$ext" and "ref"
+        /// in SymType's like "$extension" and "ref"
         /// </summary>
         public string File
         {
@@ -118,7 +126,7 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Create a symbol that is non-existent or not unique in the source
         /// code (e.g. SymMethodGroup, SymParameterizedType, SymModule,
-        /// and built-in types like "$ext", "ref", "*", etc.)
+        /// and built-in types like "$extension", "ref", "*", etc.)
         /// </summary>
         public Symbol(Symbol parent, string name)
         {
@@ -250,7 +258,7 @@ namespace Gosub.Zurfur.Compiler
         public override string Kind => "type";
         protected override string Separator => ".";
 
-        protected override string Suffix
+        public override string Suffix
         {
             get
             {
@@ -274,7 +282,6 @@ namespace Gosub.Zurfur.Compiler
     {
         public SymField(Symbol parent, string file, Token token) : base(parent, file, token) { }
         public override string Kind => "field";
-        public string TypeName = "";
         protected override string Separator => "@";
     }
 
@@ -286,7 +293,7 @@ namespace Gosub.Zurfur.Compiler
     {
         public SymMethodGroup(Symbol parent, string name) : base(parent, name) { }
         public override string Kind => "methods";
-        protected override string Separator => ":";
+        protected override string Separator => ".";
 
     }
 
@@ -310,7 +317,6 @@ namespace Gosub.Zurfur.Compiler
         public override string Kind => "parameter";
         protected override string Separator => "~";
         public bool IsReturn { get; private set; }
-        public string TypeName = "";
     }
 
     /// <summary>
@@ -335,7 +341,7 @@ namespace Gosub.Zurfur.Compiler
         }
 
 
-        // Constructor for generic type 'F<T>' or function 'F(p1,p2...)(r1,r2...)'
+        // Constructor for generic type 'F<T>' or function 'F<p1,p2...><r1,r2...>'
         public SymParameterizedType(Symbol parent, Symbol[] typeParams, Symbol[] typeReturns = null)
             : base(parent, FullTypeParamNames(typeParams, typeReturns))
         {

@@ -7,8 +7,9 @@ using System.Diagnostics;
 namespace Gosub.Zurfur.Compiler
 {
     /// <summary>
-    /// The master symbol table is a tree holding modules at the top
-    /// level, and types, functions, and parameters at lower levels.
+    /// The master symbol table is a tree holding modules and types
+    /// at the top level, and functions, and parameters at lower levels.
+    /// The top level is populated with the non-lambda intrinsic types.
     /// </summary>
     class SymbolTable
     {
@@ -22,9 +23,42 @@ namespace Gosub.Zurfur.Compiler
         {
             var preRoot = new SymModule(null, "");
             mRoot = new SymModule(preRoot, "");
+
+            // Add built in unary generic types
+            foreach (var genericType in "* ^ [ ? ref own mut ro".Split(' '))
+                AddIntrinsicType(genericType, 1);
         }
 
         public Symbol Root => mRoot;
+
+        /// <summary>
+        /// Add an intrinsic type, such as "*", "^", "?", "ref", "$fun3", etc
+        /// </summary>
+        SymType AddIntrinsicType(string type, int numGenerics)
+        {
+            var sym = new SymType(Root, type);
+            sym.IsIntrinsic = true;
+            AddOrReject(sym);
+            for (int i = 0; i < numGenerics; i++)
+            {
+                var tn = "T" + (numGenerics == 1 ? "" : $"{i + 1}");
+                var t = new SymTypeParam(sym, "", new Token(tn));
+                t.IsIntrinsic = true;
+                var ok = AddOrReject(t);
+                Debug.Assert(ok);
+            }
+            return sym;
+        }
+
+        /// <summary>
+        /// Retrieve (or add if it doesn't exist) a built in intrinsic, such as "$fun3"
+        /// </summary>
+        public SymType FindOrAddIntrinsicType(string name, int numGenerics)
+        {
+            if (!Root.Children.TryGetValue(name, out var genericFunType))
+                genericFunType = AddIntrinsicType(name, numGenerics);
+            return (SymType)genericFunType;
+        }
 
 
         /// <summary>
@@ -95,6 +129,14 @@ namespace Gosub.Zurfur.Compiler
         public void VisitAll(Action<Symbol> visit)
         {
             VisitAll(mRoot, visit);
+        }
+
+        /// <summary>
+        /// Returns dictionary of full names of all symbols without method or type parameters
+        /// </summary>
+        public Dictionary<string, Symbol> GetSymbols()
+        {
+            return GetSymbols(Root);
         }
 
         /// <summary>

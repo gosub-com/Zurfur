@@ -16,9 +16,7 @@ namespace Gosub.Zurfur.Compiler
 
 
         static WordSet sValueTokens = new WordSet("true false null");
-        static WordSet sEndArray = new WordSet("]", true);
         static WordSet sEndArrayValue = new WordSet(", ]", true);
-        static WordSet sEndObject = new WordSet("}", true);
         static WordSet sEndObjectKey = new WordSet(": }", true);
         static WordSet sEndObjectValue = new WordSet(", }", true);
 
@@ -109,7 +107,10 @@ namespace Gosub.Zurfur.Compiler
                 }
             }
             if (AcceptMatch("]"))
+            {
+                Token.AddScopeLines(mLexer, open.Y, mPrevToken.Y - open.Y - 1, false );
                 Connect(open, mPrevToken);
+            }
         }
 
         void ParseObject()
@@ -125,9 +126,14 @@ namespace Gosub.Zurfur.Compiler
                 }
             }
             if (AcceptMatch("}"))
+            {
+                Token.AddScopeLines(mLexer, open.Y, mPrevToken.Y - open.Y - 1, false);
                 Connect(open, mPrevToken);
+            }
             else
+            {
                 RejectToken(mToken, "Expecting '}'");
+            }
         }
 
         void ParseObjectKv()
