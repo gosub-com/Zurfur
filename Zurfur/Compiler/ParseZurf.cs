@@ -65,7 +65,7 @@ namespace Gosub.Zurfur.Compiler
             + "return unsealed unseal sealed sizeof stackalloc heapalloc struct switch this self throw try "
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "
-            + "box boxed init move copy passcopy clone drop error dispose own "
+            + "box boxed init move copy passcopy clone bag drop error dispose own "
             + "trait mixin extends youdo implements implement impl union fun afun def yield let cast "
             + "any dyn dynamic loop select match event aevent from to of on cofun cofunc global local it "
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
@@ -73,7 +73,7 @@ namespace Gosub.Zurfur.Compiler
 
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
             + "static unsealed abstract virtual override");
-        static WordSet sPostFieldQualifiers = new WordSet("init set get mut ro");
+        static WordSet sPostFieldQualifiers = new WordSet("init set get ref mut");
 
         static WordSet sReservedUserFuncNames = new WordSet("new drop cast default implicit");
         static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default base new cast dref");

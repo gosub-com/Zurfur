@@ -1458,7 +1458,7 @@ namespace Gosub.Zurfur
                         var col = IndexToCol(line[0].Location);
                         var x = (int)PointX(col) + mFontSize.Width/2;
                         var y = (int)PointY(verticleLine.Y) + 2;
-                        var y2 = (int)PointY(verticleLine.Y + verticleLine.Lines) - 4;
+                        var y2 = (int)PointY(verticleLine.Y + verticleLine.Lines) - 8;
                         gr.DrawLine(verticleLine.Error ? Pens.Red : mScopeLinePen, x, y, x, y2);
                     }
                 }

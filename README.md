@@ -1,6 +1,6 @@
 # ![Logo](Zurfur.jpg) Zurfur
 
-Zurfur is is a programming language I'm designing just for fun and enlightenment.
+Zurfur is is a programming language I'm designing for fun and enlightenment.
 The language is named after our cat, Zurfur, who was named by my son.  It's
 spelled **_ZurFUR_** because our cat has fur.
 
@@ -13,43 +13,40 @@ about traits, mutability, nullability, ownership, and functional programming.
 
 **Status Update**
 
-I am working on header file generation.  Hit F4 to see what's generated.
-Review [ZIL Specification](Doc/Zil.md).  The syntax is still being developed,
-nothing is set in stone yet.  Feel free to send me comments letting me know
-what you think should be changed.
+Header file generation is working, and I am starting code generation.
+Hit F4 to see the header file in JSON format.  The syntax is still being
+developed, nothing is set in stone.  Feel free to send me comments letting
+me know what you think should be changed.
 
 ![](Doc/IDE.png)
 
 #### Design Goals
 
-* Fun and easy to use
-* Faster than C# and unsafe code just as fast as C
-* Target WebAssembly with ahead of time static compilation
-* Typesafe replacement for JavaScript
-* Stretch goal: Rewrite compiler and IDE in Zurfur on Node.js
 
 Zurfur takes its main inspiration from C#, but borrows syntax and design
 concepts from Golang, Rust, Zig, Lobster, and many other languages.
 Here are some key features:
 
-* Mutability, ownership, and nullabilty are part of the type system:
+* **Prime directives:**
+    * Fun and easy to use
+    * Faster than C# and unsafe code just as fast as C
+    * Target WebAssembly with ahead of time static compilation
+    * Typesafe replacement for JavaScript
+    * Stretch goal: Rewrite compiler and IDE in Zurfur on Node.js
+* **Mutability, ownership, and nullabilty are part of the type system:**
     * Function parameters must be explicitly marked `mut` if they mutate anything
-    * Children of read only fields (i.e. `ro` fields) are also read only
-    * All objects are owned (i.e. value types) unless explicitly boxed (e.g. `^type`)
-    * References and boxes are non-nullable, but may use `?type` or `?^type` for nullable
+    * All objects are value types unless explicitly boxed (e.g. `^MyType`)
+    * References are non-nullable, but may use `?MyType` or `?^MyType` for nullable
+    * `ro` means read only *all the way down* (i.e. you can't mutate a `ro` object through a pointer)
     * Get/set of mutable properties works (e.g. `myList[0].VectorProperty.X = 3` mutates `X`)
-* Fast and efficient:
+    * Deterministic destructors (e.g. `FileStream` closes itself automatically)
+* **Fast and efficient:**
     * Return references and span used everywhere. `[]int` is `Span<int>`, and OK to pass to async functions
-    * The ownership model allows the runtime to delete most objects without needing GC
-    * Single threaded model (from Javascript) allows efficient reference counted heap objects
-    * Safe multithreading via web workers (`clone` and `bag` defined as fast deep copy for message passing)
-    * Functions pass parameters by reference, but will pass by value when it is more efficient
+    * Functions pass parameters by reference, but will pass a copy when it is more efficient
+    * Explicit `clone` required when copying an object would require dynamic allocation
+    * Most objects are deleted without needing GC.  Heap objects are reference counted.
+    * Safe multi-threading via web workers (`DeepClone` and `bag` defined as fast deep copy for message passing)
     * Async acts like a Golang blocking call without the `await` keyword (no garbage created for the task)
-* More:
-    * Interfaces support Rust style traits and Golang style duck typing via fat pointers
-    * Type declaration syntax is from Golang
-    * Strings are UTF8 byte arrays, always initialized to "" (all types initialized to non-null values)
-    * Operator `==` fails if it is not defined on a type (does not default to object comparison)
 
 #### Inspirations
 
@@ -86,9 +83,8 @@ A list of expressions `[e1, e2, e3...]` is used to initialize a `List`
 and a list of pairs `[K1:V1, K2:V2, K3:V3...]` is used to initialize a `Map`.
 Brackets `[]` are used for both lists and maps. Curly braces are reserved
 for statement level constructs.  Constructors can be called with `()`.
-The following are identical:
+For `type MyPointXY(X int, Y int)`, the following are identical:
 
-    type MyPointXY(X int, Y int)
     @c Map<str, MyPointXY> = ["A": (1,2), "B": (3,4)]           // MyPointXY Constructor
     @d Map<str, MyPointXY> = ["A": (X:1,Y:2), "B": (X:3,Y:4)]   // MyPointXY field initializer
     @a = ["A": MyPointXY(1,2), "B": MyPointXY(3,4)]
@@ -102,14 +98,11 @@ a field is `ro`, there is no way to modify or mutate any part of it:
     @b ro List<MyType>>     // `b[0].MyTypeVar = 1` is not legal
 
 All mutable types are owned, and there is no *implicit* way to accidentally
-create a circular reference.  An object may be boxed (i.e. `^type`) to 
-*explicitly* create circular references.  
-
-There are no mutable reference types.  Given `fun f(a List<MyType>)`, it
-would be impossible for `f[0].MyTypeVar = 1` to change the value of
-`f[1].MyTypeVar`.  In C#, `f[0]` and `f[1]` could point to the same object,
-but in Zurfur they cannot.  Assuming `MyType` is a C# class, the equivalent
-definition in Zurfur is `fun f(a List<?^MyType>)`.
+create a circular reference.  An object may be boxed to *explicitly* create
+circular references.  For example, `box MyType()` creates an explicit
+reference of type `^MyType`.  Unlike in C#, there are no mutable reference types. 
+In Zurfur, a C# type like `List<MyMutableClass>` would translate to `List<^MyMutableClass>`
+and `MyMutableClass` is always a value type.
 
 There are immutable reference types, such as `Array` and `str`.  Since they
 are immutable and boxed (i.e. `type ro boxed`), they can be copied quickly
@@ -127,7 +120,6 @@ argument, and the return type comes after the parameters:
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
     pub fun Main(args Array<str>):
-        // This is a regular private comment
         Log.Info("Hello World, 2+2={2+2}")
 
 Extension methods are declared at the namespace level:
@@ -147,215 +139,103 @@ Properties are public by default, and are defined with `get` and `set` keywords:
   
 By default, functions pass parameters as read-only reference.  The exception
 is that small types (e.g. `int`, and `Span<T>`) are passed by copy because
-it is more efficient to do so:
+it is more efficient to do so.  Other qualifiers, `mut`, `ref`, and `own`
+can be used to change the passing behavior:
 
     pub fun Test(
         a               int,  // Pass a copy (i.e. `type passcopy`)
-        b           mut int,  // Illegal since `int` is an immutable type (i.e. `type ro`)
-        c       mut ref int,  // Pass by ref, allow assignment
-        d           own int,  // Illegal since `int` is passed by value
-        e               str,  // Pass by ref since `str` is immutable boxed (i.e.`type ro boxed`)
-                              //    other qualifiers for `str` are the same as for `int`
-        f         List<int>,  // Pass by ref, read-only
-        g     mut List<int>,  // Pass by ref, allow mutable operations, but not assignment
-        h ref mut List<int>,  // Pass by ref, allow mutable operations and assignment
-        i     own List<int>,  // Take ownership of the list
-        j        MyMutType,   // Read-only, pass by value or reference depending on type
-        k    mut MyMutType)   // Mutable, but `ro` fields are preserved
+        b       mut ref int,  // Pass by ref, allow assignment
+        c               str,  // Pass by ref since `str` is immutable boxed (i.e.`type ro boxed`)
+        d         List<int>,  // Pass by ref, read-only
+        e     mut List<int>,  // Pass by ref, allow mutation, but not assignment
+        f ref mut List<int>,  // Pass by ref, allow mutation and assignment
+        g     own List<int>)  // Take ownership of the list
 
-When an argument is passed by `mut`, it does not need to be annotated at the
-call site.  This is because it is obvious that `f(myList)` could possibly
-mutate `myList` and it's easy enough to see if `f` does that just by hovering
-over the definition of `f`.  Also, `f(myList)` can never replace `myList`,
-it can only modify it.
+List of the qualifiers, and what they mean:
 
-When an argument is pased by `mut ref`, it must be annotated at the call site
+| Qualifier | Passing style | Notes
+| :--- | :--- | :---
+|  | Immutable reference | Can copy for small types (e.g. `int`, `Span`, etc.)
+| mut | Allow mutation but not assignment | Not valid for `ro` types (e.g. `str`, `Array`, `Span`, etc.)
+| ref mut | Allow mutation and assignment | Requires annotation (i.e. `ref`) at the call site
+| own | Take ownership | Not valid for `ro` types and types that don't require allocation (.e.g. `int`, `str`, `Array`, plain old data, etc.)
+
+Arguments passed by `mut` do not need to be annotated at the call site.  This
+is because it is obvious that `f(myList)` could mutate `myList` and it's easy
+enough to see if `f` does that just by hovering over the definition.  **TBD:**
+maybe change this.
+
+Arguments passed by `mut ref` must be annotated at the call site
 (e.g. `f(ref myInt)`).  This is because it is not quickly obvious that the
 entire object could be replaced.  Furthermore, it would not be obvious that
-`f(myInt)` or `f(myString)` would change the value.  Therefore, if passed by
-`mut ref`, the call site need annotation such as `f(ref myInt)` or `f(ref myStr)`.
+`f(myInt)` or `f(myString)` would change the value.  
 
-There are no `out` parameters, but functions can return multiple values:
+If the type is mutable *and* requires dynamic allocation, the function can
+take ownership of the object by using the `own` keyword.  The caller must
+then never use the object again, or must explicitly `clone` the object.
+
+Functions can return multiple values:
 
     // Multiple returns
     pub fun Circle(a f64, r f64) -> (x f64, y f64):
         return Cos(a)*r, Sin(a)*r
 
-The return parameters are always named, and can be used by the calling function:
+The return parameters are named, and can be used by the calling function:
 
     @location = Circle(a, r)
-    Log.Info("X: {location.x}, Y:{location.y}")
+    Log.Info("X: {location.x}, Y: {location.y}")
 
-Functions and properties can return a mutable or immutable references to a field:
+Normally the return value becomes owned by the caller, but this behavior
+can be changed with the `ref` keyword:
 
-    pub fun ListRoFun() ref List<int> { return ref myList}           // Read only ref
-    pub fun ListMutFun() mut ref List<int> { return mut ref myList } // Mutable ref
-    get ListRoProp() ref List<int> { return ref myList }             // Read only ref
-    get ListMutProp() mut ref List<int> { return ref myList}         // Mutable ref
-
+    pub fun ListRoFun() ref List<int>:      // Read only ref
+        return ref myListField
+    pub fun ListMutFun() mut ref List<int>: // Mutable ref
+        return mut ref myListField
 
 ## Types
 
-Zurufur is a value oriented language with both mutable and immutable types.
-Value oriented means that all objects have an owner and references to them
-can't be stored unless explictly boxed with a definition such as `^MyType`
-(i.e. pointer to `MyType`).
+The ones we all know and love:
 
-    // Creating simple types is easy
-    type    Point(X int, Y int)             // Mutable type
-    type ro Person(Name str, Age int)       // Immutable type
+    i8, u8, byte, i16, u16, i32, u32, i64, int, u64, f32, f64, xint
+    
+`byte` is an alias for `u8`.  `int` is an alias for `i64`.  `xint` is either
+i32 or i64 depending on the compilation target.
 
-Because all types are values instead of references, it is impossible for data
-structures to implicitly alias themselves, except when they are boxed and 
-immutable.  For instance:
+| Type | Description
+| :--- | :---
+| Array\<T\> | An immutable array of **immutable** elements and a constant `Count`.  Even if the array contains mutable elements, they become immutable when copied into the array.
+| str | An `Array<byte>` with support for UTF-8.  `Array` is immutable, therefore `str` is also immutable
+| Buffer\<T\> | A mutable array of mutable elements, but with a *constant* `Count`
+| List\<T\> | Dynamically sized mutable list with mutable elements
+| Span\<T\> | Span into `Array`, `Buffer`, or `List`.  It has a constant `Count`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `Buffer` or `List` is mutable)
+| Map<K,V> | Unordered mutable map.  There is also `RoMap` which is immutable.
+| Json | Json data structure
 
-    // This cannot ever reference itself provided that `MutType`
-    // does not contain an explicitly boxed field, such as `^SomeOtherType`
-    @a = List<MutType>(CreateData())
-    a[0] = a[1]                         // Always makes a copy unless immutable type
-    a[0].x = 1                          // Never affects the value at a[1].x
+There are several different kinds of types.  There is `ro` for read-only
+immutable, and `boxed` for a heap object.  Even though a mutable boxed type
+is on the heap, it still has an owner and acts like a value type.  A `boxed ro`
+type is an immutable reference type with fast implicit cloning.  Very small types
+that don't require dynamic allocation are `passcopy` because it is faster to
+pass a copy.
 
-In C# `a[0].x = 1` could change the value of `a[1].x`.  In Zurfur, this cannot
-happen unless explicitly boxed like this:
+| Type Qualifier | Examples | Passing Style | Explicit Clone | Clone Speed
+| :--- | :--- | :--- | :--- | :---
+|`passcopy` | `int`, `f64`, `Span` | Copy | No | Fast, small, never allocates
+|  | `List`, `Map` | Ref | If it allocates | Medium (copy bytes) or Slow (allocates)
+| ro | | Ref | No | Medium, copy bytes, never allocates
+| boxed | `Buffer` | Ref | Yes | Slow, always allocates
+| boxed ro | `str`, `Array`, `RoMap` | Ref | No | Fast
+| `nocopy` | `FileStream` | Owned | No Clone | Move only (medium speed)
 
-    // The list might alias two of the same object
-    @a = List<^MutType>(CreateData())
-    a[0] = a[1]                         // The list definitely aliases two of the same object
-    a[0].x = 1                          // a[1] = 1
+Notice that `List` and `Map` are not boxed.  They live directly inline in the
+object that owns them, but they do contain a reference to a `Buffer` which is 
+directly on the heap. Because they use dynamic allocation, `List`, `Map`,
+and `Buffer` require an explicit clone.
 
-Unlike C#, it is impossible to capture a reference to an object passed to
-a function unless explicitly boxed or when the type is boxed and immutable.
+Also notice that `Array` and `str` are `boxed ro`.  They are reference types
+and don't require an explicit clone.
 
-    fun NoCap(a MutType)    // The reference to `a` cannot be captured or stored
-    fun CapOk(b ^MutType)   // The reference to `b` can be captured and stored
-    fun CapOk(s str)        // The reference to `s` can be captured since a string is immutable and boxed
-
-### Boxed types
-
-Declaring a type `boxed` changes the memory layout, but not the fact that
-it is still a value type:
-
-    type boxed BoxedPoint(x int, y int)
-
-Any time this type is used, it is created on the heap.  However, it is still
-a value type:
-
-    @a = List<BoxedPoint>(CreateData())
-    a[0] = a[1]                         // Always makes a copy
-    a[0].x = 1                          // Never affects the value at a[1].x
-
-The most important boxed type in Zurfur is `Buffer<t>` which is the basis
-for `Array<T>`, `str`, and `List<T>`.
-
-### Immutable types
-
-An immutable type means that the type cannot modify its contents or anything
-it owns.  An immutable type may own a mutable object, however the mutable
-object must have been copied into it (to prevent aliasing), and then becomes
-forever frozen.  For example:
-
-    // `Stuff` should really be an `Array` which is an immutable type
-    type ro Person(Name str, Age int, Stuff List<int>)
-    @stuff = [1,2,3]
-    @person = Person("Jeremy", 50, stuff)   // Fully and forever immutable
-    @stuff[0].x = 10                        // person.Stuff[0] does not change
-
-Even though `Stuff` is `List<int>` which is a mutable type, it has become
-frozen and can no longer be modified.  Both `p.Stuff.Clear()` and
-`p.Stuff.x = 3` are illegal. Furthermore, it is impossible for `person.Stuff`
-to be modified from anywhere else since mutable objects are value types and
-are copied.
-
-There is an **explicit** way to allow an immutable object to reference mutable
-data, and that is through a box:
-
-    type ro Person(Name str, Age int, Stuff ^List<int>) // The box is immutable, but the list is mutable
-    @stuff = box [1,2,3]                                // This creates `^List<int>`
-    @person = Person("Jeremy", 50, stuff)
-    @stuff[0] = 10                                      // Now `person.Stuff[0]` == 10
-
-The variable `person` is not immutable and can be re-assigned to a new person:
-
-    @person = Person("Jeremy", 50, [1,2,3])
-    person = Person.Clone(Age: person.Age+1)    // Person gets a year older
-
-### Boxed ro types
-
-Boxed immutable types (i.e. `boxed ro`) are always on the heap, are
-reference types (just like C#!), and they are copied very quickly
-without dynamic allocation.  For functional programming, `boxed ro`
-is the way to go.
-
-The most important `boxed ro` type in Zurfur is `Array<T>` which is the basis
-for `str`.  For functional programming, use `List<T>` to build an array,
-then convert to `Array<T>` for immutable storage.
-
-In Zurfur:
-
-* `Buffer<T>` is a boxed mutable type, but with an immutable size
-* `Array<T>` is a boxed immutable type (an immutable version of `Buffer<T>`)
-* `str` is an `Array<byte>` with extra functionality
-
-Consider the above, and these definitions:
-
-    type       Point(x int, y int)
-    type       Line(p1 Point, p2 Point)
-    type boxed BoxedPoint(x int, y int)
-    type       Shape(line Line, bp BoxedPoint, buf Buffer<int>, a Array<int>, name str)
-
-    @a = Shape(line:((1,2), (3,4)), bp:(5,6), buf:[1,2,3], a:[1,2,3], name: "Jeremy" )
-    @b = @a             // `b` is a copy, except for immutable boxed types which are references
-    @b.bp.x = 25        // a.bp.x is still 5
-
-The memory layout for `a` looks like:
-
-    line.p1.x    int
-    line.p1.y    int
-    line.p2.x    int
-    line.p2.y    int
-    bp           BoxedPoint, pointer to -----> p3.X    int
-                                               p3.Y    int
-    buf          Buffer<int>, pointer to ----> [0]     int
-                                               [1]     int
-                                               [2]     int
-                                               ... Buffer could continue
-    a            Array<int>, pointer to -----> [0]    int
-                                               [1]    int
-                                               [2]    int
-                                               ... Array could continue
-    name         str, pointer to ------------> "Jeremy"
-
-The memory layout for `b` looks like:
-
-    line.p1.x    int
-    line.p1.y    int
-    line.p2.x    int
-    line.p2.y    int
-    bp           BoxedPoint, pointer to -----> p3.X    int
-                                               p3.Y    int
-    buf          Buffer<int>, pointer to ----> [0]     int
-                                               [1]     int
-                                               [2]     int
-                                               ... Buffer could continue
-    a            Array<int>, pointer to -----> (see above, reference copied)
-    name         str, pointer to ------------> (see above, reference copied)
-
-
-### Selective immutability
-
-Mutability at the type level `type ro` is all or nothing for the whole type.
-When the type is not immutable, any field can be made immutable using `ro`.
-
-    type MyType
-    {
-           @a     int           // `a` can be assigned
-        ro @b     int           // `b` is immutable
-           @c ro  int           // Illegal since `int` is already immutable
-           @d     List<int>     // `d` can be assigned and is also mutable (e.g. `d[0]=3` is ok)
-        ro @e     List<int>     // `e` is immutable
-           @f ro  List<int>     // `f` can be assigned, but is not mutable (e.g. `d[0]=3` is illegal)
-        ro @g mut List<int>     // `g` cannot be assigned,  but is mutable
-    }
 
 ### Simple Types
 
@@ -363,9 +243,9 @@ Simple types can declare fields in parentheses.  All fields are public
 and no additional fields may be defined in the body.  Simple types are
 mutable by default, but can also be immutable by adding the `ro` qualifier.
 
-    // Simple types
-    pub type SpecialPoint(X int, Y int)
-    pub type Line(p1 Point, p2 Point)
+    // Simple types - all fields are public
+    pub type Point(X int, Y int)
+    pub type Line(P1 Point, P2 Point)
     pub type WithInitialization(X int = 1, Y int = 2)
     pub type ro ReadOnlyPerson(Id int, FirstName str, LastName str, BirthYear int)
 
@@ -391,7 +271,6 @@ of the fields as named parameters.  There is also a default `clone` function.
     @y = Point(X: 3, Y: 4)              // Initialized via named parameters
     @z = WithInitialization(X: 5)       // Constructor called first, so Y=2 here
     @p1 = Person(1, "John", "Doe", 32)
-    @p2 = p1.clone(FirstName: "Jane")   // Clone is always a deep copy
 
 A mutable type returned from a getter can be mutated in-place provided there
 is a corresponding setter:
@@ -402,51 +281,50 @@ is a corresponding setter:
     a[1].PropX = 0      // a = [(1,2),(0,24), (5,6)]
 
 `List` returns the point via reference, but even if it used a getter/setter,
-this would still work.  `SetY` is marked with `mut` so the compiler would
-know to call the setter after the value is modified.  Same for `PropX`.
+this would still work.  `SetY` is marked with `mut` so the compiler
+knows to call the setter after the value is modified.  Same for `PropX`.
 
 ### Complex Types
 
 A complex type must define all of its fields in the body. Fields are declared
-with `@` and are private by default.  Adding `pub ref` or `pub mut ref` gives
-read or read/write acesss via reference.  `pub get` and `pub set` allow reading
-or writing a copy.
+with `@` and are private.  Public properties can be added with `pub get`,
+`pub get set`, `pub ref` or `pub mut ref`.
 
     pub type Example
     {
         // Mutable fields
-        @text1 str = "hello"                // Private, no public access
-        @text2 str pub ref = "hello"        // Public read only access
-        @text3 str pub mut ref = "hello"    // Public read/write access
-        @list List<int> pub get = [1,2,3]   // Returns a copy (not a ref)
+        @text1 str = "hello"                // Private, no public
+        @Text2 str pub get = "hello"        // Public read only
+        @Text3 str pub get set = "hello"    // Public read/write
+        @List1 List<int> pub get = [1,2,3]  // Returns a copy (not a ref)
+        @List2 List<int> pub ref;           // Returns read-only ref 
 
         // Read-only fields
-        ro @roText1 str                     // Constructor can override
-        ro @roText2 str = "Hello"           // Constructor cannot override
-        ro @roText3 str pub init = "Hello"  // Constructor or client construction can override
+        @roText1 ro str                     // Constructor can override
+        @roText2 ro str = "Hello"           // Constructor cannot override
+        @RoText3 ro str pub init = "Hello"  // Constructor or client can override
         
         // Getter returning a copy
-        pub get Text() str:
+        get Text() str:
             return text1
 
         // Setter
-        pub set Text(value str)
+        set Text(value str)
             if value == text:
                 return
             text1 = value
             SendTextChangedEvent()
 
         // Getter returning a reference (same as the `text2` field definition above)
-        pub get MyText2() ref str:
+        get MyText2() ref str:
             return ref text2
 
         // Getter allowing client code to set (same as `text3` field definition above)
-        pub get MyMutText3() mut ref str:
+        get MyMutText3() mut ref str:
             return ref text3
     }
 
-Fields can use `ro` to indicate read only.  Unlike in C#, when `ro`
-is used, the children are also read onyl (e.g. `Points[1].x = 0` is illegal)
+The entire type may be `ro`, or individual fields can use `ro` to indicate read only. 
 
 There is a default constructor taking all public fields and settable properties
 as named parameters.  There is also a `clone` function. The default constructor
@@ -471,7 +349,7 @@ explict type names when used as a local variable.
     @a = type(x=1, y=2)
     Log.Info("X={a.x}, Y={a.y}")   // Prints "X=1, Y=2"
 
-### New, Init, Equality, Clone, Dispose, and Drop
+### New, Equality, Clone, and Drop
 
 The `new` function is the type constructor.  It does not have access to
 `this` and may not call member functions except for another `new` function
@@ -479,42 +357,39 @@ The `new` function is the type constructor.  It does not have access to
 to `this` in the constructor.  `init` is called after the object is
 created and it has access to `this` and may call other member functions.
 
-`Equals`, `GetHashCode`, and `Clone` are generated automatically for types
-that don't contain pointers or define a `dispose` function.  The `Equals`
-function compares values, not object references (although object references
-may be used to speed up the comparison).  Types that don't have an
-`Equals` function may not be compared with `==` or `!=`.
+`Equals`, `GetHashCode`, `Clone`, and `DeepClone` are generated automatically
+for types that don't contain pointers or define a `drop` function.  The `Equals`
+function compares values, not object references (although object references may
+be used to speed up the comparison).  Types that don't have an `Equals` function
+may not be compared with `==` or `!=`.
 
-`clone` without parameters is always a deep copy for mutable types, and a
-shallow copy for immutable types.  Parameters can be used to create new
-immutable objects with different values (e.g. `person.Clone(FirstName: "Jeremy")`).
-Objects can be cloned to a buffer for transport to a Webworker
-(e.g. `person.Clone(Buffer)`).  The buffer clone will be super fast,
-laid out in memory so that it can be chopped up directly into DlMalloc
-allocated objects.
+Like Rust, an explicit `clone` is required to copy any type that requires
+dynamic allocation.  If the type contains only `int`, `str`, and `Array`,
+it will implicitly clone itself.  If the type contains `List`, `Map`, or
+`Buffer`, it must be explicitly cloned.  Some types, such as `FileStream`
+can't be cloned at all.
 
-A class may define `dispose`, which the user of the class may call or `use`
-to dispose of the object (e.g. `@a = use File.Open(...)` calls `dispose`
-at the end of the scope).  Calling `dispose` multiple times is not an error. 
+`clone` clones the entire object, but does a shallow copy of pointers.
+For instance, `List<MyType>>` is cloned fully provided that `MyType`
+doesn't contain a pointer.  Even if `MyType` contained a `List<str>`,
+everything is cloned.  For `List<^MyType>`, the pointer is copied
+and `MyType` is not cloned.  `DeepClone` can be used to clone the
+entire object graph regardless of pointers or circular references.
 
-A class may define `drop`, which is called by the garbage collector when the
-object becomes unreachable.  Once unreachable, always unreachable, there
-is no resurrection.  Therefore, the `drop` function does not have access to
-`this` or any of its reference fields since they may have already been reclaimed.
-It does have access to value types and pointer fields.  It should raise a debug
-panic if the object is still  *open* when `drop` is called (in a release, an
-error should be logged and resources cleaned up).
+A type may define `drop`, which is called deterministically when the
+object goes out of scope. If the object is boxed (e.g. `^MyType`), then
+there is no such guarantee.  Boxed objects may have `drop` called at any
+time after they are no longer reachable.  If a `^FileStream` were still
+open when the object is dropped non-deterministically, it is considered
+a programming error. In debug mode, the debugger would stop.  In release
+mode, an error is logged, but the program would carry on.
 
-There are no guarantees as to when `drop` is called, it could be very quickly
-if the compiler determines the object is dead at the end of the scope, or if
-reference counting is used.  Drops may be queued and called later.  Or they
-might be called a long time later in a fully garbage collected environmnet.
-It is an error for the user of an object to allow it to be reclaimed while
-in the *open* state.
+The `drop` function does not have access to any references or `boxed`
+types.  There is no zombie resurrection. 
 
 ### Lambda and Function Variables
 
-**TBD:** The `@` is used to make it easy to recognize new local variables:
+The `@` symbol is used to make it easy to recognize new local variables:
 
     // Find max value and sort the list using lambdas
     @a = 0
@@ -522,73 +397,11 @@ in the *open* state.
     myList.Sort(@(a,b) => a > b)
     Log.Info("Sorted list is {myList}, maximum value is: {a.max}")
 
-There is shortcut syntax for lambda-only functions that move
-the code block outside the function:
-
-
-    pub fun UseLambda() bool:
-        myList.For @a =>
-        {
-            if a < 1
-                continue    // Continue in the lambda
-            if a > 10
-                break       // Break out of the lambda
-            if a == 3
-                return false // Return out of the function, not the lambda
-        }
-        return true
+Inside the lambda function, `return` is forbidden since it doesn't return
+from thom the nearest `fun` scope.  Instead, `exit` is used.
 
 **TBD:** Consider how to `break` out of the lambda.  Use a return type of `Breakable`?
 
-### Enum
-
-Enumerations are similar to C# enumerations, in that they are just
-a wrapped `int`.  But they are implemented internally as a `type`
-and do not use `,` to separate values.
-
-    pub enum MyEnum
-    {
-        A           // A is 0
-        B; C        // B is 1, C is 2
-        D = 32      // D is 32
-        E           // E is 33
-    
-        // Enumerations can define ToStr
-        fun ToStr() str
-            return MyConvertToTranslatedName()
-    }
-
-The default `ToStr` function shows the value as an integer rather
-than the name of the field, but it is possible to override and make it
-display anything you want.  This allows enumerations to be just as light
-weight as an integer and need no metadata in the compiled executable.
-
-**TBD:** Differentiate an enum having only scalar values vs one with flags?
-The one with flags allows `|` and `&`, etc but the other doesn't.
-
-## Basic types
-
-The ones we all know and love:
-
-    i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, decimal
-    byte, int, uint
-
-`byte`, `int`, and `uint` are aliases for `u8`, `i64`, and `u64`
-
-| Type | Description
-| :--- | :---
-| Array\<T\> | Immutable array with immutable elements and constant `Count`.
-| Buffer\<T\> | Mutable array with mutable elements, but with constant `Count`
-| List\<T\> | Dynamically sized mutable array with mutable elements
-| Span\<T\> | Span into `Array`, `Buffer`, or `List`.  Constant `Count`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `Buffer` or `List` is mutable)
-| str | String, `Array<byte>` with additional support for string literals and UTF-8
-| Map<K,V> | Unordered mutable map
-| RoMap<K,V> | Read only map (immutable map with immutable elements and constant count)
-| Json | Json data structure
-| xint | Either i32 or i64 depending on compilation target (32 bit target is i32, 64 bit target is i64)
-
-**TBD:** Use lower case for `array`, `buffer`, `list`, `span`, `map`, `json`?
-This would probably not apply to `RoMap`.
 
 #### Array, List, and Buffer
 
@@ -717,6 +530,34 @@ Another example:
     @e = a["Time"].DateTime         // e is converted to DateTime
     a["Param2"][1].Int = 5          // Set the value
 
+    
+### Enum
+
+Enumerations are similar to C# enumerations, in that they are just
+a wrapped `int`.  But they are implemented internally as a `type`
+and do not use `,` to separate values.
+
+    pub enum MyEnum
+    {
+        A           // A is 0
+        B; C        // B is 1, C is 2
+        D = 32      // D is 32
+        E           // E is 33
+    
+        // Enumerations can define ToStr
+        fun ToStr() str
+            return MyConvertToTranslatedName()
+    }
+
+The default `ToStr` function shows the value as an integer rather
+than the name of the field, but it is possible to override and make it
+display anything you want.  This allows enumerations to be just as light
+weight as an integer and need no metadata in the compiled executable.
+
+**TBD:** Differentiate an enum having only scalar values vs one with flags?
+The one with flags allows `|` and `&`, etc but the other doesn't.
+
+
 
 ## Operator Precedence
 
@@ -769,7 +610,7 @@ The ternary operator is not associative and cannot be nested.  Examples
 of illegal expresions are `c1 ? x : c2 ? y : z` (not associative),
 `c1 ? x : (c2 ? y : z)` (no nesting).  The result expressions may not
 directly contain an operator with lower precedence than range.
-For example, `a==b ? x==3 : y==4` is  illegal.  parentheses can be
+For example, `a==b ? x==3 : y==4` is illegal.  parentheses can be
 used to override that behavior, `a==b ? (x==3) : (y==4)` and
 `a==b ? (@p=> p==3) : (@p=> p==4)` are acceptable.
 
@@ -955,7 +796,11 @@ either return a result or an error, for example:
 
     pub afun mut Read(data mut Span<byte>) int error  youdo
 
-Exceptional cases can be recovered, but they should never be used intentionally.
+Exceptional cases are programming errors, and should not be used
+intentionally.  They unwind the stack, cleanup after themselves, 
+and stay memory safe.  They can be recovered, but care should be
+taken when recovering and they always generate a stack trace.
+
 
 ## Interfaces
 

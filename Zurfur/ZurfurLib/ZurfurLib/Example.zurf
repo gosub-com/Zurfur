@@ -12,20 +12,21 @@ module TestExample
 
 // Get this to work
 type Point(X int, Y int)
-get Point<T>::Size() Point<T> { return Point(X, Y) }
+//get Point<T>::Size() Point<T> { return Point(X, Y) }
 
 
-// Simple types, fields are public:
+// Simple types have public fields:
 pub type SimpleType(FirstName str, LastName str)
 pub type ro SimpleImmutableType(FirstName str, LastName str)
 
 pub type ComplexType
 {
-    // Fields are private (the last two have public properties)
-    @map Map<str,int> = ["A":1, "B":2]  // Private, read/write
-    @list ro List<int> = [1,2,3]        // Private, read only
-    @Header str pub ro = "Zurfur"  // Private with public read
-    @Text str pub mut = "fun"      // Public read and write
+    // Fields are private, but may have public properties
+    @map Map<str,int> = ["A":1, "B":2]  // Private, mutable
+    @list ro List<int> = [1,2,3]       // Private, read-only
+    @Header str pub get = "Zurfur" // Private, public get
+    @Text str pub get set          // Private, public get/set
+    @MyList List<int> pub ref   // Has public `ro` reference
 
     // Properties are public by default
     get MapProperty() ref Map<str, int>:
@@ -34,11 +35,12 @@ pub type ComplexType
         map = v
         MapChangedEvent()
 
-    /// Public function.  This is a public comment.
+    /// This is a public documentation comment.
+    /// Functions are private by default.
     pub fun CountToTen() str:
         Log.Info("Hello world.  Let's count to 10.")
         for @a in 1..11:
-            Log.info("Count={a}, Text={text}")
+            Log.Info("Count={a}, Text={text}")
 }
 
 
