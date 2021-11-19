@@ -365,17 +365,17 @@ namespace Gosub.Zurfur.Compiler
                 var package = new PackageJson();
                 package.BuildDate = DateTime.Now.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
                 package.Symbols = zil.Symbols.Save(true);
-                package.SymbolsMapExperiment = zil.Symbols.SaveMapExperiment(true);
+                //package.SymbolsMapExperiment = zil.Symbols.SaveMapExperiment(true);
                 mHeaderJson = JsonConvert.SerializeObject(package, Formatting.None,
                     new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore });
 
                 // Code
                 package.Symbols = zil.Symbols.Save(false);
-                package.SymbolsMapExperiment = zil.Symbols.SaveMapExperiment(false);
+                //package.SymbolsMapExperiment = zil.Symbols.SaveMapExperiment(false);
                 mCodeJson = JsonConvert.SerializeObject(package, Formatting.None,
                     new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore });
 
-                //DebugVerifySymbolTables(zil, package);
+                DebugVerifySymbolTables(zil, package);
 
             });
 
@@ -437,6 +437,9 @@ namespace Gosub.Zurfur.Compiler
                 }
                 else
                 {
+                    // Missing symbols when there are compilation errors are normal
+                    if (savedSym is SymMethodGroup && savedSym.Parent.Token.Error)
+                        continue;
                     Console.WriteLine($"Internal consistency check: '{savedSym.FullName}' not found");
                     Debug.Assert(false);
                 }

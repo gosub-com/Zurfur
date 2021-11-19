@@ -32,6 +32,22 @@ pub static interface IArithmetic<T>
     static get Origin() T youdo
 }
 
+
+
+pub interface Iterator<T>
+{
+    /// Get the next item from a collection.
+    /// Returns null if there are no more items.
+    /// Panic if collection is mutated while iterating.
+    fun mut Next() ?ref T youdo
+}
+
+pub interface Iterable<T>
+{
+    fun GetIterator() Iterator<T> youdo
+}
+
+
 pub interface Collection<T>
     implements Iterable<T>
 {
@@ -40,17 +56,17 @@ pub interface Collection<T>
 }
 
 
-pub interface Iterable<T>
+pub interface IArray<T>
+    implements Collection<T>
 {
-    fun GetIterator() Iterator<T> youdo
+    get operator[](index int) T youdo
 }
 
-pub interface Iterator<T>
+pub interface IList<T>
+    implements Collection<T>
 {
-    /// Get the next item from a collection.
-    /// Returns null if there are no more items.
-    /// Panic if collection is mutated while iterating.
-    fun mut Next() ?ref T youdo
+    get operator[](index int) T youdo
+    set operator[](index int, item own T) youdo
 }
 
 

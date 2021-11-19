@@ -56,8 +56,7 @@ namespace Gosub.Zurfur.Compiler
 
         public static void VerifyHeader(SymbolTable symbols)
         {
-            //return;
-            symbols.VisitAll((symbol) =>
+            foreach (var symbol in symbols.Symbols)
             {
                 if (symbol.Name == "")
                     return;
@@ -119,11 +118,11 @@ namespace Gosub.Zurfur.Compiler
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent);
                     CheckType(field.Token, field.TypeName);
                 }
-            });
+            }
 
             void CheckType(Token token, string typeName)
             {
-                var s = symbols.LookupType(typeName);
+                var s = symbols.Lookup(typeName);
                 if (s == null)
                 {
                     if (typeName == "")
@@ -132,7 +131,7 @@ namespace Gosub.Zurfur.Compiler
                         Reject(token, $"Unknown type name: '{typeName}'");
                     return;
                 }
-                if (!(s is SymType || s is SymTypeParam || s is SymParameterizedType))
+                if (!(s is SymType || s is SymTypeParam || s is SymSpecializedType))
                 {
                     Reject(token, $"The type '{typeName}' is not a type, it is a '{s.Kind}'");
                     return;
@@ -144,7 +143,7 @@ namespace Gosub.Zurfur.Compiler
                     if (genericParams != genericArgs)
                         Reject(token, $"The type '{typeName}' requires {genericParams} generic type parameters, but {genericArgs} were supplied");
                 }
-                if (s is SymParameterizedType ptype)
+                if (s is SymSpecializedType ptype)
                 {
                     var genericParams = s.GenericParamTotal();
                     var genericArgs = ptype.Params.Length + ptype.Returns.Length;

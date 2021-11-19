@@ -18,10 +18,10 @@ namespace Gosub.Zurfur.Compiler
 
         static WordSet sFuncInInterfaceQualifiersAllowed = new WordSet("fun afun set aset get aget pub private protected static mut youdo async error");
 
-        static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static");
+        static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static interface");
         static WordSet sClassQualifiers = new WordSet("pub pfublic protected private internal unsafe unsealed abstract ro boxed");
         static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe ref ro");
-        static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
+        static WordSet sEnumQualifiers = new WordSet("pub public protected private internal enum");
 
         static WordSet sFieldInStructQualifiers = new WordSet("pub public static ro const");
         static WordSet sFieldInEnumQualifiers = new WordSet("");

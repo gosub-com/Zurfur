@@ -91,9 +91,8 @@ namespace Gosub.Zurfur.Compiler
 
     class SyntaxConstraint
     {
-        public Token Keyword;  // Where
-        public Token GenericTypeName;
-        public SyntaxExpr []TypeNames;
+        public Token TypeName;
+        public SyntaxExpr []TypeConstraints;
     }
 
     class SyntaxField : SyntaxScope

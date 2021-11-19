@@ -61,7 +61,7 @@ pub type AAFunc<T1,T2>
 
 
 pub type AGenericTest<T, QQQ>
-    where QQQ is x//: new() where T : new()
+    where QQQ is Equatable<QQQ>//: new() where T : new()
 {
     
     @af0 fun()->()

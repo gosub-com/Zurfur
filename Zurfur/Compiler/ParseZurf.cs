@@ -80,7 +80,6 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref mut own ro");
 
         static WordSet sEmptyWordSet = new WordSet("");
-        static WordSet sAllowConstraintKeywords = new WordSet("unmanaged");
         static WordSet sAllowUnderscore = new WordSet("_");
 
         public static WordSet sOverloadableOps = new WordSet("+ - * / % [ in");
@@ -314,7 +313,7 @@ namespace Gosub.Zurfur.Compiler
                     case "enum": // TBD: Change to 'type enum'
                     case "type":
                         mToken.Type = eTokenType.ReservedControl;
-                        Accept();
+                        qualifiers.Add(Accept());
                         while (AcceptMatch("ref") || AcceptMatch("ro") || AcceptMatch("boxed") || AcceptMatch("class") || AcceptMatch("passcopy"))
                             qualifiers.Add(mPrevToken);
                         ParseClass(keyword, parentScope, qualifiers);
@@ -327,7 +326,7 @@ namespace Gosub.Zurfur.Compiler
                     case "fun":
                     case "afun":
                         mToken.Type = eTokenType.ReservedControl;
-                        Accept();
+                        qualifiers.Add(Accept());
                         keyword.Type = eTokenType.ReservedControl;  // Fix keyword to make it control
                         AddMethod(ParseMethod(keyword, parentScope, qualifiers));
                         break;
@@ -591,36 +590,34 @@ namespace Gosub.Zurfur.Compiler
 
         private SyntaxConstraint[] ParseConstraints()
         {
+            if (!AcceptMatchPastMetaSemicolon("where"))
+                return null;
             List<SyntaxConstraint> constraints = new List<SyntaxConstraint>();
-            while (AcceptMatchPastMetaSemicolon("where"))
-                constraints.Add(ParseConstraint(mPrevToken));
+            do
+            {
+                constraints.Add(ParseConstraint());
+            } while (AcceptMatch(","));
+
             return constraints.ToArray();
         }
 
-        SyntaxConstraint ParseConstraint(Token keyword)
+        SyntaxConstraint ParseConstraint()
         {
             var constraint = new SyntaxConstraint();
-            constraint.Keyword = keyword;
             if (!AcceptIdentifier("Expecting a type name"))
-                return constraint;
-            constraint.GenericTypeName = mPrevToken;
+                return null;
+            constraint.TypeName = mPrevToken;
             mPrevToken.Type = eTokenType.TypeName;
 
             if (!AcceptMatchOrReject("is", "while parsing constraint"))
-                return constraint;
+                return null;
 
             var constraintTypeNames = NewExprList();
             do
             {
-                if (sAllowConstraintKeywords.Contains(mToken))
-                {
-                    mToken.Type = eTokenType.Reserved;
-                    constraintTypeNames.Add(new SyntaxToken(Accept()));
-                    continue;
-                }
                 constraintTypeNames.Add(ParseType());
-            } while (AcceptMatch(","));
-            constraint.TypeNames = FreeExprList(constraintTypeNames);
+            } while (AcceptMatch("+"));
+            constraint.TypeConstraints = FreeExprList(constraintTypeNames);
             return constraint;                       
         }
 
@@ -733,16 +730,13 @@ namespace Gosub.Zurfur.Compiler
             synFunc.Comments = mComments.ToString();
             mComments.Clear();
 
-            //if (mTokenName == "^")
-            //    qualifiers.Add(Accept());
             if (mTokenName == "mut")
                 qualifiers.Add(Accept());
             if (mTokenName == "ref")
                 qualifiers.Add(Accept());
-            qualifiers.Add(keyword);
 
             synFunc.TypeArgs = ParseMethodName(synFunc, out var validMethodName);
-            synFunc.MethodSignature = ParseMethodSignature(keyword);
+            synFunc.MethodSignature = ParseMethodSignature(keyword, out var hasReturnType);
             synFunc.Constraints = ParseConstraints();
 
             while (AcceptMatchPastMetaSemicolon("require"))
@@ -758,7 +752,8 @@ namespace Gosub.Zurfur.Compiler
             }
             else
             {
-                synFunc.Statements = ParseCompoundStatement(keyword);
+                synFunc.Statements = ParseCompoundStatement(keyword, 
+                    (hasReturnType ? "" : "a type name, ") + "'{', ':', 'where', 'require', 'extern', or 'youdo'");
             }
 
             synFunc.Qualifiers = qualifiers.ToArray();
@@ -843,8 +838,9 @@ namespace Gosub.Zurfur.Compiler
         ///     [1] - Returns (name, type) possibly blank for each
         ///     [2] - error/exit token
         /// </summary>
-        private SyntaxExpr ParseMethodSignature(Token keyword)
+        private SyntaxExpr ParseMethodSignature(Token keyword, out bool hasReturnType)
         {
+            hasReturnType = false;
             var funcParams = ParseMethodParams();
 
             if (mTokenName == "type")
@@ -862,7 +858,7 @@ namespace Gosub.Zurfur.Compiler
                     || sTypeUnaryOps.Contains(mTokenName)
                     || mTokenName == "fun" || mTokenName == "afun")
                 {
-
+                    hasReturnType = true;
                     returns.Add(new SyntaxBinary(EmptyToken, ParseType(), EmptyExpr));
                 }
                 returnParams = new SyntaxMulti(EmptyToken, FreeExprList(returns));
@@ -920,7 +916,8 @@ namespace Gosub.Zurfur.Compiler
             return new SyntaxBinary(name, type, initializer);
         }
         
-        SyntaxExpr ParseCompoundStatement(Token keyword)
+
+        SyntaxExpr ParseCompoundStatement(Token keyword, string isExpectingMessage = "")
         {
             if (IsMatchPastMetaSemicolon("{"))
                 return ParseStatements("'" + keyword.Name + "' statement");
@@ -934,7 +931,8 @@ namespace Gosub.Zurfur.Compiler
             var keywordColumn = keywordColumnToken.X;
 
             if (!AcceptMatch(":"))
-                RejectToken(mToken, $"Compound statement '{keyword.Name}' is expecting '{{' or ':'");
+                RejectToken(mToken, $"Statement '{keyword.Name}' is expecting "
+                        + $"{(isExpectingMessage == "" ? "'{' or ':'" : isExpectingMessage)}");
 
             if (IsMatchPastMetaSemicolon("{"))
             {
@@ -1205,9 +1203,9 @@ namespace Gosub.Zurfur.Compiler
                 case "afun":
                 case "func":
                 case "afunc":
-                    Accept();
+                    var qualifiers = new List<Token>() { Accept() };
                     keyword.Type = eTokenType.ReservedControl;  // Fix keyword to make it control
-                    var synFunc = ParseMethod(keyword, null, new List<Token>());
+                    var synFunc = ParseMethod(keyword, null, qualifiers);
                     if (synFunc != null)
                         statements.Add(synFunc);
                     break;
@@ -1958,7 +1956,7 @@ namespace Gosub.Zurfur.Compiler
                 var funKeyword = Accept();
                 if (mTokenName == "<")
                     RejectToken(mToken, "Generic type args on lambda not supported YET!");
-                return ParseMethodSignature(funKeyword);
+                return ParseMethodSignature(funKeyword, out var hasReturnType);
             }
 
             if (AcceptMatch("type"))
@@ -2498,8 +2496,8 @@ namespace Gosub.Zurfur.Compiler
             if (mAllowUnderscoreDefinitions)
                 return;
             var name = token.Name;
-            if (name.Length != 0 && (name[0] == '_' || name[token.Name.Length - 1] == '_'))
-                RejectToken(token, "Definition may not begin or end with '_'");
+            if (name.Length >= 2 && name[0] == '_' && name[1] == '_')
+                RejectToken(token, "Definition may not begin with '__'");
         }
 
 

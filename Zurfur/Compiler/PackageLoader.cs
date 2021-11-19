@@ -93,6 +93,7 @@ namespace Gosub.Zurfur.Compiler
         {
             foreach (var child in packSyms)
                 LoadAdd(table, table.Root, child);
+            table.GenerateLookup();
             return table;
         }
 
@@ -173,10 +174,9 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         static public Dictionary<string, PackageSymbolJson> SaveMapExperiment(this SymbolTable table, bool onlyPublic)
         {
-            return null;
-            //var packSyms = new Dictionary<string, PackageSymbolJson>();
-            //SaveAddMapExperiment(table.Root, packSyms, onlyPublic);
-            //return packSyms;
+            var packSyms = new Dictionary<string, PackageSymbolJson>();
+            SaveAddMapExperiment(table.Root, packSyms, onlyPublic);
+            return packSyms;
         }
 
         /// <summary>

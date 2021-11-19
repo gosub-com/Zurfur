@@ -1,5 +1,4 @@
-﻿
-pragma AllowUnderscoreDefinitions
+﻿pragma AllowUnderscoreDefinitions
 
 module Zurfur
 
@@ -9,7 +8,7 @@ module Zurfur.Internal
 
 
 /// Internal definition of a reference.
-pub type ro _ref<T>
+pub type ro __ref<T>
 {
     @r ro *T
 
@@ -28,13 +27,13 @@ pub type ro _ref<T>
 /// Owned reference.  This is specific to reference counting
 /// and wouldn't exist for a different kind of GC.
 
-pub type ro _oref<T>
+pub type ro __oref<T>
 {
     @r *T
-    @owner ?*_heap<T>
+    @owner ?*__heap<T>
 
     /// Owner is null when on the stack
-    pub fun new(reference *T, owner ?*_heap<T>)
+    pub fun new(reference *T, owner ?*__heap<T>)
         require reference != null:
         r = reference
         this.owner = owner
@@ -53,7 +52,7 @@ pub type ro _oref<T>
 
 /// All objects on the heap start with this header.
 /// This is specific to reference counted GC.
-pub type _heap<T>
+pub type __heap<T>
 {
     @vtable *void // TBD: Type info for GC and metadata
     @refCount xint

@@ -83,7 +83,7 @@ namespace Gosub.Zurfur.Compiler
                 int methods = 0;
                 int methodParams = 0;
                 int fields = 0;
-                mSymbols.VisitAll((sym) =>
+                foreach (var sym in mSymbols.Symbols)
                 {
                     count++;
                     if (sym.GetType() == typeof(SymType))
@@ -96,7 +96,7 @@ namespace Gosub.Zurfur.Compiler
                         else
                             typesGeneric++;
                     }
-                    if (sym.GetType() == typeof(SymParameterizedType))
+                    if (sym.GetType() == typeof(SymSpecializedType))
                         typeSpecializations++;
                     if (sym.GetType() == typeof(SymTypeParam))
                         typeParams++;
@@ -108,7 +108,7 @@ namespace Gosub.Zurfur.Compiler
                         methodParams++;
                     if (sym.GetType() == typeof(SymField))
                         fields++;
-                });
+                };
 
                 headerFile.Add("SYMBOLS: " + count);
                 headerFile.Add($"    Types: {types} ({typesNonGeneric} non-generic, {typesGeneric} generic)");
@@ -123,11 +123,11 @@ namespace Gosub.Zurfur.Compiler
             {
                 // Get namespaces and all symbols
                 var namespaces = new List<string>();
-                mSymbols.VisitAll((s) =>
+                foreach (var s in mSymbols.Symbols)
                 {
                     if (s is SymModule n)
                         namespaces.Add(n.FullName);
-                });
+                }
                 namespaces.Sort((a, b) => a.CompareTo(b));
 
                 headerFile.Add("");
@@ -148,7 +148,7 @@ namespace Gosub.Zurfur.Compiler
 
             void ShowTypes()
             {
-                var ds = SymbolTable.GetSymbols(mSymbols.Root);
+                var ds = mSymbols.GetSymbols();
                 var ls = new List<string>(ds.Keys);
                 ls.Sort((a, b) => Compare(a, b));
 

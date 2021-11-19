@@ -3,10 +3,10 @@
 module Zurfur
 
 pub type Map<TKey, TValue>
-    where TKey is IEquatable<TKey>
+    where TKey is Equatable<TKey>
 {
     pub fun new(capacity int)
-        where TKey is IEquatable:
+        where TKey is Equatable<TKey>:
         return todo()
     pub fun new(keyValues Collection<Pair<TKey, TValue>>):
         return todo()

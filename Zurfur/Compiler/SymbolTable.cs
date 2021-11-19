@@ -16,8 +16,17 @@ namespace Gosub.Zurfur.Compiler
         SymModule mRoot;
         public bool NoCompilerChecks;
 
-        // Lookup table for modules and types
+        /// <summary>
+        /// Lookup table for concrete types
+        /// </summary>
         Dictionary<string, Symbol> mLookup = new Dictionary<string, Symbol>();
+
+        /// <summary>
+        /// TBD: Still figuring out how to deal with specialzied types.
+        /// </summary>
+        Dictionary<string, SymSpecializedType> mSpecializedTypes = new Dictionary<string, SymSpecializedType>();
+
+        public Symbol Root => mRoot;
 
         public SymbolTable()
         {
@@ -27,12 +36,11 @@ namespace Gosub.Zurfur.Compiler
             // Add built in unary generic types
             foreach (var genericType in "* ^ [ ? ref own mut ro".Split(' '))
                 AddIntrinsicType(genericType, 1);
-        }
+        }        
 
-        public Symbol Root => mRoot;
 
         /// <summary>
-        /// Add an intrinsic type, such as "*", "^", "?", "ref", "$fun3", etc
+        /// Add an intrinsic type, such as "*", "^", "?", "ref", "$fun3", etc.
         /// </summary>
         SymType AddIntrinsicType(string type, int numGenerics)
         {
@@ -62,7 +70,7 @@ namespace Gosub.Zurfur.Compiler
 
 
         /// <summary>
-        /// Generates a lookup table for modules and types.
+        /// Generates a lookup table for all symbols, excluding specialized types.
         /// Must be called before using `Lookup`
         /// </summary>
         public void GenerateLookup()
@@ -70,91 +78,52 @@ namespace Gosub.Zurfur.Compiler
             mLookup.Clear();
             VisitAll((s) => 
             {
-                if (s is SymModule || s.GetType() == typeof(SymType) || s is SymParameterizedType)
-                {
-                    var fullName = s.FullName;
-                    Debug.Assert(!mLookup.ContainsKey(fullName));
-                    mLookup[fullName] = s;
-                }
+                Debug.Assert(!(s is SymSpecializedType));
+                var fullName = s.FullName;
+                Debug.Assert(!mLookup.ContainsKey(fullName));
+                mLookup[fullName] = s;
             });
         }
 
         /// <summary>
-        /// TBD: I am still figuring out if this is a good way to deal with specializations.
-        /// For now, just dump them in the lookup table so we can look them up.
-        /// Call this after calling `GenerateLookup`.
-        /// </summary>
-        public void AddSpecializations(Dictionary<string, SymParameterizedType> specializations)
-        {
-            foreach (var kv in specializations)
-            {
-                var symbol = kv.Value;
-                var fullName = symbol.FullName;
-                Debug.Assert(kv.Key == fullName);
-                Debug.Assert(!mLookup.ContainsKey(fullName));
-                Debug.Assert(SymbolBelongs(symbol));
-                mLookup[fullName] = kv.Value;
-            }
-        }
-
-        /// <summary>
-        /// Lookup a type.
+        /// Lookup a symbol, including specialized types
         /// Call `GenerateLookup` before calling this.
-        /// Returns NULL if name doesn't exist or it's not a type of some sort.
+        /// Returns NULL if symbol doesn't exist.
         /// </summary>
-        public Symbol LookupType(string name)
+        public Symbol Lookup(string name)
         {
-            if (!mLookup.TryGetValue(name, out var symbol))
-                return null;
-            if (symbol is SymType || symbol is SymParameterizedType || symbol is SymTypeParam)
-                return symbol;
+            if (mSpecializedTypes.TryGetValue(name, out var symbol1))
+                return symbol1;
+            if (mLookup.TryGetValue(name, out var symbol2))
+                return symbol2;
             return null;
         }
 
         /// <summary>
-        /// Find the module, return NULL if not found or it's not a module.
-        /// The module is a path in dotted format (e.g. "Zurfur.Draw2d")
+        /// Returns dictionary of all symbols, excluding specialized types
         /// </summary>
-        public SymModule LookupModule(string name)
+        public Dictionary<string, Symbol> GetSymbols()
         {
-            if (!mLookup.TryGetValue(name, out var symbol))
-                return null;
-            return symbol as SymModule;
+            return new Dictionary<string, Symbol>(mLookup);
         }
 
+        /// <summary>
+        /// All symbols, excluding specialized types.
+        /// Call `GenerateLookup` before using this.
+        /// </summary>
+        public Dictionary<string, Symbol>.ValueCollection Symbols
+            => mLookup.Values;
 
         /// <summary>
-        /// Visit all symbols
+        /// Visit all symbols, excluding specialized types
         /// </summary>
-        public void VisitAll(Action<Symbol> visit)
+        void VisitAll(Action<Symbol> visit)
         {
             VisitAll(mRoot, visit);
         }
 
-        /// <summary>
-        /// Returns dictionary of full names of all symbols without method or type parameters
-        /// </summary>
-        public Dictionary<string, Symbol> GetSymbols()
-        {
-            return GetSymbols(Root);
-        }
-
-        /// <summary>
-        /// Returns dictionary of full names of all symbols without method or type parameters
-        /// </summary>
-        public static Dictionary<string, Symbol> GetSymbols(Symbol root)
-        {
-            var symbols = new Dictionary<string, Symbol>();
-            VisitAll(root, (symbol) => 
-            {
-                Debug.Assert(!symbols.ContainsKey(symbol.FullName));
-                symbols[symbol.FullName] = symbol;
-            });
-            return symbols;
-        }
-
         // Recursively call visit for each symbol in the root.
-        public static void VisitAll(Symbol root, Action<Symbol> visit)
+        static void VisitAll(Symbol root, Action<Symbol> visit)
         {
             if (root.FullName != "")
                 visit(root);
@@ -195,6 +164,37 @@ namespace Gosub.Zurfur.Compiler
             Reject(newSymbol.Token, $"Duplicate symbol. There is a {remoteSymbol.Kind} in this scope with the same name.");
             return false;
         }
+
+        /// <summary>
+        /// Get or create (and add to symbol table) a specialized type.
+        /// </summary>
+        public SymSpecializedType AddSpecializedType(Symbol concreteType, Symbol[] typeParams, Symbol[] typeReturns = null)
+        {
+            Debug.Assert(concreteType is SymType);
+            var sym = new SymSpecializedType(concreteType, typeParams, typeReturns);
+            if (mSpecializedTypes.TryGetValue(sym.FullName, out var specExists))
+                sym = specExists;
+            else
+                mSpecializedTypes[sym.FullName] = sym;
+            return sym;
+        }
+
+        /// <summary>
+        /// Get or create a generic parameter ('#0', '#1', etc.)
+        /// </summary>
+        /// <param name="argNum"></param>
+        /// <returns></returns>
+        public SymSpecializedType GetGenericParam(int argNum)
+        {
+            var name = "#" + argNum;
+            if (mSpecializedTypes.ContainsKey(name))
+                return mSpecializedTypes[name];
+            var spec = new SymSpecializedType(Root, name);
+            mSpecializedTypes[name] = spec;
+            return spec;
+        }
+
+
 
         /// <summary>
         /// Returns the symbol at the given path in the package.  Generates exception if not found.

@@ -4,6 +4,10 @@ pragma ShowParse        // Show the parse tree (hover over a symbol)
 
 // Press F4 to see header file report
 
+TBD:
+// Finish constraints
+// Remove "Kind" in Json Header, put kind in "Tags" instead of "Qualifier"
+// Use "type heap" instead of "type boxed"
 
 use Zurfur
 
@@ -43,6 +47,35 @@ pub type ComplexType
             Log.Info("Count={a}, Text={text}")
 }
 
+
+// Need to figure out placeholder types:
+//      https://doc.rust-lang.org/book/ch19-03-advanced-traits.html
+//
+// In the example on that page, the associate type is Item,
+// and should translate to Iterator<Item>.  So why do we
+// need the type argument on its own line?
+//
+// But on this page:
+//      https://medium.com/@jreem/advanced-rust-using-traits-for-argument-overloading-c6a6c8ba2e17
+// Does the associate type translate to IntoReader<OutReader>?
+//
+//pub interface RustSend { }
+//pub interface RustReader
+//{
+//    pub fun mut Read(buffer []byte) int error youdo
+//}
+//pub interface RustIntoReader<OutReader>
+//    where OutReader is RustReader
+//{
+//    fun ToReader() OutReader youdo
+//}
+//type RustResponse
+//{
+//    @body ^RustReader
+//    pub fun mut SetBody<I>(data I)
+//            where I is IntoReader, I.OutReader is RustSend:
+//        _body = data.ToReader()
+//}
 
 
 fun test_HelloWorld():

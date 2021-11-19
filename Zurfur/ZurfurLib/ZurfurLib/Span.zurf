@@ -27,13 +27,12 @@ pub type ref passcopy Span<T>
     /// Find index of the sequence `seq`.
     /// Returns -1 if not found, or 0 if `seq` is empty.
     pub fun Find(seq Span<T>) int
-    {
+            where T is Equatable<T>:
         if seq.Count == 0:
             return 0
         if seq.Count > Count:
             return -1
-        for @i in 0..Count-seq.Count+1
-        {
+        for @i in 0..Count-seq.Count+1:
             if this[i] != seq[0]:
                 continue
             @j = 1
@@ -41,13 +40,12 @@ pub type ref passcopy Span<T>
                 j += 1
             if j == seq.Count:
                 return i
-        }
         return -1
-    }
 
 
     /// Find the index of the `item`.  Returns -1 if not found.
-    pub fun Find(item T) int:
+    pub fun Find(item T) int
+            where T is Equatable<T>:
         for @i in 0..Count:
             if this[i] == item:
                 return i

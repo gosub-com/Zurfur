@@ -11,7 +11,7 @@ fun test_Shape():
     
 
 type passcopy Point<T>(X T, Y T)
-    where T is IAritmetic
+    where T is IArithmetic<T>
 {
     fun operator+(a Point<T>, b Point<T>) { return Point(a.X+b.X, a.Y+b.Y) }
     fun operator-(a Point<T>) { return Point(-a.X, -a.Y) }
@@ -24,14 +24,14 @@ type passcopy Point<T>(X T, Y T)
 }
 
 type passcopy Size<T>(Width T, Height T)
-    where T is IAritmetic
+    where T is IArithmetic<T>
 {
     // TBD: Same as Point<T>
     get ToPoint() Point<T> { return Point(Width, Height) }
 }
 
 type Rect<T>(X T, Y T, Width T, Height T)
-    where T is IArithmetic
+    where T is IArithmetic<T>
 {
     // TBD: Operators (add, multiply, divide, sizes, etc.)
     pub fun new(location Point<T>, size Zurfur.Draw2d.Size<T>):

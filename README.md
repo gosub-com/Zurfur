@@ -122,7 +122,8 @@ argument, and the return type comes after the parameters:
     pub fun Main(args Array<str>):
         Log.Info("Hello World, 2+2={2+2}")
 
-Extension methods are declared at the namespace level:
+Functions declared at the module level are implicitly `static` without needing
+to use the keyword.  Extension methods must be declared at the module level:
 
     // Declare an extension method for strings
     pub str::Rest() str:
@@ -137,33 +138,31 @@ Properties are public by default, and are defined with `get` and `set` keywords:
         myString = v
         MyStringChangedEvent()
   
-By default, functions pass parameters as read-only reference.  The exception
-is that small types (e.g. `int`, and `Span<T>`) are passed by copy because
-it is more efficient to do so.  Other qualifiers, `mut`, `ref`, and `own`
-can be used to change the passing behavior:
+By default, function parameters are passed as read-only reference.  The
+exception is that small types (e.g. `int`, and `Span<T>`) are passed by
+copy because it is more efficient to do so.  Other qualifiers, `mut`, `ref`,
+and `own` can be used to change the passing behavior:
 
     pub fun Test(
-        a               int,  // Pass a copy (i.e. `type passcopy`)
+        a               int,  // Pass a copy because it is efficient (i.e. `type passcopy`)
         b       mut ref int,  // Pass by ref, allow assignment
-        c               str,  // Pass by ref since `str` is immutable boxed (i.e.`type ro boxed`)
-        d         List<int>,  // Pass by ref, read-only
-        e     mut List<int>,  // Pass by ref, allow mutation, but not assignment
-        f ref mut List<int>,  // Pass by ref, allow mutation and assignment
-        g     own List<int>)  // Take ownership of the list
+        c         List<int>,  // Pass by ref, read-only
+        d     mut List<int>,  // Pass by ref, allow mutation, but not assignment
+        e ref mut List<int>,  // Pass by ref, allow mutation and assignment
+        f     own List<int>)  // Take ownership of the list
 
 List of the qualifiers, and what they mean:
 
 | Qualifier | Passing style | Notes
 | :--- | :--- | :---
-|  | Immutable reference | Can copy for small types (e.g. `int`, `Span`, etc.)
+|  | Read-only reference | Can copy for small types (e.g. `int`, `Span`, etc.)
 | mut | Allow mutation but not assignment | Not valid for `ro` types (e.g. `str`, `Array`, `Span`, etc.)
 | ref mut | Allow mutation and assignment | Requires annotation (i.e. `ref`) at the call site
 | own | Take ownership | Not valid for `ro` types and types that don't require allocation (.e.g. `int`, `str`, `Array`, plain old data, etc.)
 
 Arguments passed by `mut` do not need to be annotated at the call site.  This
 is because it is obvious that `f(myList)` could mutate `myList` and it's easy
-enough to see if `f` does that just by hovering over the definition.  **TBD:**
-maybe change this.
+enough to see if `f` does that just by hovering over the definition. 
 
 Arguments passed by `mut ref` must be annotated at the call site
 (e.g. `f(ref myInt)`).  This is because it is not quickly obvious that the
@@ -188,10 +187,21 @@ The return parameters are named, and can be used by the calling function:
 Normally the return value becomes owned by the caller, but this behavior
 can be changed with the `ref` keyword:
 
-    pub fun ListRoFun() ref List<int>:      // Read only ref
+    pub fun GetRoList() ref List<int>:          // Read only ref
         return ref myListField
-    pub fun ListMutFun() mut ref List<int>: // Mutable ref
+    pub fun GetMutList() mut List<int>:         // Mutable (mutation allowed, assignment not allowed)
+        return mut myListField
+    pub fun GetMutRefList() mut ref List<int>:  // Mutable ref (mutation or assignment is allowed)
         return mut ref myListField
+
+Return qualifiers:
+
+| Qualifier | Passing style | Notes
+| :--- | :--- | :---
+|  | Caller takes ownership | A move or copy operation is performed
+| mut | Caller may mutate, but not assign | Not valid for `ro` types (e.g. `str`, `Array`, `Span`, etc.)
+| ref mut | Caller may mutate or assign | Requires annotation (i.e. `ref`) at the call site
+
 
 ## Types
 
@@ -219,10 +229,10 @@ type is an immutable reference type with fast implicit cloning.  Very small type
 that don't require dynamic allocation are `passcopy` because it is faster to
 pass a copy.
 
-| Type Qualifier | Examples | Passing Style | Explicit Clone | Clone Speed
+| Type Qualifier | Examples | Passing Style | Explicit Clone Required | Clone Speed
 | :--- | :--- | :--- | :--- | :---
 |`passcopy` | `int`, `f64`, `Span` | Copy | No | Fast, small, never allocates
-|  | `List`, `Map` | Ref | If it allocates | Medium (copy bytes) or Slow (allocates)
+|  | `List`, `Map` | Ref | If it allocates | Medium (copy bytes) or Slow (if it allocates)
 | ro | | Ref | No | Medium, copy bytes, never allocates
 | boxed | `Buffer` | Ref | Yes | Slow, always allocates
 | boxed ro | `str`, `Array`, `RoMap` | Ref | No | Fast
@@ -230,8 +240,8 @@ pass a copy.
 
 Notice that `List` and `Map` are not boxed.  They live directly inline in the
 object that owns them, but they do contain a reference to a `Buffer` which is 
-directly on the heap. Because they use dynamic allocation, `List`, `Map`,
-and `Buffer` require an explicit clone.
+directly on the heap. Because they are mutable and use dynamic allocation,
+`List`, `Map`, and `Buffer` require an explicit clone.
 
 Also notice that `Array` and `str` are `boxed ro`.  They are reference types
 and don't require an explicit clone.

@@ -52,7 +52,7 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Name as it appears in the lookup table.  For most types, it is
         /// the same as the source code token.  The exceptions are SymMethod
-        /// and SymParameterizedType which include type info.
+        /// and SymSpecializedType which include type info.
         /// </summary>        
         public string Name { get; private set; }
 
@@ -70,13 +70,17 @@ namespace Gosub.Zurfur.Compiler
         public bool HasToken => mToken != null && mFile != null;
 
         /// <summary>
-        /// Field or parameter type name
+        /// Field or parameter type name (not applicable to types or methods, etc.)
         /// </summary>
         public string TypeName = "";
 
+        public bool IsInterface
+            => this is SymType && Qualifiers.Contains("interface")
+                || this is SymSpecializedType && Parent is SymType && Parent.Qualifiers.Contains("interface");
+
         /// <summary>
         /// Source code token if it exists.  Throws an exception for
-        /// SymMethodGroup, SymParameterizedType, SymModule and built
+        /// SymMethodGroup, SymSpecializedType, SymModule and built
         /// in SymType's like "$extension" and "ref"
         /// </summary>
         public Token Token
@@ -91,7 +95,7 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Source code token if it exists.  Throws an exception for
-        /// SymMethodGroup, SymParameterizedType, SymModule and built
+        /// SymMethodGroup, SymSpecializedType, SymModule and built
         /// in SymType's like "$extension" and "ref"
         /// </summary>
         public string File
@@ -125,7 +129,7 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Create a symbol that is non-existent or not unique in the source
-        /// code (e.g. SymMethodGroup, SymParameterizedType, SymModule,
+        /// code (e.g. SymMethodGroup, SymSpecializedType, SymModule,
         /// and built-in types like "$extension", "ref", "*", etc.)
         /// </summary>
         public Symbol(Symbol parent, string name)
@@ -172,6 +176,12 @@ namespace Gosub.Zurfur.Compiler
                 return mFullNameCache;
             }
         }
+
+        /// <summary>
+        /// Return the simple name of this symbol (methods use the group, not the full type name)
+        /// </summary>
+        public string SimpleName
+            => this is SymMethod ? Parent.Name : Name;
 
         public override string ToString()
         {
@@ -266,6 +276,8 @@ namespace Gosub.Zurfur.Compiler
                 return tp.Count == 0 ? "" : $"`{tp.Count}";
             }
         }
+
+        public string[] Constraints;
     }
 
     class SymTypeParam : Symbol
@@ -275,6 +287,8 @@ namespace Gosub.Zurfur.Compiler
         }
         public override string Kind => "type parameter";
         protected override string Separator => "~";
+
+        public string[] Constraints;
 
     }
 
@@ -292,7 +306,7 @@ namespace Gosub.Zurfur.Compiler
     class SymMethodGroup : Symbol
     {
         public SymMethodGroup(Symbol parent, string name) : base(parent, name) { }
-        public override string Kind => "methods";
+        public override string Kind => "method group";
         protected override string Separator => ".";
 
     }
@@ -314,7 +328,7 @@ namespace Gosub.Zurfur.Compiler
         {
             IsReturn = isReturn;
         }
-        public override string Kind => "parameter";
+        public override string Kind => "method parameter";
         protected override string Separator => "~";
         public bool IsReturn { get; private set; }
     }
@@ -324,16 +338,16 @@ namespace Gosub.Zurfur.Compiler
     /// The symbol name is a combination of both parentName<T0,T1,T2...>
     /// or for generic functions fun(T0,T1)(R0,R1)
     /// </summary>
-    class SymParameterizedType : Symbol
+    class SymSpecializedType : Symbol
     {
         public readonly Symbol[] Params;
         public readonly Symbol[] Returns;
 
-        public override string Kind => "parameterized type";
+        public override string Kind => "specialized type";
         protected override string Separator => "";
 
         // Constructor for generic type argument
-        public SymParameterizedType(Symbol parent, string name)
+        public SymSpecializedType(Symbol parent, string name)
             : base(parent, name)
         {
             Params = Array.Empty<Symbol>();
@@ -342,7 +356,7 @@ namespace Gosub.Zurfur.Compiler
 
 
         // Constructor for generic type 'F<T>' or function 'F<p1,p2...><r1,r2...>'
-        public SymParameterizedType(Symbol parent, Symbol[] typeParams, Symbol[] typeReturns = null)
+        public SymSpecializedType(Symbol parent, Symbol[] typeParams, Symbol[] typeReturns = null)
             : base(parent, FullTypeParamNames(typeParams, typeReturns))
         {
             Debug.Assert(parent is SymType);
