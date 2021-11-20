@@ -6,8 +6,7 @@ pragma ShowParse        // Show the parse tree (hover over a symbol)
 
 TBD:
 // Finish constraints
-// Remove "Kind" in Json Header, put kind in "Tags" instead of "Qualifier"
-// Use "type heap" instead of "type boxed"
+// For fields, move "pub get" to before type definition
 
 use Zurfur
 
@@ -20,10 +19,10 @@ type Point(X int, Y int)
 
 
 // Simple types have public fields:
-pub type SimpleType(FirstName str, LastName str)
-pub type ro SimpleImmutableType(FirstName str, LastName str)
+type pub SimpleType(FirstName str, LastName str)
+type pub ro SimpleImmutableType(FirstName str, LastName str)
 
-pub type ComplexType
+type pub ComplexType
 {
     // Fields are private, but may have public properties
     @map Map<str,int> = ["A":1, "B":2]  // Private, mutable
@@ -33,15 +32,15 @@ pub type ComplexType
     @MyList List<int> pub ref   // Has public `ro` reference
 
     // Properties are public by default
-    get MapProperty() ref Map<str, int>:
+    get pub MapProperty() ref Map<str, int>:
         return ref map // Return a read only reference
-    set MapProperty(v own Map<str, int>):
+    set pub MapProperty(v own Map<str, int>):
         map = v
         MapChangedEvent()
 
     /// This is a public documentation comment.
     /// Functions are private by default.
-    pub fun CountToTen() str:
+    fun pub CountToTen() str:
         Log.Info("Hello world.  Let's count to 10.")
         for @a in 1..11:
             Log.Info("Count={a}, Text={text}")
@@ -62,7 +61,7 @@ pub type ComplexType
 //pub interface RustSend { }
 //pub interface RustReader
 //{
-//    pub fun mut Read(buffer []byte) int error youdo
+//    fun pub mut Read(buffer []byte) int error youdo
 //}
 //pub interface RustIntoReader<OutReader>
 //    where OutReader is RustReader
@@ -72,7 +71,7 @@ pub type ComplexType
 //type RustResponse
 //{
 //    @body ^RustReader
-//    pub fun mut SetBody<I>(data I)
+//    fun pub mut SetBody<I>(data I)
 //            where I is IntoReader, I.OutReader is RustSend:
 //        _body = data.ToReader()
 //}
@@ -94,32 +93,32 @@ fun test_HelloWorld():
             doit4
             
 
-pub type boxed AGenericType<Q>(FirstName str, LastName str)
+type pub heap AGenericType<Q>(FirstName str, LastName str)
 {
-    pub fun Circle1(a f64, r f64) -> (x f64, y f64):
+    fun pub Circle1(a f64, r f64) -> (x f64, y f64):
         return Cos(a)*r, Sin(a)*r
 
-    pub fun Circle2(a int, r int) int:
+    fun pub Circle2(a int, r int) int:
         return Cos(a)*r, Sin(a)*r
 
 
-    pub fun Circle3(a f64, r f64) -> (x f64, y f64):
+    fun pub Circle3(a f64, r f64) -> (x f64, y f64):
         return Cos(a)*r, Sin(a)*r
 
-    pub fun MyVoid1():
+    fun pub MyVoid1():
         return 0
 
-    pub fun MyVoid2() int:
+    fun pub MyVoid2() int:
         return 0
        
 }
 
 
-pub fun Circle3(a f64, b f64) -> (c int, d int):
+fun pub Circle3(a f64, b f64) -> (c int, d int):
     return 0
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-pub fun Iterable<T>::AlphaLengthWise<T, L>(
+fun pub Iterable<T>::AlphaLengthWise<T, L>(
                lengthProvider fun(t T) L) Iterable<T>:
     return this
         .OrderBy(@a => lengthProvider(a))
@@ -127,9 +126,9 @@ pub fun Iterable<T>::AlphaLengthWise<T, L>(
 
     F(t).AW(T,L).q
 
-pub type Example
+type pub Example
 {
-    pub get MyConst() str:
+    get pub MyConst() str:
         return "Hello"
     
     @a1 str
@@ -148,11 +147,11 @@ pub type Example
     @map3 ro Map<str,int> pub init               // Read only, init in constructor or allow public init
     
 
-    pub fun GetInfo(a int) str:
+    fun pub GetInfo(a int) str:
         return info+a
-    pub fun GetInfo(a str) str:
+    fun pub GetInfo(a str) str:
         return a
-    pub get Info() str:
+    get pub Info() str:
         return info
 
     @a Zim<void>
@@ -171,7 +170,7 @@ pub type Example
     
 }
 
-pub type Zim<T>
+type pub Zim<T>
 {
     @q T pub get set
 }
@@ -179,7 +178,7 @@ pub type Zim<T>
 
 /// This is a public documentation comment.  Do not use XML.
 /// Use `name` to refer to variables in the code.
-pub fun test_Main(args Array<str>)
+fun pub test_Main(args Array<str>)
 {
     test_compose()
 
@@ -246,43 +245,43 @@ pub fun test_Main(args Array<str>)
         return x*x
 }
 
-pub type Token(a str)
+type pub Token(a str)
 
-pub fun AcceptMatch(name str) ?Token:
+fun pub AcceptMatch(name str) ?Token:
     return name == "(" ? Token() : null
 
 // Regular static function
-pub fun add(a int, b int) int:
+fun pub add(a int, b int) int:
     return a + b
 
 // Multiple returns
-pub fun Circle(a f64, r f64) -> (x f64, y f64):
+fun pub Circle(a f64, r f64) -> (x f64, y f64):
     return Cos(a)*r, Sin(a)*r
 
 
 // Mutable point
-pub type MyMutablePoint(X int, Y int)
+type pub MyMutablePoint(X int, Y int)
 {
-    pub fun mut SetY(y int):
+    fun pub mut SetY(y int):
         Y = y
         
-    pub get PropX() int:
+    get pub PropX() int:
         return x
-    pub set PropX(value int):
+    set pub PropX(value int):
         X = value
 }
 
 
-pub type PointXY<T>(X int, Y int)
+type pub PointXY<T>(X int, Y int)
     implements IArithmetic<T>
 {
-    pub fun operator+(a PointXY<T>, b PointXY<T>) PointXY<T>:
+    fun pub operator+(a PointXY<T>, b PointXY<T>) PointXY<T>:
         return todo()
 }
 
 type MyStruct(a int)
 
-pub fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool):
+fun pub Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool):
     // Simple selection sort
     for @i in s.Count-1:
         @lowElem = s[i]
@@ -296,7 +295,7 @@ pub fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool):
             s[i] = lowElem
 
 
-pub fun MemCopy(dest *void, source *void, length xint):
+fun pub MemCopy(dest *void, source *void, length xint):
     @d = cast(xint)dest
     @s = cast(xint)source
     
@@ -322,7 +321,7 @@ pub fun MemCopy(dest *void, source *void, length xint):
     while d != end:
         dref(cast(*byte)d) = dref(castx<*byte>(s)); d+=1; s+=1
 
-pub fun MemCopy32(dest *void, source *void, length xint):
+fun pub MemCopy32(dest *void, source *void, length xint):
     @d = cast (xint)dest
     @s = cast (xint)source
 

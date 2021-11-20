@@ -8,56 +8,56 @@ module Zurfur.Internal
 
 
 /// Internal definition of a reference.
-pub type ro __ref<T>
+type pub ro __ref<T>
 {
     @r ro *T
 
-    pub fun new(reference *T)
+    fun pub new(reference *T)
         require reference != null:
         r = reference
         
-    pub fun Get() T extern
-    pub fun SetRef(value ref T) extern
-    pub fun SetVal(value T) extern
-    pub unsafe fun Index(offset int) mut ref T extern
-    pub unsafe fun ByteOffset(offset int) *void extern
+    fun pub Get() T extern
+    fun pub SetRef(value ref T) extern
+    fun pub SetVal(value T) extern
+    fun pub unsafe Index(offset int) mut ref T extern
+    fun pub unsafe ByteOffset(offset int) *void extern
 }
 
 
 /// Owned reference.  This is specific to reference counting
 /// and wouldn't exist for a different kind of GC.
 
-pub type ro __oref<T>
+type pub ro __oref<T>
 {
     @r *T
     @owner ?*__heap<T>
 
     /// Owner is null when on the stack
-    pub fun new(reference *T, owner ?*__heap<T>)
+    fun pub new(reference *T, owner ?*__heap<T>)
         require reference != null:
         r = reference
         this.owner = owner
 
-    pub fun drop():
+    fun pub drop():
         if owner != null:
             owner.Dec()
         
-    pub fun Get() T extern
-    pub fun SetRef(value ref T) extern
-    pub fun SetVal(value T) extern
-    pub unsafe fun Index(offset int) mut ref T extern
-    pub unsafe fun ByteOffset(offset int) *void extern
+    fun pub Get() T extern
+    fun pub SetRef(value ref T) extern
+    fun pub SetVal(value T) extern
+    fun pub unsafe Index(offset int) mut ref T extern
+    fun pub unsafe ByteOffset(offset int) *void extern
 }
 
 
 /// All objects on the heap start with this header.
 /// This is specific to reference counted GC.
-pub type __heap<T>
+type pub __heap<T>
 {
     @vtable *void // TBD: Type info for GC and metadata
     @refCount xint
 
-    pub fun Inc():
+    fun pub Inc():
         refCount += 1
         if refCount < 0:
             todo() // TBD: Queue to call drop and reclaim memory
@@ -66,9 +66,9 @@ pub type __heap<T>
 
 module Zurfur.Compiler
 
-pub type ro Attribute { }
+type pub ro Attribute { }
 
-pub type class ro AlignAttribute
+type pub ro class AlignAttribute
     extends Attribute
 {
     @Size int pub get
@@ -78,12 +78,12 @@ pub type class ro AlignAttribute
 module Zurfur.Compiler.Internal
 
 // TBD: This will contain compiler generated metadata for each type
-pub type GcType { }
+type pub GcType { }
 
 
 // Header for all heap objects
 #Align(8)
-pub type ro GcObject<T>
+type pub ro GcObject<T>
 {
     @Type *GcType pub get
     @refCount int // Might not exist in GC implementations
@@ -92,7 +92,7 @@ pub type ro GcObject<T>
 // Header for all heap array objects
 // NOTE: refCount may not exist in GC implementations.
 #Align(8)
-pub type ro GcArray<T>
+type pub ro GcArray<T>
 {
     const DEFAULT_HASH uint = 0xFFFFFFFF
     @Type *GcType pub get
@@ -105,24 +105,24 @@ pub type ro GcArray<T>
 // Separate it from all other types since there is a chance
 // it would be reference counted even in a GC implementation.
 #Align(8)
-pub type ro GcRefArray<T>
+type pub ro GcRefArray<T>
 {
     @Type *GcType pub get
     @RefCount uint pub get set
     @Count uint pub get
 
-    pub fun new()
+    fun pub new()
     {
         Type = todo()
     }
 
     // TBD: Need access to 'this' pointer (use 'ref' on property?)
-    pub unsafe get Data() *T:
+    get pub unsafe Data() *T:
         return cast(*T)(cast(xuint)&this + sizeof(GcRefArray<T>))
 
     // TBD: Need access to 'this' pointer (use 'ref' on function?)
     /// No bounds checking
-    pub unsafe fun operator[](index int) *T:
+    fun pub unsafe operator[](index int) *T:
         return unsafe cast(*T)(cast(xuint)&this
                                 + sizeof(GcRefArray<T>)
                                 + sizeof(T)*index)

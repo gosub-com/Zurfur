@@ -3,27 +3,27 @@ use Zurfur.Compiler.Internal
 
 module Zurfur
 
-pub type List<T>
+type pub List<T>
     implements Collection<T>
 {
-    pub const MaxItems uint = uint.Max/4/Math.Max(1,sizeof(t))
+    const pub MaxItems uint = uint.Max/4/Math.Max(1,sizeof(t))
 
     @buffer  Buffer<T>
     @Count int pub get
     @Version int pub get  // Increment when Count changes
     
-    pub fun new(capacity int):
+    fun pub new(capacity int):
         SetCapacity(capacity)
 
-    pub fun IncVersion():
+    fun pub IncVersion():
         Version += 1
 
 
-    pub fun operator[](index int) mut ref T
+    fun pub operator[](index int) mut ref T
         require index in 0..Count:
         return ref buffer[index]
 
-    pub fun operator[](range Range<int>) mut []T
+    fun pub operator[](range Range<int>) mut []T
         require range.Low in 0..Count
         require range.High in 0..Count
         require range.Low <= range.High:
@@ -32,7 +32,7 @@ pub type List<T>
     /// Grow the capacity to be at least minCapacity size.
     /// If minCapacity is <= capacity nothing happens,
     /// otherwise the list is expanded exponentially.
-    pub fun Grow(minCapacity int):
+    fun pub Grow(minCapacity int):
         if minCapacity <= buffer.Count:
             return
         @newCap = Math.Max(capacity*2, minCount)
@@ -44,7 +44,7 @@ pub type List<T>
             newCap = Math.Max(newCap, 1)
         SetCapacity(newCap)
     
-    pub fun Trim(extra int = 0):
+    fun pub Trim(extra int = 0):
         SetCapacity(Count + extra)
     
     // Set the capacity, won't shrink below count.
@@ -62,12 +62,12 @@ pub type List<T>
         buffer = newBuffer
 
 
-    pub fun new(items []T):
+    fun pub new(items []T):
         buffer = Buffer<T>(items.Count)
         for @i in 0..items.Count:
             buffer[i] = items[i]
     
-    pub fun new(items Collection<T>)
+    fun pub new(items Collection<T>)
     {
     }
 
@@ -75,36 +75,36 @@ pub type List<T>
     /// replaced by `seqReplace`.
     // TBD: Is it confusing to have this function be an in-place replacement,
     //      but Array.Replace to be immutable?
-    pub fun Replace(seqSearch []T, seqReplace[]T):
+    fun pub Replace(seqSearch []T, seqReplace[]T):
         return todo()
 
     // NOTE: Find/Sort, etc. are defined in Span<T>
 
 
-    pub fun mut Clear(item T = default):
+    fun pub mut Clear(item T = default):
         return todo()
-    pub fun mut Push(item T):
+    fun pub mut Push(item T):
         return todo()
-    pub fun mut Push(items []T):
+    fun pub mut Push(items []T):
         return todo()
-    pub fun mut PushDup(item T, count int):
+    fun pub mut PushDup(item T, count int):
         return todo()
-    pub fun mut Pop() ?T:
+    fun pub mut Pop() ?T:
         return todo()
-    pub fun mut Insert(index int, item T):
+    fun pub mut Insert(index int, item T):
         return todo()
-    pub fun mut Insert(index int, items []T):
+    fun pub mut Insert(index int, items []T):
         return todo()
-    pub fun mut Insert(index int, items Collection<T>):
+    fun pub mut Insert(index int, items Collection<T>):
         return todo()
-    pub fun mut Remove(index int):
+    fun pub mut Remove(index int):
         return todo()
-    pub fun mut Remove(range Range<int>):
+    fun pub mut Remove(range Range<int>):
         return todo()
-    pub fun Convert<Tout>(f fun(item T)Tout):
+    fun pub Convert<Tout>(f fun(item T)Tout):
         return todo()
 
-    pub fun Remove(test fun(item T) bool exit) exit
+    fun pub Remove(test fun(item T) bool exit) exit
     {
         @v = Version
         @si = 0
@@ -127,7 +127,7 @@ pub type List<T>
     }
 
     // Usage: myList.For @item => DoStuffWithItem()
-    pub fun For(f fun(item mut T) exit) exit:
+    fun pub For(f fun(item mut T) exit) exit:
         @v = Version
         for @i in Count:
             f(buffer[i])
@@ -136,21 +136,21 @@ pub type List<T>
 
     // TBD: Verify that it's impossible to get a mutable
     //      ListIterator from an immutable list reference
-    pub fun ref GetIterator() ListIterator:
+    fun pub ref GetIterator() ListIterator:
         return ListIterator(this)
 
-    pub type ref ListIterator
+    type pub ref ListIterator
         implements Iterator<T>
     {
         @list ref List<T>
         @version int
         @index int = -1
         
-        pub fun new(list ref List<T>):
+        fun pub new(list ref List<T>):
             this.list = ref list
             version = list.Version
             
-        pub fun mut Next() ?ref T:
+        fun pub mut Next() ?ref T:
             if version != list.Version:
                 throw InvalidIteratorException()
             index += 1

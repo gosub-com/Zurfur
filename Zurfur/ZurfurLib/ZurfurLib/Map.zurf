@@ -2,44 +2,44 @@
 
 module Zurfur
 
-pub type Map<TKey, TValue>
+type pub Map<TKey, TValue>
     where TKey is Equatable<TKey>
 {
-    pub fun new(capacity int)
+    fun pub new(capacity int)
         where TKey is Equatable<TKey>:
         return todo()
-    pub fun new(keyValues Collection<Pair<TKey, TValue>>):
+    fun pub new(keyValues Collection<Pair<TKey, TValue>>):
         return todo()
-    pub get Count() int:
+    get pub Count() int:
         return todo()
-    pub fun operator in(a TKey) bool:
+    fun pub operator in(a TKey) bool:
         return todo()
 
     // TBD: Figure out map["Hello"] += 1 
-    pub get operator[](key TKey) ?ref mut TValue:
+    get pub operator[](key TKey) ?ref mut TValue:
         return todo()
-    pub set operator[](key TKey, value own TValue):
+    set pub operator[](key TKey, value own TValue):
         return todo()
 
 
-    pub fun Contains(key TKey) bool:
+    fun pub Contains(key TKey) bool:
         return todo()
-    pub fun Get(key TKey) TValue:
+    fun pub Get(key TKey) TValue:
         return todo()
-    pub fun Get(key TKey, defaultValue TValue) TValue:
+    fun pub Get(key TKey, defaultValue TValue) TValue:
         return todo()
-    pub fun TryGet(key TKey) ?TValue:
+    fun pub TryGet(key TKey) ?TValue:
         return todo()
-    pub get Keys() Collection<TKey>:
+    get pub Keys() Collection<TKey>:
         return todo()
-    pub get Values() Collection<TValue>:
+    get pub Values() Collection<TValue>:
         return todo()
-    pub fun mut Clear():
+    fun pub mut Clear():
         return todo()
-    pub fun mut Add(item Pair<TKey, TValue>):
+    fun pub mut Add(item Pair<TKey, TValue>):
         return todo()
-    pub fun mut Add(items Collection<Pair<TKey, TValue>>):
+    fun pub mut Add(items Collection<Pair<TKey, TValue>>):
         return todo()
-    pub fun mut Remove(key TKey) bool:
+    fun pub mut Remove(key TKey) bool:
         return todo()
 }

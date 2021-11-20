@@ -34,7 +34,7 @@ type Rect<T>(X T, Y T, Width T, Height T)
     where T is IArithmetic<T>
 {
     // TBD: Operators (add, multiply, divide, sizes, etc.)
-    pub fun new(location Point<T>, size Zurfur.Draw2d.Size<T>):
+    fun pub new(location Point<T>, size Zurfur.Draw2d.Size<T>):
         Location = location
         Size = size
 

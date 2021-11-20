@@ -51,7 +51,7 @@ namespace Gosub.Zurfur.Compiler
 
         // Add semicolons to all lines, except for:
         static WordSet sContinuationEnd = new WordSet("[ ( ,");
-        static WordSet sContinuationNoBegin = new WordSet("} namespace module pub fun afun extern implement youdo static");
+        static WordSet sContinuationNoBegin = new WordSet("} namespace module pub fun afun get set aget aset");
         static WordSet sContinuationBegin = new WordSet("\" ] ) , . + - * / % | & || && == != "
                             + ": ? > << <= < => -> .. :: !== ===  is in as has "
                             + "= += -= *= /= %= |= &= ~=");
@@ -65,13 +65,20 @@ namespace Gosub.Zurfur.Compiler
             + "return unsealed unseal sealed sizeof stackalloc heapalloc struct switch this self throw try "
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "
-            + "box boxed init move copy passcopy clone bag drop error dispose own "
-            + "trait mixin extends youdo implements implement impl union fun afun def yield let cast "
+            + "box boxed init move copy clone bag drop error dispose own "
+            + "trait mixin extends implements implement impl union fun afun def yield let cast "
             + "any dyn dynamic loop select match event aevent from to of on cofun cofunc global local it "
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
             + "of sync task except exception raise loc local global");
 
+        // Non reserved syntax names: heap, passcopy, nocopy
         static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
+            + "static unsealed abstract virtual override");
+        static WordSet sTypeQualifiers = new WordSet("pub public protected private internal unsafe "
+            + "unsealed abstract ref ro heap class passcopy nocopy");
+        static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static");
+        static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
+        static WordSet sMethodQualifiers = new WordSet("pub public protected private internal unsafe "
             + "static unsealed abstract virtual override");
         static WordSet sPostFieldQualifiers = new WordSet("init set get ref mut");
 
@@ -266,12 +273,6 @@ namespace Gosub.Zurfur.Compiler
 
                 // Read qualifiers
                 qualifiers.Clear();
-                while (sClassFieldQualifiers.Contains(mTokenName))
-                {
-                    mToken.Type = eTokenType.ReservedControl;
-                    qualifiers.Add(Accept());
-                }
-
                 var keyword = mToken;
                 switch (mTokenName)
                 {
@@ -283,7 +284,6 @@ namespace Gosub.Zurfur.Compiler
                     case "{":
                     case "=>":
                         Accept();
-                        RejectQualifiers(qualifiers, "Unexpected qualifiers");
                         RejectToken(keyword, "Unexpected '" + keyword + "'.  Expecting a keyword, such as 'type', 'fun', etc. before the start of a new scope.");
                         break;
 
@@ -295,7 +295,6 @@ namespace Gosub.Zurfur.Compiler
                         mToken.Type = eTokenType.ReservedControl;
                         Accept();
                         mSyntax.Using.Add(ParseUsingStatement(keyword));
-                        RejectQualifiers(qualifiers, "Qualifiers are not allowed on the 'use' statement");
                         if (mModuleBasePath.Length != 0)
                             RejectToken(keyword, "'use' statement must come before the 'module' statement");
                         break;
@@ -303,19 +302,22 @@ namespace Gosub.Zurfur.Compiler
                     case "module":
                         mToken.Type = eTokenType.ReservedControl;
                         Accept();
-                        RejectQualifiers(qualifiers, "Qualifiers are not allowed on the 'module' statement");
                         if (parentScope != null)
                             RejectToken(keyword, "'module' statement must not be inside a type/enum/interface body");
                         ParseModuleStatement(keyword);
                         break;
 
                     case "interface":
-                    case "enum": // TBD: Change to 'type enum'
+                    case "enum":
                     case "type":
                         mToken.Type = eTokenType.ReservedControl;
                         qualifiers.Add(Accept());
-                        while (AcceptMatch("ref") || AcceptMatch("ro") || AcceptMatch("boxed") || AcceptMatch("class") || AcceptMatch("passcopy"))
-                            qualifiers.Add(mPrevToken);
+                        if (keyword.Name == "type")
+                            ParseQualifiers(sTypeQualifiers, qualifiers);
+                        else if (keyword.Name == "interface")
+                            ParseQualifiers(sInterfaceQualifiers, qualifiers);
+                        else
+                            ParseQualifiers(sEnumQualifiers, qualifiers);
                         ParseClass(keyword, parentScope, qualifiers);
                         break;
 
@@ -327,7 +329,7 @@ namespace Gosub.Zurfur.Compiler
                     case "afun":
                         mToken.Type = eTokenType.ReservedControl;
                         qualifiers.Add(Accept());
-                        keyword.Type = eTokenType.ReservedControl;  // Fix keyword to make it control
+                        ParseQualifiers(sMethodQualifiers, qualifiers);
                         AddMethod(ParseMethod(keyword, parentScope, qualifiers));
                         break;
 
@@ -336,7 +338,9 @@ namespace Gosub.Zurfur.Compiler
                         break;
 
                     case "const":
+                        mToken.Type = eTokenType.ReservedControl;
                         qualifiers.Add(Accept());
+                        ParseQualifiers(sClassFieldQualifiers, qualifiers);
                         AddField(ParseFieldSimple(parentScope, qualifiers));
                         break;
 
@@ -355,6 +359,15 @@ namespace Gosub.Zurfur.Compiler
                         break;
                 }
                 AcceptSemicolonOrReject();
+            }
+        }
+
+        private void ParseQualifiers(WordSet allowedQualifiers, List<Token> qualifiers)
+        {
+            while (allowedQualifiers.Contains(mTokenName))
+            {
+                mToken.Type = eTokenType.Reserved;
+                qualifiers.Add(Accept());
             }
         }
 
@@ -391,13 +404,6 @@ namespace Gosub.Zurfur.Compiler
                 return;
             }
             mSyntax.Methods.Add(method);
-        }
-
-        // Reject tokens with errorMessage.  Reject all of them if acceptSet is null.
-        void RejectQualifiers(List<Token> qualifiers, string errorMessage)
-        {
-            if (qualifiers.Count != 0)
-                RejectToken(qualifiers[qualifiers.Count-1], errorMessage);
         }
 
         SyntaxUsing ParseUsingStatement(Token keyword)
@@ -566,7 +572,7 @@ namespace Gosub.Zurfur.Compiler
                 ParseScopeStatements(synClass);
 
                 bool error = false;
-                if (AcceptMatchOrReject("}", "while parsing " + synClass.Keyword.Name + " body of '" + synClass.Name + "'"))
+                if (AcceptMatchOrReject("}", "Expecting '}' while parsing " + synClass.Keyword.Name + " body of '" + synClass.Name + "'"))
                 {
                     Connect(openToken, mPrevToken);
                 }
@@ -609,7 +615,7 @@ namespace Gosub.Zurfur.Compiler
             constraint.TypeName = mPrevToken;
             mPrevToken.Type = eTokenType.TypeName;
 
-            if (!AcceptMatchOrReject("is", "while parsing constraint"))
+            if (!AcceptMatchOrReject("is", "Expecting 'is' while parsing constraint"))
                 return null;
 
             var constraintTypeNames = NewExprList();
@@ -657,11 +663,8 @@ namespace Gosub.Zurfur.Compiler
             newVarName.Type = eTokenType.DefineField;
             RejectUnderscoreDefinition(newVarName);
 
-            foreach (var token in qualifiers)
-            {
-                if (token.Name != "ro" && token.Name != "static")
-                    token.AddError("This qualifier is not applicable to fields.");
-            }
+            if (AcceptMatch("static"))
+                qualifiers.Add(mPrevToken);
 
             // Type name
             var errors = mParseErrors;
@@ -746,14 +749,14 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Body
-            if (AcceptMatchPastMetaSemicolon("extern") || AcceptMatchPastMetaSemicolon("youdo"))
+            if (AcceptMatchPastMetaSemicolon("extern") || AcceptMatchPastMetaSemicolon("impl"))
             {
                 qualifiers.Add(mPrevToken);
             }
             else
             {
                 synFunc.Statements = ParseCompoundStatement(keyword, 
-                    (hasReturnType ? "" : "a type name, ") + "'{', ':', 'where', 'require', 'extern', or 'youdo'");
+                    (hasReturnType ? "" : "a type name, ") + "'{', ':', 'where', 'require', 'extern', or 'impl'");
             }
 
             synFunc.Qualifiers = qualifiers.ToArray();
@@ -895,7 +898,7 @@ namespace Gosub.Zurfur.Compiler
             //if (AcceptMatch("..."))
             //    mPrevToken.AddWarning("Repeated parameters not supported yet");
 
-            if (AcceptMatchOrReject(")", " or ','"))
+            if (AcceptMatchOrReject(")", "Expecting ')' or ','"))
                 Connect(openToken, mPrevToken);
 
             return new SyntaxMulti(EmptyToken, FreeExprList(parameters));
@@ -922,26 +925,27 @@ namespace Gosub.Zurfur.Compiler
             if (IsMatchPastMetaSemicolon("{"))
                 return ParseStatements("'" + keyword.Name + "' statement");
 
-            // TBD: We could do better error recovery for all the cases below.
-            //      The user is probably editing the top part of the compound statement,
-            //      so we could parse anything that looks correct, but gray it out as we go.
-
-            // Ignore compound statement on error
-            var keywordColumnToken = mLexer.GetLineTokens(keyword.Y)[0];
-            var keywordColumn = keywordColumnToken.X;
-
-            if (!AcceptMatch(":"))
-                RejectToken(mToken, $"Statement '{keyword.Name}' is expecting "
-                        + $"{(isExpectingMessage == "" ? "'{' or ':'" : isExpectingMessage)}");
+            // TBD: Try to do the best error recovery possible.
+            //      The user is probably editing the top part of the compound
+            //      statement, so there are a lot of wierd comibinations.
+            bool gotColon = false;
+            if (AcceptMatchOrReject(":", $"Statement '{keyword.Name}' is expecting "
+                        + $"{(isExpectingMessage == "" ? "'{' or ':'" : isExpectingMessage)}"))
+            {
+                gotColon = true;
+            }
 
             if (IsMatchPastMetaSemicolon("{"))
             {
-                RejectToken(mPrevToken, "Use either ':' or '{', but not both");
-                AcceptMatchPastMetaSemicolon("{");
+                if (gotColon)
+                    RejectToken(mToken, "Use either ':' or '{', but not both");
+                return ParseStatements("'" + keyword.Name + "' statement");
             }
 
-            // Expecting invisible meta semi-colon
-            // Expecting next line to be indented
+
+            // Expecting end of line and next line to be indented
+            var keywordColumnToken = mLexer.GetLineTokens(keyword.Y)[0];
+            var keywordColumn = keywordColumnToken.X;
             if (mToken.Meta && mTokenName == ";" && mNextStatementToken != null
                 && mNextStatementToken.X < keywordColumn + 2)
             {
@@ -974,7 +978,7 @@ namespace Gosub.Zurfur.Compiler
             while (true)
             {
                 if (sNoSubCompoundStatement.Contains(mTokenName))
-                    RejectToken(mToken, $"Braceless compound statement '{keyword.Name}' may not embed '{mTokenName}' statement");
+                    Reject($"Braceless compound statement '{keyword.Name}' may not embed '{mTokenName}' statement");
 
                 ParseStatement(statement, false);
                 if (mTokenName != ";")
@@ -1029,7 +1033,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             bool error = false;
-            if (AcceptMatchOrReject("}", "while parsing " + errorMessage))
+            if (AcceptMatchOrReject("}", "Expecting '}' while parsing " + errorMessage))
             {
                 Connect(openToken, mPrevToken);
             }
@@ -1195,7 +1199,7 @@ namespace Gosub.Zurfur.Compiler
                     while (AcceptMatch(","))
                         caseExpressions.Add(ParseConditionalOr());
                     statements.Add(new SyntaxMulti(keyword, FreeExprList(caseExpressions)));
-                    AcceptMatchOrReject(":", "or ','");
+                    AcceptMatchOrReject(":", "Expecting ':' or ','");
                     requireSemicolon = false;
                     break;
 
@@ -1538,7 +1542,7 @@ namespace Gosub.Zurfur.Compiler
                     }
                 } while (AcceptMatch(","));
 
-                if (AcceptMatchOrReject(")", "or ','"))
+                if (AcceptMatchOrReject(")", "Expecting ')' or ','"))
                     Connect(open, mPrevToken);
             }
             else
@@ -1905,7 +1909,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             var keyword = openToken;
-            if (AcceptMatchOrReject(expectedToken, "or ','"))
+            if (AcceptMatchOrReject(expectedToken, $"Expecting '{expectedToken}' or ','"))
             {
                 Connect(openToken, mPrevToken);
                 if (left != null)
@@ -2174,7 +2178,7 @@ namespace Gosub.Zurfur.Compiler
         {
             if (AcceptMatch(matchToken))
                 return true;
-            Reject("Expecting '" + matchToken + "'" + (message == null ? "" : ", " + message), 
+            Reject(message != null ? message : ("Expecting '" + matchToken + "'"), 
                         tryToRecover ? new WordSet(matchToken) : null);
             if (tryToRecover)
                 return AcceptMatch(matchToken);

@@ -4,77 +4,77 @@ module Zurfur
 /// Implement IEquatable on any object that can be stored in a Map.
 /// This is different than implementing just Equals
 /// in that NAN must compare to itself as true.
-pub static interface Equatable<T>
+interface pub static Equatable<T>
 {
-    static fun GetHashCode(a T) uint youdo
-    static fun Equals(a T, b T) bool youdo
+    fun static GetHashCode(a T) uint impl
+    fun static Equals(a T, b T) bool impl
 }
 
 /// Implement IComparable on any object that can be sorted.
 /// This is different than implementing just Compare
 /// in that NAN must have a valid sort order.
-pub static interface Comparable<T>
+interface pub static Comparable<T>
     implements Equatable<T>
 {
-    static fun Compare(a T, b T) int youdo
+    fun static Compare(a T, b T) int impl
 }
 
-pub static interface IArithmetic<T>
+interface pub static IArithmetic<T>
     implements Comparable<T>
 {
-    fun operator-(a T) T youdo
-    fun operator-(a T, b T) T youdo
-    fun operator+(a T, b T) T youdo
-    fun operator*(a T, b T) T youdo
-    fun operator/(a T, b T) T youdo
-    fun operator%(a T, b T) T youdo
-    static get Identity() T youdo
-    static get Origin() T youdo
+    fun operator-(a T) T impl
+    fun operator-(a T, b T) T impl
+    fun operator+(a T, b T) T impl
+    fun operator*(a T, b T) T impl
+    fun operator/(a T, b T) T impl
+    fun operator%(a T, b T) T impl
+    get static Identity() T impl
+    get static Origin() T impl
 }
 
 
 
-pub interface Iterator<T>
+interface pub Iterator<T>
 {
     /// Get the next item from a collection.
     /// Returns null if there are no more items.
     /// Panic if collection is mutated while iterating.
-    fun mut Next() ?ref T youdo
+    fun mut Next() ?ref T impl
 }
 
-pub interface Iterable<T>
+interface pub Iterable<T>
 {
-    fun GetIterator() Iterator<T> youdo
+    fun GetIterator() Iterator<T> impl
 }
 
 
-pub interface Collection<T>
+interface pub Collection<T>
     implements Iterable<T>
 {
-    get Count() int youdo
-    fun GetIterator() Iterator<T> youdo
+    get Count() int impl
+    fun GetIterator() Iterator<T> impl
 }
 
 
-pub interface IArray<T>
+interface pub IArray<T>
     implements Collection<T>
 {
-    get operator[](index int) T youdo
+    get operator[](index int) T impl
 }
 
-pub interface IList<T>
+interface pub IList<T>
     implements Collection<T>
 {
-    get operator[](index int) T youdo
-    set operator[](index int, item own T) youdo
+    get operator[](index int) T impl
+    set operator[](index int, item own T) impl
 }
 
 
-pub type Pair<TKey, TValue>(Key TKey, Value TValue)
+type pub Pair<TKey, TValue>(Key TKey, Value TValue)
 
 
 /// This is a test
-pub interface IGeneric<Q>
+interface pub IGeneric<Q>
 {
     fun A<T>(m Q) int:
         return 0
@@ -83,4 +83,4 @@ pub interface IGeneric<Q>
 
 /// Compiler implemented interface created for all structs that are blittable.
 /// A blittable struct does not contain references, but may contain pointers.
-pub interface IBlittableStruct { }
+interface pub IBlittableStruct { }

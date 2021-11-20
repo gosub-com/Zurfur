@@ -3,15 +3,15 @@
 module Zurfur
 
 
-pub type passcopy Range<T>(Low T, High T)
+type pub passcopy Range<T>(Low T, High T)
     implements Iterable<T>
     where T is IArithmetic<T>
 {
-    pub fun GetIterator() Iterator<T>:
+    fun pub GetIterator() Iterator<T>:
         return RangeIterator<T>(this)
 
     // Usage: myRange.For @index => DoStuffWithItem()
-    pub fun For(f fun(item T) exit) exit
+    fun pub For(f fun(item T) exit) exit
     {
         @i = Low
         while @i < High && f(i):
@@ -21,17 +21,17 @@ pub type passcopy Range<T>(Low T, High T)
     
 }
 
-pub type passcopy RangeIterator<T>
+type pub passcopy RangeIterator<T>
     implements Iterator<T>
     where T is IArithmetic<T>
 {
     @index T
     @high T
     
-    pub fun new(r Range<T>):
+    fun pub new(r Range<T>):
         index = r.Low-1
 
-    pub fun mut Next(range Range<T>) ?ref T
+    fun pub mut Next(range Range<T>) ?ref T
     {
         index += 1
         if index < high:

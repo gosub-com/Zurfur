@@ -6,26 +6,26 @@
 
 module Zurfur
 
-pub type void { }
-pub type object { }
-pub type byte = u8
-pub type int = i64
-pub type uint = u64
+type pub void { }
+type pub object { }
+type pub byte = u8
+type pub int = i64
+type pub uint = u64
 
 
 // TBD: Needs to be an actual type to enforce proper typing and casting rules
 /// 32 bit or 64 bit integer depending on the platform
-pub type xint = i32
-pub type xuint = u32
+type pub xint = i32
+type pub xuint = u32
 
-pub fun nop() {}
+fun pub nop() {}
 
 /// bool (true or false)
-pub type ro passcopy bool
+type pub ro passcopy bool
     implements Equatable<bool>
 {
-    pub static fun GetHashCode(a bool) i64 extern
-    pub static fun Equals(a bool, b bool) bool extern
+    fun pub static GetHashCode(a bool) i64 extern
+    fun pub static Equals(a bool, b bool) bool extern
 
     // Not overloadable, but these are supplied specially for this type
     // fun static operator!(a bool)
@@ -34,125 +34,125 @@ pub type ro passcopy bool
 }
 
 /// i8 (-128..127)
-pub type ro passcopy i8
+type pub ro passcopy i8
     implements Comparable<i8>
 {
-    pub const MaxValue i8 = 127
-    pub const MinValue i8 = -128
-    pub const Origin i8 = 0
-    pub const Identity i8 = 1
-    pub static fun GetHashCode(a i8) i64 extern
-    pub static fun Equals(a i8, b i8) bool extern
-    pub static fun Compare(a i8, b i8) i64 extern
-    pub get u8Mask() u8 extern
-    pub get u8Fail() u8 extern
+    const pub MaxValue i8 = 127
+    const pub MinValue i8 = -128
+    const pub Origin i8 = 0
+    const pub Identity i8 = 1
+    fun pub static GetHashCode(a i8) i64 extern
+    fun pub static Equals(a i8, b i8) bool extern
+    fun pub static Compare(a i8, b i8) i64 extern
+    get pub u8Mask() u8 extern
+    get pub u8Fail() u8 extern
 }
-pub get i8::i16() i16 extern
-pub get i8::i32() i32 extern
-pub get i8::i64() i64 extern
-pub get i8::f32() f32 extern
-pub get i8::f64() f64 extern
-pub get i8::Decimal() Decimal extern
+get pub i8::i16() i16 extern
+get pub i8::i32() i32 extern
+get pub i8::i64() i64 extern
+get pub i8::f32() f32 extern
+get pub i8::f64() f64 extern
+get pub i8::Decimal() Decimal extern
 
 /// u8 (0..255) same as byte
-pub type ro passcopy u8
+type pub ro passcopy u8
     implements Comparable<u8>
 {
-    pub const MaxValue u8 = 255
-    pub const MinValue u8 = 0
-    pub const Origin u8 = 0
-    pub const Identity u8 = 1
-    pub static fun GetHashCode(a u8) i64 extern
-    pub static fun Equals(a u8, b u8) bool extern
-    pub static fun Compare(a u8, b u8) i64 extern
-    pub get i8Mask() i8 extern
-    pub get i8Fail() i8 extern
+    const pub MaxValue u8 = 255
+    const pub MinValue u8 = 0
+    const pub Origin u8 = 0
+    const pub Identity u8 = 1
+    fun pub static GetHashCode(a u8) i64 extern
+    fun pub static Equals(a u8, b u8) bool extern
+    fun pub static Compare(a u8, b u8) i64 extern
+    get pub i8Mask() i8 extern
+    get pub i8Fail() i8 extern
 }
-pub get u8::i16() i16 extern
-pub get u8::u16() u16 extern
-pub get u8::i32() i32 extern
-pub get u8::u32() u32 extern
-pub get u8::i64() i64 extern
-pub get u8::u64() u64 extern
-pub get u8::f32() f32 extern
-pub get u8::f64() f64 extern
-pub get u8::Decimal() Decimal extern
+get pub u8::i16() i16 extern
+get pub u8::u16() u16 extern
+get pub u8::i32() i32 extern
+get pub u8::u32() u32 extern
+get pub u8::i64() i64 extern
+get pub u8::u64() u64 extern
+get pub u8::f32() f32 extern
+get pub u8::f64() f64 extern
+get pub u8::Decimal() Decimal extern
 
 
 /// i16 (-32768..32768)
-pub type ro passcopy i16
+type pub ro passcopy i16
     implements Comparable<i16>
 {
-    pub const MaxValue i16 = 32767
-    pub const MinValue i16 = -32768
-    pub const Origin i8 = 0
-    pub const Identity i8 = 1
-    pub static fun GetHashCode(a i16) i64 extern
-    pub static fun Equals(a i16, b i16) bool extern
-    pub static fun Compare(a i16, b i16) i64 extern
-    pub get i8Mask() i8 extern
-    pub get u8Mask() u8 extern
-    pub get u16Mask() u16 extern
-    pub get i8Fail() i8 extern
-    pub get u8Fail() u8 extern
-    pub get u16Fail() u16 extern
+    const pub MaxValue i16 = 32767
+    const pub MinValue i16 = -32768
+    const pub Origin i8 = 0
+    const pub Identity i8 = 1
+    fun pub static GetHashCode(a i16) i64 extern
+    fun pub static Equals(a i16, b i16) bool extern
+    fun pub static Compare(a i16, b i16) i64 extern
+    get pub i8Mask() i8 extern
+    get pub u8Mask() u8 extern
+    get pub u16Mask() u16 extern
+    get pub i8Fail() i8 extern
+    get pub u8Fail() u8 extern
+    get pub u16Fail() u16 extern
 }
-pub get i16::i32() i32 extern
-pub get i16::i64() i64 extern
-pub get i16::f32() f32 extern
-pub get i16::f64() f64 extern
-pub get i16::Decimal() Decimal extern
+get pub i16::i32() i32 extern
+get pub i16::i64() i64 extern
+get pub i16::f32() f32 extern
+get pub i16::f64() f64 extern
+get pub i16::Decimal() Decimal extern
 
 
 /// u16 (0..65535)
-pub type ro passcopy u16
+type pub ro passcopy u16
     implements Comparable<u16>
 {
-    pub const MaxValue u16 = 65535
-    pub const MinValue u16 = 0
-    pub const Origin i8 = 0
-    pub const Identity i8 = 1
-    pub static fun GetHashCode(a u16) i64 extern
-    pub static fun Equals(a u16, b u16) bool extern
-    pub static fun Compare(a u16, b u16) i64 extern
-    pub get i8Mask() i8 extern
-    pub get u8Mask() u8 extern
-    pub get i16Mask() i16 extern
-    pub get i8Fail() i8 extern
-    pub get u8Fail() u8 extern
-    pub get i16Fail() i16 extern
+    const pub MaxValue u16 = 65535
+    const pub MinValue u16 = 0
+    const pub Origin i8 = 0
+    const pub Identity i8 = 1
+    fun pub static GetHashCode(a u16) i64 extern
+    fun pub static Equals(a u16, b u16) bool extern
+    fun pub static Compare(a u16, b u16) i64 extern
+    get pub i8Mask() i8 extern
+    get pub u8Mask() u8 extern
+    get pub i16Mask() i16 extern
+    get pub i8Fail() i8 extern
+    get pub u8Fail() u8 extern
+    get pub i16Fail() i16 extern
 }
-pub get u16::i32() i32 extern
-pub get u16::u32() u32 extern
-pub get u16::i64() i64 extern
-pub get u16::u64() u64 extern
-pub get u16::f32() f32 extern
-pub get u16::f64() f64 extern
-pub get u16::Decimal() Decimal extern
+get pub u16::i32() i32 extern
+get pub u16::u32() u32 extern
+get pub u16::i64() i64 extern
+get pub u16::u64() u64 extern
+get pub u16::f32() f32 extern
+get pub u16::f64() f64 extern
+get pub u16::Decimal() Decimal extern
 
 /// A 32 bit integer
-pub type ro passcopy i32
+type pub ro passcopy i32
     implements IArithmetic<i32>
 {
-    pub const MaxValue i32 = 2147483647
-    pub const MinValue i32 = -2147483648
-    pub const Origin i8 = 0
-    pub const Identity i8 = 1
+    const pub MaxValue i32 = 2147483647
+    const pub MinValue i32 = -2147483648
+    const pub Origin i8 = 0
+    const pub Identity i8 = 1
 
     // Comparisons
-    pub static fun GetHashCode(a i32) i64 extern
-    pub static fun Equals(a i32, b i32) bool extern
-    pub static fun Compare(a i32, b i32) i64 extern
+    fun pub static GetHashCode(a i32) i64 extern
+    fun pub static Equals(a i32, b i32) bool extern
+    fun pub static Compare(a i32, b i32) i64 extern
 
     // Overloadable operators
-    pub fun operator-(a i32) i32 extern
-    pub fun operator+(a i32, b i32) i32 extern
-    pub fun operator-(a i32, b i32) i32 extern
-    pub fun operator*(a i32, b i32) i32 extern
-    pub fun operator/(a i32, b i32) i32 extern
-    pub fun operator%(a i32, b i32) i32 extern
+    fun pub operator-(a i32) i32 extern
+    fun pub operator+(a i32, b i32) i32 extern
+    fun pub operator-(a i32, b i32) i32 extern
+    fun pub operator*(a i32, b i32) i32 extern
+    fun pub operator/(a i32, b i32) i32 extern
+    fun pub operator%(a i32, b i32) i32 extern
     
-    pub fun GetIterator() RangeIterator<i32>:
+    fun pub GetIterator() RangeIterator<i32>:
         return RangeIterator<i32>(0, this)
     
     // Not overloadable, but these are supplied specially for this type
@@ -162,52 +162,52 @@ pub type ro passcopy i32
     // fun operator&(a i32, b i32) i32
     // fun operator<<(a i32, b i32) i32
     // fun operator>>(a i32, b i32) i32
-    pub get i8Mask() i8 extern
-    pub get u8Mask() u8 extern
-    pub get i16Mask() i16 extern
-    pub get u16Mask() u16 extern
-    pub get u32Mask() u32 extern
-    pub get i8Fail() i8 extern
-    pub get u8Fail() u8 extern
-    pub get i16Fail() i16 extern
-    pub get u16Fail() u16 extern
-    pub get u32Fail() u32 extern
+    get pub i8Mask() i8 extern
+    get pub u8Mask() u8 extern
+    get pub i16Mask() i16 extern
+    get pub u16Mask() u16 extern
+    get pub u32Mask() u32 extern
+    get pub i8Fail() i8 extern
+    get pub u8Fail() u8 extern
+    get pub i16Fail() i16 extern
+    get pub u16Fail() u16 extern
+    get pub u32Fail() u32 extern
     
-    pub get Abs() i32 extern
-    pub fun Clamp(min i32, max i32) i32 extern
-    pub fun Max(n2 i32) i32 extern
-    pub fun Min(n2 i32) i32 extern
-    pub get Sign() i32 extern
-    pub get Sq() i32 extern
+    get pub Abs() i32 extern
+    fun pub Clamp(min i32, max i32) i32 extern
+    fun pub Max(n2 i32) i32 extern
+    fun pub Min(n2 i32) i32 extern
+    get pub Sign() i32 extern
+    get pub Sq() i32 extern
 }
-pub get i32::i64() i64 extern
-pub get i32::f32() f32 extern
-pub get i32::f64() f64 extern
-pub get i32::Decimal() Decimal extern
+get pub i32::i64() i64 extern
+get pub i32::f32() f32 extern
+get pub i32::f64() f64 extern
+get pub i32::Decimal() Decimal extern
 
 /// 32 bit unsigned integer
-pub type ro passcopy u32
+type pub ro passcopy u32
     implements IArithmetic<u32>
 {
-    pub const MaxValue u32 = 4294967295
-    pub const MinValue u32 = 0
-    pub const Origin i8 = 0
-    pub const Identity i8 = 1
+    const pub MaxValue u32 = 4294967295
+    const pub MinValue u32 = 0
+    const pub Origin i8 = 0
+    const pub Identity i8 = 1
     
     // Comparisons
-    pub static fun GetHashCode(a u32) i64 extern
-    pub static fun Equals(a u32, b u32) bool extern
-    pub static fun Compare(a u32, b u32) i64 extern
+    fun pub static GetHashCode(a u32) i64 extern
+    fun pub static Equals(a u32, b u32) bool extern
+    fun pub static Compare(a u32, b u32) i64 extern
     
     // Overloadable operators
-    pub fun operator-(a u32) u32 extern
-    pub fun operator+(a u32, b u32) u32 extern
-    pub fun operator-(a u32, b u32) u32 extern
-    pub fun operator*(a u32, b u32) u32 extern
-    pub fun operator/(a u32, b u32) u32 extern
-    pub fun operator%(a u32, b u32) u32 extern
+    fun pub operator-(a u32) u32 extern
+    fun pub operator+(a u32, b u32) u32 extern
+    fun pub operator-(a u32, b u32) u32 extern
+    fun pub operator*(a u32, b u32) u32 extern
+    fun pub operator/(a u32, b u32) u32 extern
+    fun pub operator%(a u32, b u32) u32 extern
     
-    pub fun GetIterator() RangeIterator<u32>:
+    fun pub GetIterator() RangeIterator<u32>:
         return RangeIterator<u32>(0, this)
     
 
@@ -219,51 +219,51 @@ pub type ro passcopy u32
     // fun operator<<(a u32, b i32) u32
     // fun operator>>(a u32, b i32) u32
 
-    pub get i8Mask() i8 extern
-    pub get u8Mask() u8 extern
-    pub get i16Mask() i16 extern
-    pub get u16Mask() u16 extern
-    pub get i32Mask() i32 extern
-    pub get i8Fail() i8 extern
-    pub get u8Fail() u8 extern
-    pub get i16Fail() i16 extern
-    pub get u16Fail() u16 extern
-    pub get i32Fail() i32 extern
+    get pub i8Mask() i8 extern
+    get pub u8Mask() u8 extern
+    get pub i16Mask() i16 extern
+    get pub u16Mask() u16 extern
+    get pub i32Mask() i32 extern
+    get pub i8Fail() i8 extern
+    get pub u8Fail() u8 extern
+    get pub i16Fail() i16 extern
+    get pub u16Fail() u16 extern
+    get pub i32Fail() i32 extern
     
-    pub fun Clamp(min u32, max u32) u32 extern
-    pub fun Max(n2 u32) u32 extern
-    pub fun Min(n2 u32) u32 extern
-    pub get Sq() u32 extern
+    fun pub Clamp(min u32, max u32) u32 extern
+    fun pub Max(n2 u32) u32 extern
+    fun pub Min(n2 u32) u32 extern
+    get pub Sq() u32 extern
 }
-pub get u32::i64() i64 extern
-pub get u32::u64() u64 extern
-pub get u32::f32() f32 extern
-pub get u32::f64() f64 extern
-pub get u32::Decimal() Decimal extern
+get pub u32::i64() i64 extern
+get pub u32::u64() u64 extern
+get pub u32::f32() f32 extern
+get pub u32::f64() f64 extern
+get pub u32::Decimal() Decimal extern
 
 /// A 64 bit integer (same as int)
-pub type ro passcopy i64
+type pub ro passcopy i64
     implements IArithmetic<i64>
 {
-    pub const MaxValue i64 = 9223372036854775807
-    pub const MinValue i64 = -9223372036854775808
-    pub const Origin i8 = 0
-    pub const Identity i8 = 1
+    const pub MaxValue i64 = 9223372036854775807
+    const pub MinValue i64 = -9223372036854775808
+    const pub Origin i8 = 0
+    const pub Identity i8 = 1
 
     // Comparisons
-    pub static fun GetHashCode(a i64) i64 extern
-    pub static fun Equals(a i64, b i64) bool extern
-    pub static fun Compare(a i64, b i64) i64 extern
+    fun pub static GetHashCode(a i64) i64 extern
+    fun pub static Equals(a i64, b i64) bool extern
+    fun pub static Compare(a i64, b i64) i64 extern
 
     // Overloadable operators
-    pub fun operator-(a i64) i64 extern
-    pub fun operator+(a i64, b i64) i64 extern
-    pub fun operator-(a i64, b i64) i64 extern
-    pub fun operator*(a i64, b i64) i64 extern
-    pub fun operator/(a i64, b i64) i64 extern
-    pub fun operator%(a i64, b i64) i64 extern
+    fun pub operator-(a i64) i64 extern
+    fun pub operator+(a i64, b i64) i64 extern
+    fun pub operator-(a i64, b i64) i64 extern
+    fun pub operator*(a i64, b i64) i64 extern
+    fun pub operator/(a i64, b i64) i64 extern
+    fun pub operator%(a i64, b i64) i64 extern
     
-    pub fun GetIterator() RangeIterator<i64>:
+    fun pub GetIterator() RangeIterator<i64>:
         return RangeIterator<i64>(0, this)
 
     // Not overloadable, but these are supplied specially for this type
@@ -274,56 +274,56 @@ pub type ro passcopy i64
     // fun operator<<(a i64, b i64) i64
     // fun operator>>(a i64, b i64) i64
 
-    pub get i8Mask() i8 extern
-    pub get u8Mask() u8 extern
-    pub get i16Mask() i16 extern
-    pub get u16Mask() u16 extern
-    pub get i32Mask() i32 extern
-    pub get u32Mask() u32 extern
-    pub get u64Mask() u64 extern
-    pub get i8Fail() i8 extern
-    pub get u8Fail() u8 extern
-    pub get i16Fail() i16 extern
-    pub get u16Fail() u16 extern
-    pub get i32Fail() i32 extern
-    pub get u32Fail() u32 extern
-    pub get u64Fail() u64 extern
+    get pub i8Mask() i8 extern
+    get pub u8Mask() u8 extern
+    get pub i16Mask() i16 extern
+    get pub u16Mask() u16 extern
+    get pub i32Mask() i32 extern
+    get pub u32Mask() u32 extern
+    get pub u64Mask() u64 extern
+    get pub i8Fail() i8 extern
+    get pub u8Fail() u8 extern
+    get pub i16Fail() i16 extern
+    get pub u16Fail() u16 extern
+    get pub i32Fail() i32 extern
+    get pub u32Fail() u32 extern
+    get pub u64Fail() u64 extern
     
-    pub get Abs() i64 extern
-    pub fun Clamp(min i64, max i64) i64 extern
-    pub fun Max(n2 i64) i64 extern
-    pub fun Min(n2 i64) i64 extern
-    pub get Sign() i64 extern
-    pub get Sq() i64 extern
+    get pub Abs() i64 extern
+    fun pub Clamp(min i64, max i64) i64 extern
+    fun pub Max(n2 i64) i64 extern
+    fun pub Min(n2 i64) i64 extern
+    get pub Sign() i64 extern
+    get pub Sq() i64 extern
 }
-pub get i64::f32() f32 extern
-pub get i64::f64() f64 extern
-pub get i64::Decimal() Decimal extern
+get pub i64::f32() f32 extern
+get pub i64::f64() f64 extern
+get pub i64::Decimal() Decimal extern
     
 
 /// 64 bit unsigned integer
-pub type ro passcopy u64
+type pub ro passcopy u64
     implements IArithmetic<u64>
 {
-    pub const MaxValue u64 = 18446744073709551615
-    pub const MinValue u64 = 0
-    pub const Origin u64 = 0
-    pub const Identity u64 = 1
+    const pub MaxValue u64 = 18446744073709551615
+    const pub MinValue u64 = 0
+    const pub Origin u64 = 0
+    const pub Identity u64 = 1
 
     // Comparisons
-    pub static fun GetHashCode(a u64) i64 extern
-    pub static fun Equals(a u64, b u64) bool extern
-    pub static fun Compare(a u64, b u64) i64 extern
+    fun pub static GetHashCode(a u64) i64 extern
+    fun pub static Equals(a u64, b u64) bool extern
+    fun pub static Compare(a u64, b u64) i64 extern
     
     // Overloadable operators
-    pub fun operator-(a u64) u64 extern
-    pub fun operator+(a u64, b u64) u64 extern
-    pub fun operator-(a u64, b u64) u64 extern
-    pub fun operator*(a u64, b u64) u64 extern
-    pub fun operator/(a u64, b u64) u64 extern
-    pub fun operator%(a u64, b u64) u64 extern
+    fun pub operator-(a u64) u64 extern
+    fun pub operator+(a u64, b u64) u64 extern
+    fun pub operator-(a u64, b u64) u64 extern
+    fun pub operator*(a u64, b u64) u64 extern
+    fun pub operator/(a u64, b u64) u64 extern
+    fun pub operator%(a u64, b u64) u64 extern
 
-    pub fun GetIterator() RangeIterator<u64>:
+    fun pub GetIterator() RangeIterator<u64>:
         return RangeIterator<u64>(0, this)
 
     // Not overloadable, but these are supplied specially for this type
@@ -334,265 +334,265 @@ pub type ro passcopy u64
     // fun operator<<(a u64, b i32)
     // fun operator>>(a u64, b i32)
 
-    pub get i8Mask() i8 extern
-    pub get u8Mask() u8 extern
-    pub get i16Mask() i16 extern
-    pub get u16Mask() u16 extern
-    pub get i32Mask() i32 extern
-    pub get u32Mask() u32 extern
-    pub get i64Mask() i64 extern
-    pub get i8Fail() i8 extern
-    pub get u8Fail() u8 extern
-    pub get i16Fail() i16 extern
-    pub get u16Fail() u16 extern
-    pub get i32Fail() i32 extern
-    pub get u32Fail() u32 extern
-    pub get i64Fail() i64 extern
+    get pub i8Mask() i8 extern
+    get pub u8Mask() u8 extern
+    get pub i16Mask() i16 extern
+    get pub u16Mask() u16 extern
+    get pub i32Mask() i32 extern
+    get pub u32Mask() u32 extern
+    get pub i64Mask() i64 extern
+    get pub i8Fail() i8 extern
+    get pub u8Fail() u8 extern
+    get pub i16Fail() i16 extern
+    get pub u16Fail() u16 extern
+    get pub i32Fail() i32 extern
+    get pub u32Fail() u32 extern
+    get pub i64Fail() i64 extern
     
-    pub fun Clamp(min u64, max u64) u64 extern
-    pub fun Max(n2 u64) u64 extern
-    pub fun Min(n2 u64) u64 extern
-    pub get Sq() u64 extern
+    fun pub Clamp(min u64, max u64) u64 extern
+    fun pub Max(n2 u64) u64 extern
+    fun pub Min(n2 u64) u64 extern
+    get pub Sq() u64 extern
     
 }
-pub get u64::f32() f32 extern
-pub get u64::f64() f64 extern
-pub get u64::Decimal() Decimal extern
+get pub u64::f32() f32 extern
+get pub u64::f64() f64 extern
+get pub u64::Decimal() Decimal extern
 
-pub type ro passcopy f32
+type pub ro passcopy f32
     implements IArithmetic<f32>
 {
-    pub const MaxValue f32 = 3.40282347E+38F
-    pub const MinValue f32 = -3.40282347E+38F
-    pub const Epsilon f32 = 1.401298E-45F
-    pub const PositiveInfinity f32 = 1F/0F
-    pub const NegativeInfinity f32 = -1F/0F
-    pub const NaN f32 = 0_f32/0_f32
-    pub const Origin f32 = 0
-    pub const Identity f32 = 1
-    pub const PI f32 = 3.141592653589793238
-    pub const E f32 = 2.718281828459045235
+    const pub MaxValue f32 = 3.40282347E+38F
+    const pub MinValue f32 = -3.40282347E+38F
+    const pub Epsilon f32 = 1.401298E-45F
+    const pub PositiveInfinity f32 = 1F/0F
+    const pub NegativeInfinity f32 = -1F/0F
+    const pub NaN f32 = 0_f32/0_f32
+    const pub Origin f32 = 0
+    const pub Identity f32 = 1
+    const pub PI f32 = 3.141592653589793238
+    const pub E f32 = 2.718281828459045235
 
-    pub get IsInfinity() bool extern
-    pub get IsNaN() bool extern
-    pub get IsNegativeInfinity() bool extern
-    pub get IsPositiveInfinity() bool extern    
+    get pub IsInfinity() bool extern
+    get pub IsNaN() bool extern
+    get pub IsNegativeInfinity() bool extern
+    get pub IsPositiveInfinity() bool extern    
 
-    pub get i8Mask() i8 extern
-    pub get u8Mask() u8 extern
-    pub get i16Mask() i16 extern
-    pub get u16Mask() u16 extern
-    pub get i32Mask() i32 extern
-    pub get u32Mask() u32 extern
-    pub get i64Mask() i64 extern
-    pub get u64Mask() u64 extern
-    pub get i8Fail() i8 extern
-    pub get u8Fail() u8 extern
-    pub get i16Fail() i16 extern
-    pub get u16Fail() u16 extern
-    pub get i32Fail() i32 extern
-    pub get u32Fail() u32 extern
-    pub get i64Fail() i64 extern
-    pub get u64Fail() u64 extern
+    get pub i8Mask() i8 extern
+    get pub u8Mask() u8 extern
+    get pub i16Mask() i16 extern
+    get pub u16Mask() u16 extern
+    get pub i32Mask() i32 extern
+    get pub u32Mask() u32 extern
+    get pub i64Mask() i64 extern
+    get pub u64Mask() u64 extern
+    get pub i8Fail() i8 extern
+    get pub u8Fail() u8 extern
+    get pub i16Fail() i16 extern
+    get pub u16Fail() u16 extern
+    get pub i32Fail() i32 extern
+    get pub u32Fail() u32 extern
+    get pub i64Fail() i64 extern
+    get pub u64Fail() u64 extern
     
     // Normal f32 comparisons (nan != nan, etc.)
-    pub static fun GetHashCode(a u64) i64 extern
-    pub static fun Equals(a f32, b f32) bool extern
-    pub static fun Compare(a f32, b f32) i64 extern
+    fun pub static GetHashCode(a u64) i64 extern
+    fun pub static Equals(a f32, b f32) bool extern
+    fun pub static Compare(a f32, b f32) i64 extern
         
     // Overloadable operators
-    pub fun operator-(a f32) f32 extern
-    pub fun operator+(a f32, b f32) f32 extern
-    pub fun operator-(a f32, b f32) f32 extern
-    pub fun operator*(a f32, b f32) f32 extern
-    pub fun operator/(a f32, b f32) f32 extern
-    pub fun operator%(a f32, b f32) f32 extern
+    fun pub operator-(a f32) f32 extern
+    fun pub operator+(a f32, b f32) f32 extern
+    fun pub operator-(a f32, b f32) f32 extern
+    fun pub operator*(a f32, b f32) f32 extern
+    fun pub operator/(a f32, b f32) f32 extern
+    fun pub operator%(a f32, b f32) f32 extern
 
-    pub get Abs() f32 extern
-    pub get Acos() f32 extern
-    pub get ASin() f32 extern
-    pub get ATan() f32 extern
-    pub fun ATan2(x f32) f32 extern
-    pub get Ceil() f32 extern
-    pub fun Clamp(min f32, max f32) f32 extern
-    pub get Cos() f32 extern
-    pub get Cosh() f32 extern
-    pub get Exp() f32 extern
-    pub fun Floor(n f32) f32 extern
-    pub get Log() f32 extern
-    pub get Log2() f32 extern
-    pub get Log10() f32 extern
-    pub fun LogBase(b f32) f32 extern // TBD: Allow fun overload here?
-    pub fun Max(n2 f32) f32 extern
-    pub fun Min(n2 f32) f32 extern
-    pub fun Pow(y f32) f32 extern
-    pub fun Round(d i64 = 0) f32 extern
-    pub get Sign() i64 extern
-    pub get Sin() f32 extern
-    pub get Sinh() f32 extern
-    pub get Sqrt() f32 extern
-    pub get Sq() f32 extern
-    pub get Tan() f32 extern
-    pub get Tanh() f32 extern
-    pub get Trunc() f32 extern
+    get pub Abs() f32 extern
+    get pub Acos() f32 extern
+    get pub ASin() f32 extern
+    get pub ATan() f32 extern
+    fun pub ATan2(x f32) f32 extern
+    get pub Ceil() f32 extern
+    fun pub Clamp(min f32, max f32) f32 extern
+    get pub Cos() f32 extern
+    get pub Cosh() f32 extern
+    get pub Exp() f32 extern
+    fun pub Floor(n f32) f32 extern
+    get pub Log() f32 extern
+    get pub Log2() f32 extern
+    get pub Log10() f32 extern
+    fun pub LogBase(b f32) f32 extern // TBD: Allow fun overload here?
+    fun pub Max(n2 f32) f32 extern
+    fun pub Min(n2 f32) f32 extern
+    fun pub Pow(y f32) f32 extern
+    fun pub Round(d i64 = 0) f32 extern
+    get pub Sign() i64 extern
+    get pub Sin() f32 extern
+    get pub Sinh() f32 extern
+    get pub Sqrt() f32 extern
+    get pub Sq() f32 extern
+    get pub Tan() f32 extern
+    get pub Tanh() f32 extern
+    get pub Trunc() f32 extern
 }
-pub get f64::f64() f64 extern
-pub get Decimal::Decimal() Decimal extern
+get pub f64::f64() f64 extern
+get pub Decimal::Decimal() Decimal extern
 
 // Sort order (these are true): NAN>infinity, NAN==NAN, -0==+0
-pub static fun Equatable<f32>::GetHashCode(a f32) i64 extern
-pub static fun Equatable<f32>::Equals(a f32, b f32) bool extern
-pub static fun Comparable<f32>::Compare(a f32, b f32) i64 extern
+fun pub static Equatable<f32>::GetHashCode(a f32) i64 extern
+fun pub static Equatable<f32>::Equals(a f32, b f32) bool extern
+fun pub static Comparable<f32>::Compare(a f32, b f32) i64 extern
 
 
-pub type ro passcopy f64
+type pub ro passcopy f64
     implements IArithmetic<f64>
 {
-    pub const MaxValue f64 = 1.7976931348623157E+308
-    pub const MinValue f64 = -1.7976931348623157E+308
-    pub const Epsilon f64 = 4.94065645841247E-324
-    pub const PositiveInfinity f64 = 1.0/0.0
-    pub const NegativeInfinity f64 = -1.0/0.0
-    pub const NaN f64 = 0_f64/0_f64
-    pub const Origin f64 = 0
-    pub const Identity f64 = 1
+    const pub MaxValue f64 = 1.7976931348623157E+308
+    const pub MinValue f64 = -1.7976931348623157E+308
+    const pub Epsilon f64 = 4.94065645841247E-324
+    const pub PositiveInfinity f64 = 1.0/0.0
+    const pub NegativeInfinity f64 = -1.0/0.0
+    const pub NaN f64 = 0_f64/0_f64
+    const pub Origin f64 = 0
+    const pub Identity f64 = 1
     const PI f64 = 3.141592653589793238
     const E f64 = 2.718281828459045235
 
-    pub get IsInfinity() bool extern
-    pub get IsNaN() bool extern
-    pub get IsNegativeInfinity() bool extern
-    pub get IsPositiveInfinity() bool extern    
+    get pub IsInfinity() bool extern
+    get pub IsNaN() bool extern
+    get pub IsNegativeInfinity() bool extern
+    get pub IsPositiveInfinity() bool extern    
 
-    pub get i8Mask() i8 extern
-    pub get u8Mask() u8 extern
-    pub get i16Mask() i16 extern
-    pub get u16Mask() u16 extern
-    pub get i32Mask() i32 extern
-    pub get u32Mask() u32 extern
-    pub get i64Mask() i64 extern
-    pub get u64Mask() u64 extern
-    pub get f32Clamp() f32 extern
-    pub get i8Fail() i8 extern
-    pub get u8Fail() u8 extern
-    pub get i16Fail() i16 extern
-    pub get u16Fail() u16 extern
-    pub get i32Fail() i32 extern
-    pub get u32Fail() u32 extern
-    pub get i64Fail() i64 extern
-    pub get u64Fail() u64 extern
-    pub get f32Fail() f32 extern
+    get pub i8Mask() i8 extern
+    get pub u8Mask() u8 extern
+    get pub i16Mask() i16 extern
+    get pub u16Mask() u16 extern
+    get pub i32Mask() i32 extern
+    get pub u32Mask() u32 extern
+    get pub i64Mask() i64 extern
+    get pub u64Mask() u64 extern
+    get pub f32Clamp() f32 extern
+    get pub i8Fail() i8 extern
+    get pub u8Fail() u8 extern
+    get pub i16Fail() i16 extern
+    get pub u16Fail() u16 extern
+    get pub i32Fail() i32 extern
+    get pub u32Fail() u32 extern
+    get pub i64Fail() i64 extern
+    get pub u64Fail() u64 extern
+    get pub f32Fail() f32 extern
 
     // Normal f64 comparisons
-    pub static fun GetHashCode(a f64) i64 extern
-    pub static fun Equals(a f64, b f64) bool extern
-    pub static fun Compare(a f64, b f64) i64 extern
+    fun pub static GetHashCode(a f64) i64 extern
+    fun pub static Equals(a f64, b f64) bool extern
+    fun pub static Compare(a f64, b f64) i64 extern
             
     // Overloadable operators
-    pub fun operator-(a f64) f64 extern
-    pub fun operator+(a f64, b f64) f64 extern
-    pub fun operator-(a f64, b f64) f64 extern
-    pub fun operator*(a f64, b f64) f64 extern
-    pub fun operator/(a f64, b f64) f64 extern
-    pub fun operator%(a f64, b f64) f64 extern
+    fun pub operator-(a f64) f64 extern
+    fun pub operator+(a f64, b f64) f64 extern
+    fun pub operator-(a f64, b f64) f64 extern
+    fun pub operator*(a f64, b f64) f64 extern
+    fun pub operator/(a f64, b f64) f64 extern
+    fun pub operator%(a f64, b f64) f64 extern
     
-    pub get Abs() f64 extern
-    pub get Acos() f64 extern
-    pub get ASin() f64 extern
-    pub get ATan() f64 extern
-    pub fun ATan2(x f64) f64 extern
-    pub get Ceil() f64 extern
-    pub fun Clamp(min f64, max f64) f64 extern
-    pub get Cos() f64 extern
-    pub get Cosh() f64 extern
-    pub get Exp() f64 extern
-    pub fun Floor(n f64) f64 extern
-    pub get Log() f64 extern
-    pub get Log2() f64 extern
-    pub get Log10() f64 extern
-    pub fun LogBase(b f64) f64 extern // TBD: Allow fun overload here?
-    pub fun Max(n2 f64) f64 extern
-    pub fun Min(n2 f64) f64 extern
-    pub fun Pow(y f64) f64 extern
-    pub fun Round(d i64 = 0) f64 extern
-    pub get Sign() i64 extern
-    pub get Sin() f64 extern
-    pub get Sinh() f64 extern
-    pub get Sqrt() f64 extern
-    pub get Sq() f64 extern
-    pub get Tan() f64 extern
-    pub get Tanh() f64 extern
-    pub get Trunc() f64 extern
+    get pub Abs() f64 extern
+    get pub Acos() f64 extern
+    get pub ASin() f64 extern
+    get pub ATan() f64 extern
+    fun pub ATan2(x f64) f64 extern
+    get pub Ceil() f64 extern
+    fun pub Clamp(min f64, max f64) f64 extern
+    get pub Cos() f64 extern
+    get pub Cosh() f64 extern
+    get pub Exp() f64 extern
+    fun pub Floor(n f64) f64 extern
+    get pub Log() f64 extern
+    get pub Log2() f64 extern
+    get pub Log10() f64 extern
+    fun pub LogBase(b f64) f64 extern // TBD: Allow fun overload here?
+    fun pub Max(n2 f64) f64 extern
+    fun pub Min(n2 f64) f64 extern
+    fun pub Pow(y f64) f64 extern
+    fun pub Round(d i64 = 0) f64 extern
+    get pub Sign() i64 extern
+    get pub Sin() f64 extern
+    get pub Sinh() f64 extern
+    get pub Sqrt() f64 extern
+    get pub Sq() f64 extern
+    get pub Tan() f64 extern
+    get pub Tanh() f64 extern
+    get pub Trunc() f64 extern
 }
-pub get f64::Decimal() Decimal extern
+get pub f64::Decimal() Decimal extern
 
 // Sort order (these are true): NAN>infinity, NAN==NAN, -0==+0
-pub static fun Equatable<f64>::GetHashCode(a f64) i64 extern
-pub static fun Equatable<f64>::Equals(a f64, b f64) bool extern
-pub static fun Comparable<f64>::Compare(a f64, b f64) i64 extern
+fun pub static Equatable<f64>::GetHashCode(a f64) i64 extern
+fun pub static Equatable<f64>::Equals(a f64, b f64) bool extern
+fun pub static Comparable<f64>::Compare(a f64, b f64) i64 extern
 
 
 /// 128 bit decimal integer.  This will support NAN, infinity, and
 /// exponents covering the entire range of f64 with more precision.
-pub type ro passcopy Decimal
+type pub ro passcopy Decimal
     implements IArithmetic<Decimal>
 {
-    pub fun new(a Decimal) extern
+    fun pub new(a Decimal) extern
 
-    pub const MaxValue Decimal = 1E+1000M
-    pub const MinValue Decimal = -1E+1000M
-    pub const PositiveInfinity Decimal = 1.0/0.0
-    pub const NegativeInfinity Decimal = -1.0/0.0
-    pub const NaN Decimal = 0.0/0.0
-    pub const Origin Decimal = 0
-    pub const Identity Decimal = 1
+    const pub MaxValue Decimal = 1E+1000M
+    const pub MinValue Decimal = -1E+1000M
+    const pub PositiveInfinity Decimal = 1.0/0.0
+    const pub NegativeInfinity Decimal = -1.0/0.0
+    const pub NaN Decimal = 0.0/0.0
+    const pub Origin Decimal = 0
+    const pub Identity Decimal = 1
     
-    pub get IsInfinity() bool extern
-    pub get IsNaN() bool extern
-    pub get IsNegativeInfinity() bool extern
-    pub get IsPositiveInfinity() bool extern
+    get pub IsInfinity() bool extern
+    get pub IsNaN() bool extern
+    get pub IsNegativeInfinity() bool extern
+    get pub IsPositiveInfinity() bool extern
 
-    pub get i8Mask() i8 extern
-    pub get u8Mask() u8 extern
-    pub get i16Mask() i16 extern
-    pub get u16Mask() u16 extern
-    pub get i32Mask() i32 extern
-    pub get u32Mask() u32 extern
-    pub get i64Mask() i64 extern
-    pub get u64Mask() u64 extern
-    pub get f32Clamp() f32 extern
-    pub get f64Clamp() f64 extern
-    pub get i8Fail() i8 extern
-    pub get u8Fail() u8 extern
-    pub get i16Fail() i16 extern
-    pub get u16Fail() u16 extern
-    pub get i32Fail() i32 extern
-    pub get u32Fail() u32 extern
-    pub get i64Fail() i64 extern
-    pub get u64Fail() u64 extern
+    get pub i8Mask() i8 extern
+    get pub u8Mask() u8 extern
+    get pub i16Mask() i16 extern
+    get pub u16Mask() u16 extern
+    get pub i32Mask() i32 extern
+    get pub u32Mask() u32 extern
+    get pub i64Mask() i64 extern
+    get pub u64Mask() u64 extern
+    get pub f32Clamp() f32 extern
+    get pub f64Clamp() f64 extern
+    get pub i8Fail() i8 extern
+    get pub u8Fail() u8 extern
+    get pub i16Fail() i16 extern
+    get pub u16Fail() u16 extern
+    get pub i32Fail() i32 extern
+    get pub u32Fail() u32 extern
+    get pub i64Fail() i64 extern
+    get pub u64Fail() u64 extern
 
     // Normal comparisons
-    pub static fun GetHashCode(a Decimal) i64 extern
-    pub static fun Equals(a Decimal, b Decimal) bool extern
-    pub static fun Compare(a Decimal, b Decimal) i64 extern
+    fun pub static GetHashCode(a Decimal) i64 extern
+    fun pub static Equals(a Decimal, b Decimal) bool extern
+    fun pub static Compare(a Decimal, b Decimal) i64 extern
         
     // Overloadable operators
-    pub fun operator-(a Decimal) Decimal extern
-    pub fun operator+(a Decimal, b Decimal) Decimal extern
-    pub fun operator-(a Decimal, b Decimal) Decimal extern
-    pub fun operator*(a Decimal, b Decimal) Decimal extern
-    pub fun operator/(a Decimal, b Decimal) Decimal extern
-    pub fun operator%(a Decimal, b Decimal) Decimal extern
+    fun pub operator-(a Decimal) Decimal extern
+    fun pub operator+(a Decimal, b Decimal) Decimal extern
+    fun pub operator-(a Decimal, b Decimal) Decimal extern
+    fun pub operator*(a Decimal, b Decimal) Decimal extern
+    fun pub operator/(a Decimal, b Decimal) Decimal extern
+    fun pub operator%(a Decimal, b Decimal) Decimal extern
 
-    pub get Abs() Decimal extern
-    pub fun Clamp(min Decimal, max Decimal) Decimal extern
-    pub fun Max(n2 Decimal) Decimal extern
-    pub fun Min(n2 Decimal) Decimal extern
-    pub get Sign() i64 extern
-    pub get Sq() Decimal extern
+    get pub Abs() Decimal extern
+    fun pub Clamp(min Decimal, max Decimal) Decimal extern
+    fun pub Max(n2 Decimal) Decimal extern
+    fun pub Min(n2 Decimal) Decimal extern
+    get pub Sign() i64 extern
+    get pub Sq() Decimal extern
 }
 
 // Sort order (these are true): NAN>infinity, NAN==NAN, -0==+0
-pub static fun Equatable<Decimal>::GetHashCode(a Decimal) i64 extern
-pub static fun Equatable<Decimal>::Equals(a Decimal, b Decimal) bool extern
-pub static fun Comparable<Decimal>::Compare(a Decimal, b Decimal) i64 extern
+fun pub static Equatable<Decimal>::GetHashCode(a Decimal) i64 extern
+fun pub static Equatable<Decimal>::Equals(a Decimal, b Decimal) bool extern
+fun pub static Comparable<Decimal>::Compare(a Decimal, b Decimal) i64 extern

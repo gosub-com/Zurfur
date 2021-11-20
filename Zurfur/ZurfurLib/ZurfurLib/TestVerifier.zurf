@@ -34,35 +34,35 @@ type VerifyErrors<T>
     // Undefined/unresolved
     @field1 hello
     @field2 List<List<hello>>
-    pub fun F4(a List<int,hello>) void { }
-    pub fun F5(a List<List<x>>) void { }
+    fun pub F4(a List<int,hello>) void { }
+    fun pub F5(a List<List<x>>) void { }
 
     // Wrong number of type parameters
-    pub fun F1(a List) void { }
-    pub fun F3(a List<int,int>) void { }
+    fun pub F1(a List) void { }
+    fun pub F3(a List<int,int>) void { }
     @a List
     @b List<int,int>
 
-    pub fun fun1(a List<List<x>>) void { } // Undefined generic symbol
-    pub fun fun2(a List) void { } // Wrong number of generic parameters
-    pub fun fun3(a List<int,int>) void { } // Wrong number of generic parameters
-    pub fun fun4(a List<List>) void { } // Wrong number of generic parameters
-    pub fun fun5(a List<List<int,int>>) void { } // Wrong number of generic parameters
-    pub fun fun6(a Zurfur) void {} // Symbol is a module
-    pub fun fun7(a field1) void {} // Symbol is a field
-    pub fun fun8(a fun1) void {} // Symbol is a method
-    pub fun fun9(a *?OneGeneric) void { }    
+    fun pub fun1(a List<List<x>>) void { } // Undefined generic symbol
+    fun pub fun2(a List) void { } // Wrong number of generic parameters
+    fun pub fun3(a List<int,int>) void { } // Wrong number of generic parameters
+    fun pub fun4(a List<List>) void { } // Wrong number of generic parameters
+    fun pub fun5(a List<List<int,int>>) void { } // Wrong number of generic parameters
+    fun pub fun6(a Zurfur) void {} // Symbol is a module
+    fun pub fun7(a field1) void {} // Symbol is a field
+    fun pub fun8(a fun1) void {} // Symbol is a method
+    fun pub fun9(a *?OneGeneric) void { }    
 }
 
 
-pub type AGenericTest<T, QQQ>
+type pub AGenericTest<T, QQQ>
     where QQQ is x//: new() where T : new()
 {
-    pub fun P2<Quack>(a Quack, b QQQ) void { return (a.ToStr() + b.ToStr()).Length; }
-    pub fun P3<Z>() void { return 0; }
-    pub fun P4<Quack, Quack1>() void { return 0; }
+    fun pub P2<Quack>(a Quack, b QQQ) void { return (a.ToStr() + b.ToStr()).Length; }
+    fun pub P3<Z>() void { return 0; }
+    fun pub P4<Quack, Quack1>() void { return 0; }
 
-    pub fun GenericTest<Q1, Q2>(a Q1, b Q2) void:
+    fun pub GenericTest<Q1, Q2>(a Q1, b Q2) void:
         return a.ToStr().Length + b.ToStr().Length
 
 
@@ -82,7 +82,7 @@ pub type AGenericTest<T, QQQ>
     @Xfield10 Zurfur
 
     // TBD: Follow the dot
-    pub fun UseIt(x Zurfur.int, y List<Inner1>, z List<str<int>>) void
+    fun pub UseIt(x Zurfur.int, y List<Inner1>, z List<str<int>>) void
     {
         XField0.ToStr()
         // Xfield2<str, T>.P3<T>(); - Xfield2 can't use type parameters
@@ -99,21 +99,21 @@ pub type AGenericTest<T, QQQ>
         p.P5<short, QQQ, ushort>(3, QQQ(), 0)
     }
     
-    pub type Inner1<Ta, Qa>
+    type pub Inner1<Ta, Qa>
     {
-        pub fun P1() void { return 0; }
-        pub fun P2<Quack>() void { return 0; }
-        pub fun P3<Z>() void { return 0; }
-        pub fun P4<Z, Quack>() void { return 0; }
-        pub fun P5<Quack, Quack1, Quack3>() void{ return 0; }
+        fun pub P1() void { return 0; }
+        fun pub P2<Quack>() void { return 0; }
+        fun pub P3<Z>() void { return 0; }
+        fun pub P4<Z, Quack>() void { return 0; }
+        fun pub P5<Quack, Quack1, Quack3>() void{ return 0; }
 
-        pub type Inner2<Tb, Qb>
+        type pub Inner2<Tb, Qb>
         {
-            pub fun P1() void { return 0; }
-            pub fun P2<Quack>() void { return 0; }
-            pub fun P3<Z>() void { return 0; }
-            pub fun P4<Z, Quack>() void { return 0; }
-            pub fun P5<Quack, Quack1, Quack3>(a int, b Quack1, c u16) void
+            fun pub P1() void { return 0; }
+            fun pub P2<Quack>() void { return 0; }
+            fun pub P3<Z>() void { return 0; }
+            fun pub P4<Z, Quack>() void { return 0; }
+            fun pub P5<Quack, Quack1, Quack3>(a int, b Quack1, c u16) void
             {
                 return InnerP5() + InnerP5() + a + b.ToStr().Length + c
 
@@ -125,13 +125,13 @@ pub type AGenericTest<T, QQQ>
             @Y Inner2<int, str>
             @Hello int // TBD: Allow this to be static?
 
-            pub type Inner3<A, B>
+            type pub Inner3<A, B>
             {
-                pub fun P1() void { return 0; }
-                pub fun P2<Quack>() void { return 0; }
-                pub fun P3<Z>() void { return 0; }
-                pub fun P4<Z, Quack>() void { return 0; }
-                pub fun AAA<Quack, Quack1, Quack3>
+                fun pub P1() void { return 0; }
+                fun pub P2<Quack>() void { return 0; }
+                fun pub P3<Z>() void { return 0; }
+                fun pub P4<Z, Quack>() void { return 0; }
+                fun pub AAA<Quack, Quack1, Quack3>
                     (a Quack, b Quack1, c Quack3, d A)
                         ->(x T, y QQQ, z List<QQQ>, w List<int>)
                 {

@@ -105,8 +105,8 @@ In Zurfur, a C# type like `List<MyMutableClass>` would translate to `List<^MyMut
 and `MyMutableClass` is always a value type.
 
 There are immutable reference types, such as `Array` and `str`.  Since they
-are immutable and boxed (i.e. `type ro boxed`), they can be copied quickly
-and there is no chance of them aliasing each other.
+are immutable and always on the heap (i.e. `type ro heap`), they can be copied
+quickly and there is no chance of them aliasing each other.
 
 Other references are short lived and allowed only on the stack.  Most of them
 require using the `ref` keyword.  The one exception is that most types are
@@ -119,7 +119,7 @@ argument, and the return type comes after the parameters:
 
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
-    pub fun Main(args Array<str>):
+    fun pub Main(args Array<str>):
         Log.Info("Hello World, 2+2={2+2}")
 
 Functions declared at the module level are implicitly `static` without needing
@@ -129,12 +129,12 @@ to use the keyword.  Extension methods must be declared at the module level:
     pub str::Rest() str:
         return this.Count == 0 ? "" : str(this[1..])
 
-Properties are public by default, and are defined with `get` and `set` keywords:
+Properties are declared with `get` and `set` keywords:
 
-    get MyString() str:
+    get pub MyString() str:
         return myString
 
-    set MyString(v str):
+    set pub MyString(v str):
         myString = v
         MyStringChangedEvent()
   
@@ -143,7 +143,7 @@ exception is that small types (e.g. `int`, and `Span<T>`) are passed by
 copy because it is more efficient to do so.  Other qualifiers, `mut`, `ref`,
 and `own` can be used to change the passing behavior:
 
-    pub fun Test(
+    fun pub Test(
         a               int,  // Pass a copy because it is efficient (i.e. `type passcopy`)
         b       mut ref int,  // Pass by ref, allow assignment
         c         List<int>,  // Pass by ref, read-only
@@ -155,8 +155,8 @@ List of the qualifiers, and what they mean:
 
 | Qualifier | Passing style | Notes
 | :--- | :--- | :---
-|  | Read-only reference | Can copy for small types (e.g. `int`, `Span`, etc.)
-| mut | Allow mutation but not assignment | Not valid for `ro` types (e.g. `str`, `Array`, `Span`, etc.)
+|  | Read-only reference | Can copy for small `passcopy` types (e.g. `int`, `Span`, etc.)
+| mut | Allow mutation but not assignment | Not valid for `ro` types (e.g. `Array`, `Span`, etc.)
 | ref mut | Allow mutation and assignment | Requires annotation (i.e. `ref`) at the call site
 | own | Take ownership | Not valid for `ro` types and types that don't require allocation (.e.g. `int`, `str`, `Array`, plain old data, etc.)
 
@@ -176,7 +176,7 @@ then never use the object again, or must explicitly `clone` the object.
 Functions can return multiple values:
 
     // Multiple returns
-    pub fun Circle(a f64, r f64) -> (x f64, y f64):
+    fun pub Circle(a f64, r f64) -> (x f64, y f64):
         return Cos(a)*r, Sin(a)*r
 
 The return parameters are named, and can be used by the calling function:
@@ -187,11 +187,11 @@ The return parameters are named, and can be used by the calling function:
 Normally the return value becomes owned by the caller, but this behavior
 can be changed with the `ref` keyword:
 
-    pub fun GetRoList() ref List<int>:          // Read only ref
+    fun pub GetRoList() ref List<int>:          // Read only ref
         return ref myListField
-    pub fun GetMutList() mut List<int>:         // Mutable (mutation allowed, assignment not allowed)
+    fun pub GetMutList() mut List<int>:         // Mutable (mutation allowed, assignment not allowed)
         return mut myListField
-    pub fun GetMutRefList() mut ref List<int>:  // Mutable ref (mutation or assignment is allowed)
+    fun pub GetMutRefList() mut ref List<int>:  // Mutable ref (mutation or assignment is allowed)
         return mut ref myListField
 
 Return qualifiers:
@@ -222,28 +222,27 @@ i32 or i64 depending on the compilation target.
 | Map<K,V> | Unordered mutable map.  There is also `RoMap` which is immutable.
 | Json | Json data structure
 
-There are several different kinds of types.  There is `ro` for read-only
-immutable, and `boxed` for a heap object.  Even though a mutable boxed type
-is on the heap, it still has an owner and acts like a value type.  A `boxed ro`
-type is an immutable reference type with fast implicit cloning.  Very small types
-that don't require dynamic allocation are `passcopy` because it is faster to
-pass a copy.
+There are several different kinds of types.  There is `ro` for a read-only
+immutable type.  And there is `heap` for a type always allocated on the heap.
+Even though a mutable heap type is a reference, it still has an owner and acts
+like a value type.  There is `heap ro` which is an immutable reference type
+with fast implicit copy because it just copies the reference.
 
 | Type Qualifier | Examples | Passing Style | Explicit Clone Required | Clone Speed
 | :--- | :--- | :--- | :--- | :---
-|`passcopy` | `int`, `f64`, `Span` | Copy | No | Fast, small, never allocates
-|  | `List`, `Map` | Ref | If it allocates | Medium (copy bytes) or Slow (if it allocates)
+|passcopy | int, f64, Span | Copy | No | Fast, small, never allocates
+|  | List, Map | Ref | If it allocates | Medium (copy bytes) or Slow (if it allocates)
 | ro | | Ref | No | Medium, copy bytes, never allocates
-| boxed | `Buffer` | Ref | Yes | Slow, always allocates
-| boxed ro | `str`, `Array`, `RoMap` | Ref | No | Fast
-| `nocopy` | `FileStream` | Owned | No Clone | Move only (medium speed)
+| heap | Buffer | Ref | Yes | Slow, always allocates
+| heap ro | str, Array, RoMap | Ref | No | Fast
+| nocopy | FileStream | Owned | No Clone | Move only (medium speed)
 
-Notice that `List` and `Map` are not boxed.  They live directly inline in the
+Notice that `List` and `Map` are not `heap`.  They live directly inline in the
 object that owns them, but they do contain a reference to a `Buffer` which is 
 directly on the heap. Because they are mutable and use dynamic allocation,
 `List`, `Map`, and `Buffer` require an explicit clone.
 
-Also notice that `Array` and `str` are `boxed ro`.  They are reference types
+Also notice that `Array` and `str` are `heap ro`.  They are reference types
 and don't require an explicit clone.
 
 
@@ -254,22 +253,22 @@ and no additional fields may be defined in the body.  Simple types are
 mutable by default, but can also be immutable by adding the `ro` qualifier.
 
     // Simple types - all fields are public
-    pub type Point(X int, Y int)
-    pub type Line(P1 Point, P2 Point)
-    pub type WithInitialization(X int = 1, Y int = 2)
-    pub type ro ReadOnlyPerson(Id int, FirstName str, LastName str, BirthYear int)
+    type pub Point(X int, Y int)
+    type pub Line(P1 Point, P2 Point)
+    type pub WithInitialization(X int = 1, Y int = 2)
+    type pub ro ReadOnlyPerson(Id int, FirstName str, LastName str, BirthYear int)
 
     // A simple type may define properties, functions, and
     // constructors in the body but no additional fields
-    pub type Point(X int, Y int)
+    type pub Point(X int, Y int)
     {
         fun new(p int):
             todo()
-        pub fun mut SetY (y int):       // Mutable functions are marked `mut`
+        fun pub mut SetY (y int):       // Mutable functions are marked `mut`
             Y = y
-        pub get PropX() int:
+        get pub PropX() int:
             return X
-        pub set PropX(value int):
+        set pub PropX(value int):
             X = value
     }
 
@@ -300,7 +299,7 @@ A complex type must define all of its fields in the body. Fields are declared
 with `@` and are private.  Public properties can be added with `pub get`,
 `pub get set`, `pub ref` or `pub mut ref`.
 
-    pub type Example
+    type pub Example
     {
         // Mutable fields
         @text1 str = "hello"                // Private, no public
@@ -315,22 +314,22 @@ with `@` and are private.  Public properties can be added with `pub get`,
         @RoText3 ro str pub init = "Hello"  // Constructor or client can override
         
         // Getter returning a copy
-        get Text() str:
+        get pub Text() str:
             return text1
 
         // Setter
-        set Text(value str)
+        set pub Text(value str)
             if value == text:
                 return
             text1 = value
             SendTextChangedEvent()
 
         // Getter returning a reference (same as the `text2` field definition above)
-        get MyText2() ref str:
+        get pub MyText2() ref str:
             return ref text2
 
         // Getter allowing client code to set (same as `text3` field definition above)
-        get MyMutText3() mut ref str:
+        get pub MyMutText3() mut ref str:
             return ref text3
     }
 
@@ -468,8 +467,8 @@ Array syntax translates directly to Span (not to Array like C#).
 The following definitions are identical:
 
     // The following definitions are identical:
-    afun mut Write(data Span<byte>) int error youdo
-    afun mut Write(data []byte) int error youdo
+    afun mut Write(data Span<byte>) int error impl
+    afun mut Write(data []byte) int error impl
 
 Spans are as fast, simple, and efficient as it gets.  They are just a pointer
 and count.  They are passed down the *execution stack* or stored on the async
@@ -804,7 +803,7 @@ We will try for something similar to this: [Midori](http://joeduffyblog.com/2016
 Most errors should follow the normal path.  A function marked with `error` may
 either return a result or an error, for example:
 
-    pub afun mut Read(data mut Span<byte>) int error  youdo
+    pub afun mut Read(data mut Span<byte>) int error impl
 
 Exceptional cases are programming errors, and should not be used
 intentionally.  They unwind the stack, cleanup after themselves, 
@@ -818,15 +817,15 @@ Interfaces are similar to Rust traits.
 
 Here is `IEquatable<T>` from the standard library:
 
-    pub static interface IEquatable<T>
+    interface pub static IEquatable<T>
     {
-        static fun GetHashCode(a T) uint youdo
-        static fun Equals(a T, b T) bool youdo
+        fun static GetHashCode(a T) uint impl
+        fun static Equals(a T, b T) bool impl
     }
 
 Unimplemented functions and properties are explicitly marked with
-`youdo`.   Functions and properties must either have an implementation or
-specify `youdo`, `default`, or `extern`.  
+`impl`.   Functions and properties must either have an implementation or
+specify `impl`, `default`, or `extern`.  
 
 NOTE: The implementation uses use fat pointers.  (see notes below)
 
@@ -845,7 +844,7 @@ For instance, `IArithmetic` is a static interface, allowing this generic
 function:
 
     // Return `value` if it `low`..`high` otherwise return `low` or `high`.  
-    pub static fun BoundValue<T>(value T, low T, high T) T
+    fun pub static BoundValue<T>(value T, low T, high T) T
             where T is IAritmetic:
         if value <= low:
             return low
@@ -921,7 +920,7 @@ to have access to mutable data used by another thread.
 The unary `*` operator dereferences a pointer.  The `.` operator is used to access fields
 or members of a pointer to the type (so `->` is not used for pointers). 
  
-    pub static fun strcpy(dest *byte, source *byte):
+    fun pub static strcpy(dest *byte, source *byte):
         while *source != 0
             { *dest = *source;  dest += 1;  source += 1 }
         *dest = 0

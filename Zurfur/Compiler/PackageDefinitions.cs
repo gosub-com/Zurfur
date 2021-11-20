@@ -57,9 +57,8 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     public class PackageSymbolJson
     {
-        public string Kind; // module, type, field, method, param, return, param_type
         public string Name;
-        public string[] Qualifiers;
+        public string[] Tags;
         public string Comments;
 
         /// <summary>

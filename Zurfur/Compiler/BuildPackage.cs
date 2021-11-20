@@ -422,25 +422,42 @@ namespace Gosub.Zurfur.Compiler
             {
                 if (savedSym.IsIntrinsic)
                     continue;
-                if (loadedTable.TryGetValue(savedSym.FullName, out var loadedSym))
-                {
-                    if (loadedSym.TypeName != savedSym.TypeName)
-                    {
-                        Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}', but loaded '{loadedSym.FullName}'");
-                        Debug.Assert(false);
-                    }
-                    if (loadedSym.Order != savedSym.Order)
-                    {
-                        Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' order is '{savedSym.Order}', loaded order is '{loadedSym.Order}'");
-                        Debug.Assert(false);
-                    }
-                }
-                else
+                if (!loadedTable.TryGetValue(savedSym.FullName, out var loadedSym))
                 {
                     // Missing symbols when there are compilation errors are normal
                     if (savedSym is SymMethodGroup && savedSym.Parent.Token.Error)
                         continue;
                     Console.WriteLine($"Internal consistency check: '{savedSym.FullName}' not found");
+                    Debug.Assert(false);
+                }
+                if (loadedSym.TypeName != savedSym.TypeName)
+                {
+                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}', but loaded '{loadedSym.FullName}'");
+                    Debug.Assert(false);
+                }
+                if (loadedSym.GetType() != savedSym.GetType())
+                {
+                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' type doesn't match");
+                    Debug.Assert(false);
+                }
+                if (loadedSym.Order != savedSym.Order)
+                {
+                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' order doesn't match");
+                    Debug.Assert(false);
+                }
+                if (!loadedSym.Qualifiers.SequenceEqual(savedSym.Qualifiers))
+                {
+                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' tags don't match");
+                    Debug.Assert(false);
+                }
+                if (loadedSym.Kind != savedSym.Kind)
+                {
+                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' kind doesn't match");
+                    Debug.Assert(false);
+                }
+                if (loadedSym.Children.Count != savedSym.Children.Count)
+                {
+                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' children count doesn't match");
                     Debug.Assert(false);
                 }
             }

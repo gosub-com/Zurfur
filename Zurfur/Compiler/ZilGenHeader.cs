@@ -121,6 +121,7 @@ namespace Gosub.Zurfur.Compiler
                             foreach (var expr in type.TypeArgs)
                             {                                
                                 var newTypeParam = new SymTypeParam(newType, syntaxFile.Key, expr.Token);
+                                newTypeParam.Qualifiers = new string[] { "ptype" };
                                 newTypeParam.Token.AddInfo(newTypeParam);
                                 mSymbols.AddOrReject(newTypeParam);
                             }
@@ -136,7 +137,7 @@ namespace Gosub.Zurfur.Compiler
                     foreach (var field in syntaxFile.Value.Fields)
                     {
                         var newField = new SymField(mSymbols.FindPath(field.ModulePath), syntaxFile.Key, field.Name);
-                        newField.Qualifiers = Array.ConvertAll(field.Qualifiers, a => a.Name);
+                        newField.Qualifiers = Array.ConvertAll(field.Qualifiers, a => a.Name).Append("field").ToArray();
                         newField.Comments = field.Comments;
                         newField.Token.AddInfo(newField);
                         var scopeParent = field.ModulePath[field.ModulePath.Length-1];
@@ -360,13 +361,14 @@ namespace Gosub.Zurfur.Compiler
 
                 // Give each function a unique name (final name calculated below)
                 var method = new SymMethod(scope, file, func.Name,  $"$LOADING...${scope.Children.Count}");
-                method.Qualifiers = Array.ConvertAll(func.Qualifiers, a => a.Name);
+                method.Qualifiers = Array.ConvertAll(func.Qualifiers, a => a.Name).Append("method").ToArray();
                 method.Comments = func.Comments;
 
                 // Add type arguments
                 foreach (var expr in func.TypeArgs)
                 {
                     var typeSym = new SymTypeParam(method, file, expr.Token);
+                    typeSym.Qualifiers = new string[] { "ptype" };
                     if (mSymbols.AddOrReject(typeSym))
                         expr.Token.AddInfo(typeSym);
                 }
@@ -376,6 +378,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     // Resolve extension method type name (first parameter is "$this")
                     var methodParam = new SymMethodParam(method, file, new Token("$this"), false);
+                    methodParam.Qualifiers = new string[] { "param" };
                     methodParam.TypeName = ResolveTypeNameOrReject(methodParam, func.ExtensionType, file);
                     if (methodParam.TypeName == "" && !NoCompilerChecks)
                         methodParam.Token.AddInfo(new VerifySuppressError());
@@ -385,6 +388,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     // Non static method (first parameter is "$this")
                     var methodParam = new SymMethodParam(method, file, new Token("$this"), false);
+                    methodParam.Qualifiers = new string[] { "param" };
                     if (scope.Parent is SymType tn)
                     {
                         methodParam.TypeName = tn.ToString();
@@ -434,6 +438,7 @@ namespace Gosub.Zurfur.Compiler
 
                     var name = expr.Token == "" ? new Token("$return") : expr.Token;
                     var methodParam = new SymMethodParam(method, file, name, isReturn);
+                    methodParam.Qualifiers = isReturn ? new string[] { "param", "return" } : new string[] { "param" };
                     methodParam.TypeName = ResolveTypeNameOrReject(methodParam, expr[0], file);
                     if (methodParam.TypeName == "" && !NoCompilerChecks)
                         methodParam.Token.AddInfo(new VerifySuppressError());
@@ -641,6 +646,7 @@ namespace Gosub.Zurfur.Compiler
                     {
                         paramTypes.Add(sym);
                         var newMethodParam = new SymMethodParam(paramScope, file, pType.Token, isReturn);
+                        newMethodParam.Qualifiers = isReturn ? new string[] { "param", "return" } : new string[] { "param" };
                         newMethodParam.Token.AddInfo(newMethodParam);
                         mSymbols.AddOrReject(newMethodParam); // TBD: Fix
                     }

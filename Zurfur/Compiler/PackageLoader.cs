@@ -54,24 +54,10 @@ namespace Gosub.Zurfur.Compiler
 
             var packSym = new PackageSymbolJson();
             packSym.Name = symbol is SymMethod ? symbol.Parent.Name : symbol.Name;
-            packSym.Qualifiers = symbol.Qualifiers.Length == 0 ? null : symbol.Qualifiers;
+            packSym.Tags = symbol.Qualifiers.Length == 0 ? null : symbol.Qualifiers;
             packSym.Type = symbol.TypeName == "" ? null : symbol.TypeName;
             if (onlyPublic && symbol.Comments != "")
                 packSym.Comments = symbol.Comments;
-            if (symbol is SymModule)
-                packSym.Kind = "module";
-            else if (symbol is SymType)
-                packSym.Kind = "type";
-            else if (symbol is SymMethod)
-                packSym.Kind = "method";
-            else if (symbol is SymMethodParam methodParam)
-                packSym.Kind = methodParam.IsReturn ? "return" : "param";
-            else if (symbol is SymTypeParam)
-                packSym.Kind = "ptype";
-            else if (symbol is SymField)
-                packSym.Kind = "field";
-            else
-                Debug.Assert(false);
 
             packSyms.Add(packSym);
 
@@ -104,57 +90,58 @@ namespace Gosub.Zurfur.Compiler
         {
             Symbol newSymbol;
             var name = packSym.Name;
-            switch (packSym.Kind)
-            {
-                case "module":
-                    newSymbol = new SymModule(parent, name);
-                    break;
-                case "type":
-                    newSymbol = new SymType(parent, "", new Token(name));
-                    break;
-                case "field":
-                    newSymbol = new SymField(parent, "", new Token(name));
-                    break;
-                case "param":
-                case "return":
-                    newSymbol = new SymMethodParam(parent, "", new Token(name), packSym.Kind == "return");
-                    break;
-                case "ptype":
-                    newSymbol = new SymTypeParam(parent, "", new Token(name));
-                    break;
-                case "method":
-                    // Find or create group
-                    if (!parent.Children.TryGetValue(name, out var group))
-                    {
-                        group = new SymMethodGroup(parent, name);
-                        table.AddOrReject(group);
-                    }
-                    // Reconstruct method name
-                    var numTypeArgs = 0;
-                    var param = new List<string>();
-                    var returns = new List<string>();
-                    if (packSym.Symbols != null)
-                        foreach (var s in packSym.Symbols)
-                        {
-                            if (s.Kind == "param")
-                                param.Add(s.Type);
-                            else if (s.Kind == "return")
-                                returns.Add(s.Type);
-                            else if (s.Kind == "ptype")
-                                numTypeArgs++;
-                            else
-                                throw new Exception("Expecting symbol method kind to be 'param', 'return', or 'ptype'");
-                        }
-                    var methodArgName = (numTypeArgs == 0 ? "" : $"`{numTypeArgs}")
-                            + "(" + string.Join(",", param)
-                            + ")(" + string.Join(",", returns) + ")";
-                    newSymbol = new SymMethod(group, "", new Token(name), methodArgName);
-                    break;
 
-                default:
-                    throw new Exception($"Invalid symbol kind '$child.kind'");
+            if (packSym.Tags == null)
+                packSym.Tags = Array.Empty<string>();
+
+            if (packSym.Tags.Contains("module"))
+                newSymbol = new SymModule(parent, name);
+            else if (packSym.Tags.Contains("type")
+                        || packSym.Tags.Contains("interface")
+                        || packSym.Tags.Contains("enum"))
+                newSymbol = new SymType(parent, "", new Token(name));
+            else if (packSym.Tags.Contains("field"))
+                newSymbol = new SymField(parent, "", new Token(name));
+            else if (packSym.Tags.Contains("ptype"))
+                newSymbol = new SymTypeParam(parent, "", new Token(name));
+            else if (packSym.Tags.Contains("param"))
+                newSymbol = new SymMethodParam(parent, "", new Token(name), packSym.Tags.Contains("return"));
+            else if (packSym.Tags.Contains("method"))
+            {
+                // Find or create group
+                if (!parent.Children.TryGetValue(name, out var group))
+                {
+                    group = new SymMethodGroup(parent, name);
+                    table.AddOrReject(group);
+                }
+                // Reconstruct method name
+                var numTypeArgs = 0;
+                var param = new List<string>();
+                var returns = new List<string>();
+                if (packSym.Symbols != null)
+                    foreach (var s in packSym.Symbols)
+                    {
+                        if (s.Tags.Contains("return"))
+                            returns.Add(s.Type);
+                        else if (s.Tags.Contains("param"))
+                            param.Add(s.Type);
+                        else if (s.Tags.Contains("ptype"))
+                            numTypeArgs++;
+                        else
+                            throw new Exception("Expecting symbol method kind to be 'param', 'return', or 'ptype'");
+                    }
+                var methodArgName = (numTypeArgs == 0 ? "" : $"`{numTypeArgs}")
+                        + "(" + string.Join(",", param)
+                        + ")(" + string.Join(",", returns) + ")";
+                newSymbol = new SymMethod(group, "", new Token(name), methodArgName);
             }
-            newSymbol.Qualifiers = packSym.Qualifiers == null ? Array.Empty<string>() : packSym.Qualifiers;
+            else
+            {
+                Debug.Assert(false);
+                throw new Exception($"Invalid symbol kind '$child.kind'");
+            }
+
+            newSymbol.Qualifiers = packSym.Tags == null ? Array.Empty<string>() : packSym.Tags;
             newSymbol.TypeName = packSym.Type == null ? "" : packSym.Type;
             newSymbol.Comments = packSym.Comments == null ? "" : packSym.Comments;
             if (!table.AddOrReject(newSymbol))
@@ -208,26 +195,10 @@ namespace Gosub.Zurfur.Compiler
             }
 
             var ps = new PackageSymbolJson();
-            ps.Qualifiers = symbol.Qualifiers.Length == 0 ? null : symbol.Qualifiers;
+            ps.Tags = symbol.Qualifiers.Length == 0 ? null : symbol.Qualifiers;
             ps.Type = symbol.TypeName == "" ? null : symbol.TypeName;
             if (onlyPublic && symbol.Comments != "")
                 ps.Comments = symbol.Comments;
-            if (symbol is SymModule)
-                ps.Kind = "module";
-            else if (symbol is SymType)
-                ps.Kind = "type";
-            else if (symbol is SymMethod)
-                ps.Kind = "method";  // TBD: Maybe use get/set
-            else if (symbol is SymMethodParam methodParam)
-                ps.Kind = methodParam.IsReturn ? "return" : "param";
-            else if (symbol is SymTypeParam)
-                ps.Kind = "ptype";
-            else if (symbol is SymField)
-                ps.Kind = "field";
-            else if (symbol is SymMethodGroup)
-                ps.Kind = null; // Hope over method groups
-            else
-                Debug.Assert(false);
 
             if (symbol is SymModule || symbol is SymType || symbol is SymMethod)
             {
