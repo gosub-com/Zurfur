@@ -811,63 +811,19 @@ and stay memory safe.  They can be recovered, but care should be
 taken when recovering and they always generate a stack trace.
 
 
-## Interfaces
+## Traits
 
-Interfaces are similar to Rust traits. 
+Zurfur will use Rust style traits.
 
-Here is `IEquatable<T>` from the standard library:
-
-    interface pub static IEquatable<T>
-    {
-        fun static GetHashCode(a T) uint impl
-        fun static Equals(a T, b T) bool impl
-    }
-
-Unimplemented functions and properties are explicitly marked with
-`impl`.   Functions and properties must either have an implementation or
-specify `impl`, `default`, or `extern`.  
-
-NOTE: The implementation uses use fat pointers.  (see notes below)
-
-**TBD:** Describe syntax for creating externally defined traits, like
-in Rust.  For example `implement TRAIT for TYPE`
-
-**TBD:** Allow explicit structural typing.  Similar to golang, but
-requiring an explicit `cast`.
-[Some people don't like this.](https://bluxte.net/musings/2018/04/10/go-good-bad-ugly/#interfaces-are-structural-types)
-
-#### Static Interfaces and Functions
-
-Interfaces may include `static` functions.  Static
-functions are a better fit than virtual functions for some operations.
-For instance, `IArithmetic` is a static interface, allowing this generic
-function:
-
-    // Return `value` if it `low`..`high` otherwise return `low` or `high`.  
-    fun pub static BoundValue<T>(value T, low T, high T) T
-            where T is IAritmetic:
-        if value <= low:
-            return low
-        if value >= high:
-            return high
-        return value
-
-#### Implementation Note
-
-An interface is implemented using a fat pointer containing a reference to a VTable
-and a reference to the object.  There is very little overhead calling an interface
-method (less than calling a virtual function), but there is a little more overhead
-casting an object to an interface.
+Most traits are dispatched statically.  When dynamic dispatch is required,
+it is implemented using a fat pointer containing a reference to a VTable
+and a reference to the object. 
 
 See [Interface Dispatch](https://lukasatkinson.de/2018/interface-dispatch/)
 and scroll down to *Fat Pointers*.  A comment by Russ Cox explains why
 this is a good design choice "*The key insight for Go was that in a statically
 typed language, type conversions happen far less often than method calls, so doing
 the work on the type conversion is actually quite cheap.*"
-
-Note that an interface containing only static functions can be implemented using
-just a thin pointer to a VTable.
-
 
 ## Garbage Collection
 
@@ -895,25 +851,10 @@ The first version of Zurfur is targeted at replacing JavaScript, and will
 support multi-threading only via web workers and message passing.  Each web
 worker has its own address space, so everything appears to be single threaded.
 
-#### Discussion
-
-It's hard to do multi-threading with speed and memory safety.
-Once we drop multi-threading, we can make things fast and
-memory safe:
-
-* Interfaces can be implemented with fat pointers that won't tear
-* Spans can be stored on the heap, also without tearing
-* Garbage collection can use reference counting without an interlock
-
 JavaScript has done pretty well with the single threaded model.
 IO is async and doesn't block.  Long CPU bound tasks can be
 offloaded to a web worker.  Even Windows uses a single threaded
 model for user interface objects.
-
-TBD: Mutable static data is not allowed.  This allows us to safely
-add threads in the future since there won't be any way for a function
-to have access to mutable data used by another thread.
-
 
 ## Raw Pointers
 

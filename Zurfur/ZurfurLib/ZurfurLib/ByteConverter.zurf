@@ -25,7 +25,7 @@ fun Test_ConvertExample():
 
 fun pub Span<byte>::BytesToHex(capitalize bool) str {todo()}
 fun pub mut List<byte>::PushBytesToHex(bytes []byte, capitalize bool) { todo() }
-fun pub mut List<byte>::PushHexToBytes(hex []byte) error {todo()}
+fun pub mut List<byte>::PushHexToBytes(hex []byte) err {todo()}
 
 
 /// Convert 4 bytes (u32) to int (little endian)

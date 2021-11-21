@@ -120,7 +120,7 @@ type pub List<T>
             si += 1
         Remove(di:si)
         return
-    error:
+    err:
         if v != Version:
             throw InvalidIteratorException()
         Remove(di:si)

@@ -374,9 +374,6 @@ namespace Gosub.Zurfur.Compiler
                 //package.SymbolsMapExperiment = zil.Symbols.SaveMapExperiment(false);
                 mCodeJson = JsonConvert.SerializeObject(package, Formatting.None,
                     new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore });
-
-                DebugVerifySymbolTables(zil, package);
-
             });
 
             var dtGenPackage = DateTime.Now;
@@ -409,58 +406,6 @@ namespace Gosub.Zurfur.Compiler
                 return;
             }
             StatusUpdate?.Invoke(this, new UpdatedEventArgs("Done"));
-        }
-
-        [Conditional("DEBUG")]
-        private static void DebugVerifySymbolTables(ZilGenHeader zil, PackageJson package)
-        {
-            var reloadSymbols = new SymbolTable().Load(package.Symbols);
-            var savedTable = zil.Symbols.GetSymbols();
-            var loadedTable = reloadSymbols.GetSymbols();
-
-            foreach (var savedSym in savedTable.Values)
-            {
-                if (savedSym.IsIntrinsic)
-                    continue;
-                if (!loadedTable.TryGetValue(savedSym.FullName, out var loadedSym))
-                {
-                    // Missing symbols when there are compilation errors are normal
-                    if (savedSym is SymMethodGroup && savedSym.Parent.Token.Error)
-                        continue;
-                    Console.WriteLine($"Internal consistency check: '{savedSym.FullName}' not found");
-                    Debug.Assert(false);
-                }
-                if (loadedSym.TypeName != savedSym.TypeName)
-                {
-                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}', but loaded '{loadedSym.FullName}'");
-                    Debug.Assert(false);
-                }
-                if (loadedSym.GetType() != savedSym.GetType())
-                {
-                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' type doesn't match");
-                    Debug.Assert(false);
-                }
-                if (loadedSym.Order != savedSym.Order)
-                {
-                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' order doesn't match");
-                    Debug.Assert(false);
-                }
-                if (!loadedSym.Qualifiers.SequenceEqual(savedSym.Qualifiers))
-                {
-                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' tags don't match");
-                    Debug.Assert(false);
-                }
-                if (loadedSym.Kind != savedSym.Kind)
-                {
-                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' kind doesn't match");
-                    Debug.Assert(false);
-                }
-                if (loadedSym.Children.Count != savedSym.Children.Count)
-                {
-                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' children count doesn't match");
-                    Debug.Assert(false);
-                }
-            }
         }
 
         private static void RemoveZilInfo(Token token)

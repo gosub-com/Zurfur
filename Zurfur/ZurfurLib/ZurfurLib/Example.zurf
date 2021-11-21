@@ -58,12 +58,12 @@ type pub ComplexType
 //      https://medium.com/@jreem/advanced-rust-using-traits-for-argument-overloading-c6a6c8ba2e17
 // Does the associate type translate to IntoReader<OutReader>?
 //
-//pub interface RustSend { }
-//pub interface RustReader
+//pub trait RustSend { }
+//pub trait RustReader
 //{
 //    fun pub mut Read(buffer []byte) int error youdo
 //}
-//pub interface RustIntoReader<OutReader>
+//pub trait RustIntoReader<OutReader>
 //    where OutReader is RustReader
 //{
 //    fun ToReader() OutReader youdo

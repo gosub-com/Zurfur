@@ -90,7 +90,7 @@ namespace Gosub.Zurfur.Compiler
                     {
                         types++;
                         var t = sym as SymType;
-                        var numGeneric = t.FindChildren<SymTypeParam>().Count;
+                        var numGeneric = t.GenericParamCount();
                         if (numGeneric == 0)
                             typesNonGeneric++;
                         else

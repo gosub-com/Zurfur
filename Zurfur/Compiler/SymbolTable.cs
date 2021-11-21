@@ -46,12 +46,14 @@ namespace Gosub.Zurfur.Compiler
         {
             var sym = new SymType(Root, type);
             sym.IsIntrinsic = true;
+            sym.Qualifiers = new string[] { "type" };
             AddOrReject(sym);
             for (int i = 0; i < numGenerics; i++)
             {
                 var tn = "T" + (numGenerics == 1 ? "" : $"{i + 1}");
                 var t = new SymTypeParam(sym, "", new Token(tn));
                 t.IsIntrinsic = true;
+                t.Qualifiers = new string[] { "type_param" };
                 var ok = AddOrReject(t);
                 Debug.Assert(ok);
             }

@@ -65,24 +65,23 @@ namespace Gosub.Zurfur.Compiler
             + "return unsealed unseal sealed sizeof stackalloc heapalloc struct switch this self throw try "
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "
-            + "box boxed init move copy clone bag drop error dispose own "
+            + "box boxed init move copy clone bag drop err dispose own "
             + "trait mixin extends implements implement impl union fun afun def yield let cast "
             + "any dyn dynamic loop select match event aevent from to of on cofun cofunc global local it "
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
             + "of sync task except exception raise loc local global");
 
         // Non reserved syntax names: heap, passcopy, nocopy
-        static WordSet sClassFieldQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static unsealed abstract virtual override");
         static WordSet sTypeQualifiers = new WordSet("pub public protected private internal unsafe "
             + "unsealed abstract ref ro heap class passcopy nocopy");
-        static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static");
+        static WordSet sTraitQualifiers = new WordSet("pub public protected private internal static");
         static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
         static WordSet sMethodQualifiers = new WordSet("pub public protected private internal unsafe "
             + "static unsealed abstract virtual override");
+        static WordSet sConstQualifiers = new WordSet("pub public protected private internal");
         static WordSet sPostFieldQualifiers = new WordSet("init set get ref mut");
 
-        static WordSet sReservedUserFuncNames = new WordSet("new drop cast default implicit");
+        static WordSet sReservedUserFuncNames = new WordSet("new clone drop cast default implicit");
         static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default base new cast dref");
         static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref mut own ro");
 
@@ -100,7 +99,7 @@ namespace Gosub.Zurfur.Compiler
 
         // For now, do not allow more than one level.  Maybe we want to allow it later,
         // but definitely do not allow them to include compounds with curly braces.
-        static WordSet sNoSubCompoundStatement = new WordSet("type class catch error " 
+        static WordSet sNoSubCompoundStatement = new WordSet("type class catch err " 
                                 + "get set pub private protected namespace module static static fun afun ");
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
@@ -112,7 +111,7 @@ namespace Gosub.Zurfur.Compiler
         Regex sFindUrl = new Regex(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
 
         static WordSet sStatementEndings = new WordSet("; => }");
-        static WordSet sStatementsDone = new WordSet("} namespace module type interface enum static", true);
+        static WordSet sStatementsDone = new WordSet("} namespace module type trait enum static", true);
         static WordSet sRejectAnyStop = new WordSet("=> ; { }", true);
         static WordSet sRejectForCondition = new WordSet("in");
         static WordSet sRejectFuncName = new WordSet("(");
@@ -240,7 +239,7 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Parse using, module, enum, interface, struct, class, func, or field
+        /// Parse using, module, type, fun, etc.
         /// </summary>
         void ParseScopeStatements(SyntaxScope parentScope)
         {
@@ -303,22 +302,22 @@ namespace Gosub.Zurfur.Compiler
                         mToken.Type = eTokenType.ReservedControl;
                         Accept();
                         if (parentScope != null)
-                            RejectToken(keyword, "'module' statement must not be inside a type/enum/interface body");
+                            RejectToken(keyword, "'module' statement must not be inside a type");
                         ParseModuleStatement(keyword);
                         break;
 
-                    case "interface":
+                    case "trait":
                     case "enum":
                     case "type":
                         mToken.Type = eTokenType.ReservedControl;
                         qualifiers.Add(Accept());
                         if (keyword.Name == "type")
                             ParseQualifiers(sTypeQualifiers, qualifiers);
-                        else if (keyword.Name == "interface")
-                            ParseQualifiers(sInterfaceQualifiers, qualifiers);
+                        else if (keyword.Name == "trait")
+                            ParseQualifiers(sTraitQualifiers, qualifiers);
                         else
                             ParseQualifiers(sEnumQualifiers, qualifiers);
-                        ParseClass(keyword, parentScope, qualifiers);
+                        ParseTypeScope(keyword, parentScope, qualifiers);
                         break;
 
                     case "get":
@@ -340,7 +339,7 @@ namespace Gosub.Zurfur.Compiler
                     case "const":
                         mToken.Type = eTokenType.ReservedControl;
                         qualifiers.Add(Accept());
-                        ParseQualifiers(sClassFieldQualifiers, qualifiers);
+                        ParseQualifiers(sConstQualifiers, qualifiers);
                         AddField(ParseFieldSimple(parentScope, qualifiers));
                         break;
 
@@ -490,9 +489,29 @@ namespace Gosub.Zurfur.Compiler
             Accept();
         }
 
-        // Parse class, struct, interface, or enum
-        void ParseClass(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
+        void ParseTypeScope(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
         {
+            if (parentScope != null && parentScope.Keyword == "trait")
+            {
+                if (keyword != "type")
+                {
+                    RejectToken(keyword, $"Not allowed to define '{keyword}' in a trait");
+                    return;
+                }
+                // Associated type
+                if (!CheckIdentifier("Expecting a type name"))
+                    return;
+                var typeArg = Accept();
+                typeArg.Type = eTokenType.TypeName;
+                var synType = (SyntaxType)parentScope;
+                if (synType.TypeArgsImpl == null)
+                    synType.TypeArgsImpl = new List<SyntaxExpr>();
+                synType.TypeArgsImpl.Add(new SyntaxToken(typeArg));
+                AcceptMatchOrReject("impl");
+
+                return;
+            }
+
             var synClass = new SyntaxType(keyword);
             synClass.Qualifiers = qualifiers.ToArray();
             synClass.ParentScope = parentScope;
@@ -500,7 +519,7 @@ namespace Gosub.Zurfur.Compiler
             synClass.Comments = mComments.ToString();
             mComments.Clear();
 
-            if (!CheckIdentifier("Expecting an identifier possibly followed by type parameters (e.g. 'Name<T1>', etc)"))
+            if (!CheckIdentifier("Expecting a type name"))
                 return; // TBD: Could try to recover (user probably editing class name)
 
             // Parse class name and type parameters
@@ -552,7 +571,7 @@ namespace Gosub.Zurfur.Compiler
                 synClass.AliasOrExtends = ParseType();
             }
 
-            // Parse implemented classes
+            // Parse implements classes
             if (AcceptMatchPastMetaSemicolon("implements"))
             {
                 var baseClasses = NewExprList();
@@ -868,7 +887,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             SyntaxToken qualifier;
-            if (mTokenName == "error" || mTokenName == "exit")
+            if (mTokenName == "err" || mTokenName == "exit")
                 qualifier = new SyntaxToken(Accept());
             else
                 qualifier = EmptyExpr;
@@ -1026,7 +1045,7 @@ namespace Gosub.Zurfur.Compiler
             var (x, y) = (mToken.X, mToken.Y);
             while (!sStatementsDone.Contains(mTokenName))
             {
-                if (mToken.X != x && mToken.Y != y && mToken != "error" && mToken != "catch")
+                if (mToken.X != x && mToken.Y != y && mToken != "err" && mToken != "catch")
                     RejectToken(mToken, "Indentation of statement must match statement above");
                 y = mToken.Y;
                 ParseStatement(statements, true);
@@ -1190,11 +1209,11 @@ namespace Gosub.Zurfur.Compiler
                     requireSemicolon = false;
                     break;
 
-                case "error":
+                case "err":
                 case "catch":
                     Accept();
                     var caseExpressions = NewExprList();
-                    if (keyword != "error" || mTokenName != ":")
+                    if (keyword != "err" || mTokenName != ":")
                         caseExpressions.Add(ParseConditionalOr());
                     while (AcceptMatch(","))
                         caseExpressions.Add(ParseConditionalOr());

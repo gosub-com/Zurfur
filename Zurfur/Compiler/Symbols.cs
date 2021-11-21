@@ -7,7 +7,6 @@ using System.Diagnostics;
 
 namespace Gosub.Zurfur.Compiler
 {
-
     /// <summary>
     /// NOTE: This data structure is all internal to the compiler.
     /// The public definitions are contained in PackageDefinitions.cs.
@@ -74,9 +73,9 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public string TypeName = "";
 
-        public bool IsInterface
-            => this is SymType && Qualifiers.Contains("interface")
-                || this is SymSpecializedType && Parent is SymType && Parent.Qualifiers.Contains("interface");
+        public bool IsTrait
+            => this is SymType && Qualifiers.Contains("trait")
+                || this is SymSpecializedType && Parent is SymType && Parent.Qualifiers.Contains("trait");
 
         /// <summary>
         /// Source code token if it exists.  Throws an exception for
@@ -158,6 +157,7 @@ namespace Gosub.Zurfur.Compiler
             value.Order = mChildren.Count;
             Debug.Assert(!mChildren.ContainsKey(value.Name));
             mChildren[value.Name] = value;
+            mFullNameCache = null;
         }
 
         /// <summary>
@@ -193,40 +193,21 @@ namespace Gosub.Zurfur.Compiler
             return Qualifiers.Contains(qualifier);
         }
 
-        /// <summary>
-        /// Find direct children of specific type
-        /// </summary>
-        public List<T> FindChildren<T>()
+        public List<Symbol> FindChildren(string qualifier)
         {
-            var children = new List<T>();
+            var children = new List<Symbol>();
             foreach (var child in Children.Values)
-                if (child is T symChild)
-                    children.Add(symChild);
+                if (child.Qualifiers.Contains(qualifier))
+                    children.Add(child);
             return children;
         }
 
-        public int CountChildren<T>()
+        public int CountChildren(string qualifier)
         {
-            int count = 0;
+            var count = 0;
             foreach (var child in Children.Values)
-                if (child is T)
+                if (child.Qualifiers.Contains(qualifier))
                     count++;
-            return count;
-        }
-
-        /// <summary>
-        /// Get total generic parameter count, including encolsing scopes:
-        /// (e.g, In`MyClass<T1,T2>.MyFunc<T>()`, MyFunc expects 3 parameters)
-        /// </summary>
-        public int GenericParamTotal()
-        {
-            var count = CountChildren<SymTypeParam>();
-            var p = Parent;
-            while (p is SymType || p is SymMethod || p is SymMethodGroup)
-            {
-                count += p.CountChildren<SymTypeParam>();
-                p = p.Parent;
-            }
             return count;
         }
 
@@ -235,8 +216,25 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public int GenericParamCount()
         {
-            return CountChildren<SymTypeParam>();
+            return CountChildren("type_param");
         }
+
+        /// <summary>
+        /// Get total generic parameter count, including encolsing scopes:
+        /// (e.g, In`MyClass<T1,T2>.MyFunc<T>()`, MyFunc expects 3 parameters)
+        /// </summary>
+        public int GenericParamTotal()
+        {
+            var count = GenericParamCount();
+            var p = Parent;
+            while (p is SymType || p is SymMethod || p is SymMethodGroup)
+            {
+                count += p.GenericParamCount();
+                p = p.Parent;
+            }
+            return count;
+        }
+
 
         public struct RoDict<TKey, TValue>
         {
@@ -272,8 +270,8 @@ namespace Gosub.Zurfur.Compiler
         {
             get
             {
-                var tp = FindChildren<SymTypeParam>();
-                return tp.Count == 0 ? "" : $"`{tp.Count}";
+                var count = CountChildren("type_param");
+                return count == 0 ? "" : $"`{count}";
             }
         }
 
@@ -287,9 +285,6 @@ namespace Gosub.Zurfur.Compiler
         }
         public override string Kind => "type parameter";
         protected override string Separator => "~";
-
-        public string[] Constraints;
-
     }
 
     class SymField : Symbol

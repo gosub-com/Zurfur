@@ -3,40 +3,34 @@
 module Zurfur.Io
 
 
-interface Reader
+trait Reader
 {
-    afun mut Read(data mut []byte) int error impl
-    // TBD: Since most streams have an underlying
-    // buffer,  would it make sense to add sync
-    // functions ReadableNow and ReadNow?
+    afun mut Read(data mut []byte) int err impl
 }
 
-interface Writer
+trait Writer
 {
-    afun mut Write(data []byte) int error impl
-    afun mut Flush() error impl
-    // TBD: Since most streams have an underlying
-    // buffer,  would it make sense to add sync
-    // functions WritableNow and WriteNow?
+    afun mut Write(data []byte) int err impl
+    afun mut Flush() err impl
 }
 
 enum SeekOrigin { Begin; Current; End }
 
-interface Seeker
+trait Seeker
 {
-    get Length() int impl
-    get Position() int impl
-    set Position(value int) impl
-    afun mut Seek(offset int, origin SeekOrigin) error impl
+    afun mut Seek(offset int, origin SeekOrigin) int err impl
+    aget Length() int err { todo() }
+    aget Position() int err { todo() }
+    aset Position(value int) err { todo() }
 }
 
 
-interface FileStream
+trait FileStream
 {
 }
 
 type File
 {
-    fun pub static Open(file str) FileStream error:
+    fun pub static Open(file str) FileStream err:
         return todo()
 }

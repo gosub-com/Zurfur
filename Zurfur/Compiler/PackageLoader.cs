@@ -21,6 +21,10 @@ namespace Gosub.Zurfur.Compiler
         {
             var packSyms = new List<PackageSymbolJson>();
             SaveAdd(table.Root, packSyms, onlyPublic);
+
+            if (!onlyPublic)
+                DebugVerifySymbolTables(table, packSyms);
+
             return packSyms;
         }
 
@@ -86,7 +90,7 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Load from json transport
         /// </summary>
-        static void LoadAdd(SymbolTable table, Symbol parent, PackageSymbolJson packSym)
+        static void LoadAdd(SymbolTable table, Symbol symbol, PackageSymbolJson packSym)
         {
             Symbol newSymbol;
             var name = packSym.Name;
@@ -95,23 +99,25 @@ namespace Gosub.Zurfur.Compiler
                 packSym.Tags = Array.Empty<string>();
 
             if (packSym.Tags.Contains("module"))
-                newSymbol = new SymModule(parent, name);
+                newSymbol = new SymModule(symbol, name);
             else if (packSym.Tags.Contains("type")
-                        || packSym.Tags.Contains("interface")
+                        || packSym.Tags.Contains("trait")
                         || packSym.Tags.Contains("enum"))
-                newSymbol = new SymType(parent, "", new Token(name));
+                newSymbol = new SymType(symbol, "", new Token(name));
             else if (packSym.Tags.Contains("field"))
-                newSymbol = new SymField(parent, "", new Token(name));
-            else if (packSym.Tags.Contains("ptype"))
-                newSymbol = new SymTypeParam(parent, "", new Token(name));
+                newSymbol = new SymField(symbol, "", new Token(name));
+            else if (packSym.Tags.Contains("type_param") || packSym.Tags.Contains("type_param_impl"))
+                newSymbol = new SymTypeParam(symbol, "", new Token(name));
             else if (packSym.Tags.Contains("param"))
-                newSymbol = new SymMethodParam(parent, "", new Token(name), packSym.Tags.Contains("return"));
+                newSymbol = new SymMethodParam(symbol, "", new Token(name), false);
+            else if (packSym.Tags.Contains("param_return"))
+                newSymbol = new SymMethodParam(symbol, "", new Token(name), true);
             else if (packSym.Tags.Contains("method"))
             {
                 // Find or create group
-                if (!parent.Children.TryGetValue(name, out var group))
+                if (!symbol.Children.TryGetValue(name, out var group))
                 {
-                    group = new SymMethodGroup(parent, name);
+                    group = new SymMethodGroup(symbol, name);
                     table.AddOrReject(group);
                 }
                 // Reconstruct method name
@@ -121,11 +127,11 @@ namespace Gosub.Zurfur.Compiler
                 if (packSym.Symbols != null)
                     foreach (var s in packSym.Symbols)
                     {
-                        if (s.Tags.Contains("return"))
+                        if (s.Tags.Contains("param_return"))
                             returns.Add(s.Type);
                         else if (s.Tags.Contains("param"))
                             param.Add(s.Type);
-                        else if (s.Tags.Contains("ptype"))
+                        else if (s.Tags.Contains("type_param"))
                             numTypeArgs++;
                         else
                             throw new Exception("Expecting symbol method kind to be 'param', 'return', or 'ptype'");
@@ -145,13 +151,70 @@ namespace Gosub.Zurfur.Compiler
             newSymbol.TypeName = packSym.Type == null ? "" : packSym.Type;
             newSymbol.Comments = packSym.Comments == null ? "" : packSym.Comments;
             if (!table.AddOrReject(newSymbol))
-                throw new Exception($"Duplicate symbol '{name}' found with parent ${parent}");
+                throw new Exception($"Duplicate symbol '{name}' found with parent ${symbol}");
 
             // Add children
             if (packSym.Symbols != null)
                 foreach (var s in packSym.Symbols)
                     LoadAdd(table, newSymbol, s);
         }
+
+        [Conditional("DEBUG")]
+        private static void DebugVerifySymbolTables(SymbolTable table, List<PackageSymbolJson> symbols)
+        {
+            var reloadSymbols = new SymbolTable().Load(symbols);
+            var savedTable = table.GetSymbols();
+            var loadedTable = reloadSymbols.GetSymbols();
+
+            foreach (var savedSym in savedTable.Values)
+            {
+                if (savedSym.IsIntrinsic)
+                    continue;
+                if (!loadedTable.TryGetValue(savedSym.FullName, out var loadedSym))
+                {
+                    // Missing symbols when there are compilation errors are normal
+                    if (savedSym is SymMethodGroup 
+                            && (savedSym.Parent.Name == "$extension" || savedSym.Parent.Token.Error))
+                        continue;
+                    Console.WriteLine($"Internal consistency check: '{savedSym.FullName}' not found");
+                    Debug.Assert(false);
+                    continue;
+                }
+                if (loadedSym.TypeName != savedSym.TypeName)
+                {
+                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}', but loaded '{loadedSym.FullName}'");
+                    Debug.Assert(false);
+                }
+                if (loadedSym.GetType() != savedSym.GetType())
+                {
+                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' type doesn't match");
+                    Debug.Assert(false);
+                }
+                if (loadedSym.Order != savedSym.Order)
+                {
+                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' order doesn't match");
+                    Debug.Assert(false);
+                }
+                if (!loadedSym.Qualifiers.SequenceEqual(savedSym.Qualifiers))
+                {
+                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' tags don't match");
+                    Debug.Assert(false);
+                }
+                if (loadedSym.Kind != savedSym.Kind)
+                {
+                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' kind doesn't match");
+                    Debug.Assert(false);
+                }
+                if (loadedSym.Children.Count != savedSym.Children.Count)
+                {
+                    // NOTE: Certain errors in the source code trigger this,
+                    //       but it's OK since we won't be saving the table in that case.
+                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' children count doesn't match");
+                    Debug.Assert(false);
+                }
+            }
+        }
+
 
         /// <summary>
         /// Experiment: Save the symbol table as a dictionary of symbols.

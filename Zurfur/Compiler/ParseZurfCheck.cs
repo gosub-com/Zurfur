@@ -16,19 +16,6 @@ namespace Gosub.Zurfur.Compiler
 
         public Token LastToken;
 
-        static WordSet sFuncInInterfaceQualifiersAllowed = new WordSet("fun afun set aset get aget pub private protected static mut impl async error");
-
-        static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static interface");
-        static WordSet sClassQualifiers = new WordSet("pub pfublic protected private internal unsafe unsealed abstract ro boxed");
-        static WordSet sStructQualifiers = new WordSet("pub public protected private internal unsafe ref ro");
-        static WordSet sEnumQualifiers = new WordSet("pub public protected private internal enum");
-
-        static WordSet sFieldInStructQualifiers = new WordSet("pub public static ro const");
-        static WordSet sFieldInEnumQualifiers = new WordSet("");
-
-        static WordSet sFuncQualifiers = new WordSet(". fun afun pub public protected private internal unsafe virtual override new mut ref static extern impl async error");
-        static WordSet sPropQualifiers = new WordSet(". set aset get aget pub public protected private internal unsafe static virtual override new extern impl async error");
-
         static WordSet sTopLevelStatements = new WordSet("{ ( = += -= *= /= %= &= |= ~= <<= >>= => @ "
             + "const var let mut defer use throw switch case return for break default while if else get set do unsafe error finally exit fun afun");
         static WordSet sAssignments = new WordSet("= += -= *= /= %= &= |= ~= <<= >>=");
@@ -90,23 +77,7 @@ namespace Gosub.Zurfur.Compiler
                 if (aClass.ModulePath.Length == 0)
                     mParser.RejectToken(keyword, "The module name must be defined before the " + keyword);
                 if (outerKeyword != "" && outerKeyword == "enum")
-                    mParser.RejectToken(keyword, "Classes, structs, enums, and interfaces may not be nested inside an enum");
-
-                switch (keyword)
-                {
-                    case "enum":
-                        RejectQualifiers(aClass.Qualifiers, sEnumQualifiers, "Qualifier does not apply to enums");
-                        break;
-                    case "interface":
-                        RejectQualifiers(aClass.Qualifiers, sInterfaceQualifiers, "Qualifier does not apply to interfaces");
-                        break;
-                    case "struct":
-                        RejectQualifiers(aClass.Qualifiers, sStructQualifiers, "Qualifier does not apply to structs");
-                        break;
-                    case "class":
-                        RejectQualifiers(aClass.Qualifiers, sClassQualifiers, "Qualifier does not apply to classes");
-                        break;
-                }
+                    mParser.RejectToken(keyword, "Types may not be nested inside an enum");
             }
 
             // TBD: The setter must not be separated from the getter
@@ -129,26 +100,18 @@ namespace Gosub.Zurfur.Compiler
                 if (func.ModulePath.Length == 0)
                     mParser.RejectToken(keyword, "The module name must be defined before method");
              
-                if (outerKeyword == "interface")
-                {
-                    RejectQualifiers(func.Qualifiers, sFuncInInterfaceQualifiersAllowed, "This qualifier may not appear before a function defined inside an interface");
-                }
-
                 switch (keyword)
                 {
                     case "fun":
                     case "func":
                     case "afun":
                     case "afunc":
-                        RejectQualifiers(func.Qualifiers, sFuncQualifiers, "Qualifier does not apply to functions");
                         prevProp = null;
                         break;
                     case "get":
-                        RejectQualifiers(func.Qualifiers, sPropQualifiers, "Qualifier does not apply to properties");
                         prevProp = func;
                         break;
                     case "set":
-                        RejectQualifiers(func.Qualifiers, sPropQualifiers, "Qualifier does not apply to properties");
                         if (prevProp == null)
                             mParser.RejectToken(func.Keyword, "The 'set' must immediately follow a 'get' or 'set' with the same name");
                         else if (prevProp.Name.Name != func.Name.Name)
@@ -172,19 +135,10 @@ namespace Gosub.Zurfur.Compiler
                 if (!field.Simple && field.ParentScope is SyntaxType t && t.Simple)
                     mParser.RejectToken(field.Name, "Fields may not be defined inside a type with parameters");
 
-                switch (outerKeyword)
+                // TBD: Move this to ZilVerifyHeader
+                if (outerKeyword == "trait")
                 {
-                    // TBD: Move all this to ZilVerifyHeader
-                    case "interface":
-                        mParser.RejectToken(field.Name, "Fields are not allowed inside an interface");
-                        break;
-                    case "class":
-                    case "struct":
-                        RejectQualifiers(field.Qualifiers, sFieldInStructQualifiers, "Does not apply to a field in a struct");
-                        break;
-                    case "enum":
-                        RejectQualifiers(field.Qualifiers, sFieldInEnumQualifiers, "Does not apply to a field in an enum");
-                        break;
+                    mParser.RejectToken(field.Name, "Fields are not allowed inside a trait");
                 }
             }
         }
@@ -194,7 +148,6 @@ namespace Gosub.Zurfur.Compiler
             if (token == null || token.Name == "" || qualifiers == null)
                 return;
 
-            bool isInInterface = parentClass != null && parentClass.Keyword.Name == "interface";
             int sortOrder = -1;
             for (int i = 0; i < qualifiers.Length; i++)
             {

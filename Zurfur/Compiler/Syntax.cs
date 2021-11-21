@@ -86,6 +86,7 @@ namespace Gosub.Zurfur.Compiler
         public SyntaxExpr AliasOrExtends;
         public SyntaxExpr []Implements;
         public SyntaxExpr TypeArgs;
+        public List<SyntaxExpr> TypeArgsImpl;
         public SyntaxConstraint []Constraints;
     }
 

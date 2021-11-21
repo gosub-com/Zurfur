@@ -202,7 +202,7 @@
     <None Include="ZurfurLib\ZurfurLib\DlMalloc.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Interfaces.zurf">
+    <None Include="ZurfurLib\ZurfurLib\Traits.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="ZurfurLib\ZurfurLib\BaseTypes.zurf">

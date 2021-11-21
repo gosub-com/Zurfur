@@ -39,7 +39,7 @@ type pub class DlMallocException
     fun pub new(message str) { base(message) }
 }
 
-interface pub DlMallocMem
+trait pub DlMallocMem
 {
     /// <summary>
     /// This was originally CALL_MMAP and is used to get more memory from

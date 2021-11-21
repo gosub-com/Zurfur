@@ -1,10 +1,45 @@
 ﻿
+// This defines traits for:
+//      Zurfur.Markers
+//      Zurfur.Operators
+//      Zurfur.Collections
+
 module Zurfur
 
+module Zurfur.Markers
+
+trait pub Copy { }
+
+module Zurfur.Operators
+
+trait pub OpEq<Rhs> { fun opEq(rhs Rhs) bool impl }
+trait pub OpCmp<Rhs> { fun opCmp(rhs Rhs) int impl }
+trait pub OpIn<Rhs> { type Output impl; fun opIn(rhs Rhs) Output impl }
+trait pub OpAdd<Rhs> { type Output impl; fun opAdd(rhs Rhs) Output impl }
+trait pub OpSub<Rhs> { type Output impl; fun opSub(rhs Rhs) Output impl }
+trait pub OpNeg { type Output impl; fun opNeg() Output impl }
+trait pub OpMul<Rhs> { type Output impl; fun opMul(rhs Rhs) Output impl }
+trait pub OpDiv<Rhs> { type Output impl; fun opDiv(rhs Rhs) Output impl }
+trait pub OpRem<Rhs> { type Output impl; fun opRem(rhs Rhs) Output impl }
+trait pub Drop { fun mut drop(flags int) impl }
+trait pub Clone
+{
+    fun mut clone() impl // TBD: Need ThisType type
+}
+
+module Zurfur.Collections
+
+trait pub Iterator
+{
+    type Item impl
+    fun mut next() ?ref Item impl
+}
+
+module Zurfur
 /// Implement IEquatable on any object that can be stored in a Map.
 /// This is different than implementing just Equals
 /// in that NAN must compare to itself as true.
-interface pub static Equatable<T>
+trait pub static Equatable<T>
 {
     fun static GetHashCode(a T) uint impl
     fun static Equals(a T, b T) bool impl
@@ -13,13 +48,13 @@ interface pub static Equatable<T>
 /// Implement IComparable on any object that can be sorted.
 /// This is different than implementing just Compare
 /// in that NAN must have a valid sort order.
-interface pub static Comparable<T>
+trait pub static Comparable<T>
     implements Equatable<T>
 {
     fun static Compare(a T, b T) int impl
 }
 
-interface pub static IArithmetic<T>
+trait pub static IArithmetic<T>
     implements Comparable<T>
 {
     fun operator-(a T) T impl
@@ -34,7 +69,7 @@ interface pub static IArithmetic<T>
 
 
 
-interface pub Iterator<T>
+trait pub Iterator<T>
 {
     /// Get the next item from a collection.
     /// Returns null if there are no more items.
@@ -42,13 +77,13 @@ interface pub Iterator<T>
     fun mut Next() ?ref T impl
 }
 
-interface pub Iterable<T>
+trait pub Iterable<T>
 {
     fun GetIterator() Iterator<T> impl
 }
 
 
-interface pub Collection<T>
+trait pub Collection<T>
     implements Iterable<T>
 {
     get Count() int impl
@@ -56,13 +91,13 @@ interface pub Collection<T>
 }
 
 
-interface pub IArray<T>
+trait pub IArray<T>
     implements Collection<T>
 {
     get operator[](index int) T impl
 }
 
-interface pub IList<T>
+trait pub IList<T>
     implements Collection<T>
 {
     get operator[](index int) T impl
@@ -74,13 +109,13 @@ type pub Pair<TKey, TValue>(Key TKey, Value TValue)
 
 
 /// This is a test
-interface pub IGeneric<Q>
+trait pub IGeneric<Q>
 {
     fun A<T>(m Q) int:
         return 0
 }
 
 
-/// Compiler implemented interface created for all structs that are blittable.
+/// Compiler implemented trait created for all structs that are blittable.
 /// A blittable struct does not contain references, but may contain pointers.
-interface pub IBlittableStruct { }
+trait pub IBlittableStruct { }
