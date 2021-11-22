@@ -323,6 +323,10 @@ namespace Gosub.Zurfur.Compiler
         {
             IsReturn = isReturn;
         }
+        public SymMethodParam(Symbol parent, string file, Token token, string name, bool isReturn) : base(parent, file, token, name)
+        {
+            IsReturn = isReturn;
+        }
         public override string Kind => "method parameter";
         protected override string Separator => "~";
         public bool IsReturn { get; private set; }

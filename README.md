@@ -156,9 +156,9 @@ List of the qualifiers, and what they mean:
 | Qualifier | Passing style | Notes
 | :--- | :--- | :---
 |  | Read-only reference | Can copy for small `passcopy` types (e.g. `int`, `Span`, etc.)
-| mut | Allow mutation but not assignment | Not valid for `ro` types (e.g. `Array`, `Span`, etc.)
-| ref mut | Allow mutation and assignment | Requires annotation (i.e. `ref`) at the call site
-| own | Take ownership | Not valid for `ro` types and types that don't require allocation (.e.g. `int`, `str`, `Array`, plain old data, etc.)
+| `mut` | Allow mutation but not assignment | Not valid for `ro` types (e.g. `Array`, `Span`, etc.)
+| `ref mut` | Allow mutation and assignment | Requires annotation (i.e. `ref`) at the call site
+| `own` | Take ownership | Not valid for `ro` types and types that don't require allocation
 
 Arguments passed by `mut` do not need to be annotated at the call site.  This
 is because it is obvious that `f(myList)` could mutate `myList` and it's easy
@@ -199,8 +199,8 @@ Return qualifiers:
 | Qualifier | Passing style | Notes
 | :--- | :--- | :---
 |  | Caller takes ownership | A move or copy operation is performed
-| mut | Caller may mutate, but not assign | Not valid for `ro` types (e.g. `str`, `Array`, `Span`, etc.)
-| ref mut | Caller may mutate or assign | Requires annotation (i.e. `ref`) at the call site
+| `mut` | Caller may mutate, but not assign | Callee retains ownership.  Not valid for `ro` types
+| `ref mut` | Caller may mutate or assign | Requires annotation (i.e. `ref`) at the call site
 
 
 ## Types
@@ -228,14 +228,15 @@ Even though a mutable heap type is a reference, it still has an owner and acts
 like a value type.  There is `heap ro` which is an immutable reference type
 with fast implicit copy because it just copies the reference.
 
-| Type Qualifier | Examples | Passing Style | Explicit Clone Required | Clone Speed
+| Type Qualifier | Examples | Passing Style | Explicit Clone Required | Speed/Notes
 | :--- | :--- | :--- | :--- | :---
-|passcopy | int, f64, Span | Copy | No | Fast, small, never allocates
-|  | List, Map | Ref | If it allocates | Medium (copy bytes) or Slow (if it allocates)
-| ro | | Ref | No | Medium, copy bytes, never allocates
-| heap | Buffer | Ref | Yes | Slow, always allocates
-| heap ro | str, Array, RoMap | Ref | No | Fast
-| nocopy | FileStream | Owned | No Clone | Move only (medium speed)
+|`passcopy` | `int`, `f64`, `Span` | Copy | No | Fast, small, never allocates
+|  | `List`, `Map` | Ref | If it allocates | Slow (if it allocates) or medium (copy bytes)
+| `ro` | | Ref | No | Medium, copy bytes, never allocates
+| `heap` | `Buffer` | Ref | Yes | Slow, always allocates
+| `heap ro` | `str`, `Array`, `RoMap` | Ref | No | Fast, reference copy
+| `nocopy` | `FileStream` | Owned | Not cloneable | Medium, always a move (copy bytes)
+| `ref` | `Span`, `ref` | Ref or copy | No | Type contains a reference, so must never leave the stack.  Must not allocate
 
 Notice that `List` and `Map` are not `heap`.  They live directly inline in the
 object that owns them, but they do contain a reference to a `Buffer` which is 

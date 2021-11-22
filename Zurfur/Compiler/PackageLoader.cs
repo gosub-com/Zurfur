@@ -58,6 +58,8 @@ namespace Gosub.Zurfur.Compiler
 
             var packSym = new PackageSymbolJson();
             packSym.Name = symbol is SymMethod ? symbol.Parent.Name : symbol.Name;
+            if (Debugger.IsAttached)
+                packSym.NameDebugFull = symbol.FullName;
             packSym.Tags = symbol.Qualifiers.Length == 0 ? null : symbol.Qualifiers;
             packSym.Type = symbol.TypeName == "" ? null : symbol.TypeName;
             if (onlyPublic && symbol.Comments != "")
@@ -102,11 +104,12 @@ namespace Gosub.Zurfur.Compiler
                 newSymbol = new SymModule(symbol, name);
             else if (packSym.Tags.Contains("type")
                         || packSym.Tags.Contains("trait")
+                        || packSym.Tags.Contains("trait_impl")
                         || packSym.Tags.Contains("enum"))
                 newSymbol = new SymType(symbol, "", new Token(name));
             else if (packSym.Tags.Contains("field"))
                 newSymbol = new SymField(symbol, "", new Token(name));
-            else if (packSym.Tags.Contains("type_param") || packSym.Tags.Contains("type_param_impl"))
+            else if (packSym.Tags.Contains("type_param") || packSym.Tags.Contains("type_param_associated"))
                 newSymbol = new SymTypeParam(symbol, "", new Token(name));
             else if (packSym.Tags.Contains("param"))
                 newSymbol = new SymMethodParam(symbol, "", new Token(name), false);
@@ -162,6 +165,13 @@ namespace Gosub.Zurfur.Compiler
         [Conditional("DEBUG")]
         private static void DebugVerifySymbolTables(SymbolTable table, List<PackageSymbolJson> symbols)
         {
+            foreach (var s in table.Symbols)
+                if (s.HasToken && s.Token.Error)
+                {
+                    Console.WriteLine("Not verifying symbols because of errors in source");
+                    return; // Only run this when there are no errors
+                }
+
             var reloadSymbols = new SymbolTable().Load(symbols);
             var savedTable = table.GetSymbols();
             var loadedTable = reloadSymbols.GetSymbols();

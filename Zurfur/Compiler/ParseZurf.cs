@@ -71,7 +71,7 @@ namespace Gosub.Zurfur.Compiler
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
             + "of sync task except exception raise loc local global");
 
-        // Non reserved syntax names: heap, passcopy, nocopy
+        // Non reserved names: heap, passcopy, nocopy
         static WordSet sTypeQualifiers = new WordSet("pub public protected private internal unsafe "
             + "unsealed abstract ref ro heap class passcopy nocopy");
         static WordSet sTraitQualifiers = new WordSet("pub public protected private internal static");
@@ -309,13 +309,14 @@ namespace Gosub.Zurfur.Compiler
                     case "trait":
                     case "enum":
                     case "type":
+                    case "impl":
                         mToken.Type = eTokenType.ReservedControl;
                         qualifiers.Add(Accept());
                         if (keyword.Name == "type")
                             ParseQualifiers(sTypeQualifiers, qualifiers);
                         else if (keyword.Name == "trait")
                             ParseQualifiers(sTraitQualifiers, qualifiers);
-                        else
+                        else if (keyword.Name == "enum")
                             ParseQualifiers(sEnumQualifiers, qualifiers);
                         ParseTypeScope(keyword, parentScope, qualifiers);
                         break;
@@ -491,26 +492,8 @@ namespace Gosub.Zurfur.Compiler
 
         void ParseTypeScope(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
         {
-            if (parentScope != null && parentScope.Keyword == "trait")
-            {
-                if (keyword != "type")
-                {
-                    RejectToken(keyword, $"Not allowed to define '{keyword}' in a trait");
-                    return;
-                }
-                // Associated type
-                if (!CheckIdentifier("Expecting a type name"))
-                    return;
-                var typeArg = Accept();
-                typeArg.Type = eTokenType.TypeName;
-                var synType = (SyntaxType)parentScope;
-                if (synType.TypeArgsImpl == null)
-                    synType.TypeArgsImpl = new List<SyntaxExpr>();
-                synType.TypeArgsImpl.Add(new SyntaxToken(typeArg));
-                AcceptMatchOrReject("impl");
-
+            if (ParseTypeScopeAssociatedType(keyword, parentScope, qualifiers))
                 return;
-            }
 
             var synClass = new SyntaxType(keyword);
             synClass.Qualifiers = qualifiers.ToArray();
@@ -519,13 +502,32 @@ namespace Gosub.Zurfur.Compiler
             synClass.Comments = mComments.ToString();
             mComments.Clear();
 
-            if (!CheckIdentifier("Expecting a type name"))
-                return; // TBD: Could try to recover (user probably editing class name)
-
-            // Parse class name and type parameters
-            (synClass.Name, synClass.TypeArgs) = GetSimpleNameWithTypeArgs(ParseType());
-            if (synClass.Name.Type != eTokenType.TypeName)
-                return; // TBD: Could try to recover (user probably editing class name)
+            if (keyword == "impl")
+            {
+                if (!CheckIdentifier("Expecting a type name"))
+                    return;
+                var t1 = ParseType();
+                if (!AcceptMatch("::") && !AcceptMatch("for"))
+                {
+                    Reject("Expecting '::' or 'for'");
+                    return;
+                }
+                if (!CheckIdentifier("Expecting a type name"))
+                    return;
+                var t2 = ParseType();
+                (synClass.Name, synClass.TypeArgs) = GetSimpleNameWithTypeArgs(t2);
+                if (synClass.Name.Type != eTokenType.TypeName)
+                    return; // TBD: Could try to recover (user probably editing class name)
+            }
+            else
+            {
+                // Parse class name and type parameters
+                if (!CheckIdentifier("Expecting a type name"))
+                    return;
+                (synClass.Name, synClass.TypeArgs) = GetSimpleNameWithTypeArgs(ParseType());
+                if (synClass.Name.Type != eTokenType.TypeName)
+                    return; // TBD: Could try to recover (user probably editing class name)
+            }
 
             AddType(synClass);
             RejectUnderscoreDefinition(synClass.Name);
@@ -611,6 +613,47 @@ namespace Gosub.Zurfur.Compiler
 
             // Restore old path
             mModulePath = oldPath;
+        }
+
+        /// <summary>
+        /// Parse associated types inside traits and impl. 
+        /// Don't allow enum/impl/trait to be defined inside a trait or impl
+        /// Returns TRUE if everything is done and taken care of.
+        /// </summary>
+        bool ParseTypeScopeAssociatedType(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
+        {
+            // Exit if parent scope is not a trait or impl
+            if (parentScope == null || parentScope.Keyword != "trait" && parentScope.Keyword != "impl")
+                return false;
+
+            // Don't allow enum/impl/trait to be defined inside a trait or impl
+            if (keyword != "type")
+            {
+                Reject($"Not allowed to define '{keyword}' in a trait");
+                return true;
+            }
+            if (!CheckIdentifier("Expecting a type name"))
+                return true;
+            var typeArg = Accept();
+            typeArg.Type = eTokenType.TypeName;
+            var synType = (SyntaxType)parentScope;
+            if (synType.TypeArgsAssociated == null)
+                synType.TypeArgsAssociated = new List<SyntaxExpr>();
+
+            if (parentScope.Keyword == "trait")
+            {
+                // Trait associated type
+                synType.TypeArgsAssociated.Add(new SyntaxToken(typeArg));
+                AcceptMatchOrReject("impl");
+            }
+            else
+            {
+                // Impl associated type
+                if (!AcceptMatchOrReject("="))
+                    return true;
+                synType.TypeArgsAssociated.Add(new SyntaxUnary(typeArg, ParseType()));
+            }
+            return true;
         }
 
         private SyntaxConstraint[] ParseConstraints()

@@ -4,6 +4,30 @@ use Zurfur
 
 module AATest
 
+  
+trait pub AAOpIn<Rhs> { type Output impl; fun AAopIn(rhs Rhs) Output impl }
+
+impl AAOpInx<i32> for i32
+{
+    type Output = i32
+    fun pub AAopIn(rhs i32) i32 extern
+}
+
+fun pub List<T>::Reverse<T>():
+    for @i in 0..this.Count/2:
+        Swap(ref this[i], ref this[Count-i-1])
+
+fun pub static List<T>::Reverse2<T>():
+    for @i in 0..this.Count/2:
+        Swap(ref this[i], ref this[Count-i-1])
+
+
+type pub MyList<T>
+{
+    fun pub Reverse() {}
+    fun pub static ReverseS() {}
+}
+
 fun pub int::aaa(){}
 type pub AAFun
 {

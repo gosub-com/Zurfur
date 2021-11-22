@@ -25,7 +25,7 @@ namespace Gosub.Zurfur.Compiler
 
         readonly static string[] sQualifiersPubModule = new string[] { "pub", "module" };
         readonly static string[] sQualifiersPtype = new string[] { "type_param" };
-        readonly static string[] sQualifiersPtypeImpl = new string[] { "type_param_impl" };
+        readonly static string[] sQualifiersPtypeAssociated = new string[] { "type_param_associated" };
         readonly static string[] sQualifiersParam = new string[] { "param" };
         readonly static string[] sQualifiersParamReturn = new string[] { "param_return" };
         readonly static string[] sQualifiersPubTypeExtension = new string[] { "pub", "type", "extension" };
@@ -121,12 +121,14 @@ namespace Gosub.Zurfur.Compiler
                         var newType = new SymType(mSymbols.FindPath(type.ModulePath), syntaxFile.Key, type.Name);
                         newType.Comments = type.Comments;
                         newType.Qualifiers = Array.ConvertAll(type.Qualifiers, a => a.Name).ToArray();
+                        if (newType.Qualifiers.Contains("impl"))
+                            newType.Qualifiers = newType.Qualifiers.Append("trait_impl").ToArray();
                         newType.Token.AddInfo(newType);
                         if (mSymbols.AddOrReject(newType))
                         {
                             AddTypeParams(newType, type.TypeArgs, syntaxFile.Key, sQualifiersPtype);
-                            if (type.TypeArgsImpl != null)
-                                AddTypeParams(newType, type.TypeArgsImpl, syntaxFile.Key, sQualifiersPtypeImpl);
+                            if (type.TypeArgsAssociated != null)
+                                AddTypeParams(newType, type.TypeArgsAssociated, syntaxFile.Key, sQualifiersPtypeAssociated);
                         }
                     }
                 }
@@ -138,7 +140,6 @@ namespace Gosub.Zurfur.Compiler
                 {
                     var typeParam = new SymTypeParam(scope, file, expr.Token);
                     typeParam.Qualifiers = qualifiers;
-                    typeParam.Token.AddInfo(typeParam);
                     if (mSymbols.AddOrReject(typeParam))
                         expr.Token.AddInfo(typeParam);
                 }
@@ -385,23 +386,21 @@ namespace Gosub.Zurfur.Compiler
                 if (isExtension)
                 {
                     // Resolve extension method type name (first parameter is "$this")
-                    var methodParam = new SymMethodParam(method, file, new Token("$this"), false);
+                    var methodParam = new SymMethodParam(method, file, func.Name, "$this", false);
                     methodParam.Qualifiers = sQualifiersParam;
                     methodParam.TypeName = ResolveTypeNameOrReject(methodParam, func.ExtensionType, file);
                     if (methodParam.TypeName == "" && !NoCompilerChecks)
                         methodParam.Token.AddInfo(new VerifySuppressError());
                     mSymbols.AddOrReject(methodParam); // Extension method parameter name "$this" is unique
                 }
-                else if (!method.Qualifiers.Contains("static")) // TBD: Check if in type instead of module
+                else if (!method.Qualifiers.Contains("static")
+                            && scope.Parent is SymType tn)
                 {
                     // Non static method (first parameter is "$this")
-                    var methodParam = new SymMethodParam(method, file, new Token("$this"), false);
+                    var methodParam = new SymMethodParam(method, file, func.Name, "$this", false);
                     methodParam.Qualifiers = sQualifiersParam;
-                    if (scope.Parent is SymType tn)
-                    {
-                        methodParam.TypeName = tn.ToString();
-                        mSymbols.AddOrReject(methodParam);  // Method parameter "$this" is unique
-                    }
+                    methodParam.TypeName = AddOuterGenericParameters(tn, tn).ToString();
+                    mSymbols.AddOrReject(methodParam);  // Method parameter "$this" is unique
                 }
 
                 // Resolve method parameters and returns (TBD: error/exit specifier)
@@ -443,9 +442,11 @@ namespace Gosub.Zurfur.Compiler
                 {
                     if (expr is SyntaxError)
                         continue;
+                    Debug.Assert(expr.Count == 2);
 
-                    var name = expr.Token == "" ? new Token("$return") : expr.Token;
-                    var methodParam = new SymMethodParam(method, file, name, isReturn);
+                    var token = expr.Token == "" ? expr[1].Token : expr.Token;
+                    var name = expr.Token == "" ? "$return" : expr.Token.Name;
+                    var methodParam = new SymMethodParam(method, file, token, name, isReturn);
                     methodParam.Qualifiers = isReturn ? sQualifiersParamReturn : sQualifiersParam;
                     methodParam.TypeName = ResolveTypeNameOrReject(methodParam, expr[0], file);
                     if (methodParam.TypeName == "" && !NoCompilerChecks)
@@ -497,7 +498,7 @@ namespace Gosub.Zurfur.Compiler
                 return ResolveDotOrReject();
 
             if (typeExpr.Token == "fun" || typeExpr.Token == "afun")
-                return ResolveFunOrReject();
+                return ResolveLambdaFunOrReject();
 
             if (mUnaryTypeSymbols.ContainsKey(typeExpr.Token) || typeExpr.Token == ParseZurf.VT_TYPE_ARG)
                 return ResolveGenericTypeOrReject();
@@ -534,20 +535,8 @@ namespace Gosub.Zurfur.Compiler
 
             // Type inference: Add implied types to inner types found in this scope
             // e.g: InnerType => OuterType<T>.InnerType
-            if (!isDot && symbol is SymType && symbol.Parent is SymType && foundInScope)
-            {
-                var genericParamCount = symbol.Parent.GenericParamTotal();
-                if (genericParamCount != 0)
-                {
-                    var genericParams = new List<Symbol>();
-                    for (int i = 0; i < genericParamCount; i++)
-                        genericParams.Add(mSymbols.GetGenericParam(i));
-
-                    // Don't add to symbol table since it's not fully constructed
-                    // eg. "AATest.AGenericTest`2.Inner1`2<#0,#1>"
-                    symbol = new SymSpecializedType(symbol, genericParams.ToArray());
-                }
-            }
+            if (!isDot && symbol is SymType && foundInScope)
+                symbol = AddOuterGenericParameters(symbol, symbol.Parent);
 
             return symbol;
 
@@ -581,18 +570,14 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 if (leftSymbol is SymSpecializedType pt)
-                {
-                    // Don't add to symbol table since it's not fully constructed
-                    // eg. "AATest.AGenericTest`2.Inner1`2<Zurfur.str,Zurfur.str>"
-                    return new SymSpecializedType(rightSymbol, pt.Params);
-                }
+                    return mSymbols.GetSpecializedType(rightSymbol, pt.Params);
 
                 return rightSymbol;
             }
 
 
             // Resolve "fun" or "afun" types
-            Symbol ResolveFunOrReject()
+            Symbol ResolveLambdaFunOrReject()
             {
                 if (typeExpr.Count < 3)
                 {
@@ -611,12 +596,15 @@ namespace Gosub.Zurfur.Compiler
                 // and consolidated in the symbol table:
                 //      @a fun(a int)int   ==   @ fun(int)int
                 //      @b fun(b int)int   ==   @ fun(int)int
+                // NOTE 2: This scope is only used to resolve the function
+                //         parameters, then it is thrown away.
                 var funParamsScope = new SymMethod(scope, "", new Token("$unused"), "$unused");
 
                 var paramTypes = new List<Symbol>();
                 var returnTypes = new List<Symbol>();
                 var resolved1 = ResolveTypeFunParamsOrReject(funParamsScope, typeExpr[0], paramTypes, false);
                 var resolved2 = ResolveTypeFunParamsOrReject(funParamsScope, typeExpr[1], returnTypes, true);
+                Debug.Assert(!funParamsScope.Token.Error);
                 if (!resolved1 || !resolved2)
                     return null;
 
@@ -630,7 +618,7 @@ namespace Gosub.Zurfur.Compiler
                 Symbol genericFunType = mSymbols.FindOrAddIntrinsicType(name, numGenerics);
 
                 var concreteType = genericFunType;
-                return mSymbols.AddSpecializedType(concreteType, paramTypes.ToArray(), returnTypes.ToArray());
+                return mSymbols.GetSpecializedType(concreteType, paramTypes.ToArray(), returnTypes.ToArray());
             }
 
             // Resolve "fun" or "afun" parameter types. 
@@ -702,7 +690,7 @@ namespace Gosub.Zurfur.Compiler
                         typeParams.Insert(i, pt.Params[i]);
                 }
 
-                return mSymbols.AddSpecializedType(concreteType, typeParams.ToArray());
+                return mSymbols.GetSpecializedType(concreteType, typeParams.ToArray());
             }
 
 
@@ -754,6 +742,24 @@ namespace Gosub.Zurfur.Compiler
                 }
                 return resolved;
             }
+        }
+
+        /// <summary>
+        /// Add outer generic parameters to the concrete type
+        /// e.g: OuterType`1.InnerType => OuterType`1.InnerType<#0>
+        /// </summary>
+        private Symbol AddOuterGenericParameters(Symbol symbol, Symbol outerScope)
+        {
+            Debug.Assert(symbol is SymType);
+            var genericParamCount = outerScope.GenericParamTotal();
+            if (genericParamCount == 0)
+                return symbol;
+
+            var genericParams = new List<Symbol>();
+            for (int i = 0; i < genericParamCount; i++)
+                genericParams.Add(mSymbols.GetGenericParam(i));
+
+            return mSymbols.GetSpecializedType(symbol, genericParams.ToArray());
         }
 
         /// <summary>

@@ -58,6 +58,7 @@ namespace Gosub.Zurfur.Compiler
     public class PackageSymbolJson
     {
         public string Name;
+        public string NameDebugFull;
         public string[] Tags;
         public string Comments;
 

@@ -170,14 +170,20 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Get or create (and add to symbol table) a specialized type.
         /// </summary>
-        public SymSpecializedType AddSpecializedType(Symbol concreteType, Symbol[] typeParams, Symbol[] typeReturns = null)
+        public SymSpecializedType GetSpecializedType(Symbol concreteType, Symbol[] typeParams, Symbol[] typeReturns = null)
         {
             Debug.Assert(concreteType is SymType);
             var sym = new SymSpecializedType(concreteType, typeParams, typeReturns);
             if (mSpecializedTypes.TryGetValue(sym.FullName, out var specExists))
-                sym = specExists;
-            else
+                return specExists;
+
+            // Don't store partially specialized symbols since they can't end up in the symbol table
+            //  "AATest.AGenericTest`2.Inner1`2<#0,#1>"   (while adding outer generic params)
+            //  "AATest.AGenericTest`2.Inner1`2<Zurfur.str,Zurfur.str>" (while parsing dot operator)
+
+            if (sym.Params.Length + sym.Returns.Length == concreteType.GenericParamTotal())
                 mSpecializedTypes[sym.FullName] = sym;
+
             return sym;
         }
 
