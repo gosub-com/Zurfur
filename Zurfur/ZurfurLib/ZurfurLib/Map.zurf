@@ -1,45 +1,52 @@
 ﻿use Zurfur
+use Zurfur.Operators
+use Zurfur.Collections
 
 module Zurfur
 
-type pub Map<TKey, TValue>
-    where TKey is Equatable<TKey>
+type KvPair<TKey,TValue>
 {
-    fun pub new(capacity int)
-        where TKey is Equatable<TKey>:
+    @key TKey pub ref
+    @value TValue pub ref mut
+
+    fun pub new(key own TKey, value own TValue):
+        this.key = key
+        this.value = value
+    
+}
+
+type pub Map<TKey, TValue>
+    impl OpContains<TKey>, GetIterator<ref T>
+    where TKey is OpEquals<TKey> + GetHash
+{
+    fun pub new(capacity int):
         return todo()
-    fun pub new(keyValues Collection<Pair<TKey, TValue>>):
+    fun pub new(keyValues Iterator<KvPair<TKey, TValue>>):
         return todo()
-    get pub Count() int:
-        return todo()
-    fun pub operator in(a TKey) bool:
+    get count() int:
         return todo()
 
-    // TBD: Figure out map["Hello"] += 1 
-    get pub operator[](key TKey) ?ref mut TValue:
+    // TBD: Figure out map["Hello"] += 1
+    get op_index(key TKey) ?ref TValue:
         return todo()
-    set pub operator[](key TKey, value own TValue):
+    get op_index(key TKey, d TValue = default(TValue)) ref TValue:
         return todo()
+    set mut op_index(key TKey) mut ref TValue:
+        todo()
 
 
-    fun pub Contains(key TKey) bool:
+    fun pub contains(key TKey) bool:
         return todo()
-    fun pub Get(key TKey) TValue:
+    get keys() Collection<TKey>:
         return todo()
-    fun pub Get(key TKey, defaultValue TValue) TValue:
+    get values() Collection<TValue>:
         return todo()
-    fun pub TryGet(key TKey) ?TValue:
+    fun pub mut clear():
         return todo()
-    get pub Keys() Collection<TKey>:
+    fun pub mut add(item KvPair<TKey, TValue>):
         return todo()
-    get pub Values() Collection<TValue>:
+    fun pub mut add(items Iterator<KvPair<TKey, TValue>>):
         return todo()
-    fun pub mut Clear():
-        return todo()
-    fun pub mut Add(item Pair<TKey, TValue>):
-        return todo()
-    fun pub mut Add(items Collection<Pair<TKey, TValue>>):
-        return todo()
-    fun pub mut Remove(key TKey) bool:
+    fun pub mut remove(key TKey) bool:
         return todo()
 }

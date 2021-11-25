@@ -73,9 +73,9 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public string TypeName = "";
 
-        public bool IsTrait
-            => this is SymType && Qualifiers.Contains("trait")
-                || this is SymSpecializedType && Parent is SymType && Parent.Qualifiers.Contains("trait");
+        public bool IsInterface
+            => this is SymType && Qualifiers.Contains("interface")
+                || this is SymSpecializedType && Parent is SymType && Parent.Qualifiers.Contains("interface");
 
         /// <summary>
         /// Source code token if it exists.  Throws an exception for
@@ -87,7 +87,10 @@ namespace Gosub.Zurfur.Compiler
             get
             {
                 if (mToken == null)
+                {
+                    Debug.Assert(false);
                     throw new Exception($"Invalid symbol location for '{Kind}' named '{FullName}'");
+                }
                 return mToken;
             }
         }
@@ -102,7 +105,10 @@ namespace Gosub.Zurfur.Compiler
             get
             {
                 if (mFile == null)
+                {
+                    Debug.Assert(false);
                     throw new Exception($"Invalid symbol location for '{Kind}' named '{FullName}'");
+                }
                 return mFile;
             }
         }

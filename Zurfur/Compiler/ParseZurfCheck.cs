@@ -136,9 +136,9 @@ namespace Gosub.Zurfur.Compiler
                     mParser.RejectToken(field.Name, "Fields may not be defined inside a type with parameters");
 
                 // TBD: Move this to ZilVerifyHeader
-                if (outerKeyword == "trait")
+                if (outerKeyword == "interface" && !Array.Exists(field.Qualifiers, a => a.Name =="const"))
                 {
-                    mParser.RejectToken(field.Name, "Fields are not allowed inside a trait");
+                    mParser.RejectToken(field.Name, "Fields are not allowed inside an interface");
                 }
             }
         }

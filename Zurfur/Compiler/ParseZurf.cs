@@ -58,15 +58,15 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sContinuationNoCheckAlign = new WordSet("] ) {");
         WordSet sStringLiteralEscapes = new WordSet("{ \" }");
 
-        static WordSet sReservedWords = new WordSet("abstract as has base break case catch class const "
+        static WordSet sReservedWords = new WordSet("abstract as has base super break case catch class const "
             + "continue default delegate do then else elif enum explicit extern true false defer use "
-            + "finally fixed for goto if implicit in interface internal is lock namespace module include "
-            + "new null operator out override pub public private protected readonly ro ref dref mut imut "
+            + "finally fixed for goto if in interface internal is lock namespace module include "
+            + "new null out override pub public private protected readonly ro ref dref mut imut "
             + "return unsealed unseal sealed sizeof stackalloc heapalloc struct switch this self throw try "
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "
             + "box boxed init move copy clone bag drop err dispose own "
-            + "trait mixin extends implements implement impl union fun afun def yield let cast "
+            + "trait mixin extends impl union fun afun def yield let cast "
             + "any dyn dynamic loop select match event aevent from to of on cofun cofunc global local it "
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
             + "of sync task except exception raise loc local global");
@@ -74,21 +74,21 @@ namespace Gosub.Zurfur.Compiler
         // Non reserved names: heap, passcopy, nocopy
         static WordSet sTypeQualifiers = new WordSet("pub public protected private internal unsafe "
             + "unsealed abstract ref ro heap class passcopy nocopy");
-        static WordSet sTraitQualifiers = new WordSet("pub public protected private internal static");
+        static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static");
         static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
         static WordSet sMethodQualifiers = new WordSet("pub public protected private internal unsafe "
             + "static unsealed abstract virtual override");
         static WordSet sConstQualifiers = new WordSet("pub public protected private internal");
         static WordSet sPostFieldQualifiers = new WordSet("init set get ref mut");
 
-        static WordSet sReservedUserFuncNames = new WordSet("new clone drop cast default implicit");
-        static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default base new cast dref");
-        static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref mut own ro");
+        static WordSet sReservedUserFuncNames = new WordSet("new clone drop cast default op_index");
+        static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default base self super new cast dref move");
+        static WordSet sReservedMemberNames = new WordSet("clone");
+        static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref mut own ro box");
 
         static WordSet sEmptyWordSet = new WordSet("");
         static WordSet sAllowUnderscore = new WordSet("_");
 
-        public static WordSet sOverloadableOps = new WordSet("+ - * / % [ in");
         static WordSet sCompareOps = new WordSet("== != < <= > >= === !== in");
         static WordSet sRangeOps = new WordSet(".. ::");
         static WordSet sAddOps = new WordSet("+ - |");
@@ -111,7 +111,7 @@ namespace Gosub.Zurfur.Compiler
         Regex sFindUrl = new Regex(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
 
         static WordSet sStatementEndings = new WordSet("; => }");
-        static WordSet sStatementsDone = new WordSet("} namespace module type trait enum static", true);
+        static WordSet sStatementsDone = new WordSet("} namespace module type interface enum static", true);
         static WordSet sRejectAnyStop = new WordSet("=> ; { }", true);
         static WordSet sRejectForCondition = new WordSet("in");
         static WordSet sRejectFuncName = new WordSet("(");
@@ -306,7 +306,7 @@ namespace Gosub.Zurfur.Compiler
                         ParseModuleStatement(keyword);
                         break;
 
-                    case "trait":
+                    case "interface":
                     case "enum":
                     case "type":
                     case "impl":
@@ -314,8 +314,8 @@ namespace Gosub.Zurfur.Compiler
                         qualifiers.Add(Accept());
                         if (keyword.Name == "type")
                             ParseQualifiers(sTypeQualifiers, qualifiers);
-                        else if (keyword.Name == "trait")
-                            ParseQualifiers(sTraitQualifiers, qualifiers);
+                        else if (keyword.Name == "interface")
+                            ParseQualifiers(sInterfaceQualifiers, qualifiers);
                         else if (keyword.Name == "enum")
                             ParseQualifiers(sEnumQualifiers, qualifiers);
                         ParseTypeScope(keyword, parentScope, qualifiers);
@@ -574,7 +574,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Parse implements classes
-            if (AcceptMatchPastMetaSemicolon("implements"))
+            if (AcceptMatchPastMetaSemicolon("impl"))
             {
                 var baseClasses = NewExprList();
                 baseClasses.Add(ParseType());
@@ -616,20 +616,20 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Parse associated types inside traits and impl. 
-        /// Don't allow enum/impl/trait to be defined inside a trait or impl
+        /// Parse associated types inside interfaces and impl. 
+        /// Don't allow enum/impl/interface to be defined inside an interface or impl
         /// Returns TRUE if everything is done and taken care of.
         /// </summary>
         bool ParseTypeScopeAssociatedType(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
         {
-            // Exit if parent scope is not a trait or impl
-            if (parentScope == null || parentScope.Keyword != "trait" && parentScope.Keyword != "impl")
+            // Exit if parent scope is not a interface or impl
+            if (parentScope == null || parentScope.Keyword != "interface" && parentScope.Keyword != "impl")
                 return false;
 
-            // Don't allow enum/impl/trait to be defined inside a trait or impl
+            // Don't allow enum/impl/interface to be defined inside a interface or impl
             if (keyword != "type")
             {
-                Reject($"Not allowed to define '{keyword}' in a trait");
+                Reject($"Not allowed to define '{keyword}' in an interface");
                 return true;
             }
             if (!CheckIdentifier("Expecting a type name"))
@@ -640,9 +640,9 @@ namespace Gosub.Zurfur.Compiler
             if (synType.TypeArgsAssociated == null)
                 synType.TypeArgsAssociated = new List<SyntaxExpr>();
 
-            if (parentScope.Keyword == "trait")
+            if (parentScope.Keyword == "interface")
             {
-                // Trait associated type
+                // Interface associated type
                 synType.TypeArgsAssociated.Add(new SyntaxToken(typeArg));
                 AcceptMatchOrReject("impl");
             }
@@ -784,7 +784,7 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Function, property, operator
+        /// Function or property
         /// </summary>
         SyntaxFunc ParseMethod(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
         {
@@ -800,7 +800,7 @@ namespace Gosub.Zurfur.Compiler
             if (mTokenName == "ref")
                 qualifiers.Add(Accept());
 
-            synFunc.TypeArgs = ParseMethodName(synFunc, out var validMethodName);
+            var validMethodName = ParseMethodNameWithExtension(out synFunc.ExtensionType, out synFunc.Name, out synFunc.TypeArgs);
             synFunc.MethodSignature = ParseMethodSignature(keyword, out var hasReturnType);
             synFunc.Constraints = ParseConstraints();
 
@@ -828,44 +828,6 @@ namespace Gosub.Zurfur.Compiler
             return synFunc;
         }
 
-        private SyntaxExpr ParseMethodName(SyntaxFunc synFunc, out bool validMethodName)
-        {
-            SyntaxExpr typeArgs;
-            validMethodName = false;
-            if (AcceptMatch("operator"))
-            {
-                // Operator
-                var operatorKeyword = mPrevToken;
-                typeArgs = new SyntaxToken(mLexer.EndToken);
-                if (sOverloadableOps.Contains(mTokenName))
-                {
-                    var operatorName = Accept();
-                    if (operatorName.Name == "[")
-                        AcceptMatchOrReject("]");
-                    synFunc.Name = NewMetaToken(operatorKeyword, operatorKeyword + operatorName);
-                    validMethodName = true;
-                }
-                else
-                {
-                    Reject("Expecting an overloadable operator", sRejectFuncName);
-                    synFunc.Name = operatorKeyword;
-                }
-            }
-            else if (sReservedUserFuncNames.Contains(mTokenName))
-            {
-                // Reserved function
-                synFunc.Name = Accept();
-                typeArgs = new SyntaxToken(mLexer.EndToken);
-                validMethodName = true;
-            }
-            else
-            {
-                // Regular function name: extension.name<args...>
-                validMethodName = ParseMethodNameWithExtension(out synFunc.ExtensionType, out synFunc.Name, out typeArgs);
-            }
-            return typeArgs;
-        }
-
         /// <summary>
         /// Returns true if we are a valid method name
         /// </summary>
@@ -873,6 +835,13 @@ namespace Gosub.Zurfur.Compiler
         {
             className = null;
             typeArgs = new SyntaxToken(mLexer.EndToken);
+            if (sReservedUserFuncNames.Contains(mTokenName))
+            {
+                // Reserved function
+                funcName = Accept();
+                funcName.Type = eTokenType.Reserved;
+                return true;
+            }
 
             funcName = mToken;
             if (!CheckIdentifier("Expecting a function or property name", sRejectTypeName))
@@ -1640,7 +1609,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     accepted = true;
                     result = new SyntaxBinary(Accept(), result,
-                        new SyntaxToken(ParseIdentifier("Expecting identifier")));
+                        new SyntaxToken(ParseIdentifier("Expecting identifier", null, sReservedMemberNames)));
                 }
                 else if (mTokenName == "<")
                 {
@@ -2168,9 +2137,9 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Parse an identifier.  Error causes reject until errorStop unless errorStop is null.
         /// </summary>
-        Token ParseIdentifier(string errorMessage, WordSet errorStop = null)
+        Token ParseIdentifier(string errorMessage, WordSet extraStops = null, WordSet allowExtraReservedWords = null)
         {
-            AcceptIdentifier(errorMessage, errorStop);
+            AcceptIdentifier(errorMessage, extraStops, allowExtraReservedWords);
             return mPrevToken;
         }
 

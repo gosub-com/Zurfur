@@ -1,43 +1,33 @@
 ﻿use Zurfur
+use Zurfur.Operators
 
 module Zurfur
 
 
-type pub passcopy Range<T>(Low T, High T)
-    implements Iterable<T>
-    where T is IArithmetic<T>
+type pub Range<T>(start T, end T)
+    impl GetIterator<T>, OpContains<T>
+    where T is NumOps
 {
-    fun pub GetIterator() Iterator<T>:
-        return RangeIterator<T>(this)
-
-    // Usage: myRange.For @index => DoStuffWithItem()
-    fun pub For(f fun(item T) exit) exit
-    {
-        @i = Low
-        while @i < High && f(i):
-            i += 1
+    get count() T:
+        return end-start
         
-    }
-    
+    fun pub getIterator() RangeIterator<T>:
+        return RangeIter<T>(start, end)
+
+    fun pub contains(value T) bool:
+        return T >= start && T < end
 }
 
-type pub passcopy RangeIterator<T>
-    implements Iterator<T>
-    where T is IArithmetic<T>
+type pub RangeIterator<T>(start T, end T)
+    impl Iterator<T>
+    where T is NumOps
 {
-    @index T
-    @high T
-    
-    fun pub new(r Range<T>):
-        index = r.Low-1
-
-    fun pub mut Next(range Range<T>) ?ref T
-    {
-        index += 1
-        if index < high:
-            return ref index
+    get countHint() T:
+        return end-start
+        
+    get next() ?T:
+        if start < end:
+            return replace(ref start, start+1)
         return null
-    }
+        
 }
-
-    

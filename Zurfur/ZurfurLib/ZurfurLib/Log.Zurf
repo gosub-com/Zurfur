@@ -10,7 +10,7 @@ type pub Log
     // TBD: Figure out how to get default file names and line numbers.
     //      Also figure out if this should be created per file
 
-    get pub static LogLevel() Level { todo() }
+    get static LogLevel() Level { todo() }
     fun pub static Fatal(message str, li LogLine = default) { todo() }
     fun pub static Error(message str, li LogLine = default) { todo() }
     fun pub static Warn(message str, li LogLine = default) { todo() }

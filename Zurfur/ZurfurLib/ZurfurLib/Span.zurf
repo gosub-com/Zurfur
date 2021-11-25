@@ -1,16 +1,21 @@
-﻿module Zurfur
+﻿use Zurfur.Operators
+
+
+module Zurfur
 
 /// []T is converted to Span<T>
 type pub ref passcopy Span<T>
+    impl OpIndex<int, mut ref T>,
+               OpIndex<Range<int>, mut Span<T>>
 {
     @Data ro ?ref mut T
     @Count ro int pub get
     
-    fun pub operator[](index int) mut ref T
-        require index in 0..Count
+    fun pub index(i int) mut ref T
+        require i in 0..Count
         extern // Implementation TBD
     
-    fun pub operator[](range Range<int>) mut Span<T>
+    fun pub index(range Range<int>) mut Span<T>
         require range.Low in 0..Count
         require range.High in 0..Count
         require range.Low <= range.High
@@ -27,7 +32,7 @@ type pub ref passcopy Span<T>
     /// Find index of the sequence `seq`.
     /// Returns -1 if not found, or 0 if `seq` is empty.
     fun pub Find(seq Span<T>) int
-            where T is Equatable<T>:
+            where T is OpEquals<T>:
         if seq.Count == 0:
             return 0
         if seq.Count > Count:
@@ -45,7 +50,7 @@ type pub ref passcopy Span<T>
 
     /// Find the index of the `item`.  Returns -1 if not found.
     fun pub Find(item T) int
-            where T is Equatable<T>:
+            where T is OpEquals<T>:
         for @i in 0..Count:
             if this[i] == item:
                 return i

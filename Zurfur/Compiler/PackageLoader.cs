@@ -225,24 +225,24 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
-
         /// <summary>
-        /// Experiment: Save the symbol table as a dictionary of symbols.
+        /// Experiment: Save the symbol table as a list of modules, types, and
+        /// methods at the top level.  Fields, parameters, etc. are children.
         /// It makes the json easier to read, but then we need to parse symbols
         /// when they are loaded.  Since we need to parse them anyway, maybe
         /// we'll come back to this later. 
         /// </summary>
-        static public Dictionary<string, PackageSymbolJson> SaveMapExperiment(this SymbolTable table, bool onlyPublic)
+        static public List<PackageSymbolJson> SaveFlattenedExperiment(this SymbolTable table, bool onlyPublic)
         {
-            var packSyms = new Dictionary<string, PackageSymbolJson>();
-            SaveAddMapExperiment(table.Root, packSyms, onlyPublic);
+            var packSyms = new List<PackageSymbolJson>();
+            SaveAddFlattenedExperiment(table.Root, null, packSyms, onlyPublic);
             return packSyms;
         }
 
         /// <summary>
         /// Save to json transport
         /// </summary>
-        static void SaveAddMapExperiment(Symbol symbol, Dictionary<string, PackageSymbolJson> packSyms, bool onlyPublic)
+        static void SaveAddFlattenedExperiment(Symbol symbol, PackageSymbolJson parent, List<PackageSymbolJson> packSyms, bool onlyPublic)
         {
             if (symbol.IsIntrinsic)
                 return;
@@ -250,8 +250,9 @@ namespace Gosub.Zurfur.Compiler
             if (symbol is SymMethodGroup)
             {
                 // Hop over method groups, which are internal to the compiler
+                // NOTE: Nothing directly under the group should be using the parent
                 foreach (var s in symbol.Children.Values)
-                    SaveAddMapExperiment(s, packSyms, onlyPublic);
+                    SaveAddFlattenedExperiment(s, null, packSyms, onlyPublic);
                 return;
             }
 
@@ -275,25 +276,26 @@ namespace Gosub.Zurfur.Compiler
 
             if (symbol is SymModule || symbol is SymType || symbol is SymMethod)
             {
-                packSyms[symbol.FullName] = ps;
+                ps.Name = symbol.FullName;
+                packSyms.Add(ps);
+                foreach (var s in symbol.Children.Values)
+                    SaveAddFlattenedExperiment(s, ps, packSyms, onlyPublic);
             }
             else if (symbol is SymTypeParam || symbol is SymMethodParam || symbol is SymField)
             {
+                Debug.Assert(parent != null);
                 if (symbol is SymMethodParam)
                     ps.Type = null;  // Reconstructed from method name
                 ps.Name = symbol.Name;
-                var s = packSyms[symbol.Parent.FullName];
-                if (s.Symbols == null)
-                    s.Symbols = new List<PackageSymbolJson>();
-                s.Symbols.Add(ps);
+                if (parent.Symbols == null)
+                    parent.Symbols = new List<PackageSymbolJson>();
+                parent.Symbols.Add(ps);
+                Debug.Assert(symbol.Children.Count == 0);
             }
             else
                 Debug.Assert(false);
 
-            foreach (var s in symbol.Children.Values)
-                SaveAddMapExperiment(s, packSyms, onlyPublic);
         }
-
 
 
     }

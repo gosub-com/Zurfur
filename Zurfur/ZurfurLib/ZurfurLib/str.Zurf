@@ -2,6 +2,9 @@
 
 /// String is a wrapper for a read only array of bytes with support for UTF8
 type pub ro str = Array<byte>
+    impl OpIndex<int, byte>,
+               OpIndex<Range<int>, Span<byte>>,
+               OpAdd<str, str>
 {
     // NOTE: Much of the implmentation is inherited from Array
     //       and its implicit conversion to Span
@@ -10,9 +13,9 @@ type pub ro str = Array<byte>
     fun pub new() { todo() }
     fun pub new(s str) { todo() }
     fun pub new(s Span<byte>) { todo() }
-    fun pub operator[](index int) byte:
+    fun pub index(i int) byte:
         return todo()
-    fun pub operator[](range Range<int>) Span<byte>:
+    fun pub index(r Range<int>) Span<byte>:
         return todo() // Slice
     fun pub static GetHashCode(a str) uint:
         return todo()
@@ -21,8 +24,10 @@ type pub ro str = Array<byte>
     fun pub static Compare(a str, b str) int:
         return todo()
         
-    fun pub operator+(s1 str, s2 str) str { todo() }
-    fun pub operator+(s1 Span<byte>, s2 str) str { todo() }
-    fun pub operator+(s1 str, s2 Span<byte>) str { todo() }
+    fun pub add(s1 str, s2 str) str { todo() }
+
+    // TBD: These need to impl str::OpAdd
+    fun pub add(s1 Span<byte>, s2 str) str { todo() }
+    fun pub add(s1 str, s2 Span<byte>) str { todo() }
     // TBD: Implicit conversion to and from Span?
 }

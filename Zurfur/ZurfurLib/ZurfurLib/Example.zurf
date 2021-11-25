@@ -9,6 +9,7 @@ TBD:
 // For fields, move "pub get" to before type definition
 
 use Zurfur
+use Zurfur.Collections
 
 // http://zurfur.com
 module TestExample
@@ -19,31 +20,31 @@ type Point(X int, Y int)
 
 
 // Simple types have public fields:
-type pub SimpleType(FirstName str, LastName str)
-type pub ro SimpleImmutableType(FirstName str, LastName str)
+type pub SimpleType(firstName str, lastName str)
+type pub ro SimpleImmutableType(firstName str, fastName str)
 
 type pub ComplexType
 {
     // Fields are private, but may have public properties
     @map Map<str,int> = ["A":1, "B":2]  // Private, mutable
     @list ro List<int> = [1,2,3]       // Private, read-only
-    @Header str pub get = "Zurfur" // Private, public get
-    @Text str pub get set          // Private, public get/set
-    @MyList List<int> pub ref   // Has public `ro` reference
+    @header str pub get = "Zurfur" // Private, public get
+    @text str pub get set          // Private, public get/set
+    @myList List<int> pub ref   // Has public `ro` reference
 
     // Properties are public by default
-    get pub MapProperty() ref Map<str, int>:
+    get myMap() ref Map<str, int>:
         return ref map // Return a read only reference
-    set pub MapProperty(v own Map<str, int>):
+    set myMap(v own Map<str, int>):
         map = v
-        MapChangedEvent()
+        mapChanged()
 
     /// This is a public documentation comment.
     /// Functions are private by default.
-    fun pub CountToTen() str:
-        Log.Info("Hello world.  Let's count to 10.")
+    fun pub countToTen() str:
+        Log.info("Hello world.  Let's count to 10.")
         for @a in 1..11:
-            Log.Info("Count={a}, Text={text}")
+            Log.info("Count={a}, Text={text}")
 }
 
 
@@ -118,8 +119,8 @@ fun pub Circle3(a f64, b f64) -> (c int, d int):
     return 0
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-fun pub Iterable<T>::AlphaLengthWise<T, L>(
-               lengthProvider fun(t T) L) Iterable<T>:
+fun pub GetIterator<T>::AlphaLengthWise<T, L>(
+               lengthProvider fun(t T) L) GetIterator<T>:
     return this
         .OrderBy(@a => lengthProvider(a))
         .ThenBy(@a => a)
@@ -128,7 +129,7 @@ fun pub Iterable<T>::AlphaLengthWise<T, L>(
 
 type pub Example
 {
-    get pub MyConst() str:
+    get MyConst() str:
         return "Hello"
     
     @a1 str
@@ -151,7 +152,7 @@ type pub Example
         return info+a
     fun pub GetInfo(a str) str:
         return a
-    get pub Info() str:
+    get Info() str:
         return info
 
     @a Zim<void>
@@ -265,19 +266,12 @@ type pub MyMutablePoint(X int, Y int)
     fun pub mut SetY(y int):
         Y = y
         
-    get pub PropX() int:
+    get PropX() int:
         return x
-    set pub PropX(value int):
+    set PropX(value int):
         X = value
 }
 
-
-type pub PointXY<T>(X int, Y int)
-    implements IArithmetic<T>
-{
-    fun pub operator+(a PointXY<T>, b PointXY<T>) PointXY<T>:
-        return todo()
-}
 
 type MyStruct(a int)
 

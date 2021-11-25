@@ -3,12 +3,12 @@
 module Zurfur.Io
 
 
-trait Reader
+interface Reader
 {
     afun mut Read(data mut []byte) int err impl
 }
 
-trait Writer
+interface Writer
 {
     afun mut Write(data []byte) int err impl
     afun mut Flush() err impl
@@ -16,7 +16,7 @@ trait Writer
 
 enum SeekOrigin { Begin; Current; End }
 
-trait Seeker
+interface Seeker
 {
     afun mut Seek(offset int, origin SeekOrigin) int err impl
     aget Length() int err { todo() }
@@ -25,7 +25,7 @@ trait Seeker
 }
 
 
-trait FileStream
+interface FileStream
 {
 }
 

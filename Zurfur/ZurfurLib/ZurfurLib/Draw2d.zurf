@@ -1,5 +1,6 @@
 ﻿
 use Zurfur
+use Zurfur.Operators
 
 /// Basic shapes for use with 2d drawing library
 module Zurfur.Draw2d
@@ -11,27 +12,29 @@ fun test_Shape():
     
 
 type passcopy Point<T>(X T, Y T)
-    where T is IArithmetic<T>
+    where T is NumOps
 {
-    fun operator+(a Point<T>, b Point<T>) { return Point(a.X+b.X, a.Y+b.Y) }
-    fun operator-(a Point<T>) { return Point(-a.X, -a.Y) }
-    fun operator-(a Point<T>, b Point<T>) { return Point(a.X-b.X, a.Y-b.Y) }
-    fun operator*(a T, b Point<T>) { return Point(a*b.X, a*b.Y) }
-    fun operator*(a Point<T>, b T) { return Point(a.X*b, a.Y*b) }
-    fun operator/(a T, b Point<T>) { return Point(a/b.X, a/b.Y) }
-    fun operator/(a Point<T>, b T) { return Point(a.X/b, a.Y/b) }
-    get ToSize() Size<T> { return Size(X, Y) }
+    fun pub add(a Point<T>, b Point<T>) { return Point(a.X+b.X, a.Y+b.Y) }
+    fun pub neg(a Point<T>) { return Point(-a.X, -a.Y) }
+    fun pub sub(a Point<T>, b Point<T>) { return Point(a.X-b.X, a.Y-b.Y) }
+
+    // TBD: These need to be impl Point::OpMul, etc.
+    fun pub mul(a T, b Point<T>) { return Point(a*b.X, a*b.Y) }
+    fun pub mul(a Point<T>, b T) { return Point(a.X*b, a.Y*b) }
+    fun pub div(a T, b Point<T>) { return Point(a/b.X, a/b.Y) }
+    fun pub div(a Point<T>, b T) { return Point(a.X/b, a.Y/b) }
+    get toSize() Size<T> { return Size(X, Y) }
 }
 
 type passcopy Size<T>(Width T, Height T)
-    where T is IArithmetic<T>
+    where T is NumOps
 {
     // TBD: Same as Point<T>
     get ToPoint() Point<T> { return Point(Width, Height) }
 }
 
 type Rect<T>(X T, Y T, Width T, Height T)
-    where T is IArithmetic<T>
+    where T is NumOps
 {
     // TBD: Operators (add, multiply, divide, sizes, etc.)
     fun pub new(location Point<T>, size Zurfur.Draw2d.Size<T>):

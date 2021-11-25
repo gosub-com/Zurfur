@@ -31,7 +31,7 @@ type pub Example
     @Header ro str pub get = "Zurfur"       // Public immutable string
     fun pub F(a int) int:
         return m["A"]+10   // Public function
-    get pub P() str:
+    get P() str:
         return Header + info     // Public property
 }
 

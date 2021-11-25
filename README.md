@@ -359,6 +359,16 @@ explict type names when used as a local variable.
     @a = type(x=1, y=2)
     Log.Info("X={a.x}, Y={a.y}")   // Prints "X=1, Y=2"
 
+## Interfaces
+
+Zurfur uses Rust style traits with static dispatch in most cases. However,
+types can implement interfaces without resorting to `impl Interface for Type`
+provided there are no ambiguities and the interface doesn't require associate
+types.  When you see an interface, think Rust style traits even though it
+looks like C# style syntax.
+
+
+
 ### New, Equality, Clone, and Drop
 
 The `new` function is the type constructor.  It does not have access to
@@ -811,20 +821,6 @@ intentionally.  They unwind the stack, cleanup after themselves,
 and stay memory safe.  They can be recovered, but care should be
 taken when recovering and they always generate a stack trace.
 
-
-## Traits
-
-Zurfur will use Rust style traits.
-
-Most traits are dispatched statically.  When dynamic dispatch is required,
-it is implemented using a fat pointer containing a reference to a VTable
-and a reference to the object. 
-
-See [Interface Dispatch](https://lukasatkinson.de/2018/interface-dispatch/)
-and scroll down to *Fat Pointers*.  A comment by Russ Cox explains why
-this is a good design choice "*The key insight for Go was that in a statically
-typed language, type conversions happen far less often than method calls, so doing
-the work on the type conversion is actually quite cheap.*"
 
 ## Garbage Collection
 

@@ -122,7 +122,7 @@ namespace Gosub.Zurfur.Compiler
                         newType.Comments = type.Comments;
                         newType.Qualifiers = Array.ConvertAll(type.Qualifiers, a => a.Name).ToArray();
                         if (newType.Qualifiers.Contains("impl"))
-                            newType.Qualifiers = newType.Qualifiers.Append("trait_impl").ToArray();
+                            newType.Qualifiers = newType.Qualifiers.Append("interface_impl").ToArray();
                         newType.Token.AddInfo(newType);
                         if (mSymbols.AddOrReject(newType))
                         {
@@ -285,11 +285,11 @@ namespace Gosub.Zurfur.Compiler
                         if (tn == "")
                             continue;  // Error already given
                         var sym = mSymbols.Lookup(tn);
-                        if (!sym.IsTrait)
+                        if (!sym.IsInterface)
                         {
-                            // TBD: Check for trait, also need to accept SymSpecializedType.
+                            // TBD: Check for interface, also need to accept SymSpecializedType.
                             //      Also, this should be in verification.
-                            Reject(c.Token, $"Symbol is not a trait, it is a {sym.Kind}");
+                            RejectTypeArgLeftDotRight(c, $"Symbol is not an interface, it is a {sym.Kind}");
                             continue;
                         }
                         if (constrainers.Contains(tn))
@@ -466,10 +466,7 @@ namespace Gosub.Zurfur.Compiler
                 if (symbol is SymType || symbol is SymTypeParam || symbol is SymSpecializedType || NoCompilerChecks)
                     return symbol.FullName;
 
-                // Walk down the right side to skip dots
-                while (typeExpr.Token == "." && typeExpr.Count >= 2 && typeExpr[1].Token != "")
-                    typeExpr = typeExpr[1];
-                Reject(typeExpr.Token, "The symbol is not a type, it is a " + symbol.Kind);
+                RejectTypeArgLeftDotRight(typeExpr, "The symbol is not a type, it is a " + symbol.Kind);
                 return "";
             }
 
@@ -674,11 +671,8 @@ namespace Gosub.Zurfur.Compiler
                 var concreteType = typeParent is SymSpecializedType ? typeParent.Parent : typeParent;
                 if (concreteType.GenericParamCount() != typeParams.Count)
                 {
-                    var errorToken = typeExpr[0].Token;
-                    if (errorToken.Name == "." && typeExpr[0].Count >= 2)
-                        errorToken = typeExpr[0][1].Token; // Put error after "." (e.g. 'List' in 'Zurfur.List<int,int>')
-
-                    Reject(errorToken, $"Expecting {concreteType.GenericParamCount()} generic parameter(s), but got {typeParams.Count}");
+                    RejectTypeArgLeftDotRight(typeExpr,
+                        $"Expecting {concreteType.GenericParamCount()} generic parameter(s), but got {typeParams.Count}");
                     if (!NoCompilerChecks)
                         return null;
                 }
@@ -743,6 +737,31 @@ namespace Gosub.Zurfur.Compiler
                 return resolved;
             }
         }
+
+        /// <summary>
+        /// Reject the symbol that actually caused the problem.
+        /// For type args, it's on the left.  For dots, it's on the right.
+        /// </summary>
+        private void RejectTypeArgLeftDotRight(SyntaxExpr expr, string errorMessage)
+        {
+            bool walking;
+            do {
+                walking = false;
+                if (expr.Token == ParseZurf.VT_TYPE_ARG && expr.Count >= 1 && expr[0].Token.Name != "")
+                {
+                    walking = true;
+                    expr = expr[0];
+                }
+                if (expr.Token == "." && expr.Count >= 2 && expr[1].Token != "")
+                {
+                    walking = true;
+                    expr = expr[1];
+                }
+            } while (walking);
+
+            Reject(expr.Token, errorMessage);
+        }
+
 
         /// <summary>
         /// Add outer generic parameters to the concrete type
@@ -812,8 +831,7 @@ namespace Gosub.Zurfur.Compiler
             }
             if (symbols.Count > 1)
             {
-                Reject(name, "Multiple symbols defined.  Found in '" + symbols[0].File
-                    + "' and '" + symbols[1].File + "'");
+                Reject(name, $"Multiple symbols found.  Found in '{symbols[0]}' and '{symbols[1]}'");
                 return null;
             }
             return symbols[0];

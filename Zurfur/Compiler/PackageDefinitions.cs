@@ -44,9 +44,9 @@ namespace Gosub.Zurfur.Compiler
         public PackageCodeJson Code;
 
         /// <summary>
-        /// EXPERIMENT: Modules, types, methods.  
+        /// EXPERIMENT: Modules, types, and methods at the top level.
         /// </summary>
-        public Dictionary<string, PackageSymbolJson> SymbolsMapExperiment;
+        public List<PackageSymbolJson> SymbolsFlattenedExperiment;
 
     }
 

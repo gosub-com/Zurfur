@@ -89,22 +89,6 @@ namespace Gosub.Zurfur.Compiler
                         Reject(symbol.Token, "Methods in a module may not have the static qualifier");
                     if (symbol.Parent.Parent.Name == "$extension" && !(symbol.Parent.Parent.Parent is SymModule))
                         Reject(symbol.Token, "Extension method must be defined only at the module level");
-                    if (method.IsGetter)
-                    {
-                        if (symbol.Parent.Name != "operator["
-                                && CountMethodParams(symbol, false) != (symbol.HasQualifier("static") ? 0 : 1))
-                            Reject(symbol.Token, "Getter must have no parameters");
-                        if (CountMethodParams(symbol, true) == 0)
-                            Reject(symbol.Token, "Getter must have a return value");
-                    }
-                    if (method.IsSetter)
-                    {
-                        if (symbol.Parent.Name != "operator["
-                                && CountMethodParams(symbol, false) != (symbol.HasQualifier("static") ? 1 : 2))
-                            Reject(symbol.Token, "Setter must have 1 parameter");
-                        if (CountMethodParams(symbol, true) != 0)
-                            Reject(symbol.Token, "Setter must have no return value");
-                    }
                 }
                 else if (symbol is SymMethodParam methodParam)
                 {

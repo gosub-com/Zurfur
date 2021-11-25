@@ -39,7 +39,7 @@ type pub class DlMallocException
     fun pub new(message str) { base(message) }
 }
 
-trait pub DlMallocMem
+interface pub DlMallocMem
 {
     /// <summary>
     /// This was originally CALL_MMAP and is used to get more memory from
@@ -219,7 +219,7 @@ type pub unsafe DlMalloc
 
     /// Returns the number of malloc segments, which represents
     /// the number of discontiguous memory regions.
-    get pub SegmentCount() int:
+    get SegmentCount() int:
         @count = 0
         @segment = seg
         while segment != null:
@@ -512,14 +512,14 @@ type pub unsafe DlMalloc
         @fd *mchunk pub get set          // double links -- used only if free.
         @bk *mchunk pub get set
 
-        get pub prev_foot() xuint:
+        get prev_foot() xuint:
             return cast(xuint)prev_foot_ptr
-        set pub prev_foot(value xuint):
+        set prev_foot(value xuint):
             prev_foot_ptr = cast(*void)value
         
-        get pub head() xuint:  
+        get head() xuint:  
             return cast(xuint)head_ptr
-        set pub head(value xuint):
+        set head(value xuint):
             head_ptr = cast(xuint)value
         
     }
@@ -710,14 +710,14 @@ type pub unsafe DlMalloc
         @parent *tchunk pub get set
         @index uint pub get set
 
-        get pub prev_foot() xuint:
+        get prev_foot() xuint:
             return cast(xuint)prev_foot_ptr
-        set pub prev_foot(value xuint):
+        set prev_foot(value xuint):
             prev_foot_ptr = cast(*void)value
         
-        get pub head() xuint:
+        get head() xuint:
             return cast(xuint)head_ptr
-        set pub head(value xuint):
+        set head(value xuint):
             head_ptr = cast(xuint)value
 
     }
