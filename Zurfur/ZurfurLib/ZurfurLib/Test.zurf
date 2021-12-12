@@ -70,7 +70,7 @@ fun pub test_Convert():
     @c = a.Convert(@ => int(i))
 
 
-type pub class TestGuiForm extends Form
+type pub class TestGuiForm // TBD: How to do this without extends Form
 {
     type Label { }
     @Message1 Label pub get set

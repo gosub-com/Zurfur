@@ -4,9 +4,21 @@ pragma ShowParse        // Show the parse tree (hover over a symbol)
 
 // Press F4 to see header file report
 
-TBD:
-// Finish constraints
-// For fields, move "pub get" to before type definition
+TBD
+// Move impl methods into group directly under SymModule
+// Figure out where impl's live (types, or method groups)
+// Unify extension methods and impl's:
+//      See code with comment "First parameter is "$this"
+//      Add method parameter for impl (add interface type parameter)
+//
+// Sort out "This" usage in interfaces.
+//      May need to pass explicit <T> for everything (e.g. OpEq<Lhs, Rhs>)
+// In Range<T>, will this do what I want it to do:
+//      where This is GetIterator<T> + OpIn<Range<T>>
+// And also Point<T> where T is NumOps
+//
+// Operators static with explicit types?
+
 
 use Zurfur
 use Zurfur.Collections
@@ -94,7 +106,7 @@ fun test_HelloWorld():
             doit4
             
 
-type pub heap AGenericType<Q>(FirstName str, LastName str)
+type pub boxed AGenericType<Q>
 {
     fun pub Circle1(a f64, r f64) -> (x f64, y f64):
         return Cos(a)*r, Sin(a)*r
@@ -258,19 +270,6 @@ fun pub add(a int, b int) int:
 // Multiple returns
 fun pub Circle(a f64, r f64) -> (x f64, y f64):
     return Cos(a)*r, Sin(a)*r
-
-
-// Mutable point
-type pub MyMutablePoint(X int, Y int)
-{
-    fun pub mut SetY(y int):
-        Y = y
-        
-    get PropX() int:
-        return x
-    set PropX(value int):
-        X = value
-}
 
 
 type MyStruct(a int)

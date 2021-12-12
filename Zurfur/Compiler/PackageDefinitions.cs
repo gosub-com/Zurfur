@@ -71,7 +71,8 @@ namespace Gosub.Zurfur.Compiler
         // Anything not needed for this type can be omitted
         // by leaving it at the default value
         public string Type;     // Type of field or method parameter
-        public string Where;    // Where clause for type args (TBD: Will probably be a class)
+        public Dictionary<string, string[]> Constraints;
+
         public string Requires; // Require clause for methods (TBD: Make into a class) 
 
         public override string ToString() => Name;

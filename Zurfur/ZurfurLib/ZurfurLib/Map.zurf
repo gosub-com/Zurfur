@@ -16,8 +16,8 @@ type KvPair<TKey,TValue>
 }
 
 type pub Map<TKey, TValue>
-    impl OpContains<TKey>, GetIterator<ref T>
-    where TKey is OpEquals<TKey> + GetHash
+    where This is OpIn<TKey> + GetIterator<ref KvPair<TKey, TValue>>
+    where TKey is OpEq<TKey> + GetHash
 {
     fun pub new(capacity int):
         return todo()
@@ -28,8 +28,6 @@ type pub Map<TKey, TValue>
 
     // TBD: Figure out map["Hello"] += 1
     get op_index(key TKey) ?ref TValue:
-        return todo()
-    get op_index(key TKey, d TValue = default(TValue)) ref TValue:
         return todo()
     set mut op_index(key TKey) mut ref TValue:
         todo()

@@ -331,6 +331,10 @@ namespace Gosub.Zurfur.Ide
             {
                 message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
             }
+            if (symbol.Qualifiers.Length != 0)
+            {
+                message += "TAGS: " + string.Join(", ", symbol.Qualifiers) + "\r\n";
+            }
 
             // Comments
             if (symbol.Comments != "")

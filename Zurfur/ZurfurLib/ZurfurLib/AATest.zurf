@@ -6,21 +6,13 @@ use Zurfur.Operators
 module AATest
 
   
-interface pub AAOpIn<Rhs> { type Output impl; fun AAopIn(rhs Rhs) Output impl }
-
-impl AAOpInx<i32> for i32
-{
-    type Output = i32
-    fun pub AAopIn(rhs i32) i32 extern
-}
-
 fun pub List<T>::Reverse<T>():
     for @i in 0..this.Count/2:
-        Swap(ref this[i], ref this[Count-i-1])
+        swap(ref this[i], ref this[Count-i-1])
 
 fun pub static List<T>::Reverse2<T>():
     for @i in 0..this.Count/2:
-        Swap(ref this[i], ref this[Count-i-1])
+        swap(ref this[i], ref this[Count-i-1])
 
 
 type pub MyList<T>
@@ -66,15 +58,7 @@ type pub AAFun
 //get PAoint<T>::Size() Size<T> { return Size(X, Y) }
 type OneGeneric<T> { } 
 type Point<T>(X T, Y T)
-{
-    get a() int {}
-    set a(v int) {}
-    fun pub aaa(a Zurfur.Draw2d.Size<int>) {}
-    
-}
 type Size<T>(Width T, Height T)
-{
-}
 
 get Point<T>::Sizex<T>() Size<T> { return Size(X, Y) }
 get Size<T>::Sizex<T>() Size<T> { }
@@ -86,7 +70,7 @@ type pub AAFunc<T1,T2>
 
 
 type pub AGenericTest<T, QQQ>
-    where QQQ is OpEquals<QQQ>//: new() where T : new()
+    where QQQ is OpEq<T>//: new() where T : new()
 {
     
     @af0 fun()->()
@@ -163,7 +147,10 @@ type pub AGenericTest<T, QQQ>
 
         type pub Inner2<Tb, Qb>
         {
-            fun pub P1() { return 0; }
+            fun pub P1<P1F>()
+                where P1F is OpEq<P1F> + OpAdd<int, Tb>
+                where Tb is OpEq<Ta>
+            { return 0; }
             fun pub P2<Quack>() { return 0; }
             fun pub P3<Z>() { return 0; }
             fun pub P4<Z, Quack>() { return 0; }

@@ -36,6 +36,7 @@ namespace Gosub.Zurfur.Compiler
             // Add built in unary generic types
             foreach (var genericType in "* ^ [ ? ref own mut ro".Split(' '))
                 AddIntrinsicType(genericType, 1);
+            AddIntrinsicType("This", 0);
         }        
 
 
@@ -213,8 +214,11 @@ namespace Gosub.Zurfur.Compiler
             foreach (var name in path)
             {
                 if (!symbol.Children.TryGetValue(name.Name, out var child))
-                    throw new Exception("Compiler error: Could not find parent symbol '" 
-                        + string.Join(".", Array.ConvertAll(path, t=>t.Name)) + "'");
+                {
+                    Debug.Assert(false);
+                    throw new Exception("Compiler error: Could not find parent symbol '"
+                        + string.Join(".", Array.ConvertAll(path, t => t.Name)) + "'");
+                }
                 symbol = child;
             }
             return symbol;

@@ -11,43 +11,54 @@ fun test_Shape():
     Assert(rect == Rect<int>(1,30,3,4))
     
 
-type passcopy Point<T>(X T, Y T)
+type passcopy Point<T>
     where T is NumOps
 {
-    fun pub add(a Point<T>, b Point<T>) { return Point(a.X+b.X, a.Y+b.Y) }
-    fun pub neg(a Point<T>) { return Point(-a.X, -a.Y) }
-    fun pub sub(a Point<T>, b Point<T>) { return Point(a.X-b.X, a.Y-b.Y) }
+    @x T pub init ref mut
+    @y T pub init ref mut
 
-    // TBD: These need to be impl Point::OpMul, etc.
-    fun pub mul(a T, b Point<T>) { return Point(a*b.X, a*b.Y) }
-    fun pub mul(a Point<T>, b T) { return Point(a.X*b, a.Y*b) }
-    fun pub div(a T, b Point<T>) { return Point(a/b.X, a/b.Y) }
-    fun pub div(a Point<T>, b T) { return Point(a.X/b, a.Y/b) }
-    get toSize() Size<T> { return Size(X, Y) }
+    fun pub static op_add(a Point<T>, b Point<T>) Point<T> { return Point(a.x+b.x, a.y+b.y) }
+    fun pub static op_neg(a Point<T>) { return Point(-a.x, -a.y) }
+    fun pub static op_sub(a Point<T>, b Point<T>) { return Point(a.x-b.x, a.y-b.y) }
+    fun pub static op_mul(a T, b Point<T>) { return Point(a*b.x, a*b.Y) }
+    fun pub static op_mul(a Point<T>, b T) { return Point(a.x*b, a.y*b) }
+    fun pub static op_div(a T, b Point<T>) { return Point(a/b.x, a/b.y) }
+    fun pub static op_div(a Point<T>, b T) { return Point(a.x/b, a.y/b) }
+    fun toSize() Size<T> { return Size(X, Y) }
 }
 
-type passcopy Size<T>(Width T, Height T)
+
+type passcopy Size<T>
     where T is NumOps
 {
+    @width T pub init ref mut
+    @height T pub init ref mut
+    
     // TBD: Same as Point<T>
-    get ToPoint() Point<T> { return Point(Width, Height) }
+    fun toPoint() Point<T> { return Point(width, height) }
 }
 
-type Rect<T>(X T, Y T, Width T, Height T)
+type passcopy Rect<T>
     where T is NumOps
 {
-    // TBD: Operators (add, multiply, divide, sizes, etc.)
-    fun pub new(location Point<T>, size Zurfur.Draw2d.Size<T>):
-        Location = location
-        Size = size
+    @x T pub init ref mut
+    @y T pub init ref mut
+    @width T pub init ref mut
+    @height T pub init ref mut
+    
+    fun pub new(location Point<T>, size Size<T>):
+        this.location = location
+        this.size = size
 
-    get Left() T { return X }
-    get Right() T { return X + Width }
-    get Top() T { return Y }
-    get Bottom() T { return Y + Height }
-    get Location() Point<T> { return Point<T>(X, Y) }
-    set Location(value T) { X = value.X;  Y = value.Y }
-    get Size() Draw2d.Size<T> { return Size<T>(Width, Height) }
-    set Size(value Draw2d.Size<T>) { Width = value.Width;  Height = value.Height }
+    // TBD: Operators (add, multiply, divide, sizes, etc.)
+
+    get left() T { return x }
+    get right() T { return x + width }
+    get top() T { return y }
+    get bottom() T { return y + height }
+    get location() Point<T> { return Point<T>(x, y) }
+    set location(value Point<T>) { x = value.x;  Y = value.y }
+    get size() Size<T> { return Size<T>(width, height) }
+    set size(value Size<T>) { width = value.width;  height = value.height }
 
 }

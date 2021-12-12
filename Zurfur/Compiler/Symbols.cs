@@ -73,6 +73,11 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public string TypeName = "";
 
+        /// <summary>
+        /// Applicable to Types and Methods
+        /// </summary>
+        public Dictionary<string, string[]> Constraints = new Dictionary<string, string[]>();
+
         public bool IsInterface
             => this is SymType && Qualifiers.Contains("interface")
                 || this is SymSpecializedType && Parent is SymType && Parent.Qualifiers.Contains("interface");
@@ -267,7 +272,7 @@ namespace Gosub.Zurfur.Compiler
 
     class SymType : Symbol
     {
-        public SymType(Symbol parent, string file, Token token) : base(parent, file, token) { }
+        public SymType(Symbol parent, string file, Token token, string name = null) : base(parent, file, token, name) { }
         public SymType(Symbol parent, string name) : base(parent, name) { }
         public override string Kind => "type";
         protected override string Separator => ".";
@@ -281,7 +286,6 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
-        public string[] Constraints;
     }
 
     class SymTypeParam : Symbol
@@ -291,6 +295,8 @@ namespace Gosub.Zurfur.Compiler
         }
         public override string Kind => "type parameter";
         protected override string Separator => "~";
+
+        public int GenericParamNum() => Parent.Parent.GenericParamTotal() + Order;
     }
 
     class SymField : Symbol

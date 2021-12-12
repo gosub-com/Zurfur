@@ -1,20 +1,20 @@
-﻿module Zurfur
+﻿use Zurfur.Collections
+
+module Zurfur
 
 /// Mutable array with immutable Count.  This is the base
 /// of all dynamically sized objects and is one of the few
 /// types implmeneted partially by the compiler.
-type pub heap Buffer<T>
-    impl GetIterator<ref T>,
-               OpIndex<int, mut ref T>,
-               OpIndex<Range<int, mut Span<T>>>
+type pub boxed Buffer<T>
+    where This is GetIterator<ref T>
 {
     @Count ro int pub get
 
-    fun pub index(i int) mut ref T
+    fun pub op_index(i int) mut ref T
         require i in 0..Count
         extern // Implementation TBD
     
-    fun pub index(r Range<int>) mut Span<T>
+    fun pub op_index(r Range<int>) mut Span<T>
         require r.Low in 0..Count
         require r.High in 0..Count
         require r.Low <= range.High

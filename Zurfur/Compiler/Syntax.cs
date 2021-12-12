@@ -51,7 +51,7 @@ namespace Gosub.Zurfur.Compiler
 
         public Token Keyword => Token; // class, struct, func, prop, blank for field, etc.
         public SyntaxScope ParentScope;
-        public Token[] ModulePath;
+        public Token[] ModulePath;    // TBD: Eventually remove this
         public string Comments;
         public Token[] Qualifiers;
         public Token Name;
@@ -73,7 +73,7 @@ namespace Gosub.Zurfur.Compiler
     }
 
     /// <summary>
-    /// Includes struct, enum, interface
+    /// Includes struct, enum, interface, impl
     /// </summary>
     class SyntaxType : SyntaxScope
     {
@@ -83,11 +83,12 @@ namespace Gosub.Zurfur.Compiler
         }
 
         public bool Simple;
-        public SyntaxExpr AliasOrExtends;
-        public SyntaxExpr []Implements;
+        public SyntaxExpr Alias;
         public SyntaxExpr TypeArgs;
-        public List<SyntaxExpr> TypeArgsAssociated;
         public SyntaxConstraint []Constraints;
+
+        public SyntaxExpr ImplType;
+        public SyntaxExpr ImplInterface;
     }
 
     class SyntaxConstraint

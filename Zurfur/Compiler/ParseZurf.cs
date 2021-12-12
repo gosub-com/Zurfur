@@ -53,7 +53,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sContinuationEnd = new WordSet("[ ( ,");
         static WordSet sContinuationNoBegin = new WordSet("} namespace module pub fun afun get set aget aset");
         static WordSet sContinuationBegin = new WordSet("\" ] ) , . + - * / % | & || && == != "
-                            + ": ? > << <= < => -> .. :: !== ===  is in as has "
+                            + ": ? ?? > << <= < => -> .. :: !== ===  is in as has "
                             + "= += -= *= /= %= |= &= ~=");
         static WordSet sContinuationNoCheckAlign = new WordSet("] ) {");
         WordSet sStringLiteralEscapes = new WordSet("{ \" }");
@@ -62,7 +62,7 @@ namespace Gosub.Zurfur.Compiler
             + "continue default delegate do then else elif enum explicit extern true false defer use "
             + "finally fixed for goto if in interface internal is lock namespace module include "
             + "new null out override pub public private protected readonly ro ref dref mut imut "
-            + "return unsealed unseal sealed sizeof stackalloc heapalloc struct switch this self throw try "
+            + "return unsealed unseal sealed sizeof struct switch this This self Self throw try "
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "
             + "box boxed init move copy clone bag drop err dispose own "
@@ -71,9 +71,9 @@ namespace Gosub.Zurfur.Compiler
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
             + "of sync task except exception raise loc local global");
 
-        // Non reserved names: heap, passcopy, nocopy
+        // Non reserved names: passcopy, nocopy
         static WordSet sTypeQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "unsealed abstract ref ro heap class passcopy nocopy");
+            + "unsealed abstract ref ro boxed class passcopy nocopy");
         static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static");
         static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
         static WordSet sMethodQualifiers = new WordSet("pub public protected private internal unsafe "
@@ -81,7 +81,9 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sConstQualifiers = new WordSet("pub public protected private internal");
         static WordSet sPostFieldQualifiers = new WordSet("init set get ref mut");
 
-        static WordSet sReservedUserFuncNames = new WordSet("new clone drop cast default op_index");
+        static WordSet sReservedUserFuncNames = new WordSet("new clone drop cast default "
+            + "op_eq op_cmp op_in op_index op_add op_sub op_neg op_mul op_div op_rem "
+            + "op_and op_or op_xo4 op_not op_shl op_shr");
         static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default base self super new cast dref move");
         static WordSet sReservedMemberNames = new WordSet("clone");
         static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref mut own ro box");
@@ -95,7 +97,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sXorOps = new WordSet("~");
         static WordSet sMultiplyOps = new WordSet("* / % &");
         static WordSet sAssignOps = new WordSet("= += -= *= /= %= |= &= ~= <<= >>=");
-        static WordSet sUnaryOps = new WordSet("+ - ! & ~ use unsafe ref mut");
+        static WordSet sUnaryOps = new WordSet("+ - ! & ~ use unsafe ref clone mut");
 
         // For now, do not allow more than one level.  Maybe we want to allow it later,
         // but definitely do not allow them to include compounds with curly braces.
@@ -492,9 +494,6 @@ namespace Gosub.Zurfur.Compiler
 
         void ParseTypeScope(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
         {
-            if (ParseTypeScopeAssociatedType(keyword, parentScope, qualifiers))
-                return;
-
             var synClass = new SyntaxType(keyword);
             synClass.Qualifiers = qualifiers.ToArray();
             synClass.ParentScope = parentScope;
@@ -506,18 +505,17 @@ namespace Gosub.Zurfur.Compiler
             {
                 if (!CheckIdentifier("Expecting a type name"))
                     return;
-                var t1 = ParseType();
-                if (!AcceptMatch("::") && !AcceptMatch("for"))
+                synClass.ImplType = ParseType();
+                if (!AcceptMatch("::"))
                 {
                     Reject("Expecting '::' or 'for'");
                     return;
                 }
                 if (!CheckIdentifier("Expecting a type name"))
                     return;
-                var t2 = ParseType();
-                (synClass.Name, synClass.TypeArgs) = GetSimpleNameWithTypeArgs(t2);
-                if (synClass.Name.Type != eTokenType.TypeName)
-                    return; // TBD: Could try to recover (user probably editing class name)
+
+                synClass.Name = mToken;
+                synClass.ImplInterface = ParseType();
             }
             else
             {
@@ -525,9 +523,10 @@ namespace Gosub.Zurfur.Compiler
                 if (!CheckIdentifier("Expecting a type name"))
                     return;
                 (synClass.Name, synClass.TypeArgs) = GetSimpleNameWithTypeArgs(ParseType());
-                if (synClass.Name.Type != eTokenType.TypeName)
-                    return; // TBD: Could try to recover (user probably editing class name)
             }
+
+            if (synClass.Name.Type != eTokenType.TypeName)
+                return; // User probably editing class name (TBD: Recover?)
 
             AddType(synClass);
             RejectUnderscoreDefinition(synClass.Name);
@@ -539,12 +538,8 @@ namespace Gosub.Zurfur.Compiler
             mModulePath = namePath.ToArray();
 
             // Simple class or struct
-            bool isClass = qualifiers.FindIndex(a => a.Name == "class") >= 0;
             if (AcceptMatch("("))
             {
-                if (isClass)
-                    RejectToken(mPrevToken, "A 'type class' may not declare simple fields");
-
                 synClass.Simple = true;
                 var open = mPrevToken;
                 do
@@ -558,31 +553,14 @@ namespace Gosub.Zurfur.Compiler
                 } while (AcceptMatch(","));
                 if (AcceptMatchOrReject(")"))
                     Connect(mPrevToken, open);
-            }
-            else if (AcceptMatch("="))
-            {
-                if (isClass)
-                    RejectToken(mPrevToken, "A 'type class' may not be an alias");
-                synClass.Simple = true;
-                synClass.AliasOrExtends = ParseType();
-            }
-            else if (AcceptMatchPastMetaSemicolon("extends"))
-            {
-                if (!isClass)
-                    RejectToken(mPrevToken, "Use 'type class' to allow extending a type");
-                synClass.AliasOrExtends = ParseType();
+                mModulePath = oldPath;
+                return;
             }
 
-            // Parse implements classes
-            if (AcceptMatchPastMetaSemicolon("impl"))
+            if (AcceptMatch("="))
             {
-                var baseClasses = NewExprList();
-                baseClasses.Add(ParseType());
-                while (AcceptMatch(","))
-                {
-                    baseClasses.Add(ParseType());
-                }
-                synClass.Implements = FreeExprList(baseClasses);
+                synClass.Simple = true;
+                synClass.Alias = ParseType();
             }
 
             synClass.Constraints = ParseConstraints();
@@ -615,47 +593,6 @@ namespace Gosub.Zurfur.Compiler
             mModulePath = oldPath;
         }
 
-        /// <summary>
-        /// Parse associated types inside interfaces and impl. 
-        /// Don't allow enum/impl/interface to be defined inside an interface or impl
-        /// Returns TRUE if everything is done and taken care of.
-        /// </summary>
-        bool ParseTypeScopeAssociatedType(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
-        {
-            // Exit if parent scope is not a interface or impl
-            if (parentScope == null || parentScope.Keyword != "interface" && parentScope.Keyword != "impl")
-                return false;
-
-            // Don't allow enum/impl/interface to be defined inside a interface or impl
-            if (keyword != "type")
-            {
-                Reject($"Not allowed to define '{keyword}' in an interface");
-                return true;
-            }
-            if (!CheckIdentifier("Expecting a type name"))
-                return true;
-            var typeArg = Accept();
-            typeArg.Type = eTokenType.TypeName;
-            var synType = (SyntaxType)parentScope;
-            if (synType.TypeArgsAssociated == null)
-                synType.TypeArgsAssociated = new List<SyntaxExpr>();
-
-            if (parentScope.Keyword == "interface")
-            {
-                // Interface associated type
-                synType.TypeArgsAssociated.Add(new SyntaxToken(typeArg));
-                AcceptMatchOrReject("impl");
-            }
-            else
-            {
-                // Impl associated type
-                if (!AcceptMatchOrReject("="))
-                    return true;
-                synType.TypeArgsAssociated.Add(new SyntaxUnary(typeArg, ParseType()));
-            }
-            return true;
-        }
-
         private SyntaxConstraint[] ParseConstraints()
         {
             if (!AcceptMatchPastMetaSemicolon("where"))
@@ -664,7 +601,7 @@ namespace Gosub.Zurfur.Compiler
             do
             {
                 constraints.Add(ParseConstraint());
-            } while (AcceptMatch(","));
+            } while (AcceptMatchPastMetaSemicolon("where"));
 
             return constraints.ToArray();
         }
@@ -672,7 +609,7 @@ namespace Gosub.Zurfur.Compiler
         SyntaxConstraint ParseConstraint()
         {
             var constraint = new SyntaxConstraint();
-            if (!AcceptIdentifier("Expecting a type name"))
+            if (!AcceptMatch("This") && !AcceptIdentifier("Expecting a type name"))
                 return null;
             constraint.TypeName = mPrevToken;
             mPrevToken.Type = eTokenType.TypeName;
@@ -847,9 +784,7 @@ namespace Gosub.Zurfur.Compiler
             if (!CheckIdentifier("Expecting a function or property name", sRejectTypeName))
                 return false;
 
-            // TBD: Convert this to use "." instead of requiring "::" to
-            //      separate extension method type from function name.
-            //      Probably a simple chnage to GetSimpleNameWithTypeArgs.
+            // Function or extension method name
             var funName = ParseType();
             if (AcceptMatch("::") && CheckIdentifier("Expecting a function or property name", sRejectTypeName))
             {
@@ -887,7 +822,10 @@ namespace Gosub.Zurfur.Compiler
             }
             else
             {
+                // Single return parameter
                 var returns = NewExprList();
+                if (mTokenName == "This")
+                    mToken.Type = eTokenType.Identifier;
                 if (mToken.Type == eTokenType.Identifier 
                     || sTypeUnaryOps.Contains(mTokenName)
                     || mTokenName == "fun" || mTokenName == "afun")
@@ -1238,11 +1176,15 @@ namespace Gosub.Zurfur.Compiler
                 case "afun":
                 case "func":
                 case "afunc":
+                    // TBD: Process local functions
+                    //      Need to pass scope into ParseMethod
+                    //      Require `local` keyword
                     var qualifiers = new List<Token>() { Accept() };
                     keyword.Type = eTokenType.ReservedControl;  // Fix keyword to make it control
+                    keyword.AddWarning("Local function not processed yet");
                     var synFunc = ParseMethod(keyword, null, qualifiers);
-                    if (synFunc != null)
-                        statements.Add(synFunc);
+                    //if (synFunc != null)
+                    //    statements.Add(synFunc);
                     break;
 
                 default:
@@ -1490,6 +1432,13 @@ namespace Gosub.Zurfur.Compiler
             var result = ParseNewVarCapture();
             if (mTokenName == "is" || mTokenName == "as")
                 result = new SyntaxBinary(Accept(), result, ParseType());
+            else
+                while (mTokenName == "??")
+                {
+                    mToken.Type = eTokenType.BoldSymbol;
+                    result = new SyntaxBinary(Accept(), result, ParseNewVarCapture());
+                }
+
             return result;
         }
 
@@ -1983,6 +1932,12 @@ namespace Gosub.Zurfur.Compiler
                     if (AcceptMatchOrReject("]"))
                         mPrevToken.Type = eTokenType.TypeName;
                 return new SyntaxUnary(token, ParseType());
+            }
+
+            if (mToken == "This")
+            {
+                mToken.Type = eTokenType.TypeName;
+                return new SyntaxToken(Accept());
             }
 
             if (mToken == "fun" || mToken == "afun")

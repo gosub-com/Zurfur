@@ -4,8 +4,6 @@ Zurfur is is a programming language I'm designing for fun and enlightenment.
 The language is named after our cat, Zurfur, who was named by my son.  It's
 spelled **_ZurFUR_** because our cat has fur.
 
-## Overview
-
 I love C#.  It's my favorite language to program in.  But, I'd like to fix
 some [warts](http://www.informit.com/articles/article.aspx?p=2425867) and have
 some features from other languages built in from the ground up.  I'm thinking
@@ -105,7 +103,7 @@ In Zurfur, a C# type like `List<MyMutableClass>` would translate to `List<^MyMut
 and `MyMutableClass` is always a value type.
 
 There are immutable reference types, such as `Array` and `str`.  Since they
-are immutable and always on the heap (i.e. `type ro heap`), they can be copied
+are immutable and always on the heap (i.e. `type ro boxed`), they can be copied
 quickly and there is no chance of them aliasing each other.
 
 Other references are short lived and allowed only on the stack.  Most of them
@@ -219,13 +217,13 @@ i32 or i64 depending on the compilation target.
 | Buffer\<T\> | A mutable array of mutable elements, but with a *constant* `Count`
 | List\<T\> | Dynamically sized mutable list with mutable elements
 | Span\<T\> | Span into `Array`, `Buffer`, or `List`.  It has a constant `Count`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `Buffer` or `List` is mutable)
-| Map<K,V> | Unordered mutable map.  There is also `RoMap` which is immutable.
+| Map<K,V> | Unordered mutable map. 
 | Json | Json data structure
 
 There are several different kinds of types.  There is `ro` for a read-only
-immutable type.  And there is `heap` for a type always allocated on the heap.
-Even though a mutable heap type is a reference, it still has an owner and acts
-like a value type.  There is `heap ro` which is an immutable reference type
+immutable type.  And there is `boxed` for a type always allocated on the heap.
+Even though a mutable boxed type is a reference, it still has an owner and acts
+like a value type.  There is `boxed ro` which is an immutable reference type
 with fast implicit copy because it just copies the reference.
 
 | Type Qualifier | Examples | Passing Style | Explicit Clone Required | Speed/Notes
@@ -233,121 +231,82 @@ with fast implicit copy because it just copies the reference.
 |`passcopy` | `int`, `f64`, `Span` | Copy | No | Fast, small, never allocates
 |  | `List`, `Map` | Ref | If it allocates | Slow (if it allocates) or medium (copy bytes)
 | `ro` | | Ref | No | Medium, copy bytes, never allocates
-| `heap` | `Buffer` | Ref | Yes | Slow, always allocates
-| `heap ro` | `str`, `Array`, `RoMap` | Ref | No | Fast, reference copy
+| `boxed` | `Buffer` | Ref | Yes | Slow, always allocates
+| `boxed ro` | `str`, `Array` | Ref | No | Fast, reference copy
 | `nocopy` | `FileStream` | Owned | Not cloneable | Medium, always a move (copy bytes)
 | `ref` | `Span`, `ref` | Ref or copy | No | Type contains a reference, so must never leave the stack.  Must not allocate
 
-Notice that `List` and `Map` are not `heap`.  They live directly inline in the
+Notice that `List` and `Map` are not `boxed`.  They live directly inline in the
 object that owns them, but they do contain a reference to a `Buffer` which is 
 directly on the heap. Because they are mutable and use dynamic allocation,
 `List`, `Map`, and `Buffer` require an explicit clone.
 
-Also notice that `Array` and `str` are `heap ro`.  They are reference types
+Also notice that `Array` and `str` are `boxed ro`.  They are reference types
 and don't require an explicit clone.
 
 
-### Simple Types
+### Simple Data Types
 
-Simple types can declare fields in parentheses.  All fields are public
-and no additional fields may be defined in the body.  Simple types are
+Simple data-only types can declare their fields in parentheses.  They are
 mutable by default, but can also be immutable by adding the `ro` qualifier.
+No other constructors, methods, or properties may be added.
 
     // Simple types - all fields are public
-    type pub Point(X int, Y int)
-    type pub Line(P1 Point, P2 Point)
-    type pub WithInitialization(X int = 1, Y int = 2)
-    type pub ro ReadOnlyPerson(Id int, FirstName str, LastName str, BirthYear int)
-
-    // A simple type may define properties, functions, and
-    // constructors in the body but no additional fields
-    type pub Point(X int, Y int)
-    {
-        fun new(p int):
-            todo()
-        fun pub mut SetY (y int):       // Mutable functions are marked `mut`
-            Y = y
-        get pub PropX() int:
-            return X
-        set pub PropX(value int):
-            X = value
-    }
+    type pub Point(x int, y int)
+    type pub Line(p1 Point, p2 Point)
+    type pub WithInitialization(x int = 1, y int = 2)
+    type pub ro Person(Id int, firstName str, lastName str, birthYear int)
 
 The default constructor can take all the fields in positional order, or any
-of the fields as named parameters.  There is also a default `clone` function.
+of the fields as named parameters. 
 
-    @w = Point()                        // Default constructor
-    @x = Point(1,2)                     // Constructor with all parameters
-    @y = Point(X: 3, Y: 4)              // Initialized via named parameters
-    @z = WithInitialization(X: 5)       // Constructor called first, so Y=2 here
-    @p1 = Person(1, "John", "Doe", 32)
+    @a = Point()                        // Default constructor (0,0)
+    @b = Point(1,2)                     // Constructor with all parameters
+    @c = Point(x: 3, y: 4)              // Initialized via named parameters
+    @d = Line((1,2),(3,4))              // Same as Line(Point(1,2),Point(3,4))
+    @z = WithInitialization(x: 5)       // `y` is 2
+    @p1 = Person(1, "John", "Doe", 32)  // Read-only data
 
-A mutable type returned from a getter can be mutated in-place provided there
-is a corresponding setter:
-
-    @a List<Point> = [(1,2), (3,4), (5,6)]
-    a[1].PropX = 23     // a = [(1,2),(23,4), (5,6)]
-    a[1].SetY(24)       // a = [(1,2),(23,24), (5,6)]
-    a[1].PropX = 0      // a = [(1,2),(0,24), (5,6)]
-
-`List` returns the point via reference, but even if it used a getter/setter,
-this would still work.  `SetY` is marked with `mut` so the compiler
-knows to call the setter after the value is modified.  Same for `PropX`.
 
 ### Complex Types
 
 A complex type must define all of its fields in the body. Fields are declared
-with `@` and are private.  Public properties can be added with `pub get`,
-`pub get set`, `pub ref` or `pub mut ref`.
+with `@` and are private, but may have public properties with `pub get`,
+`pub get set`, etc.
 
     type pub Example
     {
         // Mutable fields
-        @text1 str = "hello"                // Private, no public
-        @Text2 str pub get = "hello"        // Public read only
-        @Text3 str pub get set = "hello"    // Public read/write
-        @List1 List<int> pub get = [1,2,3]  // Returns a copy (not a ref)
-        @List2 List<int> pub ref;           // Returns read-only ref 
+        @text1 str = "hello"                // Private
+        @text2 str pub get = "hello"        // Public get (copy, not a reference)
+        @text3 str pub get set = "hello"    // Public get/set (copy, not a reference)
+        @list1 List<int>                    // Private
+        @list2 List<int> pub ref;           // Public read-only reference
+        @list3 List<int> pub mut;           // Public mutable reference, not assignable
+        @list4 List<int> pub mut ref;       // Public mutable reference, assignable
 
         // Read-only fields
         @roText1 ro str                     // Constructor can override
         @roText2 ro str = "Hello"           // Constructor cannot override
-        @RoText3 ro str pub init = "Hello"  // Constructor or client can override
+        @roText3 ro str pub init = "Hello"  // Constructor or client can override
         
-        // Getter returning a copy
-        get pub Text() str:
+        // Getter and setter functions (passing copies)
+        get pub text() str:
             return text1
-
-        // Setter
-        set pub Text(value str)
-            if value == text:
+        set pub text(value str)
+            if value == text1:
                 return
             text1 = value
-            SendTextChangedEvent()
+            sendTextChangedEvent()
 
-        // Getter returning a reference (same as the `text2` field definition above)
-        get pub MyText2() ref str:
-            return ref text2
-
-        // Getter allowing client code to set (same as `text3` field definition above)
-        get pub MyMutText3() mut ref str:
-            return ref text3
+        // Getter returning references
+        get pub list1a() ref List<int>:     // Immutable reference
+            return ref list1
+        get pub list1b() mut List<int>:     // Mutable reference, not assignable
+            return ref list1
+        get pub list1c() mut ref List<int>: // Mutable reference, assignable
+            return ref list1
     }
-
-The entire type may be `ro`, or individual fields can use `ro` to indicate read only. 
-
-There is a default constructor taking all public fields and settable properties
-as named parameters.  There is also a `clone` function. The default constructor
-and `clone` function can override `ro` fields, but not properties unless they
-have a public setter. **TBD:** Is that rule too easy to forget?
-
-    @e1 = Example()
-    @e2 = Example(Text: "Hello", MyMap: ["x":1, "y":2])
-    @e3 = e1.clone(MyStrings: ["1", "2", "3"])
-
-    @e4 = Example(HelloInit: "Hi")          // Overriding field is OK
-    @e5 = Example(HelloNoInit: "Hi")        // Illegal, no public setter
-    @e6 = e1.clone(HelloNoInit: "Hi")       // Illegal, same rule as constructor
 
 
 ### Anonymous Type
@@ -470,7 +429,7 @@ There is no `StringBuilder` type, use `List<byte>` instead:
 
 #### Span
 
-Span is a view into a string, array, buffer, or list.  They are `ref type` and
+Span is a view into a string, array, buffer, or list.  They are `type ref` and
 may never be stored on the heap.  Unlike in C#, a span can be used to pass
 data to an async function.  
 
@@ -508,17 +467,43 @@ Mutating the size of a list (not the elements of it) while there is a span
 pointing into it is a programming error and will throw an exception, the
 same as indexing outside of array bounds.
 
-#### Map and RoMap
+#### Map
 
-`Map` is a hash table and is similar to `Dictionary` in C#.
+`Map` is a hash table and is similar to `Dictionary` in C#.  The type can be
+inferred from the expression, or it can be explicit:
 
     @a = ["Hello":1, "World":2]     // a is Map<str,int>
-    @b = a["World"]                 // b is 2
-    @c = a["not found"]             // throws exception
-    @d = a.Get("not found")         // d is 0
-    @e = a.Get("not found", -1)     // e is -1
+    @b Map<int,f64> = [0:1, 1:2.3]  // b is Map<int,f64>
 
-`RoMap` is an immutable version of `Map`
+When indexing a map, the return type is `?ref T`, so it must either be checked
+before being used or have a default:
+
+    // Check for its existence
+    if a["hello"]@item:
+        // Use item here
+    else:
+        // item is invalid, insert new pobject
+
+    // Get the value, or get a default if it doesn't exist
+    @x = a["hello"]??3      // Get the value, or the default if it doesn't exist
+
+
+If the map contains objects that can't be trivially copied (e.g. `List<int>`),
+they must be cloned or reference captured:
+
+    // TBD: explicit `ref` might not be needed here since
+    //      @ capture is a new operator, different than assignment
+    if ref myLists["hello"]@item:
+        // Use item here.  You don't own it and may not modify it
+
+    if clone myLists["hello"]@item:
+        // Use item here.  You own they copy and may modify it
+
+When assigning, the item is always created.  If it is also used at the same
+time, it gets the default value:
+
+    a["hello"] = 23         // Created if it doesn't exist
+    a["new"] += 1           // Created with 0, or uses existing value
 
 #### Json
 

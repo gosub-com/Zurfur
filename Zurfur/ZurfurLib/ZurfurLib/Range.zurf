@@ -1,33 +1,41 @@
 ﻿use Zurfur
 use Zurfur.Operators
+use Zurfur.Collections
 
 module Zurfur
 
 
-type pub Range<T>(start T, end T)
-    impl GetIterator<T>, OpContains<T>
-    where T is NumOps
+type pub ro passcopy Range<T>
+    where This is GetIterator<T> + OpIn<Range<T>>
+    where T is AddOps
 {
+    @start T pub init get
+    @end T pub init get
+
+    fun pub static op_in(a T, b Range<T>) bool:
+        return a >= b.start && a < b.end
+
     get count() T:
         return end-start
         
     fun pub getIterator() RangeIterator<T>:
         return RangeIter<T>(start, end)
 
-    fun pub contains(value T) bool:
-        return T >= start && T < end
 }
 
-type pub RangeIterator<T>(start T, end T)
-    impl Iterator<T>
-    where T is NumOps
+type pub RangeIterator<T>
+    where This is Iterator<T>
+    where T is AddOps
 {
+    @start T pub init
+    @end T pub init
+    
     get countHint() T:
         return end-start
         
     get next() ?T:
         if start < end:
-            return replace(ref start, start+1)
+            return move(ref start, start+T.One)
         return null
         
 }

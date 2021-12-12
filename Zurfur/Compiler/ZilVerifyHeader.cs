@@ -85,10 +85,12 @@ namespace Gosub.Zurfur.Compiler
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
                     if (!(symbol.Parent is SymMethodGroup))
                         Reject(symbol.Token, "Compiler error: Expecting parent symbol to be method group");
-                    if (symbol.Parent.Parent is SymModule && symbol.Qualifiers.Contains("static"))
-                        Reject(symbol.Token, "Methods in a module may not have the static qualifier");
                     if (symbol.Parent.Parent.Name == "$extension" && !(symbol.Parent.Parent.Parent is SymModule))
                         Reject(symbol.Token, "Extension method must be defined only at the module level");
+
+                    // TBD: Static may appear in extension methods
+                    //if (symbol.Parent.Parent is SymModule && symbol.Qualifiers.Contains("static"))
+                    //    Reject(symbol.Token, "Methods in a module may not have the static qualifier");
                 }
                 else if (symbol is SymMethodParam methodParam)
                 {

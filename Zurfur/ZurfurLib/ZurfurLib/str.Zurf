@@ -2,9 +2,9 @@
 
 /// String is a wrapper for a read only array of bytes with support for UTF8
 type pub ro str = Array<byte>
-    impl OpIndex<int, byte>,
-               OpIndex<Range<int>, Span<byte>>,
-               OpAdd<str, str>
+    where This is OpIndex<int, byte>
+               + OpIndex<Range<int>, Span<byte>>
+               + OpAdd<str, str>
 {
     // NOTE: Much of the implmentation is inherited from Array
     //       and its implicit conversion to Span

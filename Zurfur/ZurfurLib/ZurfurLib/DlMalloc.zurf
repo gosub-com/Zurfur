@@ -33,11 +33,12 @@ use Zurfur
 
 module Zurfur.Internal.Memory
 
-type pub class DlMallocException
-    extends Exception
-{
-    fun pub new(message str) { base(message) }
-}
+
+
+fun DlMallocException(message str)
+    require(false):
+    Debug.Fatal(message)
+    
 
 interface pub DlMallocMem
 {

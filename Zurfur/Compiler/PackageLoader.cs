@@ -271,6 +271,7 @@ namespace Gosub.Zurfur.Compiler
             var ps = new PackageSymbolJson();
             ps.Tags = symbol.Qualifiers.Length == 0 ? null : symbol.Qualifiers;
             ps.Type = symbol.TypeName == "" ? null : symbol.TypeName;
+            ps.Constraints = symbol.Constraints.Count == 0 ? null : symbol.Constraints;
             if (onlyPublic && symbol.Comments != "")
                 ps.Comments = symbol.Comments;
 

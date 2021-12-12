@@ -6,37 +6,32 @@
 
 module Zurfur
 
-type This {}
-
 module Zurfur.Markers
 
 
 
 interface pub Copy { }
 
+/// NOTE: The compiler automatically generates the 'Op'
+///       interfaces if the 'op_' function is defined.
 module Zurfur.Operators
 
-// Define individual operators
+// TBD: Is it OK to have nan==nan for floats?
+// TBD: Is it OK to have nan ordered for floats?
+//      -inf < MinValue < 0 < MaxValue < nan < inf
 
-/// TBD: Is it OK to have nan==nan for floats?
-interface pub OpEquals<Rhs> { fun equals(rhs Rhs) bool impl }
+interface pub OpEq<Rhs> { fun op_eq(rhs Rhs) bool impl }
+interface pub OpCmp<Rhs> where Rhs is OpEq<Rhs>
+{ fun op_cmp(rhs Rhs) int impl }
+interface pub OpIn<Rhs> { fun op_in(rhs Rhs) bool impl }
 
-/// TBD: Is it OK to have nan ordered for floats?
-///      -inf < MinValue < 0 < MaxValue < nan < inf
-interface pub OpCompare<Rhs> impl OpEquals<Rhs>
-{ fun compare(rhs Rhs) int impl }
+interface pub OpAdd<Rhs, Out> { fun op_add(rhs Rhs) Out impl }
+interface pub OpSub<Rhs, Out> { fun op_sub(rhs Rhs) Out impl }
+interface pub OpNeg<Out> { fun op_neg() Out impl }
+interface pub OpMul<Rhs, Out> { fun op_mul(rhs Rhs) Out impl }
+interface pub OpDiv<Rhs, Out> { fun op_div(rhs Rhs) Out impl }
+interface pub OpRem<Rhs, Out> { fun op_rem(rhs Rhs) Out impl }
 
-interface pub OpContains<Lhs> { fun contains(rhs Lhs) bool impl }
-interface pub OpAdd<Rhs, Out> { fun add(rhs Rhs) Out impl }
-interface pub OpSub<Rhs, Out> { fun sub(rhs Rhs) Out impl }
-interface pub OpNeg<Out> { fun neg() Out impl }
-interface pub OpMul<Rhs, Out> { fun mul(rhs Rhs) Out impl }
-interface pub OpDiv<Rhs, Out> { fun div(rhs Rhs) Out impl }
-interface pub OpRem<Rhs, Out> { fun rem(rhs Rhs) Out impl }
-interface pub OpIndex<I, Out> { fun index(i I) Out impl }
-interface pub OpIndex2<I1, I2, Out> { fun index(i1 I1, i2 I2) Out impl }
-interface pub OpIndex3<I1, I2, I3, Out> { fun index(i1 I1, i2 I2, i3 I3) Out impl }
-interface pub OpIndex4<I1, I2, I3, I4, Out> { fun index(i1 I1, i2 I2, i3 I3, i4 I4) Out impl }
 interface pub GetHash { fun getHash() int impl }
 interface pub Drop { fun mut drop(flags int) impl }
 interface pub Clone
@@ -44,16 +39,27 @@ interface pub Clone
     fun mut clone() This impl
 }
 
-/// Define the standard associative math operators operators
-interface pub NumOps impl OpEquals<This,This>, OpCompare<This,This>,
-                            OpAdd<This,This>, OpSub<This,This>,
-                            OpNeg<This>, OpMul<This,This>,
-                            OpDiv<This,This>, OpRem<This,This>
+// Common addition operations
+interface pub AddOps
+    where This is OpEq<This>
+                + OpCmp<This>
+                + OpAdd<This,This>
+                + OpSub<This,This>
+                + OpNeg<This>
 {
-    const MaxValue This
-    const MinValue This
-    const Zero This
-    const One This
+    const MAX This
+    const MIN This
+    const ZERO This
+    const ONE This
+}
+
+/// Common number operations
+interface pub NumOps
+    where This is AddOps
+                + OpMul<This,This>
+                + OpDiv<This,This>
+                + OpRem<This,This>
+{
 }
 
 
