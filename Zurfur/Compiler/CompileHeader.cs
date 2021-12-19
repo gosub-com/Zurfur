@@ -17,7 +17,7 @@ namespace Gosub.Zurfur.Compiler
         public ZilWarn(string message) : base(message) { }
     }
 
-    class ZilGenHeader
+    class CompileHeader
     {
         bool mNoCompilerChecks;
         SymbolTable mSymbols = new SymbolTable();
@@ -30,13 +30,12 @@ namespace Gosub.Zurfur.Compiler
 
         public SymbolTable Symbols => mSymbols;
 
-        public ZilGenHeader()
+        public CompileHeader()
         {
             // Find built in generic types
             foreach (var genericType in "* ^ [ ? ref own mut ro".Split(' '))
                 mUnaryTypeSymbols[genericType] = (SymType)mSymbols.Root.Children[genericType];
         }
-
 
         public bool NoCompilerChecks
         {
@@ -48,25 +47,21 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
-
         public void GenerateHeader(Dictionary<string, SyntaxFile> syntaxFiles)
         {
+            // Find a symbol for the type or module syntax
+            var syntaxScopeToSymbol = new Dictionary<SyntaxScope, Symbol>();
+
             AddModules();
             mSymbols.GenerateLookup();
             var fileUses = ProcessUseStatements();
-
-            // Temporary lookup table to find symbols from syntax
-            var syntaxToSymbol = new Dictionary<object, Symbol>();
-
             AddTypes();
-            AddImpls();
+            ResolveImpls();
 
-            AddFields();
-            AddMethodGroups();
             mSymbols.GenerateLookup();
+            ResolveFields();
+            ResolveMethods();
             ResolveTypeConstraints();
-            ResolveFieldTypes();
-            ResolveMethodGroups();
             mSymbols.GenerateLookup();
             return;
 
@@ -76,165 +71,33 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var ns in syntaxFile.Value.Modules)
                     {
-                        var symbol = AddModule(syntaxFile.Key, ns.Value.Path);
+                        //var symbol = AddModule(ns.Value.Path);
+                        var symbol = AddModule(ns.Value);
                         symbol.Comments += " " + ns.Value.Comments;
-                        // TBD: Accumulate qualifiers so we get "pub"
                     }
                 }
             }
 
-            // Add the module, or return the one we already have
-            Symbol AddModule(string file, Token[] path)
+            Symbol AddModule(SyntaxScope m)
             {
-                var childrenSymbols = mSymbols.Root.Children;
-                Symbol parentSymbol = mSymbols.Root;
-                Symbol newModule = null;
-                foreach (var token in path)
+                if (syntaxScopeToSymbol.TryGetValue(m, out var s1))
+                    return s1;
+                Symbol parent = mSymbols.Root;
+                if (m.ParentScope != null)
+                    parent = AddModule(m.ParentScope);
+                if (parent.Children.TryGetValue(m.Name, out var s2))
                 {
-                    if (childrenSymbols.TryGetValue(token.Name, out var childModule))
-                    {
-                        Debug.Assert(childModule is SymModule);
-                        newModule = childModule;
-                    }
-                    else
-                    {
-                        newModule = new SymModule(parentSymbol, token.Name);
-                        newModule.Qualifiers = sQualifiersPubModule; // TBD: Allow private/internal
-                        token.AddInfo(newModule);
-                        mSymbols.AddOrReject(newModule);
-                    }
-
-                    parentSymbol = newModule;
-                    childrenSymbols = newModule.Children;
+                    syntaxScopeToSymbol[m] = s2;
+                    return s2;
                 }
+                var newModule = new SymModule(parent, m.Name);
+                // TBD: Take qualifiers from module definition (generate error if inconsistent)
+                newModule.Qualifiers = sQualifiersPubModule; 
+                m.Name.AddInfo(newModule);
+                var ok = mSymbols.AddOrReject(newModule);
+                Debug.Assert(ok);
+                syntaxScopeToSymbol[m] = newModule;
                 return newModule;
-            }
-
-            void AddTypes()
-            {
-                foreach (var syntaxFile in syntaxFiles)
-                {
-                    foreach (var type in syntaxFile.Value.Types)
-                    {
-                        if (type.ImplInterface != null || type.ImplType != null)
-                            continue; // Process impl blocks later
-
-                        var newType = new SymType(mSymbols.FindPath(type.ModulePath), syntaxFile.Key, type.Name);
-                        newType.Comments = type.Comments;
-                        newType.Qualifiers = Array.ConvertAll(type.Qualifiers, a => a.Name).ToArray();
-                        newType.Token.AddInfo(newType);
-                        if (mSymbols.AddOrReject(newType))
-                        {
-                            AddTypeParams(newType, type.TypeArgs, syntaxFile.Key, sQualifiersPtype);
-                            syntaxToSymbol[type] = newType;
-                        }
-                    }
-                }
-            }
-
-            void AddTypeParams(Symbol scope, IEnumerable<SyntaxExpr> typeArgs, string file, string[] qualifiers)
-            {
-                foreach (var expr in typeArgs)
-                {
-                    var typeParam = new SymTypeParam(scope, file, expr.Token);
-                    typeParam.Qualifiers = qualifiers;
-                    if (mSymbols.AddOrReject(typeParam))
-                        expr.Token.AddInfo(typeParam);
-                }
-            }
-
-
-            void AddImpls()
-            {
-                foreach (var syntaxFile in syntaxFiles)
-                {
-                    foreach (var type in syntaxFile.Value.Types)
-                    {
-                        if (type.ImplInterface == null || type.ImplType == null)
-                            continue; // Non-imple types already processed
-
-                        var module = mSymbols.FindPath(type.ModulePath);
-                        var implType = ResolveTypeNameOrReject(module, type.ImplType, syntaxFile.Key);
-                        var implInterface = ResolveTypeNameOrReject(module, type.ImplInterface, syntaxFile.Key);
-
-                        if (implType == "" || implInterface == "")
-                        {
-                            Reject(type.Keyword, "'impl' not processed because of error");
-                            continue;
-                        }
-
-                        // TBD: Still not sure how to store these in the symbol table.
-                        var newType = new SymType(mSymbols.FindPath(type.ModulePath),
-                            syntaxFile.Key, type.Name, "$impl:" + implInterface + "::" + implType);
-                        newType.Comments = type.Comments;
-                        newType.Qualifiers = Array.ConvertAll(type.Qualifiers, a => a.Name).ToArray();
-                        newType.Qualifiers = newType.Qualifiers.Append("interface_impl").ToArray();
-                        type.Keyword.AddInfo(newType);
-                        if (mSymbols.AddOrReject(newType))
-                            syntaxToSymbol[type] = newType;
-                    }
-                }
-            }
-
-            void AddFields()
-            {
-                foreach (var syntaxFile in syntaxFiles)
-                {
-                    foreach (var field in syntaxFile.Value.Fields)
-                    {
-                        // TBD: Impl's must not accept regular fields and const
-                        //      fields should be moved to be similar to methods.
-                        //      Maybe convert const fields to get methods
-
-                        if (!syntaxToSymbol.TryGetValue(field.ParentScope, out var symParent))
-                        {
-                            Warning(field.Name, $"Symbol not processed because the parent scope has an error");
-                            continue;
-                        }
-
-                        var newField = new SymField(symParent, syntaxFile.Key, field.Name);
-                        newField.Qualifiers = Array.ConvertAll(field.Qualifiers, a => a.Name).Append("field").ToArray();
-                        newField.Comments = field.Comments;
-                        newField.Token.AddInfo(newField);
-                        mSymbols.AddOrReject(newField);
-                        syntaxToSymbol[field] = newField;
-                    }
-                }
-            }
-
-            void AddMethodGroups()
-            {
-                foreach (var syntaxFile in syntaxFiles)
-                {
-                    foreach (var method in syntaxFile.Value.Methods)
-                    {
-                        Symbol scope;
-                        var parentType = method.ParentScope as SyntaxType;
-                        if (parentType != null && parentType.ImplInterface != null)
-                        {
-                            // TBD: For now these go inside the impl block type.
-                            //      This may be changed to put them at the module level
-
-                            if (!syntaxToSymbol.TryGetValue(parentType, out var implScope))
-                            {
-                                Warning(method.Name, $"Symbol not processed because the parent scope has an error");
-                                continue;
-                            }
-                            scope = implScope;
-                        }
-                        else
-                        {
-                            scope = mSymbols.FindPath(method.ModulePath);
-                        }
-
-                        if (!scope.Children.TryGetValue(method.Name, out var methodGroup))
-                        {
-                            methodGroup = new SymMethodGroup(scope, method.Name.Name);
-                            mSymbols.AddOrReject(methodGroup);
-                        }
-                        syntaxToSymbol[method] = methodGroup;
-                    }
-                }
             }
 
             Dictionary<string, string[]> ProcessUseStatements()
@@ -268,13 +131,154 @@ namespace Gosub.Zurfur.Compiler
                 return uses;
             }
 
+            void AddTypes()
+            {
+                foreach (var syntaxFile in syntaxFiles)
+                {
+                    foreach (var type in syntaxFile.Value.Types)
+                    {
+                        if (type.ImplInterface != null || type.ImplType != null)
+                        {
+                            continue; // Process impl blocks later
+                        }
+
+                        if (!syntaxScopeToSymbol.TryGetValue(type.ParentScope, out var parent))
+                            continue; // Syntax errors
+                        var newType = new SymType(parent, syntaxFile.Key, type.Name);
+                        newType.Comments = type.Comments;
+                        newType.Qualifiers = Array.ConvertAll(type.Qualifiers, a => a.Name).ToArray();
+                        newType.Token.AddInfo(newType);
+                        if (mSymbols.AddOrReject(newType))
+                            AddTypeParams(newType, type.TypeArgs, syntaxFile.Key, sQualifiersPtype);
+                        syntaxScopeToSymbol[type] = newType;
+                    }
+                }
+            }
+
+            void AddTypeParams(Symbol scope, IEnumerable<SyntaxExpr> typeArgs, string file, string[] qualifiers)
+            {
+                foreach (var expr in typeArgs)
+                {
+                    var typeParam = new SymTypeParam(scope, file, expr.Token);
+                    typeParam.Qualifiers = qualifiers;
+                    if (mSymbols.AddOrReject(typeParam))
+                        expr.Token.AddInfo(typeParam);
+                }
+            }
+
+            // Impls go into a method group called $impl, and are
+            // functions that take the interface and type as parameters.
+            void ResolveImpls()
+            {
+                foreach (var syntaxFile in syntaxFiles)
+                {
+                    foreach (var type in syntaxFile.Value.Types)
+                    {
+                        var implType = type.ImplType();
+                        if (implType == null)
+                            continue;
+                        var scope = syntaxScopeToSymbol[type.ParentScope];
+                        ResolveImpl(scope, implType, syntaxFile.Key);
+                    }
+                }
+            }
+
+            void ResolveImpl(Symbol scope, SyntaxType implSyntax, string file)
+            {
+                // Only process the impl block once
+                if (syntaxScopeToSymbol.TryGetValue(implSyntax, out var tryFindImplMethodBlock))
+                    return;
+
+                var implTypeName = ResolveTypeNameOrReject(scope, implSyntax.ImplType, file);
+                var implInterfaceName = ResolveTypeNameOrReject(scope, implSyntax.ImplInterface, file);
+                if (implTypeName == "" || implInterfaceName == "")
+                {
+                    Reject(implSyntax.Name, "Error in impl block");
+                    return;
+                }
+
+                // Get or create $impl method group
+                if (!scope.Children.TryGetValue("$impl", out var implMethodGroup))
+                {
+                    implMethodGroup = new SymMethodGroup(scope, file, implSyntax.Keyword, "$impl");
+                    var ok = mSymbols.AddOrReject(implMethodGroup);
+                    Debug.Assert(ok);
+                }
+                var implMethod = new SymMethod(implMethodGroup, file, implSyntax.Keyword,
+                                        $"({implInterfaceName},{implTypeName})()");
+                if (implMethodGroup.Children.ContainsKey(implMethod.Name))
+                {
+                    Reject(implSyntax.Name, "Duplicate impl block");
+                    return;
+                }
+                var ok2 = mSymbols.AddOrReject(implMethod);
+                Debug.Assert(ok2);
+                var p1 = new SymMethodParam(implMethod, file, implSyntax.Keyword, "$interface", false);
+                p1.TypeName = implInterfaceName;
+                mSymbols.AddOrReject(p1);
+                var p2 = new SymMethodParam(implMethod, file, implSyntax.Keyword, "$this", false);
+                p2.TypeName = implTypeName;
+                mSymbols.AddOrReject(p2);
+                syntaxScopeToSymbol[implSyntax] = implMethod;
+            }
+
+            void ResolveFields()
+            {
+                foreach (var syntaxFile in syntaxFiles)
+                {
+                    foreach (var field in syntaxFile.Value.Fields)
+                    {
+                        // TBD: Impl's must not accept regular fields and const
+                        //      fields should be moved to be similar to methods.
+                        //      Maybe convert const fields to get methods
+
+                        if (field.ParentScope.ImplType() != null)
+                        {
+                            // TBD: Need to process const impl
+                            // Convert to get method
+                            Warning(field.Token, "Const fields not yet converted to get method");
+                            continue;
+                        }
+
+                        if (!syntaxScopeToSymbol.TryGetValue(field.ParentScope, out var symParent))
+                        {
+                            Reject(field.Name, $"Symbol not processed because the parent scope has an error");
+                            continue;
+                        }
+
+                        // Create the field
+                        var symField = new SymField(symParent, syntaxFile.Key, field.Name);
+                        symField.Qualifiers = Array.ConvertAll(field.Qualifiers, a => a.Name).Append("field").ToArray();
+                        symField.Comments = field.Comments;
+                        symField.Token.AddInfo(symField);
+                        mSymbols.AddOrReject(symField);
+
+                        if (field.ParentScope != null && field.ParentScope.Keyword == "enum")
+                        {
+                            // Enum feilds have their parent enum type
+                            symField.TypeName = symField.Parent.FullName;
+                            continue;
+                        }
+                        // Skip errors, user probably typing
+                        if (field.TypeName == null || field.TypeName.Token.Name == "")
+                        {
+                            Reject(field.Name, "Expecting symbol to have an explicitly named type");
+                            continue;
+                        }
+                        symField.TypeName = ResolveTypeNameOrReject(symField, field.TypeName, syntaxFile.Key);
+                        if (symField.TypeName == "" && !NoCompilerChecks)
+                            symField.Token.AddInfo(new VerifySuppressError());
+                    }
+                }
+            }
+
             void ResolveTypeConstraints()
             {
                 foreach (var syntaxFile in syntaxFiles)
                 {
                     foreach (var type in syntaxFile.Value.Types)
                     {
-                        var module = mSymbols.FindPath(type.ModulePath);
+                        var module = syntaxScopeToSymbol[type.ParentScope];
                         if (!module.Children.TryGetValue(type.Name, out var symbol))
                             continue; // Syntax error already marked
                         if (symbol is SymType symType)
@@ -351,52 +355,42 @@ namespace Gosub.Zurfur.Compiler
                 scope.Constraints = symCon;
             }
 
-
-            void ResolveFieldTypes()
-            {
-                foreach (var syntaxFile in syntaxFiles)
-                {
-                    foreach (var field in syntaxFile.Value.Fields)
-                    {
-                        if (!syntaxToSymbol.TryGetValue(field, out var symbol)
-                                || !(symbol is SymField symField))
-                            continue;  // Warning given by AddFields
-
-                        if (field.ParentScope != null && field.ParentScope.Keyword == "enum")
-                        {
-                            // The feild has it's parent enumeration type
-                            symField.TypeName = symField.Parent.FullName;
-                            continue;
-                        }
-                        // Skip errors, user probably typing
-                        if (field.TypeName == null || field.TypeName.Token.Name == "")
-                        {
-                            Reject(field.Name, "Expecting symbol to have an explicitly named type");
-                            continue;
-                        }
-                        symField.TypeName = ResolveTypeNameOrReject(symField, field.TypeName, syntaxFile.Key);
-                        if (symField.TypeName == "" && !NoCompilerChecks)
-                            symField.Token.AddInfo(new VerifySuppressError());
-                    }
-                }
-            }
-
-            void ResolveMethodGroups()
+            void ResolveMethods()
             {
                 foreach (var syntaxFile in syntaxFiles)
                 {
                     foreach (var method in syntaxFile.Value.Methods)
                     {
-                        var groupScope = syntaxToSymbol[method] as SymMethodGroup;
-                        if (groupScope == null)
-                            continue;  // // Warning given by AddMethodGroups
+                        Symbol scope;
+                        var parentType = method.ParentScope as SyntaxType;
+                        if (parentType != null && parentType.ImplInterface != null)
+                        {
+                            // IMPL methods get lifted into the containing module
+                            if (!syntaxScopeToSymbol.TryGetValue(method.ParentScope.ParentScope, out scope))
+                                continue; // Syntax errors
+                        }
+                        else
+                        {
+                            // NON IMPL methods go into parent type or module
+                            if (!syntaxScopeToSymbol.TryGetValue(method.ParentScope, out scope))
+                                continue; // Syntax errors
+                        }
 
-                        ResolveMethodTypes(groupScope, method, syntaxFile.Key);
+                        if (!scope.Children.TryGetValue(method.Name, out var methodGroup))
+                        {
+                            methodGroup = new SymMethodGroup(scope, syntaxFile.Key, method.Name);
+                            var ok = mSymbols.AddOrReject(methodGroup);
+                            Debug.Assert(ok);
+                        }
+                        if (methodGroup is SymMethodGroup group)
+                            ResolveMethod(group, method, syntaxFile.Key);
+                        else
+                            Reject(method.Name, $"There is already a {methodGroup.Kind} with that name");
                     }
                 }
             }
 
-            void ResolveMethodTypes(SymMethodGroup scope, SyntaxFunc func, string file)
+            void ResolveMethod(SymMethodGroup scope, SyntaxFunc func, string file)
             {
                 if (func.MethodSignature.Count != 3)
                 {
@@ -405,44 +399,18 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 // Give each function a unique name (final name calculated below)
-                var method = new SymMethod(scope, file, func.Name,  $"$LOADING...${scope.Children.Count}");
+                var method = new SymMethod(scope, file, func.Name, $"$LOADING...${scope.Children.Count}");
                 method.Qualifiers = Array.ConvertAll(func.Qualifiers, a => a.Name).Append("method").ToArray();
                 method.Comments = func.Comments;
 
                 AddTypeParams(method, func.TypeArgs, file, sQualifiersPtype);
-
-                // Add first parameter for extension types and non-static members
-                var isExtension = func.ExtensionType != null && func.ExtensionType.Token != "";
-                var parentType = scope.Parent as SymType;
-                if (isExtension
-                    || parentType != null && !method.Qualifiers.Contains("static"))
-                {
-                    // First parameter is "$this"
-                    var methodParam = new SymMethodParam(method, file, func.Name, "$this", false);
-                    methodParam.Qualifiers = sQualifiersParam;
-                    if (isExtension)
-                    {
-                        methodParam.TypeName = ResolveTypeNameOrReject(methodParam, func.ExtensionType, file);
-                        Array.Resize(ref method.Qualifiers, method.Qualifiers.Length + 1);
-                        method.Qualifiers[method.Qualifiers.Length - 1] = "extension";
-                    }
-                    else
-                    {
-                        methodParam.TypeName = AddOuterGenericParameters(parentType, parentType).ToString();
-                    }
-                    if (methodParam.TypeName == "" && !NoCompilerChecks)
-                        methodParam.Token.AddInfo(new VerifySuppressError());
-                    var ok = mSymbols.AddOrReject(methodParam);
-                    Debug.Assert(ok); // Unique first param
-                }
-
-
-                // Resolve method parameters and returns (TBD: error/exit specifier)
+                AddImplParams(method, func, file);
+                AddThisParam(scope, func, file, method);
                 ResolveMethodParams(file, method, func.MethodSignature[0], false); // Parameters
                 ResolveMethodParams(file, method, func.MethodSignature[1], true);  // Returns
 
                 method.Token.AddInfo(method);
-                var scopeParent = func.ModulePath[func.ModulePath.Length - 1];
+                var scopeParent = func.ParentScope.Name;
                 if (scopeParent.Error)
                 {
                     Warning(func.Token, $"Symbol not processed because '{scopeParent}' has an error");
@@ -465,6 +433,57 @@ namespace Gosub.Zurfur.Compiler
                 mSymbols.AddOrReject(method);
 
                 ResolveConstraints(method, func.Constraints, file);
+            }
+
+            void AddImplParams(SymMethod method, SyntaxFunc func, string file)
+            {
+                if (func.ParentScope.ImplType() == null)
+                    return;
+
+                if (!syntaxScopeToSymbol.TryGetValue(func.ParentScope, out var implBlock))
+                {
+                    Reject(func.Name, "Error in impl block");
+                    return;
+                }
+
+                var p1 = new SymMethodParam(method, file, func.Name, "$interface", false);
+                p1.TypeName = implBlock.Children["$interface"].TypeName;
+                p1.Qualifiers = sQualifiersParam;
+                mSymbols.AddOrReject(p1);
+
+                var p2 = new SymMethodParam(method, file, func.Name, "$this", false);
+                p2.TypeName = implBlock.Children["$this"].TypeName;
+                p2.Qualifiers = sQualifiersParam;
+                mSymbols.AddOrReject(p2);
+            }
+
+            // Add $this parameter for extension methods and members
+            // NOTE: Even static methods get $this, but it is used as a
+            //       type name and not passed as a parameter
+            void AddThisParam(SymMethodGroup scope, SyntaxFunc func, string file, SymMethod method)
+            {
+                var parentType = scope.Parent as SymType;
+                var isExtension = func.ExtensionType != null && func.ExtensionType.Token != "";
+                if (isExtension || parentType != null)
+                {
+                    // First parameter is "$this"
+                    var methodParam = new SymMethodParam(method, file, func.Name, "$this", false);
+                    methodParam.Qualifiers = sQualifiersParam;
+                    if (isExtension)
+                    {
+                        methodParam.TypeName = ResolveTypeNameOrReject(methodParam, func.ExtensionType, file);
+                        Array.Resize(ref method.Qualifiers, method.Qualifiers.Length + 1);
+                        method.Qualifiers[method.Qualifiers.Length - 1] = "extension";
+                    }
+                    else
+                    {
+                        methodParam.TypeName = AddOuterGenericParameters(parentType, parentType).ToString();
+                    }
+                    if (methodParam.TypeName == "" && !NoCompilerChecks)
+                        methodParam.Token.AddInfo(new VerifySuppressError());
+                    var ok = mSymbols.AddOrReject(methodParam);
+                    Debug.Assert(ok); // Unique first param
+                }
             }
 
             void ResolveMethodParams(string file, SymMethod method, SyntaxExpr parameters, bool isReturn)

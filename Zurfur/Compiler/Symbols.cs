@@ -21,12 +21,12 @@ namespace Gosub.Zurfur.Compiler
     ///     #   Generic argument (followed by argument number)
     ///     ()  Method parameters
     ///     <>  Generic parameters
-    ///     $   Special symbol, e.g. $this, $extension, etc.
+    ///     $   Special symbol, e.g. $this, $impl, etc.
     ///    
     /// Sepecial symbols (prefixed with $):
-    ///     $this        Implicit extension/member method parameter
-    ///     $return      Implicit return parameter name
-    ///     $extension   Extension type (container for extension methods)
+    ///     $impl       Implicit implementation type
+    ///     $this       Implicit extension/member method parameter
+    ///     $return     Implicit return parameter name
     /// </summary>
     abstract class Symbol
     {
@@ -82,10 +82,24 @@ namespace Gosub.Zurfur.Compiler
             => this is SymType && Qualifiers.Contains("interface")
                 || this is SymSpecializedType && Parent is SymType && Parent.Qualifiers.Contains("interface");
 
+        public bool IsExtension
+            => Qualifiers.Contains("extension");
+
+        public bool IsConst
+            => Qualifiers.Contains("const");
+
+        public bool IsModule
+            => this is SymModule;
+
+        public bool IsImplGroup
+            => FullName.Contains("$impl");
+
+        public bool IsStatic
+            => Qualifiers.Contains("static");
+
         /// <summary>
         /// Source code token if it exists.  Throws an exception for
-        /// SymMethodGroup, SymSpecializedType, SymModule and built
-        /// in SymType's like "$extension" and "ref"
+        /// SymMethodGroup, SymSpecializedType, SymModule
         /// </summary>
         public Token Token
         {
@@ -102,8 +116,7 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Source code token if it exists.  Throws an exception for
-        /// SymMethodGroup, SymSpecializedType, SymModule and built
-        /// in SymType's like "$extension" and "ref"
+        /// SymMethodGroup, SymSpecializedType, SymModule
         /// </summary>
         public string File
         {
@@ -140,7 +153,7 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Create a symbol that is non-existent or not unique in the source
         /// code (e.g. SymMethodGroup, SymSpecializedType, SymModule,
-        /// and built-in types like "$extension", "ref", "*", etc.)
+        /// and built-in types like "ref", "*", etc.)
         /// </summary>
         public Symbol(Symbol parent, string name)
         {
@@ -312,7 +325,7 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     class SymMethodGroup : Symbol
     {
-        public SymMethodGroup(Symbol parent, string name) : base(parent, name) { }
+        public SymMethodGroup(Symbol parent, string file, Token token, string name = null) : base(parent, file, token, name) { }
         public override string Kind => "method group";
         protected override string Separator => ".";
 

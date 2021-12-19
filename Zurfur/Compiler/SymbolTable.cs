@@ -203,8 +203,6 @@ namespace Gosub.Zurfur.Compiler
             return spec;
         }
 
-
-
         /// <summary>
         /// Returns the symbol at the given path in the package.  Generates exception if not found.
         /// </summary>

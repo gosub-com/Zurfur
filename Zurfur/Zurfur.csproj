@@ -56,9 +56,9 @@
     <Compile Include="Compiler\PackageLoader.cs" />
     <Compile Include="Compiler\Symbols.cs" />
     <Compile Include="Compiler\ZilReport.cs" />
-    <Compile Include="Compiler\ZilVerifyHeader.cs" />
+    <Compile Include="Compiler\VerifyHeader.cs" />
     <Compile Include="Lexer\ScanZurf.cs" />
-    <Compile Include="Compiler\ZilGenHeader.cs" />
+    <Compile Include="Compiler\CompileHeader.cs" />
     <Compile Include="Compiler\SymbolTable.cs" />
     <Compile Include="Compiler\ParseZurfCheck.cs" />
     <Compile Include="Ide\IEditor.cs" />

@@ -44,7 +44,7 @@ namespace Gosub.Zurfur.Compiler
 
         string mModuleBaseStr = "";
         string[] mModuleBasePath = Array.Empty<string>();
-        Token[] mModulePath = Array.Empty<Token>();
+        List<SyntaxScope> mScopeStack = new List<SyntaxScope>();
         SyntaxFile mSyntax;
 
         public int ParseErrors => mParseErrors;
@@ -209,7 +209,7 @@ namespace Gosub.Zurfur.Compiler
                 Accept();
                 while (mTokenName != "")
                 {
-                    ParseScopeStatements(null);
+                    ParseScopeStatements(true);
                     if (mTokenName != "")
                     {
                         RejectToken(mToken, "Unexpected symbol at top level scope");
@@ -243,9 +243,8 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Parse using, module, type, fun, etc.
         /// </summary>
-        void ParseScopeStatements(SyntaxScope parentScope)
+        void ParseScopeStatements(bool topScope)
         {
-            bool topScope = parentScope == null;
             var qualifiers = new List<Token>();
             Token alignment = null;
             while (mTokenName != "" && (mTokenName != "}" || topScope))
@@ -303,7 +302,7 @@ namespace Gosub.Zurfur.Compiler
                     case "module":
                         mToken.Type = eTokenType.ReservedControl;
                         Accept();
-                        if (parentScope != null)
+                        if (!topScope)
                             RejectToken(keyword, "'module' statement must not be inside a type");
                         ParseModuleStatement(keyword);
                         break;
@@ -320,7 +319,7 @@ namespace Gosub.Zurfur.Compiler
                             ParseQualifiers(sInterfaceQualifiers, qualifiers);
                         else if (keyword.Name == "enum")
                             ParseQualifiers(sEnumQualifiers, qualifiers);
-                        ParseTypeScope(keyword, parentScope, qualifiers);
+                        ParseTypeScope(keyword, qualifiers);
                         break;
 
                     case "get":
@@ -332,26 +331,26 @@ namespace Gosub.Zurfur.Compiler
                         mToken.Type = eTokenType.ReservedControl;
                         qualifiers.Add(Accept());
                         ParseQualifiers(sMethodQualifiers, qualifiers);
-                        AddMethod(ParseMethod(keyword, parentScope, qualifiers));
+                        AddMethod(ParseMethod(keyword, qualifiers));
                         break;
 
                     case "@":
-                        ParseFieldFull(Accept(), parentScope, qualifiers);
+                        ParseFieldFull(Accept(), qualifiers);
                         break;
 
                     case "const":
                         mToken.Type = eTokenType.ReservedControl;
                         qualifiers.Add(Accept());
                         ParseQualifiers(sConstQualifiers, qualifiers);
-                        AddField(ParseFieldSimple(parentScope, qualifiers));
+                        AddField(ParseFieldSimple(qualifiers));
                         break;
 
                     default:
-                        if (parentScope != null && parentScope.Keyword == "enum" && keyword.Type == eTokenType.Identifier)
+                        if (mScopeStack.Count != 0 && mScopeStack.Last().Keyword == "enum" && keyword.Type == eTokenType.Identifier)
                         {
                             // For enum, assume the first identifier is a field
                             Accept();
-                            AddField(ParseEnumField(parentScope, qualifiers, keyword));
+                            AddField(ParseEnumField(qualifiers, keyword));
                         }
                         else
                         {
@@ -432,22 +431,31 @@ namespace Gosub.Zurfur.Compiler
             if (namePath.Count == 0)
                 return; // Rejected above
 
-            // Check for file module prefix
-            for (int i = 0; i < Math.Min(namePath.Count, mModuleBasePath.Length); i++)
+            bool scopeAdded = false;
+            for (int i = 0;  i <  namePath.Count;  i++)
             {
-                if (namePath[i].Name != mModuleBasePath[i])
+                // Match base path
+                if (i < mModuleBasePath.Length)
                 {
-                    RejectToken(namePath[i], "Expecting module name to start with '" + mModuleBaseStr + "'");
+                    if (namePath[i] != mModuleBasePath[i])
+                    {
+                        RejectToken(namePath[i], "Expecting module name to start with '" + mModuleBaseStr + "'");
+                        return;
+                    }
+                    continue;
                 }
+                scopeAdded = true;
+                if (i < mScopeStack.Count)
+                    mScopeStack.RemoveRange(i, mScopeStack.Count-i);
+                mScopeStack.Add(new SyntaxModule(keyword, namePath[i], i == 0 ? null : mScopeStack[i-1]));
             }
-            // Reject if not full prefix
-            if (namePath.Count < mModuleBasePath.Length)
+            if (!scopeAdded)
             {
-                RejectToken(namePath[namePath.Count-1], "Expecting module name to start with '" + mModuleBaseStr + "'");
+                RejectToken(namePath[namePath.Count - 1], "Expecting module name to be longer than '" + mModuleBaseStr + "'");
+                return;
             }
 
             // Collect base module name
-            mModulePath = namePath.ToArray();
             var namePathStrArray = namePath.ConvertAll(token => token.Name).ToArray();
             var namePathStr = string.Join(".", namePathStrArray);
             if (mModuleBasePath.Length == 0)
@@ -455,15 +463,12 @@ namespace Gosub.Zurfur.Compiler
                 mModuleBasePath = namePathStrArray;
                 mModuleBaseStr = namePathStr;
             }
-            if (!mSyntax.Modules.TryGetValue(namePathStr, out var ns))
-            {
-                ns = new SyntaxModule();
-                mSyntax.Modules[namePathStr] = ns;
-            }
+            var module = (SyntaxModule)mScopeStack[mScopeStack.Count - 1];
+            mSyntax.Modules[namePathStr] = module;
+
             // Accumulate comments and keyword tokens for this module
-            ns.Comments += " " + mComments;
+            module.Comments += " " + mComments;
             mComments.Clear();
-            ns.Path = namePath.ToArray();
         }
 
         void ParsePragma()
@@ -492,12 +497,11 @@ namespace Gosub.Zurfur.Compiler
             Accept();
         }
 
-        void ParseTypeScope(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
+        void ParseTypeScope(Token keyword, List<Token> qualifiers)
         {
             var synClass = new SyntaxType(keyword);
             synClass.Qualifiers = qualifiers.ToArray();
-            synClass.ParentScope = parentScope;
-            synClass.ModulePath = mModulePath;
+            synClass.ParentScope = mScopeStack.Count == 0 ? null : mScopeStack.Last();
             synClass.Comments = mComments.ToString();
             mComments.Clear();
 
@@ -532,10 +536,9 @@ namespace Gosub.Zurfur.Compiler
             RejectUnderscoreDefinition(synClass.Name);
 
             // Push new path
-            var oldPath = mModulePath;
-            var namePath = new List<Token>(mModulePath);
-            namePath.Add(synClass.Name);
-            mModulePath = namePath.ToArray();
+            var oldScopeStack = mScopeStack;
+            mScopeStack = new List<SyntaxScope>(oldScopeStack);
+            mScopeStack.Add(synClass);
 
             // Simple class or struct
             if (AcceptMatch("("))
@@ -544,7 +547,7 @@ namespace Gosub.Zurfur.Compiler
                 var open = mPrevToken;
                 do
                 {
-                    var simpleField = ParseFieldSimple(synClass, new List<Token>());
+                    var simpleField = ParseFieldSimple(new List<Token>());
                     if (simpleField != null)
                     {
                         simpleField.Simple = true;
@@ -553,7 +556,7 @@ namespace Gosub.Zurfur.Compiler
                 } while (AcceptMatch(","));
                 if (AcceptMatchOrReject(")"))
                     Connect(mPrevToken, open);
-                mModulePath = oldPath;
+                mScopeStack = oldScopeStack;
                 return;
             }
 
@@ -568,7 +571,7 @@ namespace Gosub.Zurfur.Compiler
             if (AcceptMatchPastMetaSemicolon("{"))
             {
                 var openToken = mPrevToken;
-                ParseScopeStatements(synClass);
+                ParseScopeStatements(false);
 
                 bool error = false;
                 if (AcceptMatchOrReject("}", "Expecting '}' while parsing " + synClass.Keyword.Name + " body of '" + synClass.Name + "'"))
@@ -590,7 +593,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Restore old path
-            mModulePath = oldPath;
+            mScopeStack = oldScopeStack;
         }
 
         private SyntaxConstraint[] ParseConstraints()
@@ -629,7 +632,7 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Current token must already be checked for validity
         /// </summary>
-        SyntaxField ParseFieldSimple(SyntaxScope parentScope, List<Token> qualifiers)
+        SyntaxField ParseFieldSimple(List<Token> qualifiers)
         {
             if (!AcceptIdentifier("Expecting field name"))
                 return null;
@@ -638,8 +641,7 @@ namespace Gosub.Zurfur.Compiler
             RejectUnderscoreDefinition(newVarName);
 
             var field = new SyntaxField(newVarName);
-            field.ParentScope = parentScope;
-            field.ModulePath = mModulePath;
+            field.ParentScope = mScopeStack.Count == 0 ? null : mScopeStack.Last();
             field.Qualifiers = qualifiers.ToArray();
             field.Comments = mComments.ToString();
             mComments.Clear();
@@ -653,7 +655,7 @@ namespace Gosub.Zurfur.Compiler
             return field;
         }
 
-        private void ParseFieldFull(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
+        private void ParseFieldFull(Token keyword, List<Token> qualifiers)
         {
             // Variable name
             if (!AcceptIdentifier("Expecting field name"))
@@ -686,8 +688,7 @@ namespace Gosub.Zurfur.Compiler
                 initializer = new SyntaxUnary(Accept(), ParseRightSideOfAssignment());
 
             var field = new SyntaxField(newVarName);
-            field.ParentScope = parentScope;
-            field.ModulePath = mModulePath;
+            field.ParentScope = mScopeStack.Count == 0 ? null : mScopeStack.Last();
             field.Qualifiers = qualifiers.ToArray();
             field.Comments = mComments.ToString();
             mComments.Clear();
@@ -700,11 +701,10 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Current token must already be checked for validity
         /// </summary>
-        SyntaxField ParseEnumField(SyntaxScope parentScope, List<Token> qualifiers, Token name)
+        SyntaxField ParseEnumField(List<Token> qualifiers, Token name)
         {
             var field = new SyntaxField(name);
-            field.ParentScope = parentScope;
-            field.ModulePath = mModulePath;
+            field.ParentScope = mScopeStack.Count == 0 ? null : mScopeStack.Last();
             field.Qualifiers = qualifiers.ToArray();
             field.Comments = mComments.ToString();
             mComments.Clear();
@@ -723,12 +723,11 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Function or property
         /// </summary>
-        SyntaxFunc ParseMethod(Token keyword, SyntaxScope parentScope, List<Token> qualifiers)
+        SyntaxFunc ParseMethod(Token keyword, List<Token> qualifiers)
         {
             // Parse func keyword
             var synFunc = new SyntaxFunc(keyword);
-            synFunc.ParentScope = parentScope;
-            synFunc.ModulePath = mModulePath;
+            synFunc.ParentScope = mScopeStack.Count == 0 ? null : mScopeStack.Last();
             synFunc.Comments = mComments.ToString();
             mComments.Clear();
 
@@ -1182,7 +1181,7 @@ namespace Gosub.Zurfur.Compiler
                     var qualifiers = new List<Token>() { Accept() };
                     keyword.Type = eTokenType.ReservedControl;  // Fix keyword to make it control
                     keyword.AddWarning("Local function not processed yet");
-                    var synFunc = ParseMethod(keyword, null, qualifiers);
+                    var synFunc = ParseMethod(keyword, qualifiers);
                     //if (synFunc != null)
                     //    statements.Add(synFunc);
                     break;

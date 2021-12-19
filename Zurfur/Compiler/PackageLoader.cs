@@ -120,7 +120,7 @@ namespace Gosub.Zurfur.Compiler
                 // Find or create group
                 if (!symbol.Children.TryGetValue(name, out var group))
                 {
-                    group = new SymMethodGroup(symbol, name);
+                    group = new SymMethodGroup(symbol, "", new Token(name), name);
                     table.AddOrReject(group);
                 }
                 // Reconstruct method name

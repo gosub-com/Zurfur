@@ -341,11 +341,11 @@ namespace Gosub.Zurfur.Compiler
 
             // TBD: This needs to move to a background thread, but it can't
             // until we clone everything (Lexer, parse tree, etc.)
-            var zil = new ZilGenHeader();
+            var zil = new CompileHeader();
             zil.NoCompilerChecks = noCompilerChecks;
             zil.GenerateHeader(zurfFiles);
             if (!noVerify)
-                ZilVerifyHeader.VerifyHeader(zil.Symbols);
+                VerifyHeader.Verify(zil.Symbols);
 
             var dtCompile = DateTime.Now;
 

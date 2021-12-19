@@ -303,6 +303,11 @@ namespace Gosub.Zurfur.Ide
                 return "";
 
             var symbol = symbols[0];
+            if (symbol.Qualifiers.Length != 0)
+            {
+                message += "[" + string.Join(", ", symbol.Qualifiers) + "]\r\n";
+            }
+
             if (symbol is SymField symField)
             {
                 message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
@@ -330,10 +335,6 @@ namespace Gosub.Zurfur.Ide
             else
             {
                 message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
-            }
-            if (symbol.Qualifiers.Length != 0)
-            {
-                message += "TAGS: " + string.Join(", ", symbol.Qualifiers) + "\r\n";
             }
 
             // Comments

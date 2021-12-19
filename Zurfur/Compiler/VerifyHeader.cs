@@ -27,7 +27,7 @@ namespace Gosub.Zurfur.Compiler
     // the symbol it has access to, such as the field or parameter, whereas
     // the compiler can show an error directly at the type name token that
     // failed).
-    class ZilVerifyHeader
+    class VerifyHeader
     {
 
         /// <summary>
@@ -54,8 +54,14 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         static SuppressErrorMode sSuppressErrors = SuppressErrorMode.Ignore;
 
-        public static void VerifyHeader(SymbolTable symbols)
+        public static void Verify(SymbolTable symbols)
         {
+            // TBD: What we really want to do is clear the lookup table
+            //      and regenerate it along with SymSpecializedType's.
+            //      The regeneration will have to happen when loading
+            //      pre-compiled packages, so it will be done eventually.
+            //      For now, we will use the compiler generated output.
+
             foreach (var symbol in symbols.Symbols)
             {
                 if (symbol.Name == "")
@@ -85,7 +91,7 @@ namespace Gosub.Zurfur.Compiler
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
                     if (!(symbol.Parent is SymMethodGroup))
                         Reject(symbol.Token, "Compiler error: Expecting parent symbol to be method group");
-                    if (symbol.Parent.Parent.Name == "$extension" && !(symbol.Parent.Parent.Parent is SymModule))
+                    if (symbol.IsExtension && !(symbol.Parent.Parent is SymModule))
                         Reject(symbol.Token, "Extension method must be defined only at the module level");
 
                     // TBD: Static may appear in extension methods
@@ -97,16 +103,27 @@ namespace Gosub.Zurfur.Compiler
                     if (symbol.Name == symbol.Parent.Parent.Name)
                         Reject(symbol.Token, "Most not be same name as method");
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
-                    CheckType(methodParam.Token, methodParam.TypeName);
+                    CheckTypeName(methodParam.Token, methodParam.TypeName);
                 }
                 else if (symbol is SymField field)
                 {
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent);
-                    CheckType(field.Token, field.TypeName);
+                    CheckTypeName(field.Token, field.TypeName);
+                }
+                else if (symbol is SymType t)
+                {
+                    if (t.FullName.Contains("$impl"))
+                    {
+                        // These would be compiler errors
+                        if (!t.Parent.IsModule)
+                            Reject(t.Token, "impl blocks must be at the module level");
+                        foreach (var child in t.Children.Values)
+                            Reject(child.Token, "impl blocks may not contain children");
+                    }
                 }
             }
 
-            void CheckType(Token token, string typeName)
+            void CheckTypeName(Token token, string typeName)
             {
                 var s = symbols.Lookup(typeName);
                 if (s == null)
@@ -136,9 +153,9 @@ namespace Gosub.Zurfur.Compiler
                     if (genericParams != genericArgs)
                         Reject(token, $"The type '{typeName}' requires {genericParams} generic type parameters, but {genericArgs} were supplied");
                     foreach (var t in ptype.Params)
-                        CheckType(token, t.FullName);
+                        CheckTypeName(token, t.FullName);
                     foreach (var t in ptype.Returns)
-                        CheckType(token, t.FullName);
+                        CheckTypeName(token, t.FullName);
                 }
             }
 
@@ -163,6 +180,9 @@ namespace Gosub.Zurfur.Compiler
             //      as members, etc.)
             void RejectIllegalOverloads(SymMethodGroup methodGroup)
             {
+                if (methodGroup.IsImplGroup)
+                    return;  // TBD: Need to check impl method blocks
+
                 bool hasNonMethod = false;
                 bool hasStatic = false;
                 bool hasNonStatic = false;
@@ -176,7 +196,7 @@ namespace Gosub.Zurfur.Compiler
                         hasNonMethod = true;
                         continue;
                     }
-                    if (child.Qualifiers.Contains("static"))
+                    if (child.IsStatic)
                         hasStatic = true;
                     else
                         hasNonStatic = true;

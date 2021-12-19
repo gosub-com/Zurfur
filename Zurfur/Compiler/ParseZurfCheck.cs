@@ -74,7 +74,7 @@ namespace Gosub.Zurfur.Compiler
 
                 var keyword = aClass.Keyword;
                 var outerKeyword = aClass.ParentScope == null ? "" : aClass.ParentScope.Keyword;
-                if (aClass.ModulePath.Length == 0)
+                if (aClass.ParentScope == null)
                     mParser.RejectToken(keyword, "The module name must be defined before the " + keyword);
                 if (outerKeyword != "" && outerKeyword == "enum")
                     mParser.RejectToken(keyword, "Types may not be nested inside an enum");
@@ -97,7 +97,7 @@ namespace Gosub.Zurfur.Compiler
 
                 var keyword = func.Keyword;
                 var outerKeyword = func.ParentScope == null ? "" : func.ParentScope.Keyword;
-                if (func.ModulePath.Length == 0)
+                if (func.ParentScope == null)
                     mParser.RejectToken(keyword, "The module name must be defined before method");
              
                 switch (keyword)

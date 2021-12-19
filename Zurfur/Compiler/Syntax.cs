@@ -51,7 +51,6 @@ namespace Gosub.Zurfur.Compiler
 
         public Token Keyword => Token; // class, struct, func, prop, blank for field, etc.
         public SyntaxScope ParentScope;
-        public Token[] ModulePath;    // TBD: Eventually remove this
         public string Comments;
         public Token[] Qualifiers;
         public Token Name;
@@ -60,16 +59,33 @@ namespace Gosub.Zurfur.Compiler
         {
             get
             {
-                return string.Join(".", Array.ConvertAll(ModulePath, t=>t.Name)) + ":" + Name;
+                return ParentScope == null ? Name : ParentScope.FullName + "." + Name;
             }
         }
         public override string ToString() => FullName;
+
+        /// <summary>
+        /// Returns the impl type if both ImplInterface and
+        /// ImplType are valid, otherwise returns null.
+        /// </summary>
+        public SyntaxType ImplType()
+        {
+            if (!(this is SyntaxType implSyntax))
+                return null;
+            if (implSyntax.ImplInterface == null || implSyntax.ImplType == null)
+                return null;
+            return implSyntax;
+        }
     }
 
-    class SyntaxModule
+    class SyntaxModule : SyntaxScope
     {
-        public Token[] Path;
-        public string Comments = "";
+        public SyntaxModule(Token keyword, Token name, SyntaxScope parent)
+            : base(keyword)
+        {
+            ParentScope = parent;
+            Name = name;
+        }
     }
 
     /// <summary>

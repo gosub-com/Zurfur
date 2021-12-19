@@ -1,6 +1,7 @@
 ﻿// Misc compiler testing
 pragma ShowParse
 use Zurfur
+use Zurfur.Operators
 
 module TestVerifier
 
@@ -54,6 +55,11 @@ type VerifyErrors<T>
     fun pub fun9(a *?OneGeneric) void { }    
 }
 
+
+impl VerifyErrors::OpCmp // TBD: Check number of type parameters here
+{
+    @a int // impl blocks may not contain children
+}
 
 type pub AGenericTest<T, QQQ>
     where QQQ is x//: new() where T : new()
