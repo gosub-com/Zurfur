@@ -57,6 +57,8 @@
     <Compile Include="Compiler\Symbols.cs" />
     <Compile Include="Compiler\ZilReport.cs" />
     <Compile Include="Compiler\VerifyHeader.cs" />
+    <Compile Include="Ide\FormSearchInstance.cs" />
+    <Compile Include="Ide\MatchText.cs" />
     <Compile Include="Lexer\ScanZurf.cs" />
     <Compile Include="Compiler\CompileHeader.cs" />
     <Compile Include="Compiler\SymbolTable.cs" />

@@ -17,13 +17,13 @@ type passcopy Point<T>
     @x T pub init ref mut
     @y T pub init ref mut
 
-    fun pub static op_add(a Point<T>, b Point<T>) Point<T> { return Point(a.x+b.x, a.y+b.y) }
-    fun pub static op_neg(a Point<T>) { return Point(-a.x, -a.y) }
-    fun pub static op_sub(a Point<T>, b Point<T>) { return Point(a.x-b.x, a.y-b.y) }
-    fun pub static op_mul(a T, b Point<T>) { return Point(a*b.x, a*b.Y) }
-    fun pub static op_mul(a Point<T>, b T) { return Point(a.x*b, a.y*b) }
-    fun pub static op_div(a T, b Point<T>) { return Point(a/b.x, a/b.y) }
-    fun pub static op_div(a Point<T>, b T) { return Point(a.x/b, a.y/b) }
+    pub static fun op_add(a Point<T>, b Point<T>) Point<T> { return Point(a.x+b.x, a.y+b.y) }
+    pub static fun op_neg(a Point<T>) { return Point(-a.x, -a.y) }
+    pub static fun op_sub(a Point<T>, b Point<T>) { return Point(a.x-b.x, a.y-b.y) }
+    pub static fun op_mul(a T, b Point<T>) { return Point(a*b.x, a*b.Y) }
+    pub static fun op_mul(a Point<T>, b T) { return Point(a.x*b, a.y*b) }
+    pub static fun op_div(a T, b Point<T>) { return Point(a/b.x, a/b.y) }
+    pub static fun op_div(a Point<T>, b T) { return Point(a.x/b, a.y/b) }
     fun toSize() Size<T> { return Size(X, Y) }
 }
 
@@ -46,7 +46,7 @@ type passcopy Rect<T>
     @width T pub init ref mut
     @height T pub init ref mut
     
-    fun pub new(location Point<T>, size Size<T>):
+    pub fun new(location Point<T>, size Size<T>):
         this.location = location
         this.size = size
 

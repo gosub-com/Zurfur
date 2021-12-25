@@ -8,59 +8,58 @@ module Zurfur.Internal
 
 
 /// Internal definition of a reference.
-type pub ro __ref<T>
+pub type ro __ref<T>
 {
     @r ro *T
 
-    fun pub new(reference *T)
+    pub fun new(reference *T)
         require reference != null:
         r = reference
         
-    fun pub Get() T extern
-    fun pub SetRef(value ref T) extern
-    fun pub SetVal(value T) extern
-    fun pub unsafe Index(offset int) mut ref T extern
-    fun pub unsafe ByteOffset(offset int) *void extern
+    pub fun Get() T extern
+    pub fun SetRef(value ref T) extern
+    pub fun SetVal(value T) extern
+    pub unsafe fun Index(offset int) mut ref T extern
+    pub unsafe fun ByteOffset(offset int) *void extern
 }
 
 
 /// Owned reference.  This is specific to reference counting
 /// and wouldn't exist for a different kind of GC.
 
-type pub ro __oref<T>
+pub type ro __oref<T>
 {
     @r *T
     @owner ?*__heap<T>
 
     /// Owner is null when on the stack
-    fun pub new(reference *T, owner ?*__heap<T>)
+    pub fun new(reference *T, owner ?*__heap<T>)
         require reference != null:
         r = reference
         this.owner = owner
 
-    fun pub drop():
+    pub fun drop():
         if owner != null:
             owner.Dec()
         
-    fun pub Get() T extern
-    fun pub SetRef(value ref T) extern
-    fun pub SetVal(value T) extern
-    fun pub unsafe Index(offset int) mut ref T extern
-    fun pub unsafe ByteOffset(offset int) *void extern
+    pub fun Get() T extern
+    pub fun SetRef(value ref T) extern
+    pub fun SetVal(value T) extern
+    pub unsafe fun Index(offset int) mut ref T extern
+    pub unsafe fun ByteOffset(offset int) *void extern
 }
 
 
 /// All objects on the heap start with this header.
 /// This is specific to reference counted GC.
-type pub __heap<T>
+pub type __heap<T>
 {
     @vtable *void // TBD: Type info for GC and metadata
     @refCount xint
 
-    fun pub Inc():
+    pub fun Inc():
         refCount += 1
         if refCount < 0:
             todo() // TBD: Queue to call drop and reclaim memory
 }
-
 

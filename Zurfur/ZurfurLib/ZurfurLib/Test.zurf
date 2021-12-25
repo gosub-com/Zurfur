@@ -22,14 +22,14 @@ fun test_HelloWorld()
     @g = "{{""X"":1,""Y"":2}}"          // {"X":1,"Y":2}
 }
 
-type pub Example
+pub type Example
 {
     @info str                  // Private string initialized to ""
     @array Array<int> = [1,2,3]             // Private mutable array
     @list List<str> = ["Hello", "World"]    // Private mutable list
     @m ro Map<str,int> = ["A":1, "B":2]     // Private immutable map
     @Header ro str pub get = "Zurfur"       // Public immutable string
-    fun pub F(a int) int:
+    pub fun F(a int) int:
         return m["A"]+10   // Public function
     get P() str:
         return Header + info     // Public property
@@ -64,13 +64,13 @@ fun test_ForSimple()
 }
 
 
-fun pub test_Convert():
+pub fun test_Convert():
     @a = List<float>()
     @b = List<int>()
     @c = a.Convert(@ => int(i))
 
 
-type pub class TestGuiForm // TBD: How to do this without extends Form
+pub type class TestGuiForm // TBD: How to do this without extends Form
 {
     type Label { }
     @Message1 Label pub get set
@@ -103,7 +103,7 @@ type pub class TestGuiForm // TBD: How to do this without extends Form
                       "List":[1,2,3]]
     }
     
-    fun pub static Create(message1 str, message2 str) TestGuiForm
+    pub static fun Create(message1 str, message2 str) TestGuiForm
     {
         return TestGuiForm(Message1.Text: message1,
                            Message2.Text: message2)

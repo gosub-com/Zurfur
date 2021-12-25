@@ -10,7 +10,7 @@ module Zurfur.Markers
 
 
 
-interface pub Copy { }
+pub interface Copy { }
 
 /// NOTE: The compiler automatically generates the 'Op'
 ///       interfaces if the 'op_' function is defined.
@@ -20,27 +20,27 @@ module Zurfur.Operators
 // TBD: Is it OK to have nan ordered for floats?
 //      -inf < MinValue < 0 < MaxValue < nan < inf
 
-interface pub OpEq<Rhs> { fun op_eq(rhs Rhs) bool impl }
-interface pub OpCmp<Rhs> where Rhs is OpEq<Rhs>
+pub interface OpEq<Rhs> { fun op_eq(rhs Rhs) bool impl }
+pub interface OpCmp<Rhs> where Rhs is OpEq<Rhs>
 { fun op_cmp(rhs Rhs) int impl }
-interface pub OpIn<Rhs> { fun op_in(rhs Rhs) bool impl }
+pub interface OpIn<Rhs> { fun op_in(rhs Rhs) bool impl }
 
-interface pub OpAdd<Rhs, Out> { fun op_add(rhs Rhs) Out impl }
-interface pub OpSub<Rhs, Out> { fun op_sub(rhs Rhs) Out impl }
-interface pub OpNeg<Out> { fun op_neg() Out impl }
-interface pub OpMul<Rhs, Out> { fun op_mul(rhs Rhs) Out impl }
-interface pub OpDiv<Rhs, Out> { fun op_div(rhs Rhs) Out impl }
-interface pub OpRem<Rhs, Out> { fun op_rem(rhs Rhs) Out impl }
+pub interface OpAdd<Rhs, Out> { fun op_add(rhs Rhs) Out impl }
+pub interface OpSub<Rhs, Out> { fun op_sub(rhs Rhs) Out impl }
+pub interface OpNeg<Out> { fun op_neg() Out impl }
+pub interface OpMul<Rhs, Out> { fun op_mul(rhs Rhs) Out impl }
+pub interface OpDiv<Rhs, Out> { fun op_div(rhs Rhs) Out impl }
+pub interface OpRem<Rhs, Out> { fun op_rem(rhs Rhs) Out impl }
 
-interface pub GetHash { fun getHash() int impl }
-interface pub Drop { fun mut drop(flags int) impl }
-interface pub Clone
+pub interface GetHash { fun getHash() int impl }
+pub interface Drop { fun mut drop(flags int) impl }
+pub interface Clone
 {
     fun mut clone() This impl
 }
 
 // Common addition operations
-interface pub AddOps
+pub interface AddOps
     where This is OpEq<This>
                 + OpCmp<This>
                 + OpAdd<This,This>
@@ -54,7 +54,7 @@ interface pub AddOps
 }
 
 /// Common number operations
-interface pub NumOps
+pub interface NumOps
     where This is AddOps
                 + OpMul<This,This>
                 + OpDiv<This,This>
@@ -66,16 +66,16 @@ interface pub NumOps
 module Zurfur.Collections
 
 
-interface pub Iterator<Item>
+pub interface Iterator<Item>
 {
     /// Return the next item, or null if it doesn't exist
     fun mut next() ?Item impl
 
     /// Implement this so 
-    get pub countHint() int { return 0 }
+    pub get countHint() int { return 0 }
 }
 
-interface pub GetIterator<T>
+pub interface GetIterator<T>
 {
     fun getIterator() Iterator<T> impl
 }

@@ -36,7 +36,7 @@ namespace Gosub.Zurfur.Compiler
             if (symbol.IsIntrinsic)
                 return;
 
-            if (symbol is SymMethodGroup || symbol.Name == "")
+            if (symbol.IsMethodGroup || symbol.Name == "")
             {
                 // Hop over method groups, which are internal to the compiler
                 foreach (var child in symbol.Children.Values)
@@ -44,11 +44,11 @@ namespace Gosub.Zurfur.Compiler
                 return;
             }
 
-            if (    onlyPublic && symbol is SymField
+            if (    onlyPublic && symbol.IsField
                 || onlyPublic
                     && !symbol.Qualifiers.Contains("pub")
-                    && !(symbol is SymMethodParam)
-                    && !(symbol is SymTypeParam))
+                    && !symbol.IsMethodParam
+                    && !symbol.IsTypeParam)
             {
                 // Ignore private symbols for header file.
                 // Fields are always private.
@@ -57,7 +57,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             var packSym = new PackageSymbolJson();
-            packSym.Name = symbol is SymMethod ? symbol.Parent.Name : symbol.Name;
+            packSym.Name = symbol.IsMethod ? symbol.Parent.Name : symbol.Name;
             if (Debugger.IsAttached)
                 packSym.NameDebugFull = symbol.FullName;
             packSym.Tags = symbol.Qualifiers.Length == 0 ? null : symbol.Qualifiers;
@@ -112,9 +112,12 @@ namespace Gosub.Zurfur.Compiler
             else if (packSym.Tags.Contains("type_param") || packSym.Tags.Contains("type_param_associated"))
                 newSymbol = new SymTypeParam(symbol, "", new Token(name));
             else if (packSym.Tags.Contains("param"))
-                newSymbol = new SymMethodParam(symbol, "", new Token(name), false);
+                newSymbol = new SymMethodParam(symbol, "", new Token(name));
             else if (packSym.Tags.Contains("param_return"))
-                newSymbol = new SymMethodParam(symbol, "", new Token(name), true);
+            {
+                newSymbol = new SymMethodParam(symbol, "", new Token(name));
+                newSymbol.IsReturnParam = true;
+            }
             else if (packSym.Tags.Contains("method"))
             {
                 // Find or create group
@@ -183,7 +186,7 @@ namespace Gosub.Zurfur.Compiler
                 if (!loadedTable.TryGetValue(savedSym.FullName, out var loadedSym))
                 {
                     // Missing symbols when there are compilation errors are normal
-                    if (savedSym is SymMethodGroup 
+                    if (savedSym.IsMethodGroup 
                             && (savedSym.Parent.Name == "$extension" || savedSym.Parent.Token.Error))
                         continue;
                     Console.WriteLine($"Internal consistency check: '{savedSym.FullName}' not found");
@@ -247,7 +250,7 @@ namespace Gosub.Zurfur.Compiler
             if (symbol.IsIntrinsic)
                 return;
 
-            if (symbol is SymMethodGroup)
+            if (symbol.IsMethodGroup)
             {
                 // Hop over method groups, which are internal to the compiler
                 // NOTE: Nothing directly under the group should be using the parent
@@ -256,12 +259,13 @@ namespace Gosub.Zurfur.Compiler
                 return;
             }
 
-            if (onlyPublic && symbol is SymField
+            if (onlyPublic && symbol.IsField
                 || onlyPublic
                     && !symbol.Qualifiers.Contains("pub")
-                    && !(symbol is SymModule)  // TBD: Allow private moduels
-                    && !(symbol is SymMethodParam)
-                    && !(symbol is SymTypeParam))
+                        // TBD: Add "pub" to bits, and remove this
+                    && !symbol.IsModule
+                    && !symbol.IsMethodParam
+                    && !symbol.IsTypeParam)
             {
                 // Ignore private symbols (except parmeters).
                 // Ignore fields since they are always private
@@ -271,23 +275,23 @@ namespace Gosub.Zurfur.Compiler
             var ps = new PackageSymbolJson();
             ps.Tags = symbol.Qualifiers.Length == 0 ? null : symbol.Qualifiers;
             ps.Type = symbol.TypeName == "" ? null : symbol.TypeName;
-            ps.Constraints = symbol.Constraints.Count == 0 ? null : symbol.Constraints;
+            ps.Constraints = symbol.Constraints;
             if (onlyPublic && symbol.Comments != "")
                 ps.Comments = symbol.Comments;
 
-            if (symbol is SymModule || symbol is SymType || symbol is SymMethod)
+            if (symbol.IsModule || symbol.IsType || symbol.IsMethod || symbol.IsImplDef)
             {
                 ps.Name = symbol.FullName;
                 packSyms.Add(ps);
                 foreach (var s in symbol.Children.Values)
                     SaveAddFlattenedExperiment(s, ps, packSyms, onlyPublic);
             }
-            else if (symbol is SymTypeParam || symbol is SymMethodParam || symbol is SymField)
+            else if (symbol.IsTypeParam || symbol.IsMethodParam || symbol.IsField)
             {
-                Debug.Assert(parent != null);
-                if (symbol is SymMethodParam)
-                    ps.Type = null;  // Reconstructed from method name
                 ps.Name = symbol.Name;
+                Debug.Assert(parent != null);
+                if (symbol.IsMethodParam)
+                    ps.Type = null;  // Reconstructed from method name
                 if (parent.Symbols == null)
                     parent.Symbols = new List<PackageSymbolJson>();
                 parent.Symbols.Add(ps);

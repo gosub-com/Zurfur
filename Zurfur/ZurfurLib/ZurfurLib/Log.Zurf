@@ -2,29 +2,29 @@
 
 
 // The compiler will create a new object for each file
-type pub Log
+pub type Log
 {
-    enum pub Level { Fatal; Error; Warn; Info; Debug }
+    pub enum Level { Fatal; Error; Warn; Info; Debug }
 
 
     // TBD: Figure out how to get default file names and line numbers.
     //      Also figure out if this should be created per file
 
-    get static LogLevel() Level { todo() }
-    fun pub static Fatal(message str, li LogLine = default) { todo() }
-    fun pub static Error(message str, li LogLine = default) { todo() }
-    fun pub static Warn(message str, li LogLine = default) { todo() }
-    fun pub static Info(message str, li LogLine = default) { todo() }
-    fun pub static Debug(message str, li LogLine = default) { todo() }
+    static get LogLevel() Level { todo() }
+    pub static fun Fatal(message str, li LogLine = default) { todo() }
+    pub static fun Error(message str, li LogLine = default) { todo() }
+    pub static fun Warn(message str, li LogLine = default) { todo() }
+    pub static fun Info(message str, li LogLine = default) { todo() }
+    pub static fun Debug(message str, li LogLine = default) { todo() }
 
     /// Recoverable programming error.  In debug mode, stop and
     /// make the programmer look at it.  In production, log it
     /// and continue.
-    fun pub static PanicInDebugMode(message str, li LogLine = default) { todo() }
+    pub static fun PanicInDebugMode(message str, li LogLine = default) { todo() }
 
-    fun pub static Time(name str, message str = "") { todo() }
-    fun pub static TimeBegin(name str, message str = "") { todo() }
-    fun pub static TimeEnd(name str, message str = "") { }
+    pub static fun Time(name str, message str = "") { todo() }
+    pub static fun TimeBegin(name str, message str = "") { todo() }
+    pub static fun TimeEnd(name str, message str = "") { }
 
 
     type ro passcopy LogLine(FilePath str, Line int)

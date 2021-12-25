@@ -86,27 +86,26 @@ namespace Gosub.Zurfur.Compiler
                 foreach (var sym in mSymbols.Symbols)
                 {
                     count++;
-                    if (sym.GetType() == typeof(SymType))
+                    if (sym.IsType)
                     {
                         types++;
-                        var t = sym as SymType;
-                        var numGeneric = t.GenericParamCount();
+                        var numGeneric = sym.GenericParamCount();
                         if (numGeneric == 0)
                             typesNonGeneric++;
                         else
                             typesGeneric++;
                     }
-                    if (sym.GetType() == typeof(SymSpecializedType))
+                    if (sym.IsSpecializedType)
                         typeSpecializations++;
-                    if (sym.GetType() == typeof(SymTypeParam))
+                    if (sym.IsTypeParam)
                         typeParams++;
-                    if (sym.GetType() == typeof(SymMethod))
+                    if (sym.IsMethod)
                         methods++;
-                    if (sym.GetType() == typeof(SymMethodGroup))
+                    if (sym.IsMethodGroup)
                         methodGroups++;
-                    if (sym.GetType() == typeof(SymMethodParam))
+                    if (sym.IsMethodParam)
                         methodParams++;
-                    if (sym.GetType() == typeof(SymField))
+                    if (sym.IsField)
                         fields++;
                 };
 
@@ -125,8 +124,8 @@ namespace Gosub.Zurfur.Compiler
                 var namespaces = new List<string>();
                 foreach (var s in mSymbols.Symbols)
                 {
-                    if (s is SymModule n)
-                        namespaces.Add(n.FullName);
+                    if (s.IsModule)
+                        namespaces.Add(s.FullName);
                 }
                 namespaces.Sort((a, b) => a.CompareTo(b));
 

@@ -1,33 +1,30 @@
 ﻿module Zurfur
 
 /// String is a wrapper for a read only array of bytes with support for UTF8
-type pub ro str = Array<byte>
-    where This is OpIndex<int, byte>
-               + OpIndex<Range<int>, Span<byte>>
-               + OpAdd<str, str>
+pub type ro str = Array<byte>
 {
     // NOTE: Much of the implmentation is inherited from Array
     //       and its implicit conversion to Span
 
 
-    fun pub new() { todo() }
-    fun pub new(s str) { todo() }
-    fun pub new(s Span<byte>) { todo() }
-    fun pub index(i int) byte:
+    pub fun new() { todo() }
+    pub fun new(s str) { todo() }
+    pub fun new(s Span<byte>) { todo() }
+    pub fun index(i int) byte:
         return todo()
-    fun pub index(r Range<int>) Span<byte>:
+    pub fun index(r Range<int>) Span<byte>:
         return todo() // Slice
-    fun pub static GetHashCode(a str) uint:
+    pub static fun GetHashCode(a str) uint:
         return todo()
-    fun pub static Equals(a str, b str) bool:
+    pub static fun Equals(a str, b str) bool:
         return todo()
-    fun pub static Compare(a str, b str) int:
+    pub static fun Compare(a str, b str) int:
         return todo()
         
-    fun pub add(s1 str, s2 str) str { todo() }
+    pub fun add(s1 str, s2 str) str { todo() }
 
     // TBD: These need to impl str::OpAdd
-    fun pub add(s1 Span<byte>, s2 str) str { todo() }
-    fun pub add(s1 str, s2 Span<byte>) str { todo() }
+    pub fun add(s1 Span<byte>, s2 str) str { todo() }
+    pub fun add(s1 str, s2 Span<byte>) str { todo() }
     // TBD: Implicit conversion to and from Span?
 }

@@ -9,19 +9,19 @@ type KvPair<TKey,TValue>
     @key TKey pub ref
     @value TValue pub ref mut
 
-    fun pub new(key own TKey, value own TValue):
+    pub fun new(key own TKey, value own TValue):
         this.key = key
         this.value = value
     
 }
 
-type pub Map<TKey, TValue>
+pub type Map<TKey, TValue>
     where This is OpIn<TKey> + GetIterator<ref KvPair<TKey, TValue>>
     where TKey is OpEq<TKey> + GetHash
 {
-    fun pub new(capacity int):
+    pub fun new(capacity int):
         return todo()
-    fun pub new(keyValues Iterator<KvPair<TKey, TValue>>):
+    pub fun new(keyValues Iterator<KvPair<TKey, TValue>>):
         return todo()
     get count() int:
         return todo()
@@ -33,18 +33,18 @@ type pub Map<TKey, TValue>
         todo()
 
 
-    fun pub contains(key TKey) bool:
+    pub fun contains(key TKey) bool:
         return todo()
     get keys() Collection<TKey>:
         return todo()
     get values() Collection<TValue>:
         return todo()
-    fun pub mut clear():
+    pub fun mut clear():
         return todo()
-    fun pub mut add(item KvPair<TKey, TValue>):
+    pub fun mut add(item KvPair<TKey, TValue>):
         return todo()
-    fun pub mut add(items Iterator<KvPair<TKey, TValue>>):
+    pub fun mut add(items Iterator<KvPair<TKey, TValue>>):
         return todo()
-    fun pub mut remove(key TKey) bool:
+    pub fun mut remove(key TKey) bool:
         return todo()
 }

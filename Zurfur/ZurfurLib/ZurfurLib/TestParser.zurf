@@ -23,25 +23,25 @@ fun C(a int, a int) void { } // Duplicate parameter
 fun D<X,X>(a X) void { } // Duplicate type parameter
 fun E<X>(a Y) void { } // Unresolved type
 
-type A { fun pub A() void { } } // Same name as parent
+type A { pub fun A() void { } } // Same name as parent
 type C<T> { type D<T> { } } // Same type arg name as parent
-type B<T> { fun pub A<T>() void { } } // Same type arg name as parent
+type B<T> { pub fun A<T>() void { } } // Same type arg name as parent
 
 
-type pub ro test
+pub type ro test
 {
     // Try to give good info at the end of each line
     fun new(a i8) void // Compound statement error
-    fun pub
+    pub fun
     fun A
     fun B(
     fun C(a
     fun E(a int
     fun F(a int,
     fun G(a int, b
-    fun pub J(a, x int) 
-    fun pub H(a int, b int) void  // Compound error on this line (not next)
-    fun pub I(a int, b int) void
+    pub fun J(a, x int) 
+    pub fun H(a int, b int) void  // Compound error on this line (not next)
+    pub fun I(a int, b int) void
 
     fun J(a int, x int) void
     NoCompoundHere()

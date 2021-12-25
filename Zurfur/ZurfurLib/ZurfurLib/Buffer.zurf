@@ -5,23 +5,23 @@ module Zurfur
 /// Mutable array with immutable Count.  This is the base
 /// of all dynamically sized objects and is one of the few
 /// types implmeneted partially by the compiler.
-type pub boxed Buffer<T>
+pub type boxed Buffer<T>
     where This is GetIterator<ref T>
 {
     @Count ro int pub get
 
-    fun pub op_index(i int) mut ref T
+    pub fun op_index(i int) mut ref T
         require i in 0..Count
         extern // Implementation TBD
     
-    fun pub op_index(r Range<int>) mut Span<T>
+    pub fun op_index(r Range<int>) mut Span<T>
         require r.Low in 0..Count
         require r.High in 0..Count
         require r.Low <= range.High
         extern // Implementation TBD
 
     // Allow buffer1.Find(buffer2) and all those others
-    fun pub implicit(a Buffer<T>) mut Span<T>
+    pub fun implicit(a Buffer<T>) mut Span<T>
         extern // Implementation TBD
 
 } 

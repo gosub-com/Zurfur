@@ -43,7 +43,7 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Add an intrinsic type, such as "*", "^", "?", "ref", "$fun3", etc.
         /// </summary>
-        SymType AddIntrinsicType(string type, int numGenerics)
+        Symbol AddIntrinsicType(string type, int numGenerics)
         {
             var sym = new SymType(Root, type);
             sym.IsIntrinsic = true;
@@ -64,11 +64,11 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Retrieve (or add if it doesn't exist) a built in intrinsic, such as "$fun3"
         /// </summary>
-        public SymType FindOrAddIntrinsicType(string name, int numGenerics)
+        public Symbol FindOrAddIntrinsicType(string name, int numGenerics)
         {
             if (!Root.Children.TryGetValue(name, out var genericFunType))
                 genericFunType = AddIntrinsicType(name, numGenerics);
-            return (SymType)genericFunType;
+            return genericFunType;
         }
 
 
@@ -81,7 +81,7 @@ namespace Gosub.Zurfur.Compiler
             mLookup.Clear();
             VisitAll((s) => 
             {
-                Debug.Assert(!(s is SymSpecializedType));
+                Debug.Assert(!(s.IsSpecializedType));
                 var fullName = s.FullName;
                 Debug.Assert(!mLookup.ContainsKey(fullName));
                 mLookup[fullName] = s;
@@ -173,7 +173,7 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public SymSpecializedType GetSpecializedType(Symbol concreteType, Symbol[] typeParams, Symbol[] typeReturns = null)
         {
-            Debug.Assert(concreteType is SymType);
+            Debug.Assert(concreteType.IsType);
             var sym = new SymSpecializedType(concreteType, typeParams, typeReturns);
             if (mSpecializedTypes.TryGetValue(sym.FullName, out var specExists))
                 return specExists;

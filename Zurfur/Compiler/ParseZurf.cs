@@ -71,14 +71,10 @@ namespace Gosub.Zurfur.Compiler
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
             + "of sync task except exception raise loc local global");
 
+        static WordSet sFieldQualifiers = new WordSet("pub public private protected static "
+            + "unsafe unsealed abstract ro");
         // Non reserved names: passcopy, nocopy
-        static WordSet sTypeQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "unsealed abstract ref ro boxed class passcopy nocopy");
-        static WordSet sInterfaceQualifiers = new WordSet("pub public protected private internal static");
-        static WordSet sEnumQualifiers = new WordSet("pub public protected private internal");
-        static WordSet sMethodQualifiers = new WordSet("pub public protected private internal unsafe "
-            + "static unsealed abstract virtual override");
-        static WordSet sConstQualifiers = new WordSet("pub public protected private internal");
+        static WordSet sTypeQualifiers = new WordSet("ro ref boxed class passcopy nocopy");
         static WordSet sPostFieldQualifiers = new WordSet("init set get ref mut");
 
         static WordSet sReservedUserFuncNames = new WordSet("new clone drop cast default "
@@ -102,7 +98,7 @@ namespace Gosub.Zurfur.Compiler
         // For now, do not allow more than one level.  Maybe we want to allow it later,
         // but definitely do not allow them to include compounds with curly braces.
         static WordSet sNoSubCompoundStatement = new WordSet("type class catch err " 
-                                + "get set pub private protected namespace module static static fun afun ");
+                                + "get set pub private namespace module static static fun afun ");
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
         // The following symbols allow us to call functions, create types, access static members, and cast
@@ -273,6 +269,12 @@ namespace Gosub.Zurfur.Compiler
 
                 // Read qualifiers
                 qualifiers.Clear();
+                while (sFieldQualifiers.Contains(mTokenName))
+                {
+                    mToken.Type = eTokenType.ReservedControl;
+                    qualifiers.Add(Accept());
+                }
+
                 var keyword = mToken;
                 switch (mTokenName)
                 {
@@ -314,11 +316,12 @@ namespace Gosub.Zurfur.Compiler
                         mToken.Type = eTokenType.ReservedControl;
                         qualifiers.Add(Accept());
                         if (keyword.Name == "type")
+                        {
+                            foreach (var q in qualifiers)
+                                if (sTypeQualifiers.Contains(q.Name))
+                                    RejectToken(q, "Place qualifier after 'type' keyword");
                             ParseQualifiers(sTypeQualifiers, qualifiers);
-                        else if (keyword.Name == "interface")
-                            ParseQualifiers(sInterfaceQualifiers, qualifiers);
-                        else if (keyword.Name == "enum")
-                            ParseQualifiers(sEnumQualifiers, qualifiers);
+                        }
                         ParseTypeScope(keyword, qualifiers);
                         break;
 
@@ -330,7 +333,6 @@ namespace Gosub.Zurfur.Compiler
                     case "afun":
                         mToken.Type = eTokenType.ReservedControl;
                         qualifiers.Add(Accept());
-                        ParseQualifiers(sMethodQualifiers, qualifiers);
                         AddMethod(ParseMethod(keyword, qualifiers));
                         break;
 
@@ -341,7 +343,6 @@ namespace Gosub.Zurfur.Compiler
                     case "const":
                         mToken.Type = eTokenType.ReservedControl;
                         qualifiers.Add(Accept());
-                        ParseQualifiers(sConstQualifiers, qualifiers);
                         AddField(ParseFieldSimple(qualifiers));
                         break;
 
@@ -674,7 +675,7 @@ namespace Gosub.Zurfur.Compiler
                 return;
 
             // Post field qualifiers
-            if (keyword != "const" && (mTokenName == "pub" || mTokenName == "protected"))
+            if (keyword != "const" && (mTokenName == "pub"))
             {
                 // TBD: Distinguish "ro @a int" from "@a int pub ro", same for "pub"
                 qualifiers.Insert(0, Accept());

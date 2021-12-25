@@ -231,6 +231,7 @@ namespace Gosub.Zurfur
         private void mvEditors_EditorActiveViewChanged(IEditor editor)
         {
             mEditController.ActiveViewChanged(editor as TextEditor);
+            FormSearchInstance.SetEditor(editor as TextEditor);
 
             if (editor != null)
                 projectTree.Select(editor.FilePath);
@@ -565,14 +566,14 @@ namespace Gosub.Zurfur
         {
             var activeTextEditor = mvEditors.EditorViewActive as TextEditor;
             if (activeTextEditor != null)
-                FormSearch.Show(this, activeTextEditor);
+                FormSearchInstance.Show(this, activeTextEditor);
         }
 
         private void menuEditFindNext_Click(object sender, EventArgs e)
         {
             var activeTextEditor = mvEditors.EditorViewActive as TextEditor;
             if (activeTextEditor != null)
-                FormSearch.FindNext(this, activeTextEditor);
+                FormSearchInstance.FindNext(this, activeTextEditor);
         }
 
         private void viewRTFToolStripMenuItem_Click(object sender, EventArgs e)

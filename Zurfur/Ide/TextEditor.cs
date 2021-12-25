@@ -1143,7 +1143,7 @@ namespace Gosub.Zurfur
         /// <summary>
         /// Clear the seleced text
         /// </summary>
-        void SelClear(bool left)
+        public void SelClear(bool left)
         {
             if (HasSel())
             {
@@ -1798,9 +1798,9 @@ namespace Gosub.Zurfur
 
             // Display search form
             if (e.Control && e.KeyCode == Keys.F)
-                FormSearch.Show(ParentForm, this);
+                FormSearchInstance.Show(ParentForm, this);
             if (e.KeyCode == Keys.F3)
-                FormSearch.FindNext(ParentForm, this);
+                FormSearchInstance.FindNext(ParentForm, this);
 
             // SHIFT, CTRL, and ALT keys update the hover token
             // since the look may change when these keys are pressed

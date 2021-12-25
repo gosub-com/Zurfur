@@ -64,7 +64,17 @@ namespace Gosub.Zurfur.Compiler
         /// Only for type names with generic parameters.  A backtick followed
         /// by a number (e.g. "`2" for a type with two generic parameters).
         /// </summary>
-        public virtual string Suffix => "";
+        public string Suffix
+        {
+            get
+            {
+                if (!IsType)
+                    return "";
+                var count = CountChildren("type_param");
+                return count == 0 ? "" : $"`{count}";
+            }
+        }
+
 
         public bool HasToken => mToken != null && mFile != null;
 
@@ -76,26 +86,33 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Applicable to Types and Methods
         /// </summary>
-        public Dictionary<string, string[]> Constraints = new Dictionary<string, string[]>();
+        public Dictionary<string, string[]> Constraints;
 
         public bool IsInterface
-            => this is SymType && Qualifiers.Contains("interface")
-                || this is SymSpecializedType && Parent is SymType && Parent.Qualifiers.Contains("interface");
+            => IsType && Qualifiers.Contains("interface")
+                || IsSpecializedType && Parent.IsType && Parent.Qualifiers.Contains("interface");
 
-        public bool IsExtension
-            => Qualifiers.Contains("extension");
+        public bool IsModule => this is SymModule;
+        public bool IsType => this is SymType;
+        public bool IsTypeParam => this is SymTypeParam;
+        public bool IsSpecializedType => this is SymSpecializedType;
+        public bool IsAnyType => IsModule || IsType || IsTypeParam || IsSpecializedType;
+        public bool IsAnyTypeNotModule => IsType || IsTypeParam || IsSpecializedType;
+        public bool IsField => this is SymField;
+        public bool IsMethod => this is SymMethod;
+        public bool IsMethodGroup => this is SymMethodGroup;
+        public bool IsMethodParam => this is SymMethodParam;
+        public bool IsImplDef => this is SymImplDef;
 
-        public bool IsConst
-            => Qualifiers.Contains("const");
+        public bool IsExtension => Qualifiers.Contains("extension");
+        public bool IsConst => Qualifiers.Contains("const");
+        public bool IsStatic => Qualifiers.Contains("static");
+        public bool IsGetter => Qualifiers.Contains("get") || Qualifiers.Contains("aget");
+        public bool IsSetter => Qualifiers.Contains("set") || Qualifiers.Contains("aset");
+        public bool IsFunc => Qualifiers.Contains("fun") || Qualifiers.Contains("afun");
+        public bool IsReturnParam { get; set; }
 
-        public bool IsModule
-            => this is SymModule;
 
-        public bool IsImplGroup
-            => FullName.Contains("$impl");
-
-        public bool IsStatic
-            => Qualifiers.Contains("static");
 
         /// <summary>
         /// Source code token if it exists.  Throws an exception for
@@ -205,7 +222,7 @@ namespace Gosub.Zurfur.Compiler
         /// Return the simple name of this symbol (methods use the group, not the full type name)
         /// </summary>
         public string SimpleName
-            => this is SymMethod ? Parent.Name : Name;
+            => IsMethod ? Parent.Name : Name;
 
         public override string ToString()
         {
@@ -251,12 +268,18 @@ namespace Gosub.Zurfur.Compiler
         {
             var count = GenericParamCount();
             var p = Parent;
-            while (p is SymType || p is SymMethod || p is SymMethodGroup)
+            while (p.IsType || p.IsMethod || p.IsMethodGroup)
             {
                 count += p.GenericParamCount();
                 p = p.Parent;
             }
             return count;
+        }
+
+        public int GenericParamNum()
+        {
+            Debug.Assert(IsTypeParam);
+            return Parent.Parent.GenericParamTotal() + Order;
         }
 
 
@@ -289,16 +312,13 @@ namespace Gosub.Zurfur.Compiler
         public SymType(Symbol parent, string name) : base(parent, name) { }
         public override string Kind => "type";
         protected override string Separator => ".";
+    }
 
-        public override string Suffix
-        {
-            get
-            {
-                var count = CountChildren("type_param");
-                return count == 0 ? "" : $"`{count}";
-            }
-        }
-
+    class SymImplDef : Symbol
+    {
+        public SymImplDef(Symbol parent, string file, Token token, string name = null) : base(parent, file, token, name) { }
+        public override string Kind => "type impl";
+        protected override string Separator => ".";
     }
 
     class SymTypeParam : Symbol
@@ -308,8 +328,6 @@ namespace Gosub.Zurfur.Compiler
         }
         public override string Kind => "type parameter";
         protected override string Separator => "~";
-
-        public int GenericParamNum() => Parent.Parent.GenericParamTotal() + Order;
     }
 
     class SymField : Symbol
@@ -335,26 +353,17 @@ namespace Gosub.Zurfur.Compiler
     {
         public SymMethod(Symbol parent, string file, Token token, string name) : base(parent, file, token, name) { }
         public override string Kind => "method";
-        protected override string Separator => ""; // The method group is the separator
+        protected override string Separator => "";
 
-        public bool IsGetter => Qualifiers.Contains("get") || Qualifiers.Contains("aget");
-        public bool IsSetter => Qualifiers.Contains("set") || Qualifiers.Contains("aset");
-        public bool IsFunc => Qualifiers.Contains("fun") || Qualifiers.Contains("afun");
     }
 
     class SymMethodParam : Symbol
     {
-        public SymMethodParam(Symbol parent, string file, Token token, bool isReturn) : base(parent, file, token)
+        public SymMethodParam(Symbol parent, string file, Token token, string name = null) : base(parent, file, token, name)
         {
-            IsReturn = isReturn;
-        }
-        public SymMethodParam(Symbol parent, string file, Token token, string name, bool isReturn) : base(parent, file, token, name)
-        {
-            IsReturn = isReturn;
         }
         public override string Kind => "method parameter";
         protected override string Separator => "~";
-        public bool IsReturn { get; private set; }
     }
 
     /// <summary>
@@ -383,7 +392,7 @@ namespace Gosub.Zurfur.Compiler
         public SymSpecializedType(Symbol parent, Symbol[] typeParams, Symbol[] typeReturns = null)
             : base(parent, FullTypeParamNames(typeParams, typeReturns))
         {
-            Debug.Assert(parent is SymType);
+            Debug.Assert(parent.IsType);
             Params = typeParams;
             Returns = typeReturns != null ? typeReturns : Array.Empty<Symbol>();
         }

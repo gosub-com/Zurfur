@@ -32,10 +32,10 @@ type Point(X int, Y int)
 
 
 // Simple types have public fields:
-type pub SimpleType(firstName str, lastName str)
-type pub ro SimpleImmutableType(firstName str, fastName str)
+pub type SimpleType(firstName str, lastName str)
+pub type ro SimpleImmutableType(firstName str, fastName str)
 
-type pub ComplexType
+pub type ComplexType
 {
     // Fields are private, but may have public properties
     @map Map<str,int> = ["A":1, "B":2]  // Private, mutable
@@ -53,7 +53,7 @@ type pub ComplexType
 
     /// This is a public documentation comment.
     /// Functions are private by default.
-    fun pub countToTen() str:
+    pub fun countToTen() str:
         Log.info("Hello world.  Let's count to 10.")
         for @a in 1..11:
             Log.info("Count={a}, Text={text}")
@@ -74,7 +74,7 @@ type pub ComplexType
 //pub trait RustSend { }
 //pub trait RustReader
 //{
-//    fun pub mut Read(buffer []byte) int error youdo
+//    pub fun mut Read(buffer []byte) int error youdo
 //}
 //pub trait RustIntoReader<OutReader>
 //    where OutReader is RustReader
@@ -84,7 +84,7 @@ type pub ComplexType
 //type RustResponse
 //{
 //    @body ^RustReader
-//    fun pub mut SetBody<I>(data I)
+//    pub fun mut SetBody<I>(data I)
 //            where I is IntoReader, I.OutReader is RustSend:
 //        _body = data.ToReader()
 //}
@@ -106,32 +106,32 @@ fun test_HelloWorld():
             doit4
             
 
-type pub boxed AGenericType<Q>
+pub type boxed AGenericType<Q>
 {
-    fun pub Circle1(a f64, r f64) -> (x f64, y f64):
+    pub fun Circle1(a f64, r f64) -> (x f64, y f64):
         return Cos(a)*r, Sin(a)*r
 
-    fun pub Circle2(a int, r int) int:
+    pub fun Circle2(a int, r int) int:
         return Cos(a)*r, Sin(a)*r
 
 
-    fun pub Circle3(a f64, r f64) -> (x f64, y f64):
+    pub fun Circle3(a f64, r f64) -> (x f64, y f64):
         return Cos(a)*r, Sin(a)*r
 
-    fun pub MyVoid1():
+    pub fun MyVoid1():
         return 0
 
-    fun pub MyVoid2() int:
+    pub fun MyVoid2() int:
         return 0
        
 }
 
 
-fun pub Circle3(a f64, b f64) -> (c int, d int):
+pub fun Circle3(a f64, b f64) -> (c int, d int):
     return 0
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-fun pub GetIterator<T>::AlphaLengthWise<T, L>(
+pub fun GetIterator<T>::AlphaLengthWise<T, L>(
                lengthProvider fun(t T) L) GetIterator<T>:
     return this
         .OrderBy(@a => lengthProvider(a))
@@ -139,7 +139,7 @@ fun pub GetIterator<T>::AlphaLengthWise<T, L>(
 
     F(t).AW(T,L).q
 
-type pub Example
+pub type Example
 {
     get MyConst() str:
         return "Hello"
@@ -160,9 +160,9 @@ type pub Example
     @map3 ro Map<str,int> pub init               // Read only, init in constructor or allow public init
     
 
-    fun pub GetInfo(a int) str:
+    pub fun GetInfo(a int) str:
         return info+a
-    fun pub GetInfo(a str) str:
+    pub fun GetInfo(a str) str:
         return a
     get Info() str:
         return info
@@ -183,7 +183,7 @@ type pub Example
     
 }
 
-type pub Zim<T>
+pub type Zim<T>
 {
     @q T pub get set
 }
@@ -191,7 +191,7 @@ type pub Zim<T>
 
 /// This is a public documentation comment.  Do not use XML.
 /// Use `name` to refer to variables in the code.
-fun pub test_Main(args Array<str>)
+pub fun test_Main(args Array<str>)
 {
     test_compose()
 
@@ -258,23 +258,23 @@ fun pub test_Main(args Array<str>)
         return x*x
 }
 
-type pub Token(a str)
+pub type Token(a str)
 
-fun pub AcceptMatch(name str) ?Token:
+pub fun AcceptMatch(name str) ?Token:
     return name == "(" ? Token() : null
 
 // Regular static function
-fun pub add(a int, b int) int:
+pub fun add(a int, b int) int:
     return a + b
 
 // Multiple returns
-fun pub Circle(a f64, r f64) -> (x f64, y f64):
+pub fun Circle(a f64, r f64) -> (x f64, y f64):
     return Cos(a)*r, Sin(a)*r
 
 
 type MyStruct(a int)
 
-fun pub Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool):
+pub fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool):
     // Simple selection sort
     for @i in s.Count-1:
         @lowElem = s[i]
@@ -288,7 +288,7 @@ fun pub Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool):
             s[i] = lowElem
 
 
-fun pub MemCopy(dest *void, source *void, length xint):
+pub fun MemCopy(dest *void, source *void, length xint):
     @d = cast(xint)dest
     @s = cast(xint)source
     
@@ -314,7 +314,7 @@ fun pub MemCopy(dest *void, source *void, length xint):
     while d != end:
         dref(cast(*byte)d) = dref(castx<*byte>(s)); d+=1; s+=1
 
-fun pub MemCopy32(dest *void, source *void, length xint):
+pub fun MemCopy32(dest *void, source *void, length xint):
     @d = cast (xint)dest
     @s = cast (xint)source
 

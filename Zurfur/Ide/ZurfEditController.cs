@@ -308,25 +308,20 @@ namespace Gosub.Zurfur.Ide
                 message += "[" + string.Join(", ", symbol.Qualifiers) + "]\r\n";
             }
 
-            if (symbol is SymField symField)
+            if (symbol.IsField || symbol.IsMethodParam)
             {
                 message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
-                message += "TYPE: " + symField.TypeName + "\r\n";
+                message += "TYPE: " + symbol.TypeName + "\r\n";
             }
-            else if (symbol is SymMethodParam symMethodArg)
-            {
-                message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
-                message += "TYPE: " + symMethodArg.TypeName + "\r\n";
-            }
-            else if (symbol is SymMethod symMethod)
+            else if (symbol.IsMethod)
             {
                 message += symbol.Kind.ToUpper() + ": " + symbol.FullName + "\r\n";
                 message += "PARAMS: \r\n";
-                foreach (var child in symMethod.Children)
+                foreach (var child in symbol.Children)
                 {
-                    if (child.Value is SymMethodParam arg)
-                        message += "    " + child.Key + ": " + arg.TypeName + "\r\n";
-                    else if (child.Value is SymTypeParam)
+                    if (child.Value.IsMethodParam)
+                        message += "    " + child.Key + ": " + child.Value.TypeName + "\r\n";
+                    else if (child.Value.IsTypeParam)
                         message += "    " + child.Key + ": Type parameter\r\n";
                     else
                         message += "    " + child.Key + ": COMPILER ERROR\r\n";

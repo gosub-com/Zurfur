@@ -68,9 +68,9 @@ namespace Gosub.Zurfur.Compiler
                     return;
                 if (symbol.Name == symbol.Parent.Name)
                 {
-                    if (symbol is SymMethodGroup group)
+                    if (symbol.IsMethodGroup)
                     {
-                        foreach (var s in group.Children)
+                        foreach (var s in symbol.Children)
                             Reject(s.Value.Token, "Must not be same name as parent scope");
                     }
                     else
@@ -78,46 +78,46 @@ namespace Gosub.Zurfur.Compiler
                         Reject(symbol.Token, "Must not be same name as parent scope");
                     }
                 }
-                else if (symbol is SymTypeParam)
+                else if (symbol.IsTypeParam)
                 {
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
                 }
-                else if (symbol is SymMethodGroup methodGroup)
+                else if (symbol.IsMethodGroup)
                 {
-                    RejectIllegalOverloads(methodGroup);
+                    RejectIllegalOverloads(symbol);
                 }
-                else if (symbol is SymMethod method)
+                else if (symbol.IsMethod)
                 {
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
-                    if (!(symbol.Parent is SymMethodGroup))
+                    if (!symbol.Parent.IsMethodGroup)
                         Reject(symbol.Token, "Compiler error: Expecting parent symbol to be method group");
-                    if (symbol.IsExtension && !(symbol.Parent.Parent is SymModule))
+                    if (symbol.IsExtension && !symbol.Parent.Parent.IsModule)
                         Reject(symbol.Token, "Extension method must be defined only at the module level");
 
                     // TBD: Static may appear in extension methods
                     //if (symbol.Parent.Parent is SymModule && symbol.Qualifiers.Contains("static"))
                     //    Reject(symbol.Token, "Methods in a module may not have the static qualifier");
                 }
-                else if (symbol is SymMethodParam methodParam)
+                else if (symbol.IsMethodParam)
                 {
                     if (symbol.Name == symbol.Parent.Parent.Name)
                         Reject(symbol.Token, "Most not be same name as method");
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
-                    CheckTypeName(methodParam.Token, methodParam.TypeName);
+                    CheckTypeName(symbol.Token, symbol.TypeName);
                 }
-                else if (symbol is SymField field)
+                else if (symbol.IsField)
                 {
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent);
-                    CheckTypeName(field.Token, field.TypeName);
+                    CheckTypeName(symbol.Token, symbol.TypeName);
                 }
-                else if (symbol is SymType t)
+                else if (symbol.IsType)
                 {
-                    if (t.FullName.Contains("$impl"))
+                    if (symbol.FullName.Contains("$impl"))
                     {
                         // These would be compiler errors
-                        if (!t.Parent.IsModule)
-                            Reject(t.Token, "impl blocks must be at the module level");
-                        foreach (var child in t.Children.Values)
+                        if (!symbol.Parent.IsModule)
+                            Reject(symbol.Token, "impl blocks must be at the module level");
+                        foreach (var child in symbol.Children.Values)
                             Reject(child.Token, "impl blocks may not contain children");
                     }
                 }
@@ -134,20 +134,21 @@ namespace Gosub.Zurfur.Compiler
                         Reject(token, $"Unknown type name: '{typeName}'");
                     return;
                 }
-                if (!(s is SymType || s is SymTypeParam || s is SymSpecializedType))
+                if (!s.IsAnyTypeNotModule)
                 {
                     Reject(token, $"The type '{typeName}' is not a type, it is a '{s.Kind}'");
                     return;
                 }
-                if (s is SymType)
+                if (s.IsType)
                 {
                     var genericParams = s.GenericParamTotal();
                     var genericArgs = 0;
                     if (genericParams != genericArgs)
                         Reject(token, $"The type '{typeName}' requires {genericParams} generic type parameters, but {genericArgs} were supplied");
                 }
-                if (s is SymSpecializedType ptype)
+                if (s.IsSpecializedType)
                 {
+                    var ptype = (SymSpecializedType)s;
                     var genericParams = s.GenericParamTotal();
                     var genericArgs = ptype.Params.Length + ptype.Returns.Length;
                     if (genericParams != genericArgs)
@@ -166,7 +167,7 @@ namespace Gosub.Zurfur.Compiler
                 while (scope.Name != "")
                 {
                     if (scope.Children.TryGetValue(token.Name, out var s)
-                            && s is SymTypeParam)
+                            && s.IsTypeParam)
                         if (!token.Error)
                             Reject(token, "Must not be same name as a type parameter in any enclosing scope");
                     scope = scope.Parent;
@@ -178,11 +179,8 @@ namespace Gosub.Zurfur.Compiler
             // TBD: Reject overloads with different return types
             // TBD: Need to reject more (extension methods with same name
             //      as members, etc.)
-            void RejectIllegalOverloads(SymMethodGroup methodGroup)
+            void RejectIllegalOverloads(Symbol methodGroup)
             {
-                if (methodGroup.IsImplGroup)
-                    return;  // TBD: Need to check impl method blocks
-
                 bool hasNonMethod = false;
                 bool hasStatic = false;
                 bool hasNonStatic = false;
@@ -190,7 +188,7 @@ namespace Gosub.Zurfur.Compiler
                 bool hasProperty = false;
                 foreach (var child in methodGroup.Children.Values)
                 {
-                    if (!(child is SymMethod method))
+                    if (!child.IsMethod)
                     {
                         Reject(child.Token, $"Compiler error: All symbols in this group must be methods. '{child.FullName}' is a '{child.GetType()}'");
                         hasNonMethod = true;
@@ -200,9 +198,9 @@ namespace Gosub.Zurfur.Compiler
                         hasStatic = true;
                     else
                         hasNonStatic = true;
-                    if (method.IsGetter || method.IsSetter)
+                    if (child.IsGetter || child.IsSetter)
                         hasProperty = true;
-                    else if (method.IsFunc)
+                    else if (child.IsFunc)
                         hasFunction = true;
                     else
                     {
@@ -291,13 +289,5 @@ namespace Gosub.Zurfur.Compiler
 
         }
 
-        private static int CountMethodParams(Symbol symbol, bool returns)
-        {
-            int paramCount = 0;
-            foreach (var s in symbol.Children.Values)
-                if (s is SymMethodParam p && p.IsReturn == returns)
-                    paramCount++;
-            return paramCount;
-        }
     }
 }
