@@ -462,7 +462,7 @@ namespace Gosub.Zurfur
         /// </summary>
         public int IndexToCol(string line, int charIndex)
         {
-            const int MAX_TAB_COL = 128;
+            const int MAX_TAB_COL = 256;
             // For long lines, this is horrendously slow.  Need to fix. 
             // As a quick & dirty fix, just ignore tabs past column MAX_TAB_COL
             int col = 0;
@@ -473,7 +473,7 @@ namespace Gosub.Zurfur
                 else
                     col++;
                 if (i > MAX_TAB_COL)
-                    return col + charIndex - i;
+                    return col + charIndex - i-1;
             }
             return col;
         }

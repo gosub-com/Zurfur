@@ -17,9 +17,9 @@
 module Zurfur.ByteConverter
 
 
-fun Test_ConvertExample():
-    @myU32 = myList[index::4].BytesToU32()
-    myList[index::4].SetBytesU32(myU32)
+fun Test_ConvertExample()
+    @myU32 = myList[index..+4].BytesToU32()
+    myList[index..+4].SetBytesU32(myU32)
     myList.PushBytesU32(myU32)
 
 
@@ -30,7 +30,7 @@ pub fun mut List<byte>::PushHexToBytes(hex []byte) err {todo()}
 
 /// Convert 4 bytes (u32) to int (little endian)
 pub fun Span<byte>::BytesToU32() u32
-    require Count == 4:
+    require Count == 4
     return     this[0].ToU32()
             + (this[1].ToU32() << 8)
             + (this[2].ToU32() << 16)
@@ -38,26 +38,26 @@ pub fun Span<byte>::BytesToU32() u32
 
 /// Convert u32 to 4 bytes (little endian) 
 pub fun mut Span<byte>::SetBytesU32(v u32)
-    require Count == 4:
+    require Count == 4
     this[0] = v.ToByteMask()
     this[1] = (v<<8).ToByteMask()
     this[2] = (v<<16).ToByteMask()
     this[3] = (v<<24).ToByteMask()
 
 /// Convert u32 to 4 bytes (little endian) and push to list
-pub fun mut List<byte>::PushBytesU32(v u32):
+pub fun mut List<byte>::PushBytesU32(v u32)
     @count = Count
     PushDup(4)
-    this[count::4].SetBytesU32(v)
+    this[count..+4].SetBytesU32(v)
 
 
-pub fun Span<byte>::BytesToI32() i32 require Count == 4:
+pub fun Span<byte>::BytesToI32() i32 require Count == 4
     return this.BytesToU32().ToI32Mask()
     
-pub fun mut Span<byte>::SetBytesI32(v i32) require count == 4:
+pub fun mut Span<byte>::SetBytesI32(v i32) require count == 4
     this.SetBytesU32(v.ToU32Mask())
     
-pub fun mut List<byte>::PushBytesI32(v i32):
+pub fun mut List<byte>::PushBytesI32(v i32)
     this.PushBytesU32(v.ToU32Mask())
 
 

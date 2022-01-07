@@ -10,15 +10,15 @@ pub type ro str = Array<byte>
     pub fun new() { todo() }
     pub fun new(s str) { todo() }
     pub fun new(s Span<byte>) { todo() }
-    pub fun index(i int) byte:
+    pub fun index(i int) byte
         return todo()
-    pub fun index(r Range<int>) Span<byte>:
+    pub fun index(r Range<int>) Span<byte>
         return todo() // Slice
-    pub static fun GetHashCode(a str) uint:
+    pub static fun GetHashCode(a str) uint
         return todo()
-    pub static fun Equals(a str, b str) bool:
+    pub static fun Equals(a str, b str) bool
         return todo()
-    pub static fun Compare(a str, b str) int:
+    pub static fun Compare(a str, b str) int
         return todo()
         
     pub fun add(s1 str, s2 str) str { todo() }

@@ -30,7 +30,7 @@ pub fun nop() {}
 //      fun move<T>(take own T) T { return take }
 
 /// Swap two items
-fun swap<T>(a mut ref T, b mut ref T):
+fun swap<T>(a mut ref T, b mut ref T)
     @t = move(a)
     a = move(b)
     b = t
@@ -249,7 +249,7 @@ impl i32::NumOps
 
 impl i32::GetIterator<i32>
 {
-    pub fun getIterator() RangeIterator<i32>:
+    pub fun getIterator() RangeIterator<i32>
         return RangeIterator<i32>(0, this)
 }
 
@@ -308,7 +308,7 @@ impl u32::NumOps
 
 impl u32::GetIterator<u32>
 {
-    pub fun getIterator() RangeIterator<u32>:
+    pub fun getIterator() RangeIterator<u32>
         return RangeIterator<u32>(0, this)
 }
 
@@ -370,7 +370,7 @@ impl i64::NumOps
 
 impl i64::GetIterator<i64>
 {
-    pub fun getIterator() RangeIterator<i64>:
+    pub fun getIterator() RangeIterator<i64>
         return RangeIterator<i64>(0, this)
 }
 
@@ -431,7 +431,7 @@ impl u64::NumOps
 
 impl u64::GetIterator<u64>
 {
-    pub fun getIterator() RangeIterator<u64>:
+    pub fun getIterator() RangeIterator<u64>
         return RangeIterator<u64>(0, this)
 }
 
@@ -526,7 +526,7 @@ impl f32::NumOps
 
 impl f32::GetIterator<f32>
 {
-    pub fun getIterator() RangeIterator<f32>:
+    pub fun getIterator() RangeIterator<f32>
         return RangeIterator<f32>(0, this)
 }
 
@@ -622,7 +622,7 @@ impl f64::NumOps
 
 impl f64::GetIterator<f64>
 {
-    pub fun getIterator() RangeIterator<f64>:
+    pub fun getIterator() RangeIterator<f64>
         return RangeIterator<f64>(0, this)
 }
 
@@ -695,6 +695,6 @@ impl Decimal::NumOps
 
 impl Decimal::GetIterator<Decimal>
 {
-    pub fun getIterator() RangeIterator<Decimal>:
+    pub fun getIterator() RangeIterator<Decimal>
         return RangeIterator<Decimal>(0, this)
 }

@@ -52,17 +52,15 @@ pub type ro test
         if a > 3   // Error: Next line doesn't look like a compound
         a += 1
 
-        if a > 3:   // Error: Next line doesn't look like a compound
-        a += 1
 
-        if a > 3:
+        if a > 3
             a+=1
              b+=1  // Error: Compound statement alignment
 
         if a >
         a+= 1       // No error here because it's marked on the previous line
 
-        if a >:
+        if a >
         a+= 1       // No error here because it's marked on the previous line
 
 
@@ -75,17 +73,7 @@ pub type ro test
 
         if a>
 
-        if a>b
-
-
-        if :
-
-        if a:
-
-        if a>:
-
-        if a>b:
-        
+        if a>b        
         
     }
 

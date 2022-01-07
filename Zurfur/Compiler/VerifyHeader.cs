@@ -136,7 +136,7 @@ namespace Gosub.Zurfur.Compiler
                 }
                 if (!s.IsAnyTypeNotModule)
                 {
-                    Reject(token, $"The type '{typeName}' is not a type, it is a '{s.Kind}'");
+                    Reject(token, $"The type '{typeName}' is not a type, it is a '{s.KindName}'");
                     return;
                 }
                 if (s.IsType)

@@ -303,19 +303,16 @@ namespace Gosub.Zurfur.Ide
                 return "";
 
             var symbol = symbols[0];
-            if (symbol.Qualifiers.Length != 0)
-            {
-                message += "[" + string.Join(", ", symbol.Qualifiers) + "]\r\n";
-            }
+            message += "[" + string.Join(", ", symbol.QualifiersStr().Split(' ')) + "]\r\n";
 
             if (symbol.IsField || symbol.IsMethodParam)
             {
-                message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
+                message += symbol.KindName.ToUpper() + ": " + symbol.ToString() + "\r\n";
                 message += "TYPE: " + symbol.TypeName + "\r\n";
             }
             else if (symbol.IsMethod)
             {
-                message += symbol.Kind.ToUpper() + ": " + symbol.FullName + "\r\n";
+                message += symbol.KindName.ToUpper() + ": " + symbol.FullName + "\r\n";
                 message += "PARAMS: \r\n";
                 foreach (var child in symbol.Children)
                 {
@@ -329,7 +326,7 @@ namespace Gosub.Zurfur.Ide
             }
             else
             {
-                message += symbol.Kind.ToUpper() + ": " + symbol.ToString() + "\r\n";
+                message += symbol.KindName.ToUpper() + ": " + symbol.ToString() + "\r\n";
             }
 
             // Comments

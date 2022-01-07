@@ -13,7 +13,7 @@ pub type ro __ref<T>
     @r ro *T
 
     pub fun new(reference *T)
-        require reference != null:
+        require reference != null
         r = reference
         
     pub fun Get() T extern
@@ -34,12 +34,12 @@ pub type ro __oref<T>
 
     /// Owner is null when on the stack
     pub fun new(reference *T, owner ?*__heap<T>)
-        require reference != null:
+        require reference != null
         r = reference
         this.owner = owner
 
-    pub fun drop():
-        if owner != null:
+    pub fun drop()
+        if owner != null
             owner.Dec()
         
     pub fun Get() T extern
@@ -57,9 +57,8 @@ pub type __heap<T>
     @vtable *void // TBD: Type info for GC and metadata
     @refCount xint
 
-    pub fun Inc():
+    pub fun Inc()
         refCount += 1
-        if refCount < 0:
+        if refCount < 0
             todo() // TBD: Queue to call drop and reclaim memory
 }
-

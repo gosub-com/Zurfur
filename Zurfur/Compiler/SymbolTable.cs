@@ -47,14 +47,12 @@ namespace Gosub.Zurfur.Compiler
         {
             var sym = new SymType(Root, type);
             sym.IsIntrinsic = true;
-            sym.Qualifiers = new string[] { "type" };
             AddOrReject(sym);
             for (int i = 0; i < numGenerics; i++)
             {
                 var tn = "T" + (numGenerics == 1 ? "" : $"{i + 1}");
                 var t = new SymTypeParam(sym, "", new Token(tn));
                 t.IsIntrinsic = true;
-                t.Qualifiers = new string[] { "type_param" };
                 var ok = AddOrReject(t);
                 Debug.Assert(ok);
             }
@@ -71,7 +69,6 @@ namespace Gosub.Zurfur.Compiler
             return genericFunType;
         }
 
-
         /// <summary>
         /// Generates a lookup table for all symbols, excluding specialized types.
         /// Must be called before using `Lookup`
@@ -81,7 +78,7 @@ namespace Gosub.Zurfur.Compiler
             mLookup.Clear();
             VisitAll((s) => 
             {
-                Debug.Assert(!(s.IsSpecializedType));
+                Debug.Assert(!s.IsSpecializedType);
                 var fullName = s.FullName;
                 Debug.Assert(!mLookup.ContainsKey(fullName));
                 mLookup[fullName] = s;
@@ -100,14 +97,6 @@ namespace Gosub.Zurfur.Compiler
             if (mLookup.TryGetValue(name, out var symbol2))
                 return symbol2;
             return null;
-        }
-
-        /// <summary>
-        /// Returns dictionary of all symbols, excluding specialized types
-        /// </summary>
-        public Dictionary<string, Symbol> GetSymbols()
-        {
-            return new Dictionary<string, Symbol>(mLookup);
         }
 
         /// <summary>
@@ -164,7 +153,7 @@ namespace Gosub.Zurfur.Compiler
                 parentSymbol.SetChildInternal(newSymbol);
                 return true;
             }
-            Reject(newSymbol.Token, $"Duplicate symbol. There is a {remoteSymbol.Kind} in this scope with the same name.");
+            Reject(newSymbol.Token, $"Duplicate symbol. There is a {remoteSymbol.KindName} in this scope with the same name.");
             return false;
         }
 

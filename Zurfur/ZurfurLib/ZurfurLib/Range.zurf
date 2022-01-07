@@ -12,13 +12,13 @@ pub type ro passcopy Range<T>
     @start T pub init get
     @end T pub init get
 
-    pub static fun op_in(a T, b Range<T>) bool:
+    pub static fun op_in(a T, b Range<T>) bool
         return a >= b.start && a < b.end
 
-    get count() T:
+    get count() T
         return end-start
         
-    pub fun getIterator() RangeIterator<T>:
+    pub fun getIterator() RangeIterator<T>
         return RangeIter<T>(start, end)
 
 }
@@ -30,11 +30,11 @@ pub type RangeIterator<T>
     @start T pub init
     @end T pub init
     
-    get countHint() T:
+    get countHint() T
         return end-start
         
-    get next() ?T:
-        if start < end:
+    get next() ?T
+        if start < end
             return move(ref start, start+T.One)
         return null
         

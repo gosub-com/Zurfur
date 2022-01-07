@@ -117,22 +117,22 @@ argument, and the return type comes after the parameters:
 
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
-    fun pub Main(args Array<str>):
+    fun pub Main(args Array<str>)
         Log.Info("Hello World, 2+2={2+2}")
 
 Functions declared at the module level are implicitly `static` without needing
 to use the keyword.  Extension methods must be declared at the module level:
 
     // Declare an extension method for strings
-    pub str::Rest() str:
+    pub str::Rest() str
         return this.Count == 0 ? "" : str(this[1..])
 
 Properties are declared with `get` and `set` keywords:
 
-    get pub MyString() str:
+    get pub MyString() str
         return myString
 
-    set pub MyString(v str):
+    set pub MyString(v str)
         myString = v
         MyStringChangedEvent()
   
@@ -174,7 +174,7 @@ then never use the object again, or must explicitly `clone` the object.
 Functions can return multiple values:
 
     // Multiple returns
-    fun pub Circle(a f64, r f64) -> (x f64, y f64):
+    fun pub Circle(a f64, r f64) -> (x f64, y f64)
         return Cos(a)*r, Sin(a)*r
 
 The return parameters are named, and can be used by the calling function:
@@ -185,11 +185,11 @@ The return parameters are named, and can be used by the calling function:
 Normally the return value becomes owned by the caller, but this behavior
 can be changed with the `ref` keyword:
 
-    fun pub GetRoList() ref List<int>:          // Read only ref
+    fun pub GetRoList() ref List<int>           // Read only ref
         return ref myListField
-    fun pub GetMutList() mut List<int>:         // Mutable (mutation allowed, assignment not allowed)
+    fun pub GetMutList() mut List<int>          // Mutable (mutation allowed, assignment not allowed)
         return mut myListField
-    fun pub GetMutRefList() mut ref List<int>:  // Mutable ref (mutation or assignment is allowed)
+    fun pub GetMutRefList() mut ref List<int>   // Mutable ref (mutation or assignment is allowed)
         return mut ref myListField
 
 Return qualifiers:
@@ -291,20 +291,21 @@ with `@` and are private, but may have public properties with `pub get`,
         @roText3 ro str pub init = "Hello"  // Constructor or client can override
         
         // Getter and setter functions (passing copies)
-        get pub text() str:
+        get pub text() str
             return text1
+
         set pub text(value str)
-            if value == text1:
+            if value == text1
                 return
             text1 = value
             sendTextChangedEvent()
 
         // Getter returning references
-        get pub list1a() ref List<int>:     // Immutable reference
+        get pub list1a() ref List<int>      // Immutable reference
             return ref list1
-        get pub list1b() mut List<int>:     // Mutable reference, not assignable
+        get pub list1b() mut List<int>      // Mutable reference, not assignable
             return ref list1
-        get pub list1c() mut ref List<int>: // Mutable reference, assignable
+        get pub list1c() mut ref List<int>  // Mutable reference, assignable
             return ref list1
     }
 
@@ -325,7 +326,6 @@ types can implement interfaces without resorting to `impl Interface for Type`
 provided there are no ambiguities and the interface doesn't require associate
 types.  When you see an interface, think Rust style traits even though it
 looks like C# style syntax.
-
 
 
 ### New, Equality, Clone, and Drop
@@ -423,7 +423,7 @@ There is no `StringBuilder` type, use `List<byte>` instead:
 
     @sb = List<byte>()
     sb.Push("Count to 10: ")
-    for @count in 1::10
+    for @count in 1..+10
         sb.Push(" {count}")
     return sb.ToArray()
 
@@ -449,7 +449,7 @@ the list is a change to the span and a change to the span is a change to the lis
 
     @a = ["a","b","c","d","e"]  // a is List<str>
     @b = a[1..4]                // b is a span, with b[0] == "b" (b aliases ["b","c","d"])
-    @c = a[2::2]                // c is a span, with c[0] == "c" (c aliases ["c","d"])
+    @c = a[2..+2]                // c is a span, with c[0] == "c" (c aliases ["c","d"])
     c[0] = "hello"              // now a = ["a","b","hello","d","e"], and b=["b","hello","d"]
 
 When the `Count` or `Capacity` of a list changes, all spans pointing into it
@@ -458,7 +458,7 @@ spans continue aliasing the old data.
 
     @list = List<byte>()
     list.Push("Hello Pat")  // list is "Hello Pat"
-    @slice = a[6::3]        // slice is "Pat"
+    @slice = a[6..+3]        // slice is "Pat"
     slice[0] = "M"[0]       // slice is "Mat", list is "Hello Mat"
     list.Push("!")          // DEBUG PANIC - slice is now detached, list is "Hello Mat!"
     slice[0] = "C"[0]       // slice is "Cat", list is still "Hello Mat!"
@@ -479,9 +479,9 @@ When indexing a map, the return type is `?ref T`, so it must either be checked
 before being used or have a default:
 
     // Check for its existence
-    if a["hello"]@item:
+    if a["hello"]@item
         // Use item here
-    else:
+    else
         // item is invalid, insert new pobject
 
     // Get the value, or get a default if it doesn't exist
@@ -493,10 +493,10 @@ they must be cloned or reference captured:
 
     // TBD: explicit `ref` might not be needed here since
     //      @ capture is a new operator, different than assignment
-    if ref myLists["hello"]@item:
+    if ref myLists["hello"]@item
         // Use item here.  You don't own it and may not modify it
 
-    if clone myLists["hello"]@item:
+    if clone myLists["hello"]@item
         // Use item here.  You own they copy and may modify it
 
 When assigning, the item is always created.  If it is also used at the same
@@ -563,7 +563,6 @@ weight as an integer and need no metadata in the compiled executable.
 The one with flags allows `|` and `&`, etc but the other doesn't.
 
 
-
 ## Operator Precedence
 
 Operator precedence is mostly from Golang, but more compatible
@@ -579,7 +578,7 @@ with C and gives an error where not compatible:
 |* / % & | Multiply, bitwise *AND* (can't mix arithmetic and bit operators)
 |~| Bitwise *XOR* (can't mix with arithmetic operators)
 |+ - &#124; | Add, bitwise *OR* (can't mix arithmetic and bit operators)
-|Low..High, Low::Count|Range (inclusive of low, exclusive of high)
+|Low..High, Low..+Count|Range (inclusive of low, exclusive of high)
 |== != < <= > >= === !== in|Not associative, === and !== is only for pointers
 |&&|Conditional
 |&#124;&#124;|Conditional
@@ -604,7 +603,7 @@ and arithmetic operators may not be mixed, for example both `a + b | c` and
 `a + b << c` are illegal.  Parentheses may be used (e.g. `(a+b)|c` is legal)
 
 The range operator`..` takes two `int`s and make a `Range` which is a
-`type Range(High int, Low int)`.  The `::` operator also makes a
+`type Range(High int, Low int)`.  The `..+` operator also makes a
 range, but the second parameter is a count (`High = Low + Count`).  
 
 Operator `==` does not default to object comparison, and only works when it
@@ -694,7 +693,7 @@ The `while` loop is the same as C#.  The `do` loop is similar to C#
 except that `dowhile` is used at the end of the loop, and the condition
 executes inside the scope of the loop:
 
-    do:
+    do
         @accepted = SomeBooleanFunc()
         DoSomethingElse()
     dowhile accepted
@@ -703,7 +702,7 @@ executes inside the scope of the loop:
 
 The `scope` statement creates a new scope:
 
-    scope:
+    scope
         @file = use File.Open("My File")
         DoStuff(file)
     // File variable is out of scope here
@@ -711,7 +710,7 @@ The `scope` statement creates a new scope:
 
 The `scope` statement can be turned into a loop using the `continue` statement:
 
-    scope:
+    scope
         DoSomething()
         if WeWantToRepeat()
             continue
@@ -725,28 +724,28 @@ The new variable is read-only and its scope is limited to within the `for` loop 
 The simplest form of the for loop is when the expression evaluates to an integer:
 
     // Print the numbers 0 to 9
-    for @i in 10:
+    for @i in 10
         Console.WriteLine(i)   // `i` is an integer
 
     // Increment all the numbers in an list
-    for @i in list.Count:
+    for @i in list.Count
         list[i] += 1
 
 The range operators can be used as follows:
 
     // Print all the numbers in the list
-    for @i in 0..list.Count:
+    for @i in 0..list.Count
         Console.WriteLine(list[i])
 
     // Collect elements 5,6, and 7 into myList
-    for @i in 5::3:
+    for @i in 5..+3
         myList.Add(myArray[i])
 
 Any object that supplies an enumerator (or has a `get` indexer and a `Count` property)
 can be enumerated.  The `Map` enumerator supplies key value pairs:
 
     // Print key value pairs of all elements in a map
-    for @kv in map:
+    for @kv in map
         Console.WriteLine("Key: " + kv.Key.ToString() + " is " + kv.Value.ToString())
 
 The expression after `in` is evaluated at the start of the loop and never
@@ -754,7 +753,7 @@ changes once calculated:
 
     // Print the numbers from 1 to 9
     @x = 10
-    for @i in 1..x:
+    for @i in 1..x
         x = x + 5               // This does not affect the loop bounds 
         Console.WriteLine(i)
 
@@ -762,28 +761,28 @@ When iterating over a collection, just like in C#, it is illegal to add
 or remove elements from the collection.  An exception is thrown if
 it is attempted.  Here are two examples of things to avoid:
 
-    for @i in myIntList:
+    for @i in myIntList
         myIntList.Add(1)   // Exception thrown on next iteration
 
     // This does not remove 0's and increment the remaining elements
     // The count is evaluated only at the beginning of the loop.
-    for @i in myIntList.Count:
-        if myIntList[i] == 0:
+    for @i in myIntList.Count
+        if myIntList[i] == 0
             RemoveAt(i)        // There are at least two problems with this
         else:
-            myIntList[i] += 1 // This will throw an exception if any element was removed
+            myIntList[i] += 1  // This will throw an exception if any element was removed
  
 #### Switch and Match
 
 Both `switch` and `match` are reserved for future use.  For now, use `if`,
 `elif`, and `else` to simulate them:
 
-    if myNum < 1:
+    if myNum < 1
         DoStuff()
         DoOtherStuff()
-    elif myNum in 1..3:
+    elif myNum in 1..3
         DoMoreStuff()
-    else myNum >= 3:
+    else myNum >= 3
         DoTheLastThing()
 
 ## Errors and Exceptions
@@ -843,7 +842,7 @@ model for user interface objects.
 The unary `*` operator dereferences a pointer.  The `.` operator is used to access fields
 or members of a pointer to the type (so `->` is not used for pointers). 
  
-    fun pub static strcpy(dest *byte, source *byte):
+    fun pub static strcpy(dest *byte, source *byte)
         while *source != 0
             { *dest = *source;  dest += 1;  source += 1 }
         *dest = 0
@@ -922,7 +921,7 @@ For the time being, async is built into the type system but it looks and
 acts as if it were sync.  Calling an async function from async code blocks
 without using the `await` keyword:
 
-    afun MySlowIoFunctionAsync(server str) str:
+    afun MySlowIoFunctionAsync(server str) str
         // In C# `await` would be needed before both function calls
         @a = MakeXhrCallToServerAsync(server)    // Blocks without await keyword
         Task.Delay(100);                            // Also blocks without a keyword
@@ -934,7 +933,7 @@ Async code normally looks and acts as if it were sync.  But, when we want
 to start or wait for multiple tasks, we can also use the `astart` and
 `await` keywords.
 
-    afun GetStuffFromSeveralServers() str:
+    afun GetStuffFromSeveralServers() str
         // Start the functions, but do not block
         @a = astart { MySlowIoFunctionAsync("server1") }
         @b = astart { MySlowIoFunctionAsync("server2") }
@@ -948,7 +947,7 @@ to start or wait for multiple tasks, we can also use the `astart` and
 
         // Collect the results in the order they complete order
         @sum = new list<str>()
-        await a, b, c, timeout:
+        await a, b, c, timeout
             case a.HasResult: sum += a.Result
             case b.HasResult: sum += b.Result
             case c.HasResult: sum += c.Result

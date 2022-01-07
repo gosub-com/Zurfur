@@ -45,17 +45,17 @@ pub type ComplexType
     @myList List<int> pub ref   // Has public `ro` reference
 
     // Properties are public by default
-    get myMap() ref Map<str, int>:
+    get myMap() ref Map<str, int>
         return ref map // Return a read only reference
-    set myMap(v own Map<str, int>):
+    set myMap(v own Map<str, int>)
         map = v
         mapChanged()
 
     /// This is a public documentation comment.
     /// Functions are private by default.
-    pub fun countToTen() str:
+    pub fun countToTen() str
         Log.info("Hello world.  Let's count to 10.")
-        for @a in 1..11:
+        for @a in 1..11
             Log.info("Count={a}, Text={text}")
 }
 
@@ -90,49 +90,49 @@ pub type ComplexType
 //}
 
 
-fun test_HelloWorld():
-    while a == 3:
+fun test_HelloWorld()
+    while a == 3
         doit()
         doit2()
     Console.Log("Hello World.  Let's count from 1 to 10.")
-    for @a in 1..11:
+    for @a in 1..11
         doita
         doitb
-        while a == 3:
+        while a == 3
             doit1
             doit2
         hello
-        if a:
+        if a
             doit4
             
 
 pub type boxed AGenericType<Q>
 {
-    pub fun Circle1(a f64, r f64) -> (x f64, y f64):
+    pub fun Circle1(a f64, r f64) -> (x f64, y f64)
         return Cos(a)*r, Sin(a)*r
 
-    pub fun Circle2(a int, r int) int:
+    pub fun Circle2(a int, r int) int
         return Cos(a)*r, Sin(a)*r
 
 
-    pub fun Circle3(a f64, r f64) -> (x f64, y f64):
+    pub fun Circle3(a f64, r f64) -> (x f64, y f64)
         return Cos(a)*r, Sin(a)*r
 
-    pub fun MyVoid1():
+    pub fun MyVoid1()
         return 0
 
-    pub fun MyVoid2() int:
+    pub fun MyVoid2() int
         return 0
        
 }
 
 
-pub fun Circle3(a f64, b f64) -> (c int, d int):
+pub fun Circle3(a f64, b f64) -> (c int, d int)
     return 0
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
 pub fun GetIterator<T>::AlphaLengthWise<T, L>(
-               lengthProvider fun(t T) L) GetIterator<T>:
+               lengthProvider fun(t T) L) GetIterator<T>
     return this
         .OrderBy(@a => lengthProvider(a))
         .ThenBy(@a => a)
@@ -141,7 +141,7 @@ pub fun GetIterator<T>::AlphaLengthWise<T, L>(
 
 pub type Example
 {
-    get MyConst() str:
+    get MyConst() str
         return "Hello"
     
     @a1 str
@@ -160,11 +160,11 @@ pub type Example
     @map3 ro Map<str,int> pub init               // Read only, init in constructor or allow public init
     
 
-    pub fun GetInfo(a int) str:
+    pub fun GetInfo(a int) str
         return info+a
-    pub fun GetInfo(a str) str:
+    pub fun GetInfo(a str) str
         return a
-    get Info() str:
+    get Info() str
         return info
 
     @a Zim<void>
@@ -200,22 +200,22 @@ pub fun test_Main(args Array<str>)
 
     @v = ""
 
-    if myString[32]@q == "x":
+    if myString[32]@q == "x"
         v = "x"
-    elif q == "y"  || q=="z":
+    elif q == "y"  || q=="z"
         v = "y or z"
-    elif q >= "a" || q <= "z":
+    elif q >= "a" || q <= "z"
         v = "lower"
-    elif q >= "A" || q <= "Z":
+    elif q >= "A" || q <= "Z"
         v = "upper"
-    else:
+    else
         v = "none"
     
 
     a = tr"Column 1{\t}Column 2{\rn}"
     data = "Name:{name}{\t}Occupation:{lastName}{\rn}"
     
-    while stream.Read(buffer)@size != 0:
+    while stream.Read(buffer)@size != 0
         @a = MyFun as Hello
 
 
@@ -241,7 +241,7 @@ pub fun test_Main(args Array<str>)
         @squareTriple = compose(&square, &triple)
         Debug.Assert(squareTriple(2) == 36)
     
-        for @v in 1..23:
+        for @v in 1..23
             Log.Info("Count={v}")
     }
 
@@ -252,83 +252,83 @@ pub fun test_Main(args Array<str>)
         return @x => f(g(x))
     }
 
-    fun triple(x int) int:
+    fun triple(x int) int
         return x*3
-    fun square(x int) int:
+    fun square(x int) int
         return x*x
 }
 
 pub type Token(a str)
 
-pub fun AcceptMatch(name str) ?Token:
+pub fun AcceptMatch(name str) ?Token
     return name == "(" ? Token() : null
 
 // Regular static function
-pub fun add(a int, b int) int:
+pub fun add(a int, b int) int
     return a + b
 
 // Multiple returns
-pub fun Circle(a f64, r f64) -> (x f64, y f64):
+pub fun Circle(a f64, r f64) -> (x f64, y f64)
     return Cos(a)*r, Sin(a)*r
 
 
 type MyStruct(a int)
 
-pub fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool):
+pub fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
     // Simple selection sort
-    for @i in s.Count-1:
+    for @i in s.Count-1
         @lowElem = s[i]
         @lowIndex = i
-        for @j in i+1..s.Count:
-            if lessThan(s[j], lowElem):
+        for @j in i+1..s.Count
+            if lessThan(s[j], lowElem)
                 lowElem = s[j]
                 lowIndex = j
-        if lowIndex != i:
+        if lowIndex != i
             s[lowIndex] = s[i]
             s[i] = lowElem
 
 
-pub fun MemCopy(dest *void, source *void, length xint):
+pub fun MemCopy(dest *void, source *void, length xint)
     @d = cast(xint)dest
     @s = cast(xint)source
     
-    if length <= 0:
+    if length <= 0
         return
 
     // Align `d` on i32
-    while d & 3 != 0 && length != 0:
+    while d & 3 != 0 && length != 0
         dref(cast(*byte)d) = dref(cast(*byte)s)
         d+=1;  s+=1;  length-=1
     
-    if s & 3 == 0:
+    if s & 3 == 0
         MemCopy32(cast(*void)d, cast(*void)s, length)
         return
     
     // Byte copy
     @end = d + length
-    while end-d >= 4:
+    while end-d >= 4
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
-    while d != end:
+    while d != end
         dref(cast(*byte)d) = dref(castx<*byte>(s)); d+=1; s+=1
 
-pub fun MemCopy32(dest *void, source *void, length xint):
+pub fun MemCopy32(dest *void, source *void, length xint)
     @d = cast (xint)dest
     @s = cast (xint)source
 
-    if length <= 0:
+    if length <= 0
         return
 
     // Try 64 bit copy first
     @end = d + length
-    if (d~s) & 4 == 0 && length >= 8:
+    if (d~s) & 4 == 0 && length >= 8
         if d & 4 != 0
             { dref(cast(*i32)d) = dref(cast(*i32)s); d+=4; s+=4 }
         while end - d >= 8
             { dref(cast(*i64)d) = dref(cast(*i64)s); d+=8; s+=8 }
-    while end-d >= 4:
+    while end-d >= 4
         dref(cast(*i32)d) = dref(cast(*i32)s); d+=4; s+=4
-    while d != end:
+    while d != end
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1

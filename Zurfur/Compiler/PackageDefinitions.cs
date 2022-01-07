@@ -36,17 +36,9 @@ namespace Gosub.Zurfur.Compiler
         /// points to the file name here.
         /// </summary>
         public string[] Files = Array.Empty<string>();
-        
-        /// <summary>
-        /// See `PackageSymbolsJson` for info
-        /// </summary>
+
         public List<PackageSymbolJson> Symbols;
         public PackageCodeJson Code;
-
-        /// <summary>
-        /// EXPERIMENT: Modules, types, and methods at the top level.
-        /// </summary>
-        public List<PackageSymbolJson> SymbolsFlattenedExperiment;
 
     }
 
@@ -58,8 +50,7 @@ namespace Gosub.Zurfur.Compiler
     public class PackageSymbolJson
     {
         public string Name;
-        public string NameDebugFull;
-        public string[] Tags;
+        public string Tags;
         public string Comments;
 
         /// <summary>

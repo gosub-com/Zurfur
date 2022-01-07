@@ -29,9 +29,9 @@ pub type Example
     @list List<str> = ["Hello", "World"]    // Private mutable list
     @m ro Map<str,int> = ["A":1, "B":2]     // Private immutable map
     @Header ro str pub get = "Zurfur"       // Public immutable string
-    pub fun F(a int) int:
+    pub fun F(a int) int
         return m["A"]+10   // Public function
-    get P() str:
+    get P() str
         return Header + info     // Public property
 }
 
@@ -64,7 +64,7 @@ fun test_ForSimple()
 }
 
 
-pub fun test_Convert():
+pub fun test_Convert()
     @a = List<float>()
     @b = List<int>()
     @c = a.Convert(@ => int(i))

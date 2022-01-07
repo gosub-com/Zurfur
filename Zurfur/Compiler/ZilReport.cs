@@ -147,20 +147,16 @@ namespace Gosub.Zurfur.Compiler
 
             void ShowTypes()
             {
-                var ds = mSymbols.GetSymbols();
-                var ls = new List<string>(ds.Keys);
-                ls.Sort((a, b) => Compare(a, b));
+                var ls = new List<Symbol>(mSymbols.Symbols);
+                ls.Sort((a, b) => Compare(a.FullName, b.FullName));
 
                 headerFile.Add("SYMBOLS:");
                 foreach (var s in ls)
                 {
-                    var symbol = ds[s];
                     //if (symbol is SymMethodGroup)
                     //    continue;
-                    headerFile.Add($"    {symbol.Kind,16}: {s}");
+                    headerFile.Add($"    {s.KindName,16}: {s.FullName}");
                 }
-                return;
-
             }
 
 

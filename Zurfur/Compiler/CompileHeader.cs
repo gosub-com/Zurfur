@@ -23,11 +23,6 @@ namespace Gosub.Zurfur.Compiler
         SymbolTable mSymbols = new SymbolTable();
         Dictionary<string, Symbol> mUnaryTypeSymbols = new Dictionary<string, Symbol>();
 
-        readonly static string[] sQualifiersPubModule = new string[] { "pub", "module" };
-        readonly static string[] sQualifiersPtype = new string[] { "type_param" };
-        readonly static string[] sQualifiersParam = new string[] { "param" };
-        readonly static string[] sQualifiersParamReturn = new string[] { "param_return" };
-
         public SymbolTable Symbols => mSymbols;
 
         public CompileHeader()
@@ -92,7 +87,7 @@ namespace Gosub.Zurfur.Compiler
                 }
                 var newModule = new SymModule(parent, m.Name);
                 // TBD: Take qualifiers from module definition (generate error if inconsistent)
-                newModule.Qualifiers = sQualifiersPubModule; 
+                newModule.Qualifiers = SymQualifiers.Pub;
                 m.Name.AddInfo(newModule);
                 var ok = mSymbols.AddOrReject(newModule);
                 Debug.Assert(ok);
@@ -115,7 +110,7 @@ namespace Gosub.Zurfur.Compiler
                         var lastToken = use.NamePath[use.NamePath.Length - 1];
                         if (!symbol.IsModule)
                         {
-                            Reject(lastToken, "Must be a module, not a " + symbol.Kind);
+                            Reject(lastToken, "Must be a module, not a " + symbol.KindName);
                             continue;
                         }
 
@@ -146,21 +141,20 @@ namespace Gosub.Zurfur.Compiler
                             continue; // Syntax errors
                         var newType = new SymType(parent, syntaxFile.Key, type.Name);
                         newType.Comments = type.Comments;
-                        newType.Qualifiers = Array.ConvertAll(type.Qualifiers, a => a.Name).ToArray();
+                        newType.SetQualifiers(type.Qualifiers);
                         newType.Token.AddInfo(newType);
                         if (mSymbols.AddOrReject(newType))
-                            AddTypeParams(newType, type.TypeArgs, syntaxFile.Key, sQualifiersPtype);
+                            AddTypeParams(newType, type.TypeArgs, syntaxFile.Key);
                         syntaxScopeToSymbol[type] = newType;
                     }
                 }
             }
 
-            void AddTypeParams(Symbol scope, IEnumerable<SyntaxExpr> typeArgs, string file, string[] qualifiers)
+            void AddTypeParams(Symbol scope, IEnumerable<SyntaxExpr> typeArgs, string file)
             {
                 foreach (var expr in typeArgs)
                 {
                     var typeParam = new SymTypeParam(scope, file, expr.Token);
-                    typeParam.Qualifiers = qualifiers;
                     if (mSymbols.AddOrReject(typeParam))
                         expr.Token.AddInfo(typeParam);
                 }
@@ -242,7 +236,7 @@ namespace Gosub.Zurfur.Compiler
 
                         // Create the field
                         var symField = new SymField(symParent, syntaxFile.Key, field.Name);
-                        symField.Qualifiers = Array.ConvertAll(field.Qualifiers, a => a.Name).Append("field").ToArray();
+                        symField.SetQualifiers(field.Qualifiers);
                         symField.Comments = field.Comments;
                         symField.Token.AddInfo(symField);
                         mSymbols.AddOrReject(symField);
@@ -272,7 +266,8 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var type in syntaxFile.Value.Types)
                     {
-                        var module = syntaxScopeToSymbol[type.ParentScope];
+                        if (!syntaxScopeToSymbol.TryGetValue(type.ParentScope, out var module))
+                            continue;  // Syntax error already marked
                         if (!module.Children.TryGetValue(type.Name, out var symbol))
                             continue; // Syntax error already marked
                         if (symbol.IsType)
@@ -312,7 +307,7 @@ namespace Gosub.Zurfur.Compiler
                     }
                     else
                     {
-                        Reject(synConstraint.TypeName, $"The symbol '{name}' is not a type parameter, it is a {constrainedType.Kind}");
+                        Reject(synConstraint.TypeName, $"The symbol '{name}' is not a type parameter, it is a {constrainedType.KindName}");
                         continue;
                     }
 
@@ -332,7 +327,7 @@ namespace Gosub.Zurfur.Compiler
                         if (!sym.IsInterface)
                         {
                             // TBD: This should be in verification.
-                            RejectTypeArgLeftDotRight(c, $"Symbol is not an interface, it is a {sym.Kind}");
+                            RejectTypeArgLeftDotRight(c, $"Symbol is not an interface, it is a {sym.KindName}");
                             continue;
                         }
                         if (constrainers.Contains(tn))
@@ -378,7 +373,7 @@ namespace Gosub.Zurfur.Compiler
                         if (methodGroup.IsMethodGroup)
                             ResolveMethod(methodGroup, method, syntaxFile.Key);
                         else
-                            Reject(method.Name, $"There is already a {methodGroup.Kind} with that name");
+                            Reject(method.Name, $"There is already a {methodGroup.KindName} with that name");
                     }
                 }
             }
@@ -393,10 +388,10 @@ namespace Gosub.Zurfur.Compiler
 
                 // Give each function a unique name (final name calculated below)
                 var method = new SymMethod(scope, file, func.Name, $"$LOADING...${scope.Children.Count}");
-                method.Qualifiers = Array.ConvertAll(func.Qualifiers, a => a.Name).Append("method").ToArray();
+                method.SetQualifiers(func.Qualifiers);
                 method.Comments = func.Comments;
 
-                AddTypeParams(method, func.TypeArgs, file, sQualifiersPtype);
+                AddTypeParams(method, func.TypeArgs, file);
                 AddImplParams(method, func, file);
                 AddThisParam(scope, func, file, method);
                 ResolveMethodParams(file, method, func.MethodSignature[0], false); // Parameters
@@ -415,8 +410,8 @@ namespace Gosub.Zurfur.Compiler
                 //      t1,t2... - Parameter types
                 //      r1,r2... - Return types
                 var genericsCount = method.GenericParamCount();
-                var mp = method.FindChildren("param");
-                var mpr = method.FindChildren("param_return");
+                var mp = method.Children.Values.Where(child => child.Kind == SymKind.MethodParam && !child.ParamOut).ToList();
+                var mpr = method.Children.Values.Where(child => child.Kind == SymKind.MethodParam && child.ParamOut).ToList();
                 mp.Sort((a, b) => a.Order.CompareTo(b.Order));
                 mpr.Sort((a, b) => a.Order.CompareTo(b.Order));
                 var methodName = (genericsCount == 0 ? "" : "`" + genericsCount)
@@ -441,12 +436,10 @@ namespace Gosub.Zurfur.Compiler
 
                 var p1 = new SymMethodParam(method, file, func.Name, "$interface");
                 p1.TypeName = implBlock.Children["$interface"].TypeName;
-                p1.Qualifiers = sQualifiersParam;
                 mSymbols.AddOrReject(p1);
 
                 var p2 = new SymMethodParam(method, file, func.Name, "$this");
                 p2.TypeName = implBlock.Children["$this"].TypeName;
-                p2.Qualifiers = sQualifiersParam;
                 mSymbols.AddOrReject(p2);
             }
 
@@ -460,12 +453,10 @@ namespace Gosub.Zurfur.Compiler
                 {
                     // First parameter is "$this"
                     var methodParam = new SymMethodParam(method, file, func.Name, "$this");
-                    methodParam.Qualifiers = sQualifiersParam;
                     if (isExtension)
                     {
                         methodParam.TypeName = ResolveTypeNameOrReject(methodParam, func.ExtensionType, file);
-                        Array.Resize(ref method.Qualifiers, method.Qualifiers.Length + 1);
-                        method.Qualifiers[method.Qualifiers.Length - 1] = "extension";
+                        method.Qualifiers |= SymQualifiers.Extension;
                     }
                     else
                     {
@@ -492,8 +483,7 @@ namespace Gosub.Zurfur.Compiler
                     var token = expr.Token == "" ? expr[1].Token : expr.Token;
                     var name = expr.Token == "" ? "$return" : expr.Token.Name;
                     var methodParam = new SymMethodParam(method, file, token, name);
-                    methodParam.IsReturnParam = isReturn;
-                    methodParam.Qualifiers = isReturn ? sQualifiersParamReturn : sQualifiersParam;
+                    methodParam.ParamOut = isReturn;
                     methodParam.TypeName = ResolveTypeNameOrReject(methodParam, expr[0], file);
                     if (methodParam.TypeName == "" && !NoCompilerChecks)
                         methodParam.Token.AddInfo(new VerifySuppressError());
@@ -512,7 +502,7 @@ namespace Gosub.Zurfur.Compiler
                 if (symbol.IsAnyTypeNotModule  || NoCompilerChecks)
                     return symbol.FullName;
 
-                RejectTypeArgLeftDotRight(typeExpr, "The symbol is not a type, it is a " + symbol.Kind);
+                RejectTypeArgLeftDotRight(typeExpr, "The symbol is not a type, it is a " + symbol.KindName);
                 return "";
             }
 
@@ -555,7 +545,7 @@ namespace Gosub.Zurfur.Compiler
 
             if (!symbol.IsAnyType || symbol.IsSpecializedType)
             {
-                Reject(typeExpr.Token, "The symbol is not a type, it is a " + symbol.Kind);
+                Reject(typeExpr.Token, "The symbol is not a type, it is a " + symbol.KindName);
                 return NoCompilerChecks ? symbol : null;
             }
 
@@ -594,7 +584,7 @@ namespace Gosub.Zurfur.Compiler
                 }
                 if (!leftSymbol.IsAnyType || leftSymbol.IsTypeParam)
                 {
-                    Reject(typeExpr.Token, $"The left side of the '.' must evaluate to a module or type, but it is a {leftSymbol.Kind}");
+                    Reject(typeExpr.Token, $"The left side of the '.' must evaluate to a module or type, but it is a {leftSymbol.KindName}");
                     return null;
                 }
 
@@ -606,7 +596,7 @@ namespace Gosub.Zurfur.Compiler
 
                 if (!rightSymbol.IsAnyType)
                 {
-                    Reject(typeExpr[1].Token, $"The right side of the '.' must evaluate to a module or type, but it is a {rightSymbol.Kind}");
+                    Reject(typeExpr[1].Token, $"The right side of the '.' must evaluate to a module or type, but it is a {rightSymbol.KindName}");
                     return null;
                 }
 
@@ -683,14 +673,13 @@ namespace Gosub.Zurfur.Compiler
                     {
                         paramTypes.Add(sym);
                         var newMethodParam = new SymMethodParam(paramScope, file, pType.Token);
-                        newMethodParam.IsReturnParam = isReturn;
-                        newMethodParam.Qualifiers = isReturn ? sQualifiersParamReturn : sQualifiersParam;
+                        newMethodParam.ParamOut = isReturn;
                         newMethodParam.Token.AddInfo(newMethodParam);
                         mSymbols.AddOrReject(newMethodParam); // TBD: Fix
                     }
                     else
                     {
-                        Reject(sym.Token, $"Expecting a type, but got a {sym.Kind}");
+                        Reject(sym.Token, $"Expecting a type, but got a {sym.KindName}");
                         resolved = false;
                     }
                 }
@@ -759,7 +748,7 @@ namespace Gosub.Zurfur.Compiler
                         resolved = false;
                     else if (!typeParent.IsAnyTypeNotModule)
                     {
-                        Reject(typeExpr[typeParamIndex].Token, $"Expecting a type, but got a {typeParent.Kind}");
+                        Reject(typeExpr[typeParamIndex].Token, $"Expecting a type, but got a {typeParent.KindName}");
                         resolved = false;
                     }
                 }
@@ -775,7 +764,7 @@ namespace Gosub.Zurfur.Compiler
                         typeParams.Add(sym);
                     else
                     {
-                        Reject(typeExpr[typeParamIndex].Token, $"Expecting a type, but got a {sym.Kind}");
+                        Reject(typeExpr[typeParamIndex].Token, $"Expecting a type, but got a {sym.KindName}");
                         resolved = false;
                     }
                 }
@@ -839,7 +828,7 @@ namespace Gosub.Zurfur.Compiler
             }
             if (symbol.IsAnyType)
                 return symbol;
-            Reject(name, $"'{name}' is not a type, it is a '{symbol.Kind}'");
+            Reject(name, $"'{name}' is not a type, it is a '{symbol.KindName}'");
             return null;
         }
 

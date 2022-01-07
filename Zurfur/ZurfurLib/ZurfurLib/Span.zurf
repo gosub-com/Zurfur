@@ -19,38 +19,38 @@ pub type ref passcopy Span<T>
         require range.Low <= range.High
         extern // Implementation TBD
 
-    pub fun mut Sort(compare fun(a T, b T)bool):
+    pub fun mut Sort(compare fun(a T, b T)bool)
         return todo()
 
     /// Set the span to `item` (or default if not specified)
-    pub fun mut Clear(item T = default):
-        for @i in 0..Count:
+    pub fun mut Clear(item T = default)
+        for @i in 0..Count
             this[i] = item
 
     /// Find index of the sequence `seq`.
     /// Returns -1 if not found, or 0 if `seq` is empty.
     pub fun Find(seq Span<T>) int
-            where T is OpEq<T>:
-        if seq.Count == 0:
+            where T is OpEq<T>
+        if seq.Count == 0
             return 0
-        if seq.Count > Count:
+        if seq.Count > Count
             return -1
-        for @i in 0..Count-seq.Count+1:
-            if this[i] != seq[0]:
+        for @i in 0..Count-seq.Count+1
+            if this[i] != seq[0]
                 continue
             @j = 1
-            while j < seq.Count && seq[j] == this[i+j]:
+            while j < seq.Count && seq[j] == this[i+j]
                 j += 1
-            if j == seq.Count:
+            if j == seq.Count
                 return i
         return -1
 
 
     /// Find the index of the `item`.  Returns -1 if not found.
     pub fun Find(item T) int
-            where T is OpEq<T>:
-        for @i in 0..Count:
-            if this[i] == item:
+            where T is OpEq<T>
+        for @i in 0..Count
+            if this[i] == item
                 return i
         return -1
 
@@ -58,8 +58,8 @@ pub type ref passcopy Span<T>
     /// Returns -1 if not found.
     pub fun Find(eq fun(item T) bool) int
     {
-        for @i in 0..Count:
-            if eq(this[i]):
+        for @i in 0..Count
+            if eq(this[i])
                 return i
         return -1
     }

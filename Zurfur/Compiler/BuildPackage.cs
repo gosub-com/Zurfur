@@ -364,14 +364,12 @@ namespace Gosub.Zurfur.Compiler
                 // Header
                 var package = new PackageJson();
                 package.BuildDate = DateTime.Now.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
-                //package.Symbols = zil.Symbols.Save(true);
-                package.SymbolsFlattenedExperiment = zil.Symbols.SaveFlattenedExperiment(true);
+                package.Symbols = zil.Symbols.Save(true);
                 mHeaderJson = JsonConvert.SerializeObject(package, Formatting.None,
                     new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore });
 
                 // Code
-                //package.Symbols = zil.Symbols.Save(false);
-                package.SymbolsFlattenedExperiment = zil.Symbols.SaveFlattenedExperiment(false);
+                package.Symbols = zil.Symbols.Save(false);
                 mCodeJson = JsonConvert.SerializeObject(package, Formatting.None,
                     new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore });
             });

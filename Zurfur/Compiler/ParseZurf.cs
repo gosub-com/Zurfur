@@ -88,7 +88,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sAllowUnderscore = new WordSet("_");
 
         static WordSet sCompareOps = new WordSet("== != < <= > >= === !== in");
-        static WordSet sRangeOps = new WordSet(".. ::");
+        static WordSet sRangeOps = new WordSet(".. ..+");
         static WordSet sAddOps = new WordSet("+ - |");
         static WordSet sXorOps = new WordSet("~");
         static WordSet sMultiplyOps = new WordSet("* / % &");
@@ -897,20 +897,12 @@ namespace Gosub.Zurfur.Compiler
             // TBD: Try to do the best error recovery possible.
             //      The user is probably editing the top part of the compound
             //      statement, so there are a lot of wierd comibinations.
-            bool gotColon = false;
-            if (AcceptMatchOrReject(":", $"Statement '{keyword.Name}' is expecting "
-                        + $"{(isExpectingMessage == "" ? "'{' or ':'" : isExpectingMessage)}"))
+            if (mTokenName != ";" || !mToken.Meta)
             {
-                gotColon = true;
+                Reject("Expecting end of line or '{'");
+                if (IsMatchPastMetaSemicolon("{"))
+                    return ParseStatements("'" + keyword.Name + "' statement");
             }
-
-            if (IsMatchPastMetaSemicolon("{"))
-            {
-                if (gotColon)
-                    RejectToken(mToken, "Use either ':' or '{', but not both");
-                return ParseStatements("'" + keyword.Name + "' statement");
-            }
-
 
             // Expecting end of line and next line to be indented
             var keywordColumnToken = mLexer.GetLineTokens(keyword.Y)[0];

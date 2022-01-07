@@ -5,7 +5,7 @@ use Zurfur.Operators
 /// Basic shapes for use with 2d drawing library
 module Zurfur.Draw2d
 
-fun test_Shape():
+fun test_Shape()
     @rect = Rect<int>(1,2,3,4)
     rect.Location.Y = 30 // This should work
     Assert(rect == Rect<int>(1,30,3,4))
@@ -46,7 +46,7 @@ type passcopy Rect<T>
     @width T pub init ref mut
     @height T pub init ref mut
     
-    pub fun new(location Point<T>, size Size<T>):
+    pub fun new(location Point<T>, size Size<T>)
         this.location = location
         this.size = size
 
