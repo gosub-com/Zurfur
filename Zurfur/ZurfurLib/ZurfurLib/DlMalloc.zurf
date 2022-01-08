@@ -41,7 +41,7 @@ fun DlMallocException(message str)
     
 
 pub interface DlMallocMem
-{
+
     /// <summary>
     /// This was originally CALL_MMAP and is used to get more memory from
     /// the system. It's similar to CALL_MMAP, but the function can increase
@@ -89,7 +89,6 @@ pub interface DlMallocMem
     fun CallMallocFailureAction()
         throw DlMallocException("Malloc out of memory")
 
-}
 
 /// <summary>
 /// This is the base class that implements the DlMalloc algorithms.
@@ -98,7 +97,7 @@ pub interface DlMallocMem
 /// Call or expose protected members Malloc and Free to implement malloc and free.
 /// </summary>
 pub unsafe type DlMalloc
-{
+
 
     //  Top
     //    The topmost chunk of the currently active segment. Its size is
@@ -2357,4 +2356,3 @@ pub unsafe type DlMalloc
         else
             memMan.CallUsageErrorAction(null)
         return result
-}

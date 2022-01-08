@@ -6,7 +6,7 @@ module Zurfur
 
 pub type List<T>
     where This is OpIn<T> + GetIterator<ref T>
-{
+
     pub const MaxItems uint = xint.MaxValue/4/Math.Max(1,sizeof(t))
 
     @buffer  Buffer<T>
@@ -112,7 +112,7 @@ pub type List<T>
         return todo()
 
     pub fun Remove(test fun(item T) bool exit) exit
-    {
+    { // TBD: Brace needed because "err:" below
         @v = Version
         @si = 0
         @di = 0
@@ -127,7 +127,9 @@ pub type List<T>
             si += 1
         Remove(di:si)
         return
-    err:
+
+        
+        err: // TBD: FIX ME (use different keyword)
         if v != Version
             throw InvalidIteratorException()
         Remove(di:si)
@@ -148,7 +150,7 @@ pub type List<T>
 
     pub type ref ListIterator
         where This is Iterator<T>
-    {
+ 
         @list ref List<T>
         @version int
         @index int = -1
@@ -165,6 +167,5 @@ pub type List<T>
                 return ref list[index]
             return null
 
-    }
-               
-}
+ 
+ 

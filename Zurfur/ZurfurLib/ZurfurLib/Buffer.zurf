@@ -7,7 +7,7 @@ module Zurfur
 /// types implmeneted partially by the compiler.
 pub type boxed Buffer<T>
     where This is GetIterator<ref T>
-{
+
     @Count ro int pub get
 
     pub fun op_index(i int) mut ref T
@@ -23,5 +23,3 @@ pub type boxed Buffer<T>
     // Allow buffer1.Find(buffer2) and all those others
     pub fun implicit(a Buffer<T>) mut Span<T>
         extern // Implementation TBD
-
-} 

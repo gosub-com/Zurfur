@@ -1,8 +1,7 @@
 ﻿module Zurfur
 
 /// Immutable array
-pub type ro Array<T> = Buffer<T>
-{
+pub type ro Array<T> is Buffer<T>
     // NOTE: Much of the implmentation is inherited from Buffer
     //       and its implicit conversion to Span
 
@@ -12,5 +11,3 @@ pub type ro Array<T> = Buffer<T>
     //      but List.Replace to be an in-place replacement
     pub fun Replace(seqSearch []T, seqReplace[]T) Array<T>
         return todo()
-
-}

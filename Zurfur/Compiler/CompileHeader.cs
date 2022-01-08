@@ -168,7 +168,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var type in syntaxFile.Value.Types)
                     {
-                        var implType = type.ImplType();
+                        var implType = type.GetImplType();
                         if (implType == null)
                             continue;
                         var scope = syntaxScopeToSymbol[type.ParentScope];
@@ -220,7 +220,7 @@ namespace Gosub.Zurfur.Compiler
                         //      fields should be moved to be similar to methods.
                         //      Maybe convert const fields to get methods
 
-                        if (field.ParentScope.ImplType() != null)
+                        if (field.ParentScope.GetImplType() != null)
                         {
                             // TBD: Need to process const impl
                             // Convert to get method
@@ -392,8 +392,10 @@ namespace Gosub.Zurfur.Compiler
                 method.Comments = func.Comments;
 
                 AddTypeParams(method, func.TypeArgs, file);
-                AddImplParams(method, func, file);
-                AddThisParam(scope, func, file, method);
+                if (func.ParentScope.GetImplType() != null)
+                    AddImplParams(method, func, file);
+                else
+                    AddThisParam(method, func, file);
                 ResolveMethodParams(file, method, func.MethodSignature[0], false); // Parameters
                 ResolveMethodParams(file, method, func.MethodSignature[1], true);  // Returns
 
@@ -401,7 +403,9 @@ namespace Gosub.Zurfur.Compiler
                 var scopeParent = func.ParentScope.Name;
                 if (scopeParent.Error)
                 {
-                    Warning(func.Token, $"Symbol not processed because '{scopeParent}' has an error");
+                    // NOTE: Since the symbol is not stored, the method will not be compiled.
+                    // TBD: Consider changing this so user can get feedback on errors.
+                    Warning(func.Token, $"Method not processed because '{scopeParent}' has an error");
                     return;
                 }
 
@@ -423,11 +427,10 @@ namespace Gosub.Zurfur.Compiler
                 ResolveConstraints(method, func.Constraints, file);
             }
 
+            // Add $interface and $this parameters to functions defined
+            // in impl blocks.
             void AddImplParams(Symbol method, SyntaxFunc func, string file)
             {
-                if (func.ParentScope.ImplType() == null)
-                    return;
-
                 if (!syntaxScopeToSymbol.TryGetValue(func.ParentScope, out var implBlock))
                 {
                     Reject(func.Name, "Error in impl block");
@@ -443,13 +446,13 @@ namespace Gosub.Zurfur.Compiler
                 mSymbols.AddOrReject(p2);
             }
 
-            // Add $this parameter for extension methods and members
+            // Add $this parameter for extension methods and member functions.
             // NOTE: Even static methods get $this, but it is used as a
             //       type name and not passed as a parameter
-            void AddThisParam(Symbol scope, SyntaxFunc func, string file, Symbol method)
+            void AddThisParam(Symbol method, SyntaxFunc func, string file)
             {
                 var isExtension = func.ExtensionType != null && func.ExtensionType.Token != "";
-                if (isExtension || scope.Parent.IsType)
+                if (isExtension || method.Parent.Parent.IsType)
                 {
                     // First parameter is "$this"
                     var methodParam = new SymMethodParam(method, file, func.Name, "$this");
@@ -460,12 +463,11 @@ namespace Gosub.Zurfur.Compiler
                     }
                     else
                     {
-                        methodParam.TypeName = AddOuterGenericParameters(scope.Parent, scope.Parent).ToString();
+                        methodParam.TypeName = AddOuterGenericParameters(method.Parent.Parent, method.Parent.Parent).ToString();
                     }
                     if (methodParam.TypeName == "" && !NoCompilerChecks)
                         methodParam.Token.AddInfo(new VerifySuppressError());
-                    var ok = mSymbols.AddOrReject(methodParam);
-                    Debug.Assert(ok); // Unique first param
+                    mSymbols.AddOrReject(methodParam);
                 }
             }
 

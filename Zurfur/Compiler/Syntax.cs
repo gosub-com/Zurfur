@@ -68,7 +68,7 @@ namespace Gosub.Zurfur.Compiler
         /// Returns the impl type if both ImplInterface and
         /// ImplType are valid, otherwise returns null.
         /// </summary>
-        public SyntaxType ImplType()
+        public SyntaxType GetImplType()
         {
             if (!(this is SyntaxType implSyntax))
                 return null;

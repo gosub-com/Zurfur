@@ -1,8 +1,8 @@
 ﻿module Zurfur
 
 /// String is a wrapper for a read only array of bytes with support for UTF8
-pub type ro str = Array<byte>
-{
+pub type ro str is Array<byte>
+
     // NOTE: Much of the implmentation is inherited from Array
     //       and its implicit conversion to Span
 
@@ -27,4 +27,3 @@ pub type ro str = Array<byte>
     pub fun add(s1 Span<byte>, s2 str) str { todo() }
     pub fun add(s1 str, s2 Span<byte>) str { todo() }
     // TBD: Implicit conversion to and from Span?
-}

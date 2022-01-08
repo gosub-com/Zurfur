@@ -3,7 +3,7 @@
 
 // The compiler will create a new object for each file
 pub type Log
-{
+
     pub enum Level { Fatal; Error; Warn; Info; Debug }
 
 
@@ -28,5 +28,3 @@ pub type Log
 
 
     type ro passcopy LogLine(FilePath str, Line int)
-
-}

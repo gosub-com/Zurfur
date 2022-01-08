@@ -21,10 +21,12 @@ module Zurfur.Operators
 //      -inf < MinValue < 0 < MaxValue < nan < inf
 
 pub interface OpEq<Rhs> { fun op_eq(rhs Rhs) bool impl }
-pub interface OpCmp<Rhs> where Rhs is OpEq<Rhs>
-{ fun op_cmp(rhs Rhs) int impl }
-pub interface OpIn<Rhs> { fun op_in(rhs Rhs) bool impl }
 
+pub interface OpCmp<Rhs>
+    where Rhs is OpEq<Rhs>
+    fun op_cmp(rhs Rhs) int impl
+
+pub interface OpIn<Rhs> { fun op_in(rhs Rhs) bool impl }
 pub interface OpAdd<Rhs, Out> { fun op_add(rhs Rhs) Out impl }
 pub interface OpSub<Rhs, Out> { fun op_sub(rhs Rhs) Out impl }
 pub interface OpNeg<Out> { fun op_neg() Out impl }
@@ -35,9 +37,7 @@ pub interface OpRem<Rhs, Out> { fun op_rem(rhs Rhs) Out impl }
 pub interface GetHash { fun getHash() int impl }
 pub interface Drop { fun mut drop(flags int) impl }
 pub interface Clone
-{
     fun mut clone() This impl
-}
 
 // Common addition operations
 pub interface AddOps
@@ -46,12 +46,10 @@ pub interface AddOps
                 + OpAdd<This,This>
                 + OpSub<This,This>
                 + OpNeg<This>
-{
     const MAX This
     const MIN This
     const ZERO This
     const ONE This
-}
 
 /// Common number operations
 pub interface NumOps
@@ -67,20 +65,17 @@ module Zurfur.Collections
 
 
 pub interface Iterator<Item>
-{
+
     /// Return the next item, or null if it doesn't exist
     fun mut next() ?Item impl
 
     /// Implement this so 
-    pub get countHint() int { return 0 }
-}
+    pub get countHint() int
+        return 0
 
 pub interface GetIterator<T>
-{
     fun getIterator() Iterator<T> impl
-}
+
 
 interface Collection<Item>
-{
     get count() int impl
-}

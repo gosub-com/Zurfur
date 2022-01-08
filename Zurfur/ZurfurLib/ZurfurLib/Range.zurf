@@ -8,7 +8,7 @@ module Zurfur
 pub type ro passcopy Range<T>
     where This is GetIterator<T> + OpIn<Range<T>>
     where T is AddOps
-{
+
     @start T pub init get
     @end T pub init get
 
@@ -21,12 +21,11 @@ pub type ro passcopy Range<T>
     pub fun getIterator() RangeIterator<T>
         return RangeIter<T>(start, end)
 
-}
 
 pub type RangeIterator<T>
     where This is Iterator<T>
     where T is AddOps
-{
+
     @start T pub init
     @end T pub init
     
@@ -38,4 +37,3 @@ pub type RangeIterator<T>
             return move(ref start, start+T.One)
         return null
         
-}

@@ -20,7 +20,8 @@ namespace Gosub.Zurfur.Compiler
         public const string VT_TYPE_ARG = "$"; // Differentiate from '<' (must be 1 char long)
 
         // TBD: Allow pragmas to be set externally
-        static WordSet sPragmas = new WordSet("ShowParse ShowMeta NoParse NoCompilerChecks NoVerify AllowUnderscoreDefinitions");
+        static WordSet sPragmas = new WordSet("ShowParse ShowMeta NoParse NoCompilerChecks "
+            + "NoVerify AllowUnderscoreDefinitions RequireBraces");
 
 
         ParseZurfCheck mZurfParseCheck;
@@ -38,6 +39,7 @@ namespace Gosub.Zurfur.Compiler
         int                 mTernaryLevel;
         bool                mShowMeta;
         bool                mAllowUnderscoreDefinitions;
+        bool                mRequireBraces;
 
         // Be kind to GC
         Queue<List<SyntaxExpr>>   mExprCache = new Queue<List<SyntaxExpr>>();
@@ -98,7 +100,7 @@ namespace Gosub.Zurfur.Compiler
         // For now, do not allow more than one level.  Maybe we want to allow it later,
         // but definitely do not allow them to include compounds with curly braces.
         static WordSet sNoSubCompoundStatement = new WordSet("type class catch err " 
-                                + "get set pub private namespace module static static fun afun ");
+                                + "get set pub private namespace module static static");
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
         // The following symbols allow us to call functions, create types, access static members, and cast
@@ -109,10 +111,8 @@ namespace Gosub.Zurfur.Compiler
         Regex sFindUrl = new Regex(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
 
         static WordSet sStatementEndings = new WordSet("; => }");
-        static WordSet sStatementsDone = new WordSet("} namespace module type interface enum static", true);
         static WordSet sRejectAnyStop = new WordSet("=> ; { }", true);
         static WordSet sRejectForCondition = new WordSet("in");
-        static WordSet sRejectFuncName = new WordSet("(");
         static WordSet sRejectFuncParam = new WordSet(", )");
         static WordSet sRejectTypeName = new WordSet("( )");
 
@@ -203,19 +203,10 @@ namespace Gosub.Zurfur.Compiler
             {
                 ClearMetaData();
                 Accept();
-                while (mTokenName != "")
-                {
-                    ParseScopeStatements(true);
-                    if (mTokenName != "")
-                    {
-                        RejectToken(mToken, "Unexpected symbol at top level scope");
-                        Accept();
-                    }
-                }
+                ParseTopScope();
             }
             catch (NoCompilePragmaException)
             {
-
             }
         }
 
@@ -236,14 +227,11 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
-        /// <summary>
-        /// Parse using, module, type, fun, etc.
-        /// </summary>
-        void ParseScopeStatements(bool topScope)
+        void ParseTopScope()
         {
             var qualifiers = new List<Token>();
             Token alignment = null;
-            while (mTokenName != "" && (mTokenName != "}" || topScope))
+            while (mTokenName != "")
             {
                 if (alignment == null)
                 {
@@ -254,114 +242,124 @@ namespace Gosub.Zurfur.Compiler
                 {
                     var visibleSemicolon = mPrevToken.Name == ";" && !mPrevToken.Meta;
                     if (mToken.X != alignment.X && !visibleSemicolon)
-                        RejectToken(mToken, "Indentation of this statement must match endentation of statement above it");
+                        RejectToken(mToken, "Indentation of this statement must match statement above it");
                 }
+                ParseScopeStatement(true, qualifiers, true);
+            }
+        }
 
-                var attributes = NewExprList();
-                while (AcceptMatch("#"))
-                {
-                    if (CheckIdentifier("Expecting an attribute"))
-                        attributes.Add(ParseExpr());
-                    while (mTokenName == ";")
-                        Accept();
-                }
-                FreeExprList(attributes); // TBD: Store in expression tree
+        void ParseScopeStatements(Token keyword)
+        {
+            var qualifiers = new List<Token>();
+            ParseScopeLevel(keyword, sEmptyWordSet, useBraces => 
+            {
+                ParseScopeStatement(false, qualifiers, useBraces);
+            });
+        }
 
-                // Read qualifiers
-                qualifiers.Clear();
-                while (sFieldQualifiers.Contains(mTokenName))
-                {
+        private void ParseScopeStatement(bool topScope, List<Token> qualifiers, bool requireSemicolon)
+        {
+            var attributes = NewExprList();
+            while (AcceptMatch("#"))
+            {
+                if (CheckIdentifier("Expecting an attribute"))
+                    attributes.Add(ParseExpr());
+                while (mTokenName == ";")
+                    Accept();
+            }
+            FreeExprList(attributes); // TBD: Store in expression tree
+
+            // Read qualifiers
+            qualifiers.Clear();
+            ParseQualifiers(sFieldQualifiers, qualifiers);
+
+            var keyword = mToken;
+            switch (mTokenName)
+            {
+                case ";":
+                    if (qualifiers.Count != 0)
+                        RejectToken(keyword, "Expecting a type/fun, property or field definition");
+                    break;
+
+                case "{":
+                case "=>":
+                    Accept();
+                    RejectToken(keyword, "Unexpected '" + keyword + "'.  Expecting a keyword, such as 'type', 'fun', etc. before the start of a new scope.");
+                    break;
+
+                case "pragma":
+                    ParsePragma();
+                    break;
+
+                case "use":
+                    mToken.Type = eTokenType.ReservedControl;
+                    Accept();
+                    mSyntax.Using.Add(ParseUsingStatement(keyword));
+                    if (mModuleBasePath.Length != 0)
+                        RejectToken(keyword, "'use' statement must come before the 'module' statement");
+                    break;
+
+                case "module":
+                    mToken.Type = eTokenType.ReservedControl;
+                    Accept();
+                    if (!topScope)
+                        RejectToken(keyword, "'module' statement must not be inside a type");
+                    ParseModuleStatement(keyword);
+                    break;
+
+                case "interface":
+                case "enum":
+                case "type":
+                case "impl":
                     mToken.Type = eTokenType.ReservedControl;
                     qualifiers.Add(Accept());
-                }
+                    if (keyword.Name == "type")
+                    {
+                        foreach (var q in qualifiers)
+                            if (sTypeQualifiers.Contains(q.Name))
+                                RejectToken(q, "Place qualifier after 'type' keyword");
+                        ParseQualifiers(sTypeQualifiers, qualifiers);
+                    }
+                    ParseTypeScope(keyword, qualifiers);
+                    break;
 
-                var keyword = mToken;
-                switch (mTokenName)
-                {
-                    case ";":
-                        if (qualifiers.Count != 0)
-                            RejectToken(keyword, "Expecting a type/fun, property or field definition");
-                        break;
+                case "get":
+                case "aget":
+                case "set":
+                case "aset":
+                case "fun":
+                case "afun":
+                    mToken.Type = eTokenType.ReservedControl;
+                    qualifiers.Add(Accept());
+                    AddMethod(ParseMethod(keyword, qualifiers));
+                    break;
 
-                    case "{":
-                    case "=>":
+                case "@":
+                    ParseFieldFull(Accept(), qualifiers);
+                    break;
+
+                case "const":
+                    mToken.Type = eTokenType.ReservedControl;
+                    qualifiers.Add(Accept());
+                    AddField(ParseFieldSimple(qualifiers));
+                    break;
+
+                default:
+                    if (mScopeStack.Count != 0 && mScopeStack.Last().Keyword == "enum" && keyword.Type == eTokenType.Identifier)
+                    {
+                        // For enum, assume the first identifier is a field
                         Accept();
-                        RejectToken(keyword, "Unexpected '" + keyword + "'.  Expecting a keyword, such as 'type', 'fun', etc. before the start of a new scope.");
-                        break;
-
-                    case "pragma":
-                        ParsePragma();
-                        break;
-
-                    case "use":
-                        mToken.Type = eTokenType.ReservedControl;
+                        AddField(ParseEnumField(qualifiers, keyword));
+                    }
+                    else
+                    {
                         Accept();
-                        mSyntax.Using.Add(ParseUsingStatement(keyword));
-                        if (mModuleBasePath.Length != 0)
-                            RejectToken(keyword, "'use' statement must come before the 'module' statement");
-                        break;
-
-                    case "module":
-                        mToken.Type = eTokenType.ReservedControl;
-                        Accept();
-                        if (!topScope)
-                            RejectToken(keyword, "'module' statement must not be inside a type");
-                        ParseModuleStatement(keyword);
-                        break;
-
-                    case "interface":
-                    case "enum":
-                    case "type":
-                    case "impl":
-                        mToken.Type = eTokenType.ReservedControl;
-                        qualifiers.Add(Accept());
-                        if (keyword.Name == "type")
-                        {
-                            foreach (var q in qualifiers)
-                                if (sTypeQualifiers.Contains(q.Name))
-                                    RejectToken(q, "Place qualifier after 'type' keyword");
-                            ParseQualifiers(sTypeQualifiers, qualifiers);
-                        }
-                        ParseTypeScope(keyword, qualifiers);
-                        break;
-
-                    case "get":
-                    case "aget":
-                    case "set":
-                    case "aset":
-                    case "fun":
-                    case "afun":
-                        mToken.Type = eTokenType.ReservedControl;
-                        qualifiers.Add(Accept());
-                        AddMethod(ParseMethod(keyword, qualifiers));
-                        break;
-
-                    case "@":
-                        ParseFieldFull(Accept(), qualifiers);
-                        break;
-
-                    case "const":
-                        mToken.Type = eTokenType.ReservedControl;
-                        qualifiers.Add(Accept());
-                        AddField(ParseFieldSimple(qualifiers));
-                        break;
-
-                    default:
-                        if (mScopeStack.Count != 0 && mScopeStack.Last().Keyword == "enum" && keyword.Type == eTokenType.Identifier)
-                        {
-                            // For enum, assume the first identifier is a field
-                            Accept();
-                            AddField(ParseEnumField(qualifiers, keyword));
-                        }
-                        else
-                        {
-                            Accept();
-                            RejectToken(keyword, "Expecting a field, type, function, property ('@', 'type', 'fun', 'get', 'const', etc.) or qualifier ('pub', etc.)");
-                        }
-                        break;
-                }
-                AcceptSemicolonOrReject();
+                        RejectToken(keyword, "Expecting a field, type, function, property ('@', 'type', 'fun', 'get', 'const', etc.) or qualifier ('pub', etc.)");
+                    }
+                    break;
             }
+            if (requireSemicolon)
+                AcceptSemicolonOrReject();
         }
 
         private void ParseQualifiers(WordSet allowedQualifiers, List<Token> qualifiers)
@@ -372,6 +370,129 @@ namespace Gosub.Zurfur.Compiler
                 qualifiers.Add(Accept());
             }
         }
+
+        /// <summary>
+        /// Perform parseLine(useBraces) action on each line at this scope level.
+        /// </summary>
+        private void ParseScopeLevel(Token keyword, WordSet notAllowed, Action<bool> parseLine)
+        {
+            bool useBraces = IsMatchPastMetaSemicolon("{");
+            if (!useBraces && (mTokenName != ";" || !mToken.Meta))
+            {
+                Reject("Expecting end of line or '{'");
+                useBraces = IsMatchPastMetaSemicolon("{");
+            }
+
+            if (useBraces)
+            {
+                ParseScopeLevelWithBraces(keyword.Name, parseLine);
+                return;
+            }
+
+            if (mTokenName != ";" || !mToken.Meta)
+                return; // Error given above
+
+            if (mRequireBraces)
+                RejectToken(mToken, "Expecting '{' because pragma 'RequireBraces' is set");
+
+            // Expecting end of line and next line to be indented
+            var keywordColumnToken = mLexer.GetLineTokens(keyword.Y)[0];
+            var keywordColumn = keywordColumnToken.X;
+            if (mToken.Meta && mTokenName == ";" && mNextStatementToken != null
+                && mNextStatementToken.X < keywordColumn + 2)
+            {
+                RejectToken(mToken, "Expecting '{' or next line to be indented at least two spaces");
+                return;
+            }
+
+
+            if (!AcceptMatch(";"))
+            {
+                Reject($"Braceless statement '{keyword.Name}' is expecting end of line");
+                if (!mToken.Meta || mTokenName != ";")
+                    return;
+                Accept(); // Continue parsing for better error recovery
+            }
+            else if (!mPrevToken.Meta)
+            {
+                RejectToken(mPrevToken, $"Braceless statement '{keyword.Name}' is expecting end of line");
+                return;
+            }
+
+            if (mTokenName == "}" || mTokenName == ";")
+            {
+                RejectToken(mPrevToken, $"Braceless statement '{keyword.Name}' is expecting non-empty statement");
+                return;
+            }
+
+            var compoundColumn = mToken.X;
+            while (true)
+            {
+                if (notAllowed.Contains(mTokenName))
+                    Reject($"Braceless statement '{keyword.Name}' may not embed '{mTokenName}' statement");
+
+                parseLine(false);
+
+                if (mTokenName != ";")
+                    Reject($"Braceless statement '{keyword.Name}' is expecting end of line");
+
+                if (mTokenName == "}" || mTokenName == "")
+                    break;
+
+                var newColumn = mNextStatementToken == null ? -1 : mNextStatementToken.X;
+                if (mToken.Meta && newColumn <= keywordColumn)
+                    break;
+
+                AcceptMatch(";");
+                if (mPrevToken.Meta && newColumn != compoundColumn)
+                    RejectToken(mToken, "Indentation of this statement must match statement above it");
+            }
+
+            // Draw scope lines
+            // TBD: Make if...elif...else consistent, all or none.
+            int scopeLines = mPrevToken.Y - keywordColumnToken.Y;
+            if (scopeLines >= 2)
+                Token.AddScopeLines(mLexer, keywordColumnToken.Y, scopeLines, false);
+        }
+
+        /// <summary>
+        /// Parse '{ statements }'
+        /// </summary>
+        void ParseScopeLevelWithBraces(string keyword, Action<bool> parseLine)
+        {
+            // Require '{'
+            if (mToken.Meta && mTokenName == ";")
+                Accept();
+            if (!AcceptMatchPastMetaSemicolon("{"))
+                return;
+            var openToken = mPrevToken;
+
+            while (AcceptMatch(";"))
+                ;
+
+            var (x, y) = (mToken.X, mToken.Y);
+            while (mTokenName != "}" && mTokenName != "")
+            {
+                if (mToken.X != x && mToken.Y != y)
+                    RejectToken(mToken, "Indentation of this statement must match statement above it");
+                y = mToken.Y;
+                parseLine(true);
+            }
+
+            bool error = false;
+            if (AcceptMatchOrReject("}", $"Expecting '}}' while parsing {keyword}"))
+            {
+                Connect(openToken, mPrevToken);
+            }
+            else
+            {
+                error = true;
+                RejectToken(openToken, mTokenName == "" ? "This scope has no closing brace"
+                                                        : "This scope has an error on its closing brace");
+            }
+            Token.AddScopeLines(mLexer, openToken.Y, mPrevToken.Y - openToken.Y - 1, error);
+        }
+
 
         void AddType(SyntaxType type)
         {
@@ -489,6 +610,8 @@ namespace Gosub.Zurfur.Compiler
                 mShowMeta = true;
             if (mTokenName == "AllowUnderscoreDefinitions")
                 mAllowUnderscoreDefinitions = true;
+            if (mTokenName == "RequireBraces")
+                mRequireBraces = true;
             if (mTokenName == "NoParse")
             {
                 while (Accept() != "")
@@ -561,37 +684,22 @@ namespace Gosub.Zurfur.Compiler
                 return;
             }
 
-            if (AcceptMatch("="))
+            if (AcceptMatch("=") || AcceptMatch("is"))
             {
+                var prev = mPrevToken.Name;
                 synClass.Simple = true;
                 synClass.Alias = ParseType();
+                if (prev == "=")
+                {
+                    mScopeStack = oldScopeStack;
+                    return;
+                }
             }
 
             synClass.Constraints = ParseConstraints();
 
-            if (AcceptMatchPastMetaSemicolon("{"))
-            {
-                var openToken = mPrevToken;
-                ParseScopeStatements(false);
+            ParseScopeStatements(synClass.Keyword);
 
-                bool error = false;
-                if (AcceptMatchOrReject("}", "Expecting '}' while parsing " + synClass.Keyword.Name + " body of '" + synClass.Name + "'"))
-                {
-                    Connect(openToken, mPrevToken);
-                }
-                else
-                {
-                    error = true;
-                    RejectToken(openToken, mTokenName == "" ? "This scope has no closing brace"
-                                                            : "This scope has an error on its closing brace");
-                }
-                Token.AddScopeLines(mLexer, openToken.Y, mPrevToken.Y - openToken.Y, error);
-            }
-            else
-            {
-                if (!synClass.Simple)
-                    Reject("Expecting '{', '(', or '= '");
-            }
 
             // Restore old path
             mScopeStack = oldScopeStack;
@@ -754,8 +862,7 @@ namespace Gosub.Zurfur.Compiler
             }
             else
             {
-                synFunc.Statements = ParseCompoundStatement(keyword, 
-                    (hasReturnType ? "" : "a type name, ") + "'{', ':', 'where', 'require', 'extern', or 'impl'");
+                synFunc.Statements = ParseStatements(keyword);
             }
 
             synFunc.Qualifiers = qualifiers.ToArray();
@@ -888,125 +995,12 @@ namespace Gosub.Zurfur.Compiler
             return new SyntaxBinary(name, type, initializer);
         }
         
-
-        SyntaxExpr ParseCompoundStatement(Token keyword, string isExpectingMessage = "")
+        SyntaxExpr ParseStatements(Token keyword)
         {
-            if (IsMatchPastMetaSemicolon("{"))
-                return ParseStatements("'" + keyword.Name + "' statement");
-
-            // TBD: Try to do the best error recovery possible.
-            //      The user is probably editing the top part of the compound
-            //      statement, so there are a lot of wierd comibinations.
-            if (mTokenName != ";" || !mToken.Meta)
-            {
-                Reject("Expecting end of line or '{'");
-                if (IsMatchPastMetaSemicolon("{"))
-                    return ParseStatements("'" + keyword.Name + "' statement");
-            }
-
-            // Expecting end of line and next line to be indented
-            var keywordColumnToken = mLexer.GetLineTokens(keyword.Y)[0];
-            var keywordColumn = keywordColumnToken.X;
-            if (mToken.Meta && mTokenName == ";" && mNextStatementToken != null
-                && mNextStatementToken.X < keywordColumn + 2)
-            {
-                RejectToken(mToken, $"Braceless compound statement '{keyword.Name}' is expecting next line to be indented at least two spaces");
-                return SyntaxError;
-            }
-
-            if (!AcceptMatch(";"))
-            {
-                Reject($"Braceless compound statement '{keyword.Name}' is expecting end of line");
-                if (!mToken.Meta || mTokenName != ";")
-                    return SyntaxError;
-                Accept(); // Continue parsing for better error recovery
-            }
-            else if (!mPrevToken.Meta)
-            {
-                RejectToken(mPrevToken, $"Braceless compound statement '{keyword.Name}' is expecting end of line");
-                return SyntaxError;
-            }
-
-            if (mTokenName == "}" || mTokenName == ";")
-            {
-                RejectToken(mPrevToken, $"Braceless compound statement '{keyword.Name}' is expecting non-empty statement");
-                return SyntaxError;
-            }
-
-            var compoundColumn = mToken.X;
-            Token semicolon = mPrevToken;
+            var semicolon = mToken;
             var statement = NewExprList();
-            while (true)
-            {
-                if (sNoSubCompoundStatement.Contains(mTokenName))
-                    Reject($"Braceless compound statement '{keyword.Name}' may not embed '{mTokenName}' statement");
-
-                ParseStatement(statement, false);
-                if (mTokenName != ";")
-                    Reject($"Braceless compound statement '{keyword.Name}' is expecting end of line");
-
-                if (mTokenName == "}" || mTokenName == "")
-                    break;
-
-                var newColumn = mNextStatementToken == null ? -1 : mNextStatementToken.X;
-                if (mToken.Meta && newColumn <= keywordColumn)
-                    break;
-
-                AcceptMatch(";");
-                if (mPrevToken.Meta && newColumn != compoundColumn)
-                    RejectToken(mToken, $"Indentation in braceless compound statement '{keyword.Name}' must match the statement above it");
-            }
-
-            // Draw scope lines
-            // TBD: Make if...elif...else consistent, all or none.
-            //      Also, turn this into a function and combine with
-            //      other TokenVerticalLines.
-            int scopeLines = mPrevToken.Y - keywordColumnToken.Y;
-            if (scopeLines >= 2)
-                Token.AddScopeLines(mLexer, keywordColumnToken.Y, scopeLines, false);
-
+            ParseScopeLevel(keyword, sNoSubCompoundStatement, useBraces => ParseStatement(statement, useBraces));
             return new SyntaxMulti(semicolon, FreeExprList(statement));
-        }
-
-        /// <summary>
-        /// Parse '{ statements }'
-        /// </summary>
-        SyntaxExpr ParseStatements(string errorMessage)
-        {
-            // Require '{'
-            if (mToken.Meta && mTokenName == ";")
-                Accept();
-            if (!AcceptMatchOrReject("{"))
-                return SyntaxError;
-            var openToken = mPrevToken;
-
-            while (AcceptMatch(";"))
-                ;
-
-            var statements = NewExprList();
-            var (x, y) = (mToken.X, mToken.Y);
-            while (!sStatementsDone.Contains(mTokenName))
-            {
-                if (mToken.X != x && mToken.Y != y && mToken != "err" && mToken != "catch")
-                    RejectToken(mToken, "Indentation of statement must match statement above");
-                y = mToken.Y;
-                ParseStatement(statements, true);
-            }
-
-            bool error = false;
-            if (AcceptMatchOrReject("}", "Expecting '}' while parsing " + errorMessage))
-            {
-                Connect(openToken, mPrevToken);
-            }
-            else
-            {
-                error = true;
-                RejectToken(openToken, mTokenName == "" ? "This scope has no closing brace"
-                                                        : "This scope has an error on its closing brace");
-            }
-            Token.AddScopeLines(mLexer, openToken.Y, mPrevToken.Y - openToken.Y - 1, error);
-
-            return new SyntaxMulti(openToken, FreeExprList(statements));
         }
 
         private void ParseStatement(List<SyntaxExpr> statements, bool requireSemicolon)
@@ -1027,7 +1021,7 @@ namespace Gosub.Zurfur.Compiler
 
                 case "{":
                     RejectToken(mToken, "Unnecessary scope is not allowed");
-                    statements.Add(ParseStatements("'{' scope"));
+                    statements.Add(ParseStatements(keyword));
                     requireSemicolon = false;
                     break;
                 
@@ -1046,20 +1040,20 @@ namespace Gosub.Zurfur.Compiler
                     // WHILE (condition) (body)
                     mToken.Type = eTokenType.ReservedControl;
                     statements.Add(new SyntaxBinary(Accept(), ParseExpr(), 
-                                    ParseCompoundStatement(keyword)));
+                                    ParseStatements(keyword)));
                     break;
 
                 case "scope":
                     // SCOPE (body)
                     mToken.Type = eTokenType.ReservedControl;
-                    statements.Add(new SyntaxUnary(Accept(), ParseCompoundStatement(keyword)));
+                    statements.Add(new SyntaxUnary(Accept(), ParseStatements(keyword)));
                     break;
 
                 case "do":
                     // DO (condition) (body)
                     mToken.Type = eTokenType.ReservedControl;
                     var doKeyword = Accept();
-                    var doStatements = ParseCompoundStatement(keyword);
+                    var doStatements = ParseStatements(keyword);
                     var doExpr = (SyntaxExpr)SyntaxError;
                     if (mToken == ";")
                         Accept();
@@ -1076,7 +1070,7 @@ namespace Gosub.Zurfur.Compiler
                     mToken.Type = eTokenType.ReservedControl;
                     Accept();
                     statements.Add(new SyntaxBinary(keyword, ParseExpr(),
-                                    ParseCompoundStatement(keyword)));
+                                    ParseStatements(keyword)));
                     break;
 
                 case "elif":
@@ -1090,13 +1084,13 @@ namespace Gosub.Zurfur.Compiler
                             RejectToken(mPrevToken, "Shorten to 'elif'");
                         mPrevToken.Type = eTokenType.ReservedControl;
                         statements.Add(new SyntaxBinary(keyword, ParseExpr(),
-                                        ParseCompoundStatement(keyword)));
+                                        ParseStatements(keyword)));
                     }
                     else
                     {
                         // `else`
                         statements.Add(new SyntaxUnary(keyword,
-                                        ParseCompoundStatement(keyword)));
+                                        ParseStatements(keyword)));
                     }
                     break;
 
@@ -1112,7 +1106,7 @@ namespace Gosub.Zurfur.Compiler
                     AcceptMatchOrReject("in");
                     var forCondition = ParseExpr();
                     statements.Add(new SyntaxMulti(keyword, forVariable, forCondition, 
-                                    ParseCompoundStatement(keyword)));
+                                    ParseStatements(keyword)));
                     break;
 
                 case "throw":
@@ -1296,7 +1290,7 @@ namespace Gosub.Zurfur.Compiler
 
                 var lambdaToken = Accept();
                 if (IsMatchPastMetaSemicolon("{"))
-                    result = new SyntaxBinary(lambdaToken, result, ParseStatements("lambda statements"));
+                    result = new SyntaxBinary(lambdaToken, result, ParseStatements(lambdaToken));
                 else
                     result = new SyntaxBinary(lambdaToken, result, ParseTernary());
 
@@ -1661,7 +1655,7 @@ namespace Gosub.Zurfur.Compiler
         ///      Error recovery could be improved by recognizing
         ///      string literals at a lower level (e.g. Accept instead
         ///      of ParseAtom), then intellegent error rcovery could
-        ///      work a lot better.  See note in `ParseCompoundStatement`
+        ///      work a lot better.  
         /// </summary>
         SyntaxExpr ParseStringLiteral(Token prefix)
         {

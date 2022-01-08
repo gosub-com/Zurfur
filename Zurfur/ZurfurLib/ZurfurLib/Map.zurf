@@ -5,20 +5,18 @@ use Zurfur.Collections
 module Zurfur
 
 type KvPair<TKey,TValue>
-{
     @key TKey pub ref
     @value TValue pub ref mut
 
     pub fun new(key own TKey, value own TValue)
         this.key = key
         this.value = value
-    
-}
+
 
 pub type Map<TKey, TValue>
     where This is OpIn<TKey> + GetIterator<ref KvPair<TKey, TValue>>
     where TKey is OpEq<TKey> + GetHash
-{
+
     pub fun new(capacity int)
         return todo()
     pub fun new(keyValues Iterator<KvPair<TKey, TValue>>)
@@ -47,4 +45,3 @@ pub type Map<TKey, TValue>
         return todo()
     pub fun mut remove(key TKey) bool
         return todo()
-}

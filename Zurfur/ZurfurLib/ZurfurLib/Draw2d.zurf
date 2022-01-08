@@ -13,7 +13,7 @@ fun test_Shape()
 
 type passcopy Point<T>
     where T is NumOps
-{
+
     @x T pub init ref mut
     @y T pub init ref mut
 
@@ -25,22 +25,20 @@ type passcopy Point<T>
     pub static fun op_div(a T, b Point<T>) { return Point(a/b.x, a/b.y) }
     pub static fun op_div(a Point<T>, b T) { return Point(a.x/b, a.y/b) }
     fun toSize() Size<T> { return Size(X, Y) }
-}
 
 
 type passcopy Size<T>
     where T is NumOps
-{
+
     @width T pub init ref mut
     @height T pub init ref mut
     
     // TBD: Same as Point<T>
     fun toPoint() Point<T> { return Point(width, height) }
-}
 
 type passcopy Rect<T>
     where T is NumOps
-{
+
     @x T pub init ref mut
     @y T pub init ref mut
     @width T pub init ref mut
@@ -60,5 +58,3 @@ type passcopy Rect<T>
     set location(value Point<T>) { x = value.x;  Y = value.y }
     get size() Size<T> { return Size<T>(width, height) }
     set size(value Size<T>) { width = value.width;  height = value.height }
-
-}

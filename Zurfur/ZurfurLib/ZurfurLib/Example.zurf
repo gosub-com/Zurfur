@@ -36,7 +36,6 @@ pub type SimpleType(firstName str, lastName str)
 pub type ro SimpleImmutableType(firstName str, fastName str)
 
 pub type ComplexType
-{
     // Fields are private, but may have public properties
     @map Map<str,int> = ["A":1, "B":2]  // Private, mutable
     @list ro List<int> = [1,2,3]       // Private, read-only
@@ -57,7 +56,7 @@ pub type ComplexType
         Log.info("Hello world.  Let's count to 10.")
         for @a in 1..11
             Log.info("Count={a}, Text={text}")
-}
+
 
 
 // Need to figure out placeholder types:
@@ -107,7 +106,7 @@ fun test_HelloWorld()
             
 
 pub type boxed AGenericType<Q>
-{
+
     pub fun Circle1(a f64, r f64) -> (x f64, y f64)
         return Cos(a)*r, Sin(a)*r
 
@@ -123,8 +122,7 @@ pub type boxed AGenericType<Q>
 
     pub fun MyVoid2() int
         return 0
-       
-}
+
 
 
 pub fun Circle3(a f64, b f64) -> (c int, d int)
@@ -140,7 +138,7 @@ pub fun GetIterator<T>::AlphaLengthWise<T, L>(
     F(t).AW(T,L).q
 
 pub type Example
-{
+
     get MyConst() str
         return "Hello"
     
@@ -181,18 +179,16 @@ pub type Example
     @o Zim<str>
     @p Zim<Decimal>
     
-}
+
 
 pub type Zim<T>
-{
     @q T pub get set
-}
 
 
 /// This is a public documentation comment.  Do not use XML.
 /// Use `name` to refer to variables in the code.
 pub fun test_Main(args Array<str>)
-{
+
     test_compose()
 
     // This is a regular private comment
@@ -237,26 +233,23 @@ pub fun test_Main(args Array<str>)
     return
 
     fun test_compose()
-    {
+   
         @squareTriple = compose(&square, &triple)
         Debug.Assert(squareTriple(2) == 36)
     
         for @v in 1..23
             Log.Info("Count={v}")
-    }
 
     /// Compose f(g(x))
     fun compose(f fun(x int) int,
                 g fun(x int) int) fun(x int) int
-    {
         return @x => f(g(x))
-    }
 
     fun triple(x int) int
         return x*3
     fun square(x int) int
         return x*x
-}
+
 
 pub type Token(a str)
 
@@ -325,9 +318,9 @@ pub fun MemCopy32(dest *void, source *void, length xint)
     @end = d + length
     if (d~s) & 4 == 0 && length >= 8
         if d & 4 != 0
-            { dref(cast(*i32)d) = dref(cast(*i32)s); d+=4; s+=4 }
+            dref(cast(*i32)d) = dref(cast(*i32)s); d+=4; s+=4
         while end - d >= 8
-            { dref(cast(*i64)d) = dref(cast(*i64)s); d+=8; s+=8 }
+            dref(cast(*i64)d) = dref(cast(*i64)s); d+=8; s+=8
     while end-d >= 4
         dref(cast(*i32)d) = dref(cast(*i32)s); d+=4; s+=4
     while d != end

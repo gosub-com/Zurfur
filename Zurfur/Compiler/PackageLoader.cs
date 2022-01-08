@@ -106,8 +106,8 @@ namespace Gosub.Zurfur.Compiler
         [Conditional("DEBUG")]
         static void CheckMethodName(PackageSymbolJson ps, string fullName)
         {
-            var paramIn = "";
-            var paramOut = "";
+            var paramIn = new List<string>();
+            var paramOut = new List<string>();
             if (ps.Symbols != null)
             {
                 foreach (var p in ps.Symbols)
@@ -115,13 +115,15 @@ namespace Gosub.Zurfur.Compiler
                     if (p.Tags.Contains("method_param"))
                     {
                         if (p.Tags.Contains("out"))
-                            paramOut += (paramOut == "" ? "" : ",") + p.Type;
+                            paramOut.Add(p.Type);
                         else
-                            paramIn += (paramIn == "" ? "" : ",") + p.Type;
+                            paramIn.Add(p.Type);
                     }
                 }
             }
-            Debug.Assert(ps.Name + "(" + paramIn + ")(" + paramOut + ")" == fullName);
+            Debug.Assert(fullName
+                == ps.Name + "(" + string.Join(",", paramIn) 
+                            + ")(" + string.Join(",", paramOut) + ")");
         }
 
         /// <summary>
