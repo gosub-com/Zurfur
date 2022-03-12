@@ -152,6 +152,8 @@ namespace Gosub.Zurfur.Compiler
 
             void AddTypeParams(Symbol scope, IEnumerable<SyntaxExpr> typeArgs, string file)
             {
+                if (typeArgs == null)
+                    return;
                 foreach (var expr in typeArgs)
                 {
                     var typeParam = new SymTypeParam(scope, file, expr.Token);

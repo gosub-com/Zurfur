@@ -225,6 +225,9 @@
     <None Include="ZurfurLib\ZurfurLib\Map.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="ZurfurLib\ZurfurLib\Math.zurf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="ZurfurLib\ZurfurLib\Range.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

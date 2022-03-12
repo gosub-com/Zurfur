@@ -1,30 +1,22 @@
-﻿module Zurfur
+﻿module Zurfur.Log
 
 
-// The compiler will create a new object for each file
-pub type Log
 
-    pub enum Level { Fatal; Error; Warn; Info; Debug }
+pub enum Level { Fatal; Error; Warn; Info; Debug }
+pub type ro passcopy Line(filePath str, line int)
 
+// TBD: Figure out how to get default file names and line numbers.
+//      Also figure out if this should be created per file
 
-    // TBD: Figure out how to get default file names and line numbers.
-    //      Also figure out if this should be created per file
-
-    static get LogLevel() Level { todo() }
-    pub static fun Fatal(message str, li LogLine = default) { todo() }
-    pub static fun Error(message str, li LogLine = default) { todo() }
-    pub static fun Warn(message str, li LogLine = default) { todo() }
-    pub static fun Info(message str, li LogLine = default) { todo() }
-    pub static fun Debug(message str, li LogLine = default) { todo() }
-
-    /// Recoverable programming error.  In debug mode, stop and
-    /// make the programmer look at it.  In production, log it
-    /// and continue.
-    pub static fun PanicInDebugMode(message str, li LogLine = default) { todo() }
-
-    pub static fun Time(name str, message str = "") { todo() }
-    pub static fun TimeBegin(name str, message str = "") { todo() }
-    pub static fun TimeEnd(name str, message str = "") { }
+pub get level() Level { todo() }
+pub fun fatal(message str, li Line = default) { todo() }
+pub fun error(message str, li Line = default) { todo() }
+pub fun warn(message str, li Line = default) { todo() }
+pub fun info(message str, li Line = default) { todo() }
+pub fun debug(message str, li Line = default) { todo() }
 
 
-    type ro passcopy LogLine(FilePath str, Line int)
+pub fun timeBegin(name str, message str = "") { todo() }
+pub fun timeEnd(name str, message str = "") { }
+
+

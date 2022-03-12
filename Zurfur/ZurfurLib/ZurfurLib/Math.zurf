@@ -1,0 +1,124 @@
+﻿
+
+// Intrinsics for all the base types
+
+module Zurfur.Math
+
+// --------------------------
+// Math intrinsics for i32
+// --------------------------
+pub fun abs(n i32) i32 extern
+pub fun i32::clamp(min i32, max i32) i32
+    require(min <= max) extern
+pub fun max(n1 i32, n2 i32) i32 extern
+pub fun min(n1 i32, n2 i32) i32 extern
+pub fun sign(n i32) i32 extern
+pub fun sq(n i32) i32 extern
+
+// --------------------------
+// Math intrinsics for u32
+// --------------------------
+pub fun u32::clamp(min u32, max u32) u32
+    require(min <= max) extern
+pub fun max(n1 u32, n2 u32) u32 extern
+pub fun min(n1 u32, n2 u32) u32 extern
+pub fun sq(n u32) u32 extern
+
+// --------------------------
+// Math intrinsics for i64
+// --------------------------
+pub fun abs(n i64) i64 extern
+pub fun i64::clamp(min i64, max i64) i64
+    require(min <= max) extern
+pub fun max(n1 i64, n2 i64) i64 extern
+pub fun min(n1 i64, n2 i64) i64 extern
+pub fun sign(n i64) i64 extern
+pub fun sq(n i64) i64 extern
+
+// --------------------------
+// Math intrinsics for u64
+// --------------------------
+pub fun u64::clamp(min u64, max u64) u64
+    require(min <= max) extern
+pub fun max(n1 u64, n2 u64) u64 extern
+pub fun min(n1 u64, n2 u64) u64 extern
+pub fun sq(n u64) u64 extern
+
+// --------------------------
+// Math intrinsics for f32
+// --------------------------
+pub fun abs(n f32) f32 extern
+pub fun acos(n f32) f32 extern
+pub fun asin(n f32) f32 extern
+pub fun atan(n f32) f32 extern
+pub fun atan2(x f32, y f32) f32 extern
+pub fun ceil(n f32) f32 extern
+pub fun clamp(min f32, max f32) f32
+    require(min<=max) extern
+pub fun cos(n f32) f32 extern
+pub fun cosh(n f32) f32 extern
+pub fun exp(n f32) f32 extern
+pub fun floor(n f32) f32 extern
+pub fun log(n f32) f32 extern
+pub fun log2(n f32) f32 extern
+pub fun log10(n f32) f32 extern
+pub fun log(n f32, base f32) f32 extern
+pub fun max(n1 f32, n2 f32) f32 extern
+pub fun min(n1 f32, n2 f32) f32 extern
+pub fun pow(x f32, y f32) f32 extern
+pub fun round(n f32, digits i64 = 0) f32 extern
+pub fun sign(n f32) i64 extern
+pub fun sin(n f32) f32 extern
+pub fun sinh(n f32) f32 extern
+pub fun sqrt(n f32) f32 extern
+pub fun sq(n f32) f32 extern
+pub fun tan(n f32) f32 extern
+pub fun tanh(n f32) f32 extern
+pub fun trunc(n f32) f32 extern
+
+
+// --------------------------
+// Math intrinsics for f64
+// --------------------------
+pub fun abs(n f64) f64 extern
+pub fun acos(n f64) f64 extern
+pub fun asin(n f64) f64 extern
+pub fun atan(n f64) f64 extern
+pub fun atan2(x f64, y f64) f64 extern
+pub fun ceil(n f64) f64 extern
+pub fun clamp(min f64, max f64) f64
+    require(min<=max) extern
+pub fun cos(n f64) f64 extern
+pub fun cosh(n f64) f64 extern
+pub fun exp(n f64) f64 extern
+pub fun floor(n f64) f64 extern
+pub fun log(n f64) f64 extern
+pub fun log2(n f64) f64 extern
+pub fun log10(n f64) f64 extern
+pub fun log(n f64, base f64) f64 extern
+pub fun max(n1 f64, n2 f64) f64 extern
+pub fun min(n1 f64, n2 f64) f64 extern
+pub fun pow(x f64, y f64) f64 extern
+pub fun round(n f64, digits i64 = 0) f64 extern
+pub fun sign(n f64) i64 extern
+pub fun sin(n f64) f64 extern
+pub fun sinh(n f64) f64 extern
+pub fun sqrt(n f64) f64 extern
+pub fun sq(n f64) f64 extern
+pub fun tan(n f64) f64 extern
+pub fun tanh(n f64) f64 extern
+pub fun trunc(n f64) f64 extern
+
+
+// --------------------------
+// Math intrinsics for Decimal
+// --------------------------
+pub fun abs(n Decimal) Decimal extern
+pub fun Decimal::clamp(min Decimal, max Decimal) Decimal
+    require(min <= max) extern
+pub fun max(n1 Decimal, n2 Decimal) Decimal extern
+pub fun min(n1 Decimal, n2 Decimal) Decimal extern
+pub fun sign(n Decimal) i64 extern
+
+
+

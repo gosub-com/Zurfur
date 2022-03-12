@@ -4,20 +4,30 @@ pragma ShowParse        // Show the parse tree (hover over a symbol)
 
 // Press F4 to see header file report
 
-TBD
-// Move impl methods into group directly under SymModule
-// Figure out where impl's live (types, or method groups)
-// Unify extension methods and impl's:
+// TBD
+//
+// Symbols:
+//      Unify extension method and member functions
+//      Figure out where impl's live (types, or method groups)
+//      Figure out impl and extension parameters (parameters for both?)
+//      Figure out static vs non-static methods (interfaces too)
+//          Use explicit this parameter?
 //      See code with comment "First parameter is "$this"
-//      Add method parameter for impl (add interface type parameter)
-//
-// Sort out "This" usage in interfaces.
+//      Sort out "This" usage in interfaces.
 //      May need to pass explicit <T> for everything (e.g. OpEq<Lhs, Rhs>)
-// In Range<T>, will this do what I want it to do:
-//      where This is GetIterator<T> + OpIn<Range<T>>
-// And also Point<T> where T is NumOps
 //
-// Operators static with explicit types?
+// Operators as extension methods?  (See Draw2d)
+// impl<T> needs to implement generic params
+//
+// Require explicit identifiers in use:
+//      use Zurfur[int, f64, etc.]
+//      use Zurfur.Math[sin, cos, etc.]
+//
+// Require explicit "this" parameter for member and extensions?
+//      e.g. pub fun push(mut this, item own T) {}
+//      This would abolish 'static' for functions (but not fields)
+//
+// Consider moving "pub" to after "fun" and "type", etc.
 
 
 use Zurfur
@@ -129,8 +139,7 @@ pub fun Circle3(a f64, b f64) -> (c int, d int)
     return 0
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-pub fun GetIterator<T>::AlphaLengthWise<T, L>(
-               lengthProvider fun(t T) L) GetIterator<T>
+pub fun<T,L> GetIterator<T>::AlphaLengthWise(lengthProvider fun(t T) L) GetIterator<T>
     return this
         .OrderBy(@a => lengthProvider(a))
         .ThenBy(@a => a)
@@ -267,7 +276,7 @@ pub fun Circle(a f64, r f64) -> (x f64, y f64)
 
 type MyStruct(a int)
 
-pub fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
+pub fun<T> Sort(s mut Span<T>, lessThan fun(a T,b T)bool)
     // Simple selection sort
     for @i in s.Count-1
         @lowElem = s[i]

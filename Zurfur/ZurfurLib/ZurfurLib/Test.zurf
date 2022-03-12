@@ -103,9 +103,4 @@ pub type class TestGuiForm // TBD: How to do this without extends Form
                       "List":[1,2,3]]
     }
     
-    pub static fun Create(message1 str, message2 str) TestGuiForm
-    {
-        return TestGuiForm(Message1.Text: message1,
-                           Message2.Text: message2)
-    }
 }

@@ -15,7 +15,7 @@ type KvPair<TKey,TValue>
 
 pub type Map<TKey, TValue>
     where This is OpIn<TKey> + GetIterator<ref KvPair<TKey, TValue>>
-    where TKey is OpEq<TKey> + GetHash
+    where TKey is OpEqTotal<TKey> + GetHash
 
     pub fun new(capacity int)
         return todo()

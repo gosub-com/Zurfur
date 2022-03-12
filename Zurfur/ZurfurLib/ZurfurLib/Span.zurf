@@ -30,7 +30,7 @@ pub type ref passcopy Span<T>
     /// Find index of the sequence `seq`.
     /// Returns -1 if not found, or 0 if `seq` is empty.
     pub fun Find(seq Span<T>) int
-            where T is OpEq<T>
+            where T is OpEqTotal<T>
         if seq.Count == 0
             return 0
         if seq.Count > Count
@@ -48,7 +48,7 @@ pub type ref passcopy Span<T>
 
     /// Find the index of the `item`.  Returns -1 if not found.
     pub fun Find(item T) int
-            where T is OpEq<T>
+            where T is OpEqTotal<T>
         for @i in 0..Count
             if this[i] == item
                 return i

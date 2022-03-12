@@ -5,23 +5,23 @@ module Zurfur.Io
 
 interface Reader
 {
-    afun mut Read(data mut []byte) int err impl
+    afun mut read(data mut []byte) int err impl
 }
 
 interface Writer
 {
-    afun mut Write(data []byte) int err impl
-    afun mut Flush() err impl
+    afun mut write(data []byte) int err impl
+    afun mut flush() err impl
 }
 
 enum SeekOrigin { Begin; Current; End }
 
 interface Seeker
 {
-    afun mut Seek(offset int, origin SeekOrigin) int err impl
-    aget Length() int err { todo() }
-    aget Position() int err { todo() }
-    aset Position(value int) err { todo() }
+    afun mut seek(offset int, origin SeekOrigin) int err impl
+    aget length() int err { todo() }
+    aget position() int err { todo() }
+    aset position(value int) err { todo() }
 }
 
 
@@ -29,8 +29,9 @@ interface FileStream
 {
 }
 
+// TBD: Make this a module?
 type File
 {
-    pub static fun Open(file str) FileStream err
+    pub fun static open(file str) FileStream err
         return todo()
 }

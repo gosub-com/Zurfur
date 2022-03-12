@@ -233,25 +233,6 @@ namespace Gosub.Zurfur.Compiler
                     //      3. Need to prevent generic function overloads (like below)
                     //              but allow generic parameter for the type it is an extension of
                 }
-                else
-                {
-                    // Generic functions may not be overloaded
-                    var hasGenericParameters = false;
-                    foreach (var child in methodGroup.Children.Values)
-                        if (child.GenericParamCount() != 0)
-                        {
-                            hasGenericParameters = true;
-                            break;
-                        }
-                    if (hasGenericParameters && methodGroup.Children.Count != 1)
-                        foreach (var child in methodGroup.Children.Values)
-                        {
-                            if (child.GenericParamCount() == 0)
-                                Reject(child.Token, "Illegal overload: Generic methods may not be overloaded.  There is a generic method with the same name in this scope.");
-                            else
-                                Reject(child.Token, "Illegal overload: Generic methods may not be overloaded.");
-                        }
-                }
             }
 
             void RejectChildren(Symbol s, string message)

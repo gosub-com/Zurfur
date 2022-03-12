@@ -14,12 +14,6 @@ pub type ro str is Array<byte>
         return todo()
     pub fun index(r Range<int>) Span<byte>
         return todo() // Slice
-    pub static fun GetHashCode(a str) uint
-        return todo()
-    pub static fun Equals(a str, b str) bool
-        return todo()
-    pub static fun Compare(a str, b str) int
-        return todo()
         
     pub fun add(s1 str, s2 str) str { todo() }
 

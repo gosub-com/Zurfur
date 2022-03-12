@@ -1,8 +1,5 @@
 ﻿pragma AllowUnderscoreDefinitions
 
-module Zurfur
-
-
 /// Internal stuff for compiler, heap, and GC
 module Zurfur.Internal
 

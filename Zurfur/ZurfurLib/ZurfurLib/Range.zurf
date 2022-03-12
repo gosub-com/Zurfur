@@ -7,33 +7,33 @@ module Zurfur
 
 pub type ro passcopy Range<T>
     where This is GetIterator<T> + OpIn<Range<T>>
-    where T is AddOps
+    where T is OpAdd<T,T> + OpSub<T,T> + OpCmpTotal<T> + OpNext
 
     @start T pub init get
     @end T pub init get
 
-    pub static fun op_in(a T, b Range<T>) bool
-        return a >= b.start && a < b.end
-
     get count() T
         return end-start
         
-    pub fun getIterator() RangeIterator<T>
-        return RangeIter<T>(start, end)
+    // TBD: These becomes an impl
+    //pub static fun opIn(a T, b Range<T>) bool
+    //    return a >= b.start && a < b.end
+    //pub fun getIterator() RangeIterator<T>
+    //    return RangeIter<T>(start, end)
 
 
 pub type RangeIterator<T>
     where This is Iterator<T>
-    where T is AddOps
+    where T is OpAdd<T,T> + OpSub<T,T> + OpCmpTotal<T> + OpNext
 
-    @start T pub init
+    @current T pub init
     @end T pub init
     
     get countHint() T
-        return end-start
+        return end-current
         
     get next() ?T
-        if start < end
-            return move(ref start, start+T.One)
+        if current < end
+            return move(ref current, current.opNext())
         return null
         

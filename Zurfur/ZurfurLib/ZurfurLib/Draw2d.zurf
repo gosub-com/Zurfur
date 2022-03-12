@@ -3,6 +3,7 @@ use Zurfur
 use Zurfur.Operators
 
 /// Basic shapes for use with 2d drawing library
+/// TBD: Still working on getting this fixed
 module Zurfur.Draw2d
 
 fun test_Shape()
@@ -11,24 +12,50 @@ fun test_Shape()
     Assert(rect == Rect<int>(1,30,3,4))
     
 
-type passcopy Point<T>
-    where T is NumOps
+type passcopy Point<T> //TBD: where T is NumOps
 
     @x T pub init ref mut
     @y T pub init ref mut
 
-    pub static fun op_add(a Point<T>, b Point<T>) Point<T> { return Point(a.x+b.x, a.y+b.y) }
-    pub static fun op_neg(a Point<T>) { return Point(-a.x, -a.y) }
-    pub static fun op_sub(a Point<T>, b Point<T>) { return Point(a.x-b.x, a.y-b.y) }
-    pub static fun op_mul(a T, b Point<T>) { return Point(a*b.x, a*b.Y) }
-    pub static fun op_mul(a Point<T>, b T) { return Point(a.x*b, a.y*b) }
-    pub static fun op_div(a T, b Point<T>) { return Point(a/b.x, a/b.y) }
-    pub static fun op_div(a Point<T>, b T) { return Point(a.x/b, a.y/b) }
     fun toSize() Size<T> { return Size(X, Y) }
 
 
-type passcopy Size<T>
-    where T is NumOps
+// TBD: Maybe just use extension methods with known names?
+fun <T> Point<T>::opAdd(n Point<T>) Point<T>
+        where T is OpAdd<T,T>
+    return Point<T>(x+n.x, y+n.y)
+fun <T> Point<T>::opMul(n T) Point<T>
+        where T is OpMul<T,T>
+    return Point<T>(x*n, y*n)
+fun <T> T::opMul(n Point<T>) Point<T>
+        where T is OpMul<T,T>
+    return Point<T>(this*n.x, this*n.y)
+
+// TBD: Get this fixed
+//impl<T> Point<T>::OpAdd<Point<T>, Point<T>>
+//      where T is OpAdd<T,T>
+//    pub fun opAdd(n Point<T>) Point<T> { return Point<T>(x+n.x, y+n.y) }
+//impl<T> Point<T>::OpSub<Point<T>, Point<T>>
+//      where T is OpSub<T,T>
+//    pub fun opSub(n Point<T>) { return Point<T>(x-n.x, y-n.y) }
+//impl<T> Point<T>::OpNeg<Point<T>>
+//      where T is OpNeg<T>
+//    pub fun opNeg() { return Point<T>(-x, -y) }
+//impl<T> Point<T>::OpMul<T, Point<T>>
+//      where T is OpMul<T,T>
+//    pub fun opMul(n T) { return Point<T>(x*n, y*n) }
+//impl<T> T::OpMul<Point<T>, Point<T>>
+//      where T is OpMul<T,T>
+//    pub fun opMul(n Point<T>) { return Point<T>(this*n.x, this*n.y) }
+//impl<T> Point<T>::OpDiv<T, Point<T>>
+//      where T is OpDiv<T,T>
+//    pub fun opDiv(n T) { return Point<T>(x/n, y/n) }
+//impl<T> T::OpDiv<Point<T>, Point<T>>
+//      where T is OpDiv<T,T>
+//    pub fun opDiv(n Point<T>) { return Point<T>(this/n.x, this/n.y) }
+
+
+type passcopy Size<T> // TBD:    where T is NumOps
 
     @width T pub init ref mut
     @height T pub init ref mut
@@ -36,8 +63,7 @@ type passcopy Size<T>
     // TBD: Same as Point<T>
     fun toPoint() Point<T> { return Point(width, height) }
 
-type passcopy Rect<T>
-    where T is NumOps
+type passcopy Rect<T> // TBD:    where T is NumOps
 
     @x T pub init ref mut
     @y T pub init ref mut

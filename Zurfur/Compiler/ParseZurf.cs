@@ -18,6 +18,7 @@ namespace Gosub.Zurfur.Compiler
     class ParseZurf
     {
         public const string VT_TYPE_ARG = "$"; // Differentiate from '<' (must be 1 char long)
+        const int MIN_INDENT = 4;
 
         // TBD: Allow pragmas to be set externally
         static WordSet sPragmas = new WordSet("ShowParse ShowMeta NoParse NoCompilerChecks "
@@ -60,7 +61,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sContinuationNoCheckAlign = new WordSet("] ) {");
         WordSet sStringLiteralEscapes = new WordSet("{ \" }");
 
-        static WordSet sReservedWords = new WordSet("abstract as has base super break case catch class const "
+        static WordSet sReservedWords = new WordSet("abstract as has super break case catch class const "
             + "continue default delegate do then else elif enum explicit extern true false defer use "
             + "finally fixed for goto if in interface internal is lock namespace module include "
             + "new null out override pub public private protected readonly ro ref dref mut imut "
@@ -73,16 +74,13 @@ namespace Gosub.Zurfur.Compiler
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
             + "of sync task except exception raise loc local global");
 
-        static WordSet sFieldQualifiers = new WordSet("pub public private protected static "
-            + "unsafe unsealed abstract ro");
+        static WordSet sFieldQualifiers = new WordSet("pub public private unsafe unsealed");
         // Non reserved names: passcopy, nocopy
         static WordSet sTypeQualifiers = new WordSet("ro ref boxed class passcopy nocopy");
         static WordSet sPostFieldQualifiers = new WordSet("init set get ref mut");
 
-        static WordSet sReservedUserFuncNames = new WordSet("new clone drop cast default "
-            + "op_eq op_cmp op_in op_index op_add op_sub op_neg op_mul op_div op_rem "
-            + "op_and op_or op_xo4 op_not op_shl op_shr");
-        static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default base self super new cast dref move");
+        static WordSet sReservedUserFuncNames = new WordSet("new clone drop cast default");
+        static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default self super new cast dref move");
         static WordSet sReservedMemberNames = new WordSet("clone");
         static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref mut own ro box");
 
@@ -313,13 +311,6 @@ namespace Gosub.Zurfur.Compiler
                 case "impl":
                     mToken.Type = eTokenType.ReservedControl;
                     qualifiers.Add(Accept());
-                    if (keyword.Name == "type")
-                    {
-                        foreach (var q in qualifiers)
-                            if (sTypeQualifiers.Contains(q.Name))
-                                RejectToken(q, "Place qualifier after 'type' keyword");
-                        ParseQualifiers(sTypeQualifiers, qualifiers);
-                    }
                     ParseTypeScope(keyword, qualifiers);
                     break;
 
@@ -399,9 +390,9 @@ namespace Gosub.Zurfur.Compiler
             var keywordColumnToken = mLexer.GetLineTokens(keyword.Y)[0];
             var keywordColumn = keywordColumnToken.X;
             if (mToken.Meta && mTokenName == ";" && mNextStatementToken != null
-                && mNextStatementToken.X < keywordColumn + 2)
+                && mNextStatementToken.X < keywordColumn + MIN_INDENT)
             {
-                RejectToken(mToken, "Expecting '{' or next line to be indented at least two spaces");
+                RejectToken(mToken, "Expecting '{' or next line to be indented at least four spaces");
                 return;
             }
 
@@ -434,7 +425,7 @@ namespace Gosub.Zurfur.Compiler
                 parseLine(false);
 
                 if (mTokenName != ";")
-                    Reject($"Braceless statement '{keyword.Name}' is expecting end of line");
+                    Reject($"Expecting ';' or end of line");
 
                 if (mTokenName == "}" || mTokenName == "")
                     break;
@@ -629,8 +620,23 @@ namespace Gosub.Zurfur.Compiler
             synClass.Comments = mComments.ToString();
             mComments.Clear();
 
+            // Experimental: See how syntax would look if we put "pub" after "type"
+            if (mTokenName == "pub")
+                qualifiers.Add(Accept());
+
+            if (keyword.Name == "type")
+            {
+                foreach (var q in qualifiers)
+                    if (sTypeQualifiers.Contains(q.Name))
+                        RejectToken(q, "Place qualifier after 'type' keyword");
+                ParseQualifiers(sTypeQualifiers, qualifiers);
+            }
+
             if (keyword == "impl")
             {
+                if (mTokenName == "<")
+                     synClass.TypeArgs = ParseTypeParameters();
+
                 if (!CheckIdentifier("Expecting a type name"))
                     return;
                 synClass.ImplType = ParseType();
@@ -650,11 +656,12 @@ namespace Gosub.Zurfur.Compiler
                 // Parse class name and type parameters
                 if (!CheckIdentifier("Expecting a type name"))
                     return;
-                (synClass.Name, synClass.TypeArgs) = GetSimpleNameWithTypeArgs(ParseType());
+                synClass.Name = Accept();
+                synClass.Name.Type = eTokenType.TypeName;
+                if (mTokenName == "<" && (keyword == "type" || keyword == "interface"))
+                    synClass.TypeArgs = ParseTypeParameters();
             }
 
-            if (synClass.Name.Type != eTokenType.TypeName)
-                return; // User probably editing class name (TBD: Recover?)
 
             AddType(synClass);
             RejectUnderscoreDefinition(synClass.Name);
@@ -704,6 +711,30 @@ namespace Gosub.Zurfur.Compiler
             // Restore old path
             mScopeStack = oldScopeStack;
         }
+
+        SyntaxExpr ParseTypeParameters()
+        {
+            if (!AcceptMatch("<"))
+                return null;
+            var openToken = mPrevToken;
+            var typeParams = NewExprList();
+            typeParams.Add(new SyntaxToken(ParseIdentifier("Expecting a type name", sRejectTypeName)));
+            if (mPrevToken.Type == eTokenType.Identifier)
+                mPrevToken.Type = eTokenType.TypeName;
+            while (AcceptMatch(","))
+            {
+                Connect(openToken, mPrevToken);
+                typeParams.Add(new SyntaxToken(ParseIdentifier("Expecting a type name", sRejectTypeName)));
+                if (mPrevToken.Type == eTokenType.Identifier)
+                    mPrevToken.Type = eTokenType.TypeName;
+            }
+            if (AcceptMatchOrReject(">", "Expecting '>' to end the type argument list"))
+            {
+                Connect(openToken, mPrevToken);
+            }
+            return new SyntaxMulti(openToken, FreeExprList(typeParams));
+        }
+
 
         private SyntaxConstraint[] ParseConstraints()
         {
@@ -840,12 +871,20 @@ namespace Gosub.Zurfur.Compiler
             synFunc.Comments = mComments.ToString();
             mComments.Clear();
 
-            if (mTokenName == "mut")
-                qualifiers.Add(Accept());
-            if (mTokenName == "ref")
+            // Type parameters
+            if (mTokenName == "<")
+                synFunc.TypeArgs = ParseTypeParameters();
+
+            // Experimental: See how syntax would look if we put "pub" after "fun"
+            //      TBD: Move to before type parameters?
+            if (mTokenName == "pub")
                 qualifiers.Add(Accept());
 
-            var validMethodName = ParseMethodNameWithExtension(out synFunc.ExtensionType, out synFunc.Name, out synFunc.TypeArgs);
+            // TBD: Move to first parameter?
+            while (mTokenName == "mut" || mTokenName == "protected" || mTokenName == "static")
+                qualifiers.Add(Accept());
+
+            var validMethodName = ParseMethodNameWithExtension(out synFunc.ExtensionType, out synFunc.Name);
             synFunc.MethodSignature = ParseMethodSignature(keyword, out var hasReturnType);
             synFunc.Constraints = ParseConstraints();
 
@@ -875,10 +914,9 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Returns true if we are a valid method name
         /// </summary>
-        bool ParseMethodNameWithExtension(out SyntaxExpr className, out Token funcName, out SyntaxExpr typeArgs)
+        bool ParseMethodNameWithExtension(out SyntaxExpr extensionType, out Token funcName)
         {
-            className = null;
-            typeArgs = new SyntaxToken(mLexer.EndToken);
+            extensionType = null;
             if (sReservedUserFuncNames.Contains(mTokenName))
             {
                 // Reserved function
@@ -891,20 +929,23 @@ namespace Gosub.Zurfur.Compiler
             if (!CheckIdentifier("Expecting a function or property name", sRejectTypeName))
                 return false;
 
-            // Function or extension method name
-            var funName = ParseType();
+            // Parse function name or extension method type
+            var nameOrType = ParseType();
             if (AcceptMatch("::") && CheckIdentifier("Expecting a function or property name", sRejectTypeName))
             {
-                className = funName;
-                funName = ParseType();
-            }
-
-            (funcName, typeArgs) = GetSimpleNameWithTypeArgs(funName);
-            RejectUnderscoreDefinition(funcName);
-            var validMethodName = funcName.Type == eTokenType.TypeName;
-            if (validMethodName)
+                // Extension method and function name
+                extensionType = nameOrType;
+                funcName = Accept();
                 funcName.Type = eTokenType.DefineMethod;
-            return validMethodName;
+                RejectUnderscoreDefinition(funcName);
+                return true;
+            }
+            // Just function name (syntax error for anything else)
+            if (nameOrType.Count != 0 || nameOrType.Token.Type != eTokenType.TypeName)
+                RejectToken(nameOrType.Token, "Expecting only a function name");
+            funcName.Type = eTokenType.DefineMethod;
+            RejectUnderscoreDefinition(funcName);
+            return true;
         }
 
 
@@ -1554,7 +1595,7 @@ namespace Gosub.Zurfur.Compiler
                     var openTypeToken = mToken;
 
                     mParseErrors = 0;
-                    var typeArgs = ParseTypeArgumentList(result);
+                    var typeArgs = ParseTypeArguments(result);
                     if (mParseErrors == 0 && sTypeArgumentParameterSymbols.Contains(mTokenName))
                     {
                         // Yes, it is a type argument list.  Keep it
@@ -1964,7 +2005,7 @@ namespace Gosub.Zurfur.Compiler
                 else if (mTokenName == "<")
                 {
                     accepted = true;
-                    result = ParseTypeArgumentList(result);
+                    result = ParseTypeArguments(result);
                     if (mTokenName == "<")
                         RejectToken(mToken, "Illegal type argument list after type argument list");
                 }
@@ -1973,16 +2014,14 @@ namespace Gosub.Zurfur.Compiler
             return result;
         }
 
-
         /// <summary>
         /// Parse type argument list: <Arg...>
         /// </summary>
-        SyntaxExpr ParseTypeArgumentList(SyntaxExpr left)
+        SyntaxExpr ParseTypeArguments(SyntaxExpr left)
         {
             Debug.Assert(mTokenName == "<");
             var openToken = Accept();
-
-            List<SyntaxExpr> typeArgs = NewExprList();
+            var typeArgs = NewExprList();
             typeArgs.Add(left);
             typeArgs.Add(ParseType());
             while (AcceptMatch(","))
@@ -1999,39 +2038,6 @@ namespace Gosub.Zurfur.Compiler
             }
             Connect(openToken, mPrevToken);
             return new SyntaxMulti(NewMetaToken(openToken, VT_TYPE_ARG), FreeExprList(typeArgs));
-        }
-
-        /// <summary>
-        /// After calling `ParseType`, call this to get the simple name
-        /// with type arguments and mark anything else with an error.
-        /// No sub-embedded types, just this: TypeName<Arg1, Arg2, ...>
-        /// RETURNS: (name, type args)
-        /// </summary>
-        (Token, SyntaxExpr) GetSimpleNameWithTypeArgs(SyntaxExpr type)
-        {
-            // Type name, no type args
-            if (type.Count == 0 || type.Token != VT_TYPE_ARG)
-            {
-                if (type.Token.Type != eTokenType.TypeName)
-                    RejectToken(type.Token, "Expecting an identifier possibly followed by type parameters (e.g. 'Name<T1>', etc)");
-                if (type.Count != 0)
-                    RejectToken(type[0].Token, "Expecting an identifier possibly followed by type parameters (e.g. 'Name<T1>', etc)");
-                return (type.Token, EmptyExpr);
-            }
-            // Type args, verify no other stuff in there
-            var typeArgList = NewExprList();
-            bool first = true;
-            foreach (var typeArg in type)
-            {
-                if (typeArg.Count != 0)
-                    RejectToken(typeArg.Token, "Expecting an identifier possibly followed by type parameters (e.g. 'Name<T1>', etc)");
-                else if (typeArg.Token.Type != eTokenType.TypeName)
-                    RejectToken(typeArg.Token, "Expecting an identifier possibly followed by type parameters (e.g. 'Name<T1>', etc)");
-                else if (!first)
-                    typeArgList.Add(typeArg);
-                first = false;
-            }
-            return (type[0].Token, new SyntaxMulti(type.Token, FreeExprList(typeArgList)));
         }
 
 
@@ -2329,11 +2335,11 @@ namespace Gosub.Zurfur.Compiler
                     if (!sContinuationNoCheckAlign.Contains(nextToken.Name))
                     {
                         continuationColumn = nextToken.X;
-                        if (nextToken.X != 0 && nextToken.X < mStatements[0].X + 2)
+                        if (nextToken.X != 0 && nextToken.X < mStatements[0].X + MIN_INDENT)
                         {
                             continuationColumn = -1;
                              RejectToken(NewMetaToken(nextToken, " "),
-                                "Continuation line must be indented two spaces or be all the way to the left");
+                                "Continuation line must be indented at least four spaces or be all the way to the left");
                         }
                     }
                 }

@@ -4,6 +4,7 @@
 /// int and uint are 64 bits
 /// xint and xuint are pointer sized integers (32 or 64 bits)
 
+pragma AllowUnderscoreDefinitions
 use Zurfur.Operators
 use Zurfur.Collections
 
@@ -27,26 +28,21 @@ pub fun nop() {}
 //      fun move<T>(take own T) T { return take }
 
 /// Swap two items
-fun swap<T>(a mut ref T, b mut ref T)
+fun<T> swap(a mut ref T, b mut ref T)
     @t = move(a)
     a = move(b)
     b = t
 
 /// bool (true or false)
 pub type ro passcopy bool
-    where This is OpEq<bool> + GetHash
-{
-}
+    const __size int = 1
 
-impl bool::GetHash
-    pub fun getHash() i64 extern
-
-impl bool::OpEq<bool>
-    pub fun op_eq(a bool) bool extern
+impl bool::GetHash { pub fun getHash() i64 extern }
+impl bool::OpEqTotal<bool> { pub fun opEqTotalTotal(a bool) bool extern }
 
 /// i8 (-128..127)
 pub type ro passcopy i8
-    where This is OpCmp<i8> + GetHash
+    const __size int = 1
     
     pub const MAX i8 = 127
     pub const MIN i8 = -128
@@ -64,17 +60,14 @@ pub type ro passcopy i8
     pub fun u8Fail() u8 require this >= 0 extern
 
 
-impl i8::GetHash
-    pub fun getHash() i64 extern
-
-impl i8::OpCmp<i8>
-    pub fun op_eq(a i8) bool extern
-    pub fun op_cmp(a i8) int extern
+impl i8::GetHash { pub fun getHash() i64 extern }
+impl i8::OpEqTotal<i8> { pub fun opEqTotal(a i8) bool extern }
+impl i8::OpCmpTotal<i8> { pub fun opCmpTotal(a i8) int extern }
 
 
 /// u8 (0..255) same as byte
 pub type ro passcopy u8
-    where This is OpCmp<u8> + GetHash
+    const __size int = 1
     
     pub const MAX u8 = 255
     pub const MIN u8 = 0
@@ -94,17 +87,14 @@ pub type ro passcopy u8
     pub fun i8Mask() i8 extern
     pub fun i8Fail() i8 require this <= i8.MAX extern
 
-impl u8::GetHash
-    pub fun getHash() i64 extern
-
-impl u8::OpCmp<u8>
-    pub fun op_eq(a u8) bool extern
-    pub fun op_cmp(a u8) int extern
+impl u8::GetHash { pub fun getHash() i64 extern }
+impl u8::OpEqTotal<u8> { pub fun opEqTotal(a u8) bool extern }
+impl u8::OpCmpTotal<u8> { pub fun opCmpTotal(a u8) int extern }
 
 
 /// i16 (-32768..32768)
 pub type ro passcopy i16
-    where This is OpCmp<i16> + GetHash
+    const __size int = 2
     
     pub const MAX i16 = 32767
     pub const MIN i16 = -32768
@@ -127,18 +117,15 @@ pub type ro passcopy i16
     pub fun u16Fail() u16 extern
 
 
-impl i16::GetHash
-    pub fun getHash() i64 extern
-
-impl i16::OpCmp<i16>
-    pub fun op_eq(a i16) bool extern
-    pub fun op_cmp(a i16) i64 extern
+impl i16::GetHash { pub fun getHash() i64 extern }
+impl i16::OpEqTotal<i16> { pub fun opEqTotal(a i16) bool extern }
+impl i16::OpCmpTotal<i16> { pub fun opCmpTotal(a i16) i64 extern }
 
 
 
 /// u16 (0..65535)
 pub type ro passcopy u16
-    where This is OpCmp<u16> + GetHash
+    const __size int = 2
 
     pub const MAX u16 = 65535
     pub const MIN u16 = 0
@@ -162,16 +149,18 @@ pub type ro passcopy u16
     pub fun u8Fail() u8 extern
     pub fun i16Fail() i16 extern
 
-impl u16::GetHash
-    pub fun getHash() i64 extern
-
-impl u16::OpCmp<u16>
-    pub fun op_eq(a u16) bool extern
-    pub fun op_cmp(a u16) i64 extern
+impl u16::GetHash { pub fun getHash() i64 extern }
+impl u16::OpEqTotal<u16> { pub fun opEqTotal(a u16) bool extern }
+impl u16::OpCmpTotal<u16> { pub fun opCmpTotal(a u16) i64 extern }
 
 /// A 32 bit integer
 pub type ro passcopy i32
-    where This is NumOps + GetIterator<i32> + GetHash
+    const __size int = 4
+
+    pub const MAX i32 = 2147483647
+    pub const MIN i32 = -2147483648
+    pub const ZERO i8 = 0
+    pub const ONE i8 = 1
 
     pub fun i64() i64 extern
     pub fun f32() f32 extern
@@ -190,32 +179,17 @@ pub type ro passcopy i32
     pub fun i16Fail() i16 extern
     pub fun u16Fail() u16 extern
     pub fun u32Fail() u32 extern
-        
-    pub fun abs() i32 extern
-    pub fun clamp(min i32, max i32) i32
-        require(min <= max) extern
-    pub fun max(n2 i32) i32 extern
-    pub fun min(n2 i32) i32 extern
-    pub fun sign() i32 extern
-    pub fun sq() i32 extern
 
+impl i32::GetHash { pub fun getHash() int extern }
+impl i32::OpEqTotal<i32> { pub fun opEqTotal(a i32) bool extern }
+impl i32::OpCmpTotal<i32> { pub fun opCmpTotal(a i32) int extern }
+impl i32::OpAdd<i32, i32> { pub fun opAdd(n i32) i32 extern }
+impl i32::OpSub<i32, i32> {  pub fun opSub(n i32) i32 extern }
+impl i32::OpNeg<i32> {  pub fun opNeg() i32 extern }
+impl i32::OpMul<i32, i32> { pub fun opMul(n i32) i32 extern }
+impl i32::OpDiv<i32, i32> { pub fun opDiv(n i32) i32 extern }
+impl i32::OpRem<i32, i32> { pub fun opRem(n i32) i32 extern }
 
-impl i32::GetHash
-    pub fun getHash() i64 extern
-
-impl i32::NumOps
-    pub const MAX i32 = 2147483647
-    pub const MIN i32 = -2147483648
-    pub const ZERO i8 = 0
-    pub const ONE i8 = 1
-    pub fun op_eq(a i32) bool extern
-    pub fun op_cmp(a i32) i64 extern
-    pub fun op_neg(a i32) i32 extern
-    pub fun op_add(a i32) i32 extern
-    pub fun op_sub(a i32) i32 extern
-    pub fun op_mul(a i32) i32 extern
-    pub fun op_div(a i32) i32 extern
-    pub fun op_rem(a i32) i32 extern
 
 impl i32::GetIterator<i32>
     pub fun getIterator() RangeIterator<i32>
@@ -224,7 +198,12 @@ impl i32::GetIterator<i32>
 
 /// 32 bit unsigned integer
 pub type ro passcopy u32
-    where This is NumOps + GetIterator<u32> + GetHash
+    const __size int = 4
+
+    pub const MAX u32 = 4294967295
+    pub const MIN u32 = 0
+    pub const ZERO i8 = 0
+    pub const ONE i8 = 1
 
     pub fun i64() i64 extern
     pub fun u64() u64 extern
@@ -245,29 +224,18 @@ pub type ro passcopy u32
     pub fun u16Fail() u16 extern
     pub fun i32Fail() i32 extern
         
-    pub fun clamp(min u32, max u32) u32
-        require(min <= max) extern
-    pub fun max(n2 u32) u32 extern
-    pub fun min(n2 u32) u32 extern
-    pub fun sq() u32 extern
 
-impl u32::GetHash
-    pub fun getHash() i64 extern
 
-impl u32::NumOps
-    pub const MAX u32 = 4294967295
-    pub const MIN u32 = 0
-    pub const ZERO i8 = 0
-    pub const ONE i8 = 1
+impl u32::GetHash { pub fun getHash() int extern }
+impl u32::OpEqTotal<u32> { pub fun opEqTotal(a u32) bool extern }
+impl u32::OpCmpTotal<u32> { pub fun opCmpTotal(a u32) int extern }
+impl u32::OpAdd<u32, u32> { pub fun opAdd(n u32) u32 extern }
+impl u32::OpSub<u32, u32> {  pub fun opSub(n u32) u32 extern }
+impl u32::OpNeg<u32> {  pub fun opNeg() u32 extern }
+impl u32::OpMul<u32, u32> { pub fun opMul(n u32) u32 extern }
+impl u32::OpDiv<u32, u32> { pub fun opDiv(n u32) u32 extern }
+impl u32::OpRem<u32, u32> { pub fun opRem(n u32) u32 extern }
 
-    pub fun op_eq(a u32) bool extern
-    pub fun op_cmp(a u32) i64 extern
-    pub fun op_neg(a u32) u32 require(false) extern
-    pub fun op_add(a u32) u32 extern
-    pub fun op_sub(a u32) u32 extern
-    pub fun op_mul(a u32) u32 extern
-    pub fun op_div(a u32) u32 extern
-    pub fun op_rem(a u32) u32 extern
 
 impl u32::GetIterator<u32>
     pub fun getIterator() RangeIterator<u32>
@@ -276,7 +244,12 @@ impl u32::GetIterator<u32>
 
 /// A 64 bit integer (same as int)
 pub type ro passcopy i64
-    where This is NumOps + GetIterator<i64> + GetHash
+    const __size int = 8
+
+    pub const MAX i64 = 9223372036854775807
+    pub const MIN i64 = -9223372036854775808
+    pub const ZERO i8 = 0
+    pub const ONE i8 = 1
 
     pub fun f32() f32 extern
     pub fun f64() f64 extern
@@ -299,30 +272,16 @@ pub type ro passcopy i64
     pub fun u32Fail() u32 extern
     pub fun u64Fail() u64 extern
     
-    pub fun abs() i64 extern
-    pub fun clamp(min i64, max i64) i64
-        require(min <= max) extern
-    pub fun max(n2 i64) i64 extern
-    pub fun min(n2 i64) i64 extern
-    pub fun sign() i64 extern
-    pub fun sq() i64 extern
 
-impl i64::GetHash
-    pub fun getHash() i64 extern
-
-impl i64::NumOps
-    pub const MAX i64 = 9223372036854775807
-    pub const MIN i64 = -9223372036854775808
-    pub const ZERO i8 = 0
-    pub const ONE i8 = 1
-    pub fun op_eq(a i64) bool extern
-    pub fun op_cmp(a i64) i64 extern
-    pub fun op_neg(a i64) i64 extern
-    pub fun op_add(a i64) i64 extern
-    pub fun op_sub(a i64) i64 extern
-    pub fun op_mul(a i64) i64 extern
-    pub fun op_div(a i64) i64 extern
-    pub fun op_rem(a i64) i64 extern    
+impl i64::GetHash { pub fun getHash() int extern }
+impl i64::OpEqTotal<i64> { pub fun opEqTotal(a i64) bool extern }
+impl i64::OpCmpTotal<i64> { pub fun opCmpTotal(a i64) int extern }
+impl i64::OpAdd<i64, i64> { pub fun opAdd(n i64) i64 extern }
+impl i64::OpSub<i64, i64> {  pub fun opSub(n i64) i64 extern }
+impl i64::OpNeg<i64> {  pub fun opNeg() i64 extern }
+impl i64::OpMul<i64, i64> { pub fun opMul(n i64) i64 extern }
+impl i64::OpDiv<i64, i64> { pub fun opDiv(n i64) i64 extern }
+impl i64::OpRem<i64, i64> { pub fun opRem(n i64) i64 extern }
 
 impl i64::GetIterator<i64>
     pub fun getIterator() RangeIterator<i64>
@@ -331,7 +290,12 @@ impl i64::GetIterator<i64>
 
 /// 64 bit unsigned integer
 pub type ro passcopy u64
-    where This is NumOps + GetIterator<u64> + GetHash
+    const __size int = 8
+
+    pub const MAX u64 = 18446744073709551615
+    pub const MIN u64 = 0
+    pub const ZERO u64 = 0
+    pub const ONE u64 = 1
 
     pub fun f32() f32 extern
     pub fun f64() f64 extern
@@ -354,29 +318,16 @@ pub type ro passcopy u64
     pub fun u32Fail() u32 extern
     pub fun i64Fail() i64 extern
 
-    pub fun clamp(min u64, max u64) u64
-        require(min <= max) extern
-    pub fun max(n2 u64) u64 extern
-    pub fun min(n2 u64) u64 extern
-    pub fun sq() u64 extern
 
-impl u64::GetHash
-    pub fun getHash() i64 extern
-
-impl u64::NumOps
-    pub const MAX u64 = 18446744073709551615
-    pub const MIN u64 = 0
-    pub const ZERO u64 = 0
-    pub const ONE u64 = 1
-    pub fun op_eq(a u64) bool extern
-    pub fun op_cmp(a u64) i64 extern
-    pub fun op_neg(a u64) u64
-        require(false) extern
-    pub fun op_add(a u64) u64 extern
-    pub fun op_sub(a u64) u64 extern
-    pub fun op_mul(a u64) u64 extern
-    pub fun op_div(a u64) u64 extern
-    pub fun op_rem(a u64) u64 extern
+impl u64::GetHash { pub fun getHash() int extern }
+impl u64::OpEqTotal<u64> { pub fun opEqTotal(a u64) bool extern }
+impl u64::OpCmpTotal<u64> { pub fun opCmpTotal(a u64) int extern }
+impl u64::OpAdd<u64, u64> { pub fun opAdd(n u64) u64 extern }
+impl u64::OpSub<u64, u64> {  pub fun opSub(n u64) u64 extern }
+impl u64::OpNeg<u64> {  pub fun opNeg() u64 extern }
+impl u64::OpMul<u64, u64> { pub fun opMul(n u64) u64 extern }
+impl u64::OpDiv<u64, u64> { pub fun opDiv(n u64) u64 extern }
+impl u64::OpRem<u64, u64> { pub fun opRem(n u64) u64 extern }
 
 impl u64::GetIterator<u64>
     pub fun getIterator() RangeIterator<u64>
@@ -384,8 +335,12 @@ impl u64::GetIterator<u64>
 
 
 pub type ro passcopy f32
-    where This is NumOps + GetIterator<f32> + GetHash
+    const __size int = 4
 
+    pub const MAX f32 = 3.40282347E+38F
+    pub const MIN f32 = -3.40282347E+38F
+    pub const ZERO f32 = 0
+    pub const ONE f32 = 1
     pub const EPSILON f32 = 1.401298E-45F
     pub const INF f32 = 1F/0F
     pub const NEG_INF f32 = -1F/0F
@@ -420,51 +375,18 @@ pub type ro passcopy f32
     pub fun i64Fail() i64 extern
     pub fun u64Fail() u64 extern
         
-    pub fun abs() f32 extern
-    pub fun acos() f32 extern
-    pub fun asin() f32 extern
-    pub fun atan() f32 extern
-    pub fun atan2(x f32) f32 extern
-    pub fun ceil() f32 extern
-    pub fun clamp(min f32, max f32) f32
-        require(min<=max) extern
-    pub fun cos() f32 extern
-    pub fun cosh() f32 extern
-    pub fun exp() f32 extern
-    pub fun floor(n f32) f32 extern
-    pub fun log() f32 extern
-    pub fun log2() f32 extern
-    pub fun log10() f32 extern
-    pub fun log(b f32) f32 extern
-    pub fun max(n2 f32) f32 extern
-    pub fun min(n2 f32) f32 extern
-    pub fun pow(y f32) f32 extern
-    pub fun round(d i64 = 0) f32 extern
-    pub fun sign() i64 extern
-    pub fun sin() f32 extern
-    pub fun sinh() f32 extern
-    pub fun sqrt() f32 extern
-    pub fun sq() f32 extern
-    pub fun tan() f32 extern
-    pub fun tanh() f32 extern
-    pub fun trunc() f32 extern
 
-impl f32::GetHash
-    pub fun getHash() i64 extern
-
-impl f32::NumOps
-    pub const MAX f32 = 3.40282347E+38F
-    pub const MIN f32 = -3.40282347E+38F
-    pub const ZERO f32 = 0
-    pub const ONE f32 = 1
-    pub fun op_eq(a f32) bool extern
-    pub fun op_cmp(a f32) i64 extern
-    pub fun op_neg(a f32) f32 extern
-    pub fun op_add(a f32) f32 extern
-    pub fun op_sub(a f32) f32 extern
-    pub fun op_mul(a f32) f32 extern
-    pub fun op_div(a f32) f32 extern
-    pub fun op_rem(a f32) f32 extern    
+impl f32::GetHash { pub fun getHash() int extern }
+impl f32::OpEqTotal<f32> { pub fun opEqTotal(a f32) bool extern }
+impl f32::OpCmpTotal<f32> { pub fun opCmpTotal(a f32) int extern }
+impl f32::OpEqPartial<f32> { pub fun opEqPartial(a f32) bool extern }
+impl f32::OpCmpPartial<f32> { pub fun opCmpPartial(a f32) int extern }
+impl f32::OpAdd<f32, f32> { pub fun opAdd(n f32) f32 extern }
+impl f32::OpSub<f32, f32> {  pub fun opSub(n f32) f32 extern }
+impl f32::OpNeg<f32> {  pub fun opNeg() f32 extern }
+impl f32::OpMul<f32, f32> { pub fun opMul(n f32) f32 extern }
+impl f32::OpDiv<f32, f32> { pub fun opDiv(n f32) f32 extern }
+impl f32::OpRem<f32, f32> { pub fun opRem(n f32) f32 extern }
 
 impl f32::GetIterator<f32>
     pub fun getIterator() RangeIterator<f32>
@@ -472,8 +394,12 @@ impl f32::GetIterator<f32>
 
 
 pub type ro passcopy f64
-    where This is NumOps + GetIterator<f64> + GetHash
+    const __size int = 8
 
+    pub const MAX f64 = 1.7976931348623157E+308
+    pub const MIN f64 = -1.7976931348623157E+308
+    pub const ZERO f64 = 0
+    pub const ONE f64 = 1
     pub const EPSILON f64 = 4.94065645841247E-324
     pub const INF f64 = 1.0/0.0
     pub const NEG_INF f64 = -1.0/0.0
@@ -509,51 +435,18 @@ pub type ro passcopy f64
     
     pub fun getHash() i64 extern    
     
-    pub fun abs() f64 extern
-    pub fun acos() f64 extern
-    pub fun aSin() f64 extern
-    pub fun atan() f64 extern
-    pub fun atan2(x f64) f64 extern
-    pub fun ceil() f64 extern
-    pub fun clamp(min f64, max f64) f64
-        require(min <= max) extern
-    pub fun cos() f64 extern
-    pub fun cosh() f64 extern
-    pub fun exp() f64 extern
-    pub fun floor(n f64) f64 extern
-    pub fun log() f64 extern
-    pub fun log2() f64 extern
-    pub fun log10() f64 extern
-    pub fun log(b f64) f64 extern
-    pub fun max(n2 f64) f64 extern
-    pub fun min(n2 f64) f64 extern
-    pub fun pow(y f64) f64 extern
-    pub fun round(d i64 = 0) f64 extern
-    pub fun sign() i64 extern
-    pub fun sin() f64 extern
-    pub fun sinh() f64 extern
-    pub fun sqrt() f64 extern
-    pub fun sq() f64 extern
-    pub fun tan() f64 extern
-    pub fun tanh() f64 extern
-    pub fun trunc() f64 extern
 
-impl f64::GetHash
-    pub fun getHash() i64 extern
-
-impl f64::NumOps
-    pub const MAX f64 = 1.7976931348623157E+308
-    pub const MIN f64 = -1.7976931348623157E+308
-    pub const ZERO f64 = 0
-    pub const ONE f64 = 1
-    pub fun op_eq(a f64) bool extern
-    pub fun op_cmp(a f64) i64 extern
-    pub fun op_neg(a f64) f64 extern
-    pub fun op_add(a f64) f64 extern
-    pub fun op_sub(a f64) f64 extern
-    pub fun op_mul(a f64) f64 extern
-    pub fun op_div(a f64) f64 extern
-    pub fun op_rem(a f64) f64 extern    
+impl f64::GetHash { pub fun getHash() int extern }
+impl f64::OpEqTotal<f64> { pub fun opEqTotal(a f64) bool extern }
+impl f64::OpCmpTotal<f64> { pub fun opCmpTotal(a f64) int extern }
+impl f64::OpEqPartial<f64> { pub fun opEqPartial(a f64) bool extern }
+impl f64::OpCmpPartial<f64> { pub fun opCmpPartial(a f64) int extern }
+impl f64::OpAdd<f64, f64> { pub fun opAdd(n f64) f64 extern }
+impl f64::OpSub<f64, f64> {  pub fun opSub(n f64) f64 extern }
+impl f64::OpNeg<f64> {  pub fun opNeg() f64 extern }
+impl f64::OpMul<f64, f64> { pub fun opMul(n f64) f64 extern }
+impl f64::OpDiv<f64, f64> { pub fun opDiv(n f64) f64 extern }
+impl f64::OpRem<f64, f64> { pub fun opRem(n f64) f64 extern }
 
 impl f64::GetIterator<f64>
     pub fun getIterator() RangeIterator<f64>
@@ -564,10 +457,14 @@ impl f64::GetIterator<f64>
 /// 128 bit decimal integer.  This will support NAN, infinity, and
 /// exponents covering the entire range of f64 with more precision.
 pub type ro passcopy Decimal
-    where This is NumOps + GetIterator<Decimal> + GetHash
+    const __size int = 16
 
     pub fun new(a Decimal) extern
 
+    pub const MAX Decimal = 1E+1000M
+    pub const MIN Decimal = -1E+1000M
+    pub const ZERO Decimal = 0
+    pub const ONE Decimal = 1
     pub const INF Decimal = 1.0/0.0
     pub const NEG_INF Decimal = -1.0/0.0
     pub const NAN Decimal = 0.0/0.0
@@ -596,30 +493,18 @@ pub type ro passcopy Decimal
     pub fun i64Fail() i64 extern
     pub fun u64Fail() u64 extern
 
-    pub fun abs() Decimal extern
-    pub fun clamp(min Decimal, max Decimal) Decimal
-        require(min <= max) extern
-    pub fun max(n2 Decimal) Decimal extern
-    pub fun min(n2 Decimal) Decimal extern
-    pub fun sign() i64 extern
-    pub fun sq() Decimal extern
 
-impl Decimal::GetHash
-    pub fun getHash() i64 extern
-
-impl Decimal::NumOps
-    pub const MAX Decimal = 1E+1000M
-    pub const MIN Decimal = -1E+1000M
-    pub const ZERO Decimal = 0
-    pub const ONE Decimal = 1
-    pub fun op_eq(a Decimal) bool extern
-    pub fun op_cmp(a Decimal) i64 extern
-    pub fun op_neg(a Decimal) Decimal extern
-    pub fun op_add(a Decimal) Decimal extern
-    pub fun op_sub(a Decimal) Decimal extern
-    pub fun op_mul(a Decimal) Decimal extern
-    pub fun op_div(a Decimal) Decimal extern
-    pub fun op_rem(a Decimal) Decimal extern    
+impl Decimal::GetHash { pub fun getHash() int extern }
+impl Decimal::OpEqTotal<Decimal> { pub fun opEqTotal(a Decimal) bool extern }
+impl Decimal::OpCmpTotal<Decimal> { pub fun opCmpTotal(a Decimal) int extern }
+impl Decimal::OpEqPartial<Decimal> { pub fun opEqPartial(a Decimal) bool extern }
+impl Decimal::OpCmpPartial<Decimal> { pub fun opCmpPartial(a Decimal) int extern }
+impl Decimal::OpAdd<Decimal, Decimal> { pub fun opAdd(n Decimal) Decimal extern }
+impl Decimal::OpSub<Decimal, Decimal> {  pub fun opSub(n Decimal) Decimal extern }
+impl Decimal::OpNeg<Decimal> {  pub fun opNeg() Decimal extern }
+impl Decimal::OpMul<Decimal, Decimal> { pub fun opMul(n Decimal) Decimal extern }
+impl Decimal::OpDiv<Decimal, Decimal> { pub fun opDiv(n Decimal) Decimal extern }
+impl Decimal::OpRem<Decimal, Decimal> { pub fun opRem(n Decimal) Decimal extern }
 
 impl Decimal::GetIterator<Decimal>
     pub fun getIterator() RangeIterator<Decimal>
