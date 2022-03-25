@@ -1,6 +1,7 @@
-pragma ShowParse        // Show the parse tree (hover over a symbol)
+//pragma ShowParse        // Show the parse tree (hover over a symbol)
 //pragma ShowMeta       // Show parser symbols
 //pragma NoParse
+//pragma RequireBraces
 
 // Press F4 to see header file report
 
@@ -334,3 +335,5 @@ pub fun MemCopy32(dest *void, source *void, length xint)
         dref(cast(*i32)d) = dref(cast(*i32)s); d+=4; s+=4
     while d != end
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
+
+

@@ -18,7 +18,7 @@ namespace Gosub.Zurfur.Compiler
     class ParseZurf
     {
         public const string VT_TYPE_ARG = "$"; // Differentiate from '<' (must be 1 char long)
-        const int MIN_INDENT = 4;
+        const int SCOPE_INDENT = 4;
 
         // TBD: Allow pragmas to be set externally
         static WordSet sPragmas = new WordSet("ShowParse ShowMeta NoParse NoCompilerChecks "
@@ -240,7 +240,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     var visibleSemicolon = mPrevToken.Name == ";" && !mPrevToken.Meta;
                     if (mToken.X != alignment.X && !visibleSemicolon)
-                        RejectToken(mToken, "Indentation of this statement must match statement above it");
+                        RejectToken(mToken, $"Incorrect indentation at this scope level, expecting {alignment.X} spaces");
                 }
                 ParseScopeStatement(true, qualifiers, true);
             }
@@ -373,52 +373,45 @@ namespace Gosub.Zurfur.Compiler
                 Reject("Expecting end of line or '{'");
                 useBraces = IsMatchPastMetaSemicolon("{");
             }
-
             if (useBraces)
             {
-                ParseScopeLevelWithBraces(keyword.Name, parseLine);
+                ParseScopeLevelWithBraces(keyword, parseLine);
                 return;
             }
-
-            if (mTokenName != ";" || !mToken.Meta)
-                return; // Error given above
-
             if (mRequireBraces)
                 RejectToken(mToken, "Expecting '{' because pragma 'RequireBraces' is set");
 
-            // Expecting end of line and next line to be indented
+            // Expecting end of line, skip extra tokens
+            if (mTokenName != ";" || !mToken.Meta)
+            {
+                RejectToken(mToken, "Expecting end of line");
+                Accept();
+                while (mTokenName != ";" || !mToken.Meta)
+                {
+                    Accept().Grayed = true;
+                    if (mTokenName == "")
+                        return;
+                }
+            }
+
+            // Next line must be indented
             var keywordColumnToken = mLexer.GetLineTokens(keyword.Y)[0];
-            var keywordColumn = keywordColumnToken.X;
-            if (mToken.Meta && mTokenName == ";" && mNextStatementToken != null
-                && mNextStatementToken.X < keywordColumn + MIN_INDENT)
+            if (mNextStatementToken != null && mNextStatementToken.X <= keywordColumnToken.X
+                || mNextStatementToken == null)
             {
-                RejectToken(mToken, "Expecting '{' or next line to be indented at least four spaces");
+                // Immediate end of scope
+                RejectToken(mToken, "Expecting '{' or next line to be indented four spaces");
                 return;
             }
 
-
-            if (!AcceptMatch(";"))
-            {
-                Reject($"Braceless statement '{keyword.Name}' is expecting end of line");
-                if (!mToken.Meta || mTokenName != ";")
-                    return;
-                Accept(); // Continue parsing for better error recovery
-            }
-            else if (!mPrevToken.Meta)
-            {
-                RejectToken(mPrevToken, $"Braceless statement '{keyword.Name}' is expecting end of line");
-                return;
-            }
-
-            if (mTokenName == "}" || mTokenName == ";")
-            {
-                RejectToken(mPrevToken, $"Braceless statement '{keyword.Name}' is expecting non-empty statement");
-                return;
-            }
-
-            var compoundColumn = mToken.X;
+            Accept(); // End of line semi-colon
+            var scopeColumn = keywordColumnToken.X + SCOPE_INDENT;
             while (true)
             {
+                if (mPrevToken.Meta && mToken.X != scopeColumn)
+                {
+                    RejectToken(mToken, $"Incorrect indentation at this scope level, expecting {scopeColumn} spaces");
+                }
                 if (notAllowed.Contains(mTokenName))
                     Reject($"Braceless statement '{keyword.Name}' may not embed '{mTokenName}' statement");
 
@@ -431,12 +424,10 @@ namespace Gosub.Zurfur.Compiler
                     break;
 
                 var newColumn = mNextStatementToken == null ? -1 : mNextStatementToken.X;
-                if (mToken.Meta && newColumn <= keywordColumn)
+                if (mToken.Meta && newColumn <= keywordColumnToken.X)
                     break;
 
                 AcceptMatch(";");
-                if (mPrevToken.Meta && newColumn != compoundColumn)
-                    RejectToken(mToken, "Indentation of this statement must match statement above it");
             }
 
             // Draw scope lines
@@ -449,7 +440,7 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Parse '{ statements }'
         /// </summary>
-        void ParseScopeLevelWithBraces(string keyword, Action<bool> parseLine)
+        void ParseScopeLevelWithBraces(Token keyword, Action<bool> parseLine)
         {
             // Require '{'
             if (mToken.Meta && mTokenName == ";")
@@ -458,14 +449,27 @@ namespace Gosub.Zurfur.Compiler
                 return;
             var openToken = mPrevToken;
 
+            var keywordColumnToken = mLexer.GetLineTokens(keyword.Y)[0];
+            if (openToken.Boln && openToken.X != keywordColumnToken.X)
+            {
+                // Only braces at beginning of line get checked
+                RejectToken(openToken, "Expecting open brace to line up under the previous line");
+            }
+
             while (AcceptMatch(";"))
                 ;
 
-            var (x, y) = (mToken.X, mToken.Y);
+            var scopeColumn = keywordColumnToken.X + SCOPE_INDENT;
+            if (mTokenName != "}" && mTokenName != "" && openToken.Eoln && mToken.X != scopeColumn)
+            {
+                // Check first line spacing only when it's a new line
+                RejectToken(mToken, $"Incorrect indentation at this scope level, expecting {scopeColumn} spaces");
+            }
+            var y = mToken.Y;
             while (mTokenName != "}" && mTokenName != "")
             {
-                if (mToken.X != x && mToken.Y != y)
-                    RejectToken(mToken, "Indentation of this statement must match statement above it");
+                if (mToken.X != scopeColumn && mToken.Y != y)
+                    RejectToken(mToken, $"Incorrect indentation at this scope level, expecting {scopeColumn} spaces");
                 y = mToken.Y;
                 parseLine(true);
             }
@@ -473,7 +477,13 @@ namespace Gosub.Zurfur.Compiler
             bool error = false;
             if (AcceptMatchOrReject("}", $"Expecting '}}' while parsing {keyword}"))
             {
-                Connect(openToken, mPrevToken);
+                var closeToken = mPrevToken;
+                Connect(openToken, closeToken);
+                if (closeToken.Boln && closeToken.Eoln && closeToken.X != keywordColumnToken.X)
+                {
+                    // Only braces on thier own line get checked
+                    RejectToken(closeToken, "Expecting close brace to line up under the open brace keyword column", true);
+                }
             }
             else
             {
@@ -2335,7 +2345,7 @@ namespace Gosub.Zurfur.Compiler
                     if (!sContinuationNoCheckAlign.Contains(nextToken.Name))
                     {
                         continuationColumn = nextToken.X;
-                        if (nextToken.X != 0 && nextToken.X < mStatements[0].X + MIN_INDENT)
+                        if (nextToken.X != 0 && nextToken.X < mStatements[0].X + SCOPE_INDENT)
                         {
                             continuationColumn = -1;
                              RejectToken(NewMetaToken(nextToken, " "),
@@ -2484,9 +2494,9 @@ namespace Gosub.Zurfur.Compiler
 
 
         // Reject the given token
-        public void RejectToken(Token token, string errorMessage)
+        public void RejectToken(Token token, string errorMessage, bool logDuplicates = false)
         {
-            if (token.Error)
+            if (token.Error && !logDuplicates)
                 return; // The first error is the most pertinent
             mParseErrors++;
             token.AddError(new ParseError(errorMessage));

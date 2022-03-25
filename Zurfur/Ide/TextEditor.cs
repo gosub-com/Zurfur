@@ -2085,8 +2085,7 @@ namespace Gosub.Zurfur
 
                 // Copy white space from line above
                 int wsX = 0;
-                while (wsX < line.Length && wsX < CursorLoc.X
-                            && char.IsWhiteSpace(line, wsX))
+                while (wsX < line.Length && char.IsWhiteSpace(line, wsX))
                     wsX++;
 
                 string[] insertCR = new string[] { "", "" };
