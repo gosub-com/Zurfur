@@ -1,9 +1,8 @@
 ﻿module Zurfur.Log
 
 
-
 pub enum Level { Fatal; Error; Warn; Info; Debug }
-pub type ro passcopy Line(filePath str, line int)
+pub type ro copy Line(filePath str, line int)
 
 // TBD: Figure out how to get default file names and line numbers.
 //      Also figure out if this should be created per file
@@ -18,5 +17,3 @@ pub fun debug(message str, li Line = default) { todo() }
 
 pub fun timeBegin(name str, message str = "") { todo() }
 pub fun timeEnd(name str, message str = "") { }
-
-

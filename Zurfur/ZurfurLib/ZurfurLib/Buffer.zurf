@@ -1,11 +1,12 @@
-﻿use Zurfur.Collections
+﻿module Zurfur
 
-module Zurfur
+use Zurfur.Collections
+
 
 /// Mutable array with immutable Count.  This is the base
 /// of all dynamically sized objects and is one of the few
 /// types implmeneted partially by the compiler.
-pub type boxed Buffer<T>
+pub type owned box Buffer<T>
     where This is GetIterator<ref T>
 
     @Count ro int pub get

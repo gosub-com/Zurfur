@@ -29,8 +29,6 @@
 //   Note: There may be an updated version of this malloc obtainable at
 //           ftp://gee.cs.oswego.edu/pub/misc/malloc.c
 
-use Zurfur
-
 module Zurfur.Internal.Memory
 
 

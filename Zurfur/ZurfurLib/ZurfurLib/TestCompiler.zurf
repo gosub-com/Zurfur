@@ -1,6 +1,9 @@
-﻿use Zurfur
+﻿
 
 module TestCompiler
+
+use Zurfur
+
 // Comment out the next line to see compiler errors
 pragma NoParse
 

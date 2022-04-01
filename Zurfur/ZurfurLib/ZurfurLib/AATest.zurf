@@ -1,10 +1,11 @@
-﻿// Misc compiler testing
-pragma ShowParse
+﻿
+// Misc compiler testing
+module AATest
+
 use Zurfur
 use Zurfur.Operators
 
-module AATest
-
+pragma ShowParse
 
 type aapoint
     pub fun x() {}

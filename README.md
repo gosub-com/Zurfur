@@ -87,29 +87,6 @@ For `type MyPointXY(X int, Y int)`, the following are identical:
     @d Map<str, MyPointXY> = ["A": (X:1,Y:2), "B": (X:3,Y:4)]   // MyPointXY field initializer
     @a = ["A": MyPointXY(1,2), "B": MyPointXY(3,4)]
 
-## Immutability and References
-
-`ro` means read-only, not just at the top level, but at all levels.  When
-a field is `ro`, there is no way to modify or mutate any part of it:
-
-    @a List<MyType>         // `a[0].MyTypeVar = 1` is legal
-    @b ro List<MyType>>     // `b[0].MyTypeVar = 1` is not legal
-
-All mutable types are owned, and there is no *implicit* way to accidentally
-create a circular reference.  An object may be boxed to *explicitly* create
-circular references.  For example, `box MyType()` creates an explicit
-reference of type `^MyType`.  Unlike in C#, there are no mutable reference types. 
-In Zurfur, a C# type like `List<MyMutableClass>` would translate to `List<^MyMutableClass>`
-and `MyMutableClass` is always a value type.
-
-There are immutable reference types, such as `Array` and `str`.  Since they
-are immutable and always on the heap (i.e. `type ro boxed`), they can be copied
-quickly and there is no chance of them aliasing each other.
-
-Other references are short lived and allowed only on the stack.  Most of them
-require using the `ref` keyword.  The one exception is that most types are
-passed by immutable reference without the `ref` keyword.
-
 ## Functions and Properties
 
 Functions are declared with the `fun` keyword. The type name comes after the
@@ -117,22 +94,22 @@ argument, and the return type comes after the parameters:
 
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
-    fun pub Main(args Array<str>)
+    pub fun Main(args Array<str>)
         Log.Info("Hello World, 2+2={2+2}")
 
 Functions declared at the module level are implicitly `static` without needing
 to use the keyword.  Extension methods must be declared at the module level:
 
     // Declare an extension method for strings
-    pub str::Rest() str
+    pub fun str::Rest() str
         return this.Count == 0 ? "" : str(this[1..])
 
 Properties are declared with `get` and `set` keywords:
 
-    get pub MyString() str
+    pub get MyString() str
         return myString
 
-    set pub MyString(v str)
+    pub set MyString(v str)
         myString = v
         MyStringChangedEvent()
   
@@ -141,20 +118,20 @@ exception is that small types (e.g. `int`, and `Span<T>`) are passed by
 copy because it is more efficient to do so.  Other qualifiers, `mut`, `ref`,
 and `own` can be used to change the passing behavior:
 
-    fun pub Test(
-        a               int,  // Pass a copy because it is efficient (i.e. `type passcopy`)
+    pub fun Test(
+        a               int,  // Pass a copy because it is efficient (i.e. `type copy`)
         b       mut ref int,  // Pass by ref, allow assignment
         c         List<int>,  // Pass by ref, read-only
         d     mut List<int>,  // Pass by ref, allow mutation, but not assignment
         e ref mut List<int>,  // Pass by ref, allow mutation and assignment
         f     own List<int>)  // Take ownership of the list
 
-List of the qualifiers, and what they mean:
+Parameter qualifiers:
 
 | Qualifier | Passing style | Notes
 | :--- | :--- | :---
-|  | Read-only reference | Can copy for small `passcopy` types (e.g. `int`, `Span`, etc.)
-| `mut` | Allow mutation but not assignment | Not valid for `ro` types (e.g. `Array`, `Span`, etc.)
+|  | Read-only reference | Copy small `type copy` types (e.g. `int`, `Span`, etc.)
+| `mut` | Allow mutation but not assignment | Not valid for `ro` types (e.g. `Array`, `str`, etc.)
 | `ref mut` | Allow mutation and assignment | Requires annotation (i.e. `ref`) at the call site
 | `own` | Take ownership | Not valid for `ro` types and types that don't require allocation
 
@@ -171,10 +148,13 @@ If the type is mutable *and* requires dynamic allocation, the function can
 take ownership of the object by using the `own` keyword.  The caller must
 then never use the object again, or must explicitly `clone` the object.
 
+    pub fun storeList(list own List<int>)
+        // Take ownership of the list
+
 Functions can return multiple values:
 
     // Multiple returns
-    fun pub Circle(a f64, r f64) -> (x f64, y f64)
+    pub fun Circle(a f64, r f64) -> (x f64, y f64)
         return Cos(a)*r, Sin(a)*r
 
 The return parameters are named, and can be used by the calling function:
@@ -185,11 +165,11 @@ The return parameters are named, and can be used by the calling function:
 Normally the return value becomes owned by the caller, but this behavior
 can be changed with the `ref` keyword:
 
-    fun pub GetRoList() ref List<int>           // Read only ref
+    pub fun GetRoList() ref List<int>           // Read-only ref
         return ref myListField
-    fun pub GetMutList() mut List<int>          // Mutable (mutation allowed, assignment not allowed)
+    pub fun GetMutList() mut List<int>          // Mutable (mutation allowed, assignment not allowed)
         return mut myListField
-    fun pub GetMutRefList() mut ref List<int>   // Mutable ref (mutation or assignment is allowed)
+    pub fun GetMutRefList() mut ref List<int>   // Mutable ref (mutation or assignment is allowed)
         return mut ref myListField
 
 Return qualifiers:
@@ -200,19 +180,19 @@ Return qualifiers:
 | `mut` | Caller may mutate, but not assign | Callee retains ownership.  Not valid for `ro` types
 | `ref mut` | Caller may mutate or assign | Requires annotation (i.e. `ref`) at the call site
 
-
 ## Types
 
 The ones we all know and love:
 
-    i8, u8, byte, i16, u16, i32, u32, i64, int, u64, f32, f64, xint
+    i8, u8, byte, i16, u16, i32, u32, i64, int, u64, f32, f64, xint, object
     
 `byte` is an alias for `u8`.  `int` is an alias for `i64`.  `xint` is either
-i32 or i64 depending on the compilation target.
+u32 or u64 depending on the compilation target.  `object` is the base class
+for all types, even though Zurfur doesn't yet support any kind of inheritance.
 
 | Type | Description
 | :--- | :---
-| Array\<T\> | An immutable array of **immutable** elements and a constant `Count`.  Even if the array contains mutable elements, they become immutable when copied into the array.
+| Array\<T\> | An immutable array of **immutable** elements and a constant `Count`.  Even if the array contains mutable elements, they become immutable when copied into the array.  Arrays can be copied very quickly, just by copying a reference.
 | str | An `Array<byte>` with support for UTF-8.  `Array` is immutable, therefore `str` is also immutable
 | Buffer\<T\> | A mutable array of mutable elements, but with a *constant* `Count`
 | List\<T\> | Dynamically sized mutable list with mutable elements
@@ -220,29 +200,26 @@ i32 or i64 depending on the compilation target.
 | Map<K,V> | Unordered mutable map. 
 | Json | Json data structure
 
-There are several different kinds of types.  There is `ro` for a read-only
-immutable type.  And there is `boxed` for a type always allocated on the heap.
-Even though a mutable boxed type is a reference, it still has an owner and acts
-like a value type.  There is `boxed ro` which is an immutable reference type
-with fast implicit copy because it just copies the reference.
+There are several different kinds of types.  There is `ro` for read-only
+immutable types, `box` for a type always on the heap, and `owned` for a mutable
+heap type that requires an explicit clone or implicit move.
 
-| Type Qualifier | Examples | Passing Style | Explicit Clone Required | Speed/Notes
+| Type Qualifier | Passing Style | Explicit Clone | Examples | Copy/clone speed and notes
 | :--- | :--- | :--- | :--- | :---
-|`passcopy` | `int`, `f64`, `Span` | Copy | No | Fast, small, never allocates
-|  | `List`, `Map` | Ref | If it allocates | Slow (if it allocates) or medium (copy bytes)
-| `ro` | | Ref | No | Medium, copy bytes, never allocates
-| `boxed` | `Buffer` | Ref | Yes | Slow, always allocates
-| `boxed ro` | `str`, `Array` | Ref | No | Fast, reference copy
-| `nocopy` | `FileStream` | Owned | Not cloneable | Medium, always a move (copy bytes)
-| `ref` | `Span`, `ref` | Ref or copy | No | Type contains a reference, so must never leave the stack.  Must not allocate
+|  | Ref | No | types containing `int`, `str`, `Array`, etc. | Fast. Copy bytes, doesn't allocate.  Can't contain `owned` types.
+| `copy` | Copy | No | `int`, `f64`, `Span` | Fast. Small, pass copy (not a reference), doesn't allocate.  Can't contain `owned` types.
+| `ref` | Ref or copy | No | `Span`, `ref` | Fast.  Type contains a reference, so must never leave the stack.  Can't contain `owned` types.
+| `ro` | Ref | No | | Fast. Copy bytes, doesn't' allocate.  Can contain `owned` types, but they become read-only forever after.
+| `ro box` | Ref | No | `str`, `Array` | Fast.  Copy a reference. Can contain `owned` types, but they become read-only forever after.
+| `owned box` | Ref | Yes | `Buffer` | Slow. Always allocates.  May contain `owned` types.
+| `owned` | Ref | Yes | `List`, `Map` | Slow. Always allocates.  May contain `owned` types.
 
-Notice that `List` and `Map` are not `boxed`.  They live directly inline in the
-object that owns them, but they do contain a reference to a `Buffer` which is 
-directly on the heap. Because they are mutable and use dynamic allocation,
-`List`, `Map`, and `Buffer` require an explicit clone.
+`List` and `Map` are not `box` types.  They live directly inline in the object
+(or stack frame) that owns them.  Because they are mutable and use dynamic
+allocation, they require an explicit clone.
 
-Also notice that `Array` and `str` are `boxed ro`.  They are reference types
-and don't require an explicit clone.
+`Array` and `str` are `ro box`.  They are reference types, but don't require an
+explicit clone because they are read-only.
 
 
 ### Simple Data Types
@@ -252,10 +229,10 @@ mutable by default, but can also be immutable by adding the `ro` qualifier.
 No other constructors, methods, or properties may be added.
 
     // Simple types - all fields are public
-    type pub Point(x int, y int)
-    type pub Line(p1 Point, p2 Point)
-    type pub WithInitialization(x int = 1, y int = 2)
-    type pub ro Person(Id int, firstName str, lastName str, birthYear int)
+    pub type Point(x int, y int)
+    pub type Line(p1 Point, p2 Point)
+    pub type WithInitialization(x int = 1, y int = 2)
+    pub type ro Person(Id int, firstName str, lastName str, birthYear int)
 
 The default constructor can take all the fields in positional order, or any
 of the fields as named parameters. 
@@ -274,7 +251,7 @@ A complex type must define all of its fields in the body. Fields are declared
 with `@` and are private, but may have public properties with `pub get`,
 `pub get set`, etc.
 
-    type pub Example
+    pub type Example
     {
         // Mutable fields
         @text1 str = "hello"                // Private
@@ -291,24 +268,54 @@ with `@` and are private, but may have public properties with `pub get`,
         @roText3 ro str pub init = "Hello"  // Constructor or client can override
         
         // Getter and setter functions (passing copies)
-        get pub text() str
+        pub get text() str
             return text1
 
-        set pub text(value str)
+        pub set text(value str)
             if value == text1
                 return
             text1 = value
             sendTextChangedEvent()
 
         // Getter returning references
-        get pub list1a() ref List<int>      // Immutable reference
+        pub get list1a() ref List<int>      // Immutable reference
             return ref list1
-        get pub list1b() mut List<int>      // Mutable reference, not assignable
+        pub get list1b() mut List<int>      // Mutable reference, not assignable
             return ref list1
-        get pub list1c() mut ref List<int>  // Mutable reference, assignable
+        pub get list1c() mut ref List<int>  // Mutable reference, assignable
             return ref list1
     }
 
+### Immutability
+
+`ro` means read-only, not just at the top level, but at all levels.  When
+a field is `ro`, there is no way to modify or mutate any part of it:
+
+    type Preson(firstName str, lastName str)
+    @a List<List<Person>> = [[("John", "Doe")]]
+    @b ro List<List<Person>> = [[("John", "Doe")]]
+    @c Array<List<Person>> = [[("John", "Doe")]]
+
+    a[0][0].firstName = "Jeremy"    // Legal - List is mutable
+    b[0][0].firstName = "Jeremy"    // Illegal - Read-only all the way down
+    c[0][0].firstName = "Jeremy"    // Illegal - Array is read-only
+
+### References
+
+References are short lived pointers that may never leave the stack.
+They can be created explicitly, or implicitly when a function is called.
+
+    // Create a reference, then use it later
+    @nameRef = ref a[0][0].firstName
+    nameRef = "Jeremy"
+
+    // Identical to above
+    @personRef = ref a[0][0]
+    personRef.firstName = "Jeremy"
+
+    // Reference is created implicitly when a function is called
+    pub fun setPersonName(p mut Person)
+        p.FirstName = "Jeremy"
 
 ### Anonymous Type
 
@@ -842,7 +849,7 @@ model for user interface objects.
 The unary `*` operator dereferences a pointer.  The `.` operator is used to access fields
 or members of a pointer to the type (so `->` is not used for pointers). 
  
-    fun pub static strcpy(dest *byte, source *byte)
+    pub fun static strcpy(dest *byte, source *byte)
         while *source != 0
             { *dest = *source;  dest += 1;  source += 1 }
         *dest = 0

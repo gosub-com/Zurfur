@@ -3,16 +3,13 @@
 // messages look good and no crashes, etc.
 
 
-// Comment out the next line to see parse errors
-pragma NoParse
-
-
-//pragma ShowMeta
-
+module TestSyntax
 
 use Zurfur
 
-module TestSyntax
+// Comment out the next line to see parse errors
+pragma NoParse
+//pragma ShowMeta
 
 
 fun A() { } // Expecting a type name

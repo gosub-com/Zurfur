@@ -1,12 +1,12 @@
 ﻿// Misc compiler testing
-pragma ShowParse
+module TestVerifier
+
 use Zurfur
 use Zurfur.Operators
 
-module TestVerifier
-
 // Comment out the next line to see verification errors
 pragma NoParse
+pragma ShowParse
 
 // Disable compiler type checking so we can see verifier errors
 pragma NoCompilerChecks

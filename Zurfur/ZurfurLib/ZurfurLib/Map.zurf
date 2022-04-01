@@ -1,8 +1,9 @@
-﻿use Zurfur
+﻿
+module Zurfur
+
+use Zurfur
 use Zurfur.Operators
 use Zurfur.Collections
-
-module Zurfur
 
 type KvPair<TKey,TValue>
     @key TKey pub ref

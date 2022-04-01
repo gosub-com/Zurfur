@@ -1,11 +1,12 @@
-﻿use Zurfur
+﻿
+module Zurfur
+
+use Zurfur
 use Zurfur.Operators
 use Zurfur.Collections
 
-module Zurfur
 
-
-pub type ro passcopy Range<T>
+pub type ro copy Range<T>
     where This is GetIterator<T> + OpIn<Range<T>>
     where T is OpAdd<T,T> + OpSub<T,T> + OpCmpTotal<T> + OpNext
 

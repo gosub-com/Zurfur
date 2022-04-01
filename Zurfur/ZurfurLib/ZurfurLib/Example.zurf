@@ -31,11 +31,12 @@
 // Consider moving "pub" to after "fun" and "type", etc.
 
 
+// http://zurfur.com
+module TestExample
+
 use Zurfur
 use Zurfur.Collections
 
-// http://zurfur.com
-module TestExample
 
 // Get this to work
 type Point(X int, Y int)
@@ -116,7 +117,7 @@ fun test_HelloWorld()
             doit4
             
 
-pub type boxed AGenericType<Q>
+pub type owned box AGenericType<Q>
 
     pub fun Circle1(a f64, r f64) -> (x f64, y f64)
         return Cos(a)*r, Sin(a)*r
@@ -335,5 +336,3 @@ pub fun MemCopy32(dest *void, source *void, length xint)
         dref(cast(*i32)d) = dref(cast(*i32)s); d+=4; s+=4
     while d != end
         dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
-
-

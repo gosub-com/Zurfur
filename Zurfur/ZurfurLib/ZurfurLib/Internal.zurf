@@ -1,8 +1,8 @@
-﻿pragma AllowUnderscoreDefinitions
-
+﻿
 /// Internal stuff for compiler, heap, and GC
 module Zurfur.Internal
 
+pragma AllowUnderscoreDefinitions
 
 /// Internal definition of a reference.
 pub type ro __ref<T>

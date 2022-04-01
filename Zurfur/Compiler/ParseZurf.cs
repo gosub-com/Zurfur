@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.Eventing.Reader;
 using System.Linq;
-using System.Net.NetworkInformation;
-using System.Runtime.Remoting.Messaging;
 using System.Text.RegularExpressions;
 using System.Text;
 
@@ -68,7 +65,7 @@ namespace Gosub.Zurfur.Compiler
             + "return unsealed unseal sealed sizeof struct switch this This self Self throw try "
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "
-            + "box boxed init move copy clone bag drop err dispose own "
+            + "box boxed init move copy clone bag drop err dispose own owned "
             + "trait mixin extends impl union fun afun def yield let cast "
             + "any dyn dynamic loop select match event aevent from to of on cofun cofunc global local it "
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
@@ -76,7 +73,7 @@ namespace Gosub.Zurfur.Compiler
 
         static WordSet sFieldQualifiers = new WordSet("pub public private unsafe unsealed");
         // Non reserved names: passcopy, nocopy
-        static WordSet sTypeQualifiers = new WordSet("ro ref boxed class passcopy nocopy");
+        static WordSet sTypeQualifiers = new WordSet("ro ref box owned class copy nocopy");
         static WordSet sPostFieldQualifiers = new WordSet("init set get ref mut");
 
         static WordSet sReservedUserFuncNames = new WordSet("new clone drop cast default");
@@ -242,7 +239,7 @@ namespace Gosub.Zurfur.Compiler
                     if (mToken.X != alignment.X && !visibleSemicolon)
                         RejectToken(mToken, $"Incorrect indentation at this scope level, expecting {alignment.X} spaces");
                 }
-                ParseScopeStatement(true, qualifiers, true);
+                ParseScopeStatement(qualifiers, true);
             }
         }
 
@@ -251,11 +248,11 @@ namespace Gosub.Zurfur.Compiler
             var qualifiers = new List<Token>();
             ParseScopeLevel(keyword, sEmptyWordSet, useBraces => 
             {
-                ParseScopeStatement(false, qualifiers, useBraces);
+                ParseScopeStatement(qualifiers, useBraces);
             });
         }
 
-        private void ParseScopeStatement(bool topScope, List<Token> qualifiers, bool requireSemicolon)
+        private void ParseScopeStatement(List<Token> qualifiers, bool requireSemicolon)
         {
             var attributes = NewExprList();
             while (AcceptMatch("#"))
@@ -293,15 +290,19 @@ namespace Gosub.Zurfur.Compiler
                     mToken.Type = eTokenType.ReservedControl;
                     Accept();
                     mSyntax.Using.Add(ParseUsingStatement(keyword));
-                    if (mModuleBasePath.Length != 0)
-                        RejectToken(keyword, "'use' statement must come before the 'module' statement");
+                    if (mModuleBasePath.Length == 0)
+                        RejectToken(keyword, "'use' statement must come after the first 'module' statement");
+                    else if (mSyntax.Types.Count != 0 || mSyntax.Methods.Count != 0 || mSyntax.Fields.Count != 0)
+                        RejectToken(keyword, "'use' statement must come before any types, fields, or methods are defined");
                     break;
 
                 case "module":
                     mToken.Type = eTokenType.ReservedControl;
+                    if (mToken.X != 0)
+                        RejectToken(keyword, "'module' statement must be in the first column");
                     Accept();
-                    if (!topScope)
-                        RejectToken(keyword, "'module' statement must not be inside a type");
+                    if (mScopeStack.Count != 0 && mScopeStack.Last().Keyword != "module")
+                        RejectToken(keyword, "'module' statement must not be inside a type, interface, impl, etc.");
                     ParseModuleStatement(keyword);
                     break;
 
@@ -501,7 +502,7 @@ namespace Gosub.Zurfur.Compiler
                 return; // Error already marked while parsing definition
             if (mModuleBasePath.Length == 0)
             {
-                RejectToken(type.Name, "The module name must be defined before the method");
+                RejectToken(type.Name, "The module name must be defined before any type");
                 return;
             }
             mSyntax.Types.Add(type);
@@ -512,7 +513,7 @@ namespace Gosub.Zurfur.Compiler
                 return; // Error already marked while parsing definition
             if (mModuleBasePath.Length == 0)
             {
-                RejectToken(field.Name, "The module name must be defined before the field");
+                RejectToken(field.Name, "The module name must be defined before any field");
                 return;
             }
             mSyntax.Fields.Add(field);
@@ -524,7 +525,7 @@ namespace Gosub.Zurfur.Compiler
                 return; // Error already marked while parsing definition
             if (mModuleBasePath.Length == 0)
             {
-                RejectToken(method.Name, "The module name must be defined before the method");
+                RejectToken(method.Name, "The module name must be defined before any method");
                 return;
             }
             mSyntax.Methods.Add(method);
@@ -562,7 +563,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     if (namePath[i] != mModuleBasePath[i])
                     {
-                        RejectToken(namePath[i], "Expecting module name to start with '" + mModuleBaseStr + "'");
+                        RejectToken(namePath[i], $"Expecting module name to start with '{mModuleBaseStr}'");
                         return;
                     }
                     continue;
@@ -574,7 +575,7 @@ namespace Gosub.Zurfur.Compiler
             }
             if (!scopeAdded)
             {
-                RejectToken(namePath[namePath.Count - 1], "Expecting module name to be longer than '" + mModuleBaseStr + "'");
+                RejectToken(namePath[namePath.Count - 1], $"Expecting module name to have another identifier after '{mModuleBaseStr}.'");
                 return;
             }
 

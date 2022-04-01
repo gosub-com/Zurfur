@@ -1,10 +1,11 @@
-﻿use Zurfur.Operators
-
+﻿
 
 module Zurfur
 
+use Zurfur.Operators
+
 /// []T is converted to Span<T>
-pub type ref passcopy Span<T>
+pub type ref copy Span<T>
 
     @Data ro ?ref mut T
     @Count ro int pub get

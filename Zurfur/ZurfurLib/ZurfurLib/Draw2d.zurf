@@ -1,10 +1,10 @@
 ﻿
-use Zurfur
-use Zurfur.Operators
-
 /// Basic shapes for use with 2d drawing library
 /// TBD: Still working on getting this fixed
 module Zurfur.Draw2d
+
+use Zurfur
+use Zurfur.Operators
 
 fun test_Shape()
     @rect = Rect<int>(1,2,3,4)
@@ -12,7 +12,7 @@ fun test_Shape()
     Assert(rect == Rect<int>(1,30,3,4))
     
 
-type passcopy Point<T> //TBD: where T is NumOps
+type copy Point<T> //TBD: where T is NumOps
 
     @x T pub init ref mut
     @y T pub init ref mut
@@ -55,7 +55,7 @@ fun <T> T::opMul(n Point<T>) Point<T>
 //    pub fun opDiv(n Point<T>) { return Point<T>(this/n.x, this/n.y) }
 
 
-type passcopy Size<T> // TBD:    where T is NumOps
+type copy Size<T> // TBD:    where T is NumOps
 
     @width T pub init ref mut
     @height T pub init ref mut
@@ -63,7 +63,7 @@ type passcopy Size<T> // TBD:    where T is NumOps
     // TBD: Same as Point<T>
     fun toPoint() Point<T> { return Point(width, height) }
 
-type passcopy Rect<T> // TBD:    where T is NumOps
+type copy Rect<T> // TBD:    where T is NumOps
 
     @x T pub init ref mut
     @y T pub init ref mut
