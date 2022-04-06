@@ -1,9 +1,8 @@
 ﻿
 module Zurfur
 
-use Zurfur
-use Zurfur.Operators
-use Zurfur.Collections
+use Zurfur.Operators[OpIn, OpEqTotal, GetHash]
+use Zurfur.Collections[GetIterator, Iterator, Collection]
 
 type KvPair<TKey,TValue>
     @key TKey pub ref

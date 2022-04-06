@@ -2,9 +2,8 @@
 module Zurfur
 
 use Zurfur.Unsafe
-use Zurfur.Collections
-use Zurfur.Operators
-use Zurfur.Markers
+use Zurfur.Collections[Iterator]
+use Zurfur.Operators[Clone]
 
 
 // This type is unique because it is the only one that

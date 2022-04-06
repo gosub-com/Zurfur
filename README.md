@@ -184,7 +184,7 @@ Return qualifiers:
 
 The ones we all know and love:
 
-    i8, u8, byte, i16, u16, i32, u32, i64, int, u64, f32, f64, xint, object
+    bool, i8, u8, byte, i16, u16, i32, u32, i64, int, u64, f32, f64, xint, object
     
 `byte` is an alias for `u8`.  `int` is an alias for `i64`.  `xint` is either
 u32 or u64 depending on the compilation target.  `object` is the base class

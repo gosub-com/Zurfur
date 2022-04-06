@@ -4,34 +4,40 @@ module Zurfur.Io
 
 
 interface Reader
-{
-    afun mut read(data mut []byte) int err impl
-}
+    afun mut read(data mut []byte) int impl
 
 interface Writer
-{
-    afun mut write(data []byte) int err impl
-    afun mut flush() err impl
-}
+    afun mut write(data []byte) int impl
+    afun mut flush() impl
 
-enum SeekOrigin { Begin; Current; End }
+enum SeekOrigin
+    Begin; Current; End
 
 interface Seeker
-{
-    afun mut seek(offset int, origin SeekOrigin) int err impl
-    aget length() int err { todo() }
-    aget position() int err { todo() }
-    aset position(value int) err { todo() }
-}
+    afun mut seek(offset int, origin SeekOrigin) int impl
+    aget length() int { todo() }
+    aget position() int { todo() }
+    aset position(value int) { todo() }
 
 
-interface FileStream
-{
-}
+interface FileStream { }
 
-// TBD: Make this a module?
-type File
-{
-    pub fun static open(file str) FileStream err
-        return todo()
-}
+
+
+module Zurfur.Io.File
+
+
+afun open(fileName str, mode str="r") FileStream { }
+afun readAllText(fileName str) List<str> { }
+afun readAllBytes(fileName str) List<byte> { }
+afun writeAllText(fileName str, data List<str>) { }
+afun writeAllBytes(fileName str, data List<byte>) { }
+
+// TBD: It's probably better to have cancellation built
+//      into the async system.  Maybe progress too.
+type CancellationToken {}
+type Progress(bytesTotal int, bytesTransferred int)
+afun readAllText(
+    fileName str,
+    cancel CancellationToken,
+    progress ?fun (p Progress) = null) { }

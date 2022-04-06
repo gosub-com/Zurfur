@@ -1,6 +1,6 @@
 ﻿module Zurfur
 
-use Zurfur.Collections
+use Zurfur.Collections[GetIterator]
 
 
 /// Mutable array with immutable Count.  This is the base

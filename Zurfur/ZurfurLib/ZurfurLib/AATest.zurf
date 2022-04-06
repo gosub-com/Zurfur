@@ -3,7 +3,8 @@
 module AATest
 
 use Zurfur
-use Zurfur.Operators
+use Zurfur[uint]
+use Zurfur.Operators[OpEqTotal, OpNeg, OpAdd]
 
 pragma ShowParse
 
@@ -30,7 +31,7 @@ pub fun<T> List<T>::Reverse()
     for @i in 0..this.Count/2
         swap(ref this[i], ref this[Count-i-1])
 
-pub fun<T> static List<T>::Reverse2()
+pub static fun<T> List<T>::Reverse2()
     for @i in 0..this.Count/2
         swap(ref this[i], ref this[Count-i-1])
 
@@ -38,7 +39,7 @@ pub fun<T> static List<T>::Reverse2()
 pub type MyList<T>
 {
     pub fun Reverse() {}
-    pub fun static ReverseS() {}
+    pub static fun ReverseS() {}
 }
 
 pub fun int::aaa(){}
@@ -52,9 +53,9 @@ pub type AAFun
     fun aaf1(a int, b int)int { }
     fun aaf2(v AAFunc<int, int>) { }
     fun<T1,T2> aaf3(i T1)T2 { }
-    fun static aaf1s(a int, b int)int { }
-    fun static aaf2s(v AAFunc<int, int>) { }
-    fun<T1,T2> static aaf3s(i T1)T2 { }
+    static fun aaf1s(a int, b int)int { }
+    static fun aaf2s(v AAFunc<int, int>) { }
+    static fun<T1,T2> aaf3s(i T1)T2 { }
     
     @aaf4 fun(a int, b int) int
     @aaf5 AAFunc<int, int>

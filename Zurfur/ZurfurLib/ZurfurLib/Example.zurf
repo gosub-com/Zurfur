@@ -34,8 +34,8 @@
 // http://zurfur.com
 module TestExample
 
-use Zurfur
-use Zurfur.Collections
+use Zurfur[Decimal]
+use Zurfur.Collections[GetIterator]
 
 
 // Get this to work

@@ -17,8 +17,26 @@ namespace Gosub.Zurfur.Compiler
         public ZilWarn(string message) : base(message) { }
     }
 
+    class FileUseSymbols
+    {
+        public Dictionary<string, List<SymModule>> UseSymbols = new Dictionary<string, List<SymModule>>();
+        public void AddSymbol(string symbol, SymModule module)
+        {
+            if (!UseSymbols.TryGetValue(symbol, out var mod))
+            {
+                mod = new List<SymModule>();
+                UseSymbols[symbol] = mod;
+            }
+            if (!mod.Contains(module))
+                mod.Add(module);
+        }
+    }
+
     class CompileHeader
     {
+        const string BUILT_IN_TYPES = "* ^ [ ? ref own mut ro";
+        const string ZURFUR_PRELUDE = "void bool i8 u8 byte i16 u16 i32 u32 i64 int u64 f32 f64 xint object str List Map Array Buffer Span";
+
         bool mNoCompilerChecks;
         SymbolTable mSymbols = new SymbolTable();
         Dictionary<string, Symbol> mUnaryTypeSymbols = new Dictionary<string, Symbol>();
@@ -28,7 +46,7 @@ namespace Gosub.Zurfur.Compiler
         public CompileHeader()
         {
             // Find built in generic types
-            foreach (var genericType in "* ^ [ ? ref own mut ro".Split(' '))
+            foreach (var genericType in BUILT_IN_TYPES.Split(' '))
                 mUnaryTypeSymbols[genericType] = mSymbols.Root.Children[genericType];
         }
 
@@ -52,12 +70,12 @@ namespace Gosub.Zurfur.Compiler
             var fileUses = ProcessUseStatements();
             AddTypes();
             ResolveImpls();
-
             mSymbols.GenerateLookup();
             ResolveFields();
             ResolveMethods();
             ResolveTypeConstraints();
             mSymbols.GenerateLookup();
+            CheckUseStatements();
             return;
 
             void AddModules()
@@ -95,35 +113,76 @@ namespace Gosub.Zurfur.Compiler
                 return newModule;
             }
 
-            Dictionary<string, string[]> ProcessUseStatements()
+            Dictionary<string, FileUseSymbols> ProcessUseStatements()
             {
-                var uses = new Dictionary<string, string[]>();
+                var uses = new Dictionary<string, FileUseSymbols>();
                 foreach (var syntaxFile in syntaxFiles)
                 {
-                    var useModules = new List<string>();
+                    var fileUseSymbols = new FileUseSymbols();
+
+                    // Add prelude
+                    var zurfurModule = (SymModule)mSymbols.Root.Children["Zurfur"];
+                    foreach (var name in ZURFUR_PRELUDE.Split(' '))
+                    {
+                        fileUseSymbols.AddSymbol(name, zurfurModule);
+                    }
+
+                    // Process use statements
                     foreach (var use in syntaxFile.Value.Using)
                     {
-                        var symbol = mSymbols.FindPathOrReject(use.NamePath);
-                        if (symbol == null || use.NamePath.Length == 0)
-                            continue;  // Error marked by function
+                        var module = mSymbols.FindPathOrReject(use.ModuleName);
+                        if (module == null || use.ModuleName.Length == 0)
+                            continue;  // Error marked by FindPathOrReject
 
-                        var lastToken = use.NamePath[use.NamePath.Length - 1];
-                        if (!symbol.IsModule)
+                        var lastToken = use.ModuleName[use.ModuleName.Length - 1];
+                        if (!module.IsModule)
                         {
-                            Reject(lastToken, "Must be a module, not a " + symbol.KindName);
+                            Reject(lastToken, "Must be a module, not a " + module.KindName);
                             continue;
                         }
 
-                        if (useModules.Contains(symbol.FullName))
+                        if (use.Symbols.Length == 0)
                         {
-                            Reject(lastToken, "Already included in previous use statement");
-                            continue;
+                            fileUseSymbols.AddSymbol(lastToken, (SymModule)module.Parent);
                         }
-                        useModules.Add(symbol.FullName);
+                        else
+                        {
+                            foreach (var token in use.Symbols)
+                                fileUseSymbols.AddSymbol(token, (SymModule)module);
+                        }
+
                     }
-                    uses[syntaxFile.Key] = useModules.ToArray();
+                    uses[syntaxFile.Key] = fileUseSymbols;
                 }
                 return uses;
+            }
+
+            void CheckUseStatements()
+            {
+                foreach (var syntaxFile in syntaxFiles)
+                {
+                    foreach (var use in syntaxFile.Value.Using)
+                    {
+                        var module = mSymbols.FindPathOrReject(use.ModuleName);
+                        if (module == null || use.ModuleName.Length == 0)
+                            continue;  // Error marked above
+                        if (!module.IsModule)
+                            continue; // Error marked above
+
+                        foreach (var token in use.Symbols)
+                        {
+                            if (module.Children.TryGetValue(token, out var symbol))
+                            {
+                                if (symbol.IsAnyType)
+                                    token.Type = eTokenType.TypeName;
+                            }
+                            else
+                            {
+                                Reject(token, $"Symbol not found in the module '{module.FullName}'");
+                            }
+                        }
+                    }
+                }
             }
 
             void AddTypes()
@@ -522,7 +581,7 @@ namespace Gosub.Zurfur.Compiler
         Symbol ResolveTypeOrReject(SyntaxExpr typeExpr,
                                    bool isDot,
                                    Symbol scope,
-                                   string []useScope,
+                                   FileUseSymbols useScope,
                                    string file,
                                    bool hasGenericParams = false)
         {
@@ -843,7 +902,7 @@ namespace Gosub.Zurfur.Compiler
         /// TBD: If symbol is unique in this package, but duplicated in an
         /// external package, is that an error?  Yes for now.
         /// </summary>
-        public Symbol FindGlobalTypeOrReject(Token name, Symbol scope, string[] use, out bool foundInScope)
+        public Symbol FindGlobalTypeOrReject(Token name, Symbol scope, FileUseSymbols use, out bool foundInScope)
         {
             var symbol = FindTypeInScope(name.Name, scope);
             if (symbol != null)
@@ -853,16 +912,16 @@ namespace Gosub.Zurfur.Compiler
             }
             foundInScope = false;
 
+            // Check for 'use' symbol
             var symbols = new List<Symbol>(); // TBD: Be kind to GC
-            foreach (var u in use)
+            if (use.UseSymbols.TryGetValue(name.Name, out var modules))
             {
-                var ns = mSymbols.Lookup(u);
-                Debug.Assert(ns.IsModule);
-                if (ns != null
-                    && ns.Children.TryGetValue(name.Name, out var s)
-                    && s.IsAnyType)
+                foreach (var module in modules)
                 {
-                    symbols.Add(s);
+                    if (module.Children.TryGetValue(name.Name, out var s))
+                    {
+                        symbols.Add(s);
+                    }
                 }
             }
 
@@ -887,18 +946,17 @@ namespace Gosub.Zurfur.Compiler
         {
             while (scope.Name != "")
             {
+                if (scope.Name == name && scope.IsAnyType)
+                    return scope;
                 if (scope.Children.TryGetValue(name, out var s1) && s1.IsAnyType)
                     return s1;
                 scope = scope.Parent;
             }
-            if (scope.Children.TryGetValue(name, out var s2) && s2.IsAnyType)
-                return s2;
+            if (name == "This")
+                return scope.Children["This"];
 
             return null;
         }
-
-
-
 
         // Does not reject if there is already an error there
         void Reject(Token token, string message)

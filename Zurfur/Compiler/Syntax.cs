@@ -26,8 +26,8 @@ namespace Gosub.Zurfur.Compiler
 
     class SyntaxUsing
     {
-        public Token Keyword;
-        public Token[] NamePath = Token.EmptyArray;
+        public Token[] ModuleName = Token.EmptyArray;
+        public Token[] Symbols = Token.EmptyArray;
     }
 
     class SyntaxScope : SyntaxExpr

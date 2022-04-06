@@ -1,9 +1,8 @@
 ﻿
 module Zurfur
 
-use Zurfur
-use Zurfur.Operators
-use Zurfur.Collections
+use Zurfur.Operators[OpAdd, OpSub, OpIn, OpCmpTotal, OpNext]
+use Zurfur.Collections[GetIterator, Iterator]
 
 
 pub type ro copy Range<T>

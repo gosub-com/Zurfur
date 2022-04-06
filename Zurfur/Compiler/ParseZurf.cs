@@ -51,7 +51,7 @@ namespace Gosub.Zurfur.Compiler
 
         // Add semicolons to all lines, except for:
         static WordSet sContinuationEnd = new WordSet("[ ( ,");
-        static WordSet sContinuationNoBegin = new WordSet("} namespace module pub fun afun get set aget aset");
+        static WordSet sContinuationNoBegin = new WordSet("} namespace module type use pragma pub fun afun get set aget aset");
         static WordSet sContinuationBegin = new WordSet("\" ] ) , . + - * / % | & || && == != "
                             + ": ? ?? > << <= < => -> .. :: !== ===  is in as has "
                             + "= += -= *= /= %= |= &= ~=");
@@ -71,7 +71,7 @@ namespace Gosub.Zurfur.Compiler
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
             + "of sync task except exception raise loc local global");
 
-        static WordSet sFieldQualifiers = new WordSet("pub public private unsafe unsealed");
+        static WordSet sFieldQualifiers = new WordSet("pub public private unsafe unsealed static protected");
         // Non reserved names: passcopy, nocopy
         static WordSet sTypeQualifiers = new WordSet("ro ref box owned class copy nocopy");
         static WordSet sPostFieldQualifiers = new WordSet("init set get ref mut");
@@ -289,7 +289,7 @@ namespace Gosub.Zurfur.Compiler
                 case "use":
                     mToken.Type = eTokenType.ReservedControl;
                     Accept();
-                    mSyntax.Using.Add(ParseUsingStatement(keyword));
+                    mSyntax.Using.Add(ParseUsingStatement());
                     if (mModuleBasePath.Length == 0)
                         RejectToken(keyword, "'use' statement must come after the first 'module' statement");
                     else if (mSyntax.Types.Count != 0 || mSyntax.Methods.Count != 0 || mSyntax.Fields.Count != 0)
@@ -531,13 +531,33 @@ namespace Gosub.Zurfur.Compiler
             mSyntax.Methods.Add(method);
         }
 
-        SyntaxUsing ParseUsingStatement(Token keyword)
+        SyntaxUsing ParseUsingStatement()
         {
             var synUsing = new SyntaxUsing();
-            synUsing.Keyword = keyword;
             var tokens = new List<Token>();
             ParseQualifiedIdentifier(tokens, "Expecting a module name identifier");
-            synUsing.NamePath = tokens.ToArray();
+            synUsing.ModuleName = tokens.ToArray();
+
+            if (AcceptMatch("["))
+            {
+                var openToken = mPrevToken;
+                tokens.Clear();
+                do
+                {
+                    if (mTokenName == "]")
+                        break;
+                    if (!AcceptIdentifier("Expecting a symbol from the module"))
+                        break;
+                    if (tokens.FindIndex(m => m.Name == mPrevToken.Name) < 0)
+                        tokens.Add(mPrevToken);
+                    else
+                        RejectToken(mPrevToken, "Duplicate symbol");
+                } while (AcceptMatch(","));
+                if (AcceptMatchOrReject("]"))
+                    Connect(mPrevToken, openToken);
+                synUsing.Symbols = tokens.ToArray();
+            }
+
             return synUsing;
         }
 
@@ -888,11 +908,11 @@ namespace Gosub.Zurfur.Compiler
 
             // Experimental: See how syntax would look if we put "pub" after "fun"
             //      TBD: Move to before type parameters?
-            if (mTokenName == "pub")
-                qualifiers.Add(Accept());
+            //while (mTokenName == "pub" || mTokenName == "protected" || mTokenName == "static")
+            //    qualifiers.Add(Accept());
 
-            // TBD: Move to first parameter?
-            while (mTokenName == "mut" || mTokenName == "protected" || mTokenName == "static")
+            // TBD: Move `this` to first parameter?
+            while (mTokenName == "mut")
                 qualifiers.Add(Accept());
 
             var validMethodName = ParseMethodNameWithExtension(out synFunc.ExtensionType, out synFunc.Name);
@@ -1850,7 +1870,8 @@ namespace Gosub.Zurfur.Compiler
                 if (endToken.Y != scoopStartY)
                     x = mLexer.GetLine(scoopStartY).Length;
                 var len = Math.Max(0, x - scoopStartX);
-                literalSb.Append(mLexer.GetLine(scoopStartY).Substring(scoopStartX, len));
+                if (len > 0)
+                    literalSb.Append(mLexer.GetLine(scoopStartY).Substring(scoopStartX, len));
                 scoopStartX = -1;
             }
 

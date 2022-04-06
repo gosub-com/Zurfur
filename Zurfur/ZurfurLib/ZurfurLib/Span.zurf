@@ -2,7 +2,7 @@
 
 module Zurfur
 
-use Zurfur.Operators
+use Zurfur.Operators[OpEqTotal]
 
 /// []T is converted to Span<T>
 pub type ref copy Span<T>

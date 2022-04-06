@@ -3,8 +3,7 @@
 /// TBD: Still working on getting this fixed
 module Zurfur.Draw2d
 
-use Zurfur
-use Zurfur.Operators
+use Zurfur.Operators[OpAdd, OpMul]
 
 fun test_Shape()
     @rect = Rect<int>(1,2,3,4)

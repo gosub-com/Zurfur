@@ -6,8 +6,10 @@
 
 module Zurfur
 
-use Zurfur.Operators
-use Zurfur.Collections
+use Zurfur.Operators[
+        GetHash, OpEqTotal, OpCmpTotal, OpEqPartial,
+        OpCmpPartial, OpAdd, OpSub, OpNeg, OpMul, OpDiv, OpRem]
+use Zurfur.Collections[GetIterator]
 
 pragma AllowUnderscoreDefinitions
 
