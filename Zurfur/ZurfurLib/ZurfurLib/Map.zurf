@@ -1,8 +1,8 @@
 ﻿
 module Zurfur
 
-use Zurfur.Operators[OpIn, OpEqTotal, GetHash]
-use Zurfur.Collections[GetIterator, Iterator, Collection]
+use Zurfur.Operators[OpIn, OpEq, GetHash]
+use Zurfur.Collections[GetIter, Iter, Collection]
 
 type KvPair<TKey,TValue>
     @key TKey pub ref
@@ -14,12 +14,12 @@ type KvPair<TKey,TValue>
 
 
 pub type Map<TKey, TValue>
-    where This is OpIn<TKey> + GetIterator<ref KvPair<TKey, TValue>>
-    where TKey is OpEqTotal<TKey> + GetHash
+    where This is OpIn<TKey> + GetIter<ref KvPair<TKey, TValue>>
+    where TKey is OpEq<TKey> + GetHash
 
     pub fun new(capacity int)
         return todo()
-    pub fun new(keyValues Iterator<KvPair<TKey, TValue>>)
+    pub fun new(keyValues Iter<KvPair<TKey, TValue>>)
         return todo()
     get count() int
         return todo()
@@ -41,7 +41,7 @@ pub type Map<TKey, TValue>
         return todo()
     pub fun mut add(item KvPair<TKey, TValue>)
         return todo()
-    pub fun mut add(items Iterator<KvPair<TKey, TValue>>)
+    pub fun mut add(items Iter<KvPair<TKey, TValue>>)
         return todo()
     pub fun mut remove(key TKey) bool
         return todo()

@@ -647,7 +647,7 @@ namespace Gosub.Zurfur.Compiler
         {
             var synClass = new SyntaxType(keyword);
             synClass.Qualifiers = qualifiers.ToArray();
-            synClass.ParentScope = mScopeStack.Count == 0 ? null : mScopeStack.Last();
+            synClass.Parent = mScopeStack.Count == 0 ? null : mScopeStack.Last();
             synClass.Comments = mComments.ToString();
             mComments.Clear();
 
@@ -812,7 +812,7 @@ namespace Gosub.Zurfur.Compiler
             RejectUnderscoreDefinition(newVarName);
 
             var field = new SyntaxField(newVarName);
-            field.ParentScope = mScopeStack.Count == 0 ? null : mScopeStack.Last();
+            field.Parent = mScopeStack.Count == 0 ? null : mScopeStack.Last();
             field.Qualifiers = qualifiers.ToArray();
             field.Comments = mComments.ToString();
             mComments.Clear();
@@ -859,7 +859,7 @@ namespace Gosub.Zurfur.Compiler
                 initializer = new SyntaxUnary(Accept(), ParseRightSideOfAssignment());
 
             var field = new SyntaxField(newVarName);
-            field.ParentScope = mScopeStack.Count == 0 ? null : mScopeStack.Last();
+            field.Parent = mScopeStack.Count == 0 ? null : mScopeStack.Last();
             field.Qualifiers = qualifiers.ToArray();
             field.Comments = mComments.ToString();
             mComments.Clear();
@@ -875,7 +875,7 @@ namespace Gosub.Zurfur.Compiler
         SyntaxField ParseEnumField(List<Token> qualifiers, Token name)
         {
             var field = new SyntaxField(name);
-            field.ParentScope = mScopeStack.Count == 0 ? null : mScopeStack.Last();
+            field.Parent = mScopeStack.Count == 0 ? null : mScopeStack.Last();
             field.Qualifiers = qualifiers.ToArray();
             field.Comments = mComments.ToString();
             mComments.Clear();
@@ -898,24 +898,45 @@ namespace Gosub.Zurfur.Compiler
         {
             // Parse func keyword
             var synFunc = new SyntaxFunc(keyword);
-            synFunc.ParentScope = mScopeStack.Count == 0 ? null : mScopeStack.Last();
+            synFunc.Parent = mScopeStack.Count == 0 ? null : mScopeStack.Last();
             synFunc.Comments = mComments.ToString();
             mComments.Clear();
 
-            // Type parameters
-            if (mTokenName == "<")
-                synFunc.TypeArgs = ParseTypeParameters();
+            // Type parameters, TBD: fun <T> List<T>::name()
+            // NOTE: Since parameters after function name are a little
+            //       confusing with extension methods (see below), we could
+            //       do it Kotlin style.   OTOH, most methods will not be
+            //       extensions, and people can get used to it.
+            //if (mTokenName == "<")
+            //    synFunc.TypeArgs = ParseTypeParameters();
 
             // Experimental: See how syntax would look if we put "pub" after "fun"
             //      TBD: Move to before type parameters?
-            //while (mTokenName == "pub" || mTokenName == "protected" || mTokenName == "static")
-            //    qualifiers.Add(Accept());
+            while (mTokenName == "pub" || mTokenName == "protected" || mTokenName == "static")
+                qualifiers.Add(Accept());
 
             // TBD: Move `this` to first parameter?
             while (mTokenName == "mut")
                 qualifiers.Add(Accept());
 
-            var validMethodName = ParseMethodNameWithExtension(out synFunc.ExtensionType, out synFunc.Name);
+            var validMethodName = ParseExtensionTypeAndMethodName(out synFunc.ExtensionType, out synFunc.Name);
+
+            // Type parameters, TBD: fun List<T>::name<T>()
+            // NOTE: This is a little confusing because T in name<T> is an
+            //       input type, and T in List<T> is a parameter. Another
+            //       problem is that errors are always shown while typing
+            //       "List<T>", but that can be fixed in the compiler.  Maybe
+            //       allow inferring the type like this: List::name<T>()
+            //
+            if (mTokenName == "<" && synFunc.TypeArgs == null)
+                synFunc.TypeArgs = ParseTypeParameters();
+
+            // Don't process function while user is typing (this is for a better error message)
+            if (!IsMatchPastMetaSemicolon("("))
+            {
+                validMethodName = false;
+            }
+
             synFunc.MethodSignature = ParseMethodSignature(keyword, out var hasReturnType);
             synFunc.Constraints = ParseConstraints();
 
@@ -945,7 +966,7 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Returns true if we are a valid method name
         /// </summary>
-        bool ParseMethodNameWithExtension(out SyntaxExpr extensionType, out Token funcName)
+        bool ParseExtensionTypeAndMethodName(out SyntaxExpr extensionType, out Token funcName)
         {
             extensionType = null;
             if (sReservedUserFuncNames.Contains(mTokenName))
@@ -960,20 +981,25 @@ namespace Gosub.Zurfur.Compiler
             if (!CheckIdentifier("Expecting a function or property name", sRejectTypeName))
                 return false;
 
-            // Parse function name or extension method type
-            var nameOrType = ParseType();
-            if (AcceptMatch("::") && CheckIdentifier("Expecting a function or property name", sRejectTypeName))
+            // Possibly an extension method type.
+            var p = SaveParsePoint();
+            var et = ParseType();
+            if (AcceptMatch("::"))
             {
-                // Extension method and function name
-                extensionType = nameOrType;
-                funcName = Accept();
-                funcName.Type = eTokenType.DefineMethod;
-                RejectUnderscoreDefinition(funcName);
-                return true;
+                // Yes, it is an extension method type
+                extensionType = et;
             }
-            // Just function name (syntax error for anything else)
-            if (nameOrType.Count != 0 || nameOrType.Token.Type != eTokenType.TypeName)
-                RejectToken(nameOrType.Token, "Expecting only a function name");
+            else
+            {
+                // Failed, restore the enumerator back to before trying type argument list
+                RestoreParsePoint(p);
+            }
+
+            funcName = mToken;
+            if (!CheckIdentifier("Expecting a function or property name", sRejectTypeName))
+                return false;
+
+            Accept();
             funcName.Type = eTokenType.DefineMethod;
             RejectUnderscoreDefinition(funcName);
             return true;

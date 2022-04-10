@@ -90,9 +90,12 @@ namespace Gosub.Zurfur.Compiler
                 {
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
                     if (!symbol.Parent.IsMethodGroup)
-                        Reject(symbol.Token, "Compiler error: Expecting parent symbol to be method group");
-                    if (symbol.IsExtension && !symbol.Parent.Parent.IsModule)
-                        Reject(symbol.Token, "Extension method must be defined only at the module level");
+                        Reject(symbol.Token, "Compiler error: Method must be in a method group");
+
+                    // TBD: Maybe put all functions at module level
+                    //if (!symbol.Parent.Parent.IsModule)
+                    //    Reject(symbol.Token, "Compiler error: Method must be scoped at the at the module level");
+
 
                     // TBD: Static may appear in extension methods
                     //if (symbol.Parent.Parent is SymModule && symbol.Qualifiers.Contains("static"))

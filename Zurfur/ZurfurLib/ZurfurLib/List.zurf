@@ -2,7 +2,7 @@
 module Zurfur
 
 use Zurfur.Unsafe
-use Zurfur.Collections[Iterator]
+use Zurfur.Collections[Iter]
 use Zurfur.Operators[Clone]
 
 
@@ -41,7 +41,7 @@ pub type owned List<T>
         push(items)
 
     // Clone items into the new list
-    pub fun new(items mut Iterator<T>)
+    pub fun new(items mut Iter<T>)
         where T is Clone
         buffer = Buffer<T>(items.countHint)
         push(items)
@@ -112,7 +112,7 @@ pub type owned List<T>
         where T is Clone
         require !hasRef()
         todo()
-    pub fun mut push(items mut Iterator<T>)
+    pub fun mut push(items mut Iter<T>)
         where T is Clone
         require !hasRef()
         todo()
@@ -130,7 +130,7 @@ pub type owned List<T>
         where T is Clone
         require !hasRef()
         todo()
-    pub fun mut insert(index int, items mut Iterator<T>)
+    pub fun mut insert(index int, items mut Iter<T>)
         where T is Clone
         require !hasRef()
         todo()
@@ -144,7 +144,7 @@ pub type owned List<T>
         require !hasRef()
         todo()
 
-    pub fun<Tout> convert(f fun(item T) ?Tout) List<Tout>
+    pub fun convert<Tout>(f fun(item T) ?Tout) List<Tout>
         where T is Clone
         todo()
 
@@ -156,7 +156,7 @@ pub type owned List<T>
     // Usage: myList.For @item => DoStuffWithItem()
     pub fun mut forEach(f fun(item mut T)) {}
 
-    pub fun getIterator()
+    pub fun getIter()
         return this[0..count]
 
  

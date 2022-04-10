@@ -50,7 +50,7 @@ namespace Gosub.Zurfur.Compiler
 
 
         public Token Keyword => Token; // class, struct, func, prop, blank for field, etc.
-        public SyntaxScope ParentScope;
+        public SyntaxScope Parent;
         public string Comments;
         public Token[] Qualifiers;
         public Token Name;
@@ -59,7 +59,7 @@ namespace Gosub.Zurfur.Compiler
         {
             get
             {
-                return ParentScope == null ? Name : ParentScope.FullName + "." + Name;
+                return Parent == null ? Name : Parent.FullName + "." + Name;
             }
         }
         public override string ToString() => FullName;
@@ -83,7 +83,7 @@ namespace Gosub.Zurfur.Compiler
         public SyntaxModule(Token keyword, Token name, SyntaxScope parent)
             : base(keyword)
         {
-            ParentScope = parent;
+            Parent = parent;
             Name = name;
         }
     }

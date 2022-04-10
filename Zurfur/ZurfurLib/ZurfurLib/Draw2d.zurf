@@ -20,13 +20,18 @@ type copy Point<T> //TBD: where T is NumOps
 
 
 // TBD: Maybe just use extension methods with known names?
-fun <T> Point<T>::opAdd(n Point<T>) Point<T>
+fun Point<T>::opAdd<T>(n Point<T>) Point<T>
         where T is OpAdd<T,T>
     return Point<T>(x+n.x, y+n.y)
-fun <T> Point<T>::opMul(n T) Point<T>
+fun Point<T>::opMul<T>(n T) Point<T>
         where T is OpMul<T,T>
     return Point<T>(x*n, y*n)
-fun <T> T::opMul(n Point<T>) Point<T>
+fun Point<T>::opMul<T>(n Point<T>) Point<T>
+        where T is OpMul<T,T>
+    return Point<T>(this*n.x, this*n.y)
+
+// TBD: DO NOT ALLOW!
+fun T::opMul<T>(n Point<T>) Point<T>
         where T is OpMul<T,T>
     return Point<T>(this*n.x, this*n.y)
 

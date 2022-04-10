@@ -4,9 +4,34 @@ module AATest
 
 use Zurfur
 use Zurfur[uint]
-use Zurfur.Operators[OpEqTotal, OpNeg, OpAdd]
+use Zurfur.Operators[OpEq, OpNeg, OpAdd]
 
 pragma ShowParse
+
+
+
+type AAAA
+
+    type BBBB {}
+
+    const AAAA_f1 int = 3
+    @AAAA_f2 int
+    static @AAAA_f3 int
+
+    fun AAAA_fm1() {}
+    fun AAAA_fm2(a BBBB) {}
+
+fun AAAA::AAAA_fe1() {}
+
+fun AAAA_f() {}
+
+// TBD: BBBB should be in scope
+fun AAAA::AAAA_fe2(a BBBB) {}
+
+// TBD: AAAA should not conflict with AAAA typename
+//      must be resolved before moving methods to module level
+fun aapoint::AAAA() {}
+    
 
 type aapoint
     pub fun x() {}
@@ -27,11 +52,11 @@ fun aaa_arith(a int, b int) int
     @y = a+x*b
     return y
   
-pub fun<T> List<T>::Reverse()
+pub fun List<T>::Reverse<T>()
     for @i in 0..this.Count/2
         swap(ref this[i], ref this[Count-i-1])
 
-pub static fun<T> List<T>::Reverse2()
+pub static fun List<T>::Reverse2<T>()
     for @i in 0..this.Count/2
         swap(ref this[i], ref this[Count-i-1])
 
@@ -52,10 +77,10 @@ pub type AAFun
 
     fun aaf1(a int, b int)int { }
     fun aaf2(v AAFunc<int, int>) { }
-    fun<T1,T2> aaf3(i T1)T2 { }
+    fun aaf3<T1,T2>(i T1)T2 { }
     static fun aaf1s(a int, b int)int { }
     static fun aaf2s(v AAFunc<int, int>) { }
-    static fun<T1,T2> aaf3s(i T1)T2 { }
+    static fun aaf3s<T1,T2>(i T1)T2 { }
     
     @aaf4 fun(a int, b int) int
     @aaf5 AAFunc<int, int>
@@ -68,7 +93,7 @@ pub type AAFun
     @aaf9b fun(a int)->(x int)
 
     fun af6(p fun(v int)bool) {}
-    fun<X> af7(p fun(v X)bool) {}
+    fun af7<X>(p fun(v X)bool) {}
 
 
     @af10 fun(v int)int
@@ -80,7 +105,7 @@ pub type AAFun
 type OneGeneric<T> { } 
 type Point<T>(x T, y T)
 type Size<T>(width T, height T)
-get<T> Point<T>::toSize() Size<T> { return Size(x, y) }
+get Point<T>::toSize<T>() Size<T> { return Size(x, y) }
 
 pub type AAFunc<T1,T2>
 {
@@ -89,7 +114,7 @@ pub type AAFunc<T1,T2>
 
 
 pub type AGenericTest<T, QQQ>
-    where QQQ is OpEqTotal<T>//: new() where T : new()
+    where QQQ is OpEq<T>//: new() where T : new()
 {
     
     @af0 fun()->()
@@ -100,11 +125,11 @@ pub type AGenericTest<T, QQQ>
     @af5 fun(a int)->(x int)
 
     fun af6(p fun(v int)bool) {}
-    fun<X> af7(p fun(v X)bool) {}
+    fun af7<X>(p fun(v X)bool) {}
 
-    fun<T1,T2> af8(i T1)T2 { }
+    fun af8<T1,T2>(i T1)T2 { }
 
-    fun<T1> Q() {}
+    fun Q<T1>() {}
 
     pub fun new()
         nop()
@@ -118,12 +143,12 @@ pub type AGenericTest<T, QQQ>
     pub fun P1() { return 0 }
     pub fun P2()->() { return 0}
     //pub fun P2<Quack>(a Quack, b QQQ) { return (a.ToStr() + b.ToStr()).Length; }
-    pub fun<Z> P3() { return 0; }
-    pub fun<Quack, Quack1> P4() { return 0; }
+    pub fun P3<Z>() { return 0; }
+    pub fun P4<Quack, Quack1>() { return 0; }
     pub fun fun9(a *?OneGeneric<List<int>>) { }
 
 
-    pub fun<Q1,Q2> GenericTest(a Q1, b Q2)
+    pub fun GenericTest<Q1,Q2>(a Q1, b Q2)
         return a.ToStr().Length + b.ToStr().Length    
 
     
@@ -159,21 +184,21 @@ pub type AGenericTest<T, QQQ>
     pub type Inner1<Ta, Qa>
     {
         pub fun P1() { return 0; }
-        pub fun<Quack> P2() { return 0; }
-        pub fun<Z> P3() { return 0; }
-        pub fun<Z, Quack> P4() { return 0; }
-        pub fun<Quack, Quack1, Quack3> P5() { return 0; }
+        pub fun P2<Quack>() { return 0; }
+        pub fun P3<Z>() { return 0; }
+        pub fun P4<Z, Quack>() { return 0; }
+        pub fun P5<Quack, Quack1, Quack3>() { return 0; }
 
         pub type Inner2<Tb, Qb>
         {
-            pub fun<P1F> P1()
-                where P1F is OpEqTotal<P1F> + OpAdd<int, Tb>
-                where Tb is OpEqTotal<Ta>
+            pub fun P1<P1F>()
+                where P1F is OpEq<P1F> + OpAdd<int, Tb>
+                where Tb is OpEq<Ta>
             { return 0; }
-            pub fun<Quack> P2() { return 0; }
-            pub fun<Z> P3() { return 0; }
-            pub fun<Z, Quack> P4() { return 0; }
-            pub fun<Quack, Quack1, Quack3> P5(a int, b Quack1, c u16)
+            pub fun P2<Quack>() { return 0; }
+            pub fun P3<Z>() { return 0; }
+            pub fun P4<Z, Quack>() { return 0; }
+            pub fun P5<Quack, Quack1, Quack3>(a int, b Quack1, c u16)
             {
                 return InnerP5() + InnerP5() + a + b.ToStr().Length + c
 
@@ -188,10 +213,10 @@ pub type AGenericTest<T, QQQ>
             pub type Inner3<A, B>
             {
                 pub fun P1() { return 0; }
-                pub fun<Quack> P2() { return 0; }
-                pub fun<Z> P3() { return 0; }
-                pub fun<Z, Quack> P4() { return 0; }
-                pub fun<Quack, Quack1, Quack3> AAA
+                pub fun P2<Quack>() { return 0; }
+                pub fun P3<Z>() { return 0; }
+                pub fun P4<Z, Quack>() { return 0; }
+                pub fun AAA<Quack, Quack1, Quack3>
                     (a Quack, b Quack1, c Quack3, d A)
                         ->(x T, y QQQ, z List<QQQ>, w List<int>)
                 {

@@ -96,8 +96,8 @@ namespace Gosub.Zurfur.Compiler
                 if (syntaxScopeToSymbol.TryGetValue(m, out var s1))
                     return s1;
                 Symbol parent = mSymbols.Root;
-                if (m.ParentScope != null)
-                    parent = AddModule(m.ParentScope);
+                if (m.Parent != null)
+                    parent = AddModule(m.Parent);
                 if (parent.Children.TryGetValue(m.Name, out var s2))
                 {
                     syntaxScopeToSymbol[m] = s2;
@@ -196,7 +196,7 @@ namespace Gosub.Zurfur.Compiler
                             continue; // Process impl blocks later
                         }
 
-                        if (!syntaxScopeToSymbol.TryGetValue(type.ParentScope, out var parent))
+                        if (!syntaxScopeToSymbol.TryGetValue(type.Parent, out var parent))
                             continue; // Syntax errors
                         var newType = new SymType(parent, syntaxFile.Key, type.Name);
                         newType.Comments = type.Comments;
@@ -232,7 +232,7 @@ namespace Gosub.Zurfur.Compiler
                         var implType = type.GetImplType();
                         if (implType == null)
                             continue;
-                        var scope = syntaxScopeToSymbol[type.ParentScope];
+                        var scope = syntaxScopeToSymbol[type.Parent];
                         ResolveImpl(scope, implType, syntaxFile.Key);
                     }
                 }
@@ -281,7 +281,7 @@ namespace Gosub.Zurfur.Compiler
                         //      fields should be moved to be similar to methods.
                         //      Maybe convert const fields to get methods
 
-                        if (field.ParentScope.GetImplType() != null)
+                        if (field.Parent.GetImplType() != null)
                         {
                             // TBD: Need to process const impl
                             // Convert to get method
@@ -289,7 +289,7 @@ namespace Gosub.Zurfur.Compiler
                             continue;
                         }
 
-                        if (!syntaxScopeToSymbol.TryGetValue(field.ParentScope, out var symParent))
+                        if (!syntaxScopeToSymbol.TryGetValue(field.Parent, out var symParent))
                         {
                             Reject(field.Name, $"Symbol not processed because the parent scope has an error");
                             continue;
@@ -302,7 +302,7 @@ namespace Gosub.Zurfur.Compiler
                         symField.Token.AddInfo(symField);
                         mSymbols.AddOrReject(symField);
 
-                        if (field.ParentScope != null && field.ParentScope.Keyword == "enum")
+                        if (field.Parent != null && field.Parent.Keyword == "enum")
                         {
                             // Enum feilds have their parent enum type
                             symField.TypeName = symField.Parent.FullName;
@@ -327,7 +327,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var type in syntaxFile.Value.Types)
                     {
-                        if (!syntaxScopeToSymbol.TryGetValue(type.ParentScope, out var module))
+                        if (!syntaxScopeToSymbol.TryGetValue(type.Parent, out var module))
                             continue;  // Syntax error already marked
                         if (!module.Children.TryGetValue(type.Name, out var symbol))
                             continue; // Syntax error already marked
@@ -408,65 +408,75 @@ namespace Gosub.Zurfur.Compiler
             {
                 foreach (var syntaxFile in syntaxFiles)
                 {
-                    foreach (var method in syntaxFile.Value.Methods)
+                    foreach (var synFunc in syntaxFile.Value.Methods)
                     {
-                        Symbol scope;
-                        var parentType = method.ParentScope as SyntaxType;
-                        if (parentType != null && parentType.ImplInterface != null)
-                        {
-                            // IMPL methods get lifted into the containing module
-                            if (!syntaxScopeToSymbol.TryGetValue(method.ParentScope.ParentScope, out scope))
-                                continue; // Syntax errors
-                        }
-                        else
-                        {
-                            // NON IMPL methods go into parent type or module
-                            if (!syntaxScopeToSymbol.TryGetValue(method.ParentScope, out scope))
-                                continue; // Syntax errors
-                        }
-
-                        if (!scope.Children.TryGetValue(method.Name, out var methodGroup))
-                        {
-                            methodGroup = new SymMethodGroup(scope, syntaxFile.Key, method.Name);
-                            var ok = mSymbols.AddOrReject(methodGroup);
-                            Debug.Assert(ok);
-                        }
-                        if (methodGroup.IsMethodGroup)
-                            ResolveMethod(methodGroup, method, syntaxFile.Key);
-                        else
-                            Reject(method.Name, $"There is already a {methodGroup.KindName} with that name");
+                        // Get containing scope, can be (module, type, or $impl)
+                        if (!syntaxScopeToSymbol.TryGetValue(synFunc.Parent, out var scope))
+                            continue; // Syntax errors
+                        ResolveMethod(scope, synFunc, syntaxFile.Key);
                     }
                 }
             }
 
-            void ResolveMethod(Symbol scope, SyntaxFunc func, string file)
+            // Scope is where the function is defined (a module, type, or $impl)
+            void ResolveMethod(Symbol scope, SyntaxFunc synFunc, string file)
             {
-                if (func.MethodSignature.Count != 3)
+                Debug.Assert(scope.IsModule || scope.IsType || scope.IsImplDef);
+                if (synFunc.MethodSignature.Count != 3)
                 {
-                    Reject(func.Name, "Syntax error or compiler error");
+                    Reject(synFunc.Name, "Syntax error or compiler error");
                     return;
                 }
 
-                // Give each function a unique name (final name calculated below)
-                var method = new SymMethod(scope, file, func.Name, $"$LOADING...${scope.Children.Count}");
-                method.SetQualifiers(func.Qualifiers);
-                method.Comments = func.Comments;
+                // Check for field or something with the same name
+                if (scope.Children.TryGetValue(synFunc.Name, out var nameAtScope)
+                    && !nameAtScope.IsMethodGroup)
+                {
+                    Reject(synFunc.Name, $"There is already a {nameAtScope.KindName} with that name in '{scope.FullName}'");
+                    return;
+                }
 
-                AddTypeParams(method, func.TypeArgs, file);
-                if (func.ParentScope.GetImplType() != null)
-                    AddImplParams(method, func, file);
+                // Lift the method up to the module level (out of type or impl)
+                // TBD: Keep track of type args
+                var moduleScope = scope;
+
+                // TBD: Maybe put all methods at module level
+                //while (!moduleScope.IsModule)
+                //    moduleScope = moduleScope.Parent;
+
+                // Find or create method group in this module
+                if (!moduleScope.Children.TryGetValue(synFunc.Name, out var methodGroup))
+                {
+                    methodGroup = new SymMethodGroup(moduleScope, file, synFunc.Name);
+                    var ok = mSymbols.AddOrReject(methodGroup);
+                    Debug.Assert(ok);
+                }
+                if (!methodGroup.IsMethodGroup)
+                {
+                    Reject(synFunc.Name, $"There is already a {methodGroup.KindName} with that name in '{moduleScope}'");
+                    return;
+                }
+
+
+                // Give each function a unique name (final name calculated below)
+                var method = new SymMethod(methodGroup, file, synFunc.Name, $"$LOADING...${methodGroup.Children.Count}");
+                method.SetQualifiers(synFunc.Qualifiers);
+                method.Comments = synFunc.Comments;
+
+                AddTypeParams(method, synFunc.TypeArgs, file);
+                if (synFunc.Parent.GetImplType() != null)
+                    AddImplParams(method, synFunc, file);
                 else
-                    AddThisParam(method, func, file);
-                ResolveMethodParams(file, method, func.MethodSignature[0], false); // Parameters
-                ResolveMethodParams(file, method, func.MethodSignature[1], true);  // Returns
+                    AddThisParam(method, synFunc, file);
+                ResolveMethodParams(file, method, synFunc.MethodSignature[0], false); // Parameters
+                ResolveMethodParams(file, method, synFunc.MethodSignature[1], true);  // Returns
 
                 method.Token.AddInfo(method);
-                var scopeParent = func.ParentScope.Name;
-                if (scopeParent.Error)
+                if (synFunc.Parent.Name.Error)
                 {
                     // NOTE: Since the symbol is not stored, the method will not be compiled.
                     // TBD: Consider changing this so user can get feedback on errors.
-                    Warning(func.Token, $"Method not processed because '{scopeParent}' has an error");
+                    Warning(synFunc.Token, $"Method not processed because '{synFunc.Parent.Name}' has an error");
                     return;
                 }
 
@@ -485,14 +495,14 @@ namespace Gosub.Zurfur.Compiler
                 method.SetName(methodName);
                 mSymbols.AddOrReject(method);
 
-                ResolveConstraints(method, func.Constraints, file);
+                ResolveConstraints(method, synFunc.Constraints, file);
             }
 
             // Add $interface and $this parameters to functions defined
             // in impl blocks.
             void AddImplParams(Symbol method, SyntaxFunc func, string file)
             {
-                if (!syntaxScopeToSymbol.TryGetValue(func.ParentScope, out var implBlock))
+                if (!syntaxScopeToSymbol.TryGetValue(func.Parent, out var implBlock))
                 {
                     Reject(func.Name, "Error in impl block");
                     return;
@@ -896,7 +906,7 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Find a type or module in the current scope, excluding $extension.
+        /// Find a type or module in the current scope.
         /// If it's not found, scan use statements for all occurences. 
         /// Marks an error if undefined or duplicate.  Returns null on error.
         /// TBD: If symbol is unique in this package, but duplicated in an

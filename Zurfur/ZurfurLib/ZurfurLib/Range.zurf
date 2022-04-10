@@ -1,13 +1,13 @@
 ﻿
 module Zurfur
 
-use Zurfur.Operators[OpAdd, OpSub, OpIn, OpCmpTotal, OpNext]
-use Zurfur.Collections[GetIterator, Iterator]
+use Zurfur.Operators[OpAdd, OpSub, OpIn, OpCmp, OpNext]
+use Zurfur.Collections[GetIter, Iter]
 
 
 pub type ro copy Range<T>
-    where This is GetIterator<T> + OpIn<Range<T>>
-    where T is OpAdd<T,T> + OpSub<T,T> + OpCmpTotal<T> + OpNext
+    where This is GetIter<T> + OpIn<Range<T>>
+    where T is OpAdd<T,T> + OpSub<T,T> + OpCmp<T> + OpNext
 
     @start T pub init get
     @end T pub init get
@@ -18,13 +18,13 @@ pub type ro copy Range<T>
     // TBD: These becomes an impl
     //pub static fun opIn(a T, b Range<T>) bool
     //    return a >= b.start && a < b.end
-    //pub fun getIterator() RangeIterator<T>
+    //pub fun getIter() RangeIter<T>
     //    return RangeIter<T>(start, end)
 
 
-pub type RangeIterator<T>
-    where This is Iterator<T>
-    where T is OpAdd<T,T> + OpSub<T,T> + OpCmpTotal<T> + OpNext
+pub type RangeIter<T>
+    where This is Iter<T>
+    where T is OpAdd<T,T> + OpSub<T,T> + OpCmp<T> + OpNext
 
     @current T pub init
     @end T pub init

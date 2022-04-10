@@ -1,0 +1,111 @@
+﻿
+module Zurfur.Collections
+
+/// Implement on containers
+interface pub GetIter<Item>
+    fun pub getIter() Iter<Item> impl
+// TBD: impl pass throughs for all Iter<T> functions.
+//      Use count hint here?
+
+
+
+/// Implement on containers with a known count
+interface pub Collection<Item>
+    where Item is GetIter<Item>
+    get pub count() int impl
+
+
+/// Implement this on all iterators
+// TBD: `Item` should be an associated type, like in Rust
+interface pub Iter<Item>
+
+    // TBD: Need associated types:
+    //type Item
+
+
+    /// Return the next item, or null if it doesn't exist
+    fun pub mut next() ?mut ref Item impl
+
+    /// Implement this when the container has a known size.
+    /// List uses this as the starting capacity.
+    get pub countHint() int
+        return 0
+
+    fun pub mut toArrayXM() Array<Item>
+        return toList().toArray()
+
+    fun pub mut toBuffer() Buffer<Item>
+        return toList().toBuffer()
+    
+    fun pub mut toList() List<Item>
+        @list = List(countHint)
+        while next()@item
+            list.push(item)
+        return list
+
+    // TBD: Item should be an associated type,
+    //      not explicitly passed back from filter
+    fun pub mut filter(f fun(item Item) bool) FilterIter<This, Item>
+        return FilterIter<This, Item>(this, f)
+
+    fun pub mut find(f fun(item Item) bool) ?mut ref Item
+        while next()@item
+            if f(item)
+                return ref item
+        return null
+
+
+
+
+//   TBD: Unify extension method here
+fun pub mut Iter<Item>::toArrayXE<Item>() Array<Item>
+    return toList().toArray()
+
+        
+fun List<T>::test<T>()
+    todo()
+
+// TBD: Item should be an associated type (not passed in here)
+type ref FilterIter<I, Item>
+    // TBD: Needed?
+    where I is Iter<Item>
+
+    // Note: The `init` attribute creates a constructor taking
+    //       named parameters FilterIter<T>(iter: v1, f: v2).
+    
+    @iter ref I pub init
+    @f ref fun(item Item) bool pub init
+
+    // TBD: There should be shortcut syntax to create
+    //      a positional constructor, like this:
+    // fun new(iter _, f _) {}
+    //
+    // Instead of this:
+    fun new(iter mut I, f fun(item Item)bool)
+        this.iter = ref iter
+        this.f = ref f
+
+    // TBD: This does not implement the interface
+    fun pub mut next() ?mut ref I
+        return iter.find(f)
+        
+        
+impl <I, Item> FilterIter<I, Item>::Iter<Item>
+    where I is Iter<Item>
+
+    // TBD: Need associated types here
+    //type Item = I.Item
+    
+    fun pub mut next() ?mut ref Item
+        return iter.find(f)
+
+// TBD: Check for same symbol name as 'new' method
+fun  FilterIter<T,X>::New<T,X>()
+    todo
+
+fun test_Filter() Array<int>
+    @listIn = [1,2,3,4,5]
+    return listIn.filter(@n => n in 2..5).toArray()
+    
+    
+    

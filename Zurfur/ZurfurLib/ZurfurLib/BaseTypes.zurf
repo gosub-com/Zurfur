@@ -7,9 +7,9 @@
 module Zurfur
 
 use Zurfur.Operators[
-        GetHash, OpEqTotal, OpCmpTotal, OpEqPartial,
+        GetHash, OpEq, OpCmp, OpEqPartial,
         OpCmpPartial, OpAdd, OpSub, OpNeg, OpMul, OpDiv, OpRem]
-use Zurfur.Collections[GetIterator]
+use Zurfur.Collections[GetIter]
 
 pragma AllowUnderscoreDefinitions
 
@@ -41,7 +41,7 @@ pub fun nop() {}
 //      fun move<T>(take own T) T { return take }
 
 /// Swap two items
-fun<T> swap(a mut ref T, b mut ref T)
+fun swap<T>(a mut ref T, b mut ref T)
     @t = move(a)
     a = move(b)
     b = t
@@ -51,7 +51,7 @@ pub type ro copy bool
     const __size int = 1
 
 impl bool::GetHash { pub fun getHash() i64 extern }
-impl bool::OpEqTotal<bool> { pub fun opEqTotalTotal(a bool) bool extern }
+impl bool::OpEq<bool> { pub fun opEq(a bool) bool extern }
 
 /// i8 (-128..127)
 pub type ro copy i8
@@ -74,8 +74,8 @@ pub type ro copy i8
 
 
 impl i8::GetHash { pub fun getHash() i64 extern }
-impl i8::OpEqTotal<i8> { pub fun opEqTotal(a i8) bool extern }
-impl i8::OpCmpTotal<i8> { pub fun opCmpTotal(a i8) int extern }
+impl i8::OpEq<i8> { pub fun opEq(a i8) bool extern }
+impl i8::OpCmp<i8> { pub fun opCmp(a i8) int extern }
 
 
 /// u8 (0..255) same as byte
@@ -101,8 +101,8 @@ pub type ro copy u8
     pub fun i8Fail() i8 require this <= i8.MAX extern
 
 impl u8::GetHash { pub fun getHash() i64 extern }
-impl u8::OpEqTotal<u8> { pub fun opEqTotal(a u8) bool extern }
-impl u8::OpCmpTotal<u8> { pub fun opCmpTotal(a u8) int extern }
+impl u8::OpEq<u8> { pub fun opEq(a u8) bool extern }
+impl u8::OpCmp<u8> { pub fun opCmp(a u8) int extern }
 
 
 /// i16 (-32768..32768)
@@ -131,8 +131,8 @@ pub type ro copy i16
 
 
 impl i16::GetHash { pub fun getHash() i64 extern }
-impl i16::OpEqTotal<i16> { pub fun opEqTotal(a i16) bool extern }
-impl i16::OpCmpTotal<i16> { pub fun opCmpTotal(a i16) i64 extern }
+impl i16::OpEq<i16> { pub fun opEq(a i16) bool extern }
+impl i16::OpCmp<i16> { pub fun opCmp(a i16) i64 extern }
 
 
 
@@ -163,8 +163,8 @@ pub type ro copy u16
     pub fun i16Fail() i16 extern
 
 impl u16::GetHash { pub fun getHash() i64 extern }
-impl u16::OpEqTotal<u16> { pub fun opEqTotal(a u16) bool extern }
-impl u16::OpCmpTotal<u16> { pub fun opCmpTotal(a u16) i64 extern }
+impl u16::OpEq<u16> { pub fun opEq(a u16) bool extern }
+impl u16::OpCmp<u16> { pub fun opCmp(a u16) i64 extern }
 
 /// A 32 bit integer
 pub type ro copy i32
@@ -194,8 +194,8 @@ pub type ro copy i32
     pub fun u32Fail() u32 extern
 
 impl i32::GetHash { pub fun getHash() int extern }
-impl i32::OpEqTotal<i32> { pub fun opEqTotal(a i32) bool extern }
-impl i32::OpCmpTotal<i32> { pub fun opCmpTotal(a i32) int extern }
+impl i32::OpEq<i32> { pub fun opEq(a i32) bool extern }
+impl i32::OpCmp<i32> { pub fun opCmp(a i32) int extern }
 impl i32::OpAdd<i32, i32> { pub fun opAdd(n i32) i32 extern }
 impl i32::OpSub<i32, i32> {  pub fun opSub(n i32) i32 extern }
 impl i32::OpNeg<i32> {  pub fun opNeg() i32 extern }
@@ -204,9 +204,9 @@ impl i32::OpDiv<i32, i32> { pub fun opDiv(n i32) i32 extern }
 impl i32::OpRem<i32, i32> { pub fun opRem(n i32) i32 extern }
 
 
-impl i32::GetIterator<i32>
-    pub fun getIterator() RangeIterator<i32>
-        return RangeIterator<i32>(0, this)
+impl i32::GetIter<i32>
+    pub fun getIter() RangeIter<i32>
+        return RangeIter<i32>(0, this)
 
 
 /// 32 bit unsigned integer
@@ -240,8 +240,8 @@ pub type ro copy u32
 
 
 impl u32::GetHash { pub fun getHash() int extern }
-impl u32::OpEqTotal<u32> { pub fun opEqTotal(a u32) bool extern }
-impl u32::OpCmpTotal<u32> { pub fun opCmpTotal(a u32) int extern }
+impl u32::OpEq<u32> { pub fun opEq(a u32) bool extern }
+impl u32::OpCmp<u32> { pub fun opCmp(a u32) int extern }
 impl u32::OpAdd<u32, u32> { pub fun opAdd(n u32) u32 extern }
 impl u32::OpSub<u32, u32> {  pub fun opSub(n u32) u32 extern }
 impl u32::OpNeg<u32> {  pub fun opNeg() u32 extern }
@@ -250,9 +250,9 @@ impl u32::OpDiv<u32, u32> { pub fun opDiv(n u32) u32 extern }
 impl u32::OpRem<u32, u32> { pub fun opRem(n u32) u32 extern }
 
 
-impl u32::GetIterator<u32>
-    pub fun getIterator() RangeIterator<u32>
-        return RangeIterator<u32>(0, this)
+impl u32::GetIter<u32>
+    pub fun getIter() RangeIter<u32>
+        return RangeIter<u32>(0, this)
 
 
 /// A 64 bit integer (same as int)
@@ -287,8 +287,8 @@ pub type ro copy i64
     
 
 impl i64::GetHash { pub fun getHash() int extern }
-impl i64::OpEqTotal<i64> { pub fun opEqTotal(a i64) bool extern }
-impl i64::OpCmpTotal<i64> { pub fun opCmpTotal(a i64) int extern }
+impl i64::OpEq<i64> { pub fun opEq(a i64) bool extern }
+impl i64::OpCmp<i64> { pub fun opCmp(a i64) int extern }
 impl i64::OpAdd<i64, i64> { pub fun opAdd(n i64) i64 extern }
 impl i64::OpSub<i64, i64> {  pub fun opSub(n i64) i64 extern }
 impl i64::OpNeg<i64> {  pub fun opNeg() i64 extern }
@@ -296,9 +296,9 @@ impl i64::OpMul<i64, i64> { pub fun opMul(n i64) i64 extern }
 impl i64::OpDiv<i64, i64> { pub fun opDiv(n i64) i64 extern }
 impl i64::OpRem<i64, i64> { pub fun opRem(n i64) i64 extern }
 
-impl i64::GetIterator<i64>
-    pub fun getIterator() RangeIterator<i64>
-        return RangeIterator<i64>(0, this)
+impl i64::GetIter<i64>
+    pub fun getIter() RangeIter<i64>
+        return RangeIter<i64>(0, this)
 
 
 /// 64 bit unsigned integer
@@ -333,8 +333,8 @@ pub type ro copy u64
 
 
 impl u64::GetHash { pub fun getHash() int extern }
-impl u64::OpEqTotal<u64> { pub fun opEqTotal(a u64) bool extern }
-impl u64::OpCmpTotal<u64> { pub fun opCmpTotal(a u64) int extern }
+impl u64::OpEq<u64> { pub fun opEq(a u64) bool extern }
+impl u64::OpCmp<u64> { pub fun opCmp(a u64) int extern }
 impl u64::OpAdd<u64, u64> { pub fun opAdd(n u64) u64 extern }
 impl u64::OpSub<u64, u64> {  pub fun opSub(n u64) u64 extern }
 impl u64::OpNeg<u64> {  pub fun opNeg() u64 extern }
@@ -342,9 +342,9 @@ impl u64::OpMul<u64, u64> { pub fun opMul(n u64) u64 extern }
 impl u64::OpDiv<u64, u64> { pub fun opDiv(n u64) u64 extern }
 impl u64::OpRem<u64, u64> { pub fun opRem(n u64) u64 extern }
 
-impl u64::GetIterator<u64>
-    pub fun getIterator() RangeIterator<u64>
-        return RangeIterator<u64>(0, this)
+impl u64::GetIter<u64>
+    pub fun getIter() RangeIter<u64>
+        return RangeIter<u64>(0, this)
 
 
 pub type ro copy f32
@@ -390,8 +390,8 @@ pub type ro copy f32
         
 
 impl f32::GetHash { pub fun getHash() int extern }
-impl f32::OpEqTotal<f32> { pub fun opEqTotal(a f32) bool extern }
-impl f32::OpCmpTotal<f32> { pub fun opCmpTotal(a f32) int extern }
+impl f32::OpEq<f32> { pub fun opEq(a f32) bool extern }
+impl f32::OpCmp<f32> { pub fun opCmp(a f32) int extern }
 impl f32::OpEqPartial<f32> { pub fun opEqPartial(a f32) bool extern }
 impl f32::OpCmpPartial<f32> { pub fun opCmpPartial(a f32) int extern }
 impl f32::OpAdd<f32, f32> { pub fun opAdd(n f32) f32 extern }
@@ -401,9 +401,9 @@ impl f32::OpMul<f32, f32> { pub fun opMul(n f32) f32 extern }
 impl f32::OpDiv<f32, f32> { pub fun opDiv(n f32) f32 extern }
 impl f32::OpRem<f32, f32> { pub fun opRem(n f32) f32 extern }
 
-impl f32::GetIterator<f32>
-    pub fun getIterator() RangeIterator<f32>
-        return RangeIterator<f32>(0, this)
+impl f32::GetIter<f32>
+    pub fun getIter() RangeIter<f32>
+        return RangeIter<f32>(0, this)
 
 
 pub type ro copy f64
@@ -450,8 +450,8 @@ pub type ro copy f64
     
 
 impl f64::GetHash { pub fun getHash() int extern }
-impl f64::OpEqTotal<f64> { pub fun opEqTotal(a f64) bool extern }
-impl f64::OpCmpTotal<f64> { pub fun opCmpTotal(a f64) int extern }
+impl f64::OpEq<f64> { pub fun opEq(a f64) bool extern }
+impl f64::OpCmp<f64> { pub fun opCmp(a f64) int extern }
 impl f64::OpEqPartial<f64> { pub fun opEqPartial(a f64) bool extern }
 impl f64::OpCmpPartial<f64> { pub fun opCmpPartial(a f64) int extern }
 impl f64::OpAdd<f64, f64> { pub fun opAdd(n f64) f64 extern }
@@ -461,9 +461,9 @@ impl f64::OpMul<f64, f64> { pub fun opMul(n f64) f64 extern }
 impl f64::OpDiv<f64, f64> { pub fun opDiv(n f64) f64 extern }
 impl f64::OpRem<f64, f64> { pub fun opRem(n f64) f64 extern }
 
-impl f64::GetIterator<f64>
-    pub fun getIterator() RangeIterator<f64>
-        return RangeIterator<f64>(0, this)
+impl f64::GetIter<f64>
+    pub fun getIter() RangeIter<f64>
+        return RangeIter<f64>(0, this)
 
 
 
@@ -508,8 +508,8 @@ pub type ro copy Decimal
 
 
 impl Decimal::GetHash { pub fun getHash() int extern }
-impl Decimal::OpEqTotal<Decimal> { pub fun opEqTotal(a Decimal) bool extern }
-impl Decimal::OpCmpTotal<Decimal> { pub fun opCmpTotal(a Decimal) int extern }
+impl Decimal::OpEq<Decimal> { pub fun opEq(a Decimal) bool extern }
+impl Decimal::OpCmp<Decimal> { pub fun opCmp(a Decimal) int extern }
 impl Decimal::OpEqPartial<Decimal> { pub fun opEqPartial(a Decimal) bool extern }
 impl Decimal::OpCmpPartial<Decimal> { pub fun opCmpPartial(a Decimal) int extern }
 impl Decimal::OpAdd<Decimal, Decimal> { pub fun opAdd(n Decimal) Decimal extern }
@@ -519,6 +519,6 @@ impl Decimal::OpMul<Decimal, Decimal> { pub fun opMul(n Decimal) Decimal extern 
 impl Decimal::OpDiv<Decimal, Decimal> { pub fun opDiv(n Decimal) Decimal extern }
 impl Decimal::OpRem<Decimal, Decimal> { pub fun opRem(n Decimal) Decimal extern }
 
-impl Decimal::GetIterator<Decimal>
-    pub fun getIterator() RangeIterator<Decimal>
-        return RangeIterator<Decimal>(0, this)
+impl Decimal::GetIter<Decimal>
+    pub fun getIter() RangeIter<Decimal>
+        return RangeIter<Decimal>(0, this)

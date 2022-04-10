@@ -70,11 +70,11 @@ namespace Gosub.Zurfur.Compiler
             foreach (var aClass in unit.Types)
             {
                 LastToken = aClass.Keyword;
-                CheckQualifiers(aClass.ParentScope, aClass.Name, aClass.Qualifiers);
+                CheckQualifiers(aClass.Parent, aClass.Name, aClass.Qualifiers);
 
                 var keyword = aClass.Keyword;
-                var outerKeyword = aClass.ParentScope == null ? "" : aClass.ParentScope.Keyword;
-                if (aClass.ParentScope == null)
+                var outerKeyword = aClass.Parent == null ? "" : aClass.Parent.Keyword;
+                if (aClass.Parent == null)
                     mParser.RejectToken(keyword, "The module name must be defined before the " + keyword);
                 if (outerKeyword != "" && outerKeyword == "enum")
                     mParser.RejectToken(keyword, "Types may not be nested inside an enum");
@@ -87,7 +87,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 LastToken = func.Keyword;
 
-                CheckQualifiers(func.ParentScope, func.Name, func.Qualifiers);
+                CheckQualifiers(func.Parent, func.Name, func.Qualifiers);
 
                 CheckStatements(null, func.Statements);
                 //if (func.Statements == null)
@@ -96,8 +96,8 @@ namespace Gosub.Zurfur.Compiler
                 //}
 
                 var keyword = func.Keyword;
-                var outerKeyword = func.ParentScope == null ? "" : func.ParentScope.Keyword;
-                if (func.ParentScope == null)
+                var outerKeyword = func.Parent == null ? "" : func.Parent.Keyword;
+                if (func.Parent == null)
                     mParser.RejectToken(keyword, "The module name must be defined before method");
              
                 switch (keyword)
@@ -128,11 +128,11 @@ namespace Gosub.Zurfur.Compiler
             {
                 LastToken = field.Name;
 
-                CheckQualifiers(field.ParentScope, field.Name, field.Qualifiers);
+                CheckQualifiers(field.Parent, field.Name, field.Qualifiers);
 
-                var outerKeyword = field.ParentScope == null ? "" : field.ParentScope.Keyword;
+                var outerKeyword = field.Parent == null ? "" : field.Parent.Keyword;
 
-                if (!field.Simple && field.ParentScope is SyntaxType t && t.Simple)
+                if (!field.Simple && field.Parent is SyntaxType t && t.Simple)
                     mParser.RejectToken(field.Name, "Fields may not be defined inside a type with parameters");
 
                 // TBD: Move this to ZilVerifyHeader
