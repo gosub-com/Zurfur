@@ -59,7 +59,7 @@ Variables are declared and initialized with the `@` operator
 
     @a = 3                          // a is an int
     @b = "Hello World"              // b is a str
-    @c = MyFunction()               // c is whatever type is returned by MyFunction
+    @c = myFunction()               // c is whatever type is returned by myFunction
     @d = [1,2,3]                    // d is List<int>, initialized with [1,2,3]
     @e = ["A":1.0, "B":2.0]         // e is Map<str,f64>
     @f = [[1.0,2.0],[3.0,4.0]]      // f is List<List<f64>>
@@ -68,7 +68,7 @@ The above form `@variable = expression` creates a variable with the same type as
 the expression.  A second form `@variable type [=expression]` creates an explicitly
 typed variable with optional assignment from an expression. 
 
-    @a int = MyIntFunc()                // Error if MyIntFunc returns a float
+    @a int = myIntFunc()                // Error if myIntFunc returns a float
     @b str                              // b is a string, initialized to ""
     @c List<int>                        // c is an empty List<int>
     @d List<f64> = [1, 2, 3]            // Create List<f64>, elements are converted
@@ -94,31 +94,32 @@ argument, and the return type comes after the parameters:
 
     /// This is a public documentation comment.  Do not use XML.
     /// Use `name` to refer to variables in the code. 
-    pub fun Main(args Array<str>)
-        Log.Info("Hello World, 2+2={2+2}")
+    pub fun main(args Array<str>)
+        Log.info("Hello World, 2+2={2+2}")
 
 Functions declared at the module level are implicitly `static` without needing
 to use the keyword.  Extension methods must be declared at the module level:
 
     // Declare an extension method for strings
-    pub fun str::Rest() str
-        return this.Count == 0 ? "" : str(this[1..])
+    pub fun str.rest() str
+        // NOTE: sub is a member of Array, and str is an Array
+        return count == 0 ? "" : sub(1)
 
 Properties are declared with `get` and `set` keywords:
 
-    pub get MyString() str
-        return myString
+    pub get myString() str
+        return myCachedStr
 
-    pub set MyString(v str)
-        myString = v
-        MyStringChangedEvent()
+    pub set myString(v str)
+        myCachedString = v
+        myStringChangedEvent()
   
 By default, function parameters are passed as read-only reference.  The
 exception is that small types (e.g. `int`, and `Span<T>`) are passed by
 copy because it is more efficient to do so.  Other qualifiers, `mut`, `ref`,
 and `own` can be used to change the passing behavior:
 
-    pub fun Test(
+    pub fun test(
         a               int,  // Pass a copy because it is efficient (i.e. `type copy`)
         b       mut ref int,  // Pass by ref, allow assignment
         c         List<int>,  // Pass by ref, read-only
@@ -154,22 +155,22 @@ then never use the object again, or must explicitly `clone` the object.
 Functions can return multiple values:
 
     // Multiple returns
-    pub fun Circle(a f64, r f64) -> (x f64, y f64)
-        return Cos(a)*r, Sin(a)*r
+    pub fun circle(a f64, r f64) -> (x f64, y f64)
+        return cos(a)*r, sin(a)*r
 
 The return parameters are named, and can be used by the calling function:
 
-    @location = Circle(a, r)
-    Log.Info("X: {location.x}, Y: {location.y}")
+    @location = circle(a, r)
+    Log.info("X: {location.x}, Y: {location.y}")
 
 Normally the return value becomes owned by the caller, but this behavior
 can be changed with the `ref` keyword:
 
-    pub fun GetRoList() ref List<int>           // Read-only ref
+    pub fun getRoList() ref List<int>           // Read-only ref
         return ref myListField
-    pub fun GetMutList() mut List<int>          // Mutable (mutation allowed, assignment not allowed)
+    pub fun getMutList() mut List<int>          // Mutable (mutation allowed, assignment not allowed)
         return mut myListField
-    pub fun GetMutRefList() mut ref List<int>   // Mutable ref (mutation or assignment is allowed)
+    pub fun getMutRefList() mut ref List<int>   // Mutable ref (mutation or assignment is allowed)
         return mut ref myListField
 
 Return qualifiers:
@@ -194,11 +195,10 @@ for all types, even though Zurfur doesn't yet support any kind of inheritance.
 | :--- | :---
 | Array\<T\> | An immutable array of **immutable** elements and a constant `Count`.  Even if the array contains mutable elements, they become immutable when copied into the array.  Arrays can be copied very quickly, just by copying a reference.
 | str | An `Array<byte>` with support for UTF-8.  `Array` is immutable, therefore `str` is also immutable
-| Buffer\<T\> | A mutable array of mutable elements, but with a *constant* `Count`
 | List\<T\> | Dynamically sized mutable list with mutable elements
 | Span\<T\> | Span into `Array`, `Buffer`, or `List`.  It has a constant `Count`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `Buffer` or `List` is mutable)
 | Map<K,V> | Unordered mutable map. 
-| Json | Json data structure
+| Json | Json data structure. **TBD:** This might become `Dynamic` or `Variant` with easy conversion to/from Json or XML, etc.
 
 There are several different kinds of types.  There is `ro` for read-only
 immutable types, `box` for a type always on the heap, and `owned` for a mutable
@@ -211,8 +211,9 @@ heap type that requires an explicit clone or implicit move.
 | `ref` | Ref or copy | No | `Span`, `ref` | Fast.  Type contains a reference, so must never leave the stack.  Can't contain `owned` types.
 | `ro` | Ref | No | | Fast. Copy bytes, doesn't' allocate.  Can contain `owned` types, but they become read-only forever after.
 | `ro box` | Ref | No | `str`, `Array` | Fast.  Copy a reference. Can contain `owned` types, but they become read-only forever after.
-| `owned box` | Ref | Yes | `Buffer` | Slow. Always allocates.  May contain `owned` types.
+| `owned box` | Ref | Yes |  | Slow. Always allocates.  May contain `owned` types.
 | `owned` | Ref | Yes | `List`, `Map` | Slow. Always allocates.  May contain `owned` types.
+| `async` | Ref | (see above) | `FileStream` | Any type that has an async destructor.
 
 `List` and `Map` are not `box` types.  They live directly inline in the object
 (or stack frame) that owns them.  Because they are mutable and use dynamic
@@ -351,9 +352,9 @@ may not be compared with `==` or `!=`.
 
 Like Rust, an explicit `clone` is required to copy any type that requires
 dynamic allocation.  If the type contains only `int`, `str`, and `Array`,
-it will implicitly clone itself.  If the type contains `List`, `Map`, or
-`Buffer`, it must be explicitly cloned.  Some types, such as `FileStream`
-can't be cloned at all.
+it will implicitly copy itself.  If the type contains `List`, `Map`, or
+any other dynamically allocated mutable data, it must be explicitly cloned.
+Some types, such as `FileStream` can't be cloned at all.
 
 `clone` clones the entire object, but does a shallow copy of pointers.
 For instance, `List<MyType>>` is cloned fully provided that `MyType`
@@ -389,7 +390,7 @@ from thom the nearest `fun` scope.  Instead, `exit` is used.
 **TBD:** Consider how to `break` out of the lambda.  Use a return type of `Breakable`?
 
 
-#### Array, List, and Buffer
+#### Array and List
 
 `List` is the default data structure for working with mutable data.  Once the
 list has been created, it can be converted to an `Array` which is immutable.
@@ -408,8 +409,7 @@ to a move operation.
     fielda = a              // fielda is always a reference to the array `a`
 
 `List` should be used to build and manipulate mutable data, while `Array`
-should be used to store immutable data.  A `Buffer` is a list with a fixed
-size.  It is more efficient than a `List`, but less flexible.
+should be used to store immutable data.
 
 #### Strings
 
@@ -417,26 +417,31 @@ Strings (i.e. `str`) are immutable byte arrays (i.e. `Array<byte>`), generally
 assumed to hold UTF8 encoded characters.  However, there is no rule enforcing
 the UTF8 encoding so they may hold any binary data.
 
-String literals start with a quote `"` or they can be translated at runtime
-using `tr"string"` syntax.  All strings are interpolated (i.e. they do not
-need to start with `$`) and the syntax is largely the same as C#.  The
-backslash `\` is interpreted literally and does not create a control character.
-Control characters may be placed directly inside an interpolation (e.g.
-`{\t}` is a tab).
+String literals start with a quote `"` and can be translated at runtime
+using `tr"string"` syntax.  They are interpolated with curly braces (e.g
+`{expression}`). Control characters may be put inside an interpolation
+(e.g. `{\t}` is a tab).  The backslash `\` is not treated differently
+than any other character.
 
 ![](Doc/Strings.png)
+
+There will be multi-line strings using `'''` which will not be interpolated
+by default.  Using  `i'''` will allow interpolation with `${expression}`.
+Other intepolation escape codes and other syntaxes will be allowed,
+(e.g. `json'''` could be a json string, `jsoni'''` a json interpolated
+string, etc.)
 
 There is no `StringBuilder` type, use `List<byte>` instead:
 
     @sb = List<byte>()
-    sb.Push("Count to 10: ")
+    sb.push("Count from 1 to 10: ")
     for @count in 1..+10
-        sb.Push(" {count}")
-    return sb.ToArray()
+        sb.push(" {count}")
+    return sb.toArray()
 
 #### Span
 
-Span is a view into a string, array, buffer, or list.  They are `type ref` and
+Span is a view into a `str`, `Array`, or `List`.  They are `type ref` and
 may never be stored on the heap.  Unlike in C#, a span can be used to pass
 data to an async function.  
 
@@ -444,8 +449,8 @@ Array syntax translates directly to Span (not to Array like C#).
 The following definitions are identical:
 
     // The following definitions are identical:
-    afun mut Write(data Span<byte>) int error impl
-    afun mut Write(data []byte) int error impl
+    afun mut write(data Span<byte>) int error impl
+    afun mut write(data []byte) int error impl
 
 Spans are as fast, simple, and efficient as it gets.  They are just a pointer
 and count.  They are passed down the *execution stack* or stored on the async
@@ -456,23 +461,19 @@ the list is a change to the span and a change to the span is a change to the lis
 
     @a = ["a","b","c","d","e"]  // a is List<str>
     @b = a[1..4]                // b is a span, with b[0] == "b" (b aliases ["b","c","d"])
-    @c = a[2..+2]                // c is a span, with c[0] == "c" (c aliases ["c","d"])
+    @c = a[2..+2]               // c is a span, with c[0] == "c" (c aliases ["c","d"])
     c[0] = "hello"              // now a = ["a","b","hello","d","e"], and b=["b","hello","d"]
 
-When the `Count` or `Capacity` of a list changes, all spans pointing into it
-become detached.  A new buffer is cloned and used by the list, but the old
-spans continue aliasing the old data. 
+Mutating the `count` or `capacity` of a `List` (not the elements of it) while
+there is a `Span` or reference  pointing into it is a programming error, and
+fails the same as indexing outside of array bounds.
 
     @list = List<byte>()
-    list.Push("Hello Pat")  // list is "Hello Pat"
-    @slice = a[6..+3]        // slice is "Pat"
+    list.push("Hello Pat")  // list is "Hello Pat"
+    @slice = a[6..+3]       // slice is "Pat"
     slice[0] = "M"[0]       // slice is "Mat", list is "Hello Mat"
-    list.Push("!")          // DEBUG PANIC - slice is now detached, list is "Hello Mat!"
-    slice[0] = "C"[0]       // slice is "Cat", list is still "Hello Mat!"
+    list.Push("!")          // Runtime failure with stack trace in log file
 
-Mutating the size of a list (not the elements of it) while there is a span
-pointing into it is a programming error and will throw an exception, the
-same as indexing outside of array bounds.
 
 #### Map
 
@@ -513,6 +514,8 @@ time, it gets the default value:
     a["new"] += 1           // Created with 0, or uses existing value
 
 #### Json
+
+**TBD:** This might become `Dynamic` or `Variant` with easy conversion to/from Json or XML, etc.
 
 `Json` is the built in Json object with support communication with JavaScript.  
 Using an invalid key does not throw an exception, but instead returns a default
@@ -799,19 +802,36 @@ We will try for something similar to this: [Midori](http://joeduffyblog.com/2016
 |Error Type | Action | Examples
 | :--- | :--- | :---
 |Normal | Checked by caller | File not found, network io, permissions, etc.
-|Exceptional | Stack unwind & cleanup | Array bounds, `require` failed, etc.
+|Runtime | Stack unwind & cleanup. | Array bounds, `require` failed, etc.
 |Critical | End process | Memory corruptiopn
 
-Most errors should follow the normal path.  A function marked with `error` may
+Runtime erros are programming errors, and should not be used intentionally.
+They log a stack trace, unwind the stack, cleanup after themselves, and stay
+memory safe.  They cannot be caught in sync code at all, or in normal
+async functions (i.e.  they bypass `try` blocks). However, there will be a
+special way to catch them and convert them into normal errors, but this should
+not be used except in top level handlers.
+
+Most errors should follow the normal path.  A function marked with `throws` may
 either return a result or an error, for example:
 
-    pub afun mut Read(data mut Span<byte>) int error impl
+    // TBD: `throws` might be a bad keyword.  Maybe `error` is better?
+    pub afun mut Read(data mut Span<byte>) int throws impl
 
-Exceptional cases are programming errors, and should not be used
-intentionally.  They unwind the stack, cleanup after themselves, 
-and stay memory safe.  They can be recovered, but care should be
-taken when recovering and they always generate a stack trace.
+The syntax is still TBD, but `try` is not a scope command.  It is a unary
+expression that can detect the error and pass it up or catch it.
 
+    // Pass the error up, or continue processing
+    @count = try File.readAllText("c:\config")
+
+    // Catch the error and deal with it here
+    if !try File.readAllText("c:\config")@c
+        c = InitializeOrFixConfiguration()
+
+    // TBD: Store into variable for later use (but not runtime errors)
+
+There is no `finally`.  Instead, `defer` or destructors are used for cleanup.
+Code in `defer` is run even when the stack is unwinding a runtime error.
 
 ## Garbage Collection
 

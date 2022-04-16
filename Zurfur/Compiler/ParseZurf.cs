@@ -65,7 +65,7 @@ namespace Gosub.Zurfur.Compiler
             + "return unsealed unseal sealed sizeof struct switch this This self Self throw try "
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "
-            + "box boxed init move copy clone bag drop err dispose own owned "
+            + "box boxed init move copy clone bag drop dispose own owned "
             + "trait mixin extends impl union fun afun def yield let cast "
             + "any dyn dynamic loop select match event aevent from to of on cofun cofunc global local it "
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
@@ -94,7 +94,7 @@ namespace Gosub.Zurfur.Compiler
 
         // For now, do not allow more than one level.  Maybe we want to allow it later,
         // but definitely do not allow them to include compounds with curly braces.
-        static WordSet sNoSubCompoundStatement = new WordSet("type class catch err " 
+        static WordSet sNoSubCompoundStatement = new WordSet("type class catch " 
                                 + "get set pub private namespace module static static");
 
         // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
@@ -1041,11 +1041,9 @@ namespace Gosub.Zurfur.Compiler
                 returnParams = new SyntaxMulti(EmptyToken, FreeExprList(returns));
             }
 
-            SyntaxToken qualifier;
-            if (mTokenName == "err" || mTokenName == "exit")
-                qualifier = new SyntaxToken(Accept());
-            else
-                qualifier = EmptyExpr;
+            SyntaxToken qualifier = EmptyExpr;
+            if (AcceptMatchPastMetaSemicolon("throws"))
+                qualifier = new SyntaxToken(mPrevToken);
 
             return new SyntaxMulti(keyword, funcParams, returnParams, qualifier);
         }
@@ -1243,11 +1241,10 @@ namespace Gosub.Zurfur.Compiler
                     requireSemicolon = false;
                     break;
 
-                case "err":
                 case "catch":
                     Accept();
                     var caseExpressions = NewExprList();
-                    if (keyword != "err" || mTokenName != ":")
+                    if (mTokenName != ":")
                         caseExpressions.Add(ParseConditionalOr());
                     while (AcceptMatch(","))
                         caseExpressions.Add(ParseConditionalOr());

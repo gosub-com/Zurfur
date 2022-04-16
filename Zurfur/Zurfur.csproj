@@ -195,10 +195,7 @@
     <None Include="ZurfurLib\ZurfurLib\Array.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Buffer.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="ZurfurLib\ZurfurLib\ByteConverter.zurf">
+    <None Include="ZurfurLib\ZurfurLib\ConvertBytes.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="ZurfurLib\ZurfurLib\DlMalloc.zurf">
