@@ -4,20 +4,20 @@ module Zurfur.Io
 
 
 interface Reader
-    afun mut read(data mut []byte) int impl
+    afun mut read(data mut []byte) int throws impl
 
 interface Writer
-    afun mut write(data []byte) int impl
-    afun mut flush() impl
+    afun mut write(data []byte) int throws impl
+    afun mut flush() throws impl
 
 enum SeekOrigin
     Begin; Current; End
 
 interface Seeker
-    afun mut seek(offset int, origin SeekOrigin) int impl
-    aget length() int { todo() }
-    aget position() int { todo() }
-    aset position(value int) { todo() }
+    afun mut seek(offset int, origin SeekOrigin) int throws impl
+    aget length() int throws { todo() }
+    aget position() int throws { todo() }
+    aset position(value int) throws { todo() }
 
 
 interface FileStream { }
@@ -27,11 +27,11 @@ interface FileStream { }
 module Zurfur.Io.File
 
 
-afun open(fileName str, mode str="r") FileStream { }
-afun readAllText(fileName str) List<str> { }
-afun readAllBytes(fileName str) List<byte> { }
-afun writeAllText(fileName str, data List<str>) { }
-afun writeAllBytes(fileName str, data List<byte>) { }
+afun open(fileName str, mode str="r") FileStream throws { }
+afun readAllText(fileName str) List<str> throws { }
+afun readAllBytes(fileName str) List<byte> throws { }
+afun writeAllText(fileName str, data List<str>) throws { }
+afun writeAllBytes(fileName str, data List<byte>) throws{ }
 
 // TBD: It's probably better to have cancellation built
 //      into the async system.  Maybe progress too.
@@ -40,4 +40,4 @@ type Progress(bytesTotal int, bytesTransferred int)
 afun readAllText(
     fileName str,
     cancel CancellationToken,
-    progress ?fun (p Progress) = null) { }
+    progress ?fun (p Progress) = null) throws { }

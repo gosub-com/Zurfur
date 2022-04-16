@@ -31,6 +31,9 @@ fun AAAA::AAAA_fe2(a BBBB) {}
 // TBD: AAAA should not conflict with AAAA typename
 //      must be resolved before moving methods to module level
 fun aapoint::AAAA() {}
+fun aapoint::AAAB() {}
+
+fun AAAA.BBBB::hello() {}
     
 
 type aapoint
@@ -42,7 +45,12 @@ pub fun aapoint::y() {}
 pub fun aapoint.bbpoint::yy() {}
 
 impl aapoint::OpNeg<int>
-    fun z() {}
+    fun a() {}
+    fun b() {}
+
+impl int::OpNeg<int>
+    fun a() {}
+    fun b() {}
 
 impl aapoint.bbpoint::OpNeg<int>
     fun zz() {}

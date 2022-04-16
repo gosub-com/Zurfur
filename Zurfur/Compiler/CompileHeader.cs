@@ -232,7 +232,11 @@ namespace Gosub.Zurfur.Compiler
                         var implType = type.GetImplType();
                         if (implType == null)
                             continue;
-                        var scope = syntaxScopeToSymbol[type.Parent];
+                        if (!syntaxScopeToSymbol.TryGetValue(type.Parent, out var scope))
+                        {
+                            Reject(implType.Token, $"Compiler error, couldn't find parent scope of '{type.Parent}'");
+                            continue;
+                        }
                         ResolveImpl(scope, implType, syntaxFile.Key);
                     }
                 }

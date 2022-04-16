@@ -6,20 +6,13 @@ use Zurfur.Collections[Iter]
 use Zurfur.Operators[Clone]
 
 
-// This type is unique because it is the only one that
-// knows when a reference points into it.  This is used
-// to allow the List to safely change the count or move
-// the ListBuffer elements to a new location.  It also
-// contains null's in unused locations even when T is
-// non-nullable.
-type owned box ListBuffer<T> is Buffer<T>
-    // The one and only function that knows when a reference
-    // points into the type.  Returns TRUE if there are any
-    // references pointing into the ListBuffer.  All functions
-    // that could possibly change the List count or capacity
-    // must verify there are no outstanding references.
-    pub fun hasRef() bool
-        todo()
+// This type contains ?T and relies on List to keep track of
+// how many items it has.  The list will have to use manual
+// reference count to ensure it's impossible to modify in
+// an unsafe way.  Still very TBD.
+unsafe type owned box ListBuffer<T>
+    @refCount xint
+    pub get hasRef() { refCount != 0 }
 
 pub type owned List<T>
 
