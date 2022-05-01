@@ -1,6 +1,6 @@
 ﻿module Zurfur
 
-/// Immutable array
+// Immutable array
 pub type ro Array<T>
     // NOTE: Much of the implmentation is inherited from Span and Iterator
 

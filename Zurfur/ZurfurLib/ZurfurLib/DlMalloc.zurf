@@ -40,60 +40,48 @@ fun DlMallocException(message str)
 
 pub interface DlMallocMem
 
-    /// <summary>
-    /// This was originally CALL_MMAP and is used to get more memory from
-    /// the system. It's similar to CALL_MMAP, but the function can increase
-    /// the size of allocated memory if desired  (must be in units of page size).
-    /// Returns null when out of memory or on error.
-    /// </summary>
+    // This was originally CALL_MMAP and is used to get more memory from
+    // the system. It's similar to CALL_MMAP, but the function can increase
+    // the size of allocated memory if desired  (must be in units of page size).
+    // Returns null when out of memory or on error.
     fun CallMoreCore(length mut xuint) *void impl
 
-    /// <summary>
-    /// This was originally CALL_MUNMAP and is used to release memory pages
-    /// back to the OS.  This function works with pages, not with units
-    /// individually allocated by CallMoreCore.  Therefore it could try to
-    /// free part of an allocated memory block or even multiple blocks at a time.
-    /// Return true for success, or false for failure (in which
-    /// case the pages are retained and used for future requests)
-    /// </summary>
+    // This was originally CALL_MUNMAP and is used to release memory pages
+    // back to the OS.  This function works with pages, not with units
+    // individually allocated by CallMoreCore.  Therefore it could try to
+    // free part of an allocated memory block or even multiple blocks at a time.
+    // Return true for success, or false for failure (in which
+    // case the pages are retained and used for future requests)
     fun CallReleaseCore(address *void, length xuint) bool impl
 
-    /// <summary>
-    /// This is called after DlMalloc has been disposed.  Since CallReleaseCore
-    /// works with pages instead of allocation units, it may be more convenient
-    /// to cleanup any left over memory allocations here.
-    /// </summary>
+    // This is called after DlMalloc has been disposed.  Since CallReleaseCore
+    // works with pages instead of allocation units, it may be more convenient
+    // to cleanup any left over memory allocations here.
     fun CallDisposeFinal() { }
 
-    /// <summary>
-    /// Called when the heap is known to be corrupted.  Throws an exception
-    /// and calls ResetOnError by default.
-    /// </summary>
+    // Called when the heap is known to be corrupted.  Throws an exception
+    // and calls ResetOnError by default.
     fun CallCorruptionErrorAction()
         ResetOnError()
         throw DlMallocException("Malloc Corrupted: TBD: Give more info about address")
 
-    /// <summary>
-    /// Called when the malloc is used incorrectly.  Throws an exception
-    /// and calls ResetOnError by default.
-    /// </summary>
+    // Called when the malloc is used incorrectly.  Throws an exception
+    // and calls ResetOnError by default.
     fun CallUsageErrorAction(m2 *void)
         ResetOnError()
         throw DlMallocException("Malloc Usage Error: TBD: Give more info about address")
 
-    /// <summary>
-    /// Called before malloc returns NULL.  The default action is to throw an exception
-    /// </summary>
+    // Called before malloc returns NULL.  The default action is to throw an exception
     fun CallMallocFailureAction()
         throw DlMallocException("Malloc out of memory")
 
 
-/// <summary>
-/// This is the base class that implements the DlMalloc algorithms.
-/// To use this class, at least CallMoreCore and CallReleaseCore need to
-/// be implemented.  Other Call* functions can optionally be overriden as well.
-/// Call or expose protected members Malloc and Free to implement malloc and free.
-/// </summary>
+// <summary>
+// This is the base class that implements the DlMalloc algorithms.
+// To use this class, at least CallMoreCore and CallReleaseCore need to
+// be implemented.  Other Call* functions can optionally be overriden as well.
+// Call or expose protected members Malloc and Free to implement malloc and free.
+// </summary>
 pub unsafe type DlMalloc
 
 
@@ -215,8 +203,8 @@ pub unsafe type DlMalloc
             throw DlMallocException("Out of memory, cannot initialize malloc.")
     
 
-    /// Returns the number of malloc segments, which represents
-    /// the number of discontiguous memory regions.
+    // Returns the number of malloc segments, which represents
+    // the number of discontiguous memory regions.
     get SegmentCount() int
         @count = 0
         @segment = seg
@@ -502,7 +490,7 @@ pub unsafe type DlMalloc
     //        chunk is trailed by the first two fields of a fake next-chunk
     //        for sake of usage checks.
 
-    /// Originally malloc_chunk, now mchunk
+    // Originally malloc_chunk, now mchunk
     pub type mchunk
     {
         @prev_foot_ptr *void pub get set // Size of previous chunk (if free).
@@ -692,9 +680,7 @@ pub unsafe type DlMalloc
     //  (for 32 bit sizes) or up to 53 (for 64 bit sizes). The typical case
     //  is of course much better.
 
-    /// <summary>
-    /// Originally malloc_tree_chunk, now tchunk
-    /// </summary>
+    // Originally malloc_tree_chunk, now tchunk
     pub type tchunk
     {
         // The first four fields must be compatible with mchunk
@@ -798,9 +784,7 @@ pub unsafe type DlMalloc
     //    and deallocated/trimmed using MORECORE with negative arguments.
 
 
-    /// <summary>
-    /// malloc_segment
-    /// </summary>
+    // malloc_segment
     type msegment
     {
         @baseAddr *byte pub get set     // base address
@@ -1607,9 +1591,7 @@ pub unsafe type DlMalloc
             bin.bk = bin
             bin.fd = bin
 
-    /// <summary>
-    /// Default corruption action - forget all allocated memory.
-    /// </summary>
+    // Default corruption action - forget all allocated memory.
     protected fun mut ResetOnError()
         @i int
         malloc_corruption_error_count += 1
@@ -2130,9 +2112,7 @@ pub unsafe type DlMalloc
         top = null
         memMan.CallDisposeFinal()
 
-    /// <summary>
-    /// Malloc can be exposed or used by the inheriting class
-    /// </summary>
+    // Malloc can be exposed or used by the inheriting class
     pub fun mut Malloc(length xuint) *void
         //     Basic algorithm:
         //     If a small request (< 256 bytes minus per-chunk overhead):
@@ -2256,9 +2236,7 @@ pub unsafe type DlMalloc
         mem = sys_alloc(nb)
         return mem
 
-    /// <summary>
-    /// Free can be exposed or used by the inheriting class
-    /// </summary>
+    // Free can be exposed or used by the inheriting class
     pub fun mut Free(mem *void)
         // Consolidate freed chunks with preceeding or succeeding bordering
         // free chunks, if they exist, and then place in a bin.  Intermixed

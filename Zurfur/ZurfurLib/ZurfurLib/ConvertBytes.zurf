@@ -1,19 +1,17 @@
 
-/// Low level byte conversions are little endian regardless
-/// of platform.  Floating point formats are IEEE.
-///
-/// Most conversions have 3 overloads:
-///
-///     Span<byte>::bytesToType()
-///     Span<byte>::setBytesType(value type)
-///     List<byte>::pushBytesType(value type)
-///
-/// Examples:
-///
-///     @myU32 = myList[index::4].bytesToU32()
-///     myList[index::4].setBytesU32(myU32)
-///     myList.pushBytesU32(myU32)
-///
+// Low level byte conversions are little endian regardless
+// of platform.  Floating point formats are IEEE.
+//
+// Most conversions have 3 overloads:
+//     Span<byte>::bytesToType()
+//     Span<byte>::setBytesType(value type)
+//     List<byte>::pushBytesType(value type)
+//
+// Examples:
+//     @myU32 = myList[index::4].bytesToU32()
+//     myList[index::4].setBytesU32(myU32)
+//     myList.pushBytesU32(myU32)
+//
 module Zurfur.ConvertBytes
 
 
@@ -28,7 +26,7 @@ pub fun mut List<byte>::pushBytesToHex(bytes []byte, capitalize bool = false) { 
 pub fun mut List<byte>::pushHexToBytes(hex []byte) throws {todo()}
 
 
-/// Convert 4 bytes (u32) to int (little endian)
+// Convert 4 bytes (u32) to int (little endian)
 pub fun Span<byte>::bytesToU32() u32
     require count == 4
     return     this[0].u32()
@@ -36,7 +34,7 @@ pub fun Span<byte>::bytesToU32() u32
             + (this[2].u32() << 16)
             + (this[3].u32() << 24)
 
-/// Convert u32 to 4 bytes (little endian) 
+// Convert u32 to 4 bytes (little endian) 
 pub fun mut Span<byte>::setBytesU32(v u32)
     require count == 4
     this[0] = v.byteMask()
@@ -44,7 +42,7 @@ pub fun mut Span<byte>::setBytesU32(v u32)
     this[2] = (v<<16).byteMask()
     this[3] = (v<<24).byteMask()
 
-/// Convert u32 to 4 bytes (little endian) and push to list
+// Convert u32 to 4 bytes (little endian) and push to list
 pub fun mut List<byte>::pushBytesU32(v u32)
     pushDup(0, 4)
     this[count-4..+4].setBytesU32(v)

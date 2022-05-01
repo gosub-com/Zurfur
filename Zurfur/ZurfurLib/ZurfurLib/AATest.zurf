@@ -12,16 +12,15 @@ pragma ShowParse
 
 type AAAA
 
-    type BBBB {}
+    type BBBB
+        fun BBBB_fm1() {}
+        fun BBBB_fm2(a BBBB) {}
+    
+    fun AAAA_fm(a BBBB) {}
 
-    const AAAA_f1 int = 3
-    @AAAA_f2 int
-    static @AAAA_f3 int
 
-    fun AAAA_fm1() {}
-    fun AAAA_fm2(a BBBB) {}
-
-fun AAAA::AAAA_fe1() {}
+fun AAAA::AAAA_fm() {}
+fun AAAA.BBBB::AAAA_fm() {}
 
 fun AAAA_f() {}
 
@@ -31,8 +30,10 @@ fun AAAA::AAAA_fe2(a BBBB) {}
 // TBD: AAAA should not conflict with AAAA typename
 //      must be resolved before moving methods to module level
 fun aapoint::AAAA() {}
+fun aapoint::BBBB() {}
 fun aapoint::AAAB() {}
-
+fun List<T>::X<T>() {}
+fun int::X() {}
 fun AAAA.BBBB::hello() {}
     
 

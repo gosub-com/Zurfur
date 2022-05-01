@@ -49,9 +49,9 @@ pub type owned List<T>
         require r.start <= range.end
         return ref buffer[range]
 
-    /// Grow the capacity to be at least minCapacity size.
-    /// If minCapacity is <= capacity nothing happens,
-    /// otherwise the list is expanded exponentially.
+    // Grow the capacity to be at least minCapacity size.
+    // If minCapacity is <= capacity nothing happens,
+    // otherwise the list is expanded exponentially.
     pub fun mut grow(minCapacity int)
         require !hasRef()
         if minCapacity <= buffer.count
@@ -88,8 +88,8 @@ pub type owned List<T>
         buffer = newBuffer
 
 
-    /// Return a new array with all occurences of `seqSearch`
-    /// replaced by `seqReplace`.
+    // Return a new array with all occurences of `seqSearch`
+    // replaced by `seqReplace`.
     pub fun mut replace(seqSearch []T, seqReplace[]T)
         where T is Clone
         require !hasRef()

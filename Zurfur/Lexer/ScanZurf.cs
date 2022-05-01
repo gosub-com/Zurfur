@@ -12,7 +12,7 @@ namespace Gosub.Zurfur.Lex
     {
         // NOTE: >=, >>, and >>= are omitted and handled at parser level.
         public const string MULTI_CHAR_TOKENS = "<< <= == != && || ?? "
-            + "+= -= *= /= %= &= |= ~= <<= => -> !== === :: .. ..+ ... ++ -- // ///";
+            + "+= -= *= /= %= &= |= ~= <<= => -> !== === :: .. ..+ ... ++ -- // ``";
         Dictionary<long, bool> mSpecialSymbols = new Dictionary<long, bool>();
         bool mSpecialSymbolsHas3Chars;
 

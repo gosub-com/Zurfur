@@ -49,6 +49,7 @@ pub type ro SimpleImmutableType(firstName str, fastName str)
 
 pub type ComplexType
     // Fields are private, but may have public properties
+    
     @map Map<str,int> = ["A":1, "B":2]  // Private, mutable
     @list ro List<int> = [1,2,3]       // Private, read-only
     @header str pub get = "Zurfur" // Private, public get
@@ -62,8 +63,8 @@ pub type ComplexType
         map = v
         mapChanged()
 
-    /// This is a public documentation comment.
-    /// Functions are private by default.
+    // This is a public documentation comment.
+    // Functions are private by default.
     pub fun countToTen() str
         Log.info("Hello world.  Let's count to 10.")
         for @a in 1..11
@@ -196,8 +197,8 @@ pub type Zim<T>
     @q T pub get set
 
 
-/// This is a public documentation comment.  Do not use XML.
-/// Use `name` to refer to variables in the code.
+// This is a public documentation comment.  Do not use XML.
+// Use `name` to refer to variables in the code.
 pub fun test_Main(args Array<str>)
 
     test_compose()
@@ -251,7 +252,7 @@ pub fun test_Main(args Array<str>)
         for @v in 1..23
             Log.Info("Count={v}")
 
-    /// Compose f(g(x))
+    // Compose f(g(x))
     fun compose(f fun(x int) int,
                 g fun(x int) int) fun(x int) int
         return @x => f(g(x))

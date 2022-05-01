@@ -92,8 +92,8 @@ For `type MyPointXY(X int, Y int)`, the following are identical:
 Functions are declared with the `fun` keyword. The type name comes after the
 argument, and the return type comes after the parameters:
 
-    /// This is a public documentation comment.  Do not use XML.
-    /// Use `name` to refer to variables in the code. 
+    // This is a public documentation comment.  Do not use XML.
+    // Use `name` to refer to variables in the code. 
     pub fun main(args Array<str>)
         Log.info("Hello World, 2+2={2+2}")
 

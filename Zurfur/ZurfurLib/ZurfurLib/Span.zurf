@@ -4,7 +4,7 @@ module Zurfur
 
 use Zurfur.Operators[OpEq]
 
-/// []T is converted to Span<T>
+// []T is converted to Span<T>
 pub type ref copy Span<T>
 
     @Data ro ?ref mut T
@@ -23,13 +23,13 @@ pub type ref copy Span<T>
     pub fun mut Sort(compare fun(a T, b T)bool)
         return todo()
 
-    /// Set the span to `item` (or default if not specified)
+    // Set the span to `item` (or default if not specified)
     pub fun mut Clear(item T = default)
         for @i in 0..Count
             this[i] = item
 
-    /// Find index of the sequence `seq`.
-    /// Returns -1 if not found, or 0 if `seq` is empty.
+    // Find index of the sequence `seq`.
+    // Returns -1 if not found, or 0 if `seq` is empty.
     pub fun Find(seq Span<T>) int
             where T is OpEq<T>
         if seq.Count == 0
@@ -47,7 +47,7 @@ pub type ref copy Span<T>
         return -1
 
 
-    /// Find the index of the `item`.  Returns -1 if not found.
+    // Find the index of the `item`.  Returns -1 if not found.
     pub fun Find(item T) int
             where T is OpEq<T>
         for @i in 0..Count
@@ -55,8 +55,8 @@ pub type ref copy Span<T>
                 return i
         return -1
 
-    /// Find the index of the `item` when `eq` returns true.
-    /// Returns -1 if not found.
+    // Find the index of the `item` when `eq` returns true.
+    // Returns -1 if not found.
     pub fun Find(eq fun(item T) bool) int
         for @i in 0..Count
             if eq(this[i])

@@ -121,10 +121,13 @@ namespace Gosub.Zurfur.Compiler
                     var fileUseSymbols = new FileUseSymbols();
 
                     // Add prelude
-                    var zurfurModule = (SymModule)mSymbols.Root.Children["Zurfur"];
-                    foreach (var name in ZURFUR_PRELUDE.Split(' '))
+                    if (mSymbols.Root.Children.ContainsKey("Zurfur"))
                     {
-                        fileUseSymbols.AddSymbol(name, zurfurModule);
+                        var zurfurModule = (SymModule)mSymbols.Root.Children["Zurfur"];
+                        foreach (var name in ZURFUR_PRELUDE.Split(' '))
+                        {
+                            fileUseSymbols.AddSymbol(name, zurfurModule);
+                        }
                     }
 
                     // Process use statements

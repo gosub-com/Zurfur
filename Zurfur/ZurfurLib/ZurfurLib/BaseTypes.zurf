@@ -1,8 +1,8 @@
-/// Define the simple types:
-///     i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, Decimal.
-///
-/// int and uint are 64 bits
-/// xint and xuint are pointer sized integers (32 or 64 bits)
+// Define the simple types:
+//     i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, Decimal.
+//
+// int and uint are 64 bits
+// xint and xuint are pointer sized integers (32 or 64 bits)
 
 module Zurfur
 
@@ -20,18 +20,18 @@ pub type int = i64
 pub type uint = u64
 
 
-/// Base class for all types.  Even though Zurfur doesn't yet
-/// support inheritance, all objects do inherit from `object`.
-/// Any boxed object (e.g ^int) can be cast to ^object and back.
+// Base class for all types.  Even though Zurfur doesn't yet
+// support inheritance, all objects do inherit from `object`.
+// Any boxed object (e.g ^int) can be cast to ^object and back.
 pub type object { }
 
-/// All types have a unique `id`, but other
-/// non-essential metadata is opt-in
+// All types have a unique `id`, but other
+// non-essential metadata is opt-in
 pub type ro copy Type
     @id i32 pub get
 
 // TBD: Needs to be an actual type to enforce proper typing and casting rules
-/// 32 bit or 64 bit integer depending on the platform
+// 32 bit or 64 bit integer depending on the platform
 pub type xint = i32
 pub type xuint = u32
 
@@ -40,20 +40,20 @@ pub fun nop() {}
 // The compiler implements this fundamental function:
 //      fun move<T>(take own T) T { return take }
 
-/// Swap two items
+// Swap two items
 fun swap<T>(a mut ref T, b mut ref T)
     @t = move(a)
     a = move(b)
     b = t
 
-/// bool (true or false)
+// bool (true or false)
 pub type ro copy bool
     const __size int = 1
 
 impl bool::GetHash { pub fun getHash() i64 extern }
 impl bool::OpEq<bool> { pub fun opEq(a bool) bool extern }
 
-/// i8 (-128..127)
+// i8 (-128..127)
 pub type ro copy i8
     const __size int = 1
     
@@ -78,7 +78,7 @@ impl i8::OpEq<i8> { pub fun opEq(a i8) bool extern }
 impl i8::OpCmp<i8> { pub fun opCmp(a i8) int extern }
 
 
-/// u8 (0..255) same as byte
+// u8 (0..255) same as byte
 pub type ro copy u8
     const __size int = 1
     
@@ -105,7 +105,7 @@ impl u8::OpEq<u8> { pub fun opEq(a u8) bool extern }
 impl u8::OpCmp<u8> { pub fun opCmp(a u8) int extern }
 
 
-/// i16 (-32768..32768)
+// i16 (-32768..32768)
 pub type ro copy i16
     const __size int = 2
     
@@ -136,7 +136,7 @@ impl i16::OpCmp<i16> { pub fun opCmp(a i16) i64 extern }
 
 
 
-/// u16 (0..65535)
+// u16 (0..65535)
 pub type ro copy u16
     const __size int = 2
 
@@ -166,7 +166,7 @@ impl u16::GetHash { pub fun getHash() i64 extern }
 impl u16::OpEq<u16> { pub fun opEq(a u16) bool extern }
 impl u16::OpCmp<u16> { pub fun opCmp(a u16) i64 extern }
 
-/// A 32 bit integer
+// A 32 bit integer
 pub type ro copy i32
     const __size int = 4
 
@@ -209,7 +209,7 @@ impl i32::GetIter<i32>
         return RangeIter<i32>(0, this)
 
 
-/// 32 bit unsigned integer
+// 32 bit unsigned integer
 pub type ro copy u32
     const __size int = 4
 
@@ -255,7 +255,7 @@ impl u32::GetIter<u32>
         return RangeIter<u32>(0, this)
 
 
-/// A 64 bit integer (same as int)
+// A 64 bit integer (same as int)
 pub type ro copy i64
     const __size int = 8
 
@@ -301,7 +301,7 @@ impl i64::GetIter<i64>
         return RangeIter<i64>(0, this)
 
 
-/// 64 bit unsigned integer
+// 64 bit unsigned integer
 pub type ro copy u64
     const __size int = 8
 
@@ -467,8 +467,8 @@ impl f64::GetIter<f64>
 
 
 
-/// 128 bit decimal integer.  This will support NAN, infinity, and
-/// exponents covering the entire range of f64 with more precision.
+// 128 bit decimal integer.  This will support NAN, infinity, and
+// exponents covering the entire range of f64 with more precision.
 pub type ro copy Decimal
     const __size int = 16
 

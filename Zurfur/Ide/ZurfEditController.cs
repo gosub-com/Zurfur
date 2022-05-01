@@ -331,7 +331,9 @@ namespace Gosub.Zurfur.Ide
 
             // Comments
             if (symbol.Comments != "")
-                message += symbol.Comments + "\r\n";
+            {
+                message += "COMMENTS:\r\n" + symbol.Comments + "\r\n";
+            }
             message += "\r\n";
 
             // Only show one symbol, but if there are duplicates let us know about them

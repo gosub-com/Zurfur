@@ -1,6 +1,6 @@
 ﻿
-/// Basic shapes for use with 2d drawing library
-/// TBD: Still working on getting this fixed
+// Basic shapes for use with 2d drawing library
+// TBD: Still working on getting this fixed
 module Zurfur.Draw2d
 
 use Zurfur.Operators[OpAdd, OpMul]

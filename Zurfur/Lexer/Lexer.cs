@@ -29,7 +29,7 @@ namespace Gosub.Zurfur.Lex
         /// <summary>
         /// This token returned at end of file, always ""
         /// </summary>
-        public Token EndToken { get; private set; } = new Token("", 0, 2);
+        public Token EndToken { get; private set; } = new Token("", 0, 2, eTokenBits.Boln | eTokenBits.Eoln);
 
         /// <summary>
         /// Optional location of cursor (y = -1 if not set)
@@ -362,9 +362,12 @@ namespace Gosub.Zurfur.Lex
 
             public IEnumerator<Token> GetEnumerator() { return this; }
             public void Dispose() { }
-            public Token Current { get { return mCurrent; } }
-            public int CurrentLineTokenCount { get { return mCurrentLine.Length; } }
-            object System.Collections.IEnumerator.Current { get { return mCurrent; } }
+            public Token Current => mCurrent;
+            public int CurrentLineTokenCount => mCurrentLine.Length;
+            public Token []CurrentLineTokens => mCurrentLine;
+            public int CurrentLineTokenIndex => mIndexToken;
+            public int CurrentLineIndex => mIndexLine;
+            object System.Collections.IEnumerator.Current => mCurrent;
 
             /// <summary>
             /// Enumerate all tokens
@@ -400,9 +403,32 @@ namespace Gosub.Zurfur.Lex
                 return mLexer.EndToken;
             }
 
+            /// <summary>
+            /// Returns the next token on the line only if there is no space (or "" if at end)
+            /// </summary>
+            /// <returns></returns>
+            public Token PeekNoSpace()
+            {
+                if (mIndexToken  < mCurrentLine.Length)
+                {
+                    var t = mCurrentLine[mIndexToken];
+                    if (mCurrent.X + mCurrent.Name.Length == t.X)
+                        return t;
+                    return mLexer.EndToken;
+                }
+                return mLexer.EndToken;
+            }
+
             public void Reset()
             {
                 throw new NotSupportedException("Reset on lexer enumerator is not supported");
+            }
+
+            public bool MoveNext(out Token t)
+            {
+                var e = MoveNext();
+                t = mCurrent;
+                return e;
             }
 
             /// <summary>
@@ -438,6 +464,17 @@ namespace Gosub.Zurfur.Lex
                 }
                 mCurrent = null;
                 return false;
+            }
+
+            /// <summary>
+            /// Skip to the end of the line, but do not advance to next line.
+            /// The next call to MoveNext returns the beginning of the next line.
+            /// If already at the end of the line, do nothing.
+            /// </summary>
+            public void SkipToEndOfLine()
+            {
+                mIndexToken = mCurrentLine.Length-1;
+                mCurrent = mCurrentLine[mIndexToken++];
             }
 
             /// <summary>

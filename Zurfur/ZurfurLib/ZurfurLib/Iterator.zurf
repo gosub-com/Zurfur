@@ -1,7 +1,7 @@
 ﻿
 module Zurfur.Collections
 
-/// Implement on containers
+// Implement on containers
 interface pub GetIter<Item>
     fun pub getIter() Iter<Item> impl
 // TBD: impl pass throughs for all Iter<T> functions.
@@ -9,13 +9,13 @@ interface pub GetIter<Item>
 
 
 
-/// Implement on containers with a known count
+// Implement on containers with a known count
 interface pub Collection<Item>
     where Item is GetIter<Item>
     get pub count() int impl
 
 
-/// Implement this on all iterators
+// Implement this on all iterators
 // TBD: `Item` should be an associated type, like in Rust
 interface pub Iter<Item>
 
@@ -23,11 +23,11 @@ interface pub Iter<Item>
     //type Item
 
 
-    /// Return the next item, or null if it doesn't exist
+    // Return the next item, or null if it doesn't exist
     fun pub mut next() ?mut ref Item impl
 
-    /// Implement this when the container has a known size.
-    /// List uses this as the starting capacity.
+    // Implement this when the container has a known size.
+    // List uses this as the starting capacity.
     get pub countHint() int
         return 0
 

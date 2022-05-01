@@ -1,8 +1,7 @@
-﻿///
-/// This is where we will keep working unit tests.
-/// Nothing works yet.
-///
-
+﻿//
+// This is where we will keep working unit tests.
+// Nothing works yet.
+//
 module Zurfur.UnitTests
 
 fun test_HelloWorld()
@@ -18,8 +17,8 @@ fun test_HelloWorld()
     @c = tr"Translated string"          // Translated at runtime
     @d = "Hello world, a+b={a+b}{\rn}"  // Interpolated with \r\n at the end
     @e = tr"Hello world, X={X}!{\rn}"   // Translated, interpolated, \r\n at end
-    @f = "Jack says ""Hello World!"""   // Containing quote character
-    @g = "{{""X"":1,""Y"":2}}"          // {"X":1,"Y":2}
+    @g = ``{"X":1,"Y":2}``              // Containing '{' or a quote
+    @h = ``Hello "${name}"``            // Containing quote and interpolated
 }
 
 pub type Example
