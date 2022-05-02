@@ -33,8 +33,8 @@ Here are some key features:
     * Stretch goal: Rewrite compiler and IDE in Zurfur on Node.js
 * **Mutability, ownership, and nullabilty are part of the type system:**
     * Function parameters must be explicitly marked `mut` if they mutate anything
-    * All objects are value types unless explicitly boxed (e.g. `^MyType`)
-    * References are non-nullable, but may use `?MyType` or `?^MyType` for nullable
+    * All objects are value types unless explicitly boxed (e.g. `*MyType`)
+    * References are non-nullable, but may use `?MyType` or `?*MyType` for nullable
     * `ro` means read only *all the way down* (i.e. you can't mutate a `ro` object through a pointer)
     * Get/set of mutable properties works (e.g. `myList[0].VectorProperty.X = 3` mutates `X`)
     * Deterministic destructors (e.g. `FileStream` closes itself automatically)
@@ -101,7 +101,7 @@ Functions declared at the module level are implicitly `static` without needing
 to use the keyword.  Extension methods must be declared at the module level:
 
     // Declare an extension method for strings
-    pub fun str.rest() str
+    pub fun (str) rest() str
         // NOTE: sub is a member of Array, and str is an Array
         return count == 0 ? "" : sub(1)
 
@@ -359,14 +359,14 @@ Some types, such as `FileStream` can't be cloned at all.
 `clone` clones the entire object, but does a shallow copy of pointers.
 For instance, `List<MyType>>` is cloned fully provided that `MyType`
 doesn't contain a pointer.  Even if `MyType` contained a `List<str>`,
-everything is cloned.  For `List<^MyType>`, the pointer is copied
+everything is cloned.  For `List<*MyType>`, the pointer is copied
 and `MyType` is not cloned.  `DeepClone` can be used to clone the
 entire object graph regardless of pointers or circular references.
 
 A type may define `drop`, which is called deterministically when the
-object goes out of scope. If the object is boxed (e.g. `^MyType`), then
+object goes out of scope. If the object is boxed (e.g. `*MyType`), then
 there is no such guarantee.  Boxed objects may have `drop` called at any
-time after they are no longer reachable.  If a `^FileStream` were still
+time after they are no longer reachable.  If a `*FileStream` were still
 open when the object is dropped non-deterministically, it is considered
 a programming error. In debug mode, the debugger would stop.  In release
 mode, an error is logged, but the program would carry on.
@@ -425,8 +425,8 @@ than any other character.
 
 ![](Doc/Strings.png)
 
-There will be multi-line strings using `'''` which will not be interpolated
-by default.  Using  `i'''` will allow interpolation with `${expression}`.
+There are multi-line strings using double backticks.  Multi-line strings
+can be interpolated with `${expression}`.  
 Other intepolation escape codes and other syntaxes will be allowed,
 (e.g. `json'''` could be a json string, `jsoni'''` a json interpolated
 string, etc.)
@@ -581,7 +581,7 @@ with C and gives an error where not compatible:
 |Operators | Notes
 | :--- | :---
 |x.y  f<type>(x)  a[i] | Primary
-|- ! & ~ * sizeof use unsafe cast| Unary
+|- ! & ~ sizeof use unsafe cast| Unary
 |@|Capture new variable
 |as is | Type conversion and comparison
 |<< >>| Bitwise shift (not associative, can't mix with arithmetic operators)
@@ -590,8 +590,8 @@ with C and gives an error where not compatible:
 |+ - &#124; | Add, bitwise *OR* (can't mix arithmetic and bit operators)
 |Low..High, Low..+Count|Range (inclusive of low, exclusive of high)
 |== != < <= > >= === !== in|Not associative, === and !== is only for pointers
-|&&|Conditional
-|&#124;&#124;|Conditional
+|and|Conditional, short circuit
+|or|Conditional, short circuit
 |a ? b : c| Not associative, no nesting (see below for restrictions)
 |=>|Lambda
 |key:Value|Key value pair (only inside `()`, `[]` or where expected)
@@ -865,19 +865,20 @@ model for user interface objects.
 
 ## Raw Pointers
 
-The unary `*` operator dereferences a pointer.  The `.` operator is used to access fields
-or members of a pointer to the type (so `->` is not used for pointers). 
+The `^` type is a raw C style pointer.  The `.` operator is used to access
+fields or members of the referenced data.  The `.*` operator can dereference
+the data.
  
-    pub fun static strcpy(dest *byte, source *byte)
-        while *source != 0
-            { *dest = *source;  dest += 1;  source += 1 }
-        *dest = 0
+    pub fun strcpy(dest ^byte, source ^byte)
+        while source.* != 0
+            { dest.* = source.*;  dest += 1;  source += 1 }
+        dest.* = 0
 
 #### Pointer Safety
 
 For now...
 
-Pointers are not safe.  They act axactly as they do in C.  You can corrupt
+Raw ointers are not safe.  They act axactly as they do in C.  You can corrupt
 memory and crash your application.  They can be null, and the compiler
 does not add run time null checks.  The data they point to is always
 mutable.  There are three reasons for this.
@@ -894,7 +895,7 @@ explicit array types (i.e. `*[]int`), and mutability attribute.
 That would be a major breaking change, which might be acceptable if
 done before version 1.0.  But, speed cannot be sacrificed.
 
-Pointers are never tracked by the GC.  Any object that may have a
+Raw pointers are never tracked by the GC.  Any object that may have a
 pointer pointing into it must be pinned.
 
 In an unsafe context, pointers can be cast from one type to another
@@ -902,7 +903,7 @@ using the `cast` operator.  The format is `cast(type)expression`.
 For those coming directly from C, it will look almost the same
 as an old C style cast, except the keyword `cast` must be used.
 
-    @b = cast(*int)myFloatPtr   // Cast myFloatPtr to *int
+    @b = myFloatPtr.cast(^int)   // Cast myFloatPtr to *int
 
 ## Packages and Modules
 

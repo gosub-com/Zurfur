@@ -226,7 +226,7 @@ pub fun sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
             s[i] = lowElem
 
 
-pub fun memCopy(dest *void, source *void, length xint)
+pub fun memCopy(dest ^void, source ^void, length xint)
     @d = cast(xint)dest
     @s = cast(xint)source
     
@@ -235,24 +235,24 @@ pub fun memCopy(dest *void, source *void, length xint)
 
     // Align `d` on i32
     while d & 3 != 0 and length != 0
-        (cast(*byte)d).* = (cast(*byte)s).*
+        (cast(^byte)d).* = (cast(^byte)s).*
         d+=1;  s+=1;  length-=1
     
     if s & 3 == 0
-        memCopy32(cast(*void)d, cast(*void)s, length)
+        memCopy32(cast(^void)d, cast(^void)s, length)
         return
     
     // Byte copy
     @end = d + length
     while end-d >= 4
-        (cast(*byte)d).* = (cast(*byte)s).*; d+=1; s+=1
-        (cast(*byte)d).* = (cast(*byte)s).*; d+=1; s+=1
-        (cast(*byte)d).* = (cast(*byte)s).*; d+=1; s+=1
-        (cast(*byte)d).* = (cast(*byte)s).*; d+=1; s+=1
+        (cast(^byte)d).* = (cast(^byte)s).*; d+=1; s+=1
+        (cast(^byte)d).* = (cast(^byte)s).*; d+=1; s+=1
+        (cast(^byte)d).* = (cast(^byte)s).*; d+=1; s+=1
+        (cast(^byte)d).* = (cast(^byte)s).*; d+=1; s+=1
     while d != end
-        (cast(*byte)d).* = (castx<*byte>(s)).*; d+=1; s+=1
+        (cast(^byte)d).* = (cast(^byte)s).*; d+=1; s+=1
 
-pub fun memCopy32(dest *void, source *void, length xint)
+pub fun memCopy32(dest ^void, source ^void, length xint)
     @d = cast (xint)dest
     @s = cast (xint)source
 
@@ -263,11 +263,11 @@ pub fun memCopy32(dest *void, source *void, length xint)
     @end = d + length
     if (d~s) & 4 == 0 and length >= 8
         if d & 4 != 0
-            (cast(*i32)d).* = (cast(*i32)s).*; d+=4; s+=4
+            (cast(^i32)d).* = (cast(^i32)s).*; d+=4; s+=4
         while end - d >= 8
-            (cast(*i64)d).* = (cast(*i64)s).*; d+=8; s+=8
+            (cast(^i64)d).* = (cast(^i64)s).*; d+=8; s+=8
     while end-d >= 4
-        (cast(*i32)d).* = (cast(*i32)s).*; d+=4; s+=4
+        (cast(^i32)d).* = (cast(^i32)s).*; d+=4; s+=4
     while d != end
-        (cast(*byte)d).* = (cast(*byte)s).*; d+=1; s+=1
+        (cast(^byte)d).* = (cast(^byte)s).*; d+=1; s+=1
         
