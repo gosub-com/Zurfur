@@ -5,12 +5,9 @@
 module Zurfur.UnitTests
 
 fun test_HelloWorld()
-{
     Console.Log("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
-    {
         Console.Log("Count={a}")
-    }
 
     @a = "Regular string literal"       // No interpolation
     @b = "Column 1{\t}Column 2{\rn}"    // Containing a tab, ending with \r\n
@@ -19,10 +16,8 @@ fun test_HelloWorld()
     @e = tr"Hello world, X={X}!{\rn}"   // Translated, interpolated, \r\n at end
     @g = ``{"X":1,"Y":2}``              // Containing '{' or a quote
     @h = ``Hello "${name}"``            // Containing quote and interpolated
-}
 
 pub type Example
-{
     @info str                  // Private string initialized to ""
     @array Array<int> = [1,2,3]             // Private mutable array
     @list List<str> = ["Hello", "World"]    // Private mutable list
@@ -32,35 +27,21 @@ pub type Example
         return m["A"]+10   // Public function
     get P() str
         return Header + info     // Public property
-}
 
 fun test_ForSimple()
-{
-
     @count int
     for @a in 0..10
-    {
         if a == 2
-        {
             count += 100
-        }
-        elif a == 3 || a == 4
-        {
+        elif a == 3 or a == 4
             count += 1000
-        }
         elif a == 5
-        {
             count += 10000
             count += 10000
-        }
         else
-        {
             count += 100000
-        }
         count += a
-    }
     Console.Log("For loop: "(count == 622145 ? "Pass" : "Fail"))
-}
 
 
 pub fun test_Convert()
@@ -70,7 +51,6 @@ pub fun test_Convert()
 
 
 pub type class TestGuiForm // TBD: How to do this without extends Form
-{
     type Label { }
     @Message1 Label pub get set
     @Message2 Label pub get set
@@ -78,15 +58,11 @@ pub type class TestGuiForm // TBD: How to do this without extends Form
 
 
     fun new()
-    {
         InitializeComponent()
-    }
    
    
     #NewCallableAttribute()
-    fun InitializeComponent()
-    {
-    
+    fun InitializeComponent()    
         Message1 = Label(Text: "Message 1",
                         Location: Point(X:4, Y:4),
                         Size: Size(Width:100,Height:24))
@@ -100,6 +76,3 @@ pub type class TestGuiForm // TBD: How to do this without extends Form
         @x Json = ["Hello":"a",
                       "World":"b",
                       "List":[1,2,3]]
-    }
-    
-}

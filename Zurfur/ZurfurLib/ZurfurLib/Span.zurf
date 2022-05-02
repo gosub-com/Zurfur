@@ -40,7 +40,7 @@ pub type ref copy Span<T>
             if this[i] != seq[0]
                 continue
             @j = 1
-            while j < seq.Count && seq[j] == this[i+j]
+            while j < seq.Count and seq[j] == this[i+j]
                 j += 1
             if j == seq.Count
                 return i

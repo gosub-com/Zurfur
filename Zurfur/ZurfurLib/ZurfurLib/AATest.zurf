@@ -13,100 +13,77 @@ pragma ShowParse
 type AAAA
 
     type BBBB
-        fun BBBB_fm1() {}
-        fun BBBB_fm2(a BBBB) {}
+        @v void
+        
+fun (AAAA.BBBB) BBBB_fm1() {}
+fun (AAAA.BBBB) BBBB_fm2(a BBBB) {}
     
-    fun AAAA_fm(a BBBB) {}
 
 
-fun AAAA::AAAA_fm() {}
-fun AAAA.BBBB::AAAA_fm() {}
+fun (AAAA) AAAA_fm() {}
+fun (AAAA.BBBB) AAAA_fm() {}
 
 fun AAAA_f() {}
 
 // TBD: BBBB should be in scope
-fun AAAA::AAAA_fe2(a BBBB) {}
+fun (AAAA) AAAA_fe2(a BBBB) {}
 
 // TBD: AAAA should not conflict with AAAA typename
 //      must be resolved before moving methods to module level
-fun aapoint::AAAA() {}
-fun aapoint::BBBB() {}
-fun aapoint::AAAB() {}
-fun List<T>::X<T>() {}
-fun int::X() {}
-fun AAAA.BBBB::hello() {}
+fun (aapoint) AAAA() {}
+fun (aapoint) BBBB() {}
+fun (aapoint) AAAB() {}
+fun (List<T>) X<T>() {}
+fun (int) X() {}
+fun (AAAA.BBBB) hello() {}
     
 
 type aapoint
-    pub fun x() {}
-    type bbpoint
-        pub fun xx() {}
+    @v void
+    
+type bbpoint
+    @v void
 
-pub fun aapoint::y() {}
-pub fun aapoint.bbpoint::yy() {}
+pub fun (aapoint) x() {}
 
-impl aapoint::OpNeg<int>
-    fun a() {}
-    fun b() {}
+pub fun (bbpoint) xx() {}
 
-impl int::OpNeg<int>
-    fun a() {}
-    fun b() {}
-
-impl aapoint.bbpoint::OpNeg<int>
-    fun zz() {}
+pub fun (aapoint) y() {}
+pub fun (bbpoint) yy() {}
 
 fun aaa_arith(a int, b int) int
     @x = a+b
     @y = a+x*b
     return y
   
-pub fun List<T>::Reverse<T>()
-    for @i in 0..this.Count/2
-        swap(ref this[i], ref this[Count-i-1])
+pub fun (List<T>) Reverse<T>()
+    for @i in 0..l.Count/2
+        swap(ref l[i], ref l[Count-i-1])
 
-pub static fun List<T>::Reverse2<T>()
-    for @i in 0..this.Count/2
-        swap(ref this[i], ref this[Count-i-1])
-
-
-pub type MyList<T>
-{
-    pub fun Reverse() {}
-    pub static fun ReverseS() {}
-}
-
-pub fun int::aaa(){}
-pub type AAFun
-{
-
-    fun aaaa(a int, b int) int { }
-    fun aaaa(a int, b f64) int { }
-    fun aaaa(x f64, y int) int { }
-
-    fun aaf1(a int, b int)int { }
-    fun aaf2(v AAFunc<int, int>) { }
-    fun aaf3<T1,T2>(i T1)T2 { }
-    static fun aaf1s(a int, b int)int { }
-    static fun aaf2s(v AAFunc<int, int>) { }
-    static fun aaf3s<T1,T2>(i T1)T2 { }
-    
+pub fun (int) aaa(){}
+pub type AAFun    
     @aaf4 fun(a int, b int) int
     @aaf5 AAFunc<int, int>
-
     @aaf6 fun()->()
     @aaf7 fun()
     @aaf8 fun()int
     @aaf9 fun(a int)
     @aaf9a fun(a int) int
     @aaf9b fun(a int)->(x int)
-
-    fun af6(p fun(v int)bool) {}
-    fun af7<X>(p fun(v X)bool) {}
-
-
     @af10 fun(v int)int
-}
+
+fun (AAFun) aaaa(a int, b int) int { }
+fun (AAFun) aaaa(a int, b f64) int { }
+fun (AAFun) aaaa(x f64, y int) int { }
+
+fun (AAFun) aaf1(a int, b int)int { }
+fun (AAFun) aaf2(v AAFunc<int, int>) { }
+fun (AAFun) aaf3<T1,T2>(i T1)T2 { }
+static fun (AAFun) aaf1s(a int, b int)int { }
+static fun (AAFun) aaf2s(v AAFunc<int, int>) { }
+static fun (AAFun) aaf3s<T1,T2>(i T1)T2 { }
+fun (AAFun) af6(p fun(v int)bool) {}
+fun (AAFun) af7<X>(p fun(v X)bool) {}
 
 
 
@@ -114,52 +91,57 @@ pub type AAFun
 type OneGeneric<T> { } 
 type Point<T>(x T, y T)
 type Size<T>(width T, height T)
-get Point<T>::toSize<T>() Size<T> { return Size(x, y) }
+get (p Point<T>) toSize<T>() Size<T> { return Size(x, y) }
 
 pub type AAFunc<T1,T2>
-{
-    fun Invoke(v T1) T2 { }
-}
+    @Invoke fun (v T1) T2
+
+
+// TBD: These are identical to the ones defined in the class
+fun (AGenericTest<T, QQQ>) af6(p fun(v int)bool) {}
+//fun (AGenericTest<T, QQQ>) af7<X>(p fun(v X)bool) {}
+//fun (AGenericTest<T, QQQ>) af8<T1,T2>(i T1)T2 { }
+//fun (AGenericTest<T, QQQ>) Q<T1>() {}
+//pub fun (AGenericTest<T, QQQ>) new()
+//    nop()
+//pub fun (AGenericTest<T, QQQ>) new(a int)
+//    nop()
+//pub fun (AGenericTest<T, QQQ>) aaa(a Zurfur.Draw2d.Size<int>) {}
+//pub fun (AGenericTest<T, QQQ>) P1() { return 0 }
+//pub fun (AGenericTest<T, QQQ>) P2()->() { return 0}
+//pub fun P2<Quack>(a Quack, b QQQ) { return (a.ToStr() + b.ToStr()).Length; }
+//pub fun (AGenericTest<T, QQQ>) P3<Z>() { return 0; }
+//pub fun (AGenericTest<T, QQQ>) P4<Quack, Quack1>() { return 0; }
+//pub fun (AGenericTest<T, QQQ>) fun9(a *?OneGeneric<List<int>>) { }
+
+//pub fun (AGenericTest<T, QQQ>) UseIt(x Zurfur.int, y List<Inner1<int,int>>, z List<str>)
+//    XField0.ToStr()
+    // Xfield2<str, T>.P3<T>(); - Xfield2 can't use type parameters
+    // Xfield2.P3(); - Can't infer P3<type>
+//    Xfield2.P3<T>()
+//    @a = List<str, Outer<int, int>>()
+//    Inner1<str, byte>.Inner2<short, ushort>.Hello = 1
+//    Outer<T, QQQ>.Inner1<str, byte>.Inner2<short, ushort>.Hello = 2
+//    Outer<QQQ, T>.Inner1<str, byte>.Inner2<short, ushort>.Hello = 3
+//    Outer<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, byte>.Hello = 4
+//    @p = AGenericTest<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, byte>()
+//    p.P5<short, QQQ, ushort>(3, QQQ(), 0)
+//pub fun (AGenericTest<T, QQQ>.Inner1<Ta, Qa>) P1(a T, b QQQ, c Ta, d Qa)
+//    return 0
+
+pub fun GenericTest<Q1,Q2>(a Q1, b Q2)
+    return a.ToStr().Length + b.ToStr().Length    
+
 
 
 pub type AGenericTest<T, QQQ>
     where QQQ is OpEq<T>//: new() where T : new()
-{
-    
     @af0 fun()->()
     @af1 fun()
     @af2 fun()int
     @af3 fun(a int)
     @af4 fun(a int) int
     @af5 fun(a int)->(x int)
-
-    fun af6(p fun(v int)bool) {}
-    fun af7<X>(p fun(v X)bool) {}
-
-    fun af8<T1,T2>(i T1)T2 { }
-
-    fun Q<T1>() {}
-
-    pub fun new()
-        nop()
-
-    pub fun new(a int)
-        nop()
-
-
-    pub fun aaa(a Zurfur.Draw2d.Size<int>) {}
-   
-    pub fun P1() { return 0 }
-    pub fun P2()->() { return 0}
-    //pub fun P2<Quack>(a Quack, b QQQ) { return (a.ToStr() + b.ToStr()).Length; }
-    pub fun P3<Z>() { return 0; }
-    pub fun P4<Quack, Quack1>() { return 0; }
-    pub fun fun9(a *?OneGeneric<List<int>>) { }
-
-
-    pub fun GenericTest<Q1,Q2>(a Q1, b Q2)
-        return a.ToStr().Length + b.ToStr().Length    
-
     
     @field0 T = 0
     @field1 Inner1<str, T>
@@ -172,9 +154,7 @@ pub type AGenericTest<T, QQQ>
     @Xfield6 Zurfur.int
     @field7 AATest.AGenericTest<int,int>.Inner1<QQQ, T>.Inner2<int, int>
 
-
     pub fun UseIt(x Zurfur.int, y List<Inner1<int,int>>, z List<str>)
-    {
         XField0.ToStr()
         // Xfield2<str, T>.P3<T>(); - Xfield2 can't use type parameters
         // Xfield2.P3(); - Can't infer P3<type>
@@ -188,18 +168,17 @@ pub type AGenericTest<T, QQQ>
 
         @p = AGenericTest<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, byte>()
         p.P5<short, QQQ, ushort>(3, QQQ(), 0)
-    }
+
     
     pub type Inner1<Ta, Qa>
-    {
-        pub fun P1() { return 0; }
+   
+        pub fun P1(a T, b QQQ, c Ta, d Qa) { return 0; }
         pub fun P2<Quack>() { return 0; }
         pub fun P3<Z>() { return 0; }
         pub fun P4<Z, Quack>() { return 0; }
         pub fun P5<Quack, Quack1, Quack3>() { return 0; }
 
         pub type Inner2<Tb, Qb>
-        {
             pub fun P1<P1F>()
                 where P1F is OpEq<P1F> + OpAdd<int, Tb>
                 where Tb is OpEq<Ta>
@@ -208,19 +187,16 @@ pub type AGenericTest<T, QQQ>
             pub fun P3<Z>() { return 0; }
             pub fun P4<Z, Quack>() { return 0; }
             pub fun P5<Quack, Quack1, Quack3>(a int, b Quack1, c u16)
-            {
                 return InnerP5() + InnerP5() + a + b.ToStr().Length + c
 
                 fun InnerP5()
                     return ToStr().Length
-            }
 
             @X Inner1<byte, uint>
             @Y Inner2<int, str>
             @Hello int // TBD: Allow this to be static?
 
             pub type Inner3<A, B>
-            {
                 pub fun P1() { return 0; }
                 pub fun P2<Quack>() { return 0; }
                 pub fun P3<Z>() { return 0; }
@@ -228,19 +204,11 @@ pub type AGenericTest<T, QQQ>
                 pub fun AAA<Quack, Quack1, Quack3>
                     (a Quack, b Quack1, c Quack3, d A)
                         ->(x T, y QQQ, z List<QQQ>, w List<int>)
-                {
                     return InnerP5() + InnerP5() + a + b.ToStr().Length + c
                     
                     fun InnerP5() int
                         return ToStr().Length
-                }
 
                 @X Inner1<byte, uint>
                 @Y Inner2<int, str>
                 @Hello int // TBD: Allow static?
-            }
-
-        }
-
-    }
-}

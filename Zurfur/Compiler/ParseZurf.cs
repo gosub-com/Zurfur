@@ -58,14 +58,14 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sContinuationEnd = new WordSet("[ ( ,");
         static WordSet sContinuationNoBegin = new WordSet("} namespace module type use pragma pub fun afun " 
             + "get set aget aset if while for return break continue else");
-        static WordSet sContinuationBegin = new WordSet("] ) , . + - * / % | & || && == != "
-                            + ": ? ?? > << <= < => -> .. :: !== ===  is in as has "
+        static WordSet sContinuationBegin = new WordSet("] ) , . + - * / % | & || && and or "
+                            + "== != : ? ?? > << <= < => -> .. :: !== ===  is in as has "
                             + "= += -= *= /= %= |= &= ~= " + TOKEN_STR_LITERAL + " " + TOKEN_STR_LITERAL_MULTI);
 
         static WordSet sReservedWords = new WordSet("abstract as has super break case catch class const "
             + "continue default delegate do then else elif enum explicit extern true false defer use "
             + "finally fixed for goto if in interface internal is lock namespace module include "
-            + "new null out override pub public private protected readonly ro ref dref mut imut "
+            + "new null out override pub public private protected readonly ro ref mut imut "
             + "return unsealed unseal sealed sizeof struct switch this This self Self throw try "
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "
@@ -81,7 +81,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sPostFieldQualifiers = new WordSet("init set get ref mut");
 
         static WordSet sReservedUserFuncNames = new WordSet("new clone drop cast default");
-        static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default self super new cast dref move");
+        static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default self super new cast move");
         static WordSet sReservedMemberNames = new WordSet("clone");
         static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref mut own ro box");
 
@@ -537,6 +537,11 @@ namespace Gosub.Zurfur.Compiler
                     mToken.Type = eTokenType.ReservedControl;
                     qualifiers.Add(Accept());
                     AddMethod(ParseMethod(keyword, qualifiers));
+
+                    // TBD: Defining them inside the class could be a shortcut
+                    //      or it could be illegal.  Either way, it is the same.
+                    //if (mScopeStack.Count != 0 && mScopeStack[mScopeStack.Count-1].Keyword != "module")
+                    //    RejectToken(keyword, "Functions must be declared in modules, not in types");
                     break;
 
                 case "@":
@@ -1133,14 +1138,6 @@ namespace Gosub.Zurfur.Compiler
                 qualifiers.Add(Accept());
 
             var validMethodName = ParseExtensionTypeAndMethodName(out synFunc.ExtensionType, out synFunc.Name);
-
-            // Type parameters, TBD: fun List<T>::name<T>()
-            // NOTE: This is a little confusing because T in name<T> is an
-            //       input type, and T in List<T> is a parameter. Another
-            //       problem is that errors are always shown while typing
-            //       "List<T>", but that can be fixed in the compiler.  Maybe
-            //       allow inferring the type like this: List::name<T>()
-            //
             if (mTokenName == "<" && synFunc.TypeArgs == null)
                 synFunc.TypeArgs = ParseTypeParameters();
 
@@ -1189,23 +1186,17 @@ namespace Gosub.Zurfur.Compiler
                 funcName.Type = eTokenType.Reserved;
                 return true;
             }
-
-            funcName = mToken;
-            if (!CheckIdentifier("Expecting a function or property name", sRejectTypeName))
-                return false;
-
-            // Possibly an extension method type.
-            var p = SaveParsePoint();
-            var et = ParseType();
-            if (AcceptMatch("::"))
+            // Extension method
+            if (AcceptMatch("("))
             {
-                // Yes, it is an extension method type
-                extensionType = et;
-            }
-            else
-            {
-                // Failed, restore the enumerator back to before trying type argument list
-                RestoreParsePoint(p);
+                // TBD: Move extension method to parameter
+                var extParam = ParseMethodParam(false);
+                if (!AcceptMatchOrReject(")") || extParam.Count == 0)
+                {
+                    funcName = mToken;
+                    return false;
+                }
+                extensionType = extParam[0];
             }
 
             funcName = mToken;
@@ -1242,11 +1233,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 // Single return parameter
                 var returns = NewExprList();
-                if (mTokenName == "This")
-                    mToken.Type = eTokenType.Identifier;
-                if (mToken.Type == eTokenType.Identifier 
-                    || sTypeUnaryOps.Contains(mTokenName)
-                    || mTokenName == "fun" || mTokenName == "afun")
+                if (BeginsType())
                 {
                     hasReturnType = true;
                     returns.Add(new SyntaxBinary(EmptyToken, ParseType(), EmptyExpr));
@@ -1290,17 +1277,47 @@ namespace Gosub.Zurfur.Compiler
         }
 
         // Syntax Tree: (name, type, initializer)
-        SyntaxExpr ParseMethodParam()
+        SyntaxExpr ParseMethodParam(bool requireName = true)
         {
-            if (!AcceptIdentifier("Expecting a variable name", sRejectFuncParam))
+            if (!BeginsType())
+            {
+                Reject("Expecting a variable or type name", sRejectFuncParam);
                 return SyntaxError;
-            var name = mPrevToken;
-            name.Type = eTokenType.DefineParam;
-            RejectUnderscoreDefinition(name);
+            }
 
-            var type = ParseType();
+            var name = mToken;
+            var nameExpr = ParseType();
+            SyntaxExpr type;
+            if (BeginsType())
+            {
+                type = ParseType();
+                if (nameExpr.Count != 0)
+                    RejectToken(nameExpr.Token, "Expecting a variable name without type parameters");
+                else if (sReservedWords.ContainsKey(name))
+                    RejectToken(name, "Expecting an identifier, must not be reserved");
+            }
+            else
+            {
+                // No variable name given
+                if (requireName)
+                {
+                    Reject("Expecting a type name", sRejectFuncParam);
+                    type = new SyntaxToken(EmptyToken);
+                }
+                else
+                {
+                    type = nameExpr;
+                    name = EmptyToken;
+                }
+            }
+
+            if (name != "")
+            {
+                name.Type = eTokenType.DefineParam;
+                RejectUnderscoreDefinition(name);
+            }
+
             var initializer = AcceptMatch("=") ? ParseExpr() : EmptyExpr;
-
             return new SyntaxBinary(name, type, initializer);
         }
         
@@ -1640,7 +1657,7 @@ namespace Gosub.Zurfur.Compiler
         SyntaxExpr ParseConditionalOr()
         {
             var result = ParseConditionalAnd();
-            while (mTokenName == "||")
+            while (mTokenName == "or")
                 result = new SyntaxBinary(Accept(), result, ParseConditionalAnd());
             return result;
         }
@@ -1648,7 +1665,7 @@ namespace Gosub.Zurfur.Compiler
         SyntaxExpr ParseConditionalAnd()
         {
             var result = ParseComparison();
-            while (mTokenName == "&&")
+            while (mTokenName == "and")
                 result = new SyntaxBinary(Accept(), result, ParseComparison());
             return result;
         }
@@ -1851,6 +1868,11 @@ namespace Gosub.Zurfur.Compiler
                     accepted = true;
                     result = new SyntaxBinary(Accept(), result,
                         new SyntaxToken(ParseIdentifier("Expecting identifier", null, sReservedMemberNames)));
+                }
+                else if (mTokenName == ".*")
+                {
+                    accepted = true;
+                    result = new SyntaxUnary(Accept(), result);
                 }
                 else if (mTokenName == "<")
                 {
@@ -2178,6 +2200,13 @@ namespace Gosub.Zurfur.Compiler
             return new SyntaxMulti(keyword, FreeExprList(parameters));
         }
 
+        // Excluding "type"
+        bool BeginsType()
+        {
+            return mToken.Type == eTokenType.Identifier
+                || sTypeUnaryOps.Contains(mTokenName)
+                || mToken == "fun" || mToken == "afun" || mToken == "This";
+        }
 
         SyntaxExpr ParseType()
         {

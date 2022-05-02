@@ -18,7 +18,6 @@
 //      May need to pass explicit <T> for everything (e.g. OpEq<Lhs, Rhs>)
 //
 // Operators as extension methods?  (See Draw2d)
-// impl<T> needs to implement generic params
 //
 // Require explicit identifiers in use:
 //      use Zurfur[int, f64, etc.]
@@ -40,7 +39,7 @@ use Zurfur.Collections[GetIter]
 
 // Get this to work
 type Point(X int, Y int)
-//get Point<T>::Size() Point<T> { return Point(X, Y) }
+get (p Point<T>) Size() Point<T> { return Point(X, Y) }
 
 
 // Simple types have public fields:
@@ -56,51 +55,19 @@ pub type ComplexType
     @text str pub get set          // Private, public get/set
     @myList List<int> pub ref   // Has public `ro` reference
 
-    // Properties are public by default
-    get myMap() ref Map<str, int>
-        return ref map // Return a read only reference
-    set myMap(v own Map<str, int>)
-        map = v
-        mapChanged()
+// Properties are public by default
+get (c ComplexType) myMap() ref Map<str, int>
+    return ref map // Return a read only reference
+set (c ComplexType) myMap(v own Map<str, int>)
+    map = v
+    mapChanged()
 
-    // This is a public documentation comment.
-    // Functions are private by default.
-    pub fun countToTen() str
-        Log.info("Hello world.  Let's count to 10.")
-        for @a in 1..11
-            Log.info("Count={a}, Text={text}")
-
-
-
-// Need to figure out placeholder types:
-//      https://doc.rust-lang.org/book/ch19-03-advanced-traits.html
-//
-// In the example on that page, the associate type is Item,
-// and should translate to Iter<Item>.  So why do we
-// need the type argument on its own line?
-//
-// But on this page:
-//      https://medium.com/@jreem/advanced-rust-using-traits-for-argument-overloading-c6a6c8ba2e17
-// Does the associate type translate to IntoReader<OutReader>?
-//
-//pub trait RustSend { }
-//pub trait RustReader
-//{
-//    pub fun mut Read(buffer []byte) int error youdo
-//}
-//pub trait RustIntoReader<OutReader>
-//    where OutReader is RustReader
-//{
-//    fun ToReader() OutReader youdo
-//}
-//type RustResponse
-//{
-//    @body ^RustReader
-//    pub fun mut SetBody<I>(data I)
-//            where I is IntoReader, I.OutReader is RustSend:
-//        _body = data.ToReader()
-//}
-
+// This is a public documentation comment.
+// Functions are private by default.
+pub fun countToTen() str
+    Log.info("Hello world.  Let's count to 10.")
+    for @a in 1..11
+        Log.info("Count={a}, Text={text}")
 
 fun test_HelloWorld()
     while a == 3
@@ -117,42 +84,30 @@ fun test_HelloWorld()
         if a
             doit4
             
-
 pub type owned box AGenericType<Q>
+    @a int
 
-    pub fun Circle1(a f64, r f64) -> (x f64, y f64)
-        return Cos(a)*r, Sin(a)*r
+pub fun circle1(a f64, r f64) -> (x f64, y f64)
+    return cos(a)*r, sin(a)*r
 
-    pub fun Circle2(a int, r int) int
-        return Cos(a)*r, Sin(a)*r
+pub fun circle2(a int, r int) int
+    return cos(a)*r, sin(a)*r
 
+pub fun circle3(a f64, r f64) -> (x f64, y f64)
+    return cos(a)*r, sin(a)*r
 
-    pub fun Circle3(a f64, r f64) -> (x f64, y f64)
-        return Cos(a)*r, Sin(a)*r
-
-    pub fun MyVoid1()
-        return 0
-
-    pub fun MyVoid2() int
-        return 0
-
-
-
-pub fun Circle3(a f64, b f64) -> (c int, d int)
+pub fun circle3(a f64, b f64) -> (c int, d int)
     return 0
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-pub fun GetIter<T>::AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIter<T>
-    return this
+pub fun (i GetIter<T>) AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIter<T>
+    return i
         .OrderBy(@a => lengthProvider(a))
         .ThenBy(@a => a)
 
     F(t).AW(T,L).q
 
 pub type Example
-
-    get MyConst() str
-        return "Hello"
     
     @a1 str
     @a2 str = "Hello"
@@ -169,14 +124,6 @@ pub type Example
     @map2 ro mut Map<str,int> = ["A":1,"B":2]    // Can't be assigned, can be mutated
     @map3 ro Map<str,int> pub init               // Read only, init in constructor or allow public init
     
-
-    pub fun GetInfo(a int) str
-        return info+a
-    pub fun GetInfo(a str) str
-        return a
-    get Info() str
-        return info
-
     @a Zim<void>
     @b Zim<object>
     @c Zim<i8>
@@ -210,11 +157,11 @@ pub fun test_Main(args Array<str>)
 
     if myString[32]@q == "x"
         v = "x"
-    elif q == "y"  || q=="z"
+    elif q == "y" or q=="z"
         v = "y or z"
-    elif q >= "a" || q <= "z"
+    elif q >= "a" or q <= "z"
         v = "lower"
-    elif q >= "A" || q <= "Z"
+    elif q >= "A" or q <= "Z"
         v = "upper"
     else
         v = "none"
@@ -263,23 +210,9 @@ pub fun test_Main(args Array<str>)
         return x*x
 
 
-pub type Token(a str)
-
-pub fun AcceptMatch(name str) ?Token
-    return name == "(" ? Token() : null
-
-// Regular static function
-pub fun add(a int, b int) int
-    return a + b
-
-// Multiple returns
-pub fun Circle(a f64, r f64) -> (x f64, y f64)
-    return Cos(a)*r, Sin(a)*r
-
-
 type MyStruct(a int)
 
-pub fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
+pub fun sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
     // Simple selection sort
     for @i in s.Count-1
         @lowElem = s[i]
@@ -293,7 +226,7 @@ pub fun Sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
             s[i] = lowElem
 
 
-pub fun MemCopy(dest *void, source *void, length xint)
+pub fun memCopy(dest *void, source *void, length xint)
     @d = cast(xint)dest
     @s = cast(xint)source
     
@@ -301,25 +234,25 @@ pub fun MemCopy(dest *void, source *void, length xint)
         return
 
     // Align `d` on i32
-    while d & 3 != 0 && length != 0
-        dref(cast(*byte)d) = dref(cast(*byte)s)
+    while d & 3 != 0 and length != 0
+        (cast(*byte)d).* = (cast(*byte)s).*
         d+=1;  s+=1;  length-=1
     
     if s & 3 == 0
-        MemCopy32(cast(*void)d, cast(*void)s, length)
+        memCopy32(cast(*void)d, cast(*void)s, length)
         return
     
     // Byte copy
     @end = d + length
     while end-d >= 4
-        dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
-        dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
-        dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
-        dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
+        (cast(*byte)d).* = (cast(*byte)s).*; d+=1; s+=1
+        (cast(*byte)d).* = (cast(*byte)s).*; d+=1; s+=1
+        (cast(*byte)d).* = (cast(*byte)s).*; d+=1; s+=1
+        (cast(*byte)d).* = (cast(*byte)s).*; d+=1; s+=1
     while d != end
-        dref(cast(*byte)d) = dref(castx<*byte>(s)); d+=1; s+=1
+        (cast(*byte)d).* = (castx<*byte>(s)).*; d+=1; s+=1
 
-pub fun MemCopy32(dest *void, source *void, length xint)
+pub fun memCopy32(dest *void, source *void, length xint)
     @d = cast (xint)dest
     @s = cast (xint)source
 
@@ -328,12 +261,13 @@ pub fun MemCopy32(dest *void, source *void, length xint)
 
     // Try 64 bit copy first
     @end = d + length
-    if (d~s) & 4 == 0 && length >= 8
+    if (d~s) & 4 == 0 and length >= 8
         if d & 4 != 0
-            dref(cast(*i32)d) = dref(cast(*i32)s); d+=4; s+=4
+            (cast(*i32)d).* = (cast(*i32)s).*; d+=4; s+=4
         while end - d >= 8
-            dref(cast(*i64)d) = dref(cast(*i64)s); d+=8; s+=8
+            (cast(*i64)d).* = (cast(*i64)s).*; d+=8; s+=8
     while end-d >= 4
-        dref(cast(*i32)d) = dref(cast(*i32)s); d+=4; s+=4
+        (cast(*i32)d).* = (cast(*i32)s).*; d+=4; s+=4
     while d != end
-        dref(cast(*byte)d) = dref(cast(*byte)s); d+=1; s+=1
+        (cast(*byte)d).* = (cast(*byte)s).*; d+=1; s+=1
+        

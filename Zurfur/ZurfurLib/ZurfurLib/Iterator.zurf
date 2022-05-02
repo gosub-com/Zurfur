@@ -52,15 +52,15 @@ interface pub Iter<Item>
         return null
 
 // TBD: This should work exactly thr same as the `filter` method
-fun pub mut Iter<Item>::filter<Item>(f fun(item Item) bool) FilterIter<This, Item>
+fun pub mut (i Iter<Item>)filter<Item>(f fun(item Item) bool) FilterIter<This, Item>
     return FilterIter<This, Item>(this, f)
 
 //   TBD: Unify extension method here
-fun pub mut Iter<Item>::toArrayXE<Item>() Array<Item>
+fun pub mut (i Iter<Item>) toArrayXE<Item>() Array<Item>
     return toList().toArray()
 
         
-fun List<T>::test<T>()
+fun (l List<T>) test<T>()
     todo()
 
 // TBD: Item should be an associated type (not passed in here)
@@ -88,17 +88,9 @@ type ref FilterIter<I, Item>
         return iter.find(f)
         
         
-impl <I, Item> FilterIter<I, Item>::Iter<Item>
-    where I is Iter<Item>
-
-    // TBD: Need associated types here
-    //type Item = I.Item
-    
-    fun pub mut next() ?mut ref Item
-        return iter.find(f)
 
 // TBD: Check for same symbol name as 'new' method
-fun  FilterIter<T,X>::New<T,X>()
+fun  (f FilterIter<T,X>) New<T,X>()
     todo
 
 fun test_Filter() Array<int>

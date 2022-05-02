@@ -20,43 +20,21 @@ type copy Point<T> //TBD: where T is NumOps
 
 
 // TBD: Maybe just use extension methods with known names?
-fun Point<T>::opAdd<T>(n Point<T>) Point<T>
+fun (p Point<T>) opAdd<T>(n Point<T>) Point<T>
         where T is OpAdd<T,T>
     return Point<T>(x+n.x, y+n.y)
-fun Point<T>::opMul<T>(n T) Point<T>
+fun (p Point<T>) opMul<T>(n T) Point<T>
         where T is OpMul<T,T>
     return Point<T>(x*n, y*n)
-fun Point<T>::opMul<T>(n Point<T>) Point<T>
+fun (p Point<T>) opMul<T>(n Point<T>) Point<T>
         where T is OpMul<T,T>
     return Point<T>(this*n.x, this*n.y)
 
 // TBD: DO NOT ALLOW!
-fun T::opMul<T>(n Point<T>) Point<T>
+fun (t T)opMul<T>(n Point<T>) Point<T>
         where T is OpMul<T,T>
     return Point<T>(this*n.x, this*n.y)
 
-// TBD: Get this fixed
-//impl<T> Point<T>::OpAdd<Point<T>, Point<T>>
-//      where T is OpAdd<T,T>
-//    pub fun opAdd(n Point<T>) Point<T> { return Point<T>(x+n.x, y+n.y) }
-//impl<T> Point<T>::OpSub<Point<T>, Point<T>>
-//      where T is OpSub<T,T>
-//    pub fun opSub(n Point<T>) { return Point<T>(x-n.x, y-n.y) }
-//impl<T> Point<T>::OpNeg<Point<T>>
-//      where T is OpNeg<T>
-//    pub fun opNeg() { return Point<T>(-x, -y) }
-//impl<T> Point<T>::OpMul<T, Point<T>>
-//      where T is OpMul<T,T>
-//    pub fun opMul(n T) { return Point<T>(x*n, y*n) }
-//impl<T> T::OpMul<Point<T>, Point<T>>
-//      where T is OpMul<T,T>
-//    pub fun opMul(n Point<T>) { return Point<T>(this*n.x, this*n.y) }
-//impl<T> Point<T>::OpDiv<T, Point<T>>
-//      where T is OpDiv<T,T>
-//    pub fun opDiv(n T) { return Point<T>(x/n, y/n) }
-//impl<T> T::OpDiv<Point<T>, Point<T>>
-//      where T is OpDiv<T,T>
-//    pub fun opDiv(n Point<T>) { return Point<T>(this/n.x, this/n.y) }
 
 
 type copy Size<T> // TBD:    where T is NumOps
