@@ -92,6 +92,11 @@ namespace Gosub.Zurfur.Compiler
                     if (!symbol.Parent.IsMethodGroup)
                         Reject(symbol.Token, "Compiler error: Method must be in a method group");
 
+                    var methodParent = symbol.Parent.Parent;
+
+                    if (symbol.IsStatic && methodParent.IsModule)
+                        Reject(symbol.Token, "'static' not allowed at module level");
+
                     // TBD: Maybe put all functions at module level
                     //if (!symbol.Parent.Parent.IsModule)
                     //    Reject(symbol.Token, "Compiler error: Method must be scoped at the at the module level");

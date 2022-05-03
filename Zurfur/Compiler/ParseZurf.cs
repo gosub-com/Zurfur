@@ -526,6 +526,8 @@ namespace Gosub.Zurfur.Compiler
                     mToken.Type = eTokenType.ReservedControl;
                     qualifiers.Add(Accept());
                     ParseTypeScope(keyword, qualifiers);
+                    if (mScopeStack.Count != 0 && mScopeStack[mScopeStack.Count-1].Keyword != "module")
+                        RejectToken(keyword, "Types must be declared at the module level");
                     break;
 
                 case "get":
@@ -1781,12 +1783,12 @@ namespace Gosub.Zurfur.Compiler
 
             if (mTokenName == "cast")
             {
-                return ParseTypeFunc(true);
+                return new SyntaxBinary(Accept(), ParseTypeFunc(), ParseUnary());
             }
 
             if (mTokenName == "sizeof" || mTokenName == "typeof")
             {
-                return ParseTypeFunc(false);
+                return new SyntaxUnary(Accept(), ParseTypeFunc());
             }
 
             if (mTokenName == "type")
@@ -1800,19 +1802,15 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Parse a function taking a type name (cast, sizeof, typeof, etc)
         /// </summary>
-        private SyntaxExpr ParseTypeFunc(bool parseUnaryAfter)
+        private SyntaxExpr ParseTypeFunc()
         {
-            var funcName = Accept();
             if (!AcceptMatchOrReject("("))
                 return new SyntaxError(mToken);
             var funcOpenToken = mPrevToken;
             var funType = ParseType();
             if (AcceptMatchOrReject(")"))
                 Connect(mPrevToken, funcOpenToken);
-            if (parseUnaryAfter)
-                return new SyntaxBinary(funcName, funType, ParseUnary());
-            else
-                return new SyntaxUnary(funcName, funType);
+            return funType;
         }
 
         private SyntaxExpr ParseNewVarExpr()
@@ -1865,12 +1863,22 @@ namespace Gosub.Zurfur.Compiler
                 }
                 else if (mTokenName == ".")
                 {
+                    if (mEnum.PeekNoSpace() == "(")
+                    {
+                        // Type assertion
+                        result = new SyntaxBinary(NewMetaToken(Accept(), ".("), ParseTypeFunc(), result);
+                    }
+                    else
+                    {
+                        // Dot operator
+                        result = new SyntaxBinary(Accept(), result,
+                            new SyntaxToken(ParseIdentifier("Expecting identifier", null, sReservedMemberNames)));
+                    }
                     accepted = true;
-                    result = new SyntaxBinary(Accept(), result,
-                        new SyntaxToken(ParseIdentifier("Expecting identifier", null, sReservedMemberNames)));
                 }
                 else if (mTokenName == ".*")
                 {
+                    // Dereference
                     accepted = true;
                     result = new SyntaxUnary(Accept(), result);
                 }
