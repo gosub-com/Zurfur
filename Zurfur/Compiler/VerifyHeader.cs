@@ -97,9 +97,10 @@ namespace Gosub.Zurfur.Compiler
                     if (symbol.IsStatic && methodParent.IsModule)
                         Reject(symbol.Token, "'static' not allowed at module level");
 
-                    // TBD: Maybe put all functions at module level
-                    //if (!symbol.Parent.Parent.IsModule)
-                    //    Reject(symbol.Token, "Compiler error: Method must be scoped at the at the module level");
+                    if (methodParent.IsInterface && !symbol.IsImpl)
+                        Reject(symbol.Token, "Method must be 'impl'");
+                    if (!methodParent.IsInterface && !methodParent.IsModule)
+                        Reject(symbol.Token, "Method must be scoped at the at the module level");
 
 
                     // TBD: Static may appear in extension methods

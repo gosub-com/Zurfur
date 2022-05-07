@@ -38,6 +38,9 @@ namespace Gosub.Zurfur.Compiler
         int mCompileCount;
         TimeSpan mLexAndParseTime;
 
+        // Force full re-compile every time so we can see how long it takes
+        bool FULL_RECOMPILE = false;
+        bool SINGLE_THREADED = false;
 
         Dictionary<string, FileInfo> mPackageFiles = new Dictionary<string, FileInfo>();
 
@@ -154,6 +157,10 @@ namespace Gosub.Zurfur.Compiler
         // Otherwise, trigger a new build.
         public Task ReCompile()
         {
+            if (FULL_RECOMPILE)
+                foreach (var fileName in mPackageFiles.Keys)
+                    mLoadQueue.Add(fileName);
+
             var tcs = new TaskCompletionSource<bool>();
             mCompileDoneTasks.Add(tcs);
             Compile();
@@ -201,13 +208,22 @@ namespace Gosub.Zurfur.Compiler
                 var lexStartTime = DateTime.Now;
                 while (SourceCodeChanged)
                 {
-                    // Allow load and parse to run concurrently since
-                    // one is mostly IO and the other mostly CPU.
-                    // Other than that, we won't try to multi-task for now.
-                    var loadTask = LoadAndLex();
-                    var parseTask = Parse();
-                    await loadTask;
-                    await parseTask;
+                    if (SINGLE_THREADED)
+                    {
+                        // Single threaded full re-compile (for timing)
+                        await LoadAndLex();
+                        await Parse();
+                    }
+                    else
+                    {
+                        // Allow load and parse to run concurrently since
+                        // one is mostly IO and the other mostly CPU.
+                        // Other than that, we won't try to multi-task for now.
+                        var loadTask = LoadAndLex();
+                        var parseTask = Parse();
+                        await loadTask;
+                        await parseTask;
+                    }
                 }
                 mLexAndParseTime = DateTime.Now - lexStartTime;
                 await Generate();
@@ -224,7 +240,7 @@ namespace Gosub.Zurfur.Compiler
                 return;
             var fi = mPackageFiles[mLoadQueue[0]];
             mLoadQueue.RemoveAll(match => match == fi.Path);
-            if (fi.Lexer != null)
+            if (fi.Lexer != null && !FULL_RECOMPILE)
                 return; // File already loaded
 
             // Choose lexer (for now, the project doesn't include anything but .zurf and .json
@@ -246,7 +262,7 @@ namespace Gosub.Zurfur.Compiler
             });
 
             // It could have been loaded before completing
-            if (fi.Lexer != null)
+            if (fi.Lexer != null && !FULL_RECOMPILE)
                 return;
 
             fi.Lexer = lexer;

@@ -9,60 +9,59 @@ module Zurfur.Markers
 
 
 
-pub interface Copy { }
+interface pub Copy { }
 
 module Zurfur.Operators
 
 // Equality for containers and sorting (NaN == NaN, Nan < -Inf)
-pub interface OpEq<Rhs>
+interface pub OpEq<Rhs>
     fun opEq(rhs Rhs) bool impl
 
 // Comparison for containers and sorting (NaN == Nan, Nan < -Inf)
-pub interface OpCmp<Rhs> where This is OpEq<Rhs>
+interface pub OpCmp<Rhs> where This is OpEq<Rhs>
     fun opCmp(rhs Rhs) int impl
 
 // Logical equality (e.g. -0 == +0, NaN == NaN even if bit pattern is different)
 // TBD: Implemented by compiler
-pub interface GetHash
+interface pub GetHash
     fun getHash() int impl
 
 // Equality for floating point numbers (NaN != NaN)
 // Not implemented for most other types (e.g. int and str)
-pub interface OpEqPartial<Rhs>
+interface pub OpEqPartial<Rhs>
     fun opEqPartial(rhs Rhs) bool impl
 
 // Comparison for floating point numbers (NaN is unordered)
 // Not implemented for most other types (e.g. int, str)
-pub interface OpCmpPartial<Rhs> where This is OpEqPartial<Rhs>
+interface pub OpCmpPartial<Rhs> where This is OpEqPartial<Rhs>
     fun opCmpPartial(rhs Rhs) ?int impl
 
-pub interface OpIn<Rhs> where This is OpEq<Rhs>
+interface pub OpIn<Rhs> where This is OpEq<Rhs>
     fun opIn(rhs Rhs) bool impl
     
-pub interface OpAdd<Rhs, Out>
+interface pub OpAdd<Rhs, Out>
     fun opAdd(rhs Rhs) Out impl
     
-pub interface OpSub<Rhs, Out>
+interface pub OpSub<Rhs, Out>
     fun opSub(rhs Rhs) Out impl
     
-pub interface OpNeg<Out>
+interface pub OpNeg<Out>
     fun opNeg() Out impl
     
-pub interface OpMul<Rhs, Out>
+interface pub OpMul<Rhs, Out>
     fun opMul(rhs Rhs) Out impl
     
-pub interface OpDiv<Rhs, Out>
+interface pub OpDiv<Rhs, Out>
     fun opDiv(rhs Rhs) Out impl
     
-pub interface OpRem<Rhs, Out>
+interface pub OpRem<Rhs, Out>
     fun opRem(rhs Rhs) Out impl
 
-pub interface OpNext
+interface pub OpNext
     fun opNext() This impl
 
-pub interface Drop
+interface pub Drop
     fun mut drop(flags int) impl
     
-pub interface Clone
+interface pub Clone
     fun mut clone() This impl
-

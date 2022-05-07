@@ -24,7 +24,7 @@
 //      use Zurfur.Math[sin, cos, etc.]
 //
 // Require explicit "this" parameter for member and extensions?
-//      e.g. pub fun push(mut this, item own T) {}
+//      e.g. fun pub push(mut this, item own T) {}
 //      This would abolish 'static' for functions (but not fields)
 //
 // Consider moving "pub" to after "fun" and "type", etc.
@@ -37,16 +37,11 @@ use Zurfur[Decimal]
 use Zurfur.Collections[GetIter]
 
 
-// Get this to work
-type Point(X int, Y int)
-get (p Point<T>) Size() Point<T> { return Point(X, Y) }
-
-
 // Simple types have public fields:
-pub type SimpleType(firstName str, lastName str)
-pub type ro SimpleImmutableType(firstName str, fastName str)
+type pub SimpleType(firstName str, lastName str)
+type pub ro SimpleImmutableType(firstName str, fastName str)
 
-pub type ComplexType
+type pub ComplexType
     // Fields are private, but may have public properties
     
     @map Map<str,int> = ["A":1, "B":2]  // Private, mutable
@@ -56,15 +51,15 @@ pub type ComplexType
     @myList List<int> pub ref   // Has public `ro` reference
 
 // Properties are public by default
-get (c ComplexType) myMap() ref Map<str, int>
+get ComplexType.myMap() ref Map<str, int>
     return ref map // Return a read only reference
-set (c ComplexType) myMap(v own Map<str, int>)
+set ComplexType.myMap(v own Map<str, int>)
     map = v
     mapChanged()
 
 // This is a public documentation comment.
 // Functions are private by default.
-pub fun countToTen() str
+fun pub countToTen() str
     Log.info("Hello world.  Let's count to 10.")
     for @a in 1..11
         Log.info("Count={a}, Text={text}")
@@ -84,30 +79,31 @@ fun test_HelloWorld()
         if a
             doit4
             
-pub type owned box AGenericType<Q>
+type pub owned box AGenericType<Q>
     @a int
 
-pub fun circle1(a f64, r f64) -> (x f64, y f64)
+fun pub circle1(a f64, r f64) -> (x f64, y f64)
     return cos(a)*r, sin(a)*r
 
-pub fun circle2(a int, r int) int
+fun pub circle2(a int, r int) int
     return cos(a)*r, sin(a)*r
 
-pub fun circle3(a f64, r f64) -> (x f64, y f64)
+fun pub circle3(a f64, r f64) -> (x f64, y f64)
     return cos(a)*r, sin(a)*r
 
-pub fun circle3(a f64, b f64) -> (c int, d int)
+fun pub circle3(a f64, b f64) -> (c int, d int)
     return 0
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-pub fun (i GetIter<T>) AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIter<T>
+// PREVIOUSLY: fun pub GetIter<T>.AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIter<T>
+TBD: // Fix me (generic params in wrong position)
+fun pub GetIter<Item>.AlphaLengthWise<L>(lengthProvider fun(t Item) L) GetIter<Item>
     return i
         .OrderBy(@a => lengthProvider(a))
         .ThenBy(@a => a)
-
     F(t).AW(T,L).q
 
-pub type Example
+type pub Example
     
     @a1 str
     @a2 str = "Hello"
@@ -140,13 +136,13 @@ pub type Example
     
 
 
-pub type Zim<T>
+type pub Zim<T>
     @q T pub get set
 
 
 // This is a public documentation comment.  Do not use XML.
 // Use `name` to refer to variables in the code.
-pub fun test_Main(args Array<str>)
+fun pub test_Main(args Array<str>)
 
     test_compose()
 
@@ -212,7 +208,7 @@ pub fun test_Main(args Array<str>)
 
 type MyStruct(a int)
 
-pub fun sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
+fun pub sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
     // Simple selection sort
     for @i in s.Count-1
         @lowElem = s[i]
@@ -226,7 +222,7 @@ pub fun sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
             s[i] = lowElem
 
 
-pub fun memCopy(dest ^void, source ^void, length xint)
+fun pub memCopy(dest ^void, source ^void, length xint)
     @d = cast(xint)dest
     @s = cast(xint)source
     
@@ -252,7 +248,7 @@ pub fun memCopy(dest ^void, source ^void, length xint)
     while d != end
         (cast(^byte)d).* = (cast(^byte)s).*; d+=1; s+=1
 
-pub fun memCopy32(dest ^void, source ^void, length xint)
+fun pub memCopy32(dest ^void, source ^void, length xint)
     @d = cast (xint)dest
     @s = cast (xint)source
 

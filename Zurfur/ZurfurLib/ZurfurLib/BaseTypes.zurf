@@ -14,511 +14,489 @@ use Zurfur.Collections[GetIter]
 pragma AllowUnderscoreDefinitions
 
 
-pub type void { }
-pub type byte = u8
-pub type int = i64
-pub type uint = u64
+// Return type of functions that don't return anything
+type pub void { }
 
+// byte (0..255), same as u8
+type pub byte = u8
 
-// Base class for all types.  Even though Zurfur doesn't yet
-// support inheritance, all objects do inherit from `object`.
-// Any boxed object (e.g ^int) can be cast to ^object and back.
-pub type object { }
+// 64 bit integer, same as i64
+type pub int = i64
 
-// All types have a unique `id`, but other
-// non-essential metadata is opt-in
-pub type ro copy Type
-    @id i32 pub get
+// 64 bit unsigned integer, same as u64
+type pub uint = u64
 
 // TBD: Needs to be an actual type to enforce proper typing and casting rules
 // 32 bit or 64 bit integer depending on the platform
-pub type xint = i32
-pub type xuint = u32
+type pub xint = i32
 
-pub fun nop() {}
+// TBD: Needs to be an actual type to enforce proper typing and casting rules
+// 32 bit or 64 bit integer depending on the platform
+type pub xuint = u32
+
+// a UTF8 encoded character, same as i32
+type pub rune = i32
+
+
+
+// Base interface for all types
+interface pub object { }
+
+// All types have a unique `id`, but other
+// non-essential metadata is opt-in
+type pub ro copy Type
+    @id i32 pub get
+
+
+
+// Blank function
+get pub nop() {}
 
 // The compiler implements this fundamental function:
 //      fun move<T>(take own T) T { return take }
 
 // Swap two items
-fun swap<T>(a mut ref T, b mut ref T)
+fun pub swap<T>(a mut ref T, b mut ref T)
     @t = move(a)
     a = move(b)
     b = t
 
 // bool (true or false)
-pub type ro copy bool
+type pub ro copy bool
     const __size int = 1
 
-impl bool::GetHash { pub fun getHash() i64 extern }
-impl bool::OpEq<bool> { pub fun opEq(a bool) bool extern }
+
+fun pub bool.getHash() i64 extern
+fun pub bool.opEq(a bool) bool extern
 
 // i8 (-128..127)
-pub type ro copy i8
+type pub ro copy i8
     const __size int = 1
+    const pub MAX i8 = 127
+    const pub MIN i8 = -128
+    const pub ZERO i8 = 0
+    const pub ONE i8 = 1
     
-    pub const MAX i8 = 127
-    pub const MIN i8 = -128
-    pub const ZERO i8 = 0
-    pub const ONE i8 = 1
-    
-    pub fun i16() i16 extern
-    pub fun i32() i32 extern
-    pub fun i64() i64 extern
-    pub fun f32() f32 extern
-    pub fun f64() f64 extern
-    pub fun toDecimal() Decimal extern
-
-    pub fun u8Mask() u8 extern
-    pub fun u8Fail() u8 require this >= 0 extern
-
-
-impl i8::GetHash { pub fun getHash() i64 extern }
-impl i8::OpEq<i8> { pub fun opEq(a i8) bool extern }
-impl i8::OpCmp<i8> { pub fun opCmp(a i8) int extern }
+fun pub i8.i16() i16 extern
+fun pub i8.i32() i32 extern
+fun pub i8.i64() i64 extern
+fun pub i8.f32() f32 extern
+fun pub i8.f64() f64 extern
+fun pub i8.toDecimal() Decimal extern
+fun pub i8.u8Mask() u8 extern
+fun pub i8.u8Fail() u8 require this >= 0 extern
+fun pub i8.getHash() i64 extern
+fun pub i8.opEq(a i8) bool extern
+fun pub i8.opCmp(a i8) int extern
 
 
 // u8 (0..255) same as byte
-pub type ro copy u8
+type pub ro copy u8
     const __size int = 1
+    const pub MAX u8 = 255
+    const pub MIN u8 = 0
+    const pub ZERO u8 = 0
+    const pub ONE u8 = 1
     
-    pub const MAX u8 = 255
-    pub const MIN u8 = 0
-    pub const ZERO u8 = 0
-    pub const ONE u8 = 1
-    
-    pub fun i16() i16 extern
-    pub fun u16() u16 extern
-    pub fun i32() i32 extern
-    pub fun u32() u32 extern
-    pub fun i64() i64 extern
-    pub fun u64() u64 extern
-    pub fun f32() f32 extern
-    pub fun f64() f64 extern
-    pub fun toDecimal() Decimal extern
-    
-    pub fun i8Mask() i8 extern
-    pub fun i8Fail() i8 require this <= i8.MAX extern
-
-impl u8::GetHash { pub fun getHash() i64 extern }
-impl u8::OpEq<u8> { pub fun opEq(a u8) bool extern }
-impl u8::OpCmp<u8> { pub fun opCmp(a u8) int extern }
+fun pub u8.i16() i16 extern
+fun pub u8.u16() u16 extern
+fun pub u8.i32() i32 extern
+fun pub u8.u32() u32 extern
+fun pub u8.i64() i64 extern
+fun pub u8.u64() u64 extern
+fun pub u8.f32() f32 extern
+fun pub u8.f64() f64 extern
+fun pub u8.toDecimal() Decimal extern
+fun pub u8.i8Mask() i8 extern
+fun pub u8.i8Fail() i8 require this <= i8.MAX extern
+fun pub u8.getHash() i64 extern
+fun pub u8.opEq(a u8) bool extern
+fun pub u8.opCmp(a u8) int extern
 
 
 // i16 (-32768..32768)
-pub type ro copy i16
+type pub ro copy i16
     const __size int = 2
-    
-    pub const MAX i16 = 32767
-    pub const MIN i16 = -32768
-    pub const ZERO i8 = 0
-    pub const ONE i8 = 1
+    const pub MAX i16 = 32767
+    const pub MIN i16 = -32768
+    const pub ZERO i8 = 0
+    const pub ONE i8 = 1
 
-    pub fun i32() i32 extern
-    pub fun i64() i64 extern
-    pub fun f32() f32 extern
-    pub fun f64() f64 extern
-    pub fun toDecimal() Decimal extern    
-        
-    pub fun i8Mask() i8 extern
-    pub fun u8Mask() u8 extern
-    pub fun u16Mask() u16 extern
+fun pub i16.i32() i32 extern
+fun pub i16.i64() i64 extern
+fun pub i16.f32() f32 extern
+fun pub i16.f64() f64 extern
+fun pub i16.toDecimal() Decimal extern    
+fun pub i16.i8Mask() i8 extern
+fun pub i16.u8Mask() u8 extern
+fun pub i16.u16Mask() u16 extern
 
-    // TBD: Add requires    
-    pub fun i8Fail() i8 extern
-    pub fun u8Fail() u8 extern
-    pub fun u16Fail() u16 extern
+// TBD: Add requires    
+fun pub i16.i8Fail() i8 extern
+fun pub i16.u8Fail() u8 extern
+fun pub i16.u16Fail() u16 extern
 
-
-impl i16::GetHash { pub fun getHash() i64 extern }
-impl i16::OpEq<i16> { pub fun opEq(a i16) bool extern }
-impl i16::OpCmp<i16> { pub fun opCmp(a i16) i64 extern }
+fun pub i16.getHash() i64 extern
+fun pub i16.opEq(a i16) bool extern
+fun pub i16.opCmp(a i16) i64 extern
 
 
 
 // u16 (0..65535)
-pub type ro copy u16
+type pub ro copy u16
     const __size int = 2
+    const pub MAX u16 = 65535
+    const pub MIN u16 = 0
+    const pub ZERO i8 = 0
+    const pub ONE i8 = 1
 
-    pub const MAX u16 = 65535
-    pub const MIN u16 = 0
-    pub const ZERO i8 = 0
-    pub const ONE i8 = 1
+fun pub u16.i32() i32 extern
+fun pub u16.u32() u32 extern
+fun pub u16.i64() i64 extern
+fun pub u16.u64() u64 extern
+fun pub u16.f32() f32 extern
+fun pub u16.f64() f64 extern
+fun pub u16.toDecimal() Decimal extern
+    
+fun pub u16.i8Mask() i8 extern
+fun pub u16.u8Mask() u8 extern
+fun pub u16.i16Mask() i16 extern
 
-    pub fun i32() i32 extern
-    pub fun u32() u32 extern
-    pub fun i64() i64 extern
-    pub fun u64() u64 extern
-    pub fun f32() f32 extern
-    pub fun f64() f64 extern
-    pub fun toDecimal() Decimal extern
-        
-    pub fun i8Mask() i8 extern
-    pub fun u8Mask() u8 extern
-    pub fun i16Mask() i16 extern
+// TBD: Add requires
+fun pub u16.i8Fail() i8 extern
+fun pub u16.u8Fail() u8 extern
+fun pub u16.i16Fail() i16 extern
 
-    // TBD: Add requires
-    pub fun i8Fail() i8 extern
-    pub fun u8Fail() u8 extern
-    pub fun i16Fail() i16 extern
-
-impl u16::GetHash { pub fun getHash() i64 extern }
-impl u16::OpEq<u16> { pub fun opEq(a u16) bool extern }
-impl u16::OpCmp<u16> { pub fun opCmp(a u16) i64 extern }
+fun pub u16.getHash() i64 extern
+fun pub u16.opEq(a u16) bool extern
+fun pub u16.opCmp(a u16) i64 extern
 
 // A 32 bit integer
-pub type ro copy i32
+type pub ro copy i32
     const __size int = 4
+    const pub MAX i32 = 2147483647
+    const pub MIN i32 = -2147483648
+    const pub ZERO i8 = 0
+    const pub ONE i8 = 1
 
-    pub const MAX i32 = 2147483647
-    pub const MIN i32 = -2147483648
-    pub const ZERO i8 = 0
-    pub const ONE i8 = 1
+fun pub i32.i64() i64 extern
+fun pub i32.f32() f32 extern
+fun pub i32.f64() f64 extern
+fun pub i32.toDecimal() Decimal extern    
 
-    pub fun i64() i64 extern
-    pub fun f32() f32 extern
-    pub fun f64() f64 extern
-    pub fun toDecimal() Decimal extern    
-    
-    pub fun i8Mask() i8 extern
-    pub fun u8Mask() u8 extern
-    pub fun i16Mask() i16 extern
-    pub fun u16Mask() u16 extern
-    pub fun u32Mask() u32 extern
+fun pub i32.i8Mask() i8 extern
+fun pub i32.u8Mask() u8 extern
+fun pub i32.i16Mask() i16 extern
+fun pub i32.u16Mask() u16 extern
+fun pub i32.u32Mask() u32 extern
 
-    // TBD: Add requires
-    pub fun i8Fail() i8 extern
-    pub fun u8Fail() u8 extern
-    pub fun i16Fail() i16 extern
-    pub fun u16Fail() u16 extern
-    pub fun u32Fail() u32 extern
+// TBD: Add requires
+fun pub i32.i8Fail() i8 extern
+fun pub i32.u8Fail() u8 extern
+fun pub i32.i16Fail() i16 extern
+fun pub i32.u16Fail() u16 extern
+fun pub i32.u32Fail() u32 extern
 
-impl i32::GetHash { pub fun getHash() int extern }
-impl i32::OpEq<i32> { pub fun opEq(a i32) bool extern }
-impl i32::OpCmp<i32> { pub fun opCmp(a i32) int extern }
-impl i32::OpAdd<i32, i32> { pub fun opAdd(n i32) i32 extern }
-impl i32::OpSub<i32, i32> {  pub fun opSub(n i32) i32 extern }
-impl i32::OpNeg<i32> {  pub fun opNeg() i32 extern }
-impl i32::OpMul<i32, i32> { pub fun opMul(n i32) i32 extern }
-impl i32::OpDiv<i32, i32> { pub fun opDiv(n i32) i32 extern }
-impl i32::OpRem<i32, i32> { pub fun opRem(n i32) i32 extern }
+fun pub i32.getHash() int extern
+fun pub i32.opEq(a i32) bool extern
+fun pub i32.opCmp(a i32) int extern
+fun pub i32.opAdd(n i32) i32 extern
+fun pub i32.opSub(n i32) i32 extern
+fun pub i32.opNeg() i32 extern
+fun pub i32.opMul(n i32) i32 extern
+fun pub i32.opDiv(n i32) i32 extern
+fun pub i32.opRem(n i32) i32 extern
 
-
-impl i32::GetIter<i32>
-    pub fun getIter() RangeIter<i32>
-        return RangeIter<i32>(0, this)
+fun pub i32.getIterator() RangeIter<i32>
+    return RangeIter<i32>(0, this)
 
 
 // 32 bit unsigned integer
-pub type ro copy u32
+type pub ro copy u32
     const __size int = 4
+    const pub MAX u32 = 4294967295
+    const pub MIN u32 = 0
+    const pub ZERO i8 = 0
+    const pub ONE i8 = 1
 
-    pub const MAX u32 = 4294967295
-    pub const MIN u32 = 0
-    pub const ZERO i8 = 0
-    pub const ONE i8 = 1
+fun pub u32.i64() i64 extern
+fun pub u32.u64() u64 extern
+fun pub u32.f32() f32 extern
+fun pub u32.f64() f64 extern
+fun pub u32.toDecimal() Decimal extern        
 
-    pub fun i64() i64 extern
-    pub fun u64() u64 extern
-    pub fun f32() f32 extern
-    pub fun f64() f64 extern
-    pub fun toDecimal() Decimal extern        
+fun pub u32.i8Mask() i8 extern
+fun pub u32.u8Mask() u8 extern
+fun pub u32.i16Mask() i16 extern
+fun pub u32.u16Mask() u16 extern
+fun pub u32.i32Mask() i32 extern
 
-    pub fun i8Mask() i8 extern
-    pub fun u8Mask() u8 extern
-    pub fun i16Mask() i16 extern
-    pub fun u16Mask() u16 extern
-    pub fun i32Mask() i32 extern
+// TBD: Add requires
+fun pub u32.i8Fail() i8 extern
+fun pub u32.u8Fail() u8 extern
+fun pub u32.i16Fail() i16 extern
+fun pub u32.u16Fail() u16 extern
+fun pub u32.i32Fail() i32 extern        
 
-    // TBD: Add requires
-    pub fun i8Fail() i8 extern
-    pub fun u8Fail() u8 extern
-    pub fun i16Fail() i16 extern
-    pub fun u16Fail() u16 extern
-    pub fun i32Fail() i32 extern
-        
+fun pub u32.getHash() int extern
+fun pub u32.opEq(a u32) bool extern
+fun pub u32.opCmp(a u32) int extern
+fun pub u32.opAdd(n u32) u32 extern
+fun pub u32.opSub(n u32) u32 extern
+fun pub u32.opNeg() u32 extern
+fun pub u32.opMul(n u32) u32 extern
+fun pub u32.opDiv(n u32) u32 extern
+fun pub u32.opRem(n u32) u32 extern
 
-
-impl u32::GetHash { pub fun getHash() int extern }
-impl u32::OpEq<u32> { pub fun opEq(a u32) bool extern }
-impl u32::OpCmp<u32> { pub fun opCmp(a u32) int extern }
-impl u32::OpAdd<u32, u32> { pub fun opAdd(n u32) u32 extern }
-impl u32::OpSub<u32, u32> {  pub fun opSub(n u32) u32 extern }
-impl u32::OpNeg<u32> {  pub fun opNeg() u32 extern }
-impl u32::OpMul<u32, u32> { pub fun opMul(n u32) u32 extern }
-impl u32::OpDiv<u32, u32> { pub fun opDiv(n u32) u32 extern }
-impl u32::OpRem<u32, u32> { pub fun opRem(n u32) u32 extern }
-
-
-impl u32::GetIter<u32>
-    pub fun getIter() RangeIter<u32>
-        return RangeIter<u32>(0, this)
+fun pub u32.getIterator() RangeIter<u32>
+    return RangeIter<u32>(0, this)
 
 
 // A 64 bit integer (same as int)
-pub type ro copy i64
+type pub ro copy i64
     const __size int = 8
+    const pub MAX i64 = 9223372036854775807
+    const pub MIN i64 = -9223372036854775808
+    const pub ZERO i8 = 0
+    const pub ONE i8 = 1
 
-    pub const MAX i64 = 9223372036854775807
-    pub const MIN i64 = -9223372036854775808
-    pub const ZERO i8 = 0
-    pub const ONE i8 = 1
+fun pub i64.f32() f32 extern
+fun pub i64.f64() f64 extern
+fun pub i64.toDecimal() Decimal extern
 
-    pub fun f32() f32 extern
-    pub fun f64() f64 extern
-    pub fun toDecimal() Decimal extern
+fun pub i64.i8Mask() i8 extern
+fun pub i64.u8Mask() u8 extern
+fun pub i64.i16Mask() i16 extern
+fun pub i64.u16Mask() u16 extern
+fun pub i64.i32Mask() i32 extern
+fun pub i64.u32Mask() u32 extern
+fun pub i64.u64Mask() u64 extern
 
-    pub fun i8Mask() i8 extern
-    pub fun u8Mask() u8 extern
-    pub fun i16Mask() i16 extern
-    pub fun u16Mask() u16 extern
-    pub fun i32Mask() i32 extern
-    pub fun u32Mask() u32 extern
-    pub fun u64Mask() u64 extern
+// TBD: Add requires
+fun pub i64.i8Fail() i8 extern
+fun pub i64.u8Fail() u8 extern
+fun pub i64.i16Fail() i16 extern
+fun pub i64.u16Fail() u16 extern
+fun pub i64.i32Fail() i32 extern
+fun pub i64.u32Fail() u32 extern
+fun pub i64.u64Fail() u64 extern    
 
-    // TBD: Add requires
-    pub fun i8Fail() i8 extern
-    pub fun u8Fail() u8 extern
-    pub fun i16Fail() i16 extern
-    pub fun u16Fail() u16 extern
-    pub fun i32Fail() i32 extern
-    pub fun u32Fail() u32 extern
-    pub fun u64Fail() u64 extern
-    
+fun pub i64.getHash() int extern
+fun pub i64.opEq(a i64) bool extern
+fun pub i64.opCmp(a i64) int extern
+fun pub i64.opAdd(n i64) i64 extern
+fun pub i64.opSub(n i64) i64 extern
+fun pub i64.opNeg() i64 extern
+fun pub i64.opMul(n i64) i64 extern
+fun pub i64.opDiv(n i64) i64 extern
+fun pub i64.opRem(n i64) i64 extern
 
-impl i64::GetHash { pub fun getHash() int extern }
-impl i64::OpEq<i64> { pub fun opEq(a i64) bool extern }
-impl i64::OpCmp<i64> { pub fun opCmp(a i64) int extern }
-impl i64::OpAdd<i64, i64> { pub fun opAdd(n i64) i64 extern }
-impl i64::OpSub<i64, i64> {  pub fun opSub(n i64) i64 extern }
-impl i64::OpNeg<i64> {  pub fun opNeg() i64 extern }
-impl i64::OpMul<i64, i64> { pub fun opMul(n i64) i64 extern }
-impl i64::OpDiv<i64, i64> { pub fun opDiv(n i64) i64 extern }
-impl i64::OpRem<i64, i64> { pub fun opRem(n i64) i64 extern }
-
-impl i64::GetIter<i64>
-    pub fun getIter() RangeIter<i64>
-        return RangeIter<i64>(0, this)
+fun pub i64.getIterator() RangeIter<i64>
+    return RangeIter<i64>(0, this)
 
 
 // 64 bit unsigned integer
-pub type ro copy u64
+type pub ro copy u64
     const __size int = 8
+    const pub MAX u64 = 18446744073709551615
+    const pub MIN u64 = 0
+    const pub ZERO u64 = 0
+    const pub ONE u64 = 1
 
-    pub const MAX u64 = 18446744073709551615
-    pub const MIN u64 = 0
-    pub const ZERO u64 = 0
-    pub const ONE u64 = 1
+fun pub u64.f32() f32 extern
+fun pub u64.f64() f64 extern
+fun pub u64.toDecimal() Decimal extern
 
-    pub fun f32() f32 extern
-    pub fun f64() f64 extern
-    pub fun toDecimal() Decimal extern
+fun pub u64.i8Mask() i8 extern
+fun pub u64.u8Mask() u8 extern
+fun pub u64.i16Mask() i16 extern
+fun pub u64.u16Mask() u16 extern
+fun pub u64.i32Mask() i32 extern
+fun pub u64.u32Mask() u32 extern
+fun pub u64.i64Mask() i64 extern
 
-    pub fun i8Mask() i8 extern
-    pub fun u8Mask() u8 extern
-    pub fun i16Mask() i16 extern
-    pub fun u16Mask() u16 extern
-    pub fun i32Mask() i32 extern
-    pub fun u32Mask() u32 extern
-    pub fun i64Mask() i64 extern
+// TBD: Add requires
+fun pub u64.i8Fail() i8 extern
+fun pub u64.u8Fail() u8 extern
+fun pub u64.i16Fail() i16 extern
+fun pub u64.u16Fail() u16 extern
+fun pub u64.i32Fail() i32 extern
+fun pub u64.u32Fail() u32 extern
+fun pub u64.i64Fail() i64 extern
 
-    // TBD: Add requires
-    pub fun i8Fail() i8 extern
-    pub fun u8Fail() u8 extern
-    pub fun i16Fail() i16 extern
-    pub fun u16Fail() u16 extern
-    pub fun i32Fail() i32 extern
-    pub fun u32Fail() u32 extern
-    pub fun i64Fail() i64 extern
+fun pub u64.getHash() int extern
+fun pub u64.opEq(a u64) bool extern
+fun pub u64.opCmp(a u64) int extern
+fun pub u64.opAdd(n u64) u64 extern
+fun pub u64.opSub(n u64) u64 extern
+fun pub u64.opNeg() u64 extern
+fun pub u64.opMul(n u64) u64 extern
+fun pub u64.opDiv(n u64) u64 extern
+fun pub u64.opRem(n u64) u64 extern
 
-
-impl u64::GetHash { pub fun getHash() int extern }
-impl u64::OpEq<u64> { pub fun opEq(a u64) bool extern }
-impl u64::OpCmp<u64> { pub fun opCmp(a u64) int extern }
-impl u64::OpAdd<u64, u64> { pub fun opAdd(n u64) u64 extern }
-impl u64::OpSub<u64, u64> {  pub fun opSub(n u64) u64 extern }
-impl u64::OpNeg<u64> {  pub fun opNeg() u64 extern }
-impl u64::OpMul<u64, u64> { pub fun opMul(n u64) u64 extern }
-impl u64::OpDiv<u64, u64> { pub fun opDiv(n u64) u64 extern }
-impl u64::OpRem<u64, u64> { pub fun opRem(n u64) u64 extern }
-
-impl u64::GetIter<u64>
-    pub fun getIter() RangeIter<u64>
-        return RangeIter<u64>(0, this)
+fun pub u64.getIterator() RangeIter<u64>
+    return RangeIter<u64>(0, this)
 
 
-pub type ro copy f32
+type pub ro copy f32
     const __size int = 4
+    const pub MAX f32 = 3.40282347E+38F
+    const pub MIN f32 = -3.40282347E+38F
+    const pub ZERO f32 = 0
+    const pub ONE f32 = 1
+    const pub EPSILON f32 = 1.401298E-45F
+    const pub INF f32 = 1F/0F
+    const pub NEG_INF f32 = -1F/0F
+    const pub NAN f32 = 0_f32/0_f32
+    const pub PI f32 = 3.141592653589793238
+    const pub E f32 = 2.718281828459045235
 
-    pub const MAX f32 = 3.40282347E+38F
-    pub const MIN f32 = -3.40282347E+38F
-    pub const ZERO f32 = 0
-    pub const ONE f32 = 1
-    pub const EPSILON f32 = 1.401298E-45F
-    pub const INF f32 = 1F/0F
-    pub const NEG_INF f32 = -1F/0F
-    pub const NAN f32 = 0_f32/0_f32
-    pub const PI f32 = 3.141592653589793238
-    pub const E f32 = 2.718281828459045235
+get pub f32.isInfinity() bool extern
+get pub f32.isNan() bool extern
+get pub f32.isNegativeInfinity() bool extern
+get pub f32.isPositiveInfinity() bool extern        
 
-    get isInfinity() bool extern
-    get isNan() bool extern
-    get isNegativeInfinity() bool extern
-    get isPositiveInfinity() bool extern        
+fun pub f32.f64() f64 extern
+fun pub f32.toDecimal() Decimal extern    
 
-    pub fun f64() f64 extern
-    pub fun toDecimal() Decimal extern    
+fun pub f32.i8Mask() i8 extern
+fun pub f32.u8Mask() u8 extern
+fun pub f32.i16Mask() i16 extern
+fun pub f32.u16Mask() u16 extern
+fun pub f32.i32Mask() i32 extern
+fun pub f32.u32Mask() u32 extern
+fun pub f32.i64Mask() i64 extern
+fun pub f32.u64Mask() u64 extern
 
-    pub fun i8Mask() i8 extern
-    pub fun u8Mask() u8 extern
-    pub fun i16Mask() i16 extern
-    pub fun u16Mask() u16 extern
-    pub fun i32Mask() i32 extern
-    pub fun u32Mask() u32 extern
-    pub fun i64Mask() i64 extern
-    pub fun u64Mask() u64 extern
-
-    // TBD: Add requires
-    pub fun i8Fail() i8 extern
-    pub fun u8Fail() u8 extern
-    pub fun i16Fail() i16 extern
-    pub fun u16Fail() u16 extern
-    pub fun i32Fail() i32 extern
-    pub fun u32Fail() u32 extern
-    pub fun i64Fail() i64 extern
-    pub fun u64Fail() u64 extern
+// TBD: Add requires
+fun pub f32.i8Fail() i8 extern
+fun pub f32.u8Fail() u8 extern
+fun pub f32.i16Fail() i16 extern
+fun pub f32.u16Fail() u16 extern
+fun pub f32.i32Fail() i32 extern
+fun pub f32.u32Fail() u32 extern
+fun pub f32.i64Fail() i64 extern
+fun pub f32.u64Fail() u64 extern
         
+fun pub f32.getHash() int extern
+fun pub f32.opEq(a f32) bool extern
+fun pub f32.opCmp(a f32) int extern
+fun pub f32.opEqPartial(a f32) bool extern
+fun pub f32.opCmpPartial(a f32) int extern
+fun pub f32.opAdd(n f32) f32 extern
+fun pub f32.opSub(n f32) f32 extern
+fun pub f32.opNeg() f32 extern
+fun pub f32.opMul(n f32) f32 extern
+fun pub f32.opDiv(n f32) f32 extern
+fun pub f32.opRem(n f32) f32 extern
 
-impl f32::GetHash { pub fun getHash() int extern }
-impl f32::OpEq<f32> { pub fun opEq(a f32) bool extern }
-impl f32::OpCmp<f32> { pub fun opCmp(a f32) int extern }
-impl f32::OpEqPartial<f32> { pub fun opEqPartial(a f32) bool extern }
-impl f32::OpCmpPartial<f32> { pub fun opCmpPartial(a f32) int extern }
-impl f32::OpAdd<f32, f32> { pub fun opAdd(n f32) f32 extern }
-impl f32::OpSub<f32, f32> {  pub fun opSub(n f32) f32 extern }
-impl f32::OpNeg<f32> {  pub fun opNeg() f32 extern }
-impl f32::OpMul<f32, f32> { pub fun opMul(n f32) f32 extern }
-impl f32::OpDiv<f32, f32> { pub fun opDiv(n f32) f32 extern }
-impl f32::OpRem<f32, f32> { pub fun opRem(n f32) f32 extern }
+fun pub f32.getIterator() RangeIter<f32>
+    return RangeIter<f32>(0, this)
 
-impl f32::GetIter<f32>
-    pub fun getIter() RangeIter<f32>
-        return RangeIter<f32>(0, this)
-
-
-pub type ro copy f64
+type pub ro copy f64
     const __size int = 8
-
-    pub const MAX f64 = 1.7976931348623157E+308
-    pub const MIN f64 = -1.7976931348623157E+308
-    pub const ZERO f64 = 0
-    pub const ONE f64 = 1
-    pub const EPSILON f64 = 4.94065645841247E-324
-    pub const INF f64 = 1.0/0.0
-    pub const NEG_INF f64 = -1.0/0.0
-    pub const NAN f64 = 0_f64/0_f64
+    const pub MAX f64 = 1.7976931348623157E+308
+    const pub MIN f64 = -1.7976931348623157E+308
+    const pub ZERO f64 = 0
+    const pub ONE f64 = 1
+    const pub EPSILON f64 = 4.94065645841247E-324
+    const pub INF f64 = 1.0/0.0
+    const pub NEG_INF f64 = -1.0/0.0
+    const pub NAN f64 = 0_f64/0_f64
     const PI f64 = 3.141592653589793238
     const E f64 = 2.718281828459045235
 
-    get isInfinity() bool extern
-    get isNan() bool extern
-    get isNegativeInfinity() bool extern
-    get isPositiveInfinity() bool extern        
+get pub f64.isInfinity() bool extern
+get pub f64.isNan() bool extern
+get pub f64.isNegativeInfinity() bool extern
+get pub f64.isPositiveInfinity() bool extern        
 
-    pub fun toDecimal() Decimal extern
+fun pub f64.toDecimal() Decimal extern
 
-    pub fun i8Mask() i8 extern
-    pub fun u8Mask() u8 extern
-    pub fun i16Mask() i16 extern
-    pub fun u16Mask() u16 extern
-    pub fun i32Mask() i32 extern
-    pub fun u32Mask() u32 extern
-    pub fun i64Mask() i64 extern
-    pub fun u64Mask() u64 extern
-    pub fun f32Clamp() f32 extern
-    pub fun i8Fail() i8 extern
-    pub fun u8Fail() u8 extern
-    pub fun i16Fail() i16 extern
-    pub fun u16Fail() u16 extern
-    pub fun i32Fail() i32 extern
-    pub fun u32Fail() u32 extern
-    pub fun i64Fail() i64 extern
-    pub fun u64Fail() u64 extern
-    pub fun f32Fail() f32 extern
-    
-    pub fun getHash() i64 extern    
-    
+fun pub f64.i8Mask() i8 extern
+fun pub f64.u8Mask() u8 extern
+fun pub f64.i16Mask() i16 extern
+fun pub f64.u16Mask() u16 extern
+fun pub f64.i32Mask() i32 extern
+fun pub f64.u32Mask() u32 extern
+fun pub f64.i64Mask() i64 extern
+fun pub f64.u64Mask() u64 extern
+fun pub f64.f32Clamp() f32 extern
+fun pub f64.i8Fail() i8 extern
+fun pub f64.u8Fail() u8 extern
+fun pub f64.i16Fail() i16 extern
+fun pub f64.u16Fail() u16 extern
+fun pub f64.i32Fail() i32 extern
+fun pub f64.u32Fail() u32 extern
+fun pub f64.i64Fail() i64 extern
+fun pub f64.u64Fail() u64 extern
+fun pub f64.f32Fail() f32 extern
 
-impl f64::GetHash { pub fun getHash() int extern }
-impl f64::OpEq<f64> { pub fun opEq(a f64) bool extern }
-impl f64::OpCmp<f64> { pub fun opCmp(a f64) int extern }
-impl f64::OpEqPartial<f64> { pub fun opEqPartial(a f64) bool extern }
-impl f64::OpCmpPartial<f64> { pub fun opCmpPartial(a f64) int extern }
-impl f64::OpAdd<f64, f64> { pub fun opAdd(n f64) f64 extern }
-impl f64::OpSub<f64, f64> {  pub fun opSub(n f64) f64 extern }
-impl f64::OpNeg<f64> {  pub fun opNeg() f64 extern }
-impl f64::OpMul<f64, f64> { pub fun opMul(n f64) f64 extern }
-impl f64::OpDiv<f64, f64> { pub fun opDiv(n f64) f64 extern }
-impl f64::OpRem<f64, f64> { pub fun opRem(n f64) f64 extern }
+fun pub f64.getHash() int extern
+fun pub f64.opEq(a f64) bool extern
+fun pub f64.opCmp(a f64) int extern
+fun pub f64.opEqPartial(a f64) bool extern
+fun pub f64.opCmpPartial(a f64) int extern
+fun pub f64.opAdd(n f64) f64 extern
+fun pub f64.opSub(n f64) f64 extern
+fun pub f64.opNeg() f64 extern
+fun pub f64.opMul(n f64) f64 extern
+fun pub f64.opDiv(n f64) f64 extern
+fun pub f64.opRem(n f64) f64 extern
 
-impl f64::GetIter<f64>
-    pub fun getIter() RangeIter<f64>
-        return RangeIter<f64>(0, this)
-
+fun pub f64.getIterator() RangeIter<f64>
+    return RangeIter<f64>(0, this)
 
 
 // 128 bit decimal integer.  This will support NAN, infinity, and
 // exponents covering the entire range of f64 with more precision.
-pub type ro copy Decimal
+type pub ro copy Decimal
     const __size int = 16
-
-    pub fun new(a Decimal) extern
-
-    pub const MAX Decimal = 1E+1000M
-    pub const MIN Decimal = -1E+1000M
-    pub const ZERO Decimal = 0
-    pub const ONE Decimal = 1
-    pub const INF Decimal = 1.0/0.0
-    pub const NEG_INF Decimal = -1.0/0.0
-    pub const NAN Decimal = 0.0/0.0
+    const pub MAX Decimal = 1E+1000M
+    const pub MIN Decimal = -1E+1000M
+    const pub ZERO Decimal = 0
+    const pub ONE Decimal = 1
+    const pub INF Decimal = 1.0/0.0
+    const pub NEG_INF Decimal = -1.0/0.0
+    const pub NAN Decimal = 0.0/0.0
     
-    get isInfinity() bool extern
-    get isNan() bool extern
-    get isNegativeInfinity() bool extern
-    get isPositiveInfinity() bool extern
+get pub Decimal.isInfinity() bool extern
+get pub Decimal.isNan() bool extern
+get pub Decimal.isNegativeInfinity() bool extern
+get pub Decimal.isPositiveInfinity() bool extern
 
-    pub fun i8Mask() i8 extern
-    pub fun u8Mask() u8 extern
-    pub fun i16Mask() i16 extern
-    pub fun u16Mask() u16 extern
-    pub fun i32Mask() i32 extern
-    pub fun u32Mask() u32 extern
-    pub fun i64Mask() i64 extern
-    pub fun u64Mask() u64 extern
-    pub fun f32Clamp() f32 extern
-    pub fun f64Clamp() f64 extern
-    pub fun i8Fail() i8 extern
-    pub fun u8Fail() u8 extern
-    pub fun i16Fail() i16 extern
-    pub fun u16Fail() u16 extern
-    pub fun i32Fail() i32 extern
-    pub fun u32Fail() u32 extern
-    pub fun i64Fail() i64 extern
-    pub fun u64Fail() u64 extern
+fun pub Decimal.i8Mask() i8 extern
+fun pub Decimal.u8Mask() u8 extern
+fun pub Decimal.i16Mask() i16 extern
+fun pub Decimal.u16Mask() u16 extern
+fun pub Decimal.i32Mask() i32 extern
+fun pub Decimal.u32Mask() u32 extern
+fun pub Decimal.i64Mask() i64 extern
+fun pub Decimal.u64Mask() u64 extern
+fun pub Decimal.f32Clamp() f32 extern
+fun pub Decimal.f64Clamp() f64 extern
+fun pub Decimal.i8Fail() i8 extern
+fun pub Decimal.u8Fail() u8 extern
+fun pub Decimal.i16Fail() i16 extern
+fun pub Decimal.u16Fail() u16 extern
+fun pub Decimal.i32Fail() i32 extern
+fun pub Decimal.u32Fail() u32 extern
+fun pub Decimal.i64Fail() i64 extern
+fun pub Decimal.u64Fail() u64 extern
 
+fun pub Decimal.getHash() int extern
+fun pub Decimal.opEq(a Decimal) bool extern
+fun pub Decimal.opCmp(a Decimal) int extern
+fun pub Decimal.opEqPartial(a Decimal) bool extern
+fun pub Decimal.opCmpPartial(a Decimal) int extern
+fun pub Decimal.opAdd(n Decimal) Decimal extern
+fun pub Decimal.opSub(n Decimal) Decimal extern
+fun pub Decimal.opNeg() Decimal extern
+fun pub Decimal.opMul(n Decimal) Decimal extern
+fun pub Decimal.opDiv(n Decimal) Decimal extern
+fun pub Decimal.opRem(n Decimal) Decimal extern
 
-impl Decimal::GetHash { pub fun getHash() int extern }
-impl Decimal::OpEq<Decimal> { pub fun opEq(a Decimal) bool extern }
-impl Decimal::OpCmp<Decimal> { pub fun opCmp(a Decimal) int extern }
-impl Decimal::OpEqPartial<Decimal> { pub fun opEqPartial(a Decimal) bool extern }
-impl Decimal::OpCmpPartial<Decimal> { pub fun opCmpPartial(a Decimal) int extern }
-impl Decimal::OpAdd<Decimal, Decimal> { pub fun opAdd(n Decimal) Decimal extern }
-impl Decimal::OpSub<Decimal, Decimal> {  pub fun opSub(n Decimal) Decimal extern }
-impl Decimal::OpNeg<Decimal> {  pub fun opNeg() Decimal extern }
-impl Decimal::OpMul<Decimal, Decimal> { pub fun opMul(n Decimal) Decimal extern }
-impl Decimal::OpDiv<Decimal, Decimal> { pub fun opDiv(n Decimal) Decimal extern }
-impl Decimal::OpRem<Decimal, Decimal> { pub fun opRem(n Decimal) Decimal extern }
+fun pub Decimal.getIterator() RangeIter<Decimal>
+    return RangeIter<Decimal>(0, this)
 
-impl Decimal::GetIter<Decimal>
-    pub fun getIter() RangeIter<Decimal>
-        return RangeIter<Decimal>(0, this)
+    

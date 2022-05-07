@@ -246,6 +246,7 @@ namespace Gosub.Zurfur.Compiler
         public bool IsGetter => Qualifiers.HasFlag(SymQualifiers.Get);
         public bool IsSetter => Qualifiers.HasFlag(SymQualifiers.Set);
         public bool IsFunc => Kind == SymKind.Method && !IsGetter && !IsSetter;
+        public bool IsImpl => Qualifiers.HasFlag(SymQualifiers.Impl);
         
         public bool ParamOut
         {

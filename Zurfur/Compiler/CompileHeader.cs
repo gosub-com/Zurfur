@@ -69,7 +69,6 @@ namespace Gosub.Zurfur.Compiler
             mSymbols.GenerateLookup();
             var fileUses = ProcessUseStatements();
             AddTypes();
-            ResolveImpls();
             mSymbols.GenerateLookup();
             ResolveFields();
             ResolveMethods();
@@ -222,60 +221,6 @@ namespace Gosub.Zurfur.Compiler
                     if (mSymbols.AddOrReject(typeParam))
                         expr.Token.AddInfo(typeParam);
                 }
-            }
-
-            // Impls go into a method group called $impl, and are
-            // functions that take the interface and type as parameters.
-            void ResolveImpls()
-            {
-                foreach (var syntaxFile in syntaxFiles)
-                {
-                    foreach (var type in syntaxFile.Value.Types)
-                    {
-                        var implType = type.GetImplType();
-                        if (implType == null)
-                            continue;
-                        if (!syntaxScopeToSymbol.TryGetValue(type.Parent, out var scope))
-                        {
-                            Reject(implType.Token, $"Compiler error, couldn't find parent scope of '{type.Parent}'");
-                            continue;
-                        }
-                        ResolveImpl(scope, implType, syntaxFile.Key);
-                    }
-                }
-            }
-
-            void ResolveImpl(Symbol scope, SyntaxType implSyntax, string file)
-            {
-                // Only process the impl block once
-                if (syntaxScopeToSymbol.TryGetValue(implSyntax, out var tryFindImplMethodBlock))
-                    return;
-
-                var implTypeName = ResolveTypeNameOrReject(scope, implSyntax.ImplType, file);
-                var implInterfaceName = ResolveTypeNameOrReject(scope, implSyntax.ImplInterface, file);
-                if (implTypeName == "" || implInterfaceName == "")
-                {
-                    Reject(implSyntax.Name, "Error in impl block");
-                    return;
-                }
-
-                var implType = new SymImplDef(scope, file, implSyntax.Keyword,
-                                        $"$impl<{implInterfaceName},{implTypeName}>");
-                if (scope.Children.ContainsKey(implType.Name))
-                {
-                    Reject(implSyntax.Name, "Duplicate impl block");
-                    return;
-                }
-                var ok2 = mSymbols.AddOrReject(implType);
-                Debug.Assert(ok2);
-                var p1 = new SymMethodParam(implType, file, implSyntax.Keyword, "$interface");
-                p1.TypeName = implInterfaceName;
-                mSymbols.AddOrReject(p1);
-                var p2 = new SymMethodParam(implType, file, implSyntax.Keyword, "$this");
-                p2.TypeName = implTypeName;
-                mSymbols.AddOrReject(p2);
-                syntaxScopeToSymbol[implSyntax] = implType;
-                implSyntax.Keyword.AddInfo(implType);
             }
 
             void ResolveFields()
@@ -464,17 +409,13 @@ namespace Gosub.Zurfur.Compiler
                     return;
                 }
 
-
                 // Give each function a unique name (final name calculated below)
                 var method = new SymMethod(methodGroup, file, synFunc.Name, $"$LOADING...${methodGroup.Children.Count}");
                 method.SetQualifiers(synFunc.Qualifiers);
                 method.Comments = synFunc.Comments;
 
+                AddThisParam(method, synFunc, file);
                 AddTypeParams(method, synFunc.TypeArgs, file);
-                if (synFunc.Parent.GetImplType() != null)
-                    AddImplParams(method, synFunc, file);
-                else
-                    AddThisParam(method, synFunc, file);
                 ResolveMethodParams(file, method, synFunc.MethodSignature[0], false); // Parameters
                 ResolveMethodParams(file, method, synFunc.MethodSignature[1], true);  // Returns
 
@@ -505,48 +446,53 @@ namespace Gosub.Zurfur.Compiler
                 ResolveConstraints(method, synFunc.Constraints, file);
             }
 
-            // Add $interface and $this parameters to functions defined
-            // in impl blocks.
-            void AddImplParams(Symbol method, SyntaxFunc func, string file)
-            {
-                if (!syntaxScopeToSymbol.TryGetValue(func.Parent, out var implBlock))
-                {
-                    Reject(func.Name, "Error in impl block");
-                    return;
-                }
-
-                var p1 = new SymMethodParam(method, file, func.Name, "$interface");
-                p1.TypeName = implBlock.Children["$interface"].TypeName;
-                mSymbols.AddOrReject(p1);
-
-                var p2 = new SymMethodParam(method, file, func.Name, "$this");
-                p2.TypeName = implBlock.Children["$this"].TypeName;
-                mSymbols.AddOrReject(p2);
-            }
-
             // Add $this parameter for extension methods and member functions.
             // NOTE: Even static methods get $this, but it is used as a
             //       type name and not passed as a parameter
             void AddThisParam(Symbol method, SyntaxFunc func, string file)
             {
-                var isExtension = func.ExtensionType != null && func.ExtensionType.Token != "";
-                if (isExtension || method.Parent.Parent.IsType)
+                if (func.ExtensionType == null || func.ExtensionType.Token == "")
+                    return;
+
+                // For now, extension methods with generic receivers
+                // allow only 1 level deep with all type parameters matching:
+                //
+                //      List<int>.f(x)        // Ok, no generic types
+                //      List<T>.f(x)          // Ok, 1 level, matching generic
+                //      Map<TKey,TValue>.f(x) // Ok, 1 level, all matching generic
+                //      Map<Key,int>.f(x)     // No, not all matching genrics
+                //      Span<List<T>>.f(x)    // No, multi-level not accepted
+                //
+                // Maybe we change this later, but keep it simple for now.
+                if (func.ExtensionType.Token == ParseZurf.VT_TYPE_ARG && func.ExtensionType.Count >= 2)
                 {
-                    // First parameter is "$this"
-                    var methodParam = new SymMethodParam(method, file, func.Name, "$this");
-                    if (isExtension)
+                    var et = FindGlobalTypeOrReject(func.ExtensionType[0].Token, method, fileUses[file], out var inScope);
+                    if (et != null)
                     {
-                        methodParam.TypeName = ResolveTypeNameOrReject(methodParam, func.ExtensionType, file);
-                        method.Qualifiers |= SymQualifiers.Extension;
+                        var genericMatch = true;
+                        for (int i = 1;  i < func.ExtensionType.Count; i++)
+                        {
+                            if (!et.Children.TryGetValue(func.ExtensionType[i].Token, out var matchGeneric)
+                                || matchGeneric.Order != i-1)
+                            {
+                                genericMatch = false;
+                                break;
+                            }
+                        }
+                        if (genericMatch)
+                        {
+                            AddTypeParams(method, func.ExtensionType.Skip(1), file);
+                        }
                     }
-                    else
-                    {
-                        methodParam.TypeName = AddOuterGenericParameters(method.Parent.Parent, method.Parent.Parent).ToString();
-                    }
-                    if (methodParam.TypeName == "" && !NoCompilerChecks)
-                        methodParam.Token.AddInfo(new VerifySuppressError());
-                    mSymbols.AddOrReject(methodParam);
                 }
+
+                // First parameter is "$this"
+                var methodParam = new SymMethodParam(method, file, func.Name, "$this");
+                methodParam.TypeName = ResolveTypeNameOrReject(methodParam, func.ExtensionType, file);
+                method.Qualifiers |= SymQualifiers.Extension;
+                if (methodParam.TypeName == "" && !NoCompilerChecks)
+                    methodParam.Token.AddInfo(new VerifySuppressError());
+                mSymbols.AddOrReject(methodParam);
             }
 
             void ResolveMethodParams(string file, Symbol method, SyntaxExpr parameters, bool isReturn)

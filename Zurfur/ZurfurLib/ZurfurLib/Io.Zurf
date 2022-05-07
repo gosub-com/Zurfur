@@ -15,17 +15,14 @@ enum SeekOrigin
 
 interface Seeker
     afun mut seek(offset int, origin SeekOrigin) int throws impl
-    aget length() int throws { todo() }
-    aget position() int throws { todo() }
-    aset position(value int) throws { todo() }
-
+    
+aget Seeker.length() int throws { todo() }
+aget Seeker.position() int throws { todo() }
+aset Seeker.position(value int) throws { todo() }
 
 interface FileStream { }
 
-
-
 module Zurfur.Io.File
-
 
 afun open(fileName str, mode str="r") FileStream throws { }
 afun readAllText(fileName str) List<str> throws { }

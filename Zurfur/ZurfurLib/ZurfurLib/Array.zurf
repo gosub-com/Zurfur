@@ -1,16 +1,18 @@
 ﻿module Zurfur
 
-// Immutable array
-pub type ro Array<T>
-    // NOTE: Much of the implmentation is inherited from Span and Iterator
-
-    // TBD: Figure out what comes from Span, Iterator, and Array
-    //      Create Span and Iterator
+// Immutable array (all inherited from Buffer)
+type pub ro Array<T> is ro Buffer<T>
 
 
     
-    fun replace(search []T, repl []T)
-        todo()
+
+// This is the implementation for Buffer and Array
+type pub Buffer<T> {}
+
+
+fun pub Buffer<T>.replace(search []T, repl []T)
+    todo()
+
 
 
 

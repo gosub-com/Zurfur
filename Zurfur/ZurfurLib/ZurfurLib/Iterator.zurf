@@ -25,44 +25,43 @@ interface pub Iter<Item>
 
     // Return the next item, or null if it doesn't exist
     fun pub mut next() ?mut ref Item impl
+    
+    fun pub countHint() int impl // TBD: Default
 
-    // Implement this when the container has a known size.
-    // List uses this as the starting capacity.
-    get pub countHint() int
-        return 0
+// Implement this when the container has a known size.
+// List uses this as the starting capacity.
+get pub Iter<Item>.countHint() int
+    return 0
 
-    fun pub mut toArrayXM() Array<Item>
-        return toList().toArray()
+fun pub mut Iter<Item>.toArrayXM() Array<Item>
+    return toList().toArray()
 
-    fun pub mut toList() List<Item>
-        @list = List(countHint)
-        while next()@item
-            list.push(item)
-        return list
+fun pub mut Iter<Item>.toList() List<Item>
+    @list = List(countHint)
+    while next()@item
+        list.push(item)
+    return list
 
-    // TBD: Item should be an associated type,
-    //      not explicitly passed back from filter
-    fun pub mut filter(f fun(item Item) bool) FilterIter<This, Item>
-        return FilterIter<This, Item>(this, f)
+// TBD: Item should be an associated type,
+//      not explicitly passed back from filter
+fun pub mut Iter<Item>.filter(f fun(item Item) bool) FilterIter<This, Item>
+    return FilterIter<This, Item>(this, f)
 
-    fun pub mut find(f fun(item Item) bool) ?mut ref Item
-        while next()@item
-            if f(item)
-                return ref item
-        return null
+fun pub mut Iter<Item>.find(f fun(item Item) bool) ?mut ref Item
+    while next()@item
+        if f(item)
+            return ref item
+    return null
 
 // TBD: This should work exactly thr same as the `filter` method
-fun pub mut (i Iter<Item>)filter<Item>(f fun(item Item) bool) FilterIter<This, Item>
+fun pub mut Iter<Item>.filter(f fun(item Item) bool) FilterIter<This, Item>
     return FilterIter<This, Item>(this, f)
 
 //   TBD: Unify extension method here
-fun pub mut (i Iter<Item>) toArrayXE<Item>() Array<Item>
+fun pub mut Iter<Item>.toArrayXE() Array<Item>
     return toList().toArray()
 
         
-fun (l List<T>) test<T>()
-    todo()
-
 // TBD: Item should be an associated type (not passed in here)
 type ref FilterIter<I, Item>
     // TBD: Needed?
@@ -74,23 +73,23 @@ type ref FilterIter<I, Item>
     @iter ref I pub init
     @f ref fun(item Item) bool pub init
 
-    // TBD: There should be shortcut syntax to create
-    //      a positional constructor, like this:
-    // fun new(iter _, f _) {}
-    //
-    // Instead of this:
-    fun new(iter mut I, f fun(item Item)bool)
-        this.iter = ref iter
-        this.f = ref f
+// TBD: There should be shortcut syntax to create
+//      a positional constructor, like this:
+// fun new(iter _, f _) {}
+//
+// Instead of this:
+fun FilterIter<I, Item>.new(iter mut I, f fun(item Item)bool)
+    this.iter = ref iter
+    this.f = ref f
 
-    // TBD: This does not implement the interface
-    fun pub mut next() ?mut ref I
-        return iter.find(f)
+// TBD: This does not implement the interface
+fun pub mut FilterIter<I, Item>.next() ?mut ref I
+    return iter.find(f)
         
         
 
 // TBD: Check for same symbol name as 'new' method
-fun  (f FilterIter<T,X>) New<T,X>()
+fun  FilterIter<I,Item>.new()
     todo
 
 fun test_Filter() Array<int>
