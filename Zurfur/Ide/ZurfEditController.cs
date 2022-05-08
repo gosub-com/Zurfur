@@ -314,14 +314,14 @@ namespace Gosub.Zurfur.Ide
             {
                 message += symbol.KindName.ToUpper() + ": " + symbol.FullName + "\r\n";
                 message += "PARAMS: \r\n";
-                foreach (var child in symbol.Children)
+                foreach (var child in symbol.PrimaryValues)
                 {
-                    if (child.Value.IsMethodParam)
-                        message += "    " + child.Key + ": " + child.Value.TypeName + "\r\n";
-                    else if (child.Value.IsTypeParam)
-                        message += "    " + child.Key + ": Type parameter\r\n";
+                    if (child.IsMethodParam)
+                        message += "    " + child.Name + ": " + child.TypeName + "\r\n";
+                    else if (child.IsTypeParam)
+                        message += "    " + child.Name + ": Type parameter\r\n";
                     else
-                        message += "    " + child.Key + ": COMPILER ERROR\r\n";
+                        message += "    " + child.Name + ": COMPILER ERROR\r\n";
                 }
             }
             else

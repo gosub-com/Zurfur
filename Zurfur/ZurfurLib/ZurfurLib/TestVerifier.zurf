@@ -14,145 +14,41 @@ pragma NoCompilerChecks
 type OneGeneric<T> { } // No error expected here
 
 type VerifyErrors<T>
-{
-    // Duplicate
-    fun VerifyErrors() void {}
-    fun Y(Y int) void {}
-    fun X(T int) void {}
-    type i1Struct<T>(a int)
-    type i2Struct<X>(T int)
-    type i3Struct<X> { fun T() void {} }
-    type i4Struct<X> { fun A(T int) void {} }
-    type i5Struct<X> { fun A()->(T int) {} }
-    fun IllegalGenericOverload<X>(a int) void { }
-    fun IllegalGenericOverload(a byte) void { }
-
-    fun int::Hello() { } // Extension method only at module level
-
-    fun BadOverload(a int) {  } // Dummy
-    fun BadOverload(a int) int{  } // TBD: This overload should faile    
-
     // Undefined/unresolved
     @field1 hello
     @field2 List<List<hello>>
-    pub fun F4(a List<int,hello>) void { }
-    pub fun F5(a List<List<x>>) void { }
-
+    
     // Wrong number of type parameters
-    pub fun F1(a List) void { }
-    pub fun F3(a List<int,int>) void { }
     @a List
     @b List<int,int>
 
-    pub fun fun1(a List<List<x>>) void { } // Undefined generic symbol
-    pub fun fun2(a List) void { } // Wrong number of generic parameters
-    pub fun fun3(a List<int,int>) void { } // Wrong number of generic parameters
-    pub fun fun4(a List<List>) void { } // Wrong number of generic parameters
-    pub fun fun5(a List<List<int,int>>) void { } // Wrong number of generic parameters
-    pub fun fun6(a Zurfur) void {} // Symbol is a module
-    pub fun fun7(a field1) void {} // Symbol is a field
-    pub fun fun8(a fun1) void {} // Symbol is a method
-    pub fun fun9(a *?OneGeneric) void { }    
-}
+// Duplicate
+fun VerifyErrors<T>.VerifyErrors() void {} // TBD: Don't allow same name
+fun VerifyErrors<T>.Y(Y int) void {}
+fun VerifyErrors<T>.X(T int) void {} // TBD: Verifier should catch this
+fun VerifyErrors<T>.IllegalGenericOverload<X>(a int) void { }
+fun VerifyErrors<T>.IllegalGenericOverload(a byte) void { }
+
+fun VerifyErrors<T>.BadOverload(a int) {  } // Dummy
+fun VerifyErrors<T>.BadOverload(a int) int{  } // TBD: This overload should fail 
+
+// Undefined/unresolved
+fun pub VerifyErrors<T>.F4(a List<int,hello>) void { }
+fun pub VerifyErrors<T>.F5(a List<List<x>>) void { }
+
+// Wrong number of type parameters
+fun pub VerifyErrors<T>.F1(a List) void { }
+fun pub VerifyErrors<T>.F3(a List<int,int>) void { }
+
+fun pub VerifyErrors<T>.fun1(a List<List<x>>) void { } // Undefined generic symbol
+fun pub VerifyErrors<T>.fun2(a List) void { } // Wrong number of generic parameters
+fun pub VerifyErrors<T>.fun3(a List<int,int>) void { } // Wrong number of generic parameters
+fun pub VerifyErrors<T>.fun4(a List<List>) void { } // Wrong number of generic parameters
+fun pub VerifyErrors<T>.fun5(a List<List<int,int>>) void { } // Wrong number of generic parameters
+fun pub VerifyErrors<T>.fun6(a Zurfur) void {} // Symbol is a module
+fun pub VerifyErrors<T>.fun7(a field1) void {} // Symbol is a field
+fun pub VerifyErrors<T>.fun8(a fun1) void {} // Symbol is a method
+fun pub VerifyErrors<T>.fun9(a *?OneGeneric) void { }    
 
 
-impl VerifyErrors::OpCmp // TBD: Check number of type parameters here
-{
-    @a int // impl blocks may not contain children
-}
 
-pub type AGenericTest<T, QQQ>
-    where QQQ is x//: new() where T : new()
-{
-    pub fun P2<Quack>(a Quack, b QQQ) void { return (a.ToStr() + b.ToStr()).Length; }
-    pub fun P3<Z>() void { return 0; }
-    pub fun P4<Quack, Quack1>() void { return 0; }
-
-    pub fun GenericTest<Q1, Q2>(a Q1, b Q2) void:
-        return a.ToStr().Length + b.ToStr().Length
-
-
-
-    @Xfield1 Inner1<str, aStruct>
-    @Xfield3a AGenericTest<T>.Inner1<QQQ, T>.Inner2<int, int> // TBD: Requires two type parameters
-    @Xfield4a AATest.AGenericTest<T>.Inner1<QQQ, T>.T<int, int> // TBD: Bug (undefined T)
-    @Xfield4b AATest.AGenericTest<T>.Inner1<QQQ, T>.Inner2<int> // TBD: Bug (wrong num of params for Inner2)
-    @Xfield4c AATest.AGenericTest<T>.Inner1<QQQ, T>.Inner1<int, int> // TBD: Bug (Inner1 not acceptable)
-    @Xfield4d AATest.AGenericTest<T>.Inner1<QQQ, T>.Inner2<int, int>
-        = AATest.AGenericTest[T].Inner1[QQQ, T].Inner2[int, int]
-    @Xfield7 AATest.AGenericTest<T>.Inner1<QQQ, T>.Inner2<int, int> // TBD: Follow the dot
-
-    // TBD: Error because Inner1 requires 2 type parameters
-    @Xfield8 Inner1<int>
-    @Xfield9 XField0
-    @Xfield10 Zurfur
-
-    // TBD: Follow the dot
-    pub fun UseIt(x Zurfur.int, y List<Inner1>, z List<str<int>>) void
-    {
-        XField0.ToStr()
-        // Xfield2<str, T>.P3<T>(); - Xfield2 can't use type parameters
-        // Xfield2.P3(); - Can't infer P3<type>
-        Xfield2.P3<T>()
-        @a = List<str, Outer<int, int>>()
-
-        Inner1<str, byte>.Inner2<short, ushort>.Hello = 1
-        Outer<T, QQQ>.Inner1<str, byte>.Inner2<short, ushort>.Hello = 2
-        Outer<QQQ, T>.Inner1<str, byte>.Inner2<short, ushort>.Hello = 3
-        Outer<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, byte>.Hello = 4
-
-        @p = AGenericTest<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, byte>()
-        p.P5<short, QQQ, ushort>(3, QQQ(), 0)
-    }
-    
-    pub type Inner1<Ta, Qa>
-    {
-        pub fun P1() void { return 0; }
-        pub fun P2<Quack>() void { return 0; }
-        pub fun P3<Z>() void { return 0; }
-        pub fun P4<Z, Quack>() void { return 0; }
-        pub fun P5<Quack, Quack1, Quack3>() void{ return 0; }
-
-        pub type Inner2<Tb, Qb>
-        {
-            pub fun P1() void { return 0; }
-            pub fun P2<Quack>() void { return 0; }
-            pub fun P3<Z>() void { return 0; }
-            pub fun P4<Z, Quack>() void { return 0; }
-            pub fun P5<Quack, Quack1, Quack3>(a int, b Quack1, c u16) void
-            {
-                return InnerP5() + InnerP5() + a + b.ToStr().Length + c
-
-                fun InnerP5() void
-                    return ToStr().Length
-            }
-
-            @X Inner1<byte, uint>
-            @Y Inner2<int, str>
-            @Hello int // TBD: Allow this to be static?
-
-            pub type Inner3<A, B>
-            {
-                pub fun P1() void { return 0; }
-                pub fun P2<Quack>() void { return 0; }
-                pub fun P3<Z>() void { return 0; }
-                pub fun P4<Z, Quack>() void { return 0; }
-                pub fun AAA<Quack, Quack1, Quack3>
-                    (a Quack, b Quack1, c Quack3, d A)
-                        ->(x T, y QQQ, z List<QQQ>, w List<int>)
-                {
-                    return InnerP5() + InnerP5() + a + b.ToStr().Length + c
-                    
-                    fun InnerP5() int
-                        return ToStr().Length
-                }
-
-                @X Inner1<byte, uint>
-                @Y Inner2<int, str>
-                @Hello int // TBD: Allow static?
-            }
-
-        }
-
-    }
-}

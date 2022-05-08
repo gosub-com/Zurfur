@@ -63,23 +63,45 @@ namespace Gosub.Zurfur.Compiler
     ///     $   Special symbol, e.g. $this, $impl, etc.
     ///    
     /// Sepecial symbols (prefixed with $):
-    ///     $impl       Implicit implementation type
     ///     $this       Implicit extension/member method parameter
     ///     $return     Implicit return parameter name
     /// </summary>
     abstract class Symbol
     {
-        static Dictionary<int, string> sTags = new Dictionary<int, string>();
-
         public Symbol Parent { get; }
+        static Dictionary<int, string> sTags = new Dictionary<int, string>();
         string mFile;
         Token mToken;
         public string Comments = "";
-        Dictionary<string, Symbol> mChildren = new Dictionary<string, Symbol>();
+        Dictionary<string, Symbol> mPrimary = new Dictionary<string, Symbol>();
+        Dictionary<string, Symbol> mMethods = new Dictionary<string, Symbol>();
         public SymKind Kind { get; protected set; }
         public SymQualifiers Qualifiers;
-
         public abstract string KindName { get; }
+
+
+        public int PrimaryCount => mPrimary.Count;
+        public Dictionary<string, Symbol>.ValueCollection PrimaryValues => mPrimary.Values;
+
+        // Find module, type, field, or parameter (ignore methods) 
+        public bool TryGetPrimary(string key, out Symbol sym)
+        {
+            return mPrimary.TryGetValue(key, out sym);
+        }
+
+        public int MethodCount => mMethods.Count;
+        public Dictionary<string, Symbol>.ValueCollection MethodValues => mMethods.Values;
+        public bool TryGetMethods(string key, out SymMethodGroup group)
+        {
+            if (mMethods.TryGetValue(key, out var sym))
+            {
+                group = (SymMethodGroup)sym;
+                return true;
+            }
+            group = null;
+            return false;
+        }
+
 
         /// <summary>
         /// True for built in unary types that don't get serialized,
@@ -238,7 +260,6 @@ namespace Gosub.Zurfur.Compiler
         public bool IsMethod => this is SymMethod;
         public bool IsMethodGroup => this is SymMethodGroup;
         public bool IsMethodParam => this is SymMethodParam;
-        public bool IsImplDef => this is SymImplDef;
 
         public bool IsExtension => Qualifiers.HasFlag(SymQualifiers.Extension);
         public bool IsConst => Qualifiers.HasFlag(SymQualifiers.Const);
@@ -296,18 +317,11 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Read-only access to the children.  The key always matches
-        /// the child symbol Name.
-        /// </summary>
-        public RoDict<string, Symbol> Children { get; private set; }
-
-        /// <summary>
         /// Create a symbol that is unique in the soruce code (e.g. SymMethod,
         /// SymType, SymField, etc.) and can be marked with token information.
         /// </summary>
         public Symbol(Symbol parent, string file, Token token, string name = null)
         {
-            Children = new RoDict<string, Symbol>(mChildren);
             Parent = parent;
             Name = name == null ? token.Name : name;
             mFile = file;
@@ -321,7 +335,6 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public Symbol(Symbol parent, string name)
         {
-            Children = new RoDict<string, Symbol>(mChildren);
             Parent = parent;
             Name = name;
         }
@@ -329,9 +342,10 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Do not set the symbol name after it has been added to the symbol table.
         /// </summary>
-        public void SetName(string name)
+        public void SetMethodName(string name)
         {
-            Debug.Assert(!Parent.Children.ContainsKey(Name));
+            Debug.Assert(!Parent.TryGetMethods(Name, out var _));
+            Debug.Assert(IsMethod);
             Name = name;
             mFullNameCache = null;
         }
@@ -339,13 +353,26 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// This should only be called by functions in SymbolTable.
         /// It sets the symbol Order to the number of children.
+        /// Returns TRUE if the symbol was inserted, false if it
+        /// was a duplicate (then remoteSymbol contains the dup)
         /// </summary>
-        internal void SetChildInternal(Symbol value)
+        internal bool SetChildInternal(Symbol value, out Symbol remoteSymbol)
         {
-            value.Order = mChildren.Count;
-            Debug.Assert(!mChildren.ContainsKey(value.Name));
-            mChildren[value.Name] = value;
+            if (value.IsMethodGroup || value.IsMethod)
+            {
+                if (mMethods.TryGetValue(value.Name, out remoteSymbol))
+                    return false;
+                mMethods[value.Name] = value;
+            }
+            else
+            {
+                if (mPrimary.TryGetValue(value.Name, out remoteSymbol))
+                    return false;
+                value.Order = mPrimary.Count;
+                mPrimary[value.Name] = value;
+            }
             mFullNameCache = null;
+            return true;
         }
 
         /// <summary>
@@ -382,7 +409,7 @@ namespace Gosub.Zurfur.Compiler
         public int GenericParamCount()
         {
             var count = 0;
-            foreach (var child in Children.Values)
+            foreach (var child in PrimaryValues)
                 if (child.Kind == SymKind.TypeParam)
                     count++;
             return count;
@@ -413,21 +440,6 @@ namespace Gosub.Zurfur.Compiler
             return Parent.Parent.GenericParamTotal() + Order;
         }
 
-
-        public struct RoDict<TKey, TValue>
-        {
-            Dictionary<TKey, TValue> Map;
-            public RoDict(Dictionary<TKey, TValue> map) { Map = map; }
-            public int Count => Map.Count;
-            public bool ContainsKey(TKey key) => Map.ContainsKey(key);
-            public bool TryGetValue(TKey key, out TValue symbol) => Map.TryGetValue(key, out symbol);
-            public TValue this[TKey key] => Map[key];
-            public Dictionary<TKey, TValue>.ValueCollection Values => Map.Values;
-            public Dictionary<TKey, TValue>.Enumerator GetEnumerator() => Map.GetEnumerator();
-            public override string ToString() => Map.ToString();
-        }
-
-
     }
 
     class SymModule : Symbol
@@ -454,17 +466,6 @@ namespace Gosub.Zurfur.Compiler
             Kind = SymKind.Type;
         }
         public override string KindName => "type";
-        protected override string Separator => ".";
-    }
-
-    class SymImplDef : Symbol
-    {
-        public SymImplDef(Symbol parent, string file, Token token, string name = null)
-            : base(parent, file, token, name)
-        {
-            Kind = SymKind.ImplDef;
-        }
-        public override string KindName => "type impl";
         protected override string Separator => ".";
     }
 

@@ -44,6 +44,7 @@ fun pub mut Iter<Item>.toList() List<Item>
 
 // TBD: Item should be an associated type,
 //      not explicitly passed back from filter
+//      This should work exactly thr same as the `filter` method
 fun pub mut Iter<Item>.filter(f fun(item Item) bool) FilterIter<This, Item>
     return FilterIter<This, Item>(this, f)
 
@@ -52,10 +53,6 @@ fun pub mut Iter<Item>.find(f fun(item Item) bool) ?mut ref Item
         if f(item)
             return ref item
     return null
-
-// TBD: This should work exactly thr same as the `filter` method
-fun pub mut Iter<Item>.filter(f fun(item Item) bool) FilterIter<This, Item>
-    return FilterIter<This, Item>(this, f)
 
 //   TBD: Unify extension method here
 fun pub mut Iter<Item>.toArrayXE() Array<Item>

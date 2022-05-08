@@ -153,9 +153,7 @@ namespace Gosub.Zurfur.Compiler
                 headerFile.Add("SYMBOLS:");
                 foreach (var s in ls)
                 {
-                    //if (symbol is SymMethodGroup)
-                    //    continue;
-                    headerFile.Add($"    {s.KindName,16}: {s.FullName}");
+                    headerFile.Add($"{s.KindName,16}: {s.FullName}");
                 }
             }
 

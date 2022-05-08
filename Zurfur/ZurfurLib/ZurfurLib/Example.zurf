@@ -96,7 +96,6 @@ fun pub circle3(a f64, b f64) -> (c int, d int)
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
 // PREVIOUSLY: fun pub GetIter<T>.AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIter<T>
-TBD: // Fix me (generic params in wrong position)
 fun pub GetIter<Item>.AlphaLengthWise<L>(lengthProvider fun(t Item) L) GetIter<Item>
     return i
         .OrderBy(@a => lengthProvider(a))

@@ -64,7 +64,7 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public Symbol FindOrAddIntrinsicType(string name, int numGenerics)
         {
-            if (!Root.Children.TryGetValue(name, out var genericFunType))
+            if (!Root.TryGetPrimary(name, out var genericFunType))
                 genericFunType = AddIntrinsicType(name, numGenerics);
             return genericFunType;
         }
@@ -79,6 +79,8 @@ namespace Gosub.Zurfur.Compiler
             VisitAll((s) => 
             {
                 Debug.Assert(!s.IsSpecializedType);
+                if (s.IsMethodGroup)
+                    return;
                 var fullName = s.FullName;
                 Debug.Assert(!mLookup.ContainsKey(fullName));
                 mLookup[fullName] = s;
@@ -119,11 +121,10 @@ namespace Gosub.Zurfur.Compiler
         {
             if (root.FullName != "")
                 visit(root);
-            foreach (var sym in root.Children)
-            {
-                Debug.Assert(sym.Key == sym.Value.Name);
-                VisitAll(sym.Value, visit);
-            }
+            foreach (var sym in root.PrimaryValues)
+                VisitAll(sym, visit);
+            foreach (var sym in root.MethodValues)
+                VisitAll(sym, visit);
         }
 
         /// <summary>
@@ -148,12 +149,10 @@ namespace Gosub.Zurfur.Compiler
         {
             Debug.Assert(SymbolBelongs(newSymbol));
             var parentSymbol = newSymbol.Parent;
-            if (!parentSymbol.Children.TryGetValue(newSymbol.Name, out var remoteSymbol))
-            {
-                parentSymbol.SetChildInternal(newSymbol);
+            if (parentSymbol.SetChildInternal(newSymbol, out var remoteSymbol))
                 return true;
-            }
-            Reject(newSymbol.Token, $"Duplicate symbol. There is a {remoteSymbol.KindName} in this scope with the same name.");
+            Reject(newSymbol.Token, $"Duplicate symbol. There is already a {remoteSymbol.KindName} in this scope with the same name.");
+            Reject(remoteSymbol.Token, $"Duplicate symbol. There is already a {newSymbol.KindName} in this scope with the same name.");
             return false;
         }
 
@@ -192,35 +191,17 @@ namespace Gosub.Zurfur.Compiler
             return spec;
         }
 
-        /// <summary>
-        /// Returns the symbol at the given path in the package.  Generates exception if not found.
-        /// </summary>
-        public Symbol FindPath(Token[] path)
-        {
-            var symbol = (Symbol)mRoot;
-            foreach (var name in path)
-            {
-                if (!symbol.Children.TryGetValue(name.Name, out var child))
-                {
-                    Debug.Assert(false);
-                    throw new Exception("Compiler error: Could not find parent symbol '"
-                        + string.Join(".", Array.ConvertAll(path, t => t.Name)) + "'");
-                }
-                symbol = child;
-            }
-            return symbol;
-        }
 
         /// <summary>
         /// Returns the symbol at the given path in the package.
         /// Returns null and marks an error if not found.
         /// </summary>
-        public Symbol FindPathOrReject(Token[] path)
+        public Symbol FindTypeInPathOrReject(Token[] path)
         {
             var symbol = (Symbol)mRoot;
             foreach (var name in path)
             {
-                if (!symbol.Children.TryGetValue(name, out var child))
+                if (!symbol.TryGetPrimary(name, out var child))
                 {
                     Reject(name, "Module or type name not found");
                     return null;

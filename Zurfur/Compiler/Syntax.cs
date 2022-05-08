@@ -64,18 +64,6 @@ namespace Gosub.Zurfur.Compiler
         }
         public override string ToString() => FullName;
 
-        /// <summary>
-        /// Returns the impl type if both ImplInterface and
-        /// ImplType are valid, otherwise returns null.
-        /// </summary>
-        public SyntaxType GetImplType()
-        {
-            if (!(this is SyntaxType implSyntax))
-                return null;
-            if (implSyntax.ImplInterface == null || implSyntax.ImplType == null)
-                return null;
-            return implSyntax;
-        }
     }
 
     class SyntaxModule : SyntaxScope
@@ -102,9 +90,6 @@ namespace Gosub.Zurfur.Compiler
         public SyntaxExpr Alias;
         public SyntaxExpr TypeArgs;
         public SyntaxConstraint []Constraints;
-
-        public SyntaxExpr ImplType;
-        public SyntaxExpr ImplInterface;
     }
 
     class SyntaxConstraint

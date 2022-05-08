@@ -70,8 +70,8 @@ namespace Gosub.Zurfur.Compiler
                 {
                     if (symbol.IsMethodGroup)
                     {
-                        foreach (var s in symbol.Children)
-                            Reject(s.Value.Token, "Must not be same name as parent scope");
+                        foreach (var s in symbol.MethodValues)
+                            Reject(s.Token, "Must not be same name as parent scope");
                     }
                     else
                     {
@@ -119,17 +119,6 @@ namespace Gosub.Zurfur.Compiler
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent);
                     CheckTypeName(symbol.Token, symbol.TypeName);
                 }
-                else if (symbol.IsType)
-                {
-                    if (symbol.FullName.Contains("$impl"))
-                    {
-                        // These would be compiler errors
-                        if (!symbol.Parent.IsModule)
-                            Reject(symbol.Token, "impl blocks must be at the module level");
-                        foreach (var child in symbol.Children.Values)
-                            Reject(child.Token, "impl blocks may not contain children");
-                    }
-                }
             }
 
             void CheckTypeName(Token token, string typeName)
@@ -175,7 +164,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 while (scope.Name != "")
                 {
-                    if (scope.Children.TryGetValue(token.Name, out var s)
+                    if (scope.TryGetPrimary(token.Name, out var s)
                             && s.IsTypeParam)
                         if (!token.Error)
                             Reject(token, "Must not be same name as a type parameter in any enclosing scope");
@@ -195,7 +184,7 @@ namespace Gosub.Zurfur.Compiler
                 bool hasNonStatic = false;
                 bool hasFunction = false;
                 bool hasProperty = false;
-                foreach (var child in methodGroup.Children.Values)
+                foreach (var child in methodGroup.MethodValues)
                 {
                     if (!child.IsMethod)
                     {
@@ -223,14 +212,14 @@ namespace Gosub.Zurfur.Compiler
                 // Static/non-static may not coexist
                 if (hasStatic && hasNonStatic)
                 {
-                    RejectChildren(methodGroup, "Illegal overload: Static and non-static methods may not be overloaded in the same scope");
+                    RejectChildrenMethods(methodGroup, "Illegal overload: Static and non-static methods may not be overloaded in the same scope");
                     return;
                 }
 
                 // Function/property may not coexist
                 if (hasFunction && hasProperty)
                 {
-                    RejectChildren(methodGroup, "Illegal overload: Functions and properties may not be overloaded in the same scope");
+                    RejectChildrenMethods(methodGroup, "Illegal overload: Functions and properties may not be overloaded in the same scope");
                     return;
                 }
 
@@ -244,9 +233,9 @@ namespace Gosub.Zurfur.Compiler
                 }
             }
 
-            void RejectChildren(Symbol s, string message)
+            void RejectChildrenMethods(Symbol s, string message)
             {
-                foreach (var child in s.Children.Values)
+                foreach (var child in s.MethodValues)
                     Reject(child.Token, message);
             }
 
