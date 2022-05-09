@@ -19,7 +19,7 @@ fun pub Point<T>.toSize() Size<T> { return Size(X, Y) }
 
 
 // TBD: Maybe just use extension methods with known names?
-TBD: // Thease have duplicate symbol error
+// TBD: Thease have duplicate symbol error
 fun Point<T>.opAdd(n Point<T>) Point<T>
         where T is OpAdd<T,T>
     return Point<T>(x+n.x, y+n.y)

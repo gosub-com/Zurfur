@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 using Gosub.Zurfur.Lex;
+
 
 namespace Gosub.Zurfur.Compiler
 {
@@ -12,7 +14,7 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// This may be called after all steps have been completed.
         /// </summary>
-        static public void GenerateReport(List<string> headerFile, Dictionary<string, SyntaxFile> mFiles, SymbolTable mSymbols)
+        static public void GenerateReport(List<string> headerFile, SymbolTable symbols, Lexer []files)
         {
             ShowErrors();
             ShowCounts();
@@ -22,50 +24,43 @@ namespace Gosub.Zurfur.Compiler
 
             void ShowErrors()
             {
-                // Count errors
-                var errors = new Dictionary<string, int>();
-                int unknownErrors = 0;
+                // Count errors and show first 10
+                int MAX_ERROR_MESSAGES = 10;
                 int totalErrors = 0;
-                foreach (var file in mFiles.Values)
+                List<string> errorMessages = new List<string>();
+                foreach (var lexer in files)
                 {
-                    foreach (var token in file.Lexer)
+                    foreach (var token in lexer)
                     {
-                        if (token.Error)
-                        {
-                            var foundError = false;
-                            foreach (var error in token.GetInfos<TokenError>())
-                            {
-                                foundError = true;
-                                var name = error.GetType().Name.ToString();
-                                if (errors.ContainsKey(name))
-                                    errors[name] += 1;
-                                else
-                                    errors[name] = 1;
-                                totalErrors++;
-                            }
-                            if (!foundError)
-                            {
-                                unknownErrors++;
-                                totalErrors++;
-                            }
-                        }
+                        if (!token.Error)
+                            continue;
+                        totalErrors++;
+                        if (errorMessages.Count > MAX_ERROR_MESSAGES)
+                            continue;
+
+                        var errors = token.GetInfos<TokenError>();
+                        var errorMessage = Path.GetFileName(token.Path)
+                            + $" [{token.Y + 1}, {token.X + 1}] \"{token}\"";
+
+                        if (errors.Length == 0)
+                            errorMessage += "Unknown!";
+                        else
+                            foreach (var error in errors)
+                                errorMessage += ": " + error.GetType().Name + " - " + error.Message;
+                        errorMessages.Add(errorMessage);
                     }
-                    if (unknownErrors != 0)
-                        errors["Unknown"] = unknownErrors;
                 }
 
                 // Report errors
                 if (totalErrors == 0)
                 {
-                    headerFile.Add("SUCCESS!  No Errors found");
+                    headerFile.Add("SUCCESS!  No Errors found.");
                 }
                 else
                 {
-                    headerFile.Add("FAIL!  " + totalErrors + " errors found!");
-                    foreach (var error in errors)
-                    {
-                        headerFile.Add("    " + error.Key + ": " + error.Value);
-                    }
+                    headerFile.Add($"FAIL!  {totalErrors} errors found.");
+                    foreach (var error in errorMessages)
+                        headerFile.Add("    " + error);
                 }
                 headerFile.Add("");
             }
@@ -77,13 +72,11 @@ namespace Gosub.Zurfur.Compiler
                 int types = 0;
                 int typesNonGeneric = 0;
                 int typesGeneric = 0;
-                int typeSpecializations = 0;
                 int typeParams = 0;
-                int methodGroups = 0;
                 int methods = 0;
                 int methodParams = 0;
                 int fields = 0;
-                foreach (var sym in mSymbols.Symbols)
+                foreach (var sym in symbols.Symbols)
                 {
                     count++;
                     if (sym.IsType)
@@ -95,14 +88,10 @@ namespace Gosub.Zurfur.Compiler
                         else
                             typesGeneric++;
                     }
-                    if (sym.IsSpecializedType)
-                        typeSpecializations++;
                     if (sym.IsTypeParam)
                         typeParams++;
                     if (sym.IsMethod)
                         methods++;
-                    if (sym.IsMethodGroup)
-                        methodGroups++;
                     if (sym.IsMethodParam)
                         methodParams++;
                     if (sym.IsField)
@@ -111,9 +100,9 @@ namespace Gosub.Zurfur.Compiler
 
                 headerFile.Add("SYMBOLS: " + count);
                 headerFile.Add($"    Types: {types} ({typesNonGeneric} non-generic, {typesGeneric} generic)");
-                headerFile.Add($"    Specializations: {typeSpecializations}");
+                headerFile.Add($"    Specializations: {symbols.SpecializedSymbols.Count} (generated from generics)");
                 headerFile.Add($"    Type parameters: {typeParams}");
-                headerFile.Add($"    Methods: {methods} ({methodParams} parameters, {methodGroups} groups)");
+                headerFile.Add($"    Methods: {methods} ({methodParams} parameters)");
                 headerFile.Add($"    Fields: {fields}");
                 headerFile.Add("");
             }
@@ -122,7 +111,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 // Get namespaces and all symbols
                 var namespaces = new List<string>();
-                foreach (var s in mSymbols.Symbols)
+                foreach (var s in symbols.Symbols)
                 {
                     if (s.IsModule)
                         namespaces.Add(s.FullName);
@@ -147,7 +136,7 @@ namespace Gosub.Zurfur.Compiler
 
             void ShowTypes()
             {
-                var ls = new List<Symbol>(mSymbols.Symbols);
+                var ls = new List<Symbol>(symbols.Symbols);
                 ls.Sort((a, b) => Compare(a.FullName, b.FullName));
 
                 headerFile.Add("SYMBOLS:");

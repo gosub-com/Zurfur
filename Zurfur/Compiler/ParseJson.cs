@@ -14,12 +14,10 @@ namespace Gosub.Zurfur.Compiler
         Token mPrevToken;
         public int ParseErrors { get; private set; }
 
-
         static WordSet sValueTokens = new WordSet("true false null");
         static WordSet sEndArrayValue = new WordSet(", ]", true);
         static WordSet sEndObjectKey = new WordSet(": }", true);
         static WordSet sEndObjectValue = new WordSet(", }", true);
-
 
         /// <summary>
         /// Parse the given lexer
@@ -82,10 +80,17 @@ namespace Gosub.Zurfur.Compiler
                 Reject("Expecting a quote to begin a string", sEndObjectKey);
                 return;
             }
-            // TBD: Accept and buid json style strings
+            // TBD: Accept and build json style strings
             Accept().Type = eTokenType.Quote;
             while (mTokenName != "" && mTokenName != "\"" && !mToken.Boln && !mToken.Meta)
+            {
+                if (mTokenName == "\\")
+                {
+                    if (mLexerEnum.PeekNoSpace() == "\"")
+                        Accept().Type = eTokenType.Quote;
+                }
                 Accept().Type = eTokenType.Quote;
+            }
             if (!mToken.Boln && mTokenName == "\"")
                 Accept().Type = eTokenType.Quote;
         }

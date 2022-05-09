@@ -66,42 +66,28 @@ namespace Gosub.Zurfur.Compiler
             {
                 if (symbol.Name == "")
                     return;
-                if (symbol.Name == symbol.Parent.Name)
-                {
-                    if (symbol.IsMethodGroup)
-                    {
-                        foreach (var s in symbol.MethodValues)
-                            Reject(s.Token, "Must not be same name as parent scope");
-                    }
-                    else
-                    {
-                        Reject(symbol.Token, "Must not be same name as parent scope");
-                    }
-                }
-                else if (symbol.IsTypeParam)
+
+                // TBD: Reject illegal overload methods
+                //      Need to see though alias types
+                //      (e.g. reject 'fun f(a int)' with 'fun f(a MyAliasInt)'
+                //      Reject overloads with different return types
+                //      Eextension methods with same name as members, etc.
+
+                if (symbol.IsTypeParam)
                 {
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
-                }
-                else if (symbol.IsMethodGroup)
-                {
-                    RejectIllegalOverloads(symbol);
                 }
                 else if (symbol.IsMethod)
                 {
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
-                    if (!symbol.Parent.IsMethodGroup)
-                        Reject(symbol.Token, "Compiler error: Method must be in a method group");
 
-                    var methodParent = symbol.Parent.Parent;
-
+                    var methodParent = symbol.Parent;
                     if (symbol.IsStatic && methodParent.IsModule)
                         Reject(symbol.Token, "'static' not allowed at module level");
-
                     if (methodParent.IsInterface && !symbol.IsImpl)
                         Reject(symbol.Token, "Method must be 'impl'");
                     if (!methodParent.IsInterface && !methodParent.IsModule)
                         Reject(symbol.Token, "Method must be scoped at the at the module level");
-
 
                     // TBD: Static may appear in extension methods
                     //if (symbol.Parent.Parent is SymModule && symbol.Qualifiers.Contains("static"))
@@ -109,8 +95,8 @@ namespace Gosub.Zurfur.Compiler
                 }
                 else if (symbol.IsMethodParam)
                 {
-                    if (symbol.Name == symbol.Parent.Parent.Name)
-                        Reject(symbol.Token, "Most not be same name as method");
+                    if (symbol.Name == symbol.Parent.Token.Name)
+                        Reject(symbol.Token, "Must not be same name as method");
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
                     CheckTypeName(symbol.Token, symbol.TypeName);
                 }
@@ -170,73 +156,6 @@ namespace Gosub.Zurfur.Compiler
                             Reject(token, "Must not be same name as a type parameter in any enclosing scope");
                     scope = scope.Parent;
                 }
-            }
-
-            // TBD: Need to see though alias types
-            //      (e.g. reject 'fun f(a int)' with 'fun f(a MyAliasInt)'
-            // TBD: Reject overloads with different return types
-            // TBD: Need to reject more (extension methods with same name
-            //      as members, etc.)
-            void RejectIllegalOverloads(Symbol methodGroup)
-            {
-                bool hasNonMethod = false;
-                bool hasStatic = false;
-                bool hasNonStatic = false;
-                bool hasFunction = false;
-                bool hasProperty = false;
-                foreach (var child in methodGroup.MethodValues)
-                {
-                    if (!child.IsMethod)
-                    {
-                        Reject(child.Token, $"Compiler error: All symbols in this group must be methods. '{child.FullName}' is a '{child.GetType()}'");
-                        hasNonMethod = true;
-                        continue;
-                    }
-                    if (child.IsStatic)
-                        hasStatic = true;
-                    else
-                        hasNonStatic = true;
-                    if (child.IsGetter || child.IsSetter)
-                        hasProperty = true;
-                    else if (child.IsFunc)
-                        hasFunction = true;
-                    else
-                    {
-                        Reject(child.Token, $"Compiler error: Illegal symbol name: {child.FullName}");
-                        hasNonMethod = true;
-                    }
-                }
-                if (hasNonMethod)
-                    return;
-
-                // Static/non-static may not coexist
-                if (hasStatic && hasNonStatic)
-                {
-                    RejectChildrenMethods(methodGroup, "Illegal overload: Static and non-static methods may not be overloaded in the same scope");
-                    return;
-                }
-
-                // Function/property may not coexist
-                if (hasFunction && hasProperty)
-                {
-                    RejectChildrenMethods(methodGroup, "Illegal overload: Functions and properties may not be overloaded in the same scope");
-                    return;
-                }
-
-                if (methodGroup.Parent.Name == "$extension")
-                {
-                    // TBD: There is a lot we need to verify here.
-                    //      1. Need to separate them by concrete type
-                    //      2. Need to ensure they don't cover a member function
-                    //      3. Need to prevent generic function overloads (like below)
-                    //              but allow generic parameter for the type it is an extension of
-                }
-            }
-
-            void RejectChildrenMethods(Symbol s, string message)
-            {
-                foreach (var child in s.MethodValues)
-                    Reject(child.Token, message);
             }
 
             // Does not reject if there is already an error there

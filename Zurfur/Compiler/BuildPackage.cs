@@ -258,6 +258,7 @@ namespace Gosub.Zurfur.Compiler
             await Task.Run(() => 
             {
                 var lines = File.ReadAllLines(fi.Path);
+                lexer.Path = fi.Path;
                 lexer.Scan(lines);
             });
 
@@ -406,10 +407,8 @@ namespace Gosub.Zurfur.Compiler
             mReport.Add($"    Generate package: {tsCompile.TotalSeconds}");
             mReport.Add("");
 
-            ZilReport.GenerateReport(mReport, zurfFiles, zil.Symbols);
-
-            
-
+            ZilReport.GenerateReport(mReport, zil.Symbols,
+                mPackageFiles.Values.Select(a => a.Lexer).Where(a => a != null).ToArray());
 
             //FileUpdate(this, new UpdatedEventArgs(""));
 

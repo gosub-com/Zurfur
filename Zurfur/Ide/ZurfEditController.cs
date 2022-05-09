@@ -314,7 +314,7 @@ namespace Gosub.Zurfur.Ide
             {
                 message += symbol.KindName.ToUpper() + ": " + symbol.FullName + "\r\n";
                 message += "PARAMS: \r\n";
-                foreach (var child in symbol.PrimaryValues)
+                foreach (var child in symbol.Children())
                 {
                     if (child.IsMethodParam)
                         message += "    " + child.Name + ": " + child.TypeName + "\r\n";

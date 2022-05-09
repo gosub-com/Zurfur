@@ -17,8 +17,7 @@ namespace Gosub.Zurfur.Compiler
         Field = 5,
         Method = 6,
         MethodParam = 7,
-        ImplDef = 8,
-        MethodGroup = 100, // Internal to compiler, never serialized
+        All = 100
     }
 
     enum SymQualifiers
@@ -49,8 +48,6 @@ namespace Gosub.Zurfur.Compiler
     /// <summary>
     /// NOTE: This data structure is all internal to the compiler.
     /// The public definitions are contained in PackageDefinitions.cs.
-    /// For example, `SymMethodGroup` doesn't exist in the header file
-    /// json, and there can be other differences.
     /// 
     /// Symbol symbols:
     ///     .   Module, type, or method separator
@@ -70,38 +67,22 @@ namespace Gosub.Zurfur.Compiler
     {
         public Symbol Parent { get; }
         static Dictionary<int, string> sTags = new Dictionary<int, string>();
-        string mFile;
-        Token mToken;
-        public string Comments = "";
-        Dictionary<string, Symbol> mPrimary = new Dictionary<string, Symbol>();
-        Dictionary<string, Symbol> mMethods = new Dictionary<string, Symbol>();
         public SymKind Kind { get; protected set; }
         public SymQualifiers Qualifiers;
-        public abstract string KindName { get; }
+        Token mToken;
+        public string Comments = "";
 
+        // Definitive list of all children.  The key matches the symbol name.
+        Dictionary<string, Symbol> mChildren;
 
-        public int PrimaryCount => mPrimary.Count;
-        public Dictionary<string, Symbol>.ValueCollection PrimaryValues => mPrimary.Values;
+        // Quick lookup (by token name) of module, type, field, or parameter.
+        // i.e. things that have unique token names within a scope.
+        // NOTE: This is an optimization (we could use only mChildren)
+        Dictionary<string, Symbol> mPrimary;
 
-        // Find module, type, field, or parameter (ignore methods) 
-        public bool TryGetPrimary(string key, out Symbol sym)
-        {
-            return mPrimary.TryGetValue(key, out sym);
-        }
-
-        public int MethodCount => mMethods.Count;
-        public Dictionary<string, Symbol>.ValueCollection MethodValues => mMethods.Values;
-        public bool TryGetMethods(string key, out SymMethodGroup group)
-        {
-            if (mMethods.TryGetValue(key, out var sym))
-            {
-                group = (SymMethodGroup)sym;
-                return true;
-            }
-            group = null;
-            return false;
-        }
-
+        // Quick lookup (by token  name) of methods
+        // NOTE: This is an optimization (we could use only mChildren)
+        Dictionary<string, SymMethod> mMethods;
 
         /// <summary>
         /// True for built in unary types that don't get serialized,
@@ -119,6 +100,48 @@ namespace Gosub.Zurfur.Compiler
         /// and SymSpecializedType which include type info.
         /// </summary>        
         public string Name { get; private set; }
+
+        /// <summary>
+        /// Field or parameter type name (not applicable to types or methods, etc.)
+        /// </summary>
+        public string TypeName = "";
+
+        /// <summary>
+        /// Applicable to Types and Methods
+        /// </summary>
+        public Dictionary<string, string[]> Constraints;
+
+
+        /// <summary>
+        /// Create a symbol that is unique in the soruce code (e.g. SymMethod,
+        /// SymType, SymField, etc.) and can be marked with token information.
+        /// </summary>
+        public Symbol(Symbol parent, Token token, string name = null)
+        {
+            Parent = parent;
+            Name = name == null ? token.Name : name;
+            mToken = token;
+        }
+
+        /// <summary>
+        /// Create a symbol that is non-existent or not unique in the source
+        /// code (e.g. SymSpecializedType, SymModule,
+        /// and built-in types like "ref", "*", etc.)
+        /// </summary>
+        public Symbol(Symbol parent, string name)
+        {
+            Parent = parent;
+            Name = name;
+        }
+
+
+        public abstract string KindName { get; }
+
+
+        public int ChildrenCount => mChildren == null ? 0 : mChildren.Count;
+        public int PrimaryCount => mPrimary == null ? 0 : mPrimary.Count;
+        public int MethodsCount => mMethods == null ? 0 : mMethods.Count;
+
 
         /// <summary>
         /// Prefix for the kind of symbol. 
@@ -140,17 +163,68 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
-        public bool HasToken => mToken != null && mFile != null;
+        public bool HasToken => mToken != null;
+
+
+
+        // Find module, type, field, or parameter (ignore methods) 
+        public bool TryGetPrimary(string key, out Symbol sym)
+        {
+            if (mPrimary == null)
+            {
+                sym = null;
+                return false;
+            }
+            return mPrimary.TryGetValue(key, out sym);
+        }
+
+
+        public IEnumerable<Symbol> Children(SymKind filter = SymKind.All)
+        {
+            Debug.Assert(ChildrenCount == PrimaryCount + MethodsCount);
+
+            if (filter == SymKind.All)
+            {
+                if (ChildrenCount == 0)
+                    yield break;
+                foreach (var sym in mChildren.Values)
+                    yield return sym;
+            }
+            else if (filter == SymKind.Method)
+            {
+                if (MethodsCount == 0)
+                    yield break;
+                foreach (var method in mMethods.Values)
+                    yield return method;
+            }
+            else
+            {
+                if (PrimaryCount == 0)
+                    yield break;
+                foreach (var primary in mPrimary.Values)
+                    if (filter == SymKind.All || primary.Kind == filter)
+                        yield return primary;
+            }
+        }
 
         /// <summary>
-        /// Field or parameter type name (not applicable to types or methods, etc.)
+        /// Returns all immediate children (types, fields, methods, parameters) of this symbol
         /// </summary>
-        public string TypeName = "";
+        public IEnumerable<Symbol> ChildrenRecurse()
+        {
+            Debug.Assert(ChildrenCount == PrimaryCount + MethodsCount);
+            if (ChildrenCount == 0)
+                yield break;
 
-        /// <summary>
-        /// Applicable to Types and Methods
-        /// </summary>
-        public Dictionary<string, string[]> Constraints;
+            foreach (var sym in Children())
+            {
+                yield return sym;
+                foreach (var child in sym.ChildrenRecurse())
+                    yield return child;
+            }
+        }
+
+
 
         public string QualifiersStr()
         {
@@ -162,9 +236,7 @@ namespace Gosub.Zurfur.Compiler
                 switch (Kind)
                 {
                     case SymKind.Field: t = "field"; break;
-                    case SymKind.ImplDef: t = "impl_def"; break;
                     case SymKind.Method: t = "method"; break;
-                    case SymKind.MethodGroup: t = "method_group"; break;
                     case SymKind.MethodParam: t = "method_param"; break;
                     case SymKind.TypeParam: t = "type_param"; break;
                     case SymKind.Module: t = "module"; break;
@@ -258,7 +330,6 @@ namespace Gosub.Zurfur.Compiler
         public bool IsAnyTypeNotModule => IsType || IsTypeParam || IsSpecializedType;
         public bool IsField => this is SymField;
         public bool IsMethod => this is SymMethod;
-        public bool IsMethodGroup => this is SymMethodGroup;
         public bool IsMethodParam => this is SymMethodParam;
 
         public bool IsExtension => Qualifiers.HasFlag(SymQualifiers.Extension);
@@ -284,7 +355,7 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Source code token if it exists.  Throws an exception for
-        /// SymMethodGroup, SymSpecializedType, SymModule
+        /// SymSpecializedType, SymModule
         /// </summary>
         public Token Token
         {
@@ -300,51 +371,10 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Source code token if it exists.  Throws an exception for
-        /// SymMethodGroup, SymSpecializedType, SymModule
-        /// </summary>
-        public string File
-        {
-            get
-            {
-                if (mFile == null)
-                {
-                    Debug.Assert(false);
-                    throw new Exception($"Invalid symbol location for '{KindName}' named '{FullName}'");
-                }
-                return mFile;
-            }
-        }
-
-        /// <summary>
-        /// Create a symbol that is unique in the soruce code (e.g. SymMethod,
-        /// SymType, SymField, etc.) and can be marked with token information.
-        /// </summary>
-        public Symbol(Symbol parent, string file, Token token, string name = null)
-        {
-            Parent = parent;
-            Name = name == null ? token.Name : name;
-            mFile = file;
-            mToken = token;
-        }
-
-        /// <summary>
-        /// Create a symbol that is non-existent or not unique in the source
-        /// code (e.g. SymMethodGroup, SymSpecializedType, SymModule,
-        /// and built-in types like "ref", "*", etc.)
-        /// </summary>
-        public Symbol(Symbol parent, string name)
-        {
-            Parent = parent;
-            Name = name;
-        }
-
-        /// <summary>
         /// Do not set the symbol name after it has been added to the symbol table.
         /// </summary>
         public void SetMethodName(string name)
         {
-            Debug.Assert(!Parent.TryGetMethods(Name, out var _));
             Debug.Assert(IsMethod);
             Name = name;
             mFullNameCache = null;
@@ -358,19 +388,30 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         internal bool SetChildInternal(Symbol value, out Symbol remoteSymbol)
         {
-            if (value.IsMethodGroup || value.IsMethod)
+            if (mChildren == null)
+                mChildren = new Dictionary<string, Symbol>();
+            if (mChildren.TryGetValue(value.Name, out remoteSymbol))
+                return false;
+            mChildren[value.Name] = value;
+
+            if (value.IsMethod)
             {
-                if (mMethods.TryGetValue(value.Name, out remoteSymbol))
-                    return false;
-                mMethods[value.Name] = value;
+                remoteSymbol = null;
+                if (mMethods == null)
+                    mMethods = new Dictionary<string, SymMethod>();
+                Debug.Assert(!mMethods.ContainsKey(value.Name));
+                mMethods[value.Name] = (SymMethod)value;
             }
             else
             {
-                if (mPrimary.TryGetValue(value.Name, out remoteSymbol))
-                    return false;
+                if (mPrimary == null)
+                    mPrimary = new Dictionary<string, Symbol>();
+                Debug.Assert(!mPrimary.ContainsKey(value.Name));
                 value.Order = mPrimary.Count;
                 mPrimary[value.Name] = value;
             }
+
+
             mFullNameCache = null;
             return true;
         }
@@ -409,9 +450,8 @@ namespace Gosub.Zurfur.Compiler
         public int GenericParamCount()
         {
             var count = 0;
-            foreach (var child in PrimaryValues)
-                if (child.Kind == SymKind.TypeParam)
-                    count++;
+            foreach (var child in Children(SymKind.TypeParam))
+                count++;
             return count;
         }
 
@@ -423,7 +463,7 @@ namespace Gosub.Zurfur.Compiler
         {
             var count = GenericParamCount();
             var p = Parent;
-            while (p.IsType || p.IsMethod || p.IsMethodGroup)
+            while (p.IsType || p.IsMethod)
             {
                 count += p.GenericParamCount();
                 p = p.Parent;
@@ -436,7 +476,6 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public int GenericParamNum()
         {
-            Debug.Assert(IsTypeParam);
             return Parent.Parent.GenericParamTotal() + Order;
         }
 
@@ -455,8 +494,8 @@ namespace Gosub.Zurfur.Compiler
 
     class SymType : Symbol
     {
-        public SymType(Symbol parent, string file, Token token, string name = null)
-            : base(parent, file, token, name)
+        public SymType(Symbol parent, Token token, string name = null)
+            : base(parent, token, name)
         { 
             Kind = SymKind.Type;
         }
@@ -471,8 +510,8 @@ namespace Gosub.Zurfur.Compiler
 
     class SymTypeParam : Symbol
     {
-        public SymTypeParam(Symbol parent, string file, Token token)
-            : base(parent, file, token)
+        public SymTypeParam(Symbol parent, Token token)
+            : base(parent, token)
         {
             Kind = SymKind.TypeParam;
         }
@@ -482,8 +521,8 @@ namespace Gosub.Zurfur.Compiler
 
     class SymField : Symbol
     {
-        public SymField(Symbol parent, string file, Token token) 
-            : base(parent, file, token) 
+        public SymField(Symbol parent, Token token) 
+            : base(parent, token) 
         {
             Kind = SymKind.Field;
         }
@@ -491,38 +530,22 @@ namespace Gosub.Zurfur.Compiler
         protected override string Separator => "@";
     }
 
-    /// <summary>
-    /// This is strictly internal to the compiler, so we can deal with
-    /// overloaded functions.
-    /// </summary>
-    class SymMethodGroup : Symbol
-    {
-        public SymMethodGroup(Symbol parent, string file, Token token, string name = null) 
-            : base(parent, file, token, name)
-        {
-            Kind = SymKind.MethodGroup;
-        }
-        public override string KindName => "method group";
-        protected override string Separator => ".";
-
-    }
-
     class SymMethod : Symbol
     {
-        public SymMethod(Symbol parent, string file, Token token, string name) 
-            : base(parent, file, token, name)
+        public SymMethod(Symbol parent, Token token, string name) 
+            : base(parent, token, name)
         {
             Kind = SymKind.Method;
         }
         public override string KindName => "method";
-        protected override string Separator => "";
+        protected override string Separator => ".";
 
     }
 
     class SymMethodParam : Symbol
     {
-        public SymMethodParam(Symbol parent, string file, Token token, string name = null)
-            : base(parent, file, token, name)
+        public SymMethodParam(Symbol parent, Token token, string name = null)
+            : base(parent, token, name)
         {
             Kind = SymKind.MethodParam;
         }

@@ -199,6 +199,7 @@ namespace Gosub.Zurfur
         {
             mUndo.Clear(); // TBD: Should handle Undo
             mRedo.Clear();
+            Lexer.Path = filePath;
             Lexer.Scan(File.ReadAllLines(filePath));
             FileInfo = new FileInfo(filePath);
             FileInfo.Refresh(); // This seems to be needed for some reason

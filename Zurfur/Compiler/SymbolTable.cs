@@ -51,7 +51,7 @@ namespace Gosub.Zurfur.Compiler
             for (int i = 0; i < numGenerics; i++)
             {
                 var tn = "T" + (numGenerics == 1 ? "" : $"{i + 1}");
-                var t = new SymTypeParam(sym, "", new Token(tn));
+                var t = new SymTypeParam(sym, new Token(tn));
                 t.IsIntrinsic = true;
                 var ok = AddOrReject(t);
                 Debug.Assert(ok);
@@ -76,15 +76,13 @@ namespace Gosub.Zurfur.Compiler
         public void GenerateLookup()
         {
             mLookup.Clear();
-            VisitAll((s) => 
+            foreach (var s in mRoot.ChildrenRecurse())
             {
                 Debug.Assert(!s.IsSpecializedType);
-                if (s.IsMethodGroup)
-                    return;
                 var fullName = s.FullName;
                 Debug.Assert(!mLookup.ContainsKey(fullName));
                 mLookup[fullName] = s;
-            });
+            }
         }
 
         /// <summary>
@@ -108,24 +106,8 @@ namespace Gosub.Zurfur.Compiler
         public Dictionary<string, Symbol>.ValueCollection Symbols
             => mLookup.Values;
 
-        /// <summary>
-        /// Visit all symbols, excluding specialized types
-        /// </summary>
-        void VisitAll(Action<Symbol> visit)
-        {
-            VisitAll(mRoot, visit);
-        }
-
-        // Recursively call visit for each symbol in the root.
-        static void VisitAll(Symbol root, Action<Symbol> visit)
-        {
-            if (root.FullName != "")
-                visit(root);
-            foreach (var sym in root.PrimaryValues)
-                VisitAll(sym, visit);
-            foreach (var sym in root.MethodValues)
-                VisitAll(sym, visit);
-        }
+        public Dictionary<string, SymSpecializedType>.ValueCollection SpecializedSymbols
+            => mSpecializedTypes.Values;
 
         /// <summary>
         /// Check to make sure the given symbol belongs to this symbol table
@@ -179,8 +161,6 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Get or create a generic parameter ('#0', '#1', etc.)
         /// </summary>
-        /// <param name="argNum"></param>
-        /// <returns></returns>
         public SymSpecializedType GetGenericParam(int argNum)
         {
             var name = "#" + argNum;

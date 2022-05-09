@@ -52,7 +52,7 @@ namespace Gosub.Zurfur.Lex
     /// also used by the parser and code generator to mark tokens with 
     /// error codes and other information.
     /// </summary>
-    public class Token
+    sealed public class Token
     {
         public static readonly Token[] EmptyArray = new Token[0];
 
@@ -63,6 +63,11 @@ namespace Gosub.Zurfur.Lex
         public eTokenSubtype Subtype;
         eTokenBits mBits;
         ObjectBag mInfo;
+
+        /// <summary>
+        /// The path, which should only be set by the Lexer that owns it
+        /// </summary>
+        public string Path { get; private set; } = "";
 
         public Token()
         {
@@ -102,6 +107,7 @@ namespace Gosub.Zurfur.Lex
         public Token Clone()
         {
             var token = new Token(Name, X, Y);
+            token.Path = Path;
             if (Boln)
                 token.SetBolnByLexerOnly();
             if (Eoln)
@@ -183,6 +189,11 @@ namespace Gosub.Zurfur.Lex
         public bool VerticalLine
         {
             get => (mBits & eTokenBits.VerticalLine) != 0;
+        }
+
+        public void SetPathByLexer(string path)
+        {
+            Path = path;
         }
 
         public void SetEolnByLexerOnly()

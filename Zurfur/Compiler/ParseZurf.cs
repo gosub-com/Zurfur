@@ -155,8 +155,7 @@ namespace Gosub.Zurfur.Compiler
         public SyntaxFile Parse()
         {
             mLexer.EndToken.Clear();
-            mLexer.MetaTokens.Clear();
-            mLexer.MetaTokens.Add(mLexer.EndToken);
+            mLexer.MetaTokensClear();
 
             if (Debugger.IsAttached)
             {
@@ -2432,7 +2431,7 @@ namespace Gosub.Zurfur.Compiler
             mTokenName = mToken.Name;
             mParseErrors = p.ParseErrors;
             while (mLexer.MetaTokens.Count > p.MetaTokenCount)
-                mLexer.MetaTokens.RemoveAt(mLexer.MetaTokens.Count-1);
+                mLexer.MetaTokensRemoveAt(mLexer.MetaTokens.Count-1);
             mEndLineSemicolonsIndex = p.EndLineSemicolonsIndex;
         }
 
@@ -2597,8 +2596,7 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         Token AddMetaToken(Token token)
         {
-            token.Meta = true;
-            mLexer.MetaTokens.Add(token);
+            mLexer.MetaTokensAdd(token);
             return token;
         }
 

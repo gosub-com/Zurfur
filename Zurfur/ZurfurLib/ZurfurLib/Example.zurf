@@ -5,30 +5,6 @@
 
 // Press F4 to see header file report
 
-// TBD
-//
-// Symbols:
-//      Unify extension method and member functions
-//      Figure out where impl's live (types, or method groups)
-//      Figure out impl and extension parameters (parameters for both?)
-//      Figure out static vs non-static methods (interfaces too)
-//          Use explicit this parameter?
-//      See code with comment "First parameter is "$this"
-//      Sort out "This" usage in interfaces.
-//      May need to pass explicit <T> for everything (e.g. OpEq<Lhs, Rhs>)
-//
-// Operators as extension methods?  (See Draw2d)
-//
-// Require explicit identifiers in use:
-//      use Zurfur[int, f64, etc.]
-//      use Zurfur.Math[sin, cos, etc.]
-//
-// Require explicit "this" parameter for member and extensions?
-//      e.g. fun pub push(mut this, item own T) {}
-//      This would abolish 'static' for functions (but not fields)
-//
-// Consider moving "pub" to after "fun" and "type", etc.
-
 
 // http://zurfur.com
 module TestExample

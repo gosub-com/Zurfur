@@ -40,15 +40,6 @@ namespace Gosub.Zurfur.Compiler
             if (symbol.IsIntrinsic)
                 return;
 
-            if (symbol.IsMethodGroup)
-            {
-                // Hop over method groups, which are internal to the compiler
-                // NOTE: Nothing directly under the group should be using the parent
-                foreach (var s in symbol.MethodValues)
-                    Save(s, null, packSyms, onlyPublic);
-                return;
-            }
-
             if (onlyPublic && symbol.IsField
                 || onlyPublic
                     && !symbol.Qualifiers.HasFlag(SymQualifiers.Pub)
@@ -73,23 +64,17 @@ namespace Gosub.Zurfur.Compiler
             {
                 ps.Name = symbol.FullName;
                 packSyms.Add(ps);
-                foreach (var s in symbol.PrimaryValues)
-                    Save(s, ps, packSyms, onlyPublic);
-                foreach (var s in symbol.MethodValues)
+                foreach (var s in symbol.Children())
                     Save(s, ps, packSyms, onlyPublic);
             }
             else if (symbol.IsMethod)
             {
-                Debug.Assert(symbol.Parent.IsMethodGroup);
-                var genericCount = symbol.GenericParamCount();
-                ps.Name = symbol.Parent.FullName + (genericCount == 0 ? "" : "`" + genericCount);
+                ps.Name = symbol.FullName;
                 packSyms.Add(ps);
-                foreach (var s in symbol.PrimaryValues)
-                    Save(s, ps, packSyms, onlyPublic);
-                foreach (var s in symbol.MethodValues)
+                foreach (var s in symbol.Children())
                     Save(s, ps, packSyms, onlyPublic);
 
-                CheckMethodName(ps, symbol.FullName);
+                CheckMethodName(ps, symbol);
             }
             else if (symbol.IsTypeParam || symbol.IsMethodParam || symbol.IsField)
             {
@@ -100,7 +85,7 @@ namespace Gosub.Zurfur.Compiler
                 if (parent.Symbols == null)
                     parent.Symbols = new List<PackageSymbolJson>();
                 parent.Symbols.Add(ps);
-                Debug.Assert(symbol.PrimaryCount == 0 && symbol.MethodCount == 0);
+                Debug.Assert(symbol.ChildrenCount == 0);
             }
             else
                 Debug.Assert(false);
@@ -108,7 +93,7 @@ namespace Gosub.Zurfur.Compiler
         }
 
         [Conditional("DEBUG")]
-        static void CheckMethodName(PackageSymbolJson ps, string fullName)
+        static void CheckMethodName(PackageSymbolJson ps, Symbol sym)
         {
             var paramIn = new List<string>();
             var paramOut = new List<string>();
@@ -125,9 +110,9 @@ namespace Gosub.Zurfur.Compiler
                     }
                 }
             }
-            Debug.Assert(fullName
-                == ps.Name + "(" + string.Join(",", paramIn) 
-                            + ")(" + string.Join(",", paramOut) + ")");
+            var n = "(" + string.Join(",", paramIn)
+                            + ")(" + string.Join(",", paramOut) + ")";
+            Debug.Assert(ps.Name.EndsWith(n));
         }
 
         /// <summary>
@@ -192,7 +177,7 @@ namespace Gosub.Zurfur.Compiler
                     Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' kind doesn't match");
                     Debug.Assert(false);
                 }
-                if (loadedSym.PrimaryCount != savedSym.PrimaryCount)
+                if (loadedSym.ChildrenCount != savedSym.ChildrenCount)
                 {
                     // NOTE: Certain errors in the source code trigger this,
                     //       but it's OK since we won't be saving the table in that case.
