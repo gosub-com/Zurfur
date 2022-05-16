@@ -13,20 +13,15 @@ pragma NoVerify
 type OneGeneric<T> { } // No error expected here
 
 type DupType
-{
     @a int
     fun b() void {}
-}
 
 // Should mark error on type name, no errors on fields
 type DupType
-{
     @a int
     fun b() void {}
-}
 
 type TestFails
-{
     @field0 int // ok
     pub fun fun0() void {} // OK
     
@@ -52,12 +47,10 @@ type TestFails
     pub fun F3a(a List<List>) void { }
     pub fun F4(a List<int,hello>) void { }
     pub fun F5(a List<List<x>>) void { }
-}
 
 
 pub type AGenericTest<T, QQQ>
     where QQQ is x//: new() where T : new()
-{
     @field1 Inner1<str, aStruct> // Undefined symbol
     @field2 Inner1                 // Expecting 2 generic parameters
     @field3 Inner1<int>         // Expecting 2 generic parameters
@@ -144,4 +137,3 @@ pub type AGenericTest<T, QQQ>
         }
 
     }
-}

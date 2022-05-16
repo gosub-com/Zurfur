@@ -16,9 +16,9 @@ enum SeekOrigin
 interface Seeker
     afun mut seek(offset int, origin SeekOrigin) int throws impl
     
-aget Seeker.length() int throws { todo() }
-aget Seeker.position() int throws { todo() }
-aset Seeker.position(value int) throws { todo() }
+aget (s Seeker) length() int throws { todo() }
+aget (s Seeker) position() int throws { todo() }
+aset (s Seeker) position(value int) throws { todo() }
 
 interface FileStream { }
 

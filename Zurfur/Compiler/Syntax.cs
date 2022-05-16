@@ -131,7 +131,7 @@ namespace Gosub.Zurfur.Compiler
             yield return Statements;
         }
 
-        public SyntaxExpr ExtensionType;
+        public bool IsExtension;
         public SyntaxExpr TypeArgs;
         public SyntaxExpr MethodSignature;
         public SyntaxConstraint[] Constraints;

@@ -303,7 +303,6 @@ namespace Gosub.Zurfur.Compiler
             foreach (var func in unit.Methods)
             {
                 //ShowParseTree(func.Name);
-                ShowParseTree(func.ExtensionType);
                 ShowParseTree(func.MethodSignature);
                 if (func.Statements != null)
                     foreach (var statement in func.Statements)

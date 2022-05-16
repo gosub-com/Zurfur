@@ -15,18 +15,18 @@ type pub copy Point<T> //TBD: where T is NumOps
     @x T pub init ref mut
     @y T pub init ref mut
 
-fun pub Point<T>.toSize() Size<T> { return Size(X, Y) }
+fun pub (p Point<T>) toSize() Size<T> { return Size(X, Y) }
 
 
 // TBD: Maybe just use extension methods with known names?
 // TBD: Thease have duplicate symbol error
-fun Point<T>.opAdd(n Point<T>) Point<T>
+fun (p Point<T>) opAdd(n Point<T>) Point<T>
         where T is OpAdd<T,T>
     return Point<T>(x+n.x, y+n.y)
-fun Point<T>.opMul(n T) Point<T>
+fun (p Point<T>) opMul(n T) Point<T>
         where T is OpMul<T,T>
     return Point<T>(x*n, y*n)
-fun Point<T>.opMul(n Point<T>) Point<T>
+fun (p Point<T>) opMul(n Point<T>) Point<T>
         where T is OpMul<T,T>
     return Point<T>(this*n.x, this*n.y)
 
@@ -36,7 +36,7 @@ type pub copy Size<T> // TBD:    where T is NumOps
     @height T pub init ref mut
     
     // TBD: Same as Point<T>
-fun Size<T>.toPoint() Point<T>
+fun (s Size<T>) toPoint() Point<T>
     return Point(width, height)
 
 type pub copy Rect<T> // TBD:    where T is NumOps
@@ -45,17 +45,17 @@ type pub copy Rect<T> // TBD:    where T is NumOps
     @width T pub init ref mut
     @height T pub init ref mut
     
-fun pub Size<T>.new(location Point<T>, size Size<T>)
+fun pub (s Size<T>) new(location Point<T>, size Size<T>)
     s.location = location
     s.size = size
 
     // TBD: Operators (add, multiply, divide, sizes, etc.)
 
-get pub Size<T>.left() T { return x }
-get pub Size<T>.right() T { return x + width }
-get pub Size<T>.top() T { return y }
-get pub Size<T>.bottom() T { return y + height }
-get pub Size<T>.location() Point<T> { return Point<T>(x, y) }
-set pub Size<T>.location(value Point<T>) { x = value.x;  Y = value.y }
-get pub Size<T>.size() Size<T> { return Size<T>(width, height) }
-set pub Size<T>.size(value Size<T>) { width = value.width;  height = value.height }
+get pub (s Size<T>) left() T { return x }
+get pub (s Size<T>) right() T { return x + width }
+get pub (s Size<T>) top() T { return y }
+get pub (s Size<T>) bottom() T { return y + height }
+get pub (s Size<T>) location() Point<T> { return Point<T>(x, y) }
+set pub (s Size<T>) location(value Point<T>) { x = value.x;  Y = value.y }
+get pub (s Size<T>) size() Size<T> { return Size<T>(width, height) }
+set pub (s Size<T>) size(value Size<T>) { width = value.width;  height = value.height }

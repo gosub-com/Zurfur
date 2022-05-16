@@ -578,8 +578,6 @@ namespace Gosub.Zurfur.Compiler
             while (allowedQualifiers.Contains(mTokenName))
             {
                 mToken.Type = eTokenType.Reserved;
-                if (mTokenName == "pub")
-                    mToken.Type = eTokenType.ReservedControl;
                 qualifiers.Add(Accept());
             }
         }
@@ -874,10 +872,7 @@ namespace Gosub.Zurfur.Compiler
 
             // Experimental: See how syntax would look if we put "pub" after "type"
             if (mTokenName == "pub")
-            {
-                mToken.Type = eTokenType.ReservedControl;
                 qualifiers.Add(Accept());
-            }
 
             if (keyword.Name == "type")
                 ParseQualifiers(sTypeQualifiers, qualifiers);
@@ -1099,13 +1094,15 @@ namespace Gosub.Zurfur.Compiler
             while (mTokenName == "mut")
                 qualifiers.Add(Accept());
 
-            var validMethodName = ParseExtensionTypeAndMethodName(out synFunc.ExtensionType, out synFunc.Name, out synFunc.TypeArgs);
+            var validMethodName = ParseExtensionTypeAndMethodName(out var extensionParam, out synFunc.Name, out synFunc.TypeArgs);
+            if (extensionParam != null)
+                synFunc.IsExtension = true;
 
             // Don't process function while user is typing (this is for a better error message)
             if (!IsMatchPastMetaSemicolon("("))
                 validMethodName = false;
 
-            synFunc.MethodSignature = ParseMethodSignature(keyword, out var hasReturnType);
+            synFunc.MethodSignature = ParseMethodSignature(keyword, extensionParam);
             synFunc.Constraints = ParseConstraints();
 
             while (AcceptMatchPastMetaSemicolon("require"))
@@ -1134,6 +1131,18 @@ namespace Gosub.Zurfur.Compiler
         {
             extensionType = null;
             genericTypeArgs = null;
+
+            // Parse extension method parameter
+            if (AcceptMatch("("))
+            {
+                var open = mPrevToken;
+                var p = ParseMethodParam(false);
+                if (p.Count != 0)
+                    extensionType = p;
+                if (AcceptMatchOrReject(")"))
+                    Connect(open, mPrevToken);
+            }
+
             if (sReservedUserFuncNames.Contains(mTokenName))
             {
                 // Reserved function
@@ -1143,39 +1152,11 @@ namespace Gosub.Zurfur.Compiler
             }
 
             funcName = mToken;
-            if (!CheckIdentifier("Expecting a function or property name", sRejectTypeName))
+            if (!AcceptIdentifier("Expecting a function or property name", sRejectTypeName))
                 return false;
-            var nameExpr = ParseType();
-
-            // Generic type args
-            if (nameExpr.Count >= 2 && nameExpr.Token == VT_TYPE_ARG)
-            {
-                genericTypeArgs = new SyntaxMulti(nameExpr.Token, nameExpr.Skip(1).ToArray());
-                nameExpr = nameExpr[0];
-            }
-
-            // Extension type
-            if (nameExpr.Token == "." && nameExpr.Count >= 2)
-            {
-                extensionType = nameExpr[0];
-                nameExpr = nameExpr[1];
-            }
-
-            if (nameExpr.Count != 0)
-                RejectToken(nameExpr.Token, "Expecting a function name");
-            if (genericTypeArgs != null)
-                foreach (var arg in genericTypeArgs)
-                    if (arg.Count != 0)
-                    {
-                        genericTypeArgs = null;
-                        RejectToken(arg.Token, "Only type names are allowed in a generic argument list");
-                    }
-
-            funcName = nameExpr.Token;
             funcName.Type = eTokenType.DefineMethod;
-
-            RejectUnderscoreDefinition(funcName);
-            return nameExpr.Count == 0;
+            genericTypeArgs = ParseTypeParameters();
+            return true;
         }
 
         /// <summary>
@@ -1184,10 +1165,9 @@ namespace Gosub.Zurfur.Compiler
         ///     [1] - Returns (name, type) possibly blank for each
         ///     [2] - error/exit token
         /// </summary>
-        private SyntaxExpr ParseMethodSignature(Token keyword, out bool hasReturnType)
+        private SyntaxExpr ParseMethodSignature(Token keyword, SyntaxExpr firstParam = null)
         {
-            hasReturnType = false;
-            var funcParams = ParseMethodParams();
+            var funcParams = ParseMethodParams(firstParam);
 
             if (mTokenName == "type")
                 RejectToken(mToken, "Use '->' instead of anonymous type");
@@ -1203,7 +1183,6 @@ namespace Gosub.Zurfur.Compiler
                 var returns = NewExprList();
                 if (BeginsType())
                 {
-                    hasReturnType = true;
                     returns.Add(new SyntaxBinary(EmptyToken, ParseType(), EmptyExpr));
                 }
                 returnParams = new SyntaxMulti(EmptyToken, FreeExprList(returns));
@@ -1217,7 +1196,7 @@ namespace Gosub.Zurfur.Compiler
         }
 
 
-        SyntaxExpr ParseMethodParams()
+        SyntaxExpr ParseMethodParams(SyntaxExpr firstParam = null)
         {
             // Read open token, '('
             if (!AcceptMatchPastMetaSemicolon("(")  && !AcceptMatchOrReject("("))
@@ -1226,6 +1205,8 @@ namespace Gosub.Zurfur.Compiler
             // Parse parameters
             var openToken = mPrevToken;
             var parameters = NewExprList();
+            if (firstParam != null)
+                parameters.Add(firstParam);
             if (mTokenName != ")")
                 parameters.Add(ParseMethodParam());
             while (AcceptMatch(","))
@@ -1245,7 +1226,7 @@ namespace Gosub.Zurfur.Compiler
         }
 
         // Syntax Tree: (name, type, initializer)
-        SyntaxExpr ParseMethodParam()
+        SyntaxExpr ParseMethodParam(bool isExtension = true)
         {
             if (!AcceptIdentifier("Expecting a variable name", sRejectFuncParam))
                 return SyntaxError;
@@ -1254,7 +1235,9 @@ namespace Gosub.Zurfur.Compiler
             RejectUnderscoreDefinition(name);
 
             var type = ParseType();
-            var initializer = AcceptMatch("=") ? ParseExpr() : EmptyExpr;
+            var initializer = (SyntaxExpr)EmptyExpr;
+            if (isExtension && AcceptMatch("="))
+                initializer = ParseExpr();
             return new SyntaxBinary(name, type, initializer);
         }
 
@@ -2176,7 +2159,7 @@ namespace Gosub.Zurfur.Compiler
                 var funKeyword = Accept();
                 if (mTokenName == "<")
                     RejectToken(mToken, "Generic type args on lambda not supported YET!");
-                return ParseMethodSignature(funKeyword, out var hasReturnType);
+                return ParseMethodSignature(funKeyword);
             }
 
             if (AcceptMatch("type"))

@@ -8,7 +8,7 @@ use Zurfur.Operators[OpEq, OpNeg, OpAdd]
 
 pragma ShowParse
 
-fun Span<byte>.hello()
+fun (s Span<byte>) hello()
     nop
 
 type AAAA<T>
@@ -17,27 +17,27 @@ type AAAA<T>
 type BBBB
     @v void
         
-fun BBBB.BBBB_fm1() {}
-fun BBBB.BBBB_fm2(a BBBB) {}
+fun (b BBBB) BBBB_fm1() {}
+fun (b BBBB) BBBB_fm2(a BBBB) {}
     
 
 
-fun AAAA<int>.AAAA_fm() {}
-fun AAAA<T>.AAAA_fm() {}
-fun BBBB.AAAA_fm() {}
+fun (a AAAA<int>) AAAA_fm() {}
+fun (a AAAA<T>) AAAA_fm() {}
+fun (b BBBB) AAAA_fm() {}
 
 fun AAAA_f() {}
 
-fun BBBB.AAAA_fe2(a BBBB) {}
+fun (b BBBB) AAAA_fe2(a BBBB) {}
 
 // TBD: AAAA should not conflict with AAAA typename
 //      must be resolved before moving methods to module level
-fun aapoint.AAAA() {}
-fun aapoint.BBBB() {}
-fun aapoint.AAAB() {}
-fun List<T>.X() {}
-fun int.X() {}
-fun BBBB.hello() {}
+fun (a aapoint) AAAA() {}
+fun (a aapoint) BBBB() {}
+fun (a aapoint) AAAB() {}
+fun (l List<T>) X() {}
+fun (i int) X() {}
+fun (b BBBB) hello() {}
     
 
 type aapoint
@@ -46,24 +46,18 @@ type aapoint
 type bbpoint
     @v void
 
-fun pub aapoint.x() {}
+fun pub (a aapoint) x() {}
 
-fun pub bbpoint.xx() {}
+fun pub (b bbpoint) xx() {}
 
-fun pub aapoint.y() {}
-fun pub bbpoint.yy() {}
+fun pub (a aapoint) y() {}
+fun pub (b bbpoint) yy() {}
 
 fun aaa_arith(a int, b int) int
     @x = a+b
     @y = a+x*b
     return y
   
-fun pub List<T>.reverse()
-    for @i in 0..l.Count/2
-        swap(ref l[i], ref l[Count-i-1])
-
-
-fun pub int.aaa(){}
 type pub AAFun    
     @aaf4 fun(a int, b int) int
     @aaf5 AAFunc<int, int>
@@ -75,17 +69,17 @@ type pub AAFun
     @aaf9b fun(a int)->(x int)
     @af10 fun(v int)int
 
-fun AAFun.aaaa(a int, b int) int { }
-fun AAFun.aaaa(a int, b f64) int { }
-fun AAFun.aaaa(x f64, y int) int { }
-fun AAFun.aaf1(a int, b int)int { }
-fun AAFun.aaf2(v AAFunc<int, int>) { }
-fun AAFun.aaf3<T1,T2>(i T1)T2 { }
-fun AAFun.aaf1s(a int, b int)int { }
-fun AAFun.aaf2s(v AAFunc<int, int>) { }
-fun AAFun.aaf3s<T1,T2>(i T1)T2 { }
-fun AAFun.af6(p fun(v int)bool) {}
-fun AAFun.af7<X>(p fun(v X)bool) {}
+fun (f AAFun) aaaa(a int, b int) int { }
+fun (f AAFun) aaaa(a int, b f64) int { }
+fun (f AAFun) aaaa(x f64, y int) int { }
+fun (f AAFun) aaf1(a int, b int)int { }
+fun (f AAFun) aaf2(v AAFunc<int, int>) { }
+fun (f AAFun) aaf3<T1,T2>(i T1)T2 { }
+fun (f AAFun) aaf1s(a int, b int)int { }
+fun (f AAFun) aaf2s(v AAFunc<int, int>) { }
+fun (f AAFun) aaf3s<T1,T2>(i T1)T2 { }
+fun (f AAFun) af6(p fun(v int)bool) {}
+fun (f AAFun) af7<X>(p fun(v X)bool) {}
 
 
 
@@ -93,14 +87,14 @@ fun AAFun.af7<X>(p fun(v X)bool) {}
 type OneGeneric<T> { } 
 type Point<T>(x T, y T)
 type Size<T>(width T, height T)
-get Point<T>.toSize() Size<T> { return Size(x, y) }
+get (p Point<T>) toSize() Size<T> { return Size(x, y) }
 
 type pub AAFunc<T1,T2>
     @Invoke fun (v T1) T2
 
 
 // TBD: These are identical to the ones defined in the class
-fun AGenericTest<T, QQQ>.af6(p fun(v int)bool) {}
+fun (a AGenericTest<T, QQQ>) af6(p fun(v int)bool) {}
 //fun (AGenericTest<T, QQQ>) af7<X>(p fun(v X)bool) {}
 //fun (AGenericTest<T, QQQ>) af8<T1,T2>(i T1)T2 { }
 //fun (AGenericTest<T, QQQ>) Q<T1>() {}
@@ -148,7 +142,7 @@ type pub AGenericTest<T, QQQ>
     @field0 T = 0
     @Xfield6 Zurfur.int
 
-fun pub AGenericTest<T, QQQ>.UseIt(x Zurfur.int, y List<BBBB>, z List<str>)
+fun pub (a AGenericTest<T, QQQ>) UseIt(x Zurfur.int, y List<BBBB>, z List<str>)
     XField0.ToStr()
     // Xfield2<str, T>.P3<T>(); - Xfield2 can't use type parameters
     // Xfield2.P3(); - Can't infer P3<type>

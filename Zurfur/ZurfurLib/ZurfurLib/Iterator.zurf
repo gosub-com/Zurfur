@@ -2,22 +2,22 @@
 module Zurfur.Collections
 
 // Implement on containers
-interface pub GetIter<Item>
-    fun pub getIter() Iter<Item> impl
-// TBD: impl pass throughs for all Iter<T> functions.
+interface pub GetIterator<Item>
+    fun pub getIterator() Iterator<Item> impl
+// TBD: impl pass throughs for all Iterator<T> functions.
 //      Use count hint here?
 
 
 
 // Implement on containers with a known count
 interface pub Collection<Item>
-    where Item is GetIter<Item>
+    where Item is GetIterator<Item>
     get pub count() int impl
 
 
 // Implement this on all iterators
 // TBD: `Item` should be an associated type, like in Rust
-interface pub Iter<Item>
+interface pub Iterator<Item>
 
     // TBD: Need associated types:
     //type Item
@@ -30,13 +30,13 @@ interface pub Iter<Item>
 
 // Implement this when the container has a known size.
 // List uses this as the starting capacity.
-get pub Iter<Item>.countHint() int
+get pub (i Iterator<Item>) countHint() int
     return 0
 
-fun pub mut Iter<Item>.toArrayXM() Array<Item>
+fun pub mut (i Iterator<Item>) toArrayXM() Array<Item>
     return toList().toArray()
 
-fun pub mut Iter<Item>.toList() List<Item>
+fun pub mut (i Iterator<Item>) toList() List<Item>
     @list = List(countHint)
     while next()@item
         list.push(item)
@@ -45,27 +45,27 @@ fun pub mut Iter<Item>.toList() List<Item>
 // TBD: Item should be an associated type,
 //      not explicitly passed back from filter
 //      This should work exactly thr same as the `filter` method
-fun pub mut Iter<Item>.filter(f fun(item Item) bool) FilterIter<This, Item>
-    return FilterIter<This, Item>(this, f)
+fun pub mut (i Iterator<Item>) filter(f fun(item Item) bool) FilterIterator<This, Item>
+    return FilterIterator<This, Item>(this, f)
 
-fun pub mut Iter<Item>.find(f fun(item Item) bool) ?mut ref Item
+fun pub mut (i Iterator<Item>) find(f fun(item Item) bool) ?mut ref Item
     while next()@item
         if f(item)
             return ref item
     return null
 
 //   TBD: Unify extension method here
-fun pub mut Iter<Item>.toArrayXE() Array<Item>
+fun pub mut (i Iterator<Item>) toArrayXE() Array<Item>
     return toList().toArray()
 
         
 // TBD: Item should be an associated type (not passed in here)
-type ref FilterIter<I, Item>
+type ref FilterIterator<I, Item>
     // TBD: Needed?
-    where I is Iter<Item>
+    where I is Iterator<Item>
 
     // Note: The `init` attribute creates a constructor taking
-    //       named parameters FilterIter<T>(iter: v1, f: v2).
+    //       named parameters FilterIterator<T>(iter: v1, f: v2).
     
     @iter ref I pub init
     @f ref fun(item Item) bool pub init
@@ -75,18 +75,18 @@ type ref FilterIter<I, Item>
 // fun new(iter _, f _) {}
 //
 // Instead of this:
-fun FilterIter<I, Item>.new(iter mut I, f fun(item Item)bool)
+fun (f FilterIterator<I, Item>) new(iter mut I, fn fun(item Item)bool)
     this.iter = ref iter
     this.f = ref f
 
 // TBD: This does not implement the interface
-fun pub mut FilterIter<I, Item>.next() ?mut ref I
+fun pub (f mut FilterIterator<I, Item>) next() ?mut ref I
     return iter.find(f)
         
         
 
 // TBD: Check for same symbol name as 'new' method
-fun  FilterIter<I,Item>.new()
+fun (f FilterIterator<I,Item>) new()
     todo
 
 fun test_Filter() Array<int>

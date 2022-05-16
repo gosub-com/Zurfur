@@ -10,7 +10,7 @@
 module TestExample
 
 use Zurfur[Decimal]
-use Zurfur.Collections[GetIter]
+use Zurfur.Collections[GetIterator]
 
 
 // Simple types have public fields:
@@ -27,9 +27,9 @@ type pub ComplexType
     @myList List<int> pub ref   // Has public `ro` reference
 
 // Properties are public by default
-get ComplexType.myMap() ref Map<str, int>
+get (c ComplexType) myMap() ref Map<str, int>
     return ref map // Return a read only reference
-set ComplexType.myMap(v own Map<str, int>)
+set (c ComplexType) myMap(v own Map<str, int>)
     map = v
     mapChanged()
 
@@ -71,8 +71,8 @@ fun pub circle3(a f64, b f64) -> (c int, d int)
     return 0
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-// PREVIOUSLY: fun pub GetIter<T>.AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIter<T>
-fun pub GetIter<Item>.AlphaLengthWise<L>(lengthProvider fun(t Item) L) GetIter<Item>
+// PREVIOUSLY: fun pub GetIterator<T>.AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIterator<T>
+fun pub (i GetIterator<Item>) AlphaLengthWise<L>(lengthProvider fun(t Item) L) GetIterator<Item>
     return i
         .OrderBy(@a => lengthProvider(a))
         .ThenBy(@a => a)

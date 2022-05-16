@@ -2,49 +2,58 @@
 module Zurfur
 
 use Zurfur.Operators[OpIn, OpEq, GetHash]
-use Zurfur.Collections[GetIter, Iter, Collection]
-
-type KvPair<TKey,TValue>
-    @key TKey pub ref
-    @value TValue pub ref mut
-
-fun pub KvPair<TKey,TValue>.new(key own TKey, value own TValue)
-    this.key = key
-    this.value = value
+use Zurfur.Collections[GetIterator, Iterator, Collection]
 
 
-pub type Map<TKey, TValue>
-    where This is OpIn<TKey> + GetIter<ref KvPair<TKey, TValue>>
-    where TKey is OpEq<TKey> + GetHash
+
+pub type Map<K,V>
+    where This is OpIn<K> + GetIterator<ref KvPair<K,V>>
+    where K is OpEq<K> + GetHash
     @items List<str> // TBD: Buffer of items in hash table
 
-fun pub Map<TKey, TValue>.new(capacity int)
+    // TBD: Allow this
+    //type Pair
+    //    @key K pub ref
+    //    @value V pub ref mut
+
+// TBD: This wants to be inside Map<K,V>
+type KvPair<K,V>
+    @key K pub ref
+    @value V pub ref mut
+
+// TBD: Need this: fun (kv Map<K,V>.Pair) ...
+fun pub (kv KvPair<K,V>) new(key own K, value own V)
+    kv.key = key
+    kv.value = value
+
+
+fun pub (m Map<K,V>) new(capacity int)
     return todo()
-fun pub Map<TKey, TValue>.new(keyValues Iter<KvPair<TKey, TValue>>)
+fun pub (m Map<K,V>) new(keyValues Iterator<KvPair<K,V>>)
     return todo()
-get pub Map<TKey, TValue>.count() int
+get pub (m Map<K,V>) count() int
     return todo()
 
 // TBD: Figure out map["Hello"] += 1
-get pub Map<TKey, TValue>.op_index(key TKey) ?ref TValue
+get pub (m Map<K,V>) op_index(key K) ?ref V
     return todo()
-set pub mut Map<TKey, TValue>.op_index(key TKey) mut ref TValue
+set pub mut (m Map<K,V>) op_index(key K) mut ref V
     todo()
 
 
-fun pub Map<TKey, TValue>.contains(key TKey) bool
+fun pub (m Map<K,V>) contains(key K) bool
     return todo()
-get pub Map<TKey, TValue>.keys() Collection<TKey>
+get pub (m Map<K,V>) keys() Collection<K>
     return todo()
-get pub Map<TKey, TValue>.values() Collection<TValue>
+get pub (m Map<K,V>) values() Collection<V>
     return todo()
-fun pub mut Map<TKey, TValue>.clear()
+fun pub mut (m Map<K,V>) clear()
     return todo()
-fun pub mut Map<TKey, TValue>.add(item KvPair<TKey, TValue>)
+fun pub mut (m Map<K,V>) add(item KvPair<K,V>)
     return todo()
-fun pub mut Map<TKey, TValue>.add(items Iter<KvPair<TKey, TValue>>)
+fun pub mut (m Map<K,V>) add(items Iterator<KvPair<K,V>>)
     return todo()
-fun pub mut Map<TKey, TValue>.remove(key TKey) bool
+fun pub mut (m Map<K,V>) remove(key K) bool
     return todo()
 
     

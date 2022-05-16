@@ -2,31 +2,31 @@
 module Zurfur
 
 use Zurfur.Operators[OpAdd, OpSub, OpIn, OpCmp, OpNext]
-use Zurfur.Collections[GetIter, Iter]
+use Zurfur.Collections[GetIterator, Iterator]
 
 
 type pub ro copy Range<T>
-    where This is GetIter<T> + OpIn<Range<T>>
+    where This is GetIterator<T> + OpIn<Range<T>>
     where T is OpAdd<T,T> + OpSub<T,T> + OpCmp<T> + OpNext
 
     @start T pub init get
     @end T pub init get
 
-get pub Range<T>.count() T
+get pub (r Range<T>) count() T
     return end-start
         
 
-type pub RangeIter<T>
-    where This is Iter<T>
+type pub RangeIterator<T>
+    where This is Iterator<T>
     where T is OpAdd<T,T> + OpSub<T,T> + OpCmp<T> + OpNext
 
     @current T pub init
     @end T pub init
     
-get pub RangeIter<T>.countHint() T
+get pub (r RangeIterator<T>) countHint() T
     return end-current
     
-get pub RangeIter<T>.next() ?T
+get pub (r RangeIterator<T>) next() ?T
     if current < end
         return move(ref current, current.opNext())
     return null

@@ -378,9 +378,8 @@ namespace Gosub.Zurfur.Compiler
                 method.SetQualifiers(synFunc.Qualifiers);
                 method.Comments = synFunc.Comments;
 
-                AddExtensionMethodGenerics(method, synFunc.ExtensionType);
+                AddExtensionMethodGenerics(method, synFunc);
                 AddTypeParams(method, synFunc.TypeArgs);
-                AddThisParam(method, synFunc);
                 ResolveMethodParams(method, synFunc.MethodSignature[0], false); // Parameters
                 ResolveMethodParams(method, synFunc.MethodSignature[1], true);  // Returns
 
@@ -414,27 +413,45 @@ namespace Gosub.Zurfur.Compiler
 
             // For now, extension methods with generic receivers
             // allow only 1 level deep with all type parameters matching:
-            //      List<int>.f(x)        // Ok, no generic types
-            //      List<T>.f(x)          // Ok, 1 level, matching generic
-            //      Map<TKey,TValue>.f(x) // Ok, 1 level, all matching generic
-            //      Map<Key,int>.f(x)     // No, not all matching genrics
-            //      Span<List<T>>.f(x)    // No, multi-level not accepted
+            //      (List<int>) f(x)        // Ok, no generic types
+            //      (List<T>) f(x)          // Ok, 1 level, matching generic
+            //      (Map<TKey,TValue>) f(x) // Ok, 1 level, all matching generic
+            //      (Map<Key,int>) f(x)     // No, not all matching genrics
+            //      (Span<List<T>>) f(x)    // No, multi-level not accepted
             //
-            // Maybe we change this later, but keep it simple for now.
-            void AddExtensionMethodGenerics(Symbol method, SyntaxExpr extensonType)
+            // TBD: Allow Map<K,V>.Pair, etc.
+            void AddExtensionMethodGenerics(Symbol method, SyntaxFunc f)
             {
-                if (extensonType == null || extensonType.Token != ParseZurf.VT_TYPE_ARG || extensonType.Count < 2)
+                if (!f.IsExtension || f.MethodSignature.Count == 0)
                     return;
-                var typeName = extensonType[0].Token;
+                var extensionParams = f.MethodSignature[0];
+                if (extensionParams.Count == 0)
+                    return;
+                var extensionParam = extensionParams[0];
+                if (extensionParam.Count < 2)
+                    return;
+                var extensionType = extensionParam[0];
+
+                method.Qualifiers |= SymQualifiers.Extension;
+
+                // Skip qualifiers. 
+                while (extensionType.Token == "mut" && extensionType.Count != 0)
+                    extensionType = extensionType[0];
+
+                // TBD: Follow "."
+                if (extensionType.Token != ParseZurf.VT_TYPE_ARG || extensionType.Count < 2)
+                    return;
+
+                var typeName = extensionType[0].Token;
                 var typeSymbol = FindGlobalTypeOrReject(typeName, method, fileUses[typeName.Path], out var inScope);
                 if (typeSymbol == null)
                     return;
 
                 var genericMatch = true;
                 Token firstMatchedType = null;
-                for (int i = 1; i < extensonType.Count; i++)
+                for (int i = 1; i < extensionType.Count; i++)
                 {
-                    var paramName = extensonType[i].Token;
+                    var paramName = extensionType[i].Token;
                     if (!typeSymbol.TryGetPrimary(paramName, out var matchGeneric))
                     {
                         genericMatch = false;
@@ -449,27 +466,9 @@ namespace Gosub.Zurfur.Compiler
                     firstMatchedType = paramName;
                 }
                 if (genericMatch)
-                    AddTypeParams(method, extensonType.Skip(1));
+                    AddTypeParams(method, extensionType.Skip(1));
                 else if (firstMatchedType != null)
                     Reject(firstMatchedType, $"Type parameter '{firstMatchedType}' found in '{typeName}', but other type parameters don't match.");
-            }
-
-
-            // Add $this parameter for extension methods and member functions.
-            // NOTE: Even static methods get $this, but it is used as a
-            //       type name and not passed as a parameter
-            void AddThisParam(Symbol method, SyntaxFunc func)
-            {
-                var extType = func.ExtensionType;
-                if (extType == null || extType.Token == "")
-                    return;
-
-                var methodParam = new SymMethodParam(method, func.Name, "$this");
-                methodParam.TypeName = ResolveTypeNameOrReject(methodParam, extType);
-                method.Qualifiers |= SymQualifiers.Extension;
-                if (methodParam.TypeName == "" && !NoCompilerChecks)
-                    methodParam.Token.AddInfo(new VerifySuppressError());
-                mSymbols.AddOrReject(methodParam);
             }
 
             void ResolveMethodParams(Symbol method, SyntaxExpr parameters, bool isReturn)
@@ -481,7 +480,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     if (expr is SyntaxError)
                         continue;
-                    Debug.Assert(expr.Count == 2);
+                    Debug.Assert(expr.Count >= 2);
 
                     var token = expr.Token == "" ? expr[1].Token : expr.Token;
                     var name = expr.Token == "" ? "$return" : expr.Token.Name;
@@ -498,6 +497,9 @@ namespace Gosub.Zurfur.Compiler
 
             string ResolveTypeNameOrReject(Symbol scope, SyntaxExpr typeExpr)
             {
+                // There will also be a syntax error
+                if (typeExpr == null || typeExpr.Token.Name == "")
+                    return "";
                 var symbol = ResolveTypeOrReject(typeExpr, false, scope, fileUses[typeExpr.Token.Path]);
                 if (symbol == null)
                     return "";
