@@ -1169,9 +1169,6 @@ namespace Gosub.Zurfur.Compiler
         {
             var funcParams = ParseMethodParams(firstParam);
 
-            if (mTokenName == "type")
-                RejectToken(mToken, "Use '->' instead of anonymous type");
-
             SyntaxExpr returnParams;
             if (AcceptMatchPastMetaSemicolon("->"))
             {
@@ -1276,12 +1273,6 @@ namespace Gosub.Zurfur.Compiler
                     statements.Add(new SyntaxUnary(Accept(), ParseExpr()));
                     break;
 
-                case "@":
-                case "const":
-                    bool allowUnderscore = mTokenName == "@";
-                    statements.Add(new SyntaxUnary(Accept(), ParseNewVarStatment(allowUnderscore)));
-                    break;
-
                 case "while":
                     // WHILE (condition) (body)
                     mToken.Type = eTokenType.ReservedControl;
@@ -1378,12 +1369,6 @@ namespace Gosub.Zurfur.Compiler
                     statements.Add(new SyntaxToken(Accept()));
                     break;
 
-                //case "switch":
-                //    // SWITCH (expr) (statements)
-                //    mToken.Type = eTokenType.ReservedControl;
-                //    statements.Add(new SyntaxBinary(Accept(), ParseExpr(), ParseStatements("'switch' statement")));
-                //    break;
-
                 case "finally":
                     Accept();
                     AcceptMatchOrReject(":");
@@ -1420,7 +1405,8 @@ namespace Gosub.Zurfur.Compiler
 
                 default:
                     if ((sReservedWords.Contains(mTokenName) || mTokenName == "")
-                        && !sReservedIdentifierVariables.Contains(mTokenName))
+                        && !sReservedIdentifierVariables.Contains(mTokenName)
+                        && mTokenName != "@")
                     {
                         RejectToken(mToken, "Unexpected token or reserved word");
                         Accept();
@@ -1463,33 +1449,6 @@ namespace Gosub.Zurfur.Compiler
             // Replace with a virtual token
             mToken = NewMetaToken(token, metaToken);
             mTokenName = mToken.Name;
-        }
-
-        SyntaxExpr ParseNewVarStatment(bool allowUnderscore)
-        {
-            if (!AcceptIdentifier("Expecting variable name", null, allowUnderscore ? sAllowUnderscore : null))
-                return SyntaxError;
-
-            var newVarName = mPrevToken;
-            if (newVarName.Name != "_")
-            {
-                newVarName.Type = eTokenType.DefineLocal;
-                RejectUnderscoreDefinition(newVarName);
-            }
-
-            SyntaxExpr typeName;
-            if (mTokenName != "=")
-                typeName = ParseType();
-            else
-                typeName = EmptyExpr;
-
-            SyntaxExpr initializer;
-            if (mTokenName == "=")
-                initializer = new SyntaxUnary(Accept(), ParseRightSideOfAssignment());
-            else
-                initializer = EmptyExpr;
-
-            return new SyntaxBinary(newVarName, typeName, initializer);
         }
 
         /// <summary>
@@ -1675,11 +1634,7 @@ namespace Gosub.Zurfur.Compiler
         {
             var result = ParseUnary();
             if (mTokenName == "@")
-            {
-                result = new SyntaxBinary(Accept(), result, ParseNewVarExpr());
-                if (mTokenName == "@")
-                    Reject("New variable operator '@' is not associative");
-            }
+                result = new SyntaxBinary(Accept(), result, ParseNewVars());
             return result;
         }
 
@@ -1693,25 +1648,15 @@ namespace Gosub.Zurfur.Compiler
             }
             if (mTokenName == "@")
             {
-                var result = new SyntaxUnary(Accept(), ParseNewVarExpr());
-                if (mTokenName == "@")
-                    Reject("New variable operator '@' is not associative");
-                return result;
+                return new SyntaxUnary(Accept(), ParseNewVars());
             }
-
             if (mTokenName == "cast")
             {
                 return new SyntaxBinary(Accept(), ParseTypeFunc(), ParseUnary());
             }
-
             if (mTokenName == "sizeof" || mTokenName == "typeof")
             {
                 return new SyntaxUnary(Accept(), ParseTypeFunc());
-            }
-
-            if (mTokenName == "type")
-            {
-                return ParseAnonymousClass(Accept());
             }
 
             return ParsePrimary();
@@ -1731,7 +1676,7 @@ namespace Gosub.Zurfur.Compiler
             return funType;
         }
 
-        private SyntaxExpr ParseNewVarExpr()
+        private SyntaxExpr ParseNewVars()
         {
             var newVarList = NewExprList();
             if (AcceptMatch("("))
@@ -1739,29 +1684,31 @@ namespace Gosub.Zurfur.Compiler
                 var open = mPrevToken;
                 do
                 {
-                    if (AcceptIdentifier(""))
-                    {
-                        mPrevToken.Type = eTokenType.DefineLocal;
-                        newVarList.Add(new SyntaxToken(mPrevToken));
-                        RejectUnderscoreDefinition(mPrevToken);
-                    }
+                    ParseNewVar(newVarList);
                 } while (AcceptMatch(","));
-
                 if (AcceptMatchOrReject(")", "Expecting ')' or ','"))
                     Connect(open, mPrevToken);
             }
             else
             {
-                // Allow parameterless lambda capture "@ => 0", but not parameterless capture "f()@ + 2"
-                if (mTokenName != "=>" && AcceptIdentifier("Expecting variable name or '=>'"))
-                {
-                    mPrevToken.Type = eTokenType.DefineLocal;
-                    newVarList.Add(new SyntaxToken(mPrevToken));
-                    RejectUnderscoreDefinition(mPrevToken);
-                }
+                ParseNewVar(newVarList);
             }
 
+            if (mTokenName == "@")
+                Reject("New variable operator '@' is not associative");
+
             return new SyntaxMulti(EmptyToken, FreeExprList(newVarList));
+        }
+
+        void ParseNewVar(List<SyntaxExpr> newVars)
+        {
+            if (!AcceptIdentifier("Expecting variable name"))
+                return;
+            var name = mPrevToken;
+            name.Type = eTokenType.DefineLocal;
+            RejectUnderscoreDefinition(name);
+            var typeExpr = BeginsType() ? ParseType() : EmptyExpr;
+            newVars.Add(new SyntaxUnary(name, typeExpr));
         }
 
         SyntaxExpr ParsePrimary()
@@ -2126,7 +2073,6 @@ namespace Gosub.Zurfur.Compiler
             return new SyntaxMulti(keyword, FreeExprList(parameters));
         }
 
-        // Excluding "type"
         bool BeginsType()
         {
             return mToken.Type == eTokenType.Identifier
@@ -2160,11 +2106,6 @@ namespace Gosub.Zurfur.Compiler
                 if (mTokenName == "<")
                     RejectToken(mToken, "Generic type args on lambda not supported YET!");
                 return ParseMethodSignature(funKeyword);
-            }
-
-            if (AcceptMatch("type"))
-            {
-                return ParseAnonymousClass(mPrevToken);
             }
 
             if (mToken.Type != eTokenType.Identifier)
@@ -2228,26 +2169,6 @@ namespace Gosub.Zurfur.Compiler
         }
 
 
-        SyntaxExpr ParseAnonymousClass(Token keyword)
-        {
-            keyword.Type = eTokenType.Reserved;
-            if (!AcceptMatchOrReject("("))
-                return new SyntaxError(keyword);
-            var open = mPrevToken;
-
-            var fields = NewExprList();
-            if (mTokenName != ")")
-            {
-                do
-                {
-                    fields.Add(ParseNewVarStatment(false));
-                } while (AcceptMatch(","));
-            }
-
-            if (AcceptMatchOrReject(")"))
-                Connect(mPrevToken, open);
-            return new SyntaxMulti(keyword, FreeExprList(fields));
-        }
         
         /// <summary>
         /// Parse a qualified identifier.  

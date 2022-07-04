@@ -6,6 +6,7 @@ type pub ro copy Line(filePath str, line int)
 
 // TBD: Figure out how to get default file names and line numbers.
 //      Also figure out if this should be created per file
+fun todo() {}
 
 get pub level() Level { todo() }
 fun pub fatal(message str, li Line = default) { todo() }

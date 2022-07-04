@@ -16,71 +16,72 @@ module Zurfur.ConvertBytes
 
 
 fun Test_ConvertExample()
-    @myU32 = myList[index..+4].bytesToU32()
-    myList[index..+4].setBytesU32(myU32)
+    @myList = List<int>()
+    @myU32 = myList[0..4].bytesToU32()
+    myList[0..4].setBytesU32(myU32)
     myList.pushBytesU32(myU32)
 
 
-fun pub (s Span<byte>) bytesToHex(capitalize bool = false) str {todo()}
-fun pub (l mut List<byte>) pushBytesToHex(bytes []byte, capitalize bool = false) { todo() }
-fun pub (l mut List<byte>) pushHexToBytes(hex []byte) throws {todo()}
+fun pub (my Span<byte>) bytesToHex(capitalize bool = false) str { }
+fun pub (my mut List<byte>) pushBytesToHex(bytes []byte, capitalize bool = false) { }
+fun pub (my mut List<byte>) pushHexToBytes(hex []byte) throws { }
 
 
 // Convert 4 bytes (u32) to int (little endian)
-fun pub (s Span<byte>) bytesToU32() u32
+fun pub (my Span<byte>) bytesToU32() u32
     require count == 4
-    return     this[0].u32()
-            + (this[1].u32() << 8)
-            + (this[2].u32() << 16)
-            + (this[3].u32() << 24)
+    return     my[0].u32()
+            + (my[1].u32() << 8)
+            + (my[2].u32() << 16)
+            + (my[3].u32() << 24)
 
 // Convert u32 to 4 bytes (little endian) 
-fun pub mut (s Span<byte>) setBytesU32(v u32)
+fun pub mut (my Span<byte>) setBytesU32(v u32)
     require count == 4
-    this[0] = v.byteMask()
-    this[1] = (v<<8).byteMask()
-    this[2] = (v<<16).byteMask()
-    this[3] = (v<<24).byteMask()
+    my[0] = v.byteMask()
+    my[1] = (v<<8).byteMask()
+    my[2] = (v<<16).byteMask()
+    my[3] = (v<<24).byteMask()
 
 // Convert u32 to 4 bytes (little endian) and push to list
-fun pub (l mut List<byte>) pushBytesU32(v u32)
-    pushDup(0, 4)
-    this[count-4..+4].setBytesU32(v)
+fun pub (my mut List<byte>) pushBytesU32(v u32)
+    my.pushDup(0, 4)
+    my[my.count-4..+4].setBytesU32(v)
 
 
-fun pub (s Span<byte>) bytesToI32() i32
+fun pub (my Span<byte>) bytesToI32() i32
     require count == 4
     return bytesToU32().i32Mask()
     
-fun pub mut (s Span<byte>) setBytesI32(v i32)
+fun pub mut (my Span<byte>) setBytesI32(v i32)
     require count == 4
     setBytesU32(v.u32Mask())
     
-fun pub (l mut List<byte>) pushBytesI32(v i32)
-    pushBytesU32(v.u32Mask())
+fun pub (my mut List<byte>) pushBytesI32(v i32)
+    my.pushBytesU32(v.u32Mask())
 
-fun pub (s Span<byte>) bytesToU16() u16 require count == 2 { todo() }
-fun pub mut (s Span<byte>) setBytesU16(v u16) require count == 2 { todo() }
-fun pub (l mut List<byte>) pushBytesU16(v u16) { todo() }
+fun pub (my Span<byte>) bytesToU16() u16 require count == 2 { }
+fun pub mut (my Span<byte>) setBytesU16(v u16) require count == 2 { }
+fun pub (my mut List<byte>) pushBytesU16(v u16) { }
 
-fun pub (s Span<byte>) bytesToI16() i16 require count == 2 { todo() }
-fun pub mut (s Span<byte>) setBytesI16(v i16) require count == 2 { todo() }
-fun pub (l mut List<byte>) pushBytesI16(v i16) { todo() }
+fun pub (my Span<byte>) bytesToI16() i16 require count == 2 { }
+fun pub mut (my Span<byte>) setBytesI16(v i16) require count == 2 { }
+fun pub (my mut List<byte>) pushBytesI16(v i16) { }
 
-fun pub (s Span<byte>) bytesToUint() uint require count == 8 { todo() }
-fun pub mut (s Span<byte>) setBytesUint(v uint) require count == 8 { todo() }
-fun pub (l mut List<byte>) pushBytesUint(v uint) { todo() }
+fun pub (my Span<byte>) bytesToUint() uint require count == 8 { }
+fun pub mut (my Span<byte>) setBytesUint(v uint) require count == 8 { }
+fun pub (my mut List<byte>) pushBytesUint(v uint) { }
 
-fun pub (s Span<byte>) bytesToInt() int require count == 8 { todo() }
-fun pub mut (s Span<byte>) setBytesInt(v int) require count == 8 { todo() }
-fun pub (l mut List<byte>) pushBytesInt(v int) { todo() }
+fun pub (my Span<byte>) bytesToInt() int require count == 8 { }
+fun pub mut (my Span<byte>) setBytesInt(v int) require count == 8 { }
+fun pub (my mut List<byte>) pushBytesInt(v int) { }
 
-fun pub (s Span<byte>) bytesToF32() f32 require Count == 4 { todo() }
-fun pub mut (s Span<byte>) setBytesF32(v f32) require count == 4 { todo() }
-fun pub (l mut List<byte>) pushBytesF32(v f32) { todo() }
+fun pub (my Span<byte>) bytesToF32() f32 require Count == 4 { }
+fun pub mut (my Span<byte>) setBytesF32(v f32) require count == 4 { }
+fun pub (my mut List<byte>) pushBytesF32(v f32) { }
 
-fun pub (s Span<byte>) bytesToF64() f64 require count == 8 { todo() }
-fun pub mut (s Span<byte>) setBytesF64(v f64) require count == 8 { todo() }
-fun pub (l mut List<byte>) pushBytesF64(v f64) { todo() }
+fun pub (my Span<byte>) bytesToF64() f64 require count == 8  { }
+fun pub mut (my Span<byte>) setBytesF64(v f64) require count == 8 { }
+fun pub (my mut List<byte>) pushBytesF64(v f64) { }
 
    

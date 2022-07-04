@@ -353,18 +353,16 @@ namespace Gosub.Zurfur.Compiler
                 if (fi.Value.Pragmas.ContainsKey("NoCompilerChecks"))
                     noCompilerChecks = true;
             }
+            var dtEndClearTokens = DateTime.Now;
 
-            var dtClear = DateTime.Now;
 
             // TBD: This needs to move to a background thread, but it can't
             // until we clone everything (Lexer, parse tree, etc.)
-            var zil = new CompileHeader();
-            zil.NoCompilerChecks = noCompilerChecks;
-            zil.GenerateHeader(zurfFiles);
+            var dtStartGenHeader = DateTime.Now;
+            var zilHeader = CompileHeader.GenerateHeader(zurfFiles, noCompilerChecks);
             if (!noVerify)
-                VerifyHeader.Verify(zil.Symbols);
-
-            var dtCompile = DateTime.Now;
+                VerifyHeader.Verify(zilHeader.Table);
+            var dtEndGenHeader = DateTime.Now;
 
             FileUpdate(this, new UpdatedEventArgs(""));
 
@@ -373,45 +371,48 @@ namespace Gosub.Zurfur.Compiler
                 return;
 
             StatusUpdate?.Invoke(this, new UpdatedEventArgs("Generating code"));
+            //await Task.Delay(1); // Allow time for UI to update
+
+
+            // TBD: This should also move to a background thread.
+            var dtStartGenCode = DateTime.Now;
+            CompileCode.GenerateCode(zurfFiles, zilHeader.Table, zilHeader.SyntaxToSymbol, zilHeader.FileUses);
+            var dtEndGenCode = DateTime.Now;
 
 
             // NOTE: Tokens in symbol table should be stable, so can run in a background thread.
+            var dtStartGenPackage = DateTime.Now;
             await Task.Run(() =>
             {
                 // Header
                 var package = new PackageJson();
                 package.BuildDate = DateTime.Now.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
-                package.Symbols = zil.Symbols.Save(true);
+                package.Symbols = zilHeader.Table.Save(true);
                 mHeaderJson = JsonConvert.SerializeObject(package, Formatting.None,
                     new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore });
 
                 // Code
-                package.Symbols = zil.Symbols.Save(false);
+                package.Symbols = zilHeader.Table.Save(false);
                 mCodeJson = JsonConvert.SerializeObject(package, Formatting.None,
                     new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore });
             });
-
-            var dtGenPackage = DateTime.Now;
-
-
-            var tsClear = dtClear - dtStart;
-            var tsCompile = dtCompile - dtClear;
-            var tsGenPackage = dtGenPackage - dtCompile;
+            var dtEndGenPackage = DateTime.Now;
 
             mReport.Clear();
             mReport.Add("Compile Times:");
             mReport.Add($"    DATE: {DateTime.Now.ToString("s").Replace("T", " ")}");
-            mReport.Add($"    Lex and parse changed files: {mLexAndParseTime.TotalSeconds}");
-            mReport.Add($"    Clear tokens: {tsClear.TotalSeconds}");
-            mReport.Add($"    Compile and verify header: {tsCompile.TotalSeconds}");
-            mReport.Add($"    Generate package: {tsCompile.TotalSeconds}");
+            mReport.Add($"    Lex and parse changed files: {mLexAndParseTime.TotalSeconds:F3}");
+            mReport.Add($"    Clear tokens: {(dtEndClearTokens - dtStart).TotalSeconds:F3}");
+            mReport.Add($"    Compile/verify header: {(dtEndGenHeader - dtStartGenHeader).TotalSeconds:F3}");
+            mReport.Add($"    Compile/verify code: {(dtEndGenCode-dtStartGenCode).TotalSeconds:F3}");
+            mReport.Add($"    Generate package: {(dtEndGenPackage-dtStartGenPackage).TotalSeconds:F3}");
+            mReport.Add($"    Total: {(dtEndGenPackage - dtStart).TotalSeconds + mLexAndParseTime.TotalSeconds:F3}");
             mReport.Add("");
 
-            ZilReport.GenerateReport(mReport, zil.Symbols,
+            ZilReport.GenerateReport(mReport, zilHeader.Table,
                 mPackageFiles.Values.Select(a => a.Lexer).Where(a => a != null).ToArray());
 
-            //FileUpdate(this, new UpdatedEventArgs(""));
-
+            FileUpdate(this, new UpdatedEventArgs(""));
             int errors = CountErrors();
             if (errors != 0)
             {
@@ -428,6 +429,7 @@ namespace Gosub.Zurfur.Compiler
             token.RemoveInfo<ZilHeaderError>();
             token.RemoveInfo<VerifyHeaderError>();
             token.RemoveInfo<ZilWarn>();
+            token.RemoveInfo<string>();
         }
 
         int CountErrors()

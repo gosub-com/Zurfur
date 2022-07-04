@@ -8,30 +8,16 @@ interface pub GetIterator<Item>
 //      Use count hint here?
 
 
-
-// Implement on containers with a known count
-interface pub Collection<Item>
-    where Item is GetIterator<Item>
-    get pub count() int impl
+interface pub Iterable<Item>
+    get iterator() Iterator<Item> impl
 
 
 // Implement this on all iterators
-// TBD: `Item` should be an associated type, like in Rust
 interface pub Iterator<Item>
 
-    // TBD: Need associated types:
-    //type Item
-
-
     // Return the next item, or null if it doesn't exist
-    fun pub mut next() ?mut ref Item impl
-    
-    fun pub countHint() int impl // TBD: Default
+    fun pub mut next() ?Item impl
 
-// Implement this when the container has a known size.
-// List uses this as the starting capacity.
-get pub (i Iterator<Item>) countHint() int
-    return 0
 
 fun pub mut (i Iterator<Item>) toArrayXM() Array<Item>
     return toList().toArray()

@@ -30,6 +30,10 @@ namespace Gosub.Zurfur.Ide
 
         Dictionary<string, TextEditor> mEditors = new Dictionary<string, TextEditor>();
 
+        public delegate void NavigateToSymbolDelegate(string path, int x, int y);
+
+        public event NavigateToSymbolDelegate OnNavigateToSymbol;
+
         public ZurfEditController()
         {
             mHoverMessageForm = new FormHoverMessage();
@@ -238,7 +242,11 @@ namespace Gosub.Zurfur.Ide
                 }
                 else if (token.GetInfo<Symbol>() != null)
                 {
-                    MessageBox.Show("TBD: Still working on goto symbol", "Zurfur");
+                    var sym = token.GetInfo<Symbol>();
+                    if (OnNavigateToSymbol == null)
+                        MessageBox.Show("Event handler not installed", "Zurfur");
+                    else
+                        OnNavigateToSymbol?.Invoke(sym.Token.Path, sym.Token.X, sym.Token.Y);
                 }
                 else
                 {
@@ -305,7 +313,7 @@ namespace Gosub.Zurfur.Ide
             var symbol = symbols[0];
             message += "[" + string.Join(", ", symbol.QualifiersStr().Split(' ')) + "]\r\n";
 
-            if (symbol.IsField || symbol.IsMethodParam)
+            if (symbol.IsField || symbol.IsMethodParam || symbol.IsLocal)
             {
                 message += symbol.KindName.ToUpper() + ": " + symbol.ToString() + "\r\n";
                 message += "TYPE: " + symbol.TypeName + "\r\n";
@@ -313,6 +321,7 @@ namespace Gosub.Zurfur.Ide
             else if (symbol.IsMethod)
             {
                 message += symbol.KindName.ToUpper() + ": " + symbol.FullName + "\r\n";
+                message += "TYPE: " + symbol.TypeName + "\r\n";
                 message += "PARAMS: \r\n";
                 foreach (var child in symbol.Children())
                 {

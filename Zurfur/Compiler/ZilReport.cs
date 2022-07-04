@@ -136,14 +136,20 @@ namespace Gosub.Zurfur.Compiler
 
             void ShowTypes()
             {
-                var ls = new List<Symbol>(symbols.Symbols);
-                ls.Sort((a, b) => Compare(a.FullName, b.FullName));
-
                 headerFile.Add("SYMBOLS:");
-                foreach (var s in ls)
-                {
+                var syms = new List<Symbol>(symbols.Symbols);
+                syms.Sort((a, b) => Compare(a.FullName, b.FullName));
+                foreach (var s in syms)
                     headerFile.Add($"{s.KindName,16}: {s.FullName}");
-                }
+
+                headerFile.Add("");
+                headerFile.Add("");
+                headerFile.Add("SPECIALIZED:");
+                var special = new List<Symbol>(symbols.SpecializedSymbols);
+                special.Sort((a, b) => Compare(a.FullName, b.FullName));
+                foreach (var s in special)
+                    headerFile.Add($"    {s.FullName}");
+
             }
 
 

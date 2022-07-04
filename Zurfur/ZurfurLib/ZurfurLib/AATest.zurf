@@ -3,10 +3,27 @@
 module AATest
 
 use Zurfur
-use Zurfur[uint]
+use Zurfur[uint, Log]
 use Zurfur.Operators[OpEq, OpNeg, OpAdd]
+use Zurfur.Math[cos]
 
 pragma ShowParse
+
+fun helloVoid() {}
+fun helloInt() int {}
+fun cos2(a int) -> (x f64, y int) {}
+ 
+fun test(x f64)
+    @a = 3
+    @b = x
+    @c = x == 3.0
+    @(y,z) = cos2
+    @d = cos2 
+    @e = d.x
+    @f = helloVoid
+    @g = helloInt
+    Log.info("Hello world, 2+2={2+2}")
+    @h = cos(2+3*23).toString()
 
 fun (s Span<byte>) hello()
     nop
@@ -81,8 +98,6 @@ fun (f AAFun) aaf3s<T1,T2>(i T1)T2 { }
 fun (f AAFun) af6(p fun(v int)bool) {}
 fun (f AAFun) af7<X>(p fun(v X)bool) {}
 
-
-
 //get PAoint<T>::Size() Size<T> { return Size(X, Y) }
 type OneGeneric<T> { } 
 type Point<T>(x T, y T)
@@ -127,8 +142,6 @@ fun (a AGenericTest<T, QQQ>) af6(p fun(v int)bool) {}
 
 fun pub GenericTest<Q1,Q2>(a Q1, b Q2)
     return a.ToStr().Length + b.ToStr().Length    
-
-
 
 type pub AGenericTest<T, QQQ>
     where QQQ is OpEq<T>//: new() where T : new()

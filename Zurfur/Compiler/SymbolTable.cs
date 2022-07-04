@@ -13,7 +13,11 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     class SymbolTable
     {
+        const string GENERIC_UNARY_TYPES = "* ^ [ ? ref own mut ro";
+
         SymModule mRoot;
+
+        // TBD: Move to compiler options class, including pragmas and command line, etc.
         public bool NoCompilerChecks;
 
         /// <summary>
@@ -26,6 +30,9 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         Dictionary<string, SymSpecializedType> mSpecializedTypes = new Dictionary<string, SymSpecializedType>();
 
+        public Dictionary<string, Symbol> UnaryTypeSymbols = new Dictionary<string, Symbol>();
+
+
         public Symbol Root => mRoot;
 
         public SymbolTable()
@@ -34,10 +41,13 @@ namespace Gosub.Zurfur.Compiler
             mRoot = new SymModule(preRoot, "");
 
             // Add built in unary generic types
-            foreach (var genericType in "* ^ [ ? ref own mut ro".Split(' '))
-                AddIntrinsicType(genericType, 1);
-            AddIntrinsicType("This", 0);
-        }        
+            foreach (var genericType in GENERIC_UNARY_TYPES.Split(' '))
+            {                
+                UnaryTypeSymbols[genericType] = AddIntrinsicType(genericType, 1);
+            }
+            UnaryTypeSymbols["nil"] = AddIntrinsicType("nil", 0);
+            UnaryTypeSymbols["This"] = AddIntrinsicType("This", 0);
+        }
 
 
         /// <summary>
@@ -92,6 +102,8 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public Symbol Lookup(string name)
         {
+            if (name == "")
+                return null;
             if (mSpecializedTypes.TryGetValue(name, out var symbol1))
                 return symbol1;
             if (mLookup.TryGetValue(name, out var symbol2))
@@ -192,7 +204,7 @@ namespace Gosub.Zurfur.Compiler
         }
 
         // Does not reject if there is already an error there
-        void Reject(Token token, string message)
+        public void Reject(Token token, string message)
         {
             if (NoCompilerChecks)
             {

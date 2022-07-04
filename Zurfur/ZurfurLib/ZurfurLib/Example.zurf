@@ -9,8 +9,9 @@
 // http://zurfur.com
 module TestExample
 
-use Zurfur[Decimal]
+use Zurfur[Decimal, Log]
 use Zurfur.Collections[GetIterator]
+use Zurfur.Math[cos,sin]
 
 
 // Simple types have public fields:
@@ -25,13 +26,15 @@ type pub ComplexType
     @header str pub get = "Zurfur" // Private, public get
     @text str pub get set          // Private, public get/set
     @myList List<int> pub ref   // Has public `ro` reference
+    @mapChanged fun()
 
 // Properties are public by default
-get (c ComplexType) myMap() ref Map<str, int>
-    return ref map // Return a read only reference
-set (c ComplexType) myMap(v own Map<str, int>)
-    map = v
-    mapChanged()
+get (my ComplexType) myMap() ref Map<str, int>
+    return ref my.map // Return a read only reference
+set (my ComplexType) myMap(v own Map<str, int>)
+    my.map = v
+    my.mapChanged()
+
 
 // This is a public documentation comment.
 // Functions are private by default.
@@ -40,20 +43,22 @@ fun pub countToTen() str
     for @a in 1..11
         Log.info("Count={a}, Text={text}")
 
+fun doit() {}
+
 fun test_HelloWorld()
     while a == 3
         doit()
-        doit2()
-    Console.Log("Hello World.  Let's count from 1 to 10.")
+        doit()
+    Log.info("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
-        doita
-        doitb
+        doit()
+        doit()
         while a == 3
-            doit1
-            doit2
+            doit()
+            doit()
         hello
         if a
-            doit4
+            doit()
             
 type pub owned box AGenericType<Q>
     @a int

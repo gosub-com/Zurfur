@@ -49,7 +49,7 @@ fun test_ForSimple()
 fun pub test_Convert()
     @a = List<float>()
     @b = List<int>()
-    @c = a.Convert(@ => int(i))
+    @c = a.Convert(@i => int(i))
 
 
 type pub Label { }

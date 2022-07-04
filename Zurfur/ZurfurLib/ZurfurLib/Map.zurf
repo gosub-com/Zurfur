@@ -2,13 +2,11 @@
 module Zurfur
 
 use Zurfur.Operators[OpIn, OpEq, GetHash]
-use Zurfur.Collections[GetIterator, Iterator, Collection]
+use Zurfur.Collections[Iterator, Iterable]
 
 
 
 pub type Map<K,V>
-    where This is OpIn<K> + GetIterator<ref KvPair<K,V>>
-    where K is OpEq<K> + GetHash
     @items List<str> // TBD: Buffer of items in hash table
 
     // TBD: Allow this
@@ -29,30 +27,42 @@ fun pub (kv KvPair<K,V>) new(key own K, value own V)
 
 fun pub (m Map<K,V>) new(capacity int)
     return todo()
+    
 fun pub (m Map<K,V>) new(keyValues Iterator<KvPair<K,V>>)
     return todo()
+    
 get pub (m Map<K,V>) count() int
     return todo()
 
 // TBD: Figure out map["Hello"] += 1
 get pub (m Map<K,V>) op_index(key K) ?ref V
     return todo()
+
 set pub mut (m Map<K,V>) op_index(key K) mut ref V
     todo()
 
-
 fun pub (m Map<K,V>) contains(key K) bool
     return todo()
-get pub (m Map<K,V>) keys() Collection<K>
+
+// TBD: Return Iterable<(K, V)>???
+get pub (m Map<K,V>) iterator() ref mut Iterable<KvPair<K,V>>
+    return todo
+
+get pub (m Map<K,V>) keys() ref mut Iterator<K>
     return todo()
-get pub (m Map<K,V>) values() Collection<V>
+
+get pub (m Map<K,V>) values() ref mut Iterator<V>
     return todo()
+
 fun pub mut (m Map<K,V>) clear()
     return todo()
+
 fun pub mut (m Map<K,V>) add(item KvPair<K,V>)
     return todo()
+
 fun pub mut (m Map<K,V>) add(items Iterator<KvPair<K,V>>)
     return todo()
+
 fun pub mut (m Map<K,V>) remove(key K) bool
     return todo()
 

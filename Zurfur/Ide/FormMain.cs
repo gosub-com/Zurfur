@@ -53,6 +53,7 @@ namespace Gosub.Zurfur
         {
             mBuildPackage.StatusUpdate += mBuildPackage_StatusUpdate;
             mBuildPackage.FileUpdate += mBuildPackage_FileUpdate;
+            mEditController.OnNavigateToSymbol += mEditController_OnNavigateToSymbol;
 
             // Load example project, TBD: This will be removed
             if (System.Diagnostics.Debugger.IsAttached)
@@ -162,6 +163,17 @@ namespace Gosub.Zurfur
             if (!SaveFile(editor, false))
                 return false;
             return true;
+        }
+
+        private void mEditController_OnNavigateToSymbol(string path, int x, int y)
+        {
+            LoadFile(path);
+            if (mvEditors.EditorViewActive is TextEditor editor)
+            {
+                var loc = new TokenLoc(x, y);
+                editor.SelSet(loc, loc);
+                editor.CursorLoc = loc;
+            }    
         }
 
         private void mvEditors_EditorCanClose(IEditor editor, ref bool doNotClose)
