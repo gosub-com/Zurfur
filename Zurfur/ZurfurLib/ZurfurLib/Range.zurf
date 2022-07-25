@@ -12,7 +12,7 @@ type pub ro copy Range<T>
     @start T pub init get
     @end T pub init get
 
-get pub (r Range<T>) count() T
+get pub (Range<T>) count() T
     return end-start
         
 
@@ -23,10 +23,10 @@ type pub RangeIterator<T>
     @current T pub init
     @end T pub init
     
-get pub (r RangeIterator<T>) countHint() T
+get pub (RangeIterator<T>) countHint() T
     return end-current
     
-get pub (r RangeIterator<T>) next() ?T
+get pub (RangeIterator<T>) next() ?T
     if current < end
         return move(ref current, current.opNext())
     return null

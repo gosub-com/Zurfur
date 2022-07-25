@@ -361,6 +361,7 @@ namespace Gosub.Zurfur.Compiler
 
                 AddExtensionMethodGenerics(method, synFunc);
                 AddTypeParams(method, synFunc.TypeArgs);
+                AddMyParam(method, synFunc);
                 ResolveMethodParams(method, synFunc.MethodSignature[0], false); // Parameters
                 ResolveMethodParams(method, synFunc.MethodSignature[1], true);  // Returns
 
@@ -407,16 +408,10 @@ namespace Gosub.Zurfur.Compiler
             // TBD: Allow Map<K,V>.Pair, etc.
             void AddExtensionMethodGenerics(Symbol method, SyntaxFunc f)
             {
-                if (!f.IsExtension || f.MethodSignature.Count == 0)
+                if (f.ExtensionType == null)
                     return;
-                var extensionParams = f.MethodSignature[0];
-                if (extensionParams.Count == 0)
-                    return;
-                var extensionParam = extensionParams[0];
-                if (extensionParam.Count < 2)
-                    return;
-                var extensionType = extensionParam[0];
 
+                var extensionType = f.ExtensionType;
                 method.Qualifiers |= SymQualifiers.Extension;
 
                 // Skip qualifiers. 
@@ -455,6 +450,25 @@ namespace Gosub.Zurfur.Compiler
                 else if (firstMatchedType != null)
                     Reject(firstMatchedType, $"Type parameter '{firstMatchedType}' found in '{typeName}', but other type parameters don't match.");
             }
+            
+
+            // Add $my parameter for extension methods and member functions.
+            // NOTE: Even static methods get $this, but it is used as a
+            //       type name and not passed as a parameter
+            void AddMyParam(Symbol method, SyntaxFunc func)
+            {
+                var extType = func.ExtensionType;
+                if (extType == null || extType.Token == "")
+                    return;
+
+                var methodParam = new SymMethodParam(method, func.Name, "my");
+                methodParam.Type = ResolveTypeNameOrReject(methodParam, extType);
+                method.Qualifiers |= SymQualifiers.Extension;
+                if (methodParam.TypeName == "" && !noCompilerChecks)
+                    methodParam.Token.AddInfo(new VerifySuppressError());
+                table.AddOrReject(methodParam);
+            }
+            
 
             void ResolveMethodParams(Symbol method, SyntaxExpr parameters, bool isReturn)
             {

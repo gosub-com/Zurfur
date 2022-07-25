@@ -19,10 +19,10 @@ interface pub Iterator<Item>
     fun pub mut next() ?Item impl
 
 
-fun pub mut (i Iterator<Item>) toArrayXM() Array<Item>
+fun pub mut (Iterator<Item>) toArrayXM() Array<Item>
     return toList().toArray()
 
-fun pub mut (i Iterator<Item>) toList() List<Item>
+fun pub mut (Iterator<Item>) toList() List<Item>
     @list = List(countHint)
     while next()@item
         list.push(item)
@@ -31,17 +31,17 @@ fun pub mut (i Iterator<Item>) toList() List<Item>
 // TBD: Item should be an associated type,
 //      not explicitly passed back from filter
 //      This should work exactly thr same as the `filter` method
-fun pub mut (i Iterator<Item>) filter(f fun(item Item) bool) FilterIterator<This, Item>
+fun pub mut (Iterator<Item>) filter(f fun(item Item) bool) FilterIterator<This, Item>
     return FilterIterator<This, Item>(this, f)
 
-fun pub mut (i Iterator<Item>) find(f fun(item Item) bool) ?mut ref Item
+fun pub mut (Iterator<Item>) find(f fun(item Item) bool) ?mut ref Item
     while next()@item
         if f(item)
             return ref item
     return null
 
 //   TBD: Unify extension method here
-fun pub mut (i Iterator<Item>) toArrayXE() Array<Item>
+fun pub mut (Iterator<Item>) toArrayXE() Array<Item>
     return toList().toArray()
 
         
@@ -61,18 +61,18 @@ type ref FilterIterator<I, Item>
 // fun new(iter _, f _) {}
 //
 // Instead of this:
-fun (f FilterIterator<I, Item>) new(iter mut I, fn fun(item Item)bool)
+fun (FilterIterator<I, Item>) new(iter mut I, fn fun(item Item)bool)
     this.iter = ref iter
-    this.f = ref f
+    this.f = ref my
 
 // TBD: This does not implement the interface
-fun pub (f mut FilterIterator<I, Item>) next() ?mut ref I
-    return iter.find(f)
+fun pub (mut FilterIterator<I, Item>) next() ?mut ref I
+    return iter.find(my)
         
         
 
 // TBD: Check for same symbol name as 'new' method
-fun (f FilterIterator<I,Item>) new()
+fun (FilterIterator<I,Item>) new()
     todo
 
 fun test_Filter() Array<int>

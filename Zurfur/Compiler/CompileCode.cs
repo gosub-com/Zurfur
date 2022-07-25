@@ -109,6 +109,8 @@ namespace Gosub.Zurfur.Compiler
                     return new Rval(token, table.Lookup("Zurfur.str"));
                 else if ((char.IsLetter(name[0]) || name[0] == '_') && !ParseZurf.ReservedWords.Contains(name))
                     return GenIdentifier(ex);
+                else if (name == "my")
+                    return GenIdentifier(ex);
                 else if (name == "(")
                     return GenParen(ex);
                 else if (name == ".")

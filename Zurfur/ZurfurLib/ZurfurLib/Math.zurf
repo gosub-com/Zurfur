@@ -8,7 +8,7 @@ module Zurfur.Math
 // Math intrinsics for i32
 // --------------------------
 fun pub abs(n i32) i32 extern
-fun pub (i i32) clamp(min i32, max i32) i32
+fun pub (i32) clamp(min i32, max i32) i32
     require(min <= max) extern
 fun pub max(n1 i32, n2 i32) i32 extern
 fun pub min(n1 i32, n2 i32) i32 extern
@@ -18,7 +18,7 @@ fun pub sq(n i32) i32 extern
 // --------------------------
 // Math intrinsics for u32
 // --------------------------
-fun pub (u u32) clamp(min u32, max u32) u32
+fun pub (u32) clamp(min u32, max u32) u32
     require(min <= max) extern
 fun pub max(n1 u32, n2 u32) u32 extern
 fun pub min(n1 u32, n2 u32) u32 extern
@@ -28,7 +28,7 @@ fun pub sq(n u32) u32 extern
 // Math intrinsics for i64
 // --------------------------
 fun pub abs(n i64) i64 extern
-fun pub (i i64) clamp(min i64, max i64) i64
+fun pub (i64) clamp(min i64, max i64) i64
     require(min <= max) extern
 fun pub max(n1 i64, n2 i64) i64 extern
 fun pub min(n1 i64, n2 i64) i64 extern
@@ -38,7 +38,7 @@ fun pub sq(n i64) i64 extern
 // --------------------------
 // Math intrinsics for u64
 // --------------------------
-fun pub (u u64) clamp(min u64, max u64) u64
+fun pub (u64) clamp(min u64, max u64) u64
     require(min <= max) extern
 fun pub max(n1 u64, n2 u64) u64 extern
 fun pub min(n1 u64, n2 u64) u64 extern
@@ -114,7 +114,7 @@ fun pub trunc(n f64) f64 extern
 // Math intrinsics for Decimal
 // --------------------------
 fun pub abs(n Decimal) Decimal extern
-fun pub (d Decimal) clamp(min Decimal, max Decimal) Decimal
+fun pub (Decimal) clamp(min Decimal, max Decimal) Decimal
     require(min <= max) extern
 fun pub max(n1 Decimal, n2 Decimal) Decimal extern
 fun pub min(n1 Decimal, n2 Decimal) Decimal extern

@@ -73,7 +73,7 @@ namespace Gosub.Zurfur.Compiler
             + "trait mixin extends impl union fun afun def yield let cast "
             + "any dyn dynamic loop select match event aevent from to of on cofun cofunc global local it "
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
-            + "of sync task except exception raise loc local global");
+            + "of sync task except exception raise loc local global my");
 
         public static WordSet ReservedWords => sReservedWords;
 
@@ -84,7 +84,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sMethodQualifiers = new WordSet("pub static unsafe");
 
         static WordSet sReservedUserFuncNames = new WordSet("new clone drop cast default");
-        static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default self super new cast move");
+        static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default self super new cast move my");
         static WordSet sReservedMemberNames = new WordSet("clone");
         static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref mut own ro box");
 
@@ -1096,15 +1096,13 @@ namespace Gosub.Zurfur.Compiler
             while (mTokenName == "mut")
                 qualifiers.Add(Accept());
 
-            var validMethodName = ParseExtensionTypeAndMethodName(out var extensionParam, out synFunc.Name, out synFunc.TypeArgs);
-            if (extensionParam != null)
-                synFunc.IsExtension = true;
+            var validMethodName = ParseExtensionTypeAndMethodName(out synFunc.ExtensionType, out synFunc.Name, out synFunc.TypeArgs);
 
             // Don't process function while user is typing (this is for a better error message)
             if (!IsMatchPastMetaSemicolon("("))
                 validMethodName = false;
 
-            synFunc.MethodSignature = ParseMethodSignature(keyword, extensionParam);
+            synFunc.MethodSignature = ParseMethodSignature(keyword);
             synFunc.Constraints = ParseConstraints();
 
             while (AcceptMatchPastMetaSemicolon("require"))
@@ -1138,9 +1136,7 @@ namespace Gosub.Zurfur.Compiler
             if (AcceptMatch("("))
             {
                 var open = mPrevToken;
-                var p = ParseMethodParam(false);
-                if (p.Count != 0)
-                    extensionType = p;
+                extensionType = ParseType();
                 if (AcceptMatchOrReject(")"))
                     Connect(open, mPrevToken);
             }
@@ -1167,10 +1163,12 @@ namespace Gosub.Zurfur.Compiler
         ///     [1] - Returns (name, type) possibly blank for each
         ///     [2] - error/exit token
         /// </summary>
-        private SyntaxExpr ParseMethodSignature(Token keyword, SyntaxExpr firstParam = null)
+        private SyntaxExpr ParseMethodSignature(Token keyword)
         {
-            var funcParams = ParseMethodParams(firstParam);
+            // Parameters
+            var funcParams = ParseMethodParams();
 
+            // Returns
             SyntaxExpr returnParams;
             if (AcceptMatchPastMetaSemicolon("->"))
             {
@@ -1195,7 +1193,7 @@ namespace Gosub.Zurfur.Compiler
         }
 
 
-        SyntaxExpr ParseMethodParams(SyntaxExpr firstParam = null)
+        SyntaxExpr ParseMethodParams()
         {
             // Read open token, '('
             if (!AcceptMatchPastMetaSemicolon("(")  && !AcceptMatchOrReject("("))
@@ -1204,8 +1202,6 @@ namespace Gosub.Zurfur.Compiler
             // Parse parameters
             var openToken = mPrevToken;
             var parameters = NewExprList();
-            if (firstParam != null)
-                parameters.Add(firstParam);
             if (mTokenName != ")")
                 parameters.Add(ParseMethodParam());
             while (AcceptMatch(","))
@@ -1213,10 +1209,6 @@ namespace Gosub.Zurfur.Compiler
                 Connect(openToken, mPrevToken);
                 parameters.Add(ParseMethodParam());
             }
-
-            // Ellipse to signify repeated parameters
-            //if (AcceptMatch("..."))
-            //    mPrevToken.AddWarning("Repeated parameters not supported yet");
 
             if (AcceptMatchOrReject(")", "Expecting ')' or ','"))
                 Connect(openToken, mPrevToken);

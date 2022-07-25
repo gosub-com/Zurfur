@@ -29,10 +29,10 @@ type pub ComplexType
     @mapChanged fun()
 
 // Properties are public by default
-get (my ComplexType) myMap() ref Map<str, int>
+get (ComplexType) myMap() ref Map<str, int>
     return ref my.map // Return a read only reference
     
-set (my ComplexType) myMap(v own Map<str, int>)
+set (ComplexType) myMap(v own Map<str, int>)
     my.map = v
     my.mapChanged()
 
@@ -81,7 +81,7 @@ fun pub circle3(a f64, b f64) -> (c int, d int)
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
 // PREVIOUSLY: fun pub GetIterator<T>.AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIterator<T>
-fun pub (my Iterator<Item>) alphaLengthWise<L>(lengthProvider fun(t Item) L) Iterator<Item>
+fun pub (Iterator<Item>) alphaLengthWise<L>(lengthProvider fun(t Item) L) Iterator<Item>
     return my.orderBy(@a => lengthProvider(a))
              .thenBy(@a => a)
 
