@@ -65,6 +65,8 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     abstract class Symbol
     {
+        static Dictionary<string, Symbol> sEmptyDict = new Dictionary<string, Symbol>();
+
         public Symbol Parent { get; }
         static Dictionary<int, string> sTags = new Dictionary<int, string>();
         public SymKind Kind { get; protected set; }
@@ -179,19 +181,6 @@ namespace Gosub.Zurfur.Compiler
             return mPrimary.TryGetValue(key, out sym);
         }
 
-        // Add all children with the given name (primary or method)
-        public void FindSymbolsNamed(string name, List<Symbol> symbols)
-        {
-            if (TryGetPrimary(name, out Symbol sym))
-                symbols.Add(sym);
-            if (HasMethodNamed(name))
-            {
-                foreach (var child in mChildren.Values)
-                    if (child.IsMethod && child.Token == name)
-                        symbols.Add(child);
-            }
-        }
-
         // Check to see if there is a method (i.e. non-primary symbol)
         public bool HasMethodNamed(string name)
         {
@@ -200,7 +189,12 @@ namespace Gosub.Zurfur.Compiler
             return mHasMethodNamed.ContainsKey(name);
         }
 
-        public IEnumerable<Symbol> Children(SymKind filter = SymKind.All, string named = null)
+        public Dictionary<string, Symbol>.ValueCollection Children
+        {
+            get { return mChildren == null ? sEmptyDict.Values : mChildren.Values; }
+        }
+
+        public IEnumerable<Symbol> ChildrenFilter(SymKind filter, string named = null)
         {
             if (ChildrenCount == 0)
                 yield break;
@@ -237,7 +231,7 @@ namespace Gosub.Zurfur.Compiler
             if (ChildrenCount == 0)
                 yield break;
 
-            foreach (var sym in Children())
+            foreach (var sym in Children)
             {
                 yield return sym;
                 foreach (var child in sym.ChildrenRecurse())
@@ -454,12 +448,6 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
-        /// <summary>
-        /// Return the simple name of this symbol (methods use the group, not the full type name)
-        /// </summary>
-        public string SimpleName
-            => IsMethod ? Parent.Name : Name;
-
         public override string ToString()
         {
             return FullName;
@@ -471,7 +459,7 @@ namespace Gosub.Zurfur.Compiler
         public int GenericParamCount()
         {
             var count = 0;
-            foreach (var child in Children(SymKind.TypeParam))
+            foreach (var child in ChildrenFilter(SymKind.TypeParam))
                 count++;
             return count;
         }
@@ -561,8 +549,36 @@ namespace Gosub.Zurfur.Compiler
         public override string KindName => "method";
         protected override string Separator => ".";
 
+        List<Symbol> mParamTypeListCache;
+        Symbol mReturnTypeCache;
 
-        Symbol mReturnTypeCache;        
+        // If any parameter type is unresolved, return an empty type list
+        public List<Symbol> GetParamTypeList()
+        {
+            if (mParamTypeListCache != null)
+                return mParamTypeListCache;
+            
+            mParamTypeListCache = new List<Symbol>();
+            var parameters = ChildrenFilter(SymKind.MethodParam).Where(child => !child.ParamOut).ToList();
+            if (parameters.Count == 0)
+                return mParamTypeListCache;
+            parameters.Sort((a, b) => a.Order.CompareTo(b.Order));
+
+            foreach (var param in parameters)
+            {
+                if (param.Type != null)
+                {
+                    mParamTypeListCache.Add(param.Type);
+                }
+                else
+                {
+                    mParamTypeListCache.Clear();
+                    break;
+                }
+            }
+
+            return mParamTypeListCache;
+        }
 
         // Get the return type, or multiple returns as an anonymous type
         public Symbol GetReturnType(SymbolTable table)
@@ -576,7 +592,7 @@ namespace Gosub.Zurfur.Compiler
         // Get parameters or returns as an anonymous type (or just the type if single return)
         Symbol GetParams(SymbolTable table, bool returns)
         {
-            var parameters = Children(SymKind.MethodParam).Where(child => returns == child.ParamOut).ToList();
+            var parameters = ChildrenFilter(SymKind.MethodParam).Where(child => returns == child.ParamOut).ToList();
             if (parameters.Count == 0)
                 return table.Lookup("Zurfur.void");
             if (returns && parameters.Count == 1)

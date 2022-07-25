@@ -61,27 +61,27 @@ fun pub (my mut List<byte>) pushBytesI32(v i32)
     my.pushBytesU32(v.u32Mask())
 
 fun pub (my Span<byte>) bytesToU16() u16 require count == 2 { }
-fun pub mut (my Span<byte>) setBytesU16(v u16) require count == 2 { }
+fun pub (my mut Span<byte>) setBytesU16(v u16) require count == 2 { }
 fun pub (my mut List<byte>) pushBytesU16(v u16) { }
 
 fun pub (my Span<byte>) bytesToI16() i16 require count == 2 { }
-fun pub mut (my Span<byte>) setBytesI16(v i16) require count == 2 { }
+fun pub (my mut Span<byte>) setBytesI16(v i16) require count == 2 { }
 fun pub (my mut List<byte>) pushBytesI16(v i16) { }
 
 fun pub (my Span<byte>) bytesToUint() uint require count == 8 { }
-fun pub mut (my Span<byte>) setBytesUint(v uint) require count == 8 { }
+fun pub (my mut Span<byte>) setBytesUint(v uint) require count == 8 { }
 fun pub (my mut List<byte>) pushBytesUint(v uint) { }
 
 fun pub (my Span<byte>) bytesToInt() int require count == 8 { }
-fun pub mut (my Span<byte>) setBytesInt(v int) require count == 8 { }
+fun pub (my mut Span<byte>) setBytesInt(v int) require count == 8 { }
 fun pub (my mut List<byte>) pushBytesInt(v int) { }
 
 fun pub (my Span<byte>) bytesToF32() f32 require Count == 4 { }
-fun pub mut (my Span<byte>) setBytesF32(v f32) require count == 4 { }
+fun pub (my mut Span<byte>) setBytesF32(v f32) require count == 4 { }
 fun pub (my mut List<byte>) pushBytesF32(v f32) { }
 
 fun pub (my Span<byte>) bytesToF64() f64 require count == 8  { }
-fun pub mut (my Span<byte>) setBytesF64(v f64) require count == 8 { }
+fun pub (my mut Span<byte>) setBytesF64(v f64) require count == 8 { }
 fun pub (my mut List<byte>) pushBytesF64(v f64) { }
 
    

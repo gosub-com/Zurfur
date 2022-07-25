@@ -25,7 +25,7 @@ namespace Gosub.Zurfur.Compiler
             void ShowErrors()
             {
                 // Count errors and show first 10
-                int MAX_ERROR_MESSAGES = 10;
+                int MAX_ERROR_MESSAGES = 1000;
                 int totalErrors = 0;
                 List<string> errorMessages = new List<string>();
                 foreach (var lexer in files)

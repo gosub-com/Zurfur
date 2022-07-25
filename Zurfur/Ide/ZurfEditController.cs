@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using Gosub.Zurfur.Lex;
 using Gosub.Zurfur.Compiler;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json;
 
 namespace Gosub.Zurfur.Ide
@@ -272,9 +273,8 @@ namespace Gosub.Zurfur.Ide
             if (!showForm)
                 return;
 
-            // Show symbol info
-            var message = GetSymbolInfo();
-
+            // Show errors and warnings
+            var message = "";
             foreach (var error in mHoverToken.GetInfos<TokenError>())
             {
                 var errorType = "";
@@ -289,6 +289,11 @@ namespace Gosub.Zurfur.Ide
 
             foreach (var error in mHoverToken.GetInfos<TokenWarn>())
                 message += $"WARNING: {error}\r\n";
+
+            // Show symbol info
+            if (message != "")
+                message += "\r\n";
+            message += GetSymbolInfo();
 
             message += mHoverToken.GetInfoString();
             mHoverMessageForm.Message.Text = message.Trim();
@@ -310,20 +315,25 @@ namespace Gosub.Zurfur.Ide
             if (symbols.Length == 0)
                 return "";
 
+            if (symbols.Length > 1)
+            {
+                message += "SYMBOLS:\r\n";
+                message += string.Join("\r\n", symbols.Select(sym =>
+                    $"    [{getQualifiers(sym)}] {sym}"));
+                return message + "\r\n\r\n";
+            }
+
             var symbol = symbols[0];
-            message += "[" + string.Join(", ", symbol.QualifiersStr().Split(' ')) + "]\r\n";
+            message +=$"SYMBOL: [{getQualifiers(symbol)}] {symbol}\r\n";
 
             if (symbol.IsField || symbol.IsMethodParam || symbol.IsLocal)
             {
-                message += symbol.KindName.ToUpper() + ": " + symbol.ToString() + "\r\n";
                 message += "TYPE: " + symbol.TypeName + "\r\n";
             }
             else if (symbol.IsMethod)
             {
-                message += symbol.KindName.ToUpper() + ": " + symbol.FullName + "\r\n";
-                message += "TYPE: " + symbol.TypeName + "\r\n";
                 message += "PARAMS: \r\n";
-                foreach (var child in symbol.Children())
+                foreach (var child in symbol.Children)
                 {
                     if (child.IsMethodParam)
                         message += "    " + child.Name + ": " + child.TypeName + "\r\n";
@@ -333,26 +343,19 @@ namespace Gosub.Zurfur.Ide
                         message += "    " + child.Name + ": COMPILER ERROR\r\n";
                 }
             }
-            else
-            {
-                message += symbol.KindName.ToUpper() + ": " + symbol.ToString() + "\r\n";
-            }
-
-            // Comments
-            if (symbol.Comments != "")
-            {
-                message += "COMMENTS:\r\n" + symbol.Comments + "\r\n";
-            }
             message += "\r\n";
 
-            // Only show one symbol, but if there are duplicates let us know about them
-            if (symbols.Length != 1)
+            // Comments
+            if (symbol.Comments.Trim() != "")
             {
-                // We get this when there are parse errors
-                message += "DUPLICATE SYMBOL ERROR: There are " + symbols.Length + " symbols\r\n";
+                message += "COMMENTS:\r\n" + symbol.Comments + "\r\n\r\n";
             }
+
             return message;
         }
+
+        string getQualifiers(Symbol symbol)
+            => string.Join(", ", symbol.QualifiersStr().Split(' '));
 
         void UpdateScrollBars(TextEditor editor)
         {

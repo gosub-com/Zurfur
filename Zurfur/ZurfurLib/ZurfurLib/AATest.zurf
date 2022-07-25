@@ -12,21 +12,22 @@ pragma ShowParse
 fun helloVoid() {}
 fun helloInt() int {}
 fun cos2(a int) -> (x f64, y int) {}
+fun nop() {}
  
 fun test(x f64)
     @a = 3
     @b = x
     @c = x == 3.0
     @(y,z) = cos2
-    @d = cos2 
+    @d = cos2(3)
     @e = d.x
-    @f = helloVoid
-    @g = helloInt
+    @f = helloVoid()
+    @g = helloInt()
     Log.info("Hello world, 2+2={2+2}")
-    @h = cos(2+3*23).toString()
+    @h = cos(2.0+3.0*23.0).toStr()
 
 fun (s Span<byte>) hello()
-    nop
+    nop()
 
 type AAAA<T>
     @v void
@@ -102,7 +103,7 @@ fun (f AAFun) af7<X>(p fun(v X)bool) {}
 type OneGeneric<T> { } 
 type Point<T>(x T, y T)
 type Size<T>(width T, height T)
-get (p Point<T>) toSize() Size<T> { return Size(x, y) }
+get (my Point<T>) toSize() Size<T> { return Size(my.x, my.y) }
 
 type pub AAFunc<T1,T2>
     @Invoke fun (v T1) T2
@@ -141,7 +142,7 @@ fun (a AGenericTest<T, QQQ>) af6(p fun(v int)bool) {}
 //    return 0
 
 fun pub GenericTest<Q1,Q2>(a Q1, b Q2)
-    return a.ToStr().Length + b.ToStr().Length    
+    return a.toStr().Length + b.toStr().Length    
 
 type pub AGenericTest<T, QQQ>
     where QQQ is OpEq<T>//: new() where T : new()
@@ -154,20 +155,5 @@ type pub AGenericTest<T, QQQ>
     
     @field0 T = 0
     @Xfield6 Zurfur.int
-
-fun pub (a AGenericTest<T, QQQ>) UseIt(x Zurfur.int, y List<BBBB>, z List<str>)
-    XField0.ToStr()
-    // Xfield2<str, T>.P3<T>(); - Xfield2 can't use type parameters
-    // Xfield2.P3(); - Can't infer P3<type>
-    Xfield2.P3<T>()
-    @a = List<str, Outer<int, int>>()
-
-    Inner1<str, byte>.Inner2<short, ushort>.Hello = 1
-    Outer<T, QQQ>.Inner1<str, byte>.Inner2<short, ushort>.Hello = 2
-    Outer<QQQ, T>.Inner1<str, byte>.Inner2<short, ushort>.Hello = 3
-    Outer<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, byte>.Hello = 4
-
-    @p = AGenericTest<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, byte>()
-    p.P5<short, QQQ, ushort>(3, QQQ(), 0)
 
     

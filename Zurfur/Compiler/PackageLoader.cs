@@ -64,14 +64,14 @@ namespace Gosub.Zurfur.Compiler
             {
                 ps.Name = symbol.FullName;
                 packSyms.Add(ps);
-                foreach (var s in symbol.Children())
+                foreach (var s in symbol.Children)
                     Save(s, ps, packSyms, onlyPublic);
             }
             else if (symbol.IsMethod)
             {
                 ps.Name = symbol.FullName;
                 packSyms.Add(ps);
-                foreach (var s in symbol.Children())
+                foreach (var s in symbol.Children)
                     Save(s, ps, packSyms, onlyPublic);
 
                 CheckMethodName(ps, symbol);

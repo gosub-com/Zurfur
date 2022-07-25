@@ -9,10 +9,11 @@ type pub ro copy Line(filePath str, line int)
 fun todo() {}
 
 get pub level() Level { todo() }
-fun pub fatal(message str, li Line = default) { todo() }
+fun pub critical(message str, li Line = default) { todo() }
 fun pub error(message str, li Line = default) { todo() }
 fun pub warn(message str, li Line = default) { todo() }
 fun pub info(message str, li Line = default) { todo() }
+fun pub info(message str) { todo() } // TBD: Remove when we figure out default line info
 fun pub debug(message str, li Line = default) { todo() }
 
 

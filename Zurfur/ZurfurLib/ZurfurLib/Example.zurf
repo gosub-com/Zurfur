@@ -10,7 +10,7 @@
 module TestExample
 
 use Zurfur[Decimal, Log]
-use Zurfur.Collections[GetIterator]
+use Zurfur.Collections[GetIterator, Iterator]
 use Zurfur.Math[cos,sin]
 
 
@@ -31,6 +31,7 @@ type pub ComplexType
 // Properties are public by default
 get (my ComplexType) myMap() ref Map<str, int>
     return ref my.map // Return a read only reference
+    
 set (my ComplexType) myMap(v own Map<str, int>)
     my.map = v
     my.mapChanged()
@@ -44,11 +45,14 @@ fun pub countToTen() str
         Log.info("Count={a}, Text={text}")
 
 fun doit() {}
+fun hello() {}
 
 fun test_HelloWorld()
+    @a = 3
     while a == 3
         doit()
         doit()
+        a += 1
     Log.info("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
         doit()
@@ -56,7 +60,7 @@ fun test_HelloWorld()
         while a == 3
             doit()
             doit()
-        hello
+        hello()
         if a
             doit()
             
@@ -66,7 +70,7 @@ type pub owned box AGenericType<Q>
 fun pub circle1(a f64, r f64) -> (x f64, y f64)
     return cos(a)*r, sin(a)*r
 
-fun pub circle2(a int, r int) int
+fun pub circle2(a f32, r f32) int
     return cos(a)*r, sin(a)*r
 
 fun pub circle3(a f64, r f64) -> (x f64, y f64)
@@ -77,11 +81,9 @@ fun pub circle3(a f64, b f64) -> (c int, d int)
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
 // PREVIOUSLY: fun pub GetIterator<T>.AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIterator<T>
-fun pub (i GetIterator<Item>) AlphaLengthWise<L>(lengthProvider fun(t Item) L) GetIterator<Item>
-    return i
-        .OrderBy(@a => lengthProvider(a))
-        .ThenBy(@a => a)
-    F(t).AW(T,L).q
+fun pub (my Iterator<Item>) alphaLengthWise<L>(lengthProvider fun(t Item) L) Iterator<Item>
+    return my.orderBy(@a => lengthProvider(a))
+             .thenBy(@a => a)
 
 type pub Example
     
@@ -124,10 +126,9 @@ type pub Zim<T>
 // Use `name` to refer to variables in the code.
 fun pub test_Main(args Array<str>)
 
-    test_compose()
 
     // This is a regular private comment
-    Log.Info("Hello World, 2+2={2+2}")
+    Log.info("Hello World, 2+2={2+2}")
 
     @v = ""
 
@@ -143,8 +144,8 @@ fun pub test_Main(args Array<str>)
         v = "none"
     
 
-    a = tr"Column 1{\t}Column 2{\rn}"
-    data = "Name:{name}{\t}Occupation:{lastName}{\rn}"
+    @a = tr"Column 1{\t}Column 2{\rn}"
+    @data = "Name:{name}{\t}Occupation:{lastName}{\rn}"
     
     while stream.Read(buffer)@size != 0
         @a = MyFun as Hello
@@ -157,13 +158,11 @@ fun pub test_Main(args Array<str>)
         // We got a token
     }
 
-    // list.For takes a lambda with one parameter
-    // @item captures the lambda parameter
     @sum = 0
-    list.For() @item =>
+    list.forEach(@item =>
     {
         sum += item
-    }
+    })
 
     return
 
@@ -190,10 +189,10 @@ type MyStruct(a int)
 
 fun pub sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
     // Simple selection sort
-    for @i in s.Count-1
+    for @i in s.count-1
         @lowElem = s[i]
         @lowIndex = i
-        for @j in i+1..s.Count
+        for @j in i+1..s.count
             if lessThan(s[j], lowElem)
                 lowElem = s[j]
                 lowIndex = j

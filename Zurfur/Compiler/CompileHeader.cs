@@ -165,13 +165,13 @@ namespace Gosub.Zurfur.Compiler
                             {
                                 if (symbol.IsAnyType)
                                     token.Type = eTokenType.TypeName;
-                                token.AddInfo($"{symbol.KindName}: {symbol.Name}");
+                                token.AddInfo(symbol);
                                 found = true;
                             }
                             if (module.HasMethodNamed(token))
                             {
-                                foreach (var method in module.Children(SymKind.Method, token))
-                                    token.AddInfo($"{method.KindName}: {method.Name}");
+                                foreach (var method in module.ChildrenFilter(SymKind.Method, token))
+                                    token.AddInfo(method);
                                 found = true;
                             }
                             if (!found)
@@ -378,8 +378,8 @@ namespace Gosub.Zurfur.Compiler
                 //      t1,t2... - Parameter types
                 //      r1,r2... - Return types
                 var genericsCount = method.GenericParamCount();
-                var mp = method.Children(SymKind.MethodParam).Where(child => !child.ParamOut).ToList();
-                var mpr = method.Children(SymKind.MethodParam).Where(child => child.ParamOut).ToList();
+                var mp = method.ChildrenFilter(SymKind.MethodParam).Where(child => !child.ParamOut).ToList();
+                var mpr = method.ChildrenFilter(SymKind.MethodParam).Where(child => child.ParamOut).ToList();
                 mp.Sort((a, b) => a.Order.CompareTo(b.Order));
                 mpr.Sort((a, b) => a.Order.CompareTo(b.Order));
                 var methodName = synFunc.Name

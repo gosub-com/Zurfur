@@ -75,6 +75,8 @@ namespace Gosub.Zurfur.Compiler
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
             + "of sync task except exception raise loc local global");
 
+        public static WordSet ReservedWords => sReservedWords;
+
         static WordSet sFieldQualifiers = new WordSet("pub public private unsafe unsealed static protected");
         static WordSet sTypeQualifiers = new WordSet("pub ro ref box owned class copy nocopy unsafe");
         static WordSet sPostFieldQualifiers = new WordSet("init set get ref mut");
@@ -1358,7 +1360,7 @@ namespace Gosub.Zurfur.Compiler
                     var expressions = NewExprList();
                     do
                     {
-                        expressions.Add(new SyntaxUnary(keyword, ParseExpr()));
+                        expressions.Add(ParseExpr());
                     } while (AcceptMatch(","));
                     statements.Add(new SyntaxMulti(keyword, FreeExprList(expressions)));
                     break;
