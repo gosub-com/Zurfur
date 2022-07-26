@@ -124,15 +124,16 @@ type pub Zim<T>
 
 // This is a public documentation comment.  Do not use XML.
 // Use `name` to refer to variables in the code.
-fun pub test_Main(args Array<str>)
+fun pub test_Main(args Array<str>, stream Zurfur.Io.Reader)
 
 
     // This is a regular private comment
     Log.info("Hello World, 2+2={2+2}")
 
     @v = ""
+    @myStrings = ["a", "b", "c"]
 
-    if myString[32]@q == "x"
+    if myStrings[1]@q == "x"
         v = "x"
     elif q == "y" or q=="z"
         v = "y or z"
@@ -147,7 +148,7 @@ fun pub test_Main(args Array<str>)
     @a = tr"Column 1{\t}Column 2{\rn}"
     @data = "Name:{name}{\t}Occupation:{lastName}{\rn}"
     
-    while stream.Read(buffer)@size != 0
+    while stream.read(buffer)@size != 0
         @a = MyFun as Hello
 
 

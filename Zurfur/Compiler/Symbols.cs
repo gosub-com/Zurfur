@@ -440,7 +440,9 @@ namespace Gosub.Zurfur.Compiler
             {
                 if (mFullNameCache != null)
                     return mFullNameCache;
-                if (Parent == null || Parent.Name == "")
+                if (IsLocal || IsMethodParam || IsTypeParam)
+                    mFullNameCache = Name;
+                else if (Parent == null || Parent.Name == "")
                     mFullNameCache = Name + Suffix;
                 else
                     mFullNameCache = Parent.FullName + Separator + Name + Suffix;
@@ -607,6 +609,9 @@ namespace Gosub.Zurfur.Compiler
             {
                 // Create a field with same type and name as parameter
                 var parameter = parameters[i];
+                if (parameter.Type == null)
+                    continue;  // Unresolved type name
+
                 var field = new SymField(paramType, parameter.Token);
                 field.Type = parameter.Type;
 

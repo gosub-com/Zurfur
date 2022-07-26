@@ -818,7 +818,6 @@ namespace Gosub.Zurfur.Compiler
 
                 // Find symbols in module or parents of module
                 var mod = currentMethod.Parent;
-                Debug.Assert(mod.IsModule);
                 while (mod != null)
                 {
                     AddSymbolsNamed(mod, identifier, symbols);

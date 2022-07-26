@@ -31,7 +31,6 @@
 
 module Zurfur.Internal.Memory
 
-fun todo() require(false) {}
 
 fun panicFatal(m str)
 {

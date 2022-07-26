@@ -8,6 +8,12 @@ module Zurfur
 
 pragma AllowUnderscoreDefinitions
 
+// Blank function
+get pub nop() {}
+
+// TBD: Probably need to remove this
+get todo() require(false) { }
+
 
 // Return type of functions that don't return anything
 type pub void { }
@@ -38,11 +44,6 @@ interface pub object { }
 // non-essential metadata is opt-in
 type pub ro copy Type
     @id i32 pub get
-
-
-
-// Blank function
-get pub nop() {}
 
 
 // Swap two items

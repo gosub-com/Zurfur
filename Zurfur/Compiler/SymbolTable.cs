@@ -80,14 +80,16 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Generates a lookup table for all symbols, excluding specialized types.
-        /// Must be called before using `Lookup`
+        /// Generates a lookup table, excluding specialized types,
+        /// parameters, and locals.  Must be called before using `Lookup`
         /// </summary>
         public void GenerateLookup()
         {
             mLookup.Clear();
             foreach (var s in mRoot.ChildrenRecurse())
             {
+                if (s.IsTypeParam || s.IsMethodParam || s.IsLocal)
+                    continue;
                 Debug.Assert(!s.IsSpecializedType);
                 var fullName = s.FullName;
                 Debug.Assert(!mLookup.ContainsKey(fullName));
@@ -96,7 +98,8 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Lookup a symbol, including specialized types
+        /// Lookup a symbol, including modules, types, specialized types,
+        /// fields, and methods.  Excluding parameters and locals.
         /// Call `GenerateLookup` before calling this.
         /// Returns NULL if symbol doesn't exist.
         /// </summary>

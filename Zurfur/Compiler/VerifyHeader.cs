@@ -62,7 +62,7 @@ namespace Gosub.Zurfur.Compiler
             //      pre-compiled packages, so it will be done eventually.
             //      For now, we will use the compiler generated output.
 
-            foreach (var symbol in symbols.Symbols)
+            foreach (var symbol in symbols.Root.ChildrenRecurse())
             {
                 if (symbol.Name == "")
                     return;

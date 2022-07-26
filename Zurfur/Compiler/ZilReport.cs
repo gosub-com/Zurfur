@@ -72,9 +72,7 @@ namespace Gosub.Zurfur.Compiler
                 int types = 0;
                 int typesNonGeneric = 0;
                 int typesGeneric = 0;
-                int typeParams = 0;
                 int methods = 0;
-                int methodParams = 0;
                 int fields = 0;
                 foreach (var sym in symbols.Symbols)
                 {
@@ -88,12 +86,8 @@ namespace Gosub.Zurfur.Compiler
                         else
                             typesGeneric++;
                     }
-                    if (sym.IsTypeParam)
-                        typeParams++;
                     if (sym.IsMethod)
                         methods++;
-                    if (sym.IsMethodParam)
-                        methodParams++;
                     if (sym.IsField)
                         fields++;
                 };
@@ -101,26 +95,25 @@ namespace Gosub.Zurfur.Compiler
                 headerFile.Add("SYMBOLS: " + count);
                 headerFile.Add($"    Types: {types} ({typesNonGeneric} non-generic, {typesGeneric} generic)");
                 headerFile.Add($"    Specializations: {symbols.SpecializedSymbols.Count} (generated from generics)");
-                headerFile.Add($"    Type parameters: {typeParams}");
-                headerFile.Add($"    Methods: {methods} ({methodParams} parameters)");
+                headerFile.Add($"    Methods: {methods}");
                 headerFile.Add($"    Fields: {fields}");
                 headerFile.Add("");
             }
 
             void ShowOverview()
             {
-                // Get namespaces and all symbols
-                var namespaces = new List<string>();
+                // Get modules and all symbols
+                var modules = new List<string>();
                 foreach (var s in symbols.Symbols)
                 {
                     if (s.IsModule)
-                        namespaces.Add(s.FullName);
+                        modules.Add(s.FullName);
                 }
-                namespaces.Sort((a, b) => a.CompareTo(b));
+                modules.Sort((a, b) => a.CompareTo(b));
 
                 headerFile.Add("");
-                headerFile.Add("Namespaces:");
-                foreach (var ns in namespaces)
+                headerFile.Add("Modules:");
+                foreach (var ns in modules)
                     headerFile.Add("    " + ns);
                 headerFile.Add("");
 
