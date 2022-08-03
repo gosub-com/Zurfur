@@ -273,6 +273,10 @@ namespace Gosub.Zurfur.Compiler
 
             Rval GenOperator(SyntaxExpr ex)
             {
+                if (ex.Token == "+")
+                {
+                    //return GenPlus(ex);
+                }
                 if (ex.Count == 1
                         && (ex.Token == "-" || ex.Token == "~" || ex.Token == "&"))
                     return GenUnaryOp(ex);
@@ -521,6 +525,29 @@ namespace Gosub.Zurfur.Compiler
                 return hasError;
             }
 
+            Rval GenPlus(SyntaxExpr ex)
+            {
+                if (ex.Count != 2)
+                    return null;  // Syntax error
+                var left = GenExpr(ex[0]);
+                var right = GenExpr(ex[1]);
+
+                if (left == null || right == null)
+                    return null;
+
+                var leftType = EvalType(left);
+                var rightType = EvalType(right);
+
+                if (leftType == null || rightType == null)
+                    return null;
+
+                var symbols = new List<Symbol>();
+                FindGlobal("opAdd", symbols);
+
+                return null;
+            }
+
+
             Rval GenCall(SyntaxExpr ex)
             {
                 if (ex.Count == 0)
@@ -757,7 +784,7 @@ namespace Gosub.Zurfur.Compiler
             /// Find symbols in the type, including methods defined in
             /// the type's module, this module, or use statements.
             /// </summary>
-            void FindInType(Token identifier, Symbol type, List<Symbol> symbols)
+            void FindInType(string identifier, Symbol type, List<Symbol> symbols)
             {
                 AddSymbolsNamed(type, identifier, symbols);
 
@@ -804,14 +831,11 @@ namespace Gosub.Zurfur.Compiler
             /// symbols in the current module (or parents) and also the use
             /// statements.
             /// </summary>
-            void FindGlobal(Token identifier, List<Symbol> symbols)
+            void FindGlobal(string identifier, List<Symbol> symbols)
             {
                 var local = FindLocal(identifier);
                 if (local != null)
                 {
-                    // TBD: In a future version, this will become a reserved word
-                    if (identifier == "my")
-                        identifier.Type = eTokenType.Reserved;
                     symbols.Add(local);
                     return;
                 }
@@ -825,7 +849,7 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 // Search 'use' symbol
-                if (fileUses.UseSymbols.TryGetValue(identifier.Name, out var modules))
+                if (fileUses.UseSymbols.TryGetValue(identifier, out var modules))
                 {
                     foreach (var module in modules)
                     {

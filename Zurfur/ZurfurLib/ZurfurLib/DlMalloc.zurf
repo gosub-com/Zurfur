@@ -31,6 +31,8 @@
 
 module Zurfur.Internal.Memory
 
+use Zurfur[xuint, uint]
+
 
 fun panicFatal(m str)
 {

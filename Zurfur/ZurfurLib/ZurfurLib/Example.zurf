@@ -9,6 +9,7 @@
 // http://zurfur.com
 module TestExample
 
+use Zurfur
 use Zurfur[Decimal, Log]
 use Zurfur.Collections[GetIterator, Iterator]
 use Zurfur.Math[cos,sin]

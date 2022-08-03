@@ -2,6 +2,7 @@
 
 module Zurfur.Io
 
+use Zurfur.Io[FileStream]
 
 interface Reader
     afun mut read(data mut []byte) int throws impl

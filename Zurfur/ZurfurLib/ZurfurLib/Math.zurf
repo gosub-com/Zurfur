@@ -4,6 +4,8 @@
 
 module Zurfur.Math
 
+use Zurfur[Decimal]
+
 // --------------------------
 // Math intrinsics for i32
 // --------------------------

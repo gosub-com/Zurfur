@@ -377,16 +377,20 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Find the type or module in the scope, or null if not found.
-        /// Does not search use statements.
+        /// Scope includes all parent types and just one parent module
+        /// (e.g. `Zurfur.Io` does not include `Zurfur`)
         /// </summary>
         static public Symbol FindTypeInScopeWalk(string name, Symbol scope)
         {
-            while (scope.Parent != null)
+            while (!scope.IsModule)
             {
                 if (scope.TryGetPrimary(name, out var s1) && s1.IsAnyType)
                     return s1;
                 scope = scope.Parent;
             }
+            // This is a module
+            if (scope.TryGetPrimary(name, out var s2) && s2.IsAnyType)
+                return s2;
 
             return null;
         }

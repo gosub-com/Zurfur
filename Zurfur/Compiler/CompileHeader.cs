@@ -246,7 +246,7 @@ namespace Gosub.Zurfur.Compiler
                             Reject(field.Name, "Expecting symbol to have an explicitly named type");
                             continue;
                         }
-                        symField.Type = ResolveTypeNameOrReject(symField, field.TypeName);
+                        symField.Type = ResolveTypeNameOrReject(symField.Parent, field.TypeName);
                         if (symField.TypeName == "" && !noCompilerChecks)
                             symField.Token.AddInfo(new VerifySuppressError());
                     }

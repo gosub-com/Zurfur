@@ -3,7 +3,7 @@ module Zurfur
 
 use Zurfur.Unsafe
 use Zurfur.Collections[Iterator]
-use Zurfur.Operators[Clone]
+use Zurfur[Clone]
 
 
 // This type contains ?T and relies on List to keep track of
@@ -142,11 +142,11 @@ fun pub (mut List<T>) remove(test fun(item T) bool)
     todo()
 
 fun pub (List<T>) convert<Tout>(f fun(item T) ?Tout) List<Tout>
-    where T is Clone
+    where T is Clone<T>
     todo()
 
 fun pub (List<T>) toArray() Array<T>
-    where T is Clone
+    where T is Clone<T>
     todo()
 
 

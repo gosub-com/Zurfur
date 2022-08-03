@@ -56,7 +56,7 @@ type pub ro copy bool
 
 
 fun pub (bool) getHash() i64 extern
-fun pub (bool) opEq(a bool) bool extern
+fun pub (bool) _opEq(a bool) bool extern
 
 // i8 (-128..127)
 type pub ro copy i8
@@ -76,8 +76,8 @@ fun pub (i8) toStr() str extern
 fun pub (i8) toByteMask() byte extern
 fun pub (i8) toByteFail() byte require this >= 0 extern
 fun pub (i8) getHash() i64 extern
-fun pub (i8) opEq(a i8) bool extern
-fun pub (i8) opCmp(a i8) int extern
+fun pub (i8) _opEq(a i8) bool extern
+fun pub (i8) _opCmp(a i8) int extern
 
 
 // byte (0..255)
@@ -101,8 +101,8 @@ fun pub (byte) toStr() str extern
 fun pub (byte) toI8Mask() i8 extern
 fun pub (byte) toI8Fail() i8 require this <= i8.MAX extern
 fun pub (byte) getHash() i64 extern
-fun pub (byte) opEq(a byte) bool extern
-fun pub (byte) opCmp(a byte) int extern
+fun pub (byte) _opEq(a byte) bool extern
+fun pub (byte) _opCmp(a byte) int extern
 
 
 // i16 (-32768..32768)
@@ -129,8 +129,8 @@ fun pub (i16) toByteFail() byte extern
 fun pub (i16) toU16Fail() u16 extern
 
 fun pub (i16) getHash() i64 extern
-fun pub (i16) opEq(a i16) bool extern
-fun pub (i16) opCmp(a i16) i64 extern
+fun pub (i16) _opEq(a i16) bool extern
+fun pub (i16) _opCmp(a i16) i64 extern
 
 
 
@@ -161,8 +161,8 @@ fun pub (u16) toByteFail() byte extern
 fun pub (u16) toI16Fail() i16 extern
 
 fun pub (u16) getHash() i64 extern
-fun pub (u16) opEq(a u16) bool extern
-fun pub (u16) opCmp(a u16) i64 extern
+fun pub (u16) _opEq(a u16) bool extern
+fun pub (u16) _opCmp(a u16) i64 extern
 
 // A 32 bit integer
 type pub ro copy i32
@@ -192,14 +192,14 @@ fun pub (i32) toU16Fail() u16 extern
 fun pub (i32) toU32Fail() u32 extern
 
 fun pub (i32) getHash() int extern
-fun pub (i32) opEq(a i32) bool extern
-fun pub (i32) opCmp(a i32) int extern
-fun pub (i32) opAdd(n i32) i32 extern
-fun pub (i32) opSub(n i32) i32 extern
-fun pub (i32) opNeg() i32 extern
-fun pub (i32) opMul(n i32) i32 extern
-fun pub (i32) opDiv(n i32) i32 extern
-fun pub (i32) opRem(n i32) i32 extern
+fun pub (i32) _opEq(a i32) bool extern
+fun pub (i32) _opCmp(a i32) int extern
+fun pub (i32) _opAdd(n i32) i32 extern
+fun pub (i32) _opSub(n i32) i32 extern
+fun pub (i32) _opNeg() i32 extern
+fun pub (i32) _opMul(n i32) i32 extern
+fun pub (i32) _opDiv(n i32) i32 extern
+fun pub (i32) _opRem(n i32) i32 extern
 
 fun pub (i32) getIterator() RangeIterator<i32>
     return RangeIterator<i32>(0, my)
@@ -234,14 +234,14 @@ fun pub (u32) toU16Fail() u16 extern
 fun pub (u32) toI32Fail() i32 extern        
 
 fun pub (u32) getHash() int extern
-fun pub (u32) opEq(a u32) bool extern
-fun pub (u32) opCmp(a u32) int extern
-fun pub (u32) opAdd(n u32) u32 extern
-fun pub (u32) opSub(n u32) u32 extern
-fun pub (u32) opNeg() u32 extern
-fun pub (u32) opMul(n u32) u32 extern
-fun pub (u32) opDiv(n u32) u32 extern
-fun pub (u32) opRem(n u32) u32 extern
+fun pub (u32) _opEq(a u32) bool extern
+fun pub (u32) _opCmp(a u32) int extern
+fun pub (u32) _opAdd(n u32) u32 extern
+fun pub (u32) _opSub(n u32) u32 extern
+fun pub (u32) _opNeg() u32 extern
+fun pub (u32) _opMul(n u32) u32 extern
+fun pub (u32) _opDiv(n u32) u32 extern
+fun pub (u32) _opRem(n u32) u32 extern
 
 fun pub (u32) getIterator() RangeIterator<u32>
     return RangeIterator<u32>(0, my)
@@ -278,14 +278,14 @@ fun pub (i64) toU32Fail() u32 extern
 fun pub (i64) toU64Fail() u64 extern    
 
 fun pub (i64) getHash() int extern
-fun pub (i64) opEq(a i64) bool extern
-fun pub (i64) opCmp(a i64) int extern
-fun pub (i64) opAdd(n i64) i64 extern
-fun pub (i64) opSub(n i64) i64 extern
-fun pub (i64) opNeg() i64 extern
-fun pub (i64) opMul(n i64) i64 extern
-fun pub (i64) opDiv(n i64) i64 extern
-fun pub (i64) opRem(n i64) i64 extern
+fun pub (i64) _opEq(a i64) bool extern
+fun pub (i64) _opCmp(a i64) int extern
+fun pub (i64) _opAdd(n i64) i64 extern
+fun pub (i64) _opSub(n i64) i64 extern
+fun pub (i64) _opNeg() i64 extern
+fun pub (i64) _opMul(n i64) i64 extern
+fun pub (i64) _opDiv(n i64) i64 extern
+fun pub (i64) _opRem(n i64) i64 extern
 
 fun pub (i64) getIterator() RangeIterator<i64>
     return RangeIterator<i64>(0, my)
@@ -322,14 +322,14 @@ fun pub (u64) toU32Fail() u32 extern
 fun pub (u64) toI64Fail() i64 extern
 
 fun pub (u64) getHash() int extern
-fun pub (u64) opEq(a u64) bool extern
-fun pub (u64) opCmp(a u64) int extern
-fun pub (u64) opAdd(n u64) u64 extern
-fun pub (u64) opSub(n u64) u64 extern
-fun pub (u64) opNeg() u64 extern
-fun pub (u64) opMul(n u64) u64 extern
-fun pub (u64) opDiv(n u64) u64 extern
-fun pub (u64) opRem(n u64) u64 extern
+fun pub (u64) _opEq(a u64) bool extern
+fun pub (u64) _opCmp(a u64) int extern
+fun pub (u64) _opAdd(n u64) u64 extern
+fun pub (u64) _opSub(n u64) u64 extern
+fun pub (u64) _opNeg() u64 extern
+fun pub (u64) _opMul(n u64) u64 extern
+fun pub (u64) _opDiv(n u64) u64 extern
+fun pub (u64) _opRem(n u64) u64 extern
 
 fun pub (u64) getIterator() RangeIterator<u64>
     return RangeIterator<u64>(0, my)
@@ -377,16 +377,16 @@ fun pub (f32) toI64Fail() i64 extern
 fun pub (f32) toU64Fail() u64 extern
         
 fun pub (f32) getHash() int extern
-fun pub (f32) opEq(a f32) bool extern
-fun pub (f32) opCmp(a f32) int extern
-fun pub (f32) opEqPartial(a f32) bool extern
-fun pub (f32) opCmpPartial(a f32) int extern
-fun pub (f32) opAdd(n f32) f32 extern
-fun pub (f32) opSub(n f32) f32 extern
-fun pub (f32) opNeg() f32 extern
-fun pub (f32) opMul(n f32) f32 extern
-fun pub (f32) opDiv(n f32) f32 extern
-fun pub (f32) opRem(n f32) f32 extern
+fun pub (f32) _opEq(a f32) bool extern
+fun pub (f32) _opCmp(a f32) int extern
+fun pub (f32) _opEqNan(a f32) bool extern
+fun pub (f32) _opCmpNan(a f32) int extern
+fun pub (f32) _opAdd(n f32) f32 extern
+fun pub (f32) _opSub(n f32) f32 extern
+fun pub (f32) _opNeg() f32 extern
+fun pub (f32) _opMul(n f32) f32 extern
+fun pub (f32) _opDiv(n f32) f32 extern
+fun pub (f32) _opRem(n f32) f32 extern
 
 fun pub (f32) getIterator() RangeIterator<f32>
     return RangeIterator<f32>(0, my)
@@ -432,16 +432,17 @@ fun pub (f64) toU64Fail() u64 extern
 fun pub (f64) toF32Fail() f32 extern
 
 fun pub (f64) getHash() int extern
-fun pub (f64) opEq(a f64) bool extern
-fun pub (f64) opCmp(a f64) int extern
-fun pub (f64) opEqPartial(a f64) bool extern
-fun pub (f64) opCmpPartial(a f64) int extern
-fun pub (f64) opAdd(n f64) f64 extern
-fun pub (f64) opSub(n f64) f64 extern
-fun pub (f64) opNeg() f64 extern
-fun pub (f64) opMul(n f64) f64 extern
-fun pub (f64) opDiv(n f64) f64 extern
-fun pub (f64) opRem(n f64) f64 extern
+
+fun pub _opEq(a f64, b f64) bool extern
+fun pub _opCmp(a f64, b f64) int extern
+fun pub _opEqNan(a f64, b f64) bool extern
+fun pub _opCmpNan(a f64, b f64) int extern
+fun pub _opAdd(a f64, b f64) f64 extern
+fun pub _opSub(a f64, b f64) f64 extern
+fun pub _opNeg(a f64) f64 extern
+fun pub _opMul(a f64, b f64) f64 extern
+fun pub _opDiv(a f64, b f64) f64 extern
+fun pub _opRem(a f64, b f64) f64 extern
 
 fun pub (f64) getIterator() RangeIterator<f64>
     return RangeIterator<f64>(0, my)
@@ -484,16 +485,16 @@ fun pub (Decimal) toI64Fail() i64 extern
 fun pub (Decimal) toU64Fail() u64 extern
 
 fun pub (Decimal) getHash() int extern
-fun pub (Decimal) opEq(a Decimal) bool extern
-fun pub (Decimal) opCmp(a Decimal) int extern
-fun pub (Decimal) opEqPartial(a Decimal) bool extern
-fun pub (Decimal) opCmpPartial(a Decimal) int extern
-fun pub (Decimal) opAdd(n Decimal) Decimal extern
-fun pub (Decimal) opSub(n Decimal) Decimal extern
-fun pub (Decimal) opNeg() Decimal extern
-fun pub (Decimal) opMul(n Decimal) Decimal extern
-fun pub (Decimal) opDiv(n Decimal) Decimal extern
-fun pub (Decimal) opRem(n Decimal) Decimal extern
+fun pub (Decimal) _opEq(a Decimal) bool extern
+fun pub (Decimal) _opCmp(a Decimal) int extern
+fun pub (Decimal) _opEqNan(a Decimal) bool extern
+fun pub (Decimal) _opCmpNan(a Decimal) int extern
+fun pub (Decimal) _opAdd(n Decimal) Decimal extern
+fun pub (Decimal) _opSub(n Decimal) Decimal extern
+fun pub (Decimal) _opNeg() Decimal extern
+fun pub (Decimal) _opMul(n Decimal) Decimal extern
+fun pub (Decimal) _opDiv(n Decimal) Decimal extern
+fun pub (Decimal) _opRem(n Decimal) Decimal extern
 
 fun pub (Decimal) getIterator() RangeIterator<Decimal>
     return RangeIterator<Decimal>(0, my)
