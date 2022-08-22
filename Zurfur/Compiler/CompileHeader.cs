@@ -17,24 +17,30 @@ namespace Gosub.Zurfur.Compiler
         public ZilWarn(string message) : base(message) { }
     }
 
-    class FileUseSymbols
+    class UseSymbolsFile
     {
-        public Dictionary<string, List<SymModule>> UseSymbols = new Dictionary<string, List<SymModule>>();
-        public void AddSymbol(string symbol, SymModule module)
+        public Dictionary<string, List<Symbol>> UseSymbols = new Dictionary<string, List<Symbol>>();
+        public void AddSymbol(string name, Symbol sym)
         {
-            if (!UseSymbols.TryGetValue(symbol, out var mod))
+            if (!UseSymbols.TryGetValue(name, out var symbols))
             {
-                mod = new List<SymModule>();
-                UseSymbols[symbol] = mod;
+                symbols = new List<Symbol>();
+                UseSymbols[name] = symbols;
             }
-            if (!mod.Contains(module))
-                mod.Add(module);
+            if (!symbols.Contains(sym))
+                symbols.Add(sym);
         }
+
+    }
+
+    class UseSymbols
+    {
+        public Dictionary<string, UseSymbolsFile> Files = new Dictionary<string, UseSymbolsFile>();
     }
 
     class CompilerHeaderOutput
     {
-        public Dictionary<string, FileUseSymbols> FileUses;
+        public UseSymbols Uses;
         public SymbolTable Table;
         public Dictionary<SyntaxScope, Symbol> SyntaxToSymbol;
     }
@@ -42,28 +48,30 @@ namespace Gosub.Zurfur.Compiler
  
     static class CompileHeader
     {
-        const string ZURFUR_PRELUDE = "void bool i8 u8 byte i16 u16 i32 u32 i64 int u64 f32 f64 xint object str List Map Array Buffer Span";
+        const string ZURFUR_PRELUDE = "void bool i8 byte i16 u16 i32 u32 int u64 f32 f64 object str List Map Array Buffer Span";
+        static WordSet sOperatorFunctionNames = new WordSet("_opAdd _opSub _opNeg _opMul _opDiv _opRem _opEq _opEqNan _opCmp _opCmpNan");
 
         static public CompilerHeaderOutput GenerateHeader(
             Dictionary<string, SyntaxFile> syntaxFiles,
             bool noCompilerChecks)
         {
-            SymbolTable table = new SymbolTable();
-            Dictionary<SyntaxScope, Symbol> syntaxToSymbol = new Dictionary<SyntaxScope, Symbol>();
+            var table = new SymbolTable();
+            var syntaxToSymbol = new Dictionary<SyntaxScope, Symbol>();
             table.NoCompilerChecks = noCompilerChecks; // TBD: Move to compiler options class
 
             // Find a symbol for the type or module syntax
             AddModules();
             table.GenerateLookup();
-            var fileUses = ProcessUseStatements();
             AddTypes();
+            var useSymbols = ProcessUseStatements(false);
             table.GenerateLookup();
             ResolveFields();
             ResolveMethods();
             ResolveTypeConstraints();
             table.GenerateLookup();
-            CheckUseStatements();
-            return new CompilerHeaderOutput { FileUses = fileUses, Table = table, SyntaxToSymbol = syntaxToSymbol};
+
+            // Re-process use statements to retrieve functions
+            return new CompilerHeaderOutput { Uses = ProcessUseStatements(true), Table = table, SyntaxToSymbol = syntaxToSymbol};
 
             void AddModules()
             {
@@ -71,7 +79,6 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var ns in syntaxFile.Value.Modules)
                     {
-                        //var symbol = AddModule(ns.Value.Path);
                         var symbol = AddModule(ns.Value);
                         symbol.Comments += " " + ns.Value.Comments;
                     }
@@ -100,86 +107,101 @@ namespace Gosub.Zurfur.Compiler
                 return newModule;
             }
 
-            Dictionary<string, FileUseSymbols> ProcessUseStatements()
+            UseSymbols ProcessUseStatements(bool addSymbolInfo)
             {
-                var uses = new Dictionary<string, FileUseSymbols>();
+                var uses = new UseSymbols();
                 foreach (var syntaxFile in syntaxFiles)
                 {
-                    var fileUseSymbols = new FileUseSymbols();
+                    var fileUseSymbols = new UseSymbolsFile();
 
-                    // Add prelude
+                    // Add prelude to all files
                     if (table.Root.TryGetPrimary("Zurfur", out var zSym) && zSym is SymModule zMod)
-                    {
                         foreach (var name in ZURFUR_PRELUDE.Split(' '))
-                        {
-                            fileUseSymbols.AddSymbol(name, zMod);
-                        }
-                    }
+                            AddUseSymbolsFromModule(zMod, name, null, fileUseSymbols);
 
                     // Process use statements
                     foreach (var use in syntaxFile.Value.Using)
                     {
+                        // Find the module
                         var module = table.FindTypeInPathOrReject(use.ModuleName);
                         if (module == null || use.ModuleName.Length == 0)
                             continue;  // Error marked by FindPathOrReject
-
                         var lastToken = use.ModuleName[use.ModuleName.Length - 1];
                         if (!module.IsModule)
                         {
                             Reject(lastToken, "Must be a module, not a " + module.KindName);
                             continue;
                         }
-
                         if (use.Symbols.Length == 0)
                         {
-                            fileUseSymbols.AddSymbol(lastToken, (SymModule)module.Parent);
+                            // Add just the module
+                            fileUseSymbols.AddSymbol(lastToken, module);
+                            continue;
                         }
-                        else
+                        // Add list of symbols from the module
+                        foreach (var token in use.Symbols)
                         {
-                            foreach (var token in use.Symbols)
-                                fileUseSymbols.AddSymbol(token, (SymModule)module);
+                            AddUseSymbolsFromModule((SymModule)module, token.Name, addSymbolInfo ? token : null, fileUseSymbols);
                         }
-
                     }
-                    uses[syntaxFile.Key] = fileUseSymbols;
+                    uses.Files[syntaxFile.Key] = fileUseSymbols;
                 }
                 return uses;
             }
 
-            void CheckUseStatements()
+            void AddUseSymbolsFromModule(SymModule module, string name, Token token, UseSymbolsFile useSymbolsFile)
             {
-                foreach (var syntaxFile in syntaxFiles)
+                var symbols = GetUseSymbolsFromModule(module, name);
+                if (symbols.Count == 0)
                 {
-                    foreach (var use in syntaxFile.Value.Using)
+                    if (token != null)
+                        Reject(token, $"Symbol not found in '{module}'");
+                    return;
+                }
+                foreach (var symbol in symbols)
+                {
+                    useSymbolsFile.AddSymbol(symbol.SimpleName, symbol);
+                    if (token != null)
                     {
-                        var module = table.FindTypeInPathOrReject(use.ModuleName);
-                        if (module == null || use.ModuleName.Length == 0)
-                            continue;  // Error marked above
-                        if (!module.IsModule)
-                            continue; // Error marked above
+                        if (symbol.IsType || symbol.IsModule)
+                            token.Type = eTokenType.TypeName;
+                        token.AddInfo(symbol);
+                    }
 
-                        foreach (var token in use.Symbols)
+                }
+            }
+
+            // Get all the symbols with a given name (include operators if it's a type)
+            List<Symbol> GetUseSymbolsFromModule(SymModule module, string name)
+            {
+                var symbols = new List<Symbol>();
+                if (module.TryGetPrimary(name, out Symbol typeSym))
+                {
+                    symbols.Add(typeSym);
+
+                    // Add operators for this type
+                    if (typeSym.IsType)
+                    {
+                        foreach (var op in module.Children)
                         {
-                            bool found = false;
-                            if (module.TryGetPrimary(token, out var symbol))
+                            if (op.IsFunc
+                                && sOperatorFunctionNames.Contains(op.SimpleName)
+                                && ((SymMethod)op).GetParamTypeList().Contains(typeSym))
                             {
-                                if (symbol.IsAnyType)
-                                    token.Type = eTokenType.TypeName;
-                                token.AddInfo(symbol);
-                                found = true;
+                                symbols.Add(op);
                             }
-                            if (module.HasMethodNamed(token))
-                            {
-                                foreach (var method in module.ChildrenFilter(SymKind.Method, token))
-                                    token.AddInfo(method);
-                                found = true;
-                            }
-                            if (!found)
-                                Reject(token, $"Symbol not found in the module '{module.FullName}'");
                         }
                     }
                 }
+                
+                if (module.HasMethodNamed(name))
+                    foreach (var child in module.Children)
+                        if (child.IsMethod && child.Token == name)
+                            symbols.Add(child);
+
+                return symbols;
             }
+
 
             void AddTypes()
             {
@@ -246,7 +268,7 @@ namespace Gosub.Zurfur.Compiler
                             Reject(field.Name, "Expecting symbol to have an explicitly named type");
                             continue;
                         }
-                        symField.Type = ResolveTypeNameOrReject(symField, field.TypeName);
+                        symField.Type = ResolveTypeNameOrReject(symField.Parent, field.TypeName);
                         if (symField.TypeName == "" && !noCompilerChecks)
                             symField.Token.AddInfo(new VerifySuppressError());
                     }
@@ -287,7 +309,7 @@ namespace Gosub.Zurfur.Compiler
                     }
 
                     string argName;
-                    if (constrainedType.Name == "This")
+                    if (constrainedType.SimpleName == "This")
                     {
                         argName = "#This";
                     }
@@ -310,7 +332,7 @@ namespace Gosub.Zurfur.Compiler
                     var constrainers = new List<string>();
                     foreach (var c in synConstraint.TypeConstraints)
                     {
-                        var sym = ResolveTypeNameOrReject(constrainedType.Name == "This" 
+                        var sym = ResolveTypeNameOrReject(constrainedType.SimpleName == "This" 
                                                             ? scope : constrainedType, c);
                         if (sym == null)
                             continue;  // Error already given
@@ -387,7 +409,7 @@ namespace Gosub.Zurfur.Compiler
                             + (genericsCount == 0 ? "" : "`" + genericsCount)
                             + "(" + string.Join(",", mp.ConvertAll(a => a.TypeName)) + ")"
                             + "(" + string.Join(",", mpr.ConvertAll(a => a.TypeName)) + ")";
-                method.SetName(methodName);
+                method.SetLookupName(methodName);
                 table.AddOrReject(method);
 
                 ResolveConstraints(method, synFunc.Constraints);
@@ -423,7 +445,7 @@ namespace Gosub.Zurfur.Compiler
                     return;
 
                 var typeName = extensionType[0].Token;
-                var typeSymbol = ResolveType.FindGlobalTypeOrReject(typeName, table, method, fileUses[typeName.Path], out var inScope);
+                var typeSymbol = ResolveType.FindGlobalTypeOrReject(typeName, table, method, useSymbols.Files[typeName.Path], out var inScope);
                 if (typeSymbol == null)
                     return;
 
@@ -499,7 +521,7 @@ namespace Gosub.Zurfur.Compiler
                 // There will also be a syntax error
                 if (typeExpr == null || typeExpr.Token.Name == "")
                     return null;
-                var symbol = ResolveType.ResolveTypeOrReject(typeExpr, table, false, scope, fileUses[typeExpr.Token.Path]);
+                var symbol = ResolveType.ResolveTypeOrReject(typeExpr, table, false, scope, useSymbols.Files[typeExpr.Token.Path]);
                 if (symbol == null)
                     return null;
 

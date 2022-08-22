@@ -4,6 +4,8 @@
 
 module Zurfur.Math
 
+use Zurfur[Decimal]
+
 // --------------------------
 // Math intrinsics for i32
 // --------------------------
@@ -25,15 +27,15 @@ fun pub min(n1 u32, n2 u32) u32 extern
 fun pub sq(n u32) u32 extern
 
 // --------------------------
-// Math intrinsics for i64
+// Math intrinsics for int
 // --------------------------
-fun pub abs(n i64) i64 extern
-fun pub (i64) clamp(min i64, max i64) i64
+fun pub abs(n int) int extern
+fun pub (int) clamp(min int, max int) int
     require(min <= max) extern
-fun pub max(n1 i64, n2 i64) i64 extern
-fun pub min(n1 i64, n2 i64) i64 extern
-fun pub sign(n i64) i64 extern
-fun pub sq(n i64) i64 extern
+fun pub max(n1 int, n2 int) int extern
+fun pub min(n1 int, n2 int) int extern
+fun pub sign(n int) int extern
+fun pub sq(n int) int extern
 
 // --------------------------
 // Math intrinsics for u64
@@ -66,8 +68,8 @@ fun pub log(n f32, base f32) f32 extern
 fun pub max(n1 f32, n2 f32) f32 extern
 fun pub min(n1 f32, n2 f32) f32 extern
 fun pub pow(x f32, y f32) f32 extern
-fun pub round(n f32, digits i64 = 0) f32 extern
-fun pub sign(n f32) i64 extern
+fun pub round(n f32, digits int = 0) f32 extern
+fun pub sign(n f32) int extern
 fun pub sin(n f32) f32 extern
 fun pub sinh(n f32) f32 extern
 fun pub sqrt(n f32) f32 extern
@@ -99,8 +101,8 @@ fun pub log(n f64, base f64) f64 extern
 fun pub max(n1 f64, n2 f64) f64 extern
 fun pub min(n1 f64, n2 f64) f64 extern
 fun pub pow(x f64, y f64) f64 extern
-fun pub round(n f64, digits i64 = 0) f64 extern
-fun pub sign(n f64) i64 extern
+fun pub round(n f64, digits int = 0) f64 extern
+fun pub sign(n f64) int extern
 fun pub sin(n f64) f64 extern
 fun pub sinh(n f64) f64 extern
 fun pub sqrt(n f64) f64 extern
@@ -118,4 +120,4 @@ fun pub (Decimal) clamp(min Decimal, max Decimal) Decimal
     require(min <= max) extern
 fun pub max(n1 Decimal, n2 Decimal) Decimal extern
 fun pub min(n1 Decimal, n2 Decimal) Decimal extern
-fun pub sign(n Decimal) i64 extern
+fun pub sign(n Decimal) int extern

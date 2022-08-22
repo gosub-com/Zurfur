@@ -18,7 +18,7 @@ namespace Gosub.Zurfur.Compiler
                                    SymbolTable table,
                                    bool isDot,
                                    Symbol scope,
-                                   FileUseSymbols useScope,
+                                   UseSymbolsFile useScope,
                                    bool hasGenericParams = false)
         {
             // There will also be a syntax error
@@ -339,7 +339,7 @@ namespace Gosub.Zurfur.Compiler
         /// TBD: If symbol is unique in this package, but duplicated in an
         /// external package, is that an error?  Yes for now.
         /// </summary>
-        static public Symbol FindGlobalTypeOrReject(Token name, SymbolTable table, Symbol scope, FileUseSymbols use, out bool foundInScope)
+        static public Symbol FindGlobalTypeOrReject(Token name, SymbolTable table, Symbol scope, UseSymbolsFile use, out bool foundInScope)
         {
             var symbol = FindTypeInScopeWalk(name.Name, scope);
             if (symbol != null)
@@ -349,18 +349,12 @@ namespace Gosub.Zurfur.Compiler
             }
             foundInScope = false;
 
-            // Check for 'use' symbol
+            // Look for types in 'use' symbols
             var symbols = new List<Symbol>(); // TBD: Be kind to GC
-            if (use.UseSymbols.TryGetValue(name.Name, out var modules))
-            {
-                foreach (var module in modules)
-                {
-                    if (module.TryGetPrimary(name.Name, out var s))
-                    {
-                        symbols.Add(s);
-                    }
-                }
-            }
+            if (use.UseSymbols.TryGetValue(name.Name, out var useSymbols))
+                foreach (var sym in useSymbols)
+                    if (sym.IsType || sym.IsModule)
+                        symbols.Add(sym);
 
             if (symbols.Count == 0)
             {
@@ -369,7 +363,7 @@ namespace Gosub.Zurfur.Compiler
             }
             if (symbols.Count > 1)
             {
-                table.Reject(name, $"Multiple symbols found.  Found in '{symbols[0]}' and '{symbols[1]}'");
+                table.Reject(name, $"Multiple types found: '{symbols[0]}' and '{symbols[1]}'");
                 return null;
             }
             return symbols[0];
@@ -377,16 +371,20 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Find the type or module in the scope, or null if not found.
-        /// Does not search use statements.
+        /// Scope includes all parent types and just one parent module
+        /// (e.g. `Zurfur.Io` does not include `Zurfur`)
         /// </summary>
         static public Symbol FindTypeInScopeWalk(string name, Symbol scope)
         {
-            while (scope.Parent != null)
+            while (!scope.IsModule)
             {
                 if (scope.TryGetPrimary(name, out var s1) && s1.IsAnyType)
                     return s1;
                 scope = scope.Parent;
             }
+            // This is a module
+            if (scope.TryGetPrimary(name, out var s2) && s2.IsAnyType)
+                return s2;
 
             return null;
         }

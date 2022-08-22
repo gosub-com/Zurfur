@@ -101,7 +101,13 @@ namespace Gosub.Zurfur.Compiler
         /// the same as the source code token.  The exceptions are SymMethod
         /// and SymSpecializedType which include type info.
         /// </summary>        
-        public string Name { get; private set; }
+        public string LookupName { get; private set; }
+
+
+        public string SimpleName
+        {
+            get { return mToken != null ? Token.Name : LookupName; }
+        }
 
         public string TypeName => Type == null ? "" : Type.FullName;
 
@@ -123,7 +129,7 @@ namespace Gosub.Zurfur.Compiler
         public Symbol(Symbol parent, Token token, string name = null)
         {
             Parent = parent;
-            Name = name == null ? token.Name : name;
+            LookupName = name == null ? token.Name : name;
             mToken = token;
         }
 
@@ -135,7 +141,7 @@ namespace Gosub.Zurfur.Compiler
         public Symbol(Symbol parent, string name)
         {
             Parent = parent;
-            Name = name;
+            LookupName = name;
         }
 
 
@@ -390,9 +396,9 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Do not set the symbol name after it has been added to the symbol table.
         /// </summary>
-        public void SetName(string name)
+        public void SetLookupName(string name)
         {
-            Name = name;
+            LookupName = name;
             mFullNameCache = null;
         }
         
@@ -406,18 +412,18 @@ namespace Gosub.Zurfur.Compiler
         {
             if (mChildren == null)
                 mChildren = new Dictionary<string, Symbol>();
-            if (mChildren.TryGetValue(value.Name, out remoteSymbol))
+            if (mChildren.TryGetValue(value.LookupName, out remoteSymbol))
                 return false;
-            mChildren[value.Name] = value;
+            mChildren[value.LookupName] = value;
 
             if (!value.IsMethod)
             {
                 // Quick lookup of non-methods
                 if (mPrimary == null)
                     mPrimary = new Dictionary<string, Symbol>();
-                Debug.Assert(!mPrimary.ContainsKey(value.Name));
+                Debug.Assert(!mPrimary.ContainsKey(value.LookupName));
                 value.Order = mPrimary.Count;
-                mPrimary[value.Name] = value;
+                mPrimary[value.LookupName] = value;
             }
             else
             {
@@ -441,11 +447,11 @@ namespace Gosub.Zurfur.Compiler
                 if (mFullNameCache != null)
                     return mFullNameCache;
                 if (IsLocal || IsMethodParam || IsTypeParam)
-                    mFullNameCache = Name;
-                else if (Parent == null || Parent.Name == "")
-                    mFullNameCache = Name + Suffix;
+                    mFullNameCache = LookupName;
+                else if (Parent == null || Parent.LookupName == "")
+                    mFullNameCache = LookupName + Suffix;
                 else
-                    mFullNameCache = Parent.FullName + Separator + Name + Suffix;
+                    mFullNameCache = Parent.FullName + Separator + LookupName + Suffix;
                 return mFullNameCache;
             }
         }
@@ -624,7 +630,7 @@ namespace Gosub.Zurfur.Compiler
                     sb.Append(",");
             }
             sb.Append(")");
-            paramType.SetName(sb.ToString());
+            paramType.SetLookupName(sb.ToString());
             return paramType;
         }
     }
@@ -667,7 +673,7 @@ namespace Gosub.Zurfur.Compiler
         public SymSpecializedType(Symbol parent, string name)
             : base(parent, name)
         {
-            Debug.Assert(parent.IsType || parent.Name == "");
+            Debug.Assert(parent.IsType || parent.LookupName == "");
             Kind = SymKind.SpecializedType;
             Params = Array.Empty<Symbol>();
             Returns = Array.Empty<Symbol>();

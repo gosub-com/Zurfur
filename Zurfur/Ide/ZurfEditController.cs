@@ -336,11 +336,11 @@ namespace Gosub.Zurfur.Ide
                 foreach (var child in symbol.Children)
                 {
                     if (child.IsMethodParam)
-                        message += "    " + child.Name + ": " + child.TypeName + "\r\n";
+                        message += "    " + child.SimpleName + ": " + child.TypeName + "\r\n";
                     else if (child.IsTypeParam)
-                        message += "    " + child.Name + ": Type parameter\r\n";
+                        message += "    " + child.SimpleName + ": Type parameter\r\n";
                     else
-                        message += "    " + child.Name + ": COMPILER ERROR\r\n";
+                        message += "    " + child.SimpleName + ": COMPILER ERROR\r\n";
                 }
             }
             message += "\r\n";

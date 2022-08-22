@@ -1,33 +1,35 @@
 ﻿
 module Zurfur
 
-use Zurfur.Operators[OpAdd, OpSub, OpIn, OpCmp, OpNext]
-use Zurfur.Collections[GetIterator, Iterator]
+use Zurfur[Copy]
+use Zurfur.Operators[OpAdd, OpSub, OpCmp, OpOne]
+use Zurfur.Collections[Iterator]
 
 
 type pub ro copy Range<T>
-    where This is GetIterator<T> + OpIn<Range<T>>
-    where T is OpAdd<T,T> + OpSub<T,T> + OpCmp<T> + OpNext
-
-    @start T pub init get
+        where T is Copy<T> + OpSub<T> + OpCmp<T> + OpOne<T>
+    @begin T pub init get
     @end T pub init get
 
 get pub (Range<T>) count() T
-    return end-start
+    return my.end-my.begin
+
+get pub (Range<T>) iterator() RangeIterator<T>
+    if my.begin >= my.end
+        return  RangeIterator<T>(my.begin, my.begin)
+    return RangeIterator<T>(my.begin, my.end)
         
 
 type pub RangeIterator<T>
-    where This is Iterator<T>
-    where T is OpAdd<T,T> + OpSub<T,T> + OpCmp<T> + OpNext
-
+        where T is Copy<T> + OpSub<T> + OpCmp<T> + OpOne<T>
     @current T pub init
     @end T pub init
     
-get pub (RangeIterator<T>) countHint() T
-    return end-current
     
 get pub (RangeIterator<T>) next() ?T
-    if current < end
-        return move(ref current, current.opNext())
-    return null
+    if my.current == my.end
+        return null
+    @r = my.current
+    my.current += T.ONE
+    return r
         

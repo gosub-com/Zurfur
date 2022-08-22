@@ -1,11 +1,6 @@
 ﻿
 module Zurfur.Collections
 
-// Implement on containers
-interface pub GetIterator<Item>
-    fun pub getIterator() Iterator<Item> impl
-// TBD: impl pass throughs for all Iterator<T> functions.
-//      Use count hint here?
 
 
 interface pub Iterable<Item>
@@ -19,65 +14,36 @@ interface pub Iterator<Item>
     fun pub mut next() ?Item impl
 
 
-fun pub mut (Iterator<Item>) toArrayXM() Array<Item>
-    return toList().toArray()
+fun pub mut (Iterator<Item>) toArray() Array<Item>
+    return my.toList().toArray()
 
 fun pub mut (Iterator<Item>) toList() List<Item>
-    @list = List(countHint)
-    while next()@item
+    @list = List<Item>()
+    while my.next()@item
         list.push(item)
     return list
 
-// TBD: Item should be an associated type,
-//      not explicitly passed back from filter
-//      This should work exactly thr same as the `filter` method
-fun pub mut (Iterator<Item>) filter(f fun(item Item) bool) FilterIterator<This, Item>
-    return FilterIterator<This, Item>(this, f)
+
 
 fun pub mut (Iterator<Item>) find(f fun(item Item) bool) ?mut ref Item
-    while next()@item
+    while my.next()@item
         if f(item)
             return ref item
     return null
 
-//   TBD: Unify extension method here
-fun pub mut (Iterator<Item>) toArrayXE() Array<Item>
-    return toList().toArray()
-
-        
-// TBD: Item should be an associated type (not passed in here)
-type ref FilterIterator<I, Item>
-    // TBD: Needed?
-    where I is Iterator<Item>
-
-    // Note: The `init` attribute creates a constructor taking
-    //       named parameters FilterIterator<T>(iter: v1, f: v2).
-    
-    @iter ref I pub init
-    @f ref fun(item Item) bool pub init
-
-// TBD: There should be shortcut syntax to create
-//      a positional constructor, like this:
-// fun new(iter _, f _) {}
+// TBD: Still working out how to do this:
 //
-// Instead of this:
-fun (FilterIterator<I, Item>) new(iter mut I, fn fun(item Item)bool)
-    this.iter = ref iter
-    this.f = ref my
-
-// TBD: This does not implement the interface
-fun pub (mut FilterIterator<I, Item>) next() ?mut ref I
-    return iter.find(my)
-        
-        
-
-// TBD: Check for same symbol name as 'new' method
-fun (FilterIterator<I,Item>) new()
-    todo
-
-fun test_Filter() Array<int>
-    @listIn = [1,2,3,4,5]
-    return listIn.filter(@n => n in 2..5).toArray()
+//fun pub mut (Iterator<Item>) filter(f fun(item Item) bool) FilterIterator<Iterator<Item>, Item>
+//    return FilterIterator<This, Item>(this, f)
+//        
+//type ref FilterIterator<Iter, Item>
+//        where Iter is Iterator<Item>
+//    @iter ref Iter pub init
+//    @f ref fun(item Item) bool pub init
+//
+//fun test_Filter() Array<int>
+//    @listIn = [1,2,3,4,5]
+//    return listIn.filter(@n => n in 2..5).toArray()
     
     
     

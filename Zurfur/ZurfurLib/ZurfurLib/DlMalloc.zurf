@@ -31,6 +31,8 @@
 
 module Zurfur.Internal.Memory
 
+use Zurfur[xuint]
+
 
 fun panicFatal(m str)
 {
@@ -43,7 +45,7 @@ fun panicFatal(m str)
 // This was originally CALL_MMAP and is used to get more memory from
 // the system. It's similar to CALL_MMAP, but the function can increase
 // the size of allocated memory if desired  (must be in units of page size).
-// Returns null when out of memory or on error.
+// Returns nil when out of memory or on error.
 fun (DlMalloc) CallMoreCore(length ref xuint) ^void
     todo()
 
@@ -66,7 +68,7 @@ fun (DlMalloc) CallCorruptionErrorAction()
 fun (DlMalloc) CallUsageErrorAction(m2 ^void)
     panicFatal("Malloc Usage Error: TBD: Give more info about address")
 
-// Called before malloc returns NULL.  The default action is to throw an exception
+// Called before malloc returns nil.  The default action is to throw an exception
 fun (DlMalloc) CallMallocFailureAction()
     panicFatal("Malloc out of memory")
 
@@ -189,7 +191,7 @@ fun (mut DlMalloc) new(capacity xuint)
     @rs = capacity == xuint(0) ? my.mparams.granularity : capacity + TOP_FOOT_SIZE
     @tsize = my.granularity_align(rs)
     @tbase = cast(^byte)my.CallMoreCore(ref tsize)
-    if tbase != null
+    if tbase != nil
         my.init_user_mstate(tbase, tsize)
         my.seg.sflags = flag_t.USE_MMAP_BIT
     else
@@ -201,7 +203,7 @@ fun (mut DlMalloc) new(capacity xuint)
 get (DlMalloc) SegmentCount() int
     @count = 0
     @segment = my.seg
-    while segment != null
+    while segment != nil
         count += 1
         segment = segment.next
     return count
@@ -355,7 +357,7 @@ fun (DlMalloc) ensure_initialization()
         my.init_mparams()
 
 fun (DlMalloc) is_initialized() bool
-    return my.top != null
+    return my.top != nil
 
 // -------------------------- system alloc setup -------------------------
 
@@ -399,8 +401,8 @@ fun (DlMalloc) segment_holding(addr ^byte) ^msegment
         if addr >= sp.baseAddr and addr < sp.baseAddr + sp.size
             return sp
         sp = sp.next
-        if sp == null
-            return null
+        if sp == nil
+            return nil
 
 // Return true if segment contains a segment link
 fun (DlMalloc) has_segment_link(ss ^msegment) bool
@@ -409,7 +411,7 @@ fun (DlMalloc) has_segment_link(ss ^msegment) bool
         if cast(^byte)sp >= ss.baseAddr and cast(^byte)sp < ss.baseAddr + ss.size
             return true
         sp = sp.next
-        if sp == null
+        if sp == nil
             return false
 
 fun (DlMalloc) should_trim(s xuint) bool
@@ -499,10 +501,10 @@ fun (mut DlMalloc) clear_smallmap(i xuint) xuint
     return my.smallmap
 fun (DlMalloc) smallmap_is_marked(i xuint) bool
     return (my.smallmap & idx2bit(i)) != 0
-fun (mut DlMalloc) mark_treemap(i xuint) uint
+fun (mut DlMalloc) mark_treemap(i xuint) xuint
     my.treemap |= idx2bit(i)
     return my.treemap
-fun (mut DlMalloc) clear_treemap(i xuint) uint
+fun (mut DlMalloc) clear_treemap(i xuint) xuint
     my.treemap &= ~idx2bit(i)
     return my.treemap
 fun (DlMalloc) treemap_is_marked(i xuint) bool
@@ -618,7 +620,7 @@ fun (mut DlMalloc) init_mparams() int
         my.mparams.page_size = psize
         my.mparams.trim_threshold = DEFAULT_TRIM_THRESHOLD
         my.mparams.default_mflags = flag_t.USE_MMAP_BIT
-        @magic = cast(xuint)(GetTimeNowNowTicks() + 0x55555555U)
+        @magic = cast(xuint)(GetTimeNowNowTicks() + xuint(0x55555555U))
         magic |= 8U    // ensure nonzero
         magic &= ~7U   // improve chances of fault for bad values
         my.mparams.magic = magic
@@ -639,7 +641,7 @@ fun (DlMalloc) do_check_any_chunk(p ^mchunk)
 fun (DlMalloc) do_check_top_chunk(p ^mchunk)
     @sp = my.segment_holding(cast(^byte)p)
     @sz = p.head & ~INUSE_BITS // third-lowest bit can be set!
-    assert(sp != null)
+    assert(sp != nil)
     assert(is_aligned(chunk2mem(p)) or p.head == FENCEPOST_HEAD)
     assert(my.ok_address(p))
     assert(sz == my.topsize)
@@ -679,7 +681,7 @@ fun (DlMalloc) do_check_free_chunk(p ^mchunk)
 
 // Check properties of malloced chunks at the point they are malloced
 fun (DlMalloc) do_check_malloced_chunk(mem ^void, s xuint)
-    if mem != null
+    if mem != nil
         @p = mem2chunk(mem)
         @sz = p.head & ~INUSE_BITS
         my.do_check_inuse_chunk(p)
@@ -692,7 +694,7 @@ fun (DlMalloc) do_check_malloced_chunk(mem ^void, s xuint)
 
 // Check a tree and its subtrees.
 fun (DlMalloc) do_check_tree(t ^tchunk)
-    @head ^tchunk = null
+    @head ^tchunk = nil
     @u = t
     @tindex = t.index
     @tsize = chunksize(t)
@@ -700,7 +702,7 @@ fun (DlMalloc) do_check_tree(t ^tchunk)
     assert(tindex == idx)
     assert(tsize >= MIN_LARGE_SIZE)
     assert(tsize >= minsize_for_tree_index(idx))
-    assert((idx == NTREEBINS - 1) or (tsize < minsize_for_tree_index((idx + 1))))
+    assert((idx == NTREEBINS - 1) or (tsize < minsize_for_tree_index((idx + xuint(1)))))
 
     do
         // traverse through chain of same-sized nodes
@@ -711,39 +713,39 @@ fun (DlMalloc) do_check_tree(t ^tchunk)
         assert(!next_pinuse(u))
         assert(u.fd.bk == u)
         assert(u.bk.fd == u)
-        if u.parent == null
-            assert(u.child0 == null)
-            assert(u.child1 == null)
+        if u.parent == nil
+            assert(u.child0 == nil)
+            assert(u.child1 == nil)
         else
-            assert(head == null) // only one node on chain has parent
+            assert(head == nil) // only one node on chain has parent
             head = u
             assert(u.parent != u)
             assert(u.parent.child0 == u
                     or u.parent.child1 == u
                     or (cast(^^tchunk)u.parent).* == u)
-            if u.child0 != null
+            if u.child0 != nil
                 assert(u.child0.parent == u)
                 assert(u.child0 != u)
                 my.do_check_tree(u.child0)
-            if u.child1 != null
+            if u.child1 != nil
                 assert(u.child1.parent == u)
                 assert(u.child1 != u)
                 my.do_check_tree(u.child1)
-            if u.child0 != null and u.child1 != null
+            if u.child0 != nil and u.child1 != nil
                 assert(chunksize(u.child0) < chunksize(u.child1))
         u = u.fd
     dowhile u != t
-    assert(head != null)
+    assert(head != nil)
 
 //  Check all the chunks in a treebin.
 fun (DlMalloc) do_check_treebin(i xuint)
     @tb = my.treebin_at(i)
     @t = tb.*
     @empty = (my.treemap & (1U << i)) == 0
-    if t == null
+    if t == nil
         assert(empty)
     if !empty
-        do_check_tree(t)
+        my.do_check_tree(t)
 
 //  Check all the chunks in a smallbin.
 fun (DlMalloc) do_check_smallbin(i xuint)
@@ -785,10 +787,10 @@ fun (DlMalloc) bin_find(x ^mchunk) bool
         if my.treemap_is_marked(tidx)
             @t = my.treebin_at(tidx).*
             @sizebits = size << leftshift_for_tree_index(tidx)
-            while t != null and chunksize(t) != size
+            while t != nil and chunksize(t) != size
                 t = ((sizebits >> (SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 ? t.child0 : t.child1
                 sizebits <<= 1
-            if t != null
+            if t != nil
                 @u = t
                 do
                     if u == cast(^tchunk)x
@@ -814,7 +816,7 @@ fun pub (DlMalloc) CheckHeap() HeapStats
         assert(my.dvsize >= MIN_CHUNK_SIZE)
         assert(!my.bin_find(my.dv))
 
-    if my.top != null
+    if my.top != nil
         // check top chunk
         my.do_check_top_chunk(my.top)
         assert(my.topsize > 0)
@@ -822,22 +824,22 @@ fun pub (DlMalloc) CheckHeap() HeapStats
 
     @usedChunks = 0
     @freeChunks = 0
-    @freeBytes int = 0
-    @usedBytes int = 0
-    @heapSize int = 0
+    @freeBytes xuint = 0
+    @usedBytes xuint = 0
+    @heapSize xuint = 0
     heapSize += my.topsize + TOP_FOOT_SIZE
 
     // Walk segments
     @s = my.seg
-    while s != null
+    while s != nil
         @q = align_as_chunk(s.baseAddr)
-        @lastq = null
+        @lastq ^mchunk = nil
         assert(pinuse(q))
 
         // Walk chunks
         while (my.segment_holds(s, q)
                 and q != my.top and q.head != FENCEPOST_HEAD)
-            @chunkSize = cast(int)chunksize(q)
+            @chunkSize = cast(xuint)chunksize(q)
             heapSize += chunkSize
             if is_inuse(q)
                 usedBytes += chunkSize
@@ -848,22 +850,22 @@ fun pub (DlMalloc) CheckHeap() HeapStats
                 freeBytes += chunkSize
                 freeChunks += 1
                 assert(q == my.dv or my.bin_find(q))
-                assert(lastq == null or is_inuse(lastq)) // Not 2 consecutive free
+                assert(lastq == nil or is_inuse(lastq)) // Not 2 consecutive free
                 my.do_check_free_chunk(q)
             lastq = q
             q = next_chunk(q)
         s = s.next
 
 
-    assert(heapSize <= cast(int)my.footprint)
+    assert(heapSize <= my.footprint)
     assert(my.footprint <= my.max_footprint)
 
     @stats = HeapStats()
-    stats.HeapSize = heapSize
-    stats.FreeChunks = freeChunks
-    stats.FreeBytes = freeBytes
-    stats.UsedChunks = usedChunks
-    stats.UsedBytes = usedBytes
+    stats.HeapSize = int(heapSize)
+    stats.FreeChunks = int(freeChunks)
+    stats.FreeBytes = int(freeBytes)
+    stats.UsedChunks = int(usedChunks)
+    stats.UsedBytes = int(usedBytes)
     return stats
 
     // ----------------------- Operations on smallbins -----------------------
@@ -945,8 +947,8 @@ fun (DlMalloc) insert_large_chunk(x ^tchunk, s xuint)
     @I = compute_tree_index(s)
     H = my.treebin_at(I)
     x.index = I
-    x.child0 = null
-    x.child1 = null
+    x.child0 = nil
+    x.child1 = nil
     if !my.treemap_is_marked(I)
         my.mark_treemap(I)
         H.* = x
@@ -960,9 +962,9 @@ fun (DlMalloc) insert_large_chunk(x ^tchunk, s xuint)
             if chunksize(T) != s
                 @C = ((K >> (SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0 ? &T.child0 : &T.child1
                 K <<= 1
-                if C.* != null
+                if C.* != nil
                     T = C.*
-                elif RTCHECK(ok_address(C))
+                elif RTCHECK(my.ok_address(C))
                     C.* = x
                     x.parent = T
                     x.fd = x
@@ -973,12 +975,12 @@ fun (DlMalloc) insert_large_chunk(x ^tchunk, s xuint)
                     break
             else
                 @F = T.fd
-                if RTCHECK(ok_address(T) and ok_address(F))
+                if RTCHECK(my.ok_address(T) and my.ok_address(F))
                     T.fd = x
                     F.bk = x
                     x.fd = F
                     x.bk = T
-                    x.parent = null
+                    x.parent = nil
                     break
                 else
                     my.CallCorruptionErrorAction()
@@ -997,7 +999,7 @@ fun (DlMalloc) insert_large_chunk(x ^tchunk, s xuint)
 //     paths shorter than minimally guaranteed.  This doesn't loop much
 //     because on average a node in a tree is near the bottom.
 //  3. If x is the base of a chain (i.e., has parent links) relink
-//     x's parent and children to x's replacement (or null if none).
+//     x's parent and children to x's replacement (or nil if none).
 fun (DlMalloc) unlink_large_chunk(x ^tchunk)
     @XP = x.parent
     @R ^tchunk
@@ -1013,29 +1015,29 @@ fun (DlMalloc) unlink_large_chunk(x ^tchunk)
         @RP ^^tchunk
         RP = &x.child1
         R = RP.*
-        if R == null
+        if R == nil
             RP = &x.child0
             R = RP.*
-        if R != null
+        if R != nil
             @CP ^^tchunk
             CP = &R.child1
-            if CP.* == null
+            if CP.* == nil
                 CP = &R.child0
-            while CP.* != null
+            while CP.* != nil
                 RP = CP
                 R = RP.*
                 CP = &R.child1
-                if CP.* == null
+                if CP.* == nil
                     CP = &R.child0
             if RTCHECK(my.ok_address(RP))
-                RP.* = null
+                RP.* = nil
             else
                 my.CallCorruptionErrorAction()
-    if XP != null
+    if XP != nil
         @H = my.treebin_at(x.index)
         if x == H.*
             H.* = R
-            if R == null
+            if R == nil
                 my.clear_treemap(x.index)
         elif RTCHECK(my.ok_address(XP))
             if (XP.child0 == x)
@@ -1044,20 +1046,20 @@ fun (DlMalloc) unlink_large_chunk(x ^tchunk)
                 XP.child1 = R
         else
             my.CallCorruptionErrorAction()
-        if R != null
+        if R != nil
             if RTCHECK(my.ok_address(R))
                 @C0 ^tchunk
                 @C1 ^tchunk
                 R.parent = XP
                 C0 = x.child0
-                if C0 != null
+                if C0 != nil
                     if RTCHECK(my.ok_address(C0))
                         R.child0 = C0
                         C0.parent = R
                     else
                         my.CallCorruptionErrorAction()
                 C1 = x.child1
-                if C1 != null
+                if C1 != nil
                     if RTCHECK(my.ok_address(C1))
                         R.child1 = C1
                         C1.parent = R
@@ -1113,13 +1115,13 @@ protected fun (mut DlMalloc) ResetOnError()
     my.treemap = 0
     my.dvsize = 0
     my.topsize = 0
-    my.seg.baseAddr = null
+    my.seg.baseAddr = nil
     my.seg.size = 0
-    my.seg.next = null
-    my.top = null
-    my.dv = null
+    my.seg.next = nil
+    my.top = nil
+    my.dv = nil
     for @i in NTREEBINS
-        my.treebin_at(i).* = null
+        my.treebin_at(i).* = nil
     my.init_bins()
 
 // Allocate chunk and prepend remainder with chunk in successor base.
@@ -1215,16 +1217,16 @@ fun (mut DlMalloc) add_segment(tbase ^byte, tsize xuint, mmapped flag_t)
 
 // Get memory from system using MMAP
 fun (mut DlMalloc) sys_alloc(nb xuint) ^void
-    @tbase ^byte = null
+    @tbase ^byte = nil
     @tsize = xuint(0)
-    @mmap_flag flag_t = 0
+    @mmap_flag = flag_t.NONE
     @asize xuint // allocation size
 
     my.ensure_initialization()
 
     asize = my.granularity_align(nb + SYS_ALLOC_PADDING)
     if asize <= nb
-        return null // wraparound
+        return nil // wraparound
 
     // Try getting memory via CallMoreCore
     // In all cases, we need to request enough bytes from system to ensure
@@ -1232,15 +1234,15 @@ fun (mut DlMalloc) sys_alloc(nb xuint) ^void
     // top_foot, plus alignment-pad to make sure we don't lose bytes if
     // not on boundary, and round this up to a granularity unit.
 
-    if tbase == null
+    if tbase == nil
         // Try MMAP
         @mp = cast(^byte)my.CallMoreCore(ref asize)
-        if mp != null
+        if mp != nil
             tbase = mp
             tsize = asize
             mmap_flag = flag_t.USE_MMAP_BIT
 
-    if tbase != null
+    if tbase != nil
         my.footprint += tsize
         if my.footprint > my.max_footprint
             my.max_footprint = my.footprint
@@ -1251,10 +1253,10 @@ fun (mut DlMalloc) sys_alloc(nb xuint) ^void
         // Try to merge with an existing segment
         // Only consider most recent segment if traversal suppressed
         @sp = my.seg
-        while sp != null and tbase != sp.baseAddr + sp.size
-            sp = NO_SEGMENT_TRAVERSAL ? null : sp.next
+        while sp != nil and tbase != sp.baseAddr + sp.size
+            sp = NO_SEGMENT_TRAVERSAL ? nil : sp.next
 
-        if sp != null
+        if sp != nil
                 and !is_extern_segment(sp)
                 and (sp.sflags & flag_t.USE_MMAP_BIT) == mmap_flag
                 and my.segment_holds(sp, my.top)
@@ -1265,9 +1267,9 @@ fun (mut DlMalloc) sys_alloc(nb xuint) ^void
             if tbase < my.least_addr
                 my.least_addr = tbase
             sp = my.seg
-            while sp != null and sp.baseAddr != tbase + tsize
-                sp = (NO_SEGMENT_TRAVERSAL) ? null : sp.next
-            if sp != null
+            while sp != nil and sp.baseAddr != tbase + tsize
+                sp = (NO_SEGMENT_TRAVERSAL) ? nil : sp.next
+            if sp != nil
                     and !is_extern_segment(sp)
                     and (sp.sflags & flag_t.USE_MMAP_BIT) == mmap_flag
                 @oldbase = sp.baseAddr
@@ -1291,7 +1293,7 @@ fun (mut DlMalloc) sys_alloc(nb xuint) ^void
             return chunk2mem(p)
 
     my.CallMallocFailureAction()
-    return null
+    return nil
 
 
 // Unmap and unlink any mmapped segments that don't contain used chunks
@@ -1300,7 +1302,7 @@ fun (mut DlMalloc) release_unused_segments() xuint
     @nsegs xuint = 0
     @pred = my.seg
     @sp = pred.next
-    while sp != null
+    while sp != nil
         @baseAddr = sp.baseAddr
         @size = sp.size
         @next = sp.next
@@ -1313,7 +1315,7 @@ fun (mut DlMalloc) release_unused_segments() xuint
                 @tp = cast(^tchunk)p
                 assert(my.segment_holds(sp, cast(^byte)sp))
                 if p == my.dv
-                    my.dv = null
+                    my.dv = nil
                     my.dvsize = 0
                 else
                     my.unlink_large_chunk(tp)
@@ -1403,7 +1405,7 @@ fun (mut DlMalloc) dispose_chunk(p ^mchunk, psize xuint)
                 my.top = p
                 p.head = tsize | PINUSE_BIT
                 if p == my.dv
-                    my.dv = null
+                    my.dv = nil
                     my.dvsize = 0
                 return
             elif next == my.dv
@@ -1429,15 +1431,15 @@ fun (mut DlMalloc) dispose_chunk(p ^mchunk, psize xuint)
 
 // allocate a large request from the best fitting chunk in a treebin
 fun (mut DlMalloc) tmalloc_large(nb xuint) ^void
-    @v ^tchunk = null
-    @rsize = cast(xuint)(-cast(xint)nb) // Unsigned negation
+    @v ^tchunk = nil
+    @rsize = -nb // Unsigned negation
     @t ^tchunk
     @idx = compute_tree_index(nb)
     t = my.treebin_at(idx).*
-    if t != null
+    if t != nil
         // Traverse tree for this bin looking for node with size == nb
         @sizebits = nb << leftshift_for_tree_index(idx)
-        @rst = null  // The deepest untaken right subtree
+        @rst ^tchunk = nil  // The deepest untaken right subtree
         while true
             @rt ^tchunk
             @trem = chunksize(t) - nb
@@ -1447,15 +1449,15 @@ fun (mut DlMalloc) tmalloc_large(nb xuint) ^void
                 if rsize == 0
                     break
             rt = t.child1
-            t = ((sizebits >> cast(int)(SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0
+            t = ((sizebits >> cast(xuint)(SIZE_T_BITSIZE - SIZE_T_ONE)) & 1) == 0
                     ? t.child0 : t.child1
-            if rt != null and rt != t
+            if rt != nil and rt != t
                 rst = rt
-            if t == null
+            if t == nil
                 t = rst // set t to least subtree holding sizes > nb
                 break
             sizebits <<= 1
-    if t == null and v == null
+    if t == nil and v == nil
         // set t to root of next non-empty treebin
         @leftbits = left_bits(idx2bit(idx)) & my.treemap
         if leftbits != 0
@@ -1463,16 +1465,16 @@ fun (mut DlMalloc) tmalloc_large(nb xuint) ^void
             @i = compute_bit2idx(leastbit)
             t = my.treebin_at(i).*
 
-    while t != null
+    while t != nil
         // find smallest of tree or subtree
-        @trem = chunksize(t) - nb
-        if trem < rsize
-            rsize = trem
+        @trem2 = chunksize(t) - nb
+        if trem2 < rsize
+            rsize = trem2
             v = t
         t = leftmost_child(t)
 
     // If dv is a better fit, return 0 so malloc will use it
-    if v != null and rsize < cast(xuint)(my.dvsize - nb)
+    if v != nil and rsize < cast(xuint)(my.dvsize - nb)
         if RTCHECK(my.ok_address(v))
             // split
             @r = chunk_plus_offset(v, nb)
@@ -1487,7 +1489,7 @@ fun (mut DlMalloc) tmalloc_large(nb xuint) ^void
                     my.insert_chunk(r, rsize)
                 return chunk2mem(v)
         my.CallCorruptionErrorAction()
-    return null
+    return nil
 
 // allocate a small request from the best fitting chunk in a treebin
 fun (mut DlMalloc) tmalloc_small(nb xuint) ^void
@@ -1501,7 +1503,7 @@ fun (mut DlMalloc) tmalloc_small(nb xuint) ^void
     rsize = chunksize(t) - nb
 
     t = leftmost_child(t)
-    while t != null
+    while t != nil
         @trem = chunksize(t) - nb
         if trem < rsize
             rsize = trem
@@ -1522,7 +1524,7 @@ fun (mut DlMalloc) tmalloc_small(nb xuint) ^void
             return chunk2mem(v)
 
     my.CallCorruptionErrorAction()
-    return null
+    return nil
 
 // Traversal
 fun (DlMalloc) internal_inspect_all(handler fun(start ^void, next ^void, used int))
@@ -1531,7 +1533,7 @@ fun (DlMalloc) internal_inspect_all(handler fun(start ^void, next ^void, used in
 
     @top2 = my.top
     @s = my.seg
-    while s != null
+    while s != nil
         @q = align_as_chunk(s.baseAddr)
         while my.segment_holds(s, q) and q.head != FENCEPOST_HEAD
             @next = next_chunk(q)
@@ -1559,17 +1561,18 @@ fun (DlMalloc) internal_inspect_all(handler fun(start ^void, next ^void, used in
 fun memClear(mem ^void, size int)
     @b = cast(^byte)mem
     for @s in 0..size
-        b.* = 0; b += 1
+        b.* = 0
+        b += 1
 
 fun (mut DlMalloc) init_user_mstate(tbase ^byte, tsize xuint)
     @mn mchunk
     @msp = align_as_chunk(tbase)
     @m ^void = chunk2mem(msp)
 
-    my.smallbins = cast(^^mchunk)(Marshal.AllocHGlobal(sizeof(^mchunk) * (((NSMALLBINS + 1) * 2))))
+    my.smallbins = cast(^^mchunk)(Marshal.AllocHGlobal(sizeof(^mchunk) * (((NSMALLBINS + xuint(1)) * 2))))
     my.treebins = cast(^^tchunk)(Marshal.AllocHGlobal(sizeof(^tchunk) * (NTREEBINS)))
     my.seg = cast(^msegment)Marshal.AllocHGlobal(sizeof(msegment))
-    memClear(my.smallbins, sizeof(^mchunk) * (((NSMALLBINS + 1) * 2)))
+    memClear(my.smallbins, sizeof(^mchunk) * (((NSMALLBINS + xuint(1)) * 2)))
     memClear(my.treebins, sizeof(^tchunk) * (NTREEBINS))
     memClear(my.seg, sizeof(msegment))
 
@@ -1612,8 +1615,8 @@ fun pub (mut DlMalloc) malloc(length xuint) ^void
     //       5. If available, get memory from system and use it
 
     if !my.ok_magic()
-        my.CallUsageErrorAction(null)
-        return null
+        my.CallUsageErrorAction(nil)
+        return nil
     @mem ^void
     @nb xuint
     if length <= MAX_SMALL_REQUEST
@@ -1665,7 +1668,7 @@ fun pub (mut DlMalloc) malloc(length xuint) ^void
             else
                 if my.treemap != 0
                     mem = my.tmalloc_small(nb)
-                    if mem != null
+                    if mem != nil
                         my.check_malloced_chunk(mem, nb)
                         return mem
     elif length >= MAX_REQUEST
@@ -1674,7 +1677,7 @@ fun pub (mut DlMalloc) malloc(length xuint) ^void
         nb = pad_request(length)
         if my.treemap != 0
             mem = my.tmalloc_large(nb)
-            if mem != null
+            if mem != nil
                 my.check_malloced_chunk(mem, nb)
                 return mem
 
@@ -1692,7 +1695,7 @@ fun pub (mut DlMalloc) malloc(length xuint) ^void
             // exhaust dv
             @dvs = my.dvsize
             my.dvsize = 0
-            my.dv = null
+            my.dv = nil
             set_inuse_and_pinuse(p, dvs)
         mem = chunk2mem(p)
         my.check_malloced_chunk(mem, nb)
@@ -1720,7 +1723,7 @@ fun pub (mut DlMalloc) free(mem ^void)
     // free chunks, if they exist, and then place in a bin.  Intermixed
     // with special cases for top, dv, mmapped chunks, and usage errors.
 
-    if mem == null
+    if mem == nil
         return
 
     @p = mem2chunk(mem)
@@ -1761,7 +1764,7 @@ fun pub (mut DlMalloc) free(mem ^void)
                 my.top = p
                 p.head = tsize | PINUSE_BIT
                 if p == my.dv
-                    my.dv = null
+                    my.dv = nil
                     my.dvsize = 0
                 if my.should_trim(tsize)
                     my.sys_trim(xuint(0))
@@ -1801,14 +1804,14 @@ fun pub (DlMalloc) inspectAll(handler fun(start ^void, next ^void, used u32))
     if my.ok_magic()
         my.internal_inspect_all(handler)
     else
-        my.CallUsageErrorAction(null)
+        my.CallUsageErrorAction(nil)
 
 fun pub (mut DlMalloc) trim(pad xuint) int
     @result = 0
     if my.ok_magic()
         result = my.sys_trim(pad)
     else
-        my.CallUsageErrorAction(null)
+        my.CallUsageErrorAction(nil)
     return result
 
 // ------ End of DlMalloc ------
@@ -2114,7 +2117,7 @@ get FENCEPOST_HEAD() xuint
 //  Each tree holding treenodes is a tree of unique chunk sizes.  Chunks
 //  of the same size are arranged in a circularly-linked list, with only
 //  the oldest chunk (the next to be used, in our FIFO ordering)
-//  actually in the tree.  (Tree members are distinguished by a non-null
+//  actually in the tree.  (Tree members are distinguished by a non-nil
 //  parent pointer.)  If a chunk with the same size an an existing node
 //  is inserted, it is linked off the existing node using pointers that
 //  work in the same way as fd/bk pointers of small chunks.
@@ -2137,9 +2140,9 @@ get FENCEPOST_HEAD() xuint
 //  The smallest chunk in a tree (a common operation in a best-fit
 //  allocator) can be found by walking a path to the leftmost leaf in
 //  the tree.  Unlike a usual binary tree, where we follow left child
-//  pointers until we reach a null, here we follow the right child
-//  pointer any time the left one is null, until we reach a leaf with
-//  both child pointers null. The smallest chunk in the tree will be
+//  pointers until we reach a nil, here we follow the right child
+//  pointer any time the left one is nil, until we reach a leaf with
+//  both child pointers nil. The smallest chunk in the tree will be
 //  somewhere along that path.
 //
 //  The worst case number of steps to add, find, or remove a node is
@@ -2186,7 +2189,7 @@ fun prev_chunk(p ^tchunk) ^tchunk
 fun next_pinuse(p ^tchunk) bool
     return ((next_chunk(p).head) & PINUSE_BIT) != 0
 fun leftmost_child(t ^tchunk) ^tchunk
-    return t.child0 != null ? t.child0 : t.child1
+    return t.child0 != nil ? t.child0 : t.child1
 
 
 // ----------------------------- Segments --------------------------------

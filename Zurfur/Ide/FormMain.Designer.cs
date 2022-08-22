@@ -55,6 +55,7 @@
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.projectTree = new Gosub.Zurfur.ProjectTree();
+            this.labelPos = new System.Windows.Forms.Label();
             this.mvEditors = new Gosub.Zurfur.MultiViewEditor();
             this.buttonMax = new System.Windows.Forms.Button();
             this.buttonMin = new System.Windows.Forms.Button();
@@ -273,6 +274,18 @@
             this.projectTree.FileDoubleClicked += new Gosub.Zurfur.ProjectTree.FileInfoDelegate(this.projectTree_FileDoubleClicked);
             this.projectTree.FileMoved += new Gosub.Zurfur.ProjectTree.FileMovedDelegate(this.projectTree_FileMoved);
             // 
+            // labelPos
+            // 
+            this.labelPos.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.labelPos.AutoSize = true;
+            this.labelPos.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelPos.Location = new System.Drawing.Point(1250, 642);
+            this.labelPos.Name = "labelPos";
+            this.labelPos.Size = new System.Drawing.Size(69, 20);
+            this.labelPos.TabIndex = 27;
+            this.labelPos.Text = "labelPos";
+            this.labelPos.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            // 
             // mvEditors
             // 
             this.mvEditors.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -343,15 +356,16 @@
             this.labelStatus.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelStatus.Location = new System.Drawing.Point(-1, 642);
             this.labelStatus.Name = "labelStatus";
-            this.labelStatus.Size = new System.Drawing.Size(51, 20);
+            this.labelStatus.Size = new System.Drawing.Size(89, 20);
             this.labelStatus.TabIndex = 26;
-            this.labelStatus.Text = "label1";
+            this.labelStatus.Text = "labelStatus";
             // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1323, 664);
+            this.Controls.Add(this.labelPos);
             this.Controls.Add(this.labelStatus);
             this.Controls.Add(this.pictureMenuIcon);
             this.Controls.Add(this.buttonClose);
@@ -420,6 +434,7 @@
         private System.Windows.Forms.PictureBox pictureMenuIcon;
         private System.Windows.Forms.Label labelStatus;
         private System.Windows.Forms.ToolStripMenuItem menuDebugViewOutput;
+        private System.Windows.Forms.Label labelPos;
     }
 }
 

@@ -45,8 +45,6 @@ namespace Gosub.Zurfur.Compiler
             {                
                 UnaryTypeSymbols[genericType] = AddIntrinsicType(genericType, 1);
             }
-            UnaryTypeSymbols["nil"] = AddIntrinsicType("nil", 0);
-            UnaryTypeSymbols["This"] = AddIntrinsicType("This", 0);
         }
 
 

@@ -376,7 +376,7 @@ namespace Gosub.Zurfur.Compiler
 
             // TBD: This should also move to a background thread.
             var dtStartGenCode = DateTime.Now;
-            CompileCode.GenerateCode(zurfFiles, zilHeader.Table, zilHeader.SyntaxToSymbol, zilHeader.FileUses);
+            CompileCode.GenerateCode(zurfFiles, zilHeader.Table, zilHeader.SyntaxToSymbol, zilHeader.Uses);
             var dtEndGenCode = DateTime.Now;
 
 

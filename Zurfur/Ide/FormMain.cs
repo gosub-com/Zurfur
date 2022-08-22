@@ -229,6 +229,7 @@ namespace Gosub.Zurfur
             if (textEditor == null)
                 return;
 
+            labelPos.Text = $"{textEditor.CursorLoc.Y+1}:{textEditor.CursorLoc.X+1}";
             mCursorLineStatus = FindErrorOnLine(textEditor.Lexer, textEditor.CursorLoc);
             UpdateStatus();
 
@@ -242,8 +243,10 @@ namespace Gosub.Zurfur
 
         private void mvEditors_EditorActiveViewChanged(IEditor editor)
         {
-            mEditController.ActiveViewChanged(editor as TextEditor);
-            FormSearchInstance.SetEditor(editor as TextEditor);
+            var textEditor = editor as TextEditor;
+            mEditController.ActiveViewChanged(textEditor);
+            FormSearchInstance.SetEditor(textEditor);
+            labelPos.Text = textEditor == null ? "" : $"{textEditor.CursorLoc.Y + 1}:{textEditor.CursorLoc.X + 1}";
 
             if (editor != null)
                 projectTree.Select(editor.FilePath);

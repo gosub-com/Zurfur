@@ -78,7 +78,7 @@ namespace Gosub.Zurfur.Compiler
             }
             else if (symbol.IsTypeParam || symbol.IsMethodParam || symbol.IsField)
             {
-                ps.Name = symbol.Name;
+                ps.Name = symbol.LookupName;
                 Debug.Assert(parent != null);
                 //if (symbol.IsMethodParam)
                 //    ps.Type = null;  // Reconstructed from method name
