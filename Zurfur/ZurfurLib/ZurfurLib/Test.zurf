@@ -24,10 +24,10 @@ type pub Example
     @m ro Map<str,int> = ["A":1, "B":2]     // Private immutable map
     @Header ro str pub get = "Zurfur"       // Public immutable string
 
-fun pub (Example) F(a int) int
+fun pub Example.F(a int) int
     return m["A"]+10   // Public function
 
-get (Example) P() str
+get Example.P() str
     return Header + info     // Public property
 
 fun test_ForSimple()
@@ -59,13 +59,13 @@ type pub class TestGuiForm // TBD: How to do this without extends Form
     @Message3 Label pub get set
 
 
-fun (TestGuiForm) new()
+fun TestGuiForm.new()
     InitializeComponent()
    
    
 #NewCallableAttribute()
 
-fun (TestGuiForm) InitializeComponent()    
+fun TestGuiForm.InitializeComponent()    
     Message1 = Label(Text: "Message 1",
                     Location: Point(X:4, Y:4),
                     Size: Size(Width:100,Height:24))

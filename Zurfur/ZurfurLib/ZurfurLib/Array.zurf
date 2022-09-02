@@ -10,7 +10,7 @@ type pub ro Array<T> is ro Buffer<T>
 type pub Buffer<T> {}
 
 
-fun pub (Buffer<T>) replace(search []T, repl []T)
+fun pub Buffer<T>.replace(search []T, repl []T)
     todo()
 
 

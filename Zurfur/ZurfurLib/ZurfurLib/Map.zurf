@@ -20,50 +20,50 @@ type KvPair<K,V>
     @value V pub ref mut
 
 // TBD: Need this: fun (kv Map<K,V>.Pair) ...
-fun pub (KvPair<K,V>) new(key own K, value own V)
+fun pub KvPair<K,V>.new(key own K, value own V)
     my.key = key
     my.value = value
 
 
-fun pub (Map<K,V>) new(capacity int)
+fun pub Map<K,V>.new(capacity int)
     return todo()
     
-fun pub (Map<K,V>) new(keyValues Iterator<KvPair<K,V>>)
+fun pub Map<K,V>.new(keyValues Iterator<KvPair<K,V>>)
     return todo()
     
-get pub (Map<K,V>) count() int
+get pub Map<K,V>.count() int
     return todo()
 
 // TBD: Figure out map["Hello"] += 1
-get pub (Map<K,V>) op_index(key K) ?ref V
+get pub Map<K,V>.op_index(key K) ?ref V
     return todo()
 
-set pub (mut Map<K,V>) op_index(key K) mut ref V
+set pub mut Map<K,V>.op_index(key K) mut ref V
     todo()
 
-fun pub (Map<K,V>) contains(key K) bool
+fun pub Map<K,V>.contains(key K) bool
     return todo()
 
 // TBD: Return Iterable<(K, V)>???
-get pub (Map<K,V>) iterator() ref mut Iterable<KvPair<K,V>>
+get pub Map<K,V>.iterator() ref mut Iterable<KvPair<K,V>>
     return todo
 
-get pub (Map<K,V>) keys() ref mut Iterator<K>
+get pub Map<K,V>.keys() ref mut Iterator<K>
     return todo()
 
-get pub (Map<K,V>) values() ref mut Iterator<V>
+get pub Map<K,V>.values() ref mut Iterator<V>
     return todo()
 
-fun pub mut (Map<K,V>) clear()
+fun pub mut Map<K,V>.clear()
     return todo()
 
-fun pub mut (Map<K,V>) add(item KvPair<K,V>)
+fun pub mut Map<K,V>.add(item KvPair<K,V>)
     return todo()
 
-fun pub mut (Map<K,V>) add(items Iterator<KvPair<K,V>>)
+fun pub mut Map<K,V>.add(items Iterator<KvPair<K,V>>)
     return todo()
 
-fun pub mut (Map<K,V>) remove(key K) bool
+fun pub mut Map<K,V>.remove(key K) bool
     return todo()
 
     

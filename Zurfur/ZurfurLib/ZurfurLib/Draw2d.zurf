@@ -16,7 +16,7 @@ type pub copy Point<T>
     @y T pub init
 
 
-fun pub (Point<T>) toSize() Size<T>
+fun pub Point<T>.toSize() Size<T>
     return Size(my.x, my.y)
 
 
@@ -48,7 +48,7 @@ type pub copy Size<T>
     @height T pub init
     
     // TBD: Same as Point<T>
-fun (Size<T>) toPoint() Point<T>
+fun Size<T>.toPoint() Point<T>
     return Point(my.width, my.height)
 
 type pub copy Rect<T>
@@ -59,34 +59,34 @@ type pub copy Rect<T>
     @height T pub init
 
     
-fun pub (Rect<T>) new(location Point<T>, size Size<T>)
+fun pub Rect<T>.new(location Point<T>, size Size<T>)
     my.location = location
     my.size = size
 
     // TBD: Operators (add, multiply, divide, sizes, etc.)
 
-get pub (Rect<T>) left() T
+get pub Rect<T>.left() T
     return my.x
     
-get pub (Rect<T>) right() T
+get pub Rect<T>.right() T
     return my.x + my.width
 
-get pub (Rect<T>) top() T
+get pub Rect<T>.top() T
     return my.y
     
-get pub (Rect<T>) bottom() T
+get pub Rect<T>.bottom() T
     return my.y + my.height
     
-get pub (Rect<T>) location() Point<T>
+get pub Rect<T>.location() Point<T>
     return Point<T>(my.x, my.y)
     
-set pub (Rect<T>) location(value Point<T>)
+set pub Rect<T>.location(value Point<T>)
     my.x = value.x
     my.y = value.y
     
-get pub (Rect<T>) size() Size<T>
+get pub Rect<T>.size() Size<T>
     return Size<T>(my.width, my.height)
     
-set pub (Rect<T>) size(value Size<T>)
+set pub Rect<T>.size(value Size<T>)
     my.width = value.width
     my.height = value.height

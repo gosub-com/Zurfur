@@ -14,10 +14,10 @@ interface pub Iterator<Item>
     fun pub mut next() ?Item impl
 
 
-fun pub mut (Iterator<Item>) toArray() Array<Item>
+fun pub mut Iterator<Item>.toArray() Array<Item>
     return my.toList().toArray()
 
-fun pub mut (Iterator<Item>) toList() List<Item>
+fun pub mut Iterator<Item>.toList() List<Item>
     @list = List<Item>()
     while my.next()@item
         list.push(item)
@@ -25,7 +25,7 @@ fun pub mut (Iterator<Item>) toList() List<Item>
 
 
 
-fun pub mut (Iterator<Item>) find(f fun(item Item) bool) ?mut ref Item
+fun pub mut Iterator<Item>.find(f fun(item Item) bool) ?mut ref Item
     while my.next()@item
         if f(item)
             return ref item
@@ -33,7 +33,7 @@ fun pub mut (Iterator<Item>) find(f fun(item Item) bool) ?mut ref Item
 
 // TBD: Still working out how to do this:
 //
-//fun pub mut (Iterator<Item>) filter(f fun(item Item) bool) FilterIterator<Iterator<Item>, Item>
+//fun pub mut Iterator<Item>.filter(f fun(item Item) bool) FilterIterator<Iterator<Item>, Item>
 //    return FilterIterator<This, Item>(this, f)
 //        
 //type ref FilterIterator<Iter, Item>

@@ -1092,10 +1092,6 @@ namespace Gosub.Zurfur.Compiler
 
             ParseQualifiers(sMethodQualifiers, qualifiers);
 
-            // TBD: Move `this` to first parameter?
-            while (mTokenName == "mut")
-                qualifiers.Add(Accept());
-
             var validMethodName = ParseExtensionTypeAndMethodName(out synFunc.ExtensionType, out synFunc.Name, out synFunc.TypeArgs);
 
             // Don't process function while user is typing (this is for a better error message)
@@ -1131,30 +1127,48 @@ namespace Gosub.Zurfur.Compiler
         {
             extensionType = null;
             genericTypeArgs = null;
-
-            // Parse extension method parameter
-            if (AcceptMatch("("))
-            {
-                var open = mPrevToken;
-                extensionType = ParseType();
-                if (AcceptMatchOrReject(")"))
-                    Connect(open, mPrevToken);
-            }
-
-            if (sReservedUserFuncNames.Contains(mTokenName))
-            {
-                // Reserved function
-                funcName = Accept();
-                funcName.Type = eTokenType.Reserved;
-                return true;
-            }
-
             funcName = mToken;
-            if (!AcceptIdentifier("Expecting a function or property name", sRejectTypeName))
+
+            var mutToken = mToken == "mut" ? Accept() : null;
+
+            if (!CheckIdentifier("Expecting a function or property name", sRejectTypeName))
                 return false;
+
+            var nameExpr = ParseType();
+
+            // Generic type args
+            if (nameExpr.Count >= 2 && nameExpr.Token == VT_TYPE_ARG)
+            {
+                genericTypeArgs = new SyntaxMulti(nameExpr.Token, nameExpr.Skip(1).ToArray());
+                nameExpr = nameExpr[0];
+            }
+
+            // Extension type
+            if (nameExpr.Token == "." && nameExpr.Count >= 2)
+            {
+                extensionType = nameExpr[0];
+                nameExpr = nameExpr[1];
+            }
+
+            // TBD: Record 'mut' token for static functions inside interfaces
+            if (mutToken != null && extensionType != null)
+                extensionType = new SyntaxUnary(mutToken, extensionType);
+
+            if (nameExpr.Count != 0)
+                RejectToken(nameExpr.Token, "Expecting a function name");
+            if (genericTypeArgs != null)
+                foreach (var arg in genericTypeArgs)
+                    if (arg.Count != 0)
+                    {
+                        genericTypeArgs = null;
+                        RejectToken(arg.Token, "Only type names are allowed in a generic argument list");
+                    }
+
+            funcName = nameExpr.Token;
             funcName.Type = eTokenType.DefineMethod;
-            genericTypeArgs = ParseTypeParameters();
-            return true;
+
+            RejectUnderscoreDefinition(funcName);
+            return nameExpr.Count == 0;
         }
 
         /// <summary>

@@ -10,7 +10,7 @@ use Zurfur[Decimal]
 // Math intrinsics for i32
 // --------------------------
 fun pub abs(n i32) i32 extern
-fun pub (i32) clamp(min i32, max i32) i32
+fun pub i32.clamp(min i32, max i32) i32
     require(min <= max) extern
 fun pub max(n1 i32, n2 i32) i32 extern
 fun pub min(n1 i32, n2 i32) i32 extern
@@ -20,7 +20,7 @@ fun pub sq(n i32) i32 extern
 // --------------------------
 // Math intrinsics for u32
 // --------------------------
-fun pub (u32) clamp(min u32, max u32) u32
+fun pub u32.clamp(min u32, max u32) u32
     require(min <= max) extern
 fun pub max(n1 u32, n2 u32) u32 extern
 fun pub min(n1 u32, n2 u32) u32 extern
@@ -30,7 +30,7 @@ fun pub sq(n u32) u32 extern
 // Math intrinsics for int
 // --------------------------
 fun pub abs(n int) int extern
-fun pub (int) clamp(min int, max int) int
+fun pub int.clamp(min int, max int) int
     require(min <= max) extern
 fun pub max(n1 int, n2 int) int extern
 fun pub min(n1 int, n2 int) int extern
@@ -40,7 +40,7 @@ fun pub sq(n int) int extern
 // --------------------------
 // Math intrinsics for u64
 // --------------------------
-fun pub (u64) clamp(min u64, max u64) u64
+fun pub u64.clamp(min u64, max u64) u64
     require(min <= max) extern
 fun pub max(n1 u64, n2 u64) u64 extern
 fun pub min(n1 u64, n2 u64) u64 extern
@@ -55,7 +55,7 @@ fun pub asin(n f32) f32 extern
 fun pub atan(n f32) f32 extern
 fun pub atan2(x f32, y f32) f32 extern
 fun pub ceil(n f32) f32 extern
-fun pub clamp(min f32, max f32) f32
+fun pub f32.clamp(min f32, max f32) f32
     require(min<=max) extern
 fun pub cos(n f32) f32 extern
 fun pub cosh(n f32) f32 extern
@@ -88,7 +88,7 @@ fun pub asin(n f64) f64 extern
 fun pub atan(n f64) f64 extern
 fun pub atan2(x f64, y f64) f64 extern
 fun pub ceil(n f64) f64 extern
-fun pub clamp(min f64, max f64) f64
+fun pub f64.clamp(min f64, max f64) f64
     require(min<=max) extern
 fun pub cos(n f64) f64 extern
 fun pub cosh(n f64) f64 extern
@@ -116,7 +116,7 @@ fun pub trunc(n f64) f64 extern
 // Math intrinsics for Decimal
 // --------------------------
 fun pub abs(n Decimal) Decimal extern
-fun pub (Decimal) clamp(min Decimal, max Decimal) Decimal
+fun pub Decimal.clamp(min Decimal, max Decimal) Decimal
     require(min <= max) extern
 fun pub max(n1 Decimal, n2 Decimal) Decimal extern
 fun pub min(n1 Decimal, n2 Decimal) Decimal extern

@@ -942,11 +942,7 @@ namespace Gosub.Zurfur.Compiler
 
                 // Find symbols in module or parents of module
                 var mod = currentMethod.Parent;
-                while (mod != null)
-                {
-                    AddSymbolsNamed(mod, identifier, symbols);
-                    mod = mod.Parent;
-                }
+                AddSymbolsNamed(mod, identifier, symbols);
 
                 // Search 'use' symbol
                 if (fileUses.UseSymbols.TryGetValue(identifier, out var useSymbols))

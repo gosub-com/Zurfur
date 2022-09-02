@@ -11,10 +11,10 @@ type pub ro copy Range<T>
     @begin T pub init get
     @end T pub init get
 
-get pub (Range<T>) count() T
+get pub Range<T>.count() T
     return my.end-my.begin
 
-get pub (Range<T>) iterator() RangeIterator<T>
+get pub Range<T>.iterator() RangeIterator<T>
     if my.begin >= my.end
         return  RangeIterator<T>(my.begin, my.begin)
     return RangeIterator<T>(my.begin, my.end)
@@ -26,7 +26,7 @@ type pub RangeIterator<T>
     @end T pub init
     
     
-get pub (RangeIterator<T>) next() ?T
+get pub RangeIterator<T>.next() ?T
     if my.current == my.end
         return null
     @r = my.current

@@ -2,7 +2,7 @@
 // Internal stuff for compiler, heap, and GC
 module Zurfur.Internal
 
-use Zurfur[xint]
+use Zurfur[xint, todo]
 
 pragma AllowUnderscoreDefinitions
 
@@ -10,15 +10,15 @@ pragma AllowUnderscoreDefinitions
 type pub ro __ref<T>
     @r ro *T
 
-fun pub (__ref<T>) new(reference *T)
+fun pub __ref<T>.new(reference *T)
     require reference != null
     my = reference
     
-fun pub (__ref<T>) Get() T extern
-fun pub (__ref<T>) SetRef(value ref T) extern
-fun pub (__ref<T>) SetVal(value T) extern
-fun pub unsafe (__ref<T>) Index(offset int) mut ref T extern
-fun pub unsafe (__ref<T>) ByteOffset(offset int) *void extern
+fun pub __ref<T>.Get() T extern
+fun pub __ref<T>.SetRef(value ref T) extern
+fun pub __ref<T>.SetVal(value T) extern
+fun pub unsafe __ref<T>.Index(offset int) mut ref T extern
+fun pub unsafe __ref<T>.ByteOffset(offset int) *void extern
 
 
 // Owned reference.  This is specific to reference counting
@@ -28,20 +28,20 @@ type pub ro __oref<T>
     @owner ?*__heap<T>
 
 // Owner is null when on the stack
-fun pub (__oref<T>) new(reference *T, owner ?*__heap<T>)
+fun pub __oref<T>.new(reference *T, owner ?*__heap<T>)
     require reference != null
     my = reference
     this.owner = owner
 
-fun pub (__oref<T>) drop()
+fun pub __oref<T>.drop()
     if owner != null
         owner.Dec()
     
-fun pub (__oref<T>) Get() T extern
-fun pub (__oref<T>) SetRef(value ref T) extern
-fun pub (__oref<T>) SetVal(value T) extern
-fun pub unsafe (__oref<T>) Index(offset int) mut ref T extern
-fun pub unsafe (__oref<T>) ByteOffset(offset int) *void extern
+fun pub __oref<T>.Get() T extern
+fun pub __oref<T>.SetRef(value ref T) extern
+fun pub __oref<T>.SetVal(value T) extern
+fun pub unsafe __oref<T>.Index(offset int) mut ref T extern
+fun pub unsafe __oref<T>.ByteOffset(offset int) *void extern
 
 
 
@@ -51,7 +51,7 @@ type pub __heap<T>
     @vtable *void // TBD: Type info for GC and metadata
     @refCount xint
 
-fun pub (__heap<T>) Inc()
+fun pub __heap<T>.Inc()
     refCount += 1
     if refCount < 0
         todo() // TBD: Queue to call drop and reclaim memory
