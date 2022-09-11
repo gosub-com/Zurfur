@@ -1,25 +1,25 @@
 ﻿
 module Zurfur
 
-use Zurfur[xint]
 use Zurfur.Unsafe
 use Zurfur.Collections[Iterator]
 use Zurfur[Clone]
 
+pub const MAX_ARRAY_SIZE_BYTES int = i32.MaxValue/4
 
 // This type contains ?T and relies on List to keep track of
 // how many items it has.  The list will have to use manual
 // reference count to ensure it's impossible to modify in
 // an unsafe way.  Still very TBD.
 type unsafe owned box ListBuffer<T>
-    @refCount xint
+    @refCount int
 
     
 get pub ListBuffer<T>.hasRef()
     return refCount != 0
 
 type pub owned List<T>
-    pub const MaxItems int = xint.MaxValue/4/Math.Max(1,sizeof(t))
+    pub const MaxItems int = MAX_ARRAY_SIZE_BYTES/Math.Max(1,sizeof(t))
     @buffer ListBuffer<T>
     @count int pub get
 

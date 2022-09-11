@@ -1827,7 +1827,12 @@ namespace Gosub.Zurfur.Compiler
             // Number, string, identifier
             if (mToken.Type == eTokenType.Number)
             {
-                return new SyntaxToken(Accept());
+                var numberToken = Accept();
+
+                // Optionally accept an identifier after the number (e.g. `0f32`, etc.)
+                if (mToken.Type == eTokenType.Identifier && !mToken.Name.StartsWith("_"))
+                    return new SyntaxUnary(numberToken, new SyntaxToken(Accept()));
+                return new SyntaxToken(numberToken);
             }
             if (mTokenName == TOKEN_STR_LITERAL || mTokenName == TOKEN_STR_LITERAL_MULTI)
             {

@@ -72,7 +72,6 @@ fun DlMalloc.CallUsageErrorAction(m2 ^void)
 fun DlMalloc.CallMallocFailureAction()
     panicFatal("Malloc out of memory")
 
-
 // Bin types, widths and sizes
 const NSMALLBINS xuint = 32
 const NTREEBINS xuint = 32
@@ -91,7 +90,6 @@ get MAX_SMALL_REQUEST() xuint
 // Call or expose protected members Malloc and Free to implement malloc and free.
 // </summary>
 type pub unsafe DlMalloc
-
 
     //  Top
     //    The topmost chunk of the currently active segment. Its size is
@@ -184,9 +182,7 @@ type pub unsafe DlMalloc
     @malloc_corruption_error_count int
     @mparams malloc_params
 
-
 fun mut DlMalloc.new(capacity xuint)
-    
     my.ensure_initialization()
     @rs = capacity == xuint(0) ? my.mparams.granularity : capacity + TOP_FOOT_SIZE
     @tsize = my.granularity_align(rs)
@@ -196,7 +192,6 @@ fun mut DlMalloc.new(capacity xuint)
         my.seg.sflags = flag_t.USE_MMAP_BIT
     else
         panicFatal("Out of memory, cannot initialize malloc.")
-
 
 // Returns the number of malloc segments, which represents
 // the number of discontiguous memory regions.
@@ -460,37 +455,42 @@ fun compute_tree_index(s xuint) xuint
     if x == xuint(0)
         return 0
     if x > xuint(0xFFFF)
-        return NTREEBINS - xuint(1)
+        return NTREEBINS - 1xuint
     @y = x
-    @n = ((y - 0x100) >> 16) & 8
+    @n = ((y - 0x100xuint) >> 16) & 8
     y <<= n
-    @k = ((y - 0x1000) >> 16) & 4
+    @k = ((y - 0x1000xuint) >> 16) & 4
     n += k
     y <<= k
-    k = ((y - 0x4000) >> 16) & 2
+    k = ((y - 0x4000xuint) >> 16) & 2
     n += k
     y <<= k
-    k = 14 - n + (y >> 15)
-    return (k << 1) + ((s >> (k + TREEBIN_SHIFT - 1)) & 1)
+    k = 14xuint - n + (y >> 15)
+    return (k << 1) + ((s >> (k + TREEBIN_SHIFT - 1xuint)) & 1)
 
 
 // Bit representing maximum resolved size in a treebin at i
 fun bit_for_tree_index(i xuint) xuint
-    return i == NTREEBINS - 1 ? SIZE_T_BITSIZE - 1 : (i >> 1) + TREEBIN_SHIFT - 2
+    return i == NTREEBINS - 1xuint
+        ? SIZE_T_BITSIZE - 1xuint
+        : (i >> 1) + TREEBIN_SHIFT - 2xuint
 
 // Shift placing maximum resolved bit in a treebin at i as sign bit
 fun leftshift_for_tree_index(i xuint) int
-    return i == NTREEBINS - 1 ? xuint(0) : SIZE_T_BITSIZE - SIZE_T_ONE - ((i >> 1) + TREEBIN_SHIFT - 2)
+    return i == NTREEBINS - 1xuint
+        ? 0xuint
+        : SIZE_T_BITSIZE - SIZE_T_ONE - ((i >> 1) + TREEBIN_SHIFT - 2xuint)
 
 // The size of the smallest chunk held in bin with index i
 fun minsize_for_tree_index(i xuint) xuint
-    return SIZE_T_ONE << ((i >> 1) + TREEBIN_SHIFT) | ((i & SIZE_T_ONE)) << ((i >> 1) + TREEBIN_SHIFT - 1)
+    return SIZE_T_ONE << ((i >> 1) + TREEBIN_SHIFT)
+            | ((i & SIZE_T_ONE)) << ((i >> 1) + TREEBIN_SHIFT - 1xuint)
 
 // ------------------------ Operations on bin maps -----------------------
 
 // bit corresponding to given index
 fun idx2bit(i xuint) xuint
-    return 1u << i
+    return 1xuint << i
 
 // Mark/Clear bits with given index
 fun mut DlMalloc.mark_smallmap(i xuint) xuint
@@ -524,7 +524,7 @@ fun same_or_left_bits(x xuint) xuint
 
 // index corresponding to given bit.
 fun compute_bit2idx(x xuint) xuint
-    @y = x - 1
+    @y = x - 1xuint
     @k = y >> (16 - 4) & 16
     @n = k
     y >>= k
@@ -620,9 +620,9 @@ fun mut DlMalloc.init_mparams() int
         my.mparams.page_size = psize
         my.mparams.trim_threshold = DEFAULT_TRIM_THRESHOLD
         my.mparams.default_mflags = flag_t.USE_MMAP_BIT
-        @magic = cast(xuint)(GetTimeNowNowTicks() + xuint(0x55555555U))
-        magic |= 8U    // ensure nonzero
-        magic &= ~7U   // improve chances of fault for bad values
+        @magic = GetTimeNowNowTicks() + 0x55555555xuint
+        magic |= 8xuint    // ensure nonzero
+        magic &= ~7xuint   // improve chances of fault for bad values
         my.mparams.magic = magic
     return 1
 
@@ -702,7 +702,7 @@ fun DlMalloc.do_check_tree(t ^tchunk)
     assert(tindex == idx)
     assert(tsize >= MIN_LARGE_SIZE)
     assert(tsize >= minsize_for_tree_index(idx))
-    assert((idx == NTREEBINS - 1) or (tsize < minsize_for_tree_index((idx + xuint(1)))))
+    assert(idx == NTREEBINS - 1xuint or tsize < minsize_for_tree_index(idx + 1xuint))
 
     do
         // traverse through chain of same-sized nodes
@@ -741,7 +741,7 @@ fun DlMalloc.do_check_tree(t ^tchunk)
 fun DlMalloc.do_check_treebin(i xuint)
     @tb = my.treebin_at(i)
     @t = tb.*
-    @empty = (my.treemap & (1U << i)) == 0
+    @empty = (my.treemap & (1xuint << i)) == 0
     if t == nil
         assert(empty)
     if !empty
@@ -751,7 +751,7 @@ fun DlMalloc.do_check_treebin(i xuint)
 fun DlMalloc.do_check_smallbin(i xuint)
     @b = my.smallbin_at(i)
     @p = b.bk
-    @empty = (my.smallmap & (1U << i)) == 0
+    @empty = (my.smallmap & (1xuint << i)) == 0
     if p == b
         assert(empty)
     if !empty
@@ -1626,7 +1626,7 @@ fun pub mut DlMalloc.malloc(length xuint) ^void
         idx = small_index(nb)
         smallbits = my.smallmap >> idx
 
-        if (smallbits & 0x3U) != 0
+        if (smallbits & 0x3xuint) != 0
             // Remainderless fit to a smallbin.
             @b ^mchunk
             @p ^mchunk

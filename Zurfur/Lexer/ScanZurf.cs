@@ -82,7 +82,9 @@ namespace Gosub.Zurfur.Lex
             // Number
             if (IsAsciiDigit(ch1))
             {
-                tokens.Add(ScanNumber(line, ref charIndex, startIndex, mintern));
+                charIndex = SkipNumber(line, startIndex);
+                string number = mintern[line.Substring(startIndex, charIndex - startIndex)];
+                tokens.Add(new Token(number, startIndex, 0, eTokenType.Number));
                 return;
             }
 
@@ -111,42 +113,44 @@ namespace Gosub.Zurfur.Lex
         }
 
 
-        Token ScanNumber(string line, ref int charIndex, int startIndex, MinTern mintern)
+        int SkipNumber(string line, int i)
         {
-            // Just scoop up everything that could be a number
-            int endIndex = charIndex;
-            while (endIndex < line.Length && IsAsciiDigit(line[endIndex]))
+            // Check for hexadecimal
+            int len = line.Length;
+            if (i+2 < len && line[i] == '0' && line[i+1] == 'x' && IsHexDigit(line[i+2]))
             {
-                endIndex++;
-
-                if (endIndex + 1 < line.Length
-                    && (line[endIndex] == 'e' || line[endIndex] == 'E')
-                    && (IsAsciiDigit(line[endIndex + 1]) || line[endIndex + 1] == '+' || line[endIndex + 1] == '-'))
-                {
-                    // Skip exponent
-                    endIndex += 2;
-                }
-                else if (endIndex + 1 < line.Length
-                        && line[endIndex] == '.' && IsAsciiDigit(line[endIndex + 1]))
-                {
-                    // Skip decimal point
-                    endIndex++;
-                }
-                else
-                {
-                    // Skip letters and '_'
-                    while (endIndex < line.Length
-                            && (char.IsLetter(line[endIndex]) || line[endIndex] == '_'))
-                        endIndex++;
-                }
+                i += 3;
+                while (i < len && IsHexDigit(line[i]))
+                    i++;
+                return i;
             }
 
-            if (endIndex - charIndex < 0)
-                return new Token();
-            string number = mintern[line.Substring(charIndex, endIndex - charIndex)];
-            charIndex = endIndex;  // Skip token
-            return new Token(number, startIndex, 0, eTokenType.Number);
+            // Scoop integer part
+            while (i < len && IsAsciiDigit(line[i]))
+                i++;
+
+            // Scoop fraction part ('.' followed by digit)
+            if (i+1 < len && line[i] == '.' && IsAsciiDigit(line[i+1]))
+            {
+                i += 2;
+                while (i < len && IsAsciiDigit(line[i]))
+                    i++;
+            }
+
+            // Scoop exponentiation part ('e' followed by digit or '+'/'-'digit)
+            if (i+2 < len && IsE(line[i]) && IsAsciiDigit(line[i+1])
+                || i+3 < len && IsE(line[i]) && IsPlusOrMinus(line[i+1]) && IsAsciiDigit(line[i+2]))
+            {
+                i += 2;
+                while (i < len && IsAsciiDigit(line[i]))
+                    i++;
+            }
+            return i;
+
         }
+
+        bool IsE(char ch) => ch == 'e' || ch == 'E';
+        bool IsPlusOrMinus(char ch) => ch == '+' || ch == '-';
 
         Token ScanIdentifier(string line, ref int charIndex, int startIndex, MinTern mintern)
         {

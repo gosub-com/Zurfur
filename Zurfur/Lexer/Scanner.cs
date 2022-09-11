@@ -17,13 +17,21 @@ namespace Gosub.Zurfur.Lex
         public abstract void ScanLine(string line, List<Token> tokens, MinTern mintern );
 
         /// <summary>
-        /// Conveninece function
+        /// Returns TRUE if it's an ASCII digit (ignoring unicode digits)
         /// </summary>
-        /// <param name="ch"></param>
-        /// <returns></returns>
         public static bool IsAsciiDigit(char ch)
         {
             return ch >= '0' && ch <= '9';
+        }
+
+        /// <summary>
+        /// Returns true if it's a hex digit
+        /// </summary>
+        public static bool IsHexDigit(char ch)
+        {
+            return ch >= '0' && ch <= '9'
+                    || ch >= 'A' && ch <= 'F'
+                    || ch >= 'a' && ch <= 'f';
         }
 
     }

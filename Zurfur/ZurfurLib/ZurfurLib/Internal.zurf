@@ -2,7 +2,7 @@
 // Internal stuff for compiler, heap, and GC
 module Zurfur.Internal
 
-use Zurfur[xint, todo]
+use Zurfur[xuint, todo]
 
 pragma AllowUnderscoreDefinitions
 
@@ -49,7 +49,7 @@ fun pub unsafe __oref<T>.ByteOffset(offset int) *void extern
 // This is specific to reference counted GC.
 type pub __heap<T>
     @vtable *void // TBD: Type info for GC and metadata
-    @refCount xint
+    @refCount xuint
 
 fun pub __heap<T>.Inc()
     refCount += 1
