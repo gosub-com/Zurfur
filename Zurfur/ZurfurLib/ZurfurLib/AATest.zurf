@@ -24,7 +24,7 @@ fun test(x f64)
     @f = helloVoid()
     @g = helloInt()
     Log.info("Hello world, 2+2={2+2}")
-    @h = cos(2.0+3.0*23.0).toStr()
+    @h = cos(2.0+3.0*23.0).str()
 
 fun Span<byte>.hello()
     nop()

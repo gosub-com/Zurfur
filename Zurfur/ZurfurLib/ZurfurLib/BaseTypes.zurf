@@ -51,15 +51,15 @@ type pub ro copy i8
     const pub ZERO i8 = 0
     const pub ONE i8 = 1
     
-fun pub i8.toI16() i16 extern
-fun pub i8.toI32() i32 extern
-fun pub i8.toInt() int extern
-fun pub i8.toF32() f32 extern
-fun pub i8.toF64() f64 extern
-fun pub i8.toDecimal() Decimal extern
-fun pub i8.toStr() str extern
-fun pub i8.toByteMask() byte extern
-fun pub i8.toByteFail() byte require this >= 0 extern
+fun pub i8.byte() ?byte extern
+fun pub i8.i16() i16 extern
+fun pub i8.i32() i32 extern
+fun pub i8.int() int extern
+fun pub i8.f32() f32 extern
+fun pub i8.f64() f64 extern
+fun pub i8.decimal() Decimal extern
+fun pub i8.str() str extern
+fun pub i8.byteMask() byte extern
 fun pub i8.getHash() int extern
 fun pub i8._opEq(a i8) bool extern
 fun pub i8._opCmp(a i8) i32 extern
@@ -73,18 +73,18 @@ type pub ro copy byte
     const pub ZERO byte = 0
     const pub ONE byte = 1
     
-fun pub byte.toI16() i16 extern
-fun pub byte.toU16() u16 extern
-fun pub byte.toI32() i32 extern
-fun pub byte.toU32() u32 extern
-fun pub byte.toInt() int extern
-fun pub byte.toU64() u64 extern
-fun pub byte.toF32() f32 extern
-fun pub byte.toF64() f64 extern
-fun pub byte.toDecimal() Decimal extern
-fun pub byte.toStr() str extern
-fun pub byte.toI8Mask() i8 extern
-fun pub byte.toI8Fail() i8 require this <= i8.MAX extern
+fun pub byte.i8() ?i8 extern
+fun pub byte.i16() i16 extern
+fun pub byte.u16() u16 extern
+fun pub byte.i32() i32 extern
+fun pub byte.u32() u32 extern
+fun pub byte.int() int extern
+fun pub byte.u64() u64 extern
+fun pub byte.f32() f32 extern
+fun pub byte.f64() f64 extern
+fun pub byte.decimal() Decimal extern
+fun pub byte.str() str extern
+fun pub byte.i8Mask() i8 extern
 fun pub byte.getHash() int extern
 fun pub _opEq(a byte, b byte) bool extern
 fun pub _opCmp(a byte, b byte) i32 extern
@@ -98,20 +98,18 @@ type pub ro copy i16
     const pub ZERO i16 = 0
     const pub ONE i16 = 1
 
-fun pub i16.toI32() i32 extern
-fun pub i16.toInt() int extern
-fun pub i16.toF32() f32 extern
-fun pub i16.toF64() f64 extern
-fun pub i16.toDecimal() Decimal extern    
-fun pub i16.toStr() str extern
-fun pub i16.toI8Mask() i8 extern
-fun pub i16.toByteMask() byte extern
-fun pub i16.toU16Mask() u16 extern
-
-// TBD: Add requires    
-fun pub i16.toI8Fail() i8 extern
-fun pub i16.toByteFail() byte extern
-fun pub i16.toU16Fail() u16 extern
+fun pub i16.i8() ?i8 extern
+fun pub i16.byte() ?byte extern
+fun pub i16.u16() ?u16 extern
+fun pub i16.i32() i32 extern
+fun pub i16.int() int extern
+fun pub i16.f32() f32 extern
+fun pub i16.f64() f64 extern
+fun pub i16.decimal() Decimal extern    
+fun pub i16.str() str extern
+fun pub i16.i8Mask() i8 extern
+fun pub i16.byteMask() byte extern
+fun pub i16.u16Mask() u16 extern    
 
 fun pub i16.getHash() int extern
 fun pub _opEq(a i16, b i16) bool extern
@@ -127,23 +125,20 @@ type pub ro copy u16
     const pub ZERO u16 = 0
     const pub ONE u16 = 1
 
-fun pub u16.toI32() i32 extern
-fun pub u16.toU32() u32 extern
-fun pub u16.toInt() int extern
-fun pub u16.toU64() u64 extern
-fun pub u16.toF32() f32 extern
-fun pub u16.toF64() f64 extern
-fun pub u16.toDecimal() Decimal extern
-fun pub u16.toStr() str extern
- 
-fun pub u16.toI8Mask() i8 extern
-fun pub u16.toByteMask() byte extern
-fun pub u16.toI16Mask() i16 extern
-
-// TBD: Add requires
-fun pub u16.toI8Fail() i8 extern
-fun pub u16.toByteFail() byte extern
-fun pub u16.toI16Fail() i16 extern
+fun pub u16.i8() ?i8 extern
+fun pub u16.byte() ?byte extern
+fun pub u16.i16() ?i16 extern
+fun pub u16.i32() i32 extern
+fun pub u16.u32() u32 extern
+fun pub u16.int() int extern
+fun pub u16.u64() u64 extern
+fun pub u16.f32() f32 extern
+fun pub u16.f64() f64 extern
+fun pub u16.decimal() Decimal extern
+fun pub u16.str() str extern
+fun pub u16.i8Mask() i8 extern
+fun pub u16.byteMask() byte extern
+fun pub u16.i16Mask() i16 extern
 
 fun pub u16.getHash() int extern
 fun pub _opEq(a u16, b u16) bool extern
@@ -157,28 +152,26 @@ type pub ro copy i32
     const pub ZERO i32 = 0
     const pub ONE i32 = 1
 
-fun pub i32.toInt() int extern
-fun pub i32.toF32() f32 extern
-fun pub i32.toF64() f64 extern
-fun pub i32.toDecimal() Decimal extern    
-fun pub i32.toStr() str extern
-
-fun pub i32.toI8Mask() i8 extern
-fun pub i32.toByteMask() byte extern
-fun pub i32.toI16Mask() i16 extern
-fun pub i32.toU16Mask() u16 extern
-fun pub i32.toU32Mask() u32 extern
-
-// TBD: Add requires
-fun pub i32.toI8Fail() i8 extern
-fun pub i32.toByteFail() byte extern
-fun pub i32.toI16Fail() i16 extern
-fun pub i32.toU16Fail() u16 extern
-fun pub i32.toU32Fail() u32 extern
+fun pub i32.i8() ?i8 extern
+fun pub i32.byte() ?byte extern
+fun pub i32.i16() ?i16 extern
+fun pub i32.u16() ?u16 extern
+fun pub i32.u32() ?u32 extern
+fun pub i32.int() int extern
+fun pub i32.f32() f32 extern
+fun pub i32.f64() f64 extern
+fun pub i32.decimal() Decimal extern    
+fun pub i32.str() str extern
+fun pub i32.i8Mask() i8 extern
+fun pub i32.byteMask() byte extern
+fun pub i32.i16Mask() i16 extern
+fun pub i32.u16Mask() u16 extern
+fun pub i32.u32Mask() u32 extern
 
 fun pub i32.getHash() int extern
 fun pub _opEq(a i32, b i32) bool extern
 fun pub _opCmp(a i32, b i32) i32 extern
+fun pub _opRange(a i32, b i32) Range<i32> extern // TBD: Generic function on range?
 fun pub _opAdd(a i32, b i32) i32 extern
 fun pub _opSub(a i32, b i32) i32 extern
 fun pub _opNeg(a i32) i32 extern
@@ -204,29 +197,27 @@ type pub ro copy u32
     const pub ZERO u32 = 0
     const pub ONE u32 = 1
 
-fun pub u32.toInt() int extern
-fun pub u32.toU64() u64 extern
-fun pub u32.toF32() f32 extern
-fun pub u32.toF64() f64 extern
-fun pub u32.toDecimal() Decimal extern        
-fun pub u32.toStr() str extern
-
-fun pub u32.toI8Mask() i8 extern
-fun pub u32.toByteMask() byte extern
-fun pub u32.toI16Mask() i16 extern
-fun pub u32.toU16Mask() u16 extern
-fun pub u32.toU32Mask() i32 extern
-
-// TBD: Add requires
-fun pub u32.toI8Fail() i8 extern
-fun pub u32.toByteFail() byte extern
-fun pub u32.toI16Fail() i16 extern
-fun pub u32.toU16Fail() u16 extern
-fun pub u32.toI32Fail() i32 extern        
+fun pub u32.i8() ?i8 extern
+fun pub u32.byte() ?byte extern
+fun pub u32.i16() ?i16 extern
+fun pub u32.u16() ?u16 extern
+fun pub u32.i32() ?i32 extern        
+fun pub u32.int() int extern
+fun pub u32.u64() u64 extern
+fun pub u32.f32() f32 extern
+fun pub u32.f64() f64 extern
+fun pub u32.decimal() Decimal extern        
+fun pub u32.str() str extern
+fun pub u32.i8Mask() i8 extern
+fun pub u32.byteMask() byte extern
+fun pub u32.i16Mask() i16 extern
+fun pub u32.u16Mask() u16 extern
+fun pub u32.u32Mask() i32 extern
 
 fun pub u32.getHash() int extern
 fun pub _opEq(a u32, b u32) bool extern
 fun pub _opCmp(a u32, b u32) i32 extern
+fun pub _opRange(a u32, b u32) Range<u32> extern // TBD: Generic function on range?
 fun pub _opAdd(a u32, b u32) u32 extern
 fun pub _opSub(a u32, b u32) u32 extern
 fun pub _opNeg(a u32) u32 extern
@@ -252,31 +243,30 @@ type pub ro copy int
     const pub ZERO int = 0
     const pub ONE int = 1
 
-fun pub int.toF32() f32 extern
-fun pub int.toF64() f64 extern
-fun pub int.toDecimal() Decimal extern
-fun pub int.toStr() str extern
+fun pub int.i8() ?i8 extern
+fun pub int.byte() ?byte extern
+fun pub int.i16() ?i16 extern
+fun pub int.u16() ?u16 extern
+fun pub int.i32() ?i32 extern
+fun pub int.u32() ?u32 extern
+fun pub int.u64() ?u64 extern    
+fun pub int.f32() f32 extern
+fun pub int.f64() f64 extern
+fun pub int.decimal() Decimal extern
+fun pub int.str() str extern
+fun pub int.i8Mask() i8 extern
+fun pub int.byteMask() byte extern
+fun pub int.i16Mask() i16 extern
+fun pub int.u16Mask() u16 extern
+fun pub int.i32Mask() i32 extern
+fun pub int.u32Mask() u32 extern
+fun pub int.u64Mask() u64 extern
 
-fun pub int.toI8Mask() i8 extern
-fun pub int.toByteMask() byte extern
-fun pub int.toI16Mask() i16 extern
-fun pub int.toU16Mask() u16 extern
-fun pub int.toI32Mask() i32 extern
-fun pub int.toU32Mask() u32 extern
-fun pub int.toU64Mask() u64 extern
-
-// TBD: Add requires
-fun pub int.toI8Fail() i8 extern
-fun pub int.toByteFail() byte extern
-fun pub int.toI16Fail() i16 extern
-fun pub int.toU16Fail() u16 extern
-fun pub int.toI32Fail() i32 extern
-fun pub int.toU32Fail() u32 extern
-fun pub int.toU64Fail() u64 extern    
 
 fun pub int.getHash() int extern
 fun pub _opEq(a int, b int) bool extern
 fun pub _opCmp(a int, b int) i32 extern
+fun pub _opRange(a int, b int) Range<int> extern // TBD: Generic function on range?
 fun pub _opAdd(a int, b int) int extern
 fun pub _opSub(a int, b int) int extern
 fun pub _opNeg(a int) int extern
@@ -302,31 +292,29 @@ type pub ro copy u64
     const pub ZERO u64 = 0
     const pub ONE u64 = 1
 
-fun pub u64.toF32() f32 extern
-fun pub u64.toF64() f64 extern
-fun pub u64.toDecimal() Decimal extern
-fun pub u64.toStr() str extern
-
-fun pub u64.toI8Mask() i8 extern
-fun pub u64.toByteMask() byte extern
-fun pub u64.toI16Mask() i16 extern
-fun pub u64.toU16Mask() u16 extern
-fun pub u64.toI32Mask() i32 extern
-fun pub u64.toU32Mask() u32 extern
-fun pub u64.toIntMask() int extern
-
-// TBD: Add requires
-fun pub u64.toI8Fail() i8 extern
-fun pub u64.toByteFail() byte extern
-fun pub u64.toI16Fail() i16 extern
-fun pub u64.toU16Fail() u16 extern
-fun pub u64.toI32Fail() i32 extern
-fun pub u64.toU32Fail() u32 extern
-fun pub u64.toIntFail() int extern
+fun pub u64.i8() ?i8 extern
+fun pub u64.byte() ?byte extern
+fun pub u64.i16() ?i16 extern
+fun pub u64.u16() ?u16 extern
+fun pub u64.i32() ?i32 extern
+fun pub u64.u32() ?u32 extern
+fun pub u64.int() ?int extern
+fun pub u64.f32() f32 extern
+fun pub u64.f64() f64 extern
+fun pub u64.decimal() Decimal extern
+fun pub u64.str() str extern
+fun pub u64.i8Mask() i8 extern
+fun pub u64.byteMask() byte extern
+fun pub u64.i16Mask() i16 extern
+fun pub u64.u16Mask() u16 extern
+fun pub u64.i32Mask() i32 extern
+fun pub u64.u32Mask() u32 extern
+fun pub u64.intMask() int extern
 
 fun pub u64.getHash() int extern
 fun pub _opEq(a u64, b u64) bool extern
 fun pub _opCmp(a u64, b u64) i32 extern
+fun pub _opRange(a u64, b u64) Range<u64> extern // TBD: Generic function on range?
 fun pub _opAdd(a u64, b u64) u64 extern
 fun pub _opSub(a u64, b u64) u64 extern
 fun pub _opNeg(a u64) u64 extern
@@ -354,31 +342,19 @@ type pub ro copy xuint
     const pub ZERO xuint = 0
     const pub ONE xuint = 1
 
-fun pub xuint.toF32() f32 extern
-fun pub xuint.toF64() f64 extern
-fun pub xuint.toDecimal() Decimal extern
-fun pub xuint.toStr() str extern
+fun pub xuint.byte() ?byte extern
+fun pub xuint.int() ?int extern
+fun pub xuint.u64() u64 extern    
+fun pub xuint.decimal() Decimal extern
+fun pub xuint.str() str extern
+fun pub xuint.intMask() int extern
+fun pub xuint.byteMask() byte extern
 
-fun pub xuint.toI8Mask() i8 extern
-fun pub xuint.toByteMask() byte extern
-fun pub xuint.toI16Mask() i16 extern
-fun pub xuint.toU16Mask() u16 extern
-fun pub xuint.toI32Mask() i32 extern
-fun pub xuint.toU32Mask() u32 extern
-fun pub xuint.toU64Mask() u64 extern
-
-// TBD: Add requires
-fun pub xuint.toI8Fail() i8 extern
-fun pub xuint.toByteFail() byte extern
-fun pub xuint.toI16Fail() i16 extern
-fun pub xuint.toU16Fail() u16 extern
-fun pub xuint.toI32Fail() i32 extern
-fun pub xuint.toU32Fail() u32 extern
-fun pub xuint.toU64Fail() u64 extern    
 
 fun pub xuint.getHash() int extern
 fun pub _opEq(a xuint, b xuint) bool extern
 fun pub _opCmp(a xuint, b xuint) i32 extern
+fun pub _opRange(a xuint, b xuint) Range<xuint> extern // TBD: Generic function on range?
 fun pub _opAdd(a xuint, b xuint) xuint extern
 fun pub _opSub(a xuint, b xuint) xuint extern
 fun pub _opNeg(a xuint) xuint extern
@@ -396,48 +372,6 @@ fun pub _opBitShr(a xuint, b int) xuint extern
 
 
 fun pub xuint.getIterator() RangeIterator<xuint>
-    return RangeIterator<xuint>(0, my)
-
-// A 32 or 64 bit unsigned integer
-type pub ro copy xint
-    //const __size int = 8
-    const pub MIN xint = 0
-    const pub ZERO xint = 0
-    const pub ONE xint = 1
-
-fun pub xint.toF32() f32 extern
-fun pub xint.toF64() f64 extern
-fun pub xint.toDecimal() Decimal extern
-fun pub xint.toStr() str extern
-
-fun pub xint.toI8Mask() i8 extern
-fun pub xint.toByteMask() byte extern
-fun pub xint.toI16Mask() i16 extern
-fun pub xint.toU16Mask() u16 extern
-fun pub xint.toI32Mask() i32 extern
-fun pub xint.toU32Mask() u32 extern
-fun pub xint.toU64Mask() u64 extern
-
-// TBD: Add requires
-fun pub xint.toI8Fail() i8 extern
-fun pub xint.toByteFail() byte extern
-fun pub xint.toI16Fail() i16 extern
-fun pub xint.toU16Fail() u16 extern
-fun pub xint.toI32Fail() i32 extern
-fun pub xint.toU32Fail() u32 extern
-fun pub xint.toU64Fail() u64 extern    
-
-fun pub xint.getHash() int extern
-fun pub _opEq(a xint, b xint) bool extern
-fun pub _opCmp(a xint, b xint) i32 extern
-fun pub _opAdd(a xint, b xint) xint extern
-fun pub _opSub(a xint, b xint) xint extern
-fun pub _opNeg(a xint) xint extern
-fun pub _opMul(a xint, b xint) xint extern
-fun pub _opDiv(a xint, b xint) xint extern
-fun pub _opRem(a xint, b xint) xint extern
-
-fun pub xint.getIterator() RangeIterator<xint>
     return RangeIterator<xuint>(0, my)
 
 
@@ -459,34 +393,23 @@ get pub f32.isNan() bool extern
 get pub f32.isNegativeInfinity() bool extern
 get pub f32.isPositiveInfinity() bool extern        
 
-fun pub f32.toF64() f64 extern
-fun pub f32.toDecimal() Decimal extern    
-fun pub f32.toStr() str extern
+fun pub f32.byte() ?byte extern
+fun pub f32.int() ?int extern
+fun pub f32.u64() ?u64 extern
+fun pub f32.f64() f64 extern
+fun pub f32.decimal() Decimal extern    
+fun pub f32.str() str extern
+fun pub f32.byteMask() byte extern
+fun pub f32.intMask() int extern
+fun pub f32.u64Mask() u64 extern
 
-fun pub f32.toI8Mask() i8 extern
-fun pub f32.toByteMask() byte extern
-fun pub f32.toI16Mask() i16 extern
-fun pub f32.toU16Mask() u16 extern
-fun pub f32.toI32Mask() i32 extern
-fun pub f32.toU32Mask() u32 extern
-fun pub f32.toIntMask() int extern
-fun pub f32.toU64Mask() u64 extern
-
-// TBD: Add requires
-fun pub f32.toI8Fail() i8 extern
-fun pub f32.toByteFail() byte extern
-fun pub f32.toI16Fail() i16 extern
-fun pub f32.toU16Fail() u16 extern
-fun pub f32.toI32Fail() i32 extern
-fun pub f32.toU32Fail() u32 extern
-fun pub f32.toIntFail() int extern
-fun pub f32.toU64Fail() u64 extern
         
 fun pub f32.getHash() int extern
 fun pub _opEq(a f32, b f32) bool extern
 fun pub _opCmp(a f32, b f32) i32 extern
 fun pub _opEqNan(a f32, b f32) bool extern
 fun pub _opCmpNan(a f32, b f32) i32 extern
+fun pub _opRange(a f32, b f32) Range<i32> extern // TBD: Generic function on range?
 fun pub _opAdd(a f32, b f32) f32 extern
 fun pub _opSub(a f32, b f32) f32 extern
 fun pub _opNeg(a f32) f32 extern
@@ -515,27 +438,15 @@ get pub f64.isNan() bool extern
 get pub f64.isNegativeInfinity() bool extern
 get pub f64.isPositiveInfinity() bool extern        
 
-fun pub f64.toDecimal() Decimal extern
-fun pub f64.toStr() str extern
-
-fun pub f64.toI8Mask() i8 extern
-fun pub f64.toByteMask() byte extern
-fun pub f64.toI16Mask() i16 extern
-fun pub f64.toU16Mask() u16 extern
-fun pub f64.toI32Mask() i32 extern
-fun pub f64.toU32Mask() u32 extern
-fun pub f64.toIntMask() int extern
-fun pub f64.toU64Mask() u64 extern
-fun pub f64.toF32Clamp() f32 extern
-fun pub f64.toI8Fail() i8 extern
-fun pub f64.toByteFail() byte extern
-fun pub f64.toI16Fail() i16 extern
-fun pub f64.toU16Fail() u16 extern
-fun pub f64.toI32Fail() i32 extern
-fun pub f64.toU32Fail() u32 extern
-fun pub f64.toIntFail() int extern
-fun pub f64.toU64Fail() u64 extern
-fun pub f64.toF32Fail() f32 extern
+fun pub f64.byte() ?byte extern
+fun pub f64.int() ?int extern
+fun pub f64.u64() ?u64 extern
+fun pub f64.decimal() Decimal extern
+fun pub f64.str() str extern
+fun pub f64.byteMask() byte extern
+fun pub f64.intMask() int extern
+fun pub f64.u64Mask() u64 extern
+fun pub f64.f32Clamp() f32 extern
 
 fun pub f64.getHash() int extern
 
@@ -543,6 +454,7 @@ fun pub _opEq(a f64, b f64) bool extern
 fun pub _opCmp(a f64, b f64) i32 extern
 fun pub _opEqNan(a f64, b f64) bool extern
 fun pub _opCmpNan(a f64, b f64) i32 extern
+fun pub _opRange(a f64, b f64) Range<f64> extern // TBD: Generic function on range?
 fun pub _opAdd(a f64, b f64) f64 extern
 fun pub _opSub(a f64, b f64) f64 extern
 fun pub _opNeg(a f64) f64 extern
@@ -571,30 +483,22 @@ get pub Decimal.isNan() bool extern
 get pub Decimal.isNegativeInfinity() bool extern
 get pub Decimal.isPositiveInfinity() bool extern
 
-fun pub Decimal.toI8Mask() i8 extern
-fun pub Decimal.toByteMask() byte extern
-fun pub Decimal.toI16Mask() i16 extern
-fun pub Decimal.toU16Mask() u16 extern
-fun pub Decimal.toI32Mask() i32 extern
-fun pub Decimal.toU32Mask() u32 extern
-fun pub Decimal.toIntMask() int extern
-fun pub Decimal.toU64Mask() u64 extern
-fun pub Decimal.toF32Clamp() f32 extern
-fun pub Decimal.toF64Clamp() f64 extern
-fun pub Decimal.toI8Fail() i8 extern
-fun pub Decimal.toByteFail() byte extern
-fun pub Decimal.toI16Fail() i16 extern
-fun pub Decimal.toU16Fail() u16 extern
-fun pub Decimal.toI32Fail() i32 extern
-fun pub Decimal.toU32Fail() u32 extern
-fun pub Decimal.toIntFail() int extern
-fun pub Decimal.toU64Fail() u64 extern
+fun pub Decimal.byte() ?byte extern
+fun pub Decimal.int() ?int extern
+fun pub Decimal.u64() ?u64 extern
+fun pub Decimal.byteMask() byte extern
+fun pub Decimal.intMask() int extern
+fun pub Decimal.u64Mask() u64 extern
+fun pub Decimal.intClamp() int extern
+fun pub Decimal.f32Clamp() f32 extern
+fun pub Decimal.f64Clamp() f64 extern
 
 fun pub Decimal.getHash() int extern
 fun pub _opEq(a Decimal, b Decimal) bool extern
 fun pub _opCmp(a Decimal, b Decimal) i32 extern
 fun pub _opEqNan(a Decimal, b Decimal) bool extern
 fun pub _opCmpNan(a Decimal, b Decimal) i32 extern
+fun pub _opRange(a Decimal, b Decimal) Range<i32> extern // TBD: Generic function on range?
 fun pub _opAdd(a Decimal, b Decimal) Decimal extern
 fun pub _opSub(a Decimal, b Decimal) Decimal extern
 fun pub _opNeg(a Decimal) Decimal extern

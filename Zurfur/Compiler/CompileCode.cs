@@ -18,9 +18,9 @@ namespace Gosub.Zurfur.Compiler
     class Rval
     {
         public Token Identifier;
-        public Symbol LeftDotType;
-        public List<Symbol> Symbols = new List<Symbol>();
         public Symbol Type;
+        public List<Symbol> Symbols = new List<Symbol>();
+        public Symbol LeftDotType;
         public bool IsUntypedConst; // NOTE: 3int is a typed const
 
         public Rval(Token identifier, Symbol returnType = null)
@@ -42,21 +42,23 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     static class CompileCode
     {
-        static WordSet sOperators = new WordSet("+ - * / % & | ~ ! == != >= <= > < << >> and or |= &= += -= <<= >>=");
+        static WordSet sOperators = new WordSet("+ - * / % & | ~ ! == != >= <= > < << >> and or in |= &= += -= <<= >>= .. ..+");
         static WordSet sCmpOperators = new WordSet("== != >= <= > <");
         static WordSet sIntTypeNames = new WordSet("Zurfur.int Zurfur.u64 Zurfur.i32 Zurfur.u32 Zurfur.xuint");
         static WordSet sDerefAll = new WordSet("ref ^ * mut own");
         static WordSet sDerefMut = new WordSet("mut");
         static WordSet sDerefPointer = new WordSet("^");
-        static WordMap<string> sBinOpNames = new WordMap<string>
-            { {"+", "_opAdd"}, {"+=", "_opAdd"}, {"-", "_opSub"}, {"-=", "_opSub"},
-              {"*", "_opMul"}, {"*=", "_opMul"}, {"/", "_opDiv"}, {"/=", "_opDiv"},
-              {"%","_opRem" }, {"%=","_opRem" },
-              {"==", "_opEq"}, {"!=", "_opEq" },
-              {">", "_opCmp" }, {">=", "_opCmp" }, {"<", "_opCmp" }, {"<=", "_opCmp" },
-              {"<<", "_opBitShl"}, {"<<=", "_opBitShl"}, {">>", "_opBitShr"}, {">>=", "_opBitShr"},
-              {"&", "_opBitAnd"}, {"&=", "_opBitAnd"}, {"|", "_opBitOr"}, {"|=", "_opBitOr"},
-              {"~", "_opBitXor"}, {"~=", "_opBitXor"} };
+        static WordMap<string> sBinOpNames = new WordMap<string> {
+            {"+", "_opAdd"}, {"+=", "_opAdd"}, {"-", "_opSub"}, {"-=", "_opSub"},
+            {"*", "_opMul"}, {"*=", "_opMul"}, {"/", "_opDiv"}, {"/=", "_opDiv"},
+            {"%","_opRem" }, {"%=","_opRem" },
+            {"..", "_opRange" }, {"..+", "_opRange" },
+            {"==", "_opEq"}, {"!=", "_opEq" }, {"in", "_opIn" },
+            {">", "_opCmp" }, {">=", "_opCmp" }, {"<", "_opCmp" }, {"<=", "_opCmp" },
+            {"<<", "_opBitShl"}, {"<<=", "_opBitShl"}, {">>", "_opBitShr"}, {">>=", "_opBitShr"},
+            {"&", "_opBitAnd"}, {"&=", "_opBitAnd"}, {"|", "_opBitOr"}, {"|=", "_opBitOr"},
+            {"~", "_opBitXor"}, {"~=", "_opBitXor"},
+        };
 
         static public void GenerateCode(
             Dictionary<string, SyntaxFile> syntaxFiles,
@@ -210,9 +212,15 @@ namespace Gosub.Zurfur.Compiler
                 return rval;
             }
 
+
             Rval GenIdentifier(SyntaxExpr ex)
             {
-                return new Rval(ex.Token);
+                var rval = new Rval(ex.Token);
+                FindGlobal(ex.Token, rval.Symbols);
+                if (rval.Symbols.Count == 0)
+                    Reject(ex.Token, "Undefined symbol");
+                RemoveLastDuplicates(rval.Symbols);
+                return rval;
             }
 
             // Similar to identifier, except we know it's a type (e.g. List<int>, etc)
@@ -272,6 +280,11 @@ namespace Gosub.Zurfur.Compiler
 
                 var rval = new Rval(identifier);
                 rval.LeftDotType = leftType;
+                FindInType(identifier, leftType, rval.Symbols);
+                RemoveLastDuplicates(rval.Symbols);
+                if (rval.Symbols.Count == 0)
+                    Reject(identifier, $"Undefined symbol in the type '{leftType}'");
+
                 return rval;
             }
 
@@ -680,8 +693,6 @@ namespace Gosub.Zurfur.Compiler
                 if (funCall != null && funCall.Type != null)
                     return funCall;
 
-                if (funCall != null)
-                    EvalSymbols(funCall);
                 var args = GenCallParams(ex, 1);
 
                 if (funCall == null || funCall.Symbols.Count == 0)
@@ -824,7 +835,6 @@ namespace Gosub.Zurfur.Compiler
                 if (rval.Type != null)
                     return rval.Type;
 
-                EvalSymbols(rval);
                 var symbols = rval.Symbols;
                 if (symbols.Count == 0)
                     return null;
@@ -887,30 +897,6 @@ namespace Gosub.Zurfur.Compiler
                 Debug.Assert(false);
                 return null;
             }
-
-            void EvalSymbols(Rval rval)
-            {
-                var identifier = rval.Identifier;
-                var symbols = rval.Symbols;
-                symbols.Clear();
-
-                // Find the matching symbols
-                if (rval.LeftDotType == null)
-                    FindGlobal(identifier, symbols);
-                else
-                    FindInType(identifier, rval.LeftDotType, symbols);
-
-                // Check for undefined symbol
-                if (symbols.Count == 0)
-                {
-                    if (rval.LeftDotType == null)
-                        Reject(identifier, "Undefined symbol");
-                    else
-                        Reject(identifier, $"Undefined symbol in the type '{rval.LeftDotType}'");
-                }
-                RemoveLastDuplicates(symbols);
-            }
-
 
             /// <summary>
             /// Find symbols in the type, including methods defined in

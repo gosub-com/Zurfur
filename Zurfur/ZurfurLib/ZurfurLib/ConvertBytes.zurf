@@ -38,10 +38,10 @@ fun pub Span<byte>.bytesToU32() u32
 // Convert u32 to 4 bytes (little endian) 
 fun pub mut Span<byte>.setBytesU32(v u32)
     require count == 4
-    my[0] = v.toByteMask()
-    my[1] = (v<<8).toByteMask()
-    my[2] = (v<<16).toByteMask()
-    my[3] = (v<<24).toByteMask()
+    my[0] = v.byteMask()
+    my[1] = (v<<8).byteMask()
+    my[2] = (v<<16).byteMask()
+    my[3] = (v<<24).byteMask()
 
 // Convert u32 to 4 bytes (little endian) and push to list
 fun pub mut List<byte>.pushBytesU32(v u32)
@@ -55,10 +55,10 @@ fun pub Span<byte>.bytesToI32() i32
     
 fun pub mut Span<byte>.setBytesI32(v i32)
     require count == 4
-    my.setBytesU32(v.toU32Mask())
+    my.setBytesU32(v.u32Mask())
     
 fun pub mut List<byte>.pushBytesI32(v i32)
-    my.pushBytesU32(v.toU32Mask())
+    my.pushBytesU32(v.u32Mask())
 
 fun pub Span<byte>.bytesToU16() u16 require count == 2 { }
 fun pub mut Span<byte>.setBytesU16(v u16) require count == 2 { }
