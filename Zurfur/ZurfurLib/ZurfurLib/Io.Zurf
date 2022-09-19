@@ -5,10 +5,10 @@ module Zurfur.Io
 use Zurfur.Io[FileStream]
 
 interface Reader
-    afun mut read(data mut []byte) int throws impl
+    afun mut read(data mut Span<byte>) int throws impl
 
 interface Writer
-    afun mut write(data []byte) int throws impl
+    afun mut write(data Span<byte>) int throws impl
     afun mut flush() throws impl
 
 enum SeekOrigin

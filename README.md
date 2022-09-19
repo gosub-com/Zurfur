@@ -95,24 +95,24 @@ argument, and the return type comes after the parameters:
     // This is a public documentation comment.  Do not use XML.
     // Use `name` to refer to variables in the code. 
     pub fun main(args Array<str>)
-        Log.info("Hello World, 2+2={2+2}")
+        Log.info("Hello World, 2+2=${2+2}")
 
-Functions declared at the module level are implicitly `static` without needing
-to use the keyword.  Extension methods must be declared at the module level:
+Methods and extension methods are declared with the same syntax and
+use the `my` keyword to refer to fields or other methods in the type:
 
     // Declare an extension method for strings
-    pub fun (str) rest() str
+    pub fun str.rest() str
         // NOTE: sub is a member of Array, and str is an Array
-        return count == 0 ? "" : sub(1)
+        return my.count == 0 ? "" : my.sub(1)
 
 Properties are declared with `get` and `set` keywords:
 
-    pub get myString() str
-        return myCachedStr
+    pub get MyType.myString() str
+        return my.cachedStr
 
-    pub set myString(v str)
-        myCachedString = v
-        myStringChangedEvent()
+    pub set MyType.myString(v str)
+        my.cachedString = v
+        my.stringChangedEvent()
   
 By default, function parameters are passed as read-only reference.  The
 exception is that small types (e.g. `int`, and `Span<T>`) are passed by
@@ -161,7 +161,7 @@ Functions can return multiple values:
 The return parameters are named, and can be used by the calling function:
 
     @location = circle(a, r)
-    Log.info("X: {location.x}, Y: {location.y}")
+    Log.info("X: ${location.x}, Y: ${location.y}")
 
 Normally the return value becomes owned by the caller, but this behavior
 can be changed with the `ref` keyword:
@@ -185,20 +185,16 @@ Return qualifiers:
 
 The ones we all know and love:
 
-    bool, i8, u8, byte, i16, u16, i32, u32, i64, int, u64, f32, f64, xint, object
+    bool, i8, byte, i16, u16, i32, u32, int, u64, f32, f64
     
-`byte` is an alias for `u8`.  `int` is an alias for `i64`.  `xint` is either
-u32 or u64 depending on the compilation target.  `object` is the base class
-for all types, even though Zurfur doesn't yet support any kind of inheritance.
 
 | Type | Description
 | :--- | :---
-| Array\<T\> | An immutable array of **immutable** elements and a constant `Count`.  Even if the array contains mutable elements, they become immutable when copied into the array.  Arrays can be copied very quickly, just by copying a reference.
+| Array\<T\> | An immutable array of **immutable** elements and a constant `count`.  Even if the array contains mutable elements, they become immutable when copied into the array.  Arrays can be copied very quickly, just by copying a reference.
 | str | An `Array<byte>` with support for UTF-8.  `Array` is immutable, therefore `str` is also immutable
 | List\<T\> | Dynamically sized mutable list with mutable elements
 | Span\<T\> | Span into `Array`, `Buffer`, or `List`.  It has a constant `Count`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `Buffer` or `List` is mutable)
 | Map<K,V> | Unordered mutable map. 
-| Json | Json data structure. **TBD:** This might become `Dynamic` or `Variant` with easy conversion to/from Json or XML, etc.
 
 There are several different kinds of types.  There is `ro` for read-only
 immutable types, `box` for a type always on the heap, and `owned` for a mutable
@@ -253,7 +249,6 @@ with `@` and are private, but may have public properties with `pub get`,
 `pub get set`, etc.
 
     pub type Example
-    {
         // Mutable fields
         @text1 str = "hello"                // Private
         @text2 str pub get = "hello"        // Public get (copy, not a reference)
@@ -268,24 +263,24 @@ with `@` and are private, but may have public properties with `pub get`,
         @roText2 ro str = "Hello"           // Constructor cannot override
         @roText3 ro str pub init = "Hello"  // Constructor or client can override
         
-        // Getter and setter functions (passing copies)
-        pub get text() str
-            return text1
+    // Getter and setter functions (passing copies)
+    pub get Example.text() str
+        return my.text1
 
-        pub set text(value str)
-            if value == text1
-                return
-            text1 = value
-            sendTextChangedEvent()
+    pub set Example.text(value str)
+        if value == my.text1
+            return
+        my.text1 = value
+        my.sendTextChangedEvent()
 
-        // Getter returning references
-        pub get list1a() ref List<int>      // Immutable reference
-            return ref list1
-        pub get list1b() mut List<int>      // Mutable reference, not assignable
-            return ref list1
-        pub get list1c() mut ref List<int>  // Mutable reference, assignable
-            return ref list1
-    }
+    // Getter returning references
+    pub get Example.list1a() ref List<int>      // Immutable reference
+        return ref my.list1
+    pub get Example.list1b() mut List<int>      // Mutable reference, not assignable
+        return ref my.list1
+    pub get Example.list1c() mut ref List<int>  // Mutable reference, assignable
+        return ref my.list1
+
 
 ### Immutability
 
@@ -329,12 +324,8 @@ explict type names when used as a local variable.
 
 ## Interfaces
 
-Zurfur uses Rust style traits with static dispatch in most cases. However,
-types can implement interfaces without resorting to `impl Interface for Type`
-provided there are no ambiguities and the interface doesn't require associate
-types.  When you see an interface, think Rust style traits even though it
-looks like C# style syntax.
-
+Zurfur uses Golang style interfaces, which fit nicely with the
+dynamic nature of Javascript.
 
 ### New, Equality, Clone, and Drop
 
@@ -382,7 +373,7 @@ The `@` symbol is used to make it easy to recognize new local variables:
     @a = 0
     myList.For(@item => { a.max = Math.Max(item, a.max) })
     myList.Sort(@(a,b) => a > b)
-    Log.Info("Sorted list is {myList}, maximum value is: {a.max}")
+    log.Info("Sorted list is {myList}, maximum value is: {a.max}")
 
 Inside the lambda function, `return` is forbidden since it doesn't return
 from thom the nearest `fun` scope.  Instead, `exit` is used.
@@ -419,17 +410,11 @@ the UTF8 encoding so they may hold any binary data.
 
 String literals start with a quote `"` and can be translated at runtime
 using `tr"string"` syntax.  They are interpolated with curly braces (e.g
-`{expression}`). Control characters may be put inside an interpolation
-(e.g. `{\t}` is a tab).  The backslash `\` is not treated differently
-than any other character.
+`${expression}`). Control characters may be put inside an interpolation
+(e.g. `${\t}` is a tab).  Inside the quoted string, the backslash `\`
+is not treated differently than any other character.
 
 ![](Doc/Strings.png)
-
-There are multi-line strings using double backticks.  Multi-line strings
-can be interpolated with `${expression}`.  
-Other intepolation escape codes and other syntaxes will be allowed,
-(e.g. `json'''` could be a json string, `jsoni'''` a json interpolated
-string, etc.)
 
 There is no `StringBuilder` type, use `List<byte>` instead:
 
@@ -513,38 +498,6 @@ time, it gets the default value:
     a["hello"] = 23         // Created if it doesn't exist
     a["new"] += 1           // Created with 0, or uses existing value
 
-#### Json
-
-**TBD:** This might become `Dynamic` or `Variant` with easy conversion to/from Json or XML, etc.
-
-`Json` is the built in Json object with support communication with JavaScript.  
-Using an invalid key does not throw an exception, but instead returns a default
-empty object.
-
-    @a Json = ["Hello":1, "World":2]
-    @b = a["World"]                         // b is Json(2), not an int
-    @c = a["World"].Int                     // c is 2
-    @d = a["World"].Str                     // d is "2"
-    @e = a["not found"]["?"].int            // e is 0
-
-The `Json` data structure is meant to be quick and easy to use, not necessarily
-the fastest or most efficient. For efficient memory usage, `Json` will support
-[Newtonsoft](https://www.newtonsoft.com/json) style serialization:
-
-Another example:
-
-    @a Json = [
-        "Param1" : 23,
-        "Param2" : [1,2,3],
-        "Param3" : ["Hello":12, "World" : "Earth"],
-        "Time" : "2019-12-07T14:13:46"
-    ]
-    @b = a["Param1"].Int            // b is 23
-    @c = a["param2"][1].Int         // c is 2
-    @d = a["Param3"]["World"].Str   // d is "Earth"
-    @e = a["Time"].DateTime         // e is converted to DateTime
-    a["Param2"][1].Int = 5          // Set the value
-
     
 ### Enum
 
@@ -588,7 +541,7 @@ with C and gives an error where not compatible:
 |* / % & | Multiply, bitwise *AND* (can't mix arithmetic and bit operators)
 |~| Bitwise *XOR* (can't mix with arithmetic operators)
 |+ - &#124; | Add, bitwise *OR* (can't mix arithmetic and bit operators)
-|Low..High, Low..+Count|Range (inclusive of low, exclusive of high)
+|.. ..+|Range (Low..High) and range count (Low..+Count).  Inclusive of low, exclusive of high. 
 |== != < <= > >= === !== in|Not associative, === and !== is only for pointers
 |and|Conditional, short circuit
 |or|Conditional, short circuit
@@ -612,7 +565,7 @@ operators, making them compatible with C for bitwise operations.  Bitwise
 and arithmetic operators may not be mixed, for example both `a + b | c` and
 `a + b << c` are illegal.  Parentheses may be used (e.g. `(a+b)|c` is legal)
 
-The range operator`..` takes two `int`s and make a `Range` which is a
+The range operator `..` takes two `int`s and make a `Range` which is a
 `type Range(High int, Low int)`.  The `..+` operator also makes a
 range, but the second parameter is a count (`High = Low + Count`).  
 
@@ -641,17 +594,11 @@ only be used where they are expected, such as a function call or lambda.
 
 `+`, `-`, `*`, `/`, `%`, and `in` are the only operators that may be individually
 defined.  The `==` and `!=` operator may be defined together by implementing
-`static fun Equals(a myType, b myType) bool`.  All six comparison operators,
+`fun _opEq(a myType, b myType) bool`.  All six comparison operators,
 `==`, `!=`, `<`, `<=`, `==`, `!=`, `>=`, and `>` can be implemented with just
-one function: `static fun Compare(a myType, b myType) int`.  If both functions
-are defined, `Equals` is used for equality comparisons, and `Compare` is used
+one function: `fun _opCmp(a myType, b myType) int`.  If both functions
+are defined, `_opEq` is used for equality comparisons, and `_opCmp` is used
 for the others.
-
-Overloads using the `operator` keyword are automatically `static`.  Only
-static versions of `Equals` and `Compare` are used for the comparison operators.
-Zurfur inherits this from C#, and Eric Lippert
-[gives a great explanation of why](https://blogs.msdn.microsoft.com/ericlippert/2007/05/14/why-are-overloaded-operators-always-static-in-c).
-
 
 ## Statements
 

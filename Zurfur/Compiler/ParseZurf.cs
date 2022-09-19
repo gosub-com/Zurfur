@@ -84,7 +84,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sMethodQualifiers = new WordSet("pub static unsafe");
 
         static WordSet sReservedUserFuncNames = new WordSet("new clone drop cast default");
-        static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default self super new cast move my");
+        static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default self super new cast move my sizeof typeof");
         static WordSet sReservedMemberNames = new WordSet("clone");
         static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref mut own ro box");
 
@@ -1662,10 +1662,6 @@ namespace Gosub.Zurfur.Compiler
             {
                 return new SyntaxBinary(Accept(), ParseTypeFunc(), ParseUnary());
             }
-            if (mTokenName == "sizeof" || mTokenName == "typeof")
-            {
-                return new SyntaxUnary(Accept(), ParseTypeFunc());
-            }
 
             return ParsePrimary();
         }
@@ -1722,6 +1718,12 @@ namespace Gosub.Zurfur.Compiler
         SyntaxExpr ParsePrimary()
         {
             var result = ParseAtom();
+
+            if (result.Token == "sizeof" || result.Token == "typeof")
+            {
+                result = new SyntaxUnary(result.Token, ParseTypeFunc());
+            }
+
 
             // Primary: function call 'f()', array 'a[]', type argument f<type>
             bool accepted;

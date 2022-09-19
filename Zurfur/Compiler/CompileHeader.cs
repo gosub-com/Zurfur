@@ -51,7 +51,7 @@ namespace Gosub.Zurfur.Compiler
         const string ZURFUR_PRELUDE = "void nil bool i8 byte i16 u16 i32 u32 int u64 f32 f64 object str List Map Array Buffer Span";
         static WordSet sOperatorFunctionNames = new WordSet(
             "_opAdd _opSub _opNeg _opMul _opDiv _opRem _opRange _opIn _opEq _opEqNan _opCmp _opCmpNan " 
-            + "_opBitShl _opBitShr _opBitAnd _opBitOr _opBitXor _opBitNot");
+            + "_opBitShl _opBitShr _opBitAnd _opBitOr _opBitXor _opBitNot _opIndex");
 
         static public CompilerHeaderOutput GenerateHeader(
             Dictionary<string, SyntaxFile> syntaxFiles,
@@ -188,7 +188,7 @@ namespace Gosub.Zurfur.Compiler
                         {
                             if (op.IsFunc
                                 && sOperatorFunctionNames.Contains(op.SimpleName)
-                                && ((SymMethod)op).GetParamTypeList().Contains(typeSym))
+                                && ((SymMethod)op).GetParamTypeList().FindIndex(f => f.Unspecial() == typeSym) >= 0)
                             {
                                 symbols.Add(op);
                             }
@@ -423,11 +423,11 @@ namespace Gosub.Zurfur.Compiler
 
             // For now, extension methods with generic receivers
             // allow only 1 level deep with all type parameters matching:
-            //      (List<int>) f(x)        // Ok, no generic types
-            //      (List<T>) f(x)          // Ok, 1 level, matching generic
-            //      (Map<TKey,TValue>) f(x) // Ok, 1 level, all matching generic
-            //      (Map<Key,int>) f(x)     // No, not all matching genrics
-            //      (Span<List<T>>) f(x)    // No, multi-level not accepted
+            //      List<int>.f(x)        // Ok, no generic types
+            //      List<T>.f(x)          // Ok, 1 level, matching generic
+            //      Map<TKey,TValue>.f(x) // Ok, 1 level, all matching generic
+            //      Map<Key,int>.f(x)     // No, not all matching genrics
+            //      Span<List<T>>.f(x)    // No, multi-level not accepted
             //
             // TBD: Allow Map<K,V>.Pair, etc.
             void AddExtensionMethodGenerics(Symbol method, SyntaxFunc f)
@@ -481,10 +481,21 @@ namespace Gosub.Zurfur.Compiler
             //       type name and not passed as a parameter
             void AddMyParam(Symbol method, SyntaxFunc func)
             {
+                // Interface method syntax
+                if (method.Parent.IsInterface && !method.IsStatic)
+                {
+                    Debug.Assert(func.ExtensionType == null && method.Parent.IsType);
+                    var ifaceMethodParam = new SymMethodParam(method, func.Name, "my");
+                    ifaceMethodParam.Type = method.Parent;
+                    table.AddOrReject(ifaceMethodParam);
+                    return;
+                }
+
                 var extType = func.ExtensionType;
                 if (extType == null || extType.Token == "")
                     return;
 
+                // Extension method syntax
                 var methodParam = new SymMethodParam(method, func.Name, "my");
                 methodParam.Type = ResolveTypeNameOrReject(methodParam, extType);
                 method.Qualifiers |= SymQualifiers.Extension;

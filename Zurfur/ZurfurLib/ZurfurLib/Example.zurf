@@ -10,7 +10,7 @@
 module TestExample
 
 use Zurfur
-use Zurfur[Decimal, Log, xuint]
+use Zurfur[Decimal, Log]
 use Zurfur.Collections[Iterator]
 use Zurfur.Math[cos,sin]
 
@@ -132,7 +132,8 @@ fun pub test_Main(args Array<str>, stream Zurfur.Io.Reader)
     Log.info("Hello World, 2+2={2+2}")
 
     @v = ""
-    @myStrings = ["a", "b", "c"]
+    //@myStrings = ["a", "b", "c"]
+    @myStrings = Array<str>()
 
     if myStrings[1]@q == "x"
         v = "x"
@@ -148,8 +149,9 @@ fun pub test_Main(args Array<str>, stream Zurfur.Io.Reader)
 
     @a = tr"Column 1{\t}Column 2{\rn}"
     @data = "Name:{name}{\t}Occupation:{lastName}{\rn}"
+    @buffer = Array<byte>()
     
-    while stream.read(buffer)@size != 0
+    while stream.read(buffer[0..4])@size != 0
         @a = MyFun as Hello
 
 
@@ -204,8 +206,8 @@ fun pub sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
 
 
 fun pub memCopy(dest ^void, source ^void, length int)
-    @d = cast(xuint)dest
-    @s = cast(xuint)source
+    @d = cast(u64)dest
+    @s = cast(u64)source
     
     if length <= 0
         return
@@ -220,7 +222,7 @@ fun pub memCopy(dest ^void, source ^void, length int)
         return
     
     // Byte copy
-    @end = d + xuint(length)
+    @end = d + length.u64Mask()
     while end-d >= 4
         (cast(^byte)d).* = (cast(^byte)s).*; d+=1; s+=1
         (cast(^byte)d).* = (cast(^byte)s).*; d+=1; s+=1
@@ -230,14 +232,14 @@ fun pub memCopy(dest ^void, source ^void, length int)
         (cast(^byte)d).* = (cast(^byte)s).*; d+=1; s+=1
 
 fun pub memCopy32(dest ^void, source ^void, length int)
-    @d = cast(xuint)dest
-    @s = cast(xuint)source
+    @d = cast(u64)dest
+    @s = cast(u64)source
 
     if length <= 0
         return
 
     // Try 64 bit copy first
-    @end = d + xuint(length)
+    @end = d + length.u64Mask()
     if (d~s) & 4 == 0 and length >= 8
         if d & 4 != 0
             (cast(^i32)d).* = (cast(^i32)s).*; d+=4; s+=4

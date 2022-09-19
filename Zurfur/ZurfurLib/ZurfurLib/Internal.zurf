@@ -2,7 +2,7 @@
 // Internal stuff for compiler, heap, and GC
 module Zurfur.Internal
 
-use Zurfur[xuint, todo]
+use Zurfur[todo]
 
 pragma AllowUnderscoreDefinitions
 
@@ -34,8 +34,8 @@ fun pub __oref<T>.new(reference *T, owner ?*__heap<T>)
     this.owner = owner
 
 fun pub __oref<T>.drop()
-    if owner != null
-        owner.Dec()
+    if my.owner != nil
+        my.owner.Dec()
     
 fun pub __oref<T>.Get() T extern
 fun pub __oref<T>.SetRef(value ref T) extern
@@ -49,9 +49,9 @@ fun pub unsafe __oref<T>.ByteOffset(offset int) *void extern
 // This is specific to reference counted GC.
 type pub __heap<T>
     @vtable *void // TBD: Type info for GC and metadata
-    @refCount xuint
+    @refCount u64
 
 fun pub __heap<T>.Inc()
-    refCount += 1
-    if refCount < 0
+    my.refCount += 1
+    if my.refCount < 0
         todo() // TBD: Queue to call drop and reclaim memory

@@ -1,7 +1,6 @@
 // Define the simple types:
 //     i8, byte, i16, u16, i32, u32, int, u64, f32, f64, Decimal
 //
-// xuint is pointer sized integer (u32 or u64)
 
 module Zurfur
 
@@ -46,6 +45,7 @@ fun pub bool._opEq(a bool) bool extern
 // i8 (-128..127)
 type pub ro copy i8
     const __size int = 1
+    const __align int = 1
     const pub MAX i8 = 127
     const pub MIN i8 = -128
     const pub ZERO i8 = 0
@@ -68,6 +68,7 @@ fun pub i8._opCmp(a i8) i32 extern
 // byte (0..255)
 type pub ro copy byte
     const __size int = 1
+    const __align int = 1    
     const pub MAX byte = 255
     const pub MIN byte = 0
     const pub ZERO byte = 0
@@ -93,6 +94,7 @@ fun pub _opCmp(a byte, b byte) i32 extern
 // i16 (-32768..32768)
 type pub ro copy i16
     const __size int = 2
+    const __align int = 2    
     const pub MAX i16 = 32767
     const pub MIN i16 = -32768
     const pub ZERO i16 = 0
@@ -120,6 +122,7 @@ fun pub _opCmp(a i16, b i16) i32 extern
 // u16 (0..65535)
 type pub ro copy u16
     const __size int = 2
+    const __align int = 2    
     const pub MAX u16 = 65535
     const pub MIN u16 = 0
     const pub ZERO u16 = 0
@@ -147,6 +150,7 @@ fun pub _opCmp(a u16, b u16) i32 extern
 // A 32 bit integer
 type pub ro copy i32
     const __size int = 4
+    const __align int = 4    
     const pub MAX i32 = 2147483647
     const pub MIN i32 = -2147483648
     const pub ZERO i32 = 0
@@ -192,6 +196,7 @@ fun pub i32.getIterator() RangeIterator<i32>
 // 32 bit unsigned integer
 type pub ro copy u32
     const __size int = 4
+    const __align int = 4    
     const pub MAX u32 = 4294967295
     const pub MIN u32 = 0
     const pub ZERO u32 = 0
@@ -212,7 +217,7 @@ fun pub u32.i8Mask() i8 extern
 fun pub u32.byteMask() byte extern
 fun pub u32.i16Mask() i16 extern
 fun pub u32.u16Mask() u16 extern
-fun pub u32.u32Mask() i32 extern
+fun pub u32.i32Mask() i32 extern
 
 fun pub u32.getHash() int extern
 fun pub _opEq(a u32, b u32) bool extern
@@ -238,6 +243,7 @@ fun pub u32.getIterator() RangeIterator<u32>
 // A 64 bit integer (same as int)
 type pub ro copy int
     const __size int = 8
+    const __align int = 8    
     const pub MAX int = 9223372036854775807
     const pub MIN int = -9223372036854775808
     const pub ZERO int = 0
@@ -287,6 +293,7 @@ fun pub int.getIterator() RangeIterator<int>
 // 64 bit unsigned integer
 type pub ro copy u64
     const __size int = 8
+    const __align int = 8    
     const pub MAX u64 = 18446744073709551615
     const pub MIN u64 = 0
     const pub ZERO u64 = 0
@@ -327,56 +334,26 @@ fun pub _opBitOr(a u64, b u64) u64 extern
 fun pub _opBitXor(a u64, b u64) u64 extern
 fun pub _opBitShl(a u64, b int) u64 extern
 fun pub _opBitShr(a u64, b int) u64 extern
+fun pub _opBitShr(a u64, b u64) u64 extern
+fun pub _opBitShl(a u64, b u64) u64 extern
 
 
 
 fun pub u64.getIterator() RangeIterator<u64>
     return RangeIterator<u64>(0, my)
-    
 
-// A 32 or 64 bit unsigned integer.
-// TBD: Remove this?  Always target 64 bits?
-type pub ro copy xuint
-    //const __size int = 8
-    const pub MIN xuint = 0
-    const pub ZERO xuint = 0
-    const pub ONE xuint = 1
+type pub ro copy i128
+    const __size int = 16
+    const __align int = 16
 
-fun pub xuint.byte() ?byte extern
-fun pub xuint.int() ?int extern
-fun pub xuint.u64() u64 extern    
-fun pub xuint.decimal() Decimal extern
-fun pub xuint.str() str extern
-fun pub xuint.intMask() int extern
-fun pub xuint.byteMask() byte extern
-
-
-fun pub xuint.getHash() int extern
-fun pub _opEq(a xuint, b xuint) bool extern
-fun pub _opCmp(a xuint, b xuint) i32 extern
-fun pub _opRange(a xuint, b xuint) Range<xuint> extern // TBD: Generic function on range?
-fun pub _opAdd(a xuint, b xuint) xuint extern
-fun pub _opSub(a xuint, b xuint) xuint extern
-fun pub _opNeg(a xuint) xuint extern
-fun pub _opMul(a xuint, b xuint) xuint extern
-fun pub _opDiv(a xuint, b xuint) xuint extern
-fun pub _opRem(a xuint, b xuint) xuint extern
-fun pub _opBitNot(a xuint) xuint extern
-fun pub _opBitAnd(a xuint, b xuint) xuint extern
-fun pub _opBitOr(a xuint, b xuint) xuint extern
-fun pub _opBitXor(a xuint, b xuint) xuint extern
-fun pub _opBitShl(a xuint, b xuint) xuint extern // TBD: Keep, or only allow integer?
-fun pub _opBitShr(a xuint, b xuint) xuint extern // TBD: Keep, or only allow integer?
-fun pub _opBitShl(a xuint, b int) xuint extern
-fun pub _opBitShr(a xuint, b int) xuint extern
-
-
-fun pub xuint.getIterator() RangeIterator<xuint>
-    return RangeIterator<xuint>(0, my)
+type pub ro copy u128
+    const __size int = 16
+    const __align int = 16
 
 
 type pub ro copy f32
     const __size int = 4
+    const __align int = 4    
     const pub MAX f32 = 3.40282347E+38F
     const pub MIN f32 = -3.40282347E+38F
     const pub ZERO f32 = 0
@@ -422,6 +399,7 @@ fun pub f32.getIterator() RangeIterator<f32>
 
 type pub ro copy f64
     const __size int = 8
+    const __align int = 8    
     const pub MAX f64 = 1.7976931348623157E+308
     const pub MIN f64 = -1.7976931348623157E+308
     const pub ZERO f64 = 0
@@ -470,6 +448,7 @@ fun pub f64.getIterator() RangeIterator<f64>
 // exponents covering the entire range of f64 with more precision.
 type pub ro copy Decimal
     const __size int = 16
+    const __align int = 16
     const pub MAX Decimal = 1E+1000M
     const pub MIN Decimal = -1E+1000M
     const pub ZERO Decimal = 0

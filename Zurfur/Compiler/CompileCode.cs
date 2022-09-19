@@ -42,11 +42,11 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     static class CompileCode
     {
-        static WordSet sOperators = new WordSet("+ - * / % & | ~ ! == != >= <= > < << >> and or in |= &= += -= <<= >>= .. ..+");
+        static WordSet sOperators = new WordSet("+ - * / % & | ~ ! == != >= <= > < << >> and or in |= &= += -= <<= >>= .. ..+ ]");
         static WordSet sCmpOperators = new WordSet("== != >= <= > <");
-        static WordSet sIntTypeNames = new WordSet("Zurfur.int Zurfur.u64 Zurfur.i32 Zurfur.u32 Zurfur.xuint");
+        static WordSet sIntTypeNames = new WordSet("Zurfur.int Zurfur.u64 Zurfur.i32 Zurfur.u32");
         static WordSet sDerefAll = new WordSet("ref ^ * mut own");
-        static WordSet sDerefMut = new WordSet("mut");
+        static WordSet sDerefMutOwn = new WordSet("mut own");
         static WordSet sDerefPointer = new WordSet("^");
         static WordMap<string> sBinOpNames = new WordMap<string> {
             {"+", "_opAdd"}, {"+=", "_opAdd"}, {"-", "_opSub"}, {"-=", "_opSub"},
@@ -58,6 +58,7 @@ namespace Gosub.Zurfur.Compiler
             {"<<", "_opBitShl"}, {"<<=", "_opBitShl"}, {">>", "_opBitShr"}, {">>=", "_opBitShr"},
             {"&", "_opBitAnd"}, {"&=", "_opBitAnd"}, {"|", "_opBitOr"}, {"|=", "_opBitOr"},
             {"~", "_opBitXor"}, {"~=", "_opBitXor"},
+            {"]", "_opIndex" }
         };
 
         static public void GenerateCode(
@@ -93,7 +94,6 @@ namespace Gosub.Zurfur.Compiler
             var typeInt = table.Lookup("Zurfur.int");
             var typeU64 = table.Lookup("Zurfur.u64");
             var typeI32 = table.Lookup("Zurfur.i32");
-            var typeXuint = table.Lookup("Zurfur.xuint");
             var typeStr = table.Lookup("Zurfur.str");
             var typeBool = table.Lookup("Zurfur.bool");
             var typeF64 = table.Lookup("Zurfur.f64");
@@ -104,7 +104,6 @@ namespace Gosub.Zurfur.Compiler
                 && typeInt != null
                 && typeU64 != null
                 && typeI32 != null
-                && typeXuint != null
                 && typeStr != null 
                 && typeBool != null
                 && typeF64 != null
@@ -153,7 +152,7 @@ namespace Gosub.Zurfur.Compiler
                 else if (name == ")")
                     return GenCall(ex);
                 else if (name == "@")
-                    return GenNewVars(ex);
+                    return GenNewVarsOperator(ex);
                 else if (name == "=")
                     return GenAssign(ex);
                 else if (sOperators.Contains(name))
@@ -167,7 +166,7 @@ namespace Gosub.Zurfur.Compiler
                 else if (name == "ref")
                     return GenRefOrAddressOf(ex);
                 else if (name == "sizeof")
-                    return new Rval(token, typeXuint);
+                    return new Rval(token, typeInt);
                 else if (name == "return")
                     return GenReturn(ex);
                 else if (name == "true" || name == "false")
@@ -195,8 +194,6 @@ namespace Gosub.Zurfur.Compiler
                         numberType = typeInt;
                     else if (customType == "u64")
                         numberType = typeU64;
-                    else if (customType == "xuint")
-                        numberType = typeXuint;
                     else if (customType == "f64")
                         numberType = typeF64;
                     else if (customType == "f32")
@@ -259,17 +256,10 @@ namespace Gosub.Zurfur.Compiler
                     return null;
 
                 // Automatically dereference pointers, etc
-                leftType = DerefMut(leftType);
+                leftType = DerefMutOwn(leftType);
                 leftType = DerefAll(leftType);
 
-                // Generic specialized types use the generic concrete type
-                // unless they are type parameters.
-                // (e.g. List<int> becomes List`1)
-                if (leftType is SymSpecializedType && !leftType.FullName.StartsWith("#"))
-                {
-                    leftType = leftType.Parent;
-                }
-
+                // Generic parameters not finished
                 var identifier = ex[1].Token;
                 if (leftType.FullName.StartsWith("#"))
                 {
@@ -304,7 +294,7 @@ namespace Gosub.Zurfur.Compiler
                 return type;
             }
 
-            Symbol DerefMut(Symbol type) => Deref(type, sDerefMut);
+            Symbol DerefMutOwn(Symbol type) => Deref(type, sDerefMutOwn);
             Symbol DerefAll(Symbol type) => Deref(type, sDerefAll);
             Symbol DerefPointer(Symbol type) => Deref(type, sDerefPointer);
 
@@ -329,13 +319,37 @@ namespace Gosub.Zurfur.Compiler
                 return new Rval(ex.Token, deref);
             }
 
-            Rval GenNewVars(SyntaxExpr ex)
+            Rval GenNewVarsOperator(SyntaxExpr ex)
             {
                 if (ex.Count == 0)
                     return null;  // Syntax error
 
+                // Create variables
+                if (ex.Count == 1)
+                    return GenNewVars(ex[0], ex.Token);
+
+                // Capture variabes
+                var value = GenExpr(ex[0]);
+                var variables = GenNewVars(ex[1], ex.Token);
+
+                if (value == null || variables == null)
+                    return null;
+
+                var valueType = EvalType(value);
+                if (valueType == null)
+                    return null;
+
+                // Assign type to local variable
+                Debug.Assert(variables.Symbols.Count == 1 && variables.Symbols[0].IsLocal && variables.Symbols[0].Type == null);
+                variables.Symbols[0].Type = valueType;
+                variables.Identifier.AddInfo(valueType);
+                return value;
+            }
+
+            Rval GenNewVars(SyntaxExpr ex, Token rejectToken)
+            {
                 var newSymbols = new List<Symbol>();
-                foreach (var e in ex[0])
+                foreach (var e in ex)
                 {
                     if (e.Count == 0 || e.Token == "")
                         return null; // Syntax error
@@ -359,12 +373,12 @@ namespace Gosub.Zurfur.Compiler
 
                 if (newSymbols.Count == 0)
                 {
-                    Reject(ex.Token, "Expecting at least 1 symbol");
+                    Reject(rejectToken, "Expecting at least 1 symbol");
                     return null;
                 }
                 if (newSymbols.Count != 1)
                 {
-                    Reject(ex.Token, "Multiple symbols not supported yet"); ;
+                    Reject(rejectToken, "Multiple symbols not supported yet");
                     return null;
                 }
                 var rval = new Rval(newSymbols[0].Token);
@@ -414,10 +428,10 @@ namespace Gosub.Zurfur.Compiler
                 if (type == null || expr == null)
                     return null;
 
-                var typeNoMut = DerefMut(type);
-                if (typeNoMut.Parent.SimpleName != "^" && typeNoMut != typeXuint)
+                var typeNoMut = DerefMutOwn(type);
+                if (typeNoMut.Parent.SimpleName != "^" && typeNoMut != typeU64)
                 {
-                    Reject(ex.Token, $"The cast type must be a pointer or xuint, but it is '{typeNoMut}'");
+                    Reject(ex.Token, $"The cast type must be a pointer or u64, but it is '{typeNoMut}'");
                     return null;
                 }
 
@@ -425,10 +439,10 @@ namespace Gosub.Zurfur.Compiler
                 if (exprType == null)
                     return null;
 
-                var exprTypeNoMut = DerefMut(exprType);
-                if (exprTypeNoMut.Parent.SimpleName != "^" && exprTypeNoMut != typeXuint)
+                var exprTypeNoMut = DerefMutOwn(exprType);
+                if (exprTypeNoMut.Parent.SimpleName != "^" && exprTypeNoMut != typeU64)
                 {
-                    Reject(ex.Token, $"The expression must evaluate to a pointer, but is a '{exprTypeNoMut}'");
+                    Reject(ex.Token, $"The expression must evaluate to a pointer or u64, but is a '{exprTypeNoMut}'");
                     return null;
                 }
                 return new Rval(ex.Token, type);
@@ -477,6 +491,7 @@ namespace Gosub.Zurfur.Compiler
 
                 EvalType(left, true);
 
+                // Assign type to local variable
                 if (left.Symbols.Count == 1 && left.Symbols[0].IsLocal && left.Symbols[0].Type == null)
                 {
                     // Assign untyped local
@@ -501,7 +516,8 @@ namespace Gosub.Zurfur.Compiler
                     return null; // Pointer = nil is ok
                 }
 
-                if (DerefAll(leftType).FullName != DerefAll(rightType).FullName)
+                // TBD: Must afigure out how to deal with mut
+                if (DerefMutOwn(leftType).FullName != DerefMutOwn(rightType).FullName)
                 {
                     Reject(ex.Token, $"Types must match: {leftType.FullName} = {rightType.FullName}");
                     return null;
@@ -578,7 +594,7 @@ namespace Gosub.Zurfur.Compiler
                 // Implicit conversion of untyped constant to integer types
                 // TBD: Calculate constant during compilation and do range checks.
                 //      Also, this probably belongs in FindCompatibleFunction so it applies to functions
-                if (args.Count == 2 && ex.Token != "<<" && ex.Token != ">>")
+                if (args.Count == 2 && ex.Token != "<<" && ex.Token != ">>" && ex.Token != "]")
                 {
                     // Most operators want both sides to be of same type
                     var left = args[0];
@@ -603,30 +619,20 @@ namespace Gosub.Zurfur.Compiler
                 var functions = new List<Symbol>();
                 FindGlobal(operatorName, functions);
 
-                var rval = FindCompatibleFunction(ex.Token, args, functions);
+                var rval = FindCompatibleFunction(ex.Token, args, functions, 
+                    $" '{operatorName}' (operator '{ex.Token}')");
                 if (rval == null)
                     return null;
 
                 if (sCmpOperators.Contains(ex.Token))
                 {
-                    // TBD: Verifier to ensure _opEq is bool and _opCmp is int
-                    if (ex.Token == "==" || ex.Token == "!=")
-                    { 
-                        if (rval.Type != typeBool)
-                        {
-                            Reject(ex.Token, "Expecting operator to return 'bool'");
-                            return null;
-                        }
-                    }
-                    else
+                    var returnType = ex.Token == "==" || ex.Token == "!=" ? typeBool : typeI32;
+                    if (rval.Type != returnType)
                     {
-                        if (rval.Type != typeI32)
-                        {
-                            Reject(ex.Token, "Expecting operator to return 'int'");
-                            return null;
-                        }
-                        rval.Type = typeBool;
+                        Reject(ex.Token, $"Expecting operator to return '{returnType}'");
+                        return null;
                     }
+                    rval.Type = typeBool;
                 }
 
                 return rval;
@@ -647,7 +653,7 @@ namespace Gosub.Zurfur.Compiler
                         && leftType.Parent.SimpleName == "^" && rightType.Parent.SimpleName == "^"
                         && leftType.FullName == rightType.FullName)
                     {
-                        return DummyFunction(ex.Token, typeXuint, leftType, rightType);
+                        return DummyFunction(ex.Token, typeU64, leftType, rightType);
                     }
                     Reject(ex.Token, $"Operator '{ex.Token}' cannot be used with types '({leftType},{rightType})'");
                     return null;
@@ -732,11 +738,11 @@ namespace Gosub.Zurfur.Compiler
                     args.Insert(0, funCall);
                 }
 
-                return FindCompatibleFunction(funCall.Identifier, args, funCall.Symbols);
+                return FindCompatibleFunction(funCall.Identifier, args, funCall.Symbols, $"'{funCall.Identifier}'");
             }
 
             // If there is an error, mark it and give feedback on possible matches.
-            Rval FindCompatibleFunction(Token token, List<Rval> args, List<Symbol> functions)
+            Rval FindCompatibleFunction(Token token, List<Rval> args, List<Symbol> functions, string rejectName)
             {
                 foreach (var sym in args)
                     if (sym.Type.FullName.Contains("#"))
@@ -752,7 +758,7 @@ namespace Gosub.Zurfur.Compiler
                 //      which one it is.  Error messages can be improved a lot.
                 if (functions.Count == 0)
                 {
-                    Reject(token, $"No function '{token}' taking parameters {ParamTypes(args)} is in scope.");
+                    Reject(token, $"No function {rejectName} taking parameters {ParamTypes(args)} is in scope.");
                     foreach (var sym in oldCalls)
                         token.AddInfo(sym);
                     return null;
@@ -760,7 +766,7 @@ namespace Gosub.Zurfur.Compiler
 
                 if (functions.Count != 1)
                 {
-                    Reject(token, $"Found multiple functions taking {ParamTypes(args)}");
+                    Reject(token, $"Found multiple functions {rejectName} taking {ParamTypes(args)}");
                     foreach (var sym in functions)
                         token.AddInfo(sym);
                     return null;
@@ -789,10 +795,10 @@ namespace Gosub.Zurfur.Compiler
                         return false;
 
                     // TBD: Consider making 'mut' into a type attribute
-                    var arg = DerefMut(args[i].Type);
-                    var param = DerefMut(methodParamTypes[i]);
+                    var arg = DerefMutOwn(args[i].Type);
+                    var param = DerefMutOwn(methodParamTypes[i]);
 
-                    // Implicicit conversion from ^Type to ^void
+                    // Implicit conversion from ^Type to ^void
                     if (arg.Parent.SimpleName == "^" && param.Parent.SimpleName == "^"
                         && DerefPointer(param) == typeVoid)
                     {
@@ -904,7 +910,10 @@ namespace Gosub.Zurfur.Compiler
             /// </summary>
             void FindInType(string identifier, Symbol type, List<Symbol> symbols)
             {
+                // Symbols defined in type (specialized and un-specialized)
                 AddSymbolsNamed(type, identifier, symbols);
+                if (type is SymSpecializedType)
+                    AddSymbolsNamed(type.Parent, identifier, symbols);
 
                 // Find methods in the type's module or parents
                 var mod1 = type.Parent;
@@ -935,7 +944,7 @@ namespace Gosub.Zurfur.Compiler
                     if (parameters.Count == 0)
                         continue;
 
-                    if (DerefMut(parameters[0]).FullName != type.FullName)
+                    if (DerefMutOwn(parameters[0]).FullName != type.FullName)
                         continue;
 
                     symbols.Add(child);

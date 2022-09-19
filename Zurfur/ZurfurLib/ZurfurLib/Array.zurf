@@ -4,6 +4,14 @@
 type pub ro Array<T> is ro Buffer<T>
 
 
+
+// *** Do generic type system ***
+//      Fake it out for now
+// fun pub _opIndex<T>(a Array<T>, b int) extern
+fun pub _opIndex(a Array<str>, b int) str extern
+fun pub _opIndex(a Array<byte>, b Range<int>) Span<byte>  extern
+fun pub _opIndex(a List<byte>, b Range<int>) Span<byte> extern
+pub fun _opIndex(a Span<byte>, b int) byte extern
     
 
 // This is the implementation for Buffer and Array

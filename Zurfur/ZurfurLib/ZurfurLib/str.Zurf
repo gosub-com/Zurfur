@@ -7,13 +7,12 @@ type pub str is Array<byte>
     //       and its implicit conversion to Span
 
 
+// TBD: Remove after more of the generic type system is working
+fun pub _opEq(a str, b str) bool {}
+fun pub _opCmp(a str, b str) i32 {}
+
 fun pub str.new() { todo() }
 fun pub str.new(st str) { todo() }
 fun pub str.new(st Span<byte>) { todo() }
     
-fun pub str.opAdd(s1 str, s2 str) str { todo() }
-
-// TBD: These need to impl str::OpAdd
-fun pub str.opAdd(s1 Span<byte>, s2 str) str { todo() }
-fun pub str.opAdd(s1 str, s2 Span<byte>) str { todo() }
 // TBD: Implicit conversion to and from Span?

@@ -245,6 +245,16 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
+        /// <summary>
+        /// Return the top level generic type (e.g. List<int> and List<str> return List<T>).
+        /// Non generic types just return the type.
+        /// </summary>
+        /// <returns></returns>
+        public Symbol Unspecial()
+        {
+            return IsSpecializedType ? Parent : this;
+        }
+
         public string QualifiersStr()
         {
             lock (sTags)
