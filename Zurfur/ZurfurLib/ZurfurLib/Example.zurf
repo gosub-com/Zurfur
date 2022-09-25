@@ -21,10 +21,10 @@ use Zurfur.ConvertBytes[bytesToHex]
 
 
 // Simple types have public fields:
-type pub SimpleType(firstName str, lastName str)
-type pub ro SimpleImmutableType(firstName str, fastName str)
+[pub] type SimpleType(firstName str, lastName str)
+[pub] type ro SimpleImmutableType(firstName str, fastName str)
 
-type pub ComplexType
+[pub] type ComplexType
     // Fields are private, but may have public properties
     
     @map Map<str,int> = ["A":1, "B":2]  // Private, mutable
@@ -45,7 +45,7 @@ set ComplexType.myMap(v own Map<str, int>)
 
 // This is a public documentation comment.
 // Functions are private by default.
-fun pub countToTen() str
+[pub] fun countToTen() str
     Log.info("Hello world.  Let's count to 10.")
     for @a in 1..11
         Log.info("Count={a}, Text={text}")
@@ -70,32 +70,32 @@ fun test_HelloWorld()
         if a
             doit()
             
-type pub boxed AGenericType<Q>
+[pub] type boxed AGenericType<Q>
     @a int
 
-fun pub circle1(a f64, r f64) -> (x f64, y f64)
+[pub] fun circle1(a f64, r f64) -> (x f64, y f64)
     return cos(a)*r, sin(a)*r
 
-fun pub circle2(a f32, r f32) int
+[pub] fun circle2(a f32, r f32) int
     return cos(a)*r, sin(a)*r
 
-fun pub circle3(a f64, r f64) -> (x f64, y f64)
+[pub] fun circle3(a f64, r f64) -> (x f64, y f64)
     return cos(a)*r, sin(a)*r
 
-fun pub circle3(a f64, b f64) -> (c int, d int)
+[pub] fun circle3(a f64, b f64) -> (c int, d int)
     return 0
 
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-// PREVIOUSLY: fun pub GetIterator<T>.AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIterator<T>
-fun pub Iterator<Item>.alphaLengthWise<L>(lengthProvider fun(t Item) L) Iterator<Item>
+// PREVIOUSLY: [pub] fun GetIterator<T>.AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIterator<T>
+[pub] fun Iterator<Item>.alphaLengthWise<L>(lengthProvider fun(t Item) L) Iterator<Item>
     return my.orderBy(@a => lengthProvider(a))
              .thenBy(@a => a)
 
 fun Iterator<Item>.orderBy() Iterator<Item>
     Zurfur.nop
 
-type pub Example
+[pub] type Example
     
     @a1 str
     @a2 str = "Hello"
@@ -128,9 +128,9 @@ type pub Example
     
 
 
-type pub Zim<T>
+[pub]
+type Zim<T>
     @q T pub get set
-
 
 // Type test for test_main
 type Token(a int)
@@ -138,7 +138,7 @@ fun AcceptMatch(m str) Token {}
 
 // This is a public documentation comment.  Do not use XML.
 // Use `name` to refer to variables in the code.
-fun pub test_Main(args Array<str>, stream Zurfur.Io.Reader)
+[pub] fun test_Main(args Array<str>, stream Zurfur.Io.Reader)
 
 
     // This is a regular private comment
@@ -204,7 +204,7 @@ fun pub test_Main(args Array<str>, stream Zurfur.Io.Reader)
 
 type MyStruct(a int)
 
-fun pub sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
+[pub] fun sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
     // Simple selection sort
     for @i in s.count-1
         @lowElem = s[i]
@@ -218,7 +218,7 @@ fun pub sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
             s[i] = lowElem
 
 
-fun pub memCopy(dest ^void, source ^void, length int)
+[pub] fun memCopy(dest ^void, source ^void, length int)
     @d = cast(u64)dest
     @s = cast(u64)source
     
@@ -244,7 +244,7 @@ fun pub memCopy(dest ^void, source ^void, length int)
     while d != end
         (cast(^byte)d).* = (cast(^byte)s).*; d+=1; s+=1
 
-fun pub memCopy32(dest ^void, source ^void, length int)
+[pub] fun memCopy32(dest ^void, source ^void, length int)
     @d = cast(u64)dest
     @s = cast(u64)source
 

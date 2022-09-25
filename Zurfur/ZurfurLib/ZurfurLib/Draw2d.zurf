@@ -10,48 +10,48 @@ fun test_Shape()
     rect.Location.Y = 30 // This should work
     
 
-type pub copy Point<T>
+[pub] type copy Point<T>
         where T is NumOps<T>
     @x T pub init
     @y T pub init
 
 
-fun pub Point<T>.toSize() Size<T>
+[pub] fun Point<T>.toSize() Size<T>
     return Size(my.x, my.y)
 
 
-fun _opAdd<T>(a Point<T>, b Point<T>) Point<T>
+[pub] fun _opAdd<T>(a Point<T>, b Point<T>) Point<T>
     return Point<T>(a.x+b.x, a.y+b.y)
 
-fun _opNeg<T>(a Point<T>) Point<T>
+[pub] fun _opNeg<T>(a Point<T>) Point<T>
     return Point<T>(-a.x, -a.y)
 
-fun _opSub<T>(a Point<T>, b Point<T>) Point<T>
+[pub] fun _opSub<T>(a Point<T>, b Point<T>) Point<T>
     return Point<T>(a.x-b.x, a.y-b.y)
 
-fun _opMul<T>(a T, b Point<T>) Point<T>
+[pub] fun _opMul<T>(a T, b Point<T>) Point<T>
     return Point<T>(a*b.x, a*b.y)
 
-fun _opMul<T>(a Point<T>, b T) Point<T>
+[pub] fun _opMul<T>(a Point<T>, b T) Point<T>
     return Point<T>(a.x*b, a.y*b)
 
-fun _opDiv<T>(a T, b Point<T>) Point<T>
+[pub] fun _opDiv<T>(a T, b Point<T>) Point<T>
     return Point<T>(a/b.x, a/b.y)
 
-fun _opDiv<T>(a Point<T>, b T) Point<T>
+[pub] fun _opDiv<T>(a Point<T>, b T) Point<T>
     return Point<T>(a.x/b, a.y/b)
 
 
-type pub copy Size<T>
+[pub] type copy Size<T>
         where T is NumOps<T>
     @width T pub init
     @height T pub init
     
     // TBD: Same as Point<T>
-fun Size<T>.toPoint() Point<T>
+[pub] fun Size<T>.point() Point<T>
     return Point(my.width, my.height)
 
-type pub copy Rect<T>
+[pub] type copy Rect<T>
         where T is NumOps<T>
     @x T pub init
     @y T pub init
@@ -59,34 +59,34 @@ type pub copy Rect<T>
     @height T pub init
 
     
-fun pub Rect<T>.new(location Point<T>, size Size<T>)
+[pub] fun Rect<T>.new(location Point<T>, size Size<T>)
     my.location = location
     my.size = size
 
     // TBD: Operators (add, multiply, divide, sizes, etc.)
 
-get pub Rect<T>.left() T
+[pub] get Rect<T>.left() T
     return my.x
     
-get pub Rect<T>.right() T
+[pub] get Rect<T>.right() T
     return my.x + my.width
 
-get pub Rect<T>.top() T
+[pub] get Rect<T>.top() T
     return my.y
     
-get pub Rect<T>.bottom() T
+[pub] get Rect<T>.bottom() T
     return my.y + my.height
     
-get pub Rect<T>.location() Point<T>
+[pub] get Rect<T>.location() Point<T>
     return Point<T>(my.x, my.y)
     
-set pub Rect<T>.location(value Point<T>)
+[pub] set Rect<T>.location(value Point<T>)
     my.x = value.x
     my.y = value.y
     
-get pub Rect<T>.size() Size<T>
+[pub] get Rect<T>.size() Size<T>
     return Size<T>(my.width, my.height)
     
-set pub Rect<T>.size(value Size<T>)
+[pub] set Rect<T>.size(value Size<T>)
     my.width = value.width
     my.height = value.height

@@ -17,25 +17,23 @@ enum SeekOrigin
 interface Seeker
     fun mut seek(offset int, origin SeekOrigin) int throws impl
     
-get Seeker.length() int throws { }
-get Seeker.position() int throws { }
-set Seeker.position(value int) throws { }
+[pub] get Seeker.length() int throws { }
+[pub] get Seeker.position() int throws { }
+[pub] set Seeker.position(value int) throws { }
 
 interface FileStream { }
 
 module Zurfur.Io.File
 
-afun open(fileName str, mode str="r") FileStream throws { }
-afun readAllText(fileName str) List<str> throws { }
-afun readAllBytes(fileName str) List<byte> throws { }
-afun writeAllText(fileName str, data List<str>) throws { }
-afun writeAllBytes(fileName str, data List<byte>) throws{ }
+[pub] afun open(fileName str, mode str="r") FileStream throws { }
+[pub] afun readAllText(fileName str) List<str> throws { }
+[pub] afun readAllBytes(fileName str) List<byte> throws { }
+[pub] afun writeAllText(fileName str, data List<str>) throws { }
+[pub] afun writeAllBytes(fileName str, data List<byte>) throws{ }
 
 // TBD: It's probably better to have cancellation built
 //      into the async system.  Maybe progress too.
-type CancellationToken {}
 type Progress(bytesTotal int, bytesTransferred int)
 afun readAllText(
     fileName str,
-    cancel CancellationToken,
     progress ?fun (p Progress) = null) throws { }

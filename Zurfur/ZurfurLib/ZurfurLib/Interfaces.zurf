@@ -5,76 +5,76 @@
 
 module Zurfur
 
-interface pub Clone<T> {}
-interface pub Copy<T> {}
+interface Clone<T> {}
+interface Copy<T> {}
 
 module Zurfur.Operators
 
 // Common math operators
-interface pub NumOps<T>
-    fun static _opEq(a T, b T) bool impl
-    fun static _opCmp(a T, b T) int impl
-    fun static _opAdd(a T, b T) T impl
-    fun static _opSub(a T, b T) T impl
-    fun static _opNeg(a T) T impl
-    fun static _opMul(a T, b T) T impl
-    fun static _opDiv(a T, b T) T impl
-    get static ZERO() T impl
-    get static ONE() T impl
+interface NumOps<T>
+    [static] fun _opEq(a T, b T) bool impl
+    [static] fun _opCmp(a T, b T) int impl
+    [static] fun _opAdd(a T, b T) T impl
+    [static] fun _opSub(a T, b T) T impl
+    [static] fun _opNeg(a T) T impl
+    [static] fun _opMul(a T, b T) T impl
+    [static] fun _opDiv(a T, b T) T impl
+    [static] get ZERO() T impl
+    [static] get ONE() T impl
     
 
 // Equality for containers and sorting (NaN == NaN, Nan < -Inf)
-interface pub OpEq<T>
-    fun static _opEq(a T, b T) bool impl
+interface OpEq<T>
+    [static] fun _opEq(a T, b T) bool impl
 
 // Comparison for containers and sorting (NaN == Nan, Nan < -Inf)
-interface pub OpCmp<T>
-    fun static _opEq(a T, b T) bool impl
-    fun static _opCmp(a T, b T) int impl
+interface OpCmp<T>
+    [static] fun _opEq(a T, b T) bool impl
+    [static] fun _opCmp(a T, b T) int impl
 
 // Logical equality (e.g. -0 == +0, NaN == NaN even if bit pattern is different)
 // TBD: Implemented by compiler
-interface pub GetHash
+interface GetHash
     fun getHash() int impl
 
 // Equality for floating point numbers (NaN != NaN)
 // Not implemented for most other types (e.g. int and str)
-interface pub OpEqPartial<T>
-    fun static _opEqPartial(a T, b T) bool impl
+interface OpEqPartial<T>
+    [static] fun _opEqPartial(a T, b T) bool impl
 
 // Comparison for floating point numbers (NaN is unordered)
 // Not implemented for most other types (e.g. int, str)
-interface pub OpCmpPartial<T>
-    fun static _opEqPartial(a T, b T) bool impl
-    fun static _opCmpPartial(a T, b T) ?int impl
+interface OpCmpPartial<T>
+    [static] fun _opEqPartial(a T, b T) bool impl
+    [static] fun _opCmpPartial(a T, b T) ?int impl
 
-interface pub OpIn<T>
-    fun static _opEq(a T, b T) bool impl
-    fun static _opCmp(a T, b T) int impl
-    fun static _opIn(a T, b T) bool impl
+interface OpIn<T>
+    [static] fun _opEq(a T, b T) bool impl
+    [static] fun _opCmp(a T, b T) int impl
+    [static] fun _opIn(a T, b T) bool impl
     
-interface pub OpAdd<T>
-    fun static _opAdd(a T, b T) T impl
+interface OpAdd<T>
+    [static] fun _opAdd(a T, b T) T impl
     
-interface pub OpSub<T>
-    fun static _opSub(a T, b T) T impl
+interface OpSub<T>
+    [static] fun _opSub(a T, b T) T impl
     
-interface pub OpNeg<T>
-    fun static _opNeg(a T) T impl
+interface OpNeg<T>
+    [static] fun _opNeg(a T) T impl
     
-interface pub OpMul<T>
-    fun static _opMul(a T, b T) T impl
+interface OpMul<T>
+    [static] fun _opMul(a T, b T) T impl
     
-interface pub OpDiv<T>
-    fun static _opDiv(a T, b T) T impl
+interface OpDiv<T>
+    [static] fun _opDiv(a T, b T) T impl
     
-interface pub OpRem<T>
-    fun static _opRem(a T, b T) T impl
+interface OpRem<T>
+    [static] fun _opRem(a T, b T) T impl
 
-interface pub OpZero<T>
-    get static ZERO() T impl
+interface OpZero<T>
+    [static] get ZERO() T impl
 
-interface pub OpOne<T>
-    get static ONE() T impl
+interface OpOne<T>
+    [static] get ONE() T impl
 
     

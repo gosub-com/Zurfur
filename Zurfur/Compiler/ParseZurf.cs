@@ -79,10 +79,8 @@ namespace Gosub.Zurfur.Compiler
 
         static WordSet sScopeQualifiers = new WordSet("pub public private unsafe unsealed static protected");
         static WordSet sFieldQualifiers = new WordSet("ro mut static");
-        static WordSet sTypeQualifiers = new WordSet("pub ro ref boxed class copy nocopy unsafe");
+        static WordSet sTypeQualifiers = new WordSet("ro ref boxed class copy nocopy unsafe");
         static WordSet sPostFieldQualifiers = new WordSet("init set get ref mut");
-        static WordSet sConstQualifiers = new WordSet("const pub");
-        static WordSet sMethodQualifiers = new WordSet("pub static unsafe");
         static WordSet sParamQualifiers = new WordSet("ro own mut");
 
         static WordSet sReservedUserFuncNames = new WordSet("new clone drop cast default");
@@ -470,19 +468,27 @@ namespace Gosub.Zurfur.Compiler
 
         private void ParseScopeStatement(List<Token> qualifiers, bool requireSemicolon)
         {
+            // Read attributes and qualifiers
+            qualifiers.Clear();
             var attributes = NewExprList();
-            while (AcceptMatch("#"))
+            while (AcceptMatch("["))
             {
-                if (CheckIdentifier("Expecting an attribute"))
+                var open = mPrevToken;
+                if (sScopeQualifiers.Contains(mToken))
+                {
+                    while (sScopeQualifiers.Contains(mToken))
+                        qualifiers.Add(Accept());
+                }
+                else
                     attributes.Add(ParseExpr());
+
+                if (AcceptMatchOrReject("]"))
+                    Connect(mPrevToken, open);
                 while (mTokenName == ";")
                     Accept();
             }
-            FreeExprList(attributes); // TBD: Store in expression tree
 
-            // Read qualifiers
-            qualifiers.Clear();
-            ParseQualifiers(sScopeQualifiers, qualifiers);
+            FreeExprList(attributes); // TBD: Store in expression tree
 
             var keyword = mToken;
             switch (mTokenName)
@@ -551,8 +557,8 @@ namespace Gosub.Zurfur.Compiler
                     break;
 
                 case "const":
-                    ParseQualifiers(sConstQualifiers, qualifiers);
                     keyword.Type = eTokenType.ReservedControl;
+                    qualifiers.Add(Accept());
                     AddField(ParseFieldSimple(qualifiers));
                     break;
 
@@ -870,10 +876,6 @@ namespace Gosub.Zurfur.Compiler
             synClass.Comments = mComments.ToString();
             mComments.Clear();
 
-            // Experimental: See how syntax would look if we put "pub" after "type"
-            if (mTokenName == "pub")
-                qualifiers.Add(Accept());
-
             if (keyword.Name == "type")
                 ParseQualifiers(sTypeQualifiers, qualifiers);
 
@@ -1089,8 +1091,6 @@ namespace Gosub.Zurfur.Compiler
             synFunc.Parent = mScopeStack.Count == 0 ? null : mScopeStack.Last();
             synFunc.Comments = mComments.ToString();
             mComments.Clear();
-
-            ParseQualifiers(sMethodQualifiers, qualifiers);
 
             var validMethodName = ParseExtensionTypeAndMethodName(out synFunc.ExtensionType, out synFunc.Name, out synFunc.TypeArgs);
 

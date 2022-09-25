@@ -83,13 +83,13 @@ const MAX_SMALL_SIZE u64 = MIN_LARGE_SIZE - SIZE_T_ONE
 get MAX_SMALL_REQUEST() u64
     return MAX_SMALL_SIZE - CHUNK_ALIGN_MASK - CHUNK_OVERHEAD
 
-// <summary>
-// This is the base class that implements the DlMalloc algorithms.
-// To use this class, at least CallMoreCore and CallReleaseCore need to
-// be implemented.  Other Call* functions can optionally be overriden as well.
-// Call or expose protected members Malloc and Free to implement malloc and free.
-// </summary>
-type pub unsafe DlMalloc
+
+
+
+
+
+
+[pub] type unsafe DlMalloc
 
     //  Top
     //    The topmost chunk of the currently active segment. Its size is
@@ -420,16 +420,16 @@ get TOP_FOOT_SIZE() u64
 
 // -------------------------- Debugging setup ----------------------------
 
-#Conditional("DEBUG")
+[Conditional("DEBUG")]
 fun DlMalloc.check_free_chunk(p ^mchunk) { my.do_check_free_chunk(p) }
 
-#Conditional("DEBUG")
+[Conditional("DEBUG")]
 fun DlMalloc.check_inuse_chunk(p ^mchunk) { my.do_check_inuse_chunk(p) }
 
-#Conditional("DEBUG")
+[Conditional("DEBUG")]
 fun DlMalloc.check_malloced_chunk(mem ^void, s u64) { my.do_check_malloced_chunk(mem, s) }
 
-#Conditional("DEBUG")
+[Conditional("DEBUG")]
 fun DlMalloc.check_top_chunk(p ^mchunk) { my.do_check_top_chunk(p) }
 
 // ---------------------------- Indexing Bins ----------------------------
@@ -800,7 +800,7 @@ fun DlMalloc.bin_find(x ^mchunk) bool
     return false
 
 // Check all properties of malloc_state.
-fun pub DlMalloc.CheckHeap() HeapStats
+[pub] fun DlMalloc.CheckHeap() HeapStats
     assert(my.is_initialized())
 
     // check bins
@@ -876,7 +876,7 @@ fun pub DlMalloc.CheckHeap() HeapStats
     //  compilers.
 
 // Link a free chunk into a smallbin
-#MethodImpl(MethodImplOptions.AggressiveInlining)
+[MethodImpl(MethodImplOptions.AggressiveInlining)]
 fun mut DlMalloc.insert_small_chunk(p ^mchunk, s u64)
     @I = small_index(s)
     @B = my.smallbin_at(I)
@@ -894,7 +894,7 @@ fun mut DlMalloc.insert_small_chunk(p ^mchunk, s u64)
     p.bk = B
 
 // Unlink a chunk from a smallbin
-#MethodImpl(MethodImplOptions.AggressiveInlining)
+[MethodImpl(MethodImplOptions.AggressiveInlining)]
 fun mut DlMalloc.unlink_small_chunk(p ^mchunk, s u64)
     @F = p.fd
     @B = p.bk
@@ -915,7 +915,7 @@ fun mut DlMalloc.unlink_small_chunk(p ^mchunk, s u64)
         my.CallCorruptionErrorAction()
 
 // Unlink the first chunk from a smallbin
-#MethodImpl(MethodImplOptions.AggressiveInlining)
+[MethodImpl(MethodImplOptions.AggressiveInlining)]
 fun mut DlMalloc.unlink_first_small_chunk(b ^mchunk, p ^mchunk, i u64)
     @F = p.fd
     assert(p != b)
@@ -931,7 +931,7 @@ fun mut DlMalloc.unlink_first_small_chunk(b ^mchunk, p ^mchunk, i u64)
 
 // Replace dv node, binning the old one
 // Used only when dvsize known to be small
-#MethodImpl(MethodImplOptions.AggressiveInlining)
+[MethodImpl(MethodImplOptions.AggressiveInlining)]
 fun mut DlMalloc.replace_dv(p ^mchunk, s u64)
     @DVS = my.dvsize
     assert(is_small(DVS))
@@ -1070,14 +1070,14 @@ fun DlMalloc.unlink_large_chunk(x ^tchunk)
 
 
 
-#MethodImpl(MethodImplOptions.AggressiveInlining)
+[MethodImpl(MethodImplOptions.AggressiveInlining)]
 fun mut DlMalloc.insert_chunk(p ^mchunk, s u64)
     if is_small(s)
         my.insert_small_chunk(p, s)
     else
         my.insert_large_chunk(cast(^tchunk)p, s)
 
-#MethodImpl(MethodImplOptions.AggressiveInlining)
+[MethodImpl(MethodImplOptions.AggressiveInlining)]
 fun mut DlMalloc.unlink_chunk(p ^mchunk, s u64)
     if is_small(s)
         my.unlink_small_chunk(p, s)
@@ -1107,7 +1107,7 @@ fun mut DlMalloc.init_bins()
         bin.fd = bin
 
 // Default corruption action - forget all allocated memory.
-protected fun mut DlMalloc.ResetOnError()
+fun mut DlMalloc.ResetOnError()
     @i u64
     my.malloc_corruption_error_count += 1
     // Reinitialize fields to forget about all memory
@@ -1594,7 +1594,7 @@ fun mut DlMalloc.init_user_mstate(tbase ^byte, tsize u64)
 
 
 // Allocate a block of memory
-fun pub mut DlMalloc.malloc(length u64) ^void
+[pub] fun mut DlMalloc.malloc(length u64) ^void
     //     Basic algorithm:
     //     If a small request (< 256 bytes minus per-chunk overhead):
     //       1. If one exists, use a remainderless chunk in associated smallbin.
@@ -1718,7 +1718,7 @@ fun pub mut DlMalloc.malloc(length u64) ^void
     return mem
 
 // Free a block of memory
-fun pub mut DlMalloc.free(mem ^void)
+[pub] fun mut DlMalloc.free(mem ^void)
     // Consolidate freed chunks with preceeding or succeeding bordering
     // free chunks, if they exist, and then place in a bin.  Intermixed
     // with special cases for top, dv, mmapped chunks, and usage errors.
@@ -1800,13 +1800,13 @@ fun pub mut DlMalloc.free(mem ^void)
     my.CallUsageErrorAction(p)
 
 
-fun pub DlMalloc.inspectAll(handler fun(start ^void, next ^void, used u32))
+[pub] fun DlMalloc.inspectAll(handler fun(start ^void, next ^void, used u32))
     if my.ok_magic()
         my.internal_inspect_all(handler)
     else
         my.CallUsageErrorAction(nil)
 
-fun pub mut DlMalloc.trim(pad u64) int
+[pub] fun mut DlMalloc.trim(pad u64) int
     @result = 0
     if my.ok_magic()
         result = my.sys_trim(pad)
@@ -1816,14 +1816,14 @@ fun pub mut DlMalloc.trim(pad u64) int
 
 // ------ End of DlMalloc ------
 
-type pub HeapStats
+[pub] type HeapStats
     @HeapSize int pub get set
     @UsedChunks int pub get set
     @UsedBytes int pub get set
     @FreeChunks int pub get set
     @FreeBytes int pub get set
 
-fun pub HeapStats.toStr() str
+[pub] fun HeapStats.toStr() str
     return "HeapSize={HeapSize}"
             ", UB={UsedBytes}"
             ", FB={FreeBytes}"
@@ -1966,7 +1966,7 @@ fun pub HeapStats.toStr() str
 //        for sake of usage checks.
 //
 // Originally malloc_chunk, now mchunk
-type pub mchunk
+[pub] type mchunk
     @prev_foot_ptr ^void pub get set // Size of previous chunk (if free).
     @head_ptr ^void  pub get set     // Size and inuse bits.
     @fd ^mchunk pub get set          // double links -- used only if free.
@@ -2152,7 +2152,7 @@ get FENCEPOST_HEAD() u64
 //  is of course much better.
 //
 // Originally malloc_tree_chunk, now tchunk
-type pub tchunk
+[pub] type tchunk
     // The first four fields must be compatible with mchunk
     @prev_foot_ptr ^void pub get set
     @head_ptr ^void pub get set

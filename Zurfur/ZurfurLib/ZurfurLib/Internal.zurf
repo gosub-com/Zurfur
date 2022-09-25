@@ -7,51 +7,51 @@ use Zurfur[todo]
 pragma AllowUnderscoreDefinitions
 
 // Internal definition of a reference.
-type pub ro __ref<T>
+[pub] type ro __ref<T>
     @r ro *T
 
-fun pub __ref<T>.new(reference *T)
+[pub] fun __ref<T>.new(reference *T)
     require reference != null
     my = reference
     
-fun pub __ref<T>.Get() T extern
-fun pub __ref<T>.SetRef(value ref T) extern
-fun pub __ref<T>.SetVal(value T) extern
-fun pub unsafe __ref<T>.Index(offset int) mut ref T extern
-fun pub unsafe __ref<T>.ByteOffset(offset int) *void extern
+[pub] fun __ref<T>.Get() T extern
+[pub] fun __ref<T>.SetRef(value ref T) extern
+[pub] fun __ref<T>.SetVal(value T) extern
+[pub unsafe] fun __ref<T>.Index(offset int) mut ref T extern
+[pub unsafe] fun __ref<T>.ByteOffset(offset int) *void extern
 
 
 // Owned reference.  This is specific to reference counting
 // and wouldn't exist for a different kind of GC.
-type pub ro __oref<T>
+[pub] type ro __oref<T>
     @r *T
     @owner ?*__heap<T>
 
 // Owner is null when on the stack
-fun pub __oref<T>.new(reference *T, owner ?*__heap<T>)
+[pub] fun __oref<T>.new(reference *T, owner ?*__heap<T>)
     require reference != null
     my = reference
     this.owner = owner
 
-fun pub __oref<T>.drop()
+[pub] fun __oref<T>.drop()
     if my.owner != nil
         my.owner.Dec()
     
-fun pub __oref<T>.Get() T extern
-fun pub __oref<T>.SetRef(value ref T) extern
-fun pub __oref<T>.SetVal(value T) extern
-fun pub unsafe __oref<T>.Index(offset int) mut ref T extern
-fun pub unsafe __oref<T>.ByteOffset(offset int) *void extern
+[pub] fun __oref<T>.Get() T extern
+[pub] fun __oref<T>.SetRef(value ref T) extern
+[pub] fun __oref<T>.SetVal(value T) extern
+[pub unsafe] fun __oref<T>.Index(offset int) mut ref T extern
+[pub unsafe] fun __oref<T>.ByteOffset(offset int) *void extern
 
 
 
 // All objects on the heap start with this header.
 // This is specific to reference counted GC.
-type pub __heap<T>
+[pub] type __heap<T>
     @vtable *void // TBD: Type info for GC and metadata
     @refCount u64
 
-fun pub __heap<T>.Inc()
+[pub] fun __heap<T>.Inc()
     my.refCount += 1
     if my.refCount < 0
         todo // TBD: Queue to call drop and reclaim memory

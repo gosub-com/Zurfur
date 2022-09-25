@@ -10,50 +10,50 @@ use Zurfur.Math[max]
 fun require_tbd(c bool) require c {}
 
 
-pub const MAX_ARRAY_SIZE_BYTES int = i32.MaxValue/4
+[pub] const MAX_ARRAY_SIZE_BYTES int = i32.MaxValue/4
 
 // UNSAFE: This type may contains ?T and relies on List to keep track of
 // how many items it has.
 type unsafe ListBuffer<T> is Buffer<T>
 
 // TBD: Protect the list against being moved while there is a reference to an item
-get pub ListBuffer<T>.isLocked()
+[pub] get ListBuffer<T>.isLocked()
     todo
 
 // TBD: Implement "type is" instead of stubbing like this
 get ListBuffer<T>.count() int {}
 
-type pub List<T>
-    pub const MaxItems int = MAX_ARRAY_SIZE_BYTES/Math.Max(1,sizeof(t))
+[pub] type List<T>
+    [pub] const MaxItems int = MAX_ARRAY_SIZE_BYTES/Math.Max(1,sizeof(t))
     @buffer ListBuffer<T>
     @count int pub get
     @version int pub get
 
-fun pub List<T>.isLocked() bool
+[pub] fun List<T>.isLocked() bool
     return my.buffer.isLocked()
 
-fun mut List<T>.incVersion()
+[pub] fun mut List<T>.incVersion()
     my.version += 1
     
 
-fun pub List<T>.new(capacity int)
+[pub] fun List<T>.new(capacity int)
     my.buffer = ListBuffer<T>(capacity)
 
 // Clone items into the new list
-fun pub List<T>.new(items []T)
+[pub] fun List<T>.new(items []T)
     my.buffer = ListBuffer<T>(items.Count)
     my.push(items)
 
 // Clone items into the new list
-fun pub List<T>.new(items mut Iterator<T>)
+[pub] fun List<T>.new(items mut Iterator<T>)
     my.buffer = ListBuffer<T>(items.countHint)
     my.push(items)
     
-fun pub _opIndex<T>(list List<T>, i int) mut ref T
+[pub] fun _opIndex<T>(list List<T>, i int) mut ref T
     require i in 0..count
     return ref list.buffer[i]
 
-fun pub _opIndex<T>(list List<T>, r Range<int>) mut []T
+[pub] fun _opIndex<T>(list List<T>, r Range<int>) mut []T
     require r.start in 0..count
     require r.end in 0..count
     require r.start <= range.end
@@ -64,7 +64,7 @@ fun pub _opIndex<T>(list List<T>, r Range<int>) mut []T
 // Grow the capacity to be at least minCapacity size.
 // If minCapacity is <= capacity nothing happens,
 // otherwise the list is expanded exponentially.
-fun pub mut List<T>.grow(minCapacity int)
+[pub] fun mut List<T>.grow(minCapacity int)
     require !isLocked()
     if minCapacity <= my.buffer.count
         my.incVersion()
@@ -78,15 +78,15 @@ fun pub mut List<T>.grow(minCapacity int)
         newCap = max(newCap, 1)
     my.setCapacity(newCap)
 
-fun pub mut List<T>.trim(extra int = 0)
+[pub] fun mut List<T>.trim(extra int = 0)
     require !hasRef()        
     my.setCapacity(my.count + extra)
 
-get pub List<T>.capacity() int
+[pub] get List<T>.capacity() int
     return my.buffer.count
 
 // Set the capacity, won't shrink below count.
-fun pub mut List<T>.setCapacity(value int)
+[pub] fun mut List<T>.setCapacity(value int)
     require !isLocked()        
     @newCap = max(value, my.count)
     if newCap == my.buffer.count
@@ -102,71 +102,71 @@ fun pub mut List<T>.setCapacity(value int)
 
 // Return a new array with all occurences of `seqSearch`
 // replaced by `seqReplace`.
-fun pub mut List<T>.replace(seqSearch []T, seqReplace[]T)
+[pub] fun mut List<T>.replace(seqSearch []T, seqReplace[]T)
     require !hasRef()
     todo
 
-fun pub mut List<T>.clear()
+[pub] fun mut List<T>.clear()
     require !hasRef()
     todo
 
-fun pub mut List<T>.push(item own T)
+[pub] fun mut List<T>.push(item own T)
     require !hasRef()
     todo
 
-fun pub mut List<T>.pushClones(items Span<T>)
+[pub] fun mut List<T>.pushClones(items Span<T>)
     require !hasRef()
     todo
 
-fun pub mut List<T>.pushClones(items mut Iterator<T>)
+[pub] fun mut List<T>.pushClones(items mut Iterator<T>)
     require !hasRef()
     todo
 
-fun pub mut List<T>.pushClones(item T, count int)
+[pub] fun mut List<T>.pushClones(item T, count int)
     require !hasRef()
     todo
 
-fun pub mut List<T>.pop() ?T
+[pub] fun mut List<T>.pop() ?T
     require !hasRef()
     todo
 
-fun pub mut List<T>.insert(index int, item own T)
+[pub] fun mut List<T>.insert(index int, item own T)
     require !hasRef()
     todo
 
-fun pub mut List<T>.insert(index int, items []T)
+[pub] fun mut List<T>.insert(index int, items []T)
     require !hasRef()
     todo
 
-fun pub mut List<T>.insert(index int, items mut Iterator<T>)
+[pub] fun mut List<T>.insert(index int, items mut Iterator<T>)
     require !hasRef()
     todo
 
-fun pub mut List<T>.remove(index int) T
+[pub] fun mut List<T>.remove(index int) T
     require !hasRef()
     todo
 
-fun pub mut List<T>.remove(range Range<int>)
+[pub] fun mut List<T>.remove(range Range<int>)
     require !hasRef()
     todo
 
-fun pub mut List<T>.remove(test fun(item T) bool)
+[pub] fun mut List<T>.remove(test fun(item T) bool)
     require !hasRef()
     todo
 
-fun pub List<T>.convert<Tout>(f fun(item T) ?Tout) List<Tout>
+[pub] fun List<T>.convert<Tout>(f fun(item T) ?Tout) List<Tout>
     where T is Clone<T>
     todo
 
-fun pub List<T>.toArray() Array<T>
+[pub] fun List<T>.toArray() Array<T>
     where T is Clone<T>
     todo
 
 
 // Usage: myList.For @item => DoStuffWithItem()
-fun pub mut List<T>.forEach(f fun(item mut T)) {}
+[pub] fun mut List<T>.forEach(f fun(item mut T)) {}
 
-fun pub mut List<T>.getIter()
+[pub] fun mut List<T>.getIter()
     return this[0..my.count]
 
  

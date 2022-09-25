@@ -64,19 +64,19 @@ type aapoint
 type bbpoint
     @v void
 
-fun pub aapoint.x() {}
+[pub] fun aapoint.x() {}
 
-fun pub bbpoint.xx() {}
+[pub] fun bbpoint.xx() {}
 
-fun pub aapoint.y() {}
-fun pub bbpoint.yy() {}
+[pub] fun aapoint.y() {}
+[pub] fun bbpoint.yy() {}
 
 fun aaa_arith(a int, b int) int
     @x = a+b
     @y = a+x*b
     return y
   
-type pub AAFun    
+[pub] type AAFun    
     @aaf4 fun(a int, b int) int
     @aaf5 AAFunc<int, int>
     @aaf6 fun()->()
@@ -105,7 +105,7 @@ type Point<T>(x T, y T)
 type Size<T>(width T, height T)
 get Point<T>.toSize() Size<T> { return Size(my.x, my.y) }
 
-type pub AAFunc<T1,T2>
+[pub] type AAFunc<T1,T2>
     @Invoke fun (v T1) T2
 
 
@@ -114,19 +114,19 @@ fun AGenericTest<T, QQQ>.af6(p fun(v int)bool) {}
 //fun AGenericTest<T, QQQ>.af7<X>(p fun(v X)bool) {}
 //fun AGenericTest<T, QQQ>.af8<T1,T2>(i T1)T2 { }
 //fun AGenericTest<T, QQQ>.Q<T1>() {}
-//fun pub AGenericTest<T, QQQ>.new()
+//[pub] fun AGenericTest<T, QQQ>.new()
 //    nop()
-//fun pub AGenericTest<T, QQQ>.new(a int)
+//[pub] fun AGenericTest<T, QQQ>.new(a int)
 //    nop()
-//fun pub AGenericTest<T, QQQ>.aaa(a Zurfur.Draw2d.Size<int>) {}
-//fun pub AGenericTest<T, QQQ>.P1() { return 0 }
-//fun pub AGenericTest<T, QQQ>.P2()->() { return 0}
-//fun pub P2<Quack>(a Quack, b QQQ) { return (a.ToStr() + b.ToStr()).Length; }
-//fun pub AGenericTest<T, QQQ>.P3<Z>() { return 0; }
-//fun pub AGenericTest<T, QQQ>.P4<Quack, Quack1>() { return 0; }
-//fun pub AGenericTest<T, QQQ>.fun9(a *?OneGeneric<List<int>>) { }
+//[pub] fun AGenericTest<T, QQQ>.aaa(a Zurfur.Draw2d.Size<int>) {}
+//[pub] fun AGenericTest<T, QQQ>.P1() { return 0 }
+//[pub] fun AGenericTest<T, QQQ>.P2()->() { return 0}
+//[pub] fun P2<Quack>(a Quack, b QQQ) { return (a.ToStr() + b.ToStr()).Length; }
+//[pub] fun AGenericTest<T, QQQ>.P3<Z>() { return 0; }
+//[pub] fun AGenericTest<T, QQQ>.P4<Quack, Quack1>() { return 0; }
+//[pub] fun AGenericTest<T, QQQ>.fun9(a *?OneGeneric<List<int>>) { }
 
-//fun pub AGenericTest<T, QQQ>.UseIt(x Zurfur.int, y List<Inner1<int,int>>, z List<str>)
+//[pub] fun AGenericTest<T, QQQ>.UseIt(x Zurfur.int, y List<Inner1<int,int>>, z List<str>)
 //    XField0.ToStr()
     // Xfield2<str, T>.P3<T>(); - Xfield2 can't use type parameters
     // Xfield2.P3(); - Can't infer P3<type>
@@ -138,13 +138,13 @@ fun AGenericTest<T, QQQ>.af6(p fun(v int)bool) {}
 //    Outer<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, byte>.Hello = 4
 //    @p = AGenericTest<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, byte>()
 //    p.P5<short, QQQ, ushort>(3, QQQ(), 0)
-//fun pub (AGenericTest<T, QQQ>.Inner1<Ta, Qa>) P1(a T, b QQQ, c Ta, d Qa)
+//[pub] fun (AGenericTest<T, QQQ>.Inner1<Ta, Qa>) P1(a T, b QQQ, c Ta, d Qa)
 //    return 0
 
-fun pub GenericTest<Q1,Q2>(a Q1, b Q2)
+[pub] fun GenericTest<Q1,Q2>(a Q1, b Q2)
     return a.toStr().Length + b.toStr().Length    
 
-type pub AGenericTest<T, QQQ>
+[pub] type AGenericTest<T, QQQ>
     where QQQ is OpEq<T>//: new() where T : new()
     @af0 fun()->()
     @af1 fun()

@@ -17,14 +17,14 @@ fun test_HelloWorld()
     @g = ``{"X":1,"Y":2}``              // Containing '{' or a quote
     @h = ``Hello "${name}"``            // Containing quote and interpolated
 
-type pub Example
+[pub] type Example
     @info str                  // Private string initialized to ""
     @array Array<int> = [1,2,3]             // Private mutable array
     @list List<str> = ["Hello", "World"]    // Private mutable list
     @m ro Map<str,int> = ["A":1, "B":2]     // Private immutable map
     @Header ro str pub get = "Zurfur"       // Public immutable string
 
-fun pub Example.F(a int) int
+[pub] fun Example.F(a int) int
     return m["A"]+10   // Public function
 
 get Example.P() str
@@ -46,14 +46,14 @@ fun test_ForSimple()
     Console.Log("For loop: "(count == 622145 ? "Pass" : "Fail"))
 
 
-fun pub test_Convert()
+[pub] fun test_Convert()
     @a = List<float>()
     @b = List<int>()
     @c = a.Convert(@i => int(i))
 
 
-type pub Label { }
-type pub class TestGuiForm // TBD: How to do this without extends Form
+[pub] type Label { }
+[pub] type class TestGuiForm // TBD: How to do this without extends Form
     @Message1 Label pub get set
     @Message2 Label pub get set
     @Message3 Label pub get set
@@ -63,7 +63,7 @@ fun TestGuiForm.new()
     my.InitializeComponent()
    
    
-#NewCallableAttribute()
+[NewCallableAttribute()]
 
 fun TestGuiForm.InitializeComponent()    
     Message1 = Label(Text: "Message 1",

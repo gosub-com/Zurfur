@@ -6,7 +6,7 @@ use Zurfur.Collections[Iterator, Iterable]
 
 
 
-pub type Map<K,V>
+[pub] type Map<K,V>
     @items List<str> // TBD: Buffer of items in hash table
 
     // TBD: Allow this
@@ -15,56 +15,56 @@ pub type Map<K,V>
     //    @value V pub ref mut
 
 // TBD: This wants to be inside Map<K,V>
-type KvPair<K,V>
+[pub] type KvPair<K,V>
     @key K pub ref
     @value V pub ref mut
 
 // TBD: Need this: fun (kv Map<K,V>.Pair) ...
-fun pub KvPair<K,V>.new(key own K, value own V)
+[pub] fun KvPair<K,V>.new(key own K, value own V)
     my.key = key
     my.value = value
 
 
-fun pub Map<K,V>.new(capacity int)
+[pub] fun Map<K,V>.new(capacity int)
     return todo
     
-fun pub Map<K,V>.new(keyValues Iterator<KvPair<K,V>>)
+[pub] fun Map<K,V>.new(keyValues Iterator<KvPair<K,V>>)
     return todo
     
-get pub Map<K,V>.count() int
+[pub] get Map<K,V>.count() int
     return todo
 
 // TBD: Figure out map["Hello"] += 1
-fun pub _opIndex<K,V>(map Map<K,V>, key K) mut ?ref V
+[pub] fun _opIndex<K,V>(map Map<K,V>, key K) mut ?ref V
     return todo
 
 // TBD: An indexer with 3 inputs???
-fun pub _opIndex<K,V>(map Map<K,V>, key K, item V)
+[pub] fun _opIndex<K,V>(map Map<K,V>, key K, item V)
     todo
 
-fun pub Map<K,V>.contains(key K) bool
+[pub] fun Map<K,V>.contains(key K) bool
     return todo
 
 // TBD: Return Iterable<(K, V)>???
-get pub Map<K,V>.iterator() mut Iterator<KvPair<K,V>>
+[pub] get Map<K,V>.iterator() mut Iterator<KvPair<K,V>>
     return todo
 
-get pub Map<K,V>.keys() Iterator<K>
+[pub] get Map<K,V>.keys() Iterator<K>
     return todo
 
-get pub Map<K,V>.values() mut Iterator<V>
+[pub] get Map<K,V>.values() mut Iterator<V>
     return todo
 
-fun pub mut Map<K,V>.clear()
+[pub] fun mut Map<K,V>.clear()
     return todo
 
-fun pub mut Map<K,V>.add(item KvPair<K,V>)
+[pub] fun mut Map<K,V>.add(item KvPair<K,V>)
     return todo
 
-fun pub mut Map<K,V>.add(items Iterator<KvPair<K,V>>)
+[pub] fun mut Map<K,V>.add(items Iterator<KvPair<K,V>>)
     return todo
 
-fun pub mut Map<K,V>.remove(key K) bool
+[pub] fun mut Map<K,V>.remove(key K) bool
     return todo
 
     
