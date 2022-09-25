@@ -738,7 +738,11 @@ namespace Gosub.Zurfur.Compiler
                     args.Insert(0, funCall);
                 }
 
-                return FindCompatibleFunction(funCall.Identifier, args, funCall.Symbols, $"'{funCall.Identifier}'");
+                var function = FindCompatibleFunction(funCall.Identifier, args, funCall.Symbols, $"'{funCall.Identifier}'");
+                if (function != null && function.Symbols.Count > 0 && function.Symbols[0].IsGetter)
+                    Reject(ex.Token, "Getter cannot be called with parenthesis");
+
+                return function;
             }
 
             // If there is an error, mark it and give feedback on possible matches.
@@ -774,7 +778,7 @@ namespace Gosub.Zurfur.Compiler
 
                 var method = (SymMethod)functions[0];
                 token.AddInfo(method);
-                return new Rval(token) { Type = method.GetReturnType(table) };
+                return new Rval(token) { Type = method.GetReturnType(table), Symbols = functions };
             }
 
 
@@ -908,35 +912,52 @@ namespace Gosub.Zurfur.Compiler
             /// Find symbols in the type, including methods defined in
             /// the type's module, this module, or use statements.
             /// </summary>
-            void FindInType(string identifier, Symbol type, List<Symbol> symbols)
+            void FindInType(string identifier, Symbol inType, List<Symbol> symbols)
             {
-                // Symbols defined in type (specialized and un-specialized)
-                AddSymbolsNamed(type, identifier, symbols);
-                if (type is SymSpecializedType)
-                    AddSymbolsNamed(type.Parent, identifier, symbols);
+                // Find symbols defined in the type (specialized and un-specialized)
+                AddSymbolsNamed(identifier, inType, symbols);
+                if (inType is SymSpecializedType)
+                    AddSymbolsNamed(identifier, inType.Parent, symbols);
 
-                // Find methods in the type's module or parents
-                var mod1 = type.Parent;
-                while (mod1 != null)
+                // Find methods in the type's module
+                AddMethodsNamedInModule(identifier, inType.Parent, inType, symbols);
+
+                // Find methods in the current function's module
+                AddMethodsNamedInModule(identifier, currentMethod.Parent, inType, symbols);
+
+                // TBD: Scan use statements for methods
+                if (identifier == "bytesToHex")
                 {
-                    AddMethodsNamed(mod1, identifier, type, symbols);
-                    mod1 = mod1.Parent;
+
                 }
 
-                // Find methods in the type's module or parents
-                var mod2 = currentMethod.Parent;
-                while (mod2 != null)
-                {
-                    AddMethodsNamed(mod2, identifier, type, symbols);
-                    mod2 = mod2.Parent;
-                }
             }
 
-            void AddMethodsNamed(Symbol symbol, string name, Symbol type, List<Symbol> symbols)
+            // Add all children with the given name (primary or method)
+            void AddSymbolsNamed(string name, Symbol inType, List<Symbol> symbols)
             {
-                if (!symbol.HasMethodNamed(name))
+                if (inType.TryGetPrimary(name, out Symbol sym))
+                    symbols.Add(sym);
+                if (inType.HasMethodNamed(name))
+                    foreach (var child in inType.Children)
+                        if (child.IsMethod && child.Token == name)
+                            symbols.Add(child);
+            }
+
+            // Walk up `inModule` to find the module, then collect methods `withMethodType`
+            void AddMethodsNamedInModule(string name, Symbol inModule, Symbol withMethodType, List<Symbol> symbols)
+            {
+                while (inModule != null && !inModule.IsModule)
+                    inModule = inModule.Parent;
+                if (inModule == null || !inModule.HasMethodNamed(name))
                     return;
-                foreach (var child in symbol.Children)
+
+                // Ignore mut, etc., then just compare the non-specialized type.
+                withMethodType = DerefMutOwn(withMethodType);
+                if (withMethodType.IsSpecializedType)
+                    withMethodType = withMethodType.Parent;
+
+                foreach (var child in inModule.Children)
                 {
                     if (!child.IsMethod || !child.IsExtension || child.Token != name)
                         continue;
@@ -944,7 +965,13 @@ namespace Gosub.Zurfur.Compiler
                     if (parameters.Count == 0)
                         continue;
 
-                    if (DerefMutOwn(parameters[0]).FullName != type.FullName)
+                    // Ignore mut, etc., then just compare the non-specialized type
+                    //      e.g: List<#1> matches List<byte> so we get all functions
+                    var paramType = DerefMutOwn(parameters[0]);
+                    if (paramType.IsSpecializedType)
+                        paramType = paramType.Parent;
+                   
+                    if (paramType.FullName != withMethodType.FullName)
                         continue;
 
                     symbols.Add(child);
@@ -967,9 +994,8 @@ namespace Gosub.Zurfur.Compiler
                     return;
                 }
 
-                // Find symbols in module or parents of module
-                var mod = currentMethod.Parent;
-                AddSymbolsNamed(mod, identifier, symbols);
+                // Find global symbols in this module
+                AddGlobalSymbolsNamed(identifier, currentMethod.Parent, symbols);
 
                 // Search 'use' symbol
                 if (fileUses.UseSymbols.TryGetValue(identifier, out var useSymbols))
@@ -981,15 +1007,16 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Add all children with the given name (primary or method)
-            void AddSymbolsNamed(Symbol moduleOrType, string name, List<Symbol> symbols)
+            void AddGlobalSymbolsNamed(string name, Symbol module, List<Symbol> symbols)
             {
-                if (moduleOrType.TryGetPrimary(name, out Symbol sym))
+                if (module.TryGetPrimary(name, out Symbol sym))
                     symbols.Add(sym);
-                if (moduleOrType.HasMethodNamed(name))
-                    foreach (var child in moduleOrType.Children)
-                        if (child.IsMethod && child.Token == name)
+                if (module.HasMethodNamed(name))
+                    foreach (var child in module.Children)
+                        if (child.IsMethod && child.Token == name && !child.IsExtension)
                             symbols.Add(child);
             }
+
 
             void RemoveLastDuplicates(List<Symbol> symbols)
             {

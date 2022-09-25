@@ -11,8 +11,8 @@ type pub str is Array<byte>
 fun pub _opEq(a str, b str) bool {}
 fun pub _opCmp(a str, b str) i32 {}
 
-fun pub str.new() { todo() }
-fun pub str.new(st str) { todo() }
-fun pub str.new(st Span<byte>) { todo() }
+fun pub str.new() { todo }
+fun pub str.new(st str) { todo }
+fun pub str.new(st Span<byte>) { todo }
     
 // TBD: Implicit conversion to and from Span?

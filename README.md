@@ -744,46 +744,40 @@ Both `switch` and `match` are reserved for future use.  For now, use `if`,
 
 ## Errors and Exceptions
 
-We will try for something similar to this: [Midori](http://joeduffyblog.com/2016/02/07/the-error-model/).
+Joe Duffy has some great thoughts on error handling here [Midori](http://joeduffyblog.com/2016/02/07/the-error-model/).
+
+That is what we will do for sync code.  **TBD:** But does it make sense for
+async?  All async functions can fail, either because they are IO or because
+they can be cancelled.  In this case, all `afun` functions must be marked
+as throwing, so why not just assume `afun` can always throw?
 
 |Error Type | Action | Examples
 | :--- | :--- | :---
-|Normal | Checked by caller | File not found, network io, permissions, etc.
-|Runtime | Stack unwind & cleanup. | Array bounds, `require` failed, etc.
+|Normal | No stack trace, debugger not stopped | `throw` - File not found, file permissions
+|Abnormal | Stack trace logged, debugger stopped | `require` - Array bounds check, RPC
 |Critical | End process | Memory corruptiopn
 
-Runtime erros are programming errors, and should not be used intentionally.
-They log a stack trace, unwind the stack, cleanup after themselves, and stay
-memory safe.  They cannot be caught in sync code at all, or in normal
-async functions (i.e.  they bypass `try` blocks). However, there will be a
-special way to catch them and convert them into normal errors, but this should
-not be used except in top level handlers.
 
-Most errors should follow the normal path.  A function marked with `throws` may
-either return a result or an error, for example:
+    fun myFun1() int        // Sync, can't throw (but can have an abnormal error)
+    fun myFun2() !int       // Sync, can throw (and can have a abnormal error)
+    afun myFun3() int       // TBD: Allow all async functions to throw?
+    afun myFun4() !int      // TBD: If all async can throw, this isn't needed
 
-    pub afun mut Read(data mut Span<byte>) int throws impl
+**TBD:** All async functions can throw?  Abnormal errors converted to
+normal errors in async code?
 
-The syntax is still TBD, but `try` is not a scope command.  It is a unary
-expression that can detect the error and pass it up or catch it.
+Abnormal errors always stop the debugger (if attached) and log a stack trace
+and are unrecoverable from within sync code.  In async code they
+**TBD:** either convert to a normal exception (C#/Javascript style) or
+continue unwinding the async stack up to some top level exception handler.
 
-    // Pass the error up, or continue processing
-    @count = try File.readAllText("c:\config")
+**TBD:** I am leaning towards having runtime errors in async code convert
+to normal C#/Javascript style exceptions.  It might not be ideal from a type
+safety point of view, but it's easy and we're all used to it.  Futhermore, an
+async function represents the future, and who knows what can fail in the future.
 
-    // Catch the error and deal with it here
-    if !try File.readAllText("c:\config")@c
-        c = InitializeOrFixConfiguration()
-
-    // TBD: Store into variable for later use (but not runtime errors)
-
-There is no `finally`.  Instead, `defer` or destructors are used for cleanup.
-Code in `defer` is run even when the stack is unwinding a runtime error.
 
 ## Garbage Collection
-
-**TBD:** Explain the difference between forward references and
-return references, and how they will be "covered" when passed
-down the execution stack.
 
 Thanks to [Lobster](https://aardappel.github.io/lobster/memory_management.html)
 and the single threaded nature of JavaScript, I have decided that it is
@@ -825,7 +819,7 @@ the data.
 
 For now...
 
-Raw ointers are not safe.  They act axactly as they do in C.  You can corrupt
+Raw pointers are not safe.  They act axactly as they do in C.  You can corrupt
 memory and crash your application.  They can be null, and the compiler
 does not add run time null checks.  The data they point to is always
 mutable.  There are three reasons for this.
@@ -950,24 +944,7 @@ required to create a heap allocation.  Stacks themselves won't be
 GC objects.  Instead there will be a reusable list of stack arrays.
 
 
-#### Async by Default?
 
-Should everything be async by default? The compiler can figure out if a
-function needs to be async, and can optimize most sync code into sync
-functions.  There are two problems here.
-
-First, the compiler would have trouble optimizing lambda function calls.
-If `List<T>.Sort(compare fun(a T, b T) bool)` is compiled
-as async, it would be an efficiency disaster.
-
-Second, it would be far to easy for a function to *accidentally* be changed
-from sync to async.  Imagine the consequences of changing `malloc` or `new`
-to async.  A library that was previously sync and fast could all of a sudden
-become async and slow without even realizing it was happening.
-
-One solution could be to mark functions `sync`, something like
-`List<T>.Sort(compare sfun(a T, b T) bool)`.  This seems almost as bad
-as marking them async.  Are there better solutions?
 
 ## Open Questions
 

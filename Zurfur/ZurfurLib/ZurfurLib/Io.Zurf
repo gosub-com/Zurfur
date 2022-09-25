@@ -15,11 +15,11 @@ enum SeekOrigin
     Begin; Current; End
 
 interface Seeker
-    afun mut seek(offset int, origin SeekOrigin) int throws impl
+    fun mut seek(offset int, origin SeekOrigin) int throws impl
     
-aget Seeker.length() int throws { }
-aget Seeker.position() int throws { }
-aset Seeker.position(value int) throws { }
+get Seeker.length() int throws { }
+get Seeker.position() int throws { }
+set Seeker.position(value int) throws { }
 
 interface FileStream { }
 

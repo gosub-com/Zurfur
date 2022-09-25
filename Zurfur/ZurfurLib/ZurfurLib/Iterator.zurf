@@ -25,7 +25,7 @@ fun pub mut Iterator<Item>.toList() List<Item>
 
 
 
-fun pub mut Iterator<Item>.find(f fun(item Item) bool) ?mut ref Item
+fun pub mut Iterator<Item>.find(f fun(item Item) bool) mut ?ref Item
     while my.next()@item
         if f(item)
             return ref item

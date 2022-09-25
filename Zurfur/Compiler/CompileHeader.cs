@@ -514,7 +514,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     if (expr is SyntaxError)
                         continue;
-                    Debug.Assert(expr.Count >= 2);
+                    Debug.Assert(expr.Count >= 3);
 
                     var token = expr.Token == "" ? expr[1].Token : expr.Token;
                     var name = expr.Token == "" ? "$return" : expr.Token.Name;
@@ -525,6 +525,11 @@ namespace Gosub.Zurfur.Compiler
                         methodParam.Token.AddInfo(new VerifySuppressError());
                     if (methodParam.TypeName != "" && expr.Token.Name != "")
                         expr.Token.AddInfo(methodParam);
+
+                    // Add qualifiers
+                    foreach (var qualifier in expr[2])
+                        methodParam.SetQualifier(qualifier.Token);
+
                     table.AddOrReject(methodParam);
                 }
             }

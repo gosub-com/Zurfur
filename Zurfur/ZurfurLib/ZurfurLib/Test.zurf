@@ -60,7 +60,7 @@ type pub class TestGuiForm // TBD: How to do this without extends Form
 
 
 fun TestGuiForm.new()
-    InitializeComponent()
+    my.InitializeComponent()
    
    
 #NewCallableAttribute()

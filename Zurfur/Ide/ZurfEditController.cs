@@ -315,6 +315,7 @@ namespace Gosub.Zurfur.Ide
             if (symbols.Length == 0)
                 return "";
 
+            // When a token has multiple symbols, display a summary.
             if (symbols.Length > 1)
             {
                 message += "SYMBOLS:\r\n";
@@ -324,7 +325,7 @@ namespace Gosub.Zurfur.Ide
             }
 
             var symbol = symbols[0];
-            message +=$"SYMBOL: [{getQualifiers(symbol)}] {symbol}\r\n";
+            message +=$"[{getQualifiers(symbol)}]\r\n{symbol}\r\n\r\n";
 
             if (symbol.IsField || symbol.IsMethodParam || symbol.IsLocal)
             {
@@ -336,11 +337,11 @@ namespace Gosub.Zurfur.Ide
                 foreach (var child in symbol.Children)
                 {
                     if (child.IsMethodParam)
-                        message += "    " + child.SimpleName + ": " + child.TypeName + "\r\n";
+                        message += $"    {child.SimpleName}: [{getQualifiers(child)}] {child.TypeName}\r\n";
                     else if (child.IsTypeParam)
-                        message += "    " + child.SimpleName + ": Type parameter\r\n";
+                        message += $"    {child.SimpleName}: Type parameter\r\n";
                     else
-                        message += "    " + child.SimpleName + ": COMPILER ERROR\r\n";
+                        message += $"    {child.SimpleName}: COMPILER ERROR\r\n";
                 }
             }
             message += "\r\n";
@@ -348,7 +349,7 @@ namespace Gosub.Zurfur.Ide
             // Comments
             if (symbol.Comments.Trim() != "")
             {
-                message += "COMMENTS:\r\n" + symbol.Comments + "\r\n\r\n";
+                message += $"COMMENTS:\r\n{symbol.Comments}\r\n\r\n";
             }
 
             return message;

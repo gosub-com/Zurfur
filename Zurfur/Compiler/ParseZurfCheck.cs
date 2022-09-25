@@ -30,10 +30,11 @@ namespace Gosub.Zurfur.Compiler
             { "unsealed", 6 },
             { "abstract", 8 }, { "virtual", 8},  { "override", 8 }, { "new", 8 },
             { "ref", 10},
-            { "ro", 11}, {"readonly", 11},  { "mut", 11 },
-            { "heap", 12 }, {"passcopy", 12}, {"class", 12},
-            { "nocopy", 13},
-            { "extern", 14 }, { "impl", 14 },
+            { "ro", 11}, {"readonly", 11},  
+            { "mut", 12 },
+            { "heap", 13 }, {"passcopy", 13}, {"class", 13},
+            { "nocopy", 14},
+            { "extern", 15 }, { "impl", 15 },
         };
 
         static WordMap<int> sOpClass = new WordMap<int>

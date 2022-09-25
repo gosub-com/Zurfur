@@ -8,14 +8,14 @@ type pub ro copy Line(filePath str, line int)
 // TBD: Figure out how to get default file names and line numbers.
 //      Also figure out if this should be created per file
 
-get pub level() Level { todo() }
-fun pub critical(message str, li Line = default) { todo() }
-fun pub error(message str, li Line = default) { todo() }
-fun pub warn(message str, li Line = default) { todo() }
-fun pub info(message str, li Line = default) { todo() }
-fun pub info(message str) { todo() } // TBD: Remove when we figure out default line info
-fun pub debug(message str, li Line = default) { todo() }
+get pub level() Level { todo }
+fun pub critical(message str, li Line = default) { todo }
+fun pub error(message str, li Line = default) { todo }
+fun pub warn(message str, li Line = default) { todo }
+fun pub info(message str, li Line = default) { todo }
+fun pub info(message str) { todo } // TBD: Remove when we figure out default line info
+fun pub debug(message str, li Line = default) { todo }
 
 
-fun pub timeBegin(name str, message str = "") { todo() }
-fun pub timeEnd(name str, message str = "") { }
+fun pub timeBegin(name str, message str = "") { todo }
+fun pub timeEnd(name str, message str = "") { todo }

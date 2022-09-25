@@ -40,13 +40,13 @@ namespace Gosub.Zurfur.Compiler
 
                         var errors = token.GetInfos<TokenError>();
                         var errorMessage = Path.GetFileName(token.Path)
-                            + $" [{token.Y + 1}, {token.X + 1}] \"{token}\"";
+                            + $" ({token.Y + 1}:{token.X + 1}) \"{token}\"";
 
                         if (errors.Length == 0)
                             errorMessage += "Unknown!";
                         else
                             foreach (var error in errors)
-                                errorMessage += ": " + error.GetType().Name + " - " + error.Message;
+                                errorMessage += ": " + error.Message;
                         errorMessages.Add(errorMessage);
                     }
                 }

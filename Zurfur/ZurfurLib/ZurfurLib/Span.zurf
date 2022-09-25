@@ -6,25 +6,25 @@ use Zurfur.Operators[OpEq]
 
 // []T is converted to Span<T>
 type pub ref copy Span<T>
-    @data ro ?ref mut T
+    @data ro mut ?ref T
     @count ro int pub get
     
 fun pub Span<T>.opIndex(i int) mut ref T
-    require i in 0..count
+    require i in 0..my.count
     extern // Implementation TBD
 
 fun pub Span<T>.opIndex(range Range<int>) mut Span<T>
-    require range.start in 0..count
-    require range.end in 0..count
+    require range.start in 0..my.count
+    require range.end in 0..my.count
     require range.start <= range.end
     extern // Implementation TBD
 
 fun pub mut Span<T>.sort(compare fun(a T, b T)bool)
-    return todo()
+    return todo
 
 // Set the span to `item` (or default if not specified)
 fun pub mut Span<T>.clear(item T = default)
-    for @i in 0..count
+    for @i in 0..my.count
         this[i] = item
 
 // Find index of the sequence `seq`.
@@ -33,13 +33,13 @@ fun pub Span<T>.find(seq Span<T>) int
         where T is OpEq<T>
     if seq.count == 0
         return 0
-    if seq.count > count
+    if seq.count > my.count
         return -1
-    for @i in 0..count-seq.count+1
+    for @i in 0..my.count-seq.count+1
         if this[i] != seq[0]
             continue
         @j = 1
-        while j < seq.count and seq[j] == this[i+j]
+        while j < seq.count and seq[j] == my[i+j]
             j += 1
         if j == seq.count
             return i
@@ -49,7 +49,7 @@ fun pub Span<T>.find(seq Span<T>) int
 // Find the index of the `item`.  Returns -1 if not found.
 fun pub Span<T>.find(item T) int
         where T is OpEq<T>
-    for @i in 0..count
+    for @i in 0..my.count
         if this[i] == item
             return i
     return -1
@@ -57,7 +57,7 @@ fun pub Span<T>.find(item T) int
 // Find the index of the `item` when `eq` returns true.
 // Returns -1 if not found.
 fun pub Span<T>.find(eq fun(item T) bool) int
-    for @i in 0..count
+    for @i in 0..my.count
         if eq(this[i])
             return i
     return -1

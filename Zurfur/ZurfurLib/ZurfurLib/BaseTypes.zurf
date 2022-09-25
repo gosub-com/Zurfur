@@ -10,7 +10,9 @@ pragma AllowUnderscoreDefinitions
 get pub nop() {}
 
 // TBD: Probably need to remove this
-get todo() require(false) { }
+get todo()
+    require(false)
+    nop
 
 // Return type of functions that don't return anything
 type pub void { }
@@ -22,7 +24,7 @@ type pub nil { }
 type pub rune = i32
 
 // Base interface for all types
-interface pub object { }
+pub interface object { }
 
 // All types have a unique `id`, but other
 // non-essential metadata is opt-in
@@ -51,15 +53,16 @@ type pub ro copy i8
     const pub ZERO i8 = 0
     const pub ONE i8 = 1
     
-fun pub i8.byte() ?byte extern
-fun pub i8.i16() i16 extern
-fun pub i8.i32() i32 extern
-fun pub i8.int() int extern
-fun pub i8.f32() f32 extern
-fun pub i8.f64() f64 extern
-fun pub i8.decimal() Decimal extern
+get pub i8.byte() ?byte extern
+get pub i8.i16() i16 extern
+get pub i8.i32() i32 extern
+get pub i8.int() int extern
+get pub i8.f32() f32 extern
+get pub i8.f64() f64 extern
+get pub i8.decimal() Decimal extern
 fun pub i8.str() str extern
-fun pub i8.byteMask() byte extern
+get pub i8.byteMask() byte extern
+
 fun pub i8.getHash() int extern
 fun pub i8._opEq(a i8) bool extern
 fun pub i8._opCmp(a i8) i32 extern
@@ -74,18 +77,19 @@ type pub ro copy byte
     const pub ZERO byte = 0
     const pub ONE byte = 1
     
-fun pub byte.i8() ?i8 extern
-fun pub byte.i16() i16 extern
-fun pub byte.u16() u16 extern
-fun pub byte.i32() i32 extern
-fun pub byte.u32() u32 extern
-fun pub byte.int() int extern
-fun pub byte.u64() u64 extern
-fun pub byte.f32() f32 extern
-fun pub byte.f64() f64 extern
-fun pub byte.decimal() Decimal extern
+get pub byte.i8() ?i8 extern
+get pub byte.i16() i16 extern
+get pub byte.u16() u16 extern
+get pub byte.i32() i32 extern
+get pub byte.u32() u32 extern
+get pub byte.int() int extern
+get pub byte.u64() u64 extern
+get pub byte.f32() f32 extern
+get pub byte.f64() f64 extern
+get pub byte.decimal() Decimal extern
 fun pub byte.str() str extern
-fun pub byte.i8Mask() i8 extern
+get pub byte.i8Mask() i8 extern
+
 fun pub byte.getHash() int extern
 fun pub _opEq(a byte, b byte) bool extern
 fun pub _opCmp(a byte, b byte) i32 extern
@@ -100,18 +104,18 @@ type pub ro copy i16
     const pub ZERO i16 = 0
     const pub ONE i16 = 1
 
-fun pub i16.i8() ?i8 extern
-fun pub i16.byte() ?byte extern
-fun pub i16.u16() ?u16 extern
-fun pub i16.i32() i32 extern
-fun pub i16.int() int extern
-fun pub i16.f32() f32 extern
-fun pub i16.f64() f64 extern
-fun pub i16.decimal() Decimal extern    
+get pub i16.i8() ?i8 extern
+get pub i16.byte() ?byte extern
+get pub i16.u16() ?u16 extern
+get pub i16.i32() i32 extern
+get pub i16.int() int extern
+get pub i16.f32() f32 extern
+get pub i16.f64() f64 extern
+get pub i16.decimal() Decimal extern    
 fun pub i16.str() str extern
-fun pub i16.i8Mask() i8 extern
-fun pub i16.byteMask() byte extern
-fun pub i16.u16Mask() u16 extern    
+get pub i16.i8Mask() i8 extern
+get pub i16.byteMask() byte extern
+get pub i16.u16Mask() u16 extern    
 
 fun pub i16.getHash() int extern
 fun pub _opEq(a i16, b i16) bool extern
@@ -128,20 +132,20 @@ type pub ro copy u16
     const pub ZERO u16 = 0
     const pub ONE u16 = 1
 
-fun pub u16.i8() ?i8 extern
-fun pub u16.byte() ?byte extern
-fun pub u16.i16() ?i16 extern
-fun pub u16.i32() i32 extern
-fun pub u16.u32() u32 extern
-fun pub u16.int() int extern
-fun pub u16.u64() u64 extern
-fun pub u16.f32() f32 extern
-fun pub u16.f64() f64 extern
-fun pub u16.decimal() Decimal extern
+get pub u16.i8() ?i8 extern
+get pub u16.byte() ?byte extern
+get pub u16.i16() ?i16 extern
+get pub u16.i32() i32 extern
+get pub u16.u32() u32 extern
+get pub u16.int() int extern
+get pub u16.u64() u64 extern
+get pub u16.f32() f32 extern
+get pub u16.f64() f64 extern
+get pub u16.decimal() Decimal extern
 fun pub u16.str() str extern
-fun pub u16.i8Mask() i8 extern
-fun pub u16.byteMask() byte extern
-fun pub u16.i16Mask() i16 extern
+get pub u16.i8Mask() i8 extern
+get pub u16.byteMask() byte extern
+get pub u16.i16Mask() i16 extern
 
 fun pub u16.getHash() int extern
 fun pub _opEq(a u16, b u16) bool extern
@@ -156,21 +160,21 @@ type pub ro copy i32
     const pub ZERO i32 = 0
     const pub ONE i32 = 1
 
-fun pub i32.i8() ?i8 extern
-fun pub i32.byte() ?byte extern
-fun pub i32.i16() ?i16 extern
-fun pub i32.u16() ?u16 extern
-fun pub i32.u32() ?u32 extern
-fun pub i32.int() int extern
-fun pub i32.f32() f32 extern
-fun pub i32.f64() f64 extern
-fun pub i32.decimal() Decimal extern    
+get pub i32.i8() ?i8 extern
+get pub i32.byte() ?byte extern
+get pub i32.i16() ?i16 extern
+get pub i32.u16() ?u16 extern
+get pub i32.u32() ?u32 extern
+get pub i32.int() int extern
+get pub i32.f32() f32 extern
+get pub i32.f64() f64 extern
+get pub i32.decimal() Decimal extern    
 fun pub i32.str() str extern
-fun pub i32.i8Mask() i8 extern
-fun pub i32.byteMask() byte extern
-fun pub i32.i16Mask() i16 extern
-fun pub i32.u16Mask() u16 extern
-fun pub i32.u32Mask() u32 extern
+get pub i32.i8Mask() i8 extern
+get pub i32.byteMask() byte extern
+get pub i32.i16Mask() i16 extern
+get pub i32.u16Mask() u16 extern
+get pub i32.u32Mask() u32 extern
 
 fun pub i32.getHash() int extern
 fun pub _opEq(a i32, b i32) bool extern
@@ -189,7 +193,7 @@ fun pub _opBitXor(a i32, b i32) i32 extern
 fun pub _opBitShl(a i32, b int) i32 extern
 fun pub _opBitShr(a i32, b int) i32 extern
 
-fun pub i32.getIterator() RangeIterator<i32>
+get pub i32.iterator() RangeIterator<i32>
     return RangeIterator<i32>(0, my)
 
 
@@ -202,22 +206,22 @@ type pub ro copy u32
     const pub ZERO u32 = 0
     const pub ONE u32 = 1
 
-fun pub u32.i8() ?i8 extern
-fun pub u32.byte() ?byte extern
-fun pub u32.i16() ?i16 extern
-fun pub u32.u16() ?u16 extern
-fun pub u32.i32() ?i32 extern        
-fun pub u32.int() int extern
-fun pub u32.u64() u64 extern
-fun pub u32.f32() f32 extern
-fun pub u32.f64() f64 extern
-fun pub u32.decimal() Decimal extern        
+get pub u32.i8() ?i8 extern
+get pub u32.byte() ?byte extern
+get pub u32.i16() ?i16 extern
+get pub u32.u16() ?u16 extern
+get pub u32.i32() ?i32 extern        
+get pub u32.int() int extern
+get pub u32.u64() u64 extern
+get pub u32.f32() f32 extern
+get pub u32.f64() f64 extern
+get pub u32.decimal() Decimal extern        
 fun pub u32.str() str extern
-fun pub u32.i8Mask() i8 extern
-fun pub u32.byteMask() byte extern
-fun pub u32.i16Mask() i16 extern
-fun pub u32.u16Mask() u16 extern
-fun pub u32.i32Mask() i32 extern
+get pub u32.i8Mask() i8 extern
+get pub u32.byteMask() byte extern
+get pub u32.i16Mask() i16 extern
+get pub u32.u16Mask() u16 extern
+get pub u32.i32Mask() i32 extern
 
 fun pub u32.getHash() int extern
 fun pub _opEq(a u32, b u32) bool extern
@@ -236,7 +240,7 @@ fun pub _opBitXor(a u32, b u32) u32 extern
 fun pub _opBitShl(a u32, b int) u32 extern
 fun pub _opBitShr(a u32, b int) u32 extern
 
-fun pub u32.getIterator() RangeIterator<u32>
+get pub u32.iterator() RangeIterator<u32>
     return RangeIterator<u32>(0, my)
 
 
@@ -249,24 +253,24 @@ type pub ro copy int
     const pub ZERO int = 0
     const pub ONE int = 1
 
-fun pub int.i8() ?i8 extern
-fun pub int.byte() ?byte extern
-fun pub int.i16() ?i16 extern
-fun pub int.u16() ?u16 extern
-fun pub int.i32() ?i32 extern
-fun pub int.u32() ?u32 extern
-fun pub int.u64() ?u64 extern    
-fun pub int.f32() f32 extern
-fun pub int.f64() f64 extern
-fun pub int.decimal() Decimal extern
+get pub int.i8() ?i8 extern
+get pub int.byte() ?byte extern
+get pub int.i16() ?i16 extern
+get pub int.u16() ?u16 extern
+get pub int.i32() ?i32 extern
+get pub int.u32() ?u32 extern
+get pub int.u64() ?u64 extern    
+get pub int.f32() f32 extern
+get pub int.f64() f64 extern
+get pub int.decimal() Decimal extern
 fun pub int.str() str extern
-fun pub int.i8Mask() i8 extern
-fun pub int.byteMask() byte extern
-fun pub int.i16Mask() i16 extern
-fun pub int.u16Mask() u16 extern
-fun pub int.i32Mask() i32 extern
-fun pub int.u32Mask() u32 extern
-fun pub int.u64Mask() u64 extern
+get pub int.i8Mask() i8 extern
+get pub int.byteMask() byte extern
+get pub int.i16Mask() i16 extern
+get pub int.u16Mask() u16 extern
+get pub int.i32Mask() i32 extern
+get pub int.u32Mask() u32 extern
+get pub int.u64Mask() u64 extern
 
 
 fun pub int.getHash() int extern
@@ -287,7 +291,7 @@ fun pub _opBitShl(a int, b int) int extern
 fun pub _opBitShr(a int, b int) int extern
 
 
-fun pub int.getIterator() RangeIterator<int>
+get pub int.iterator() RangeIterator<int>
     return RangeIterator<int>(0, my)
 
 // 64 bit unsigned integer
@@ -299,24 +303,24 @@ type pub ro copy u64
     const pub ZERO u64 = 0
     const pub ONE u64 = 1
 
-fun pub u64.i8() ?i8 extern
-fun pub u64.byte() ?byte extern
-fun pub u64.i16() ?i16 extern
-fun pub u64.u16() ?u16 extern
-fun pub u64.i32() ?i32 extern
-fun pub u64.u32() ?u32 extern
-fun pub u64.int() ?int extern
-fun pub u64.f32() f32 extern
-fun pub u64.f64() f64 extern
-fun pub u64.decimal() Decimal extern
+get pub u64.i8() ?i8 extern
+get pub u64.byte() ?byte extern
+get pub u64.i16() ?i16 extern
+get pub u64.u16() ?u16 extern
+get pub u64.i32() ?i32 extern
+get pub u64.u32() ?u32 extern
+get pub u64.int() ?int extern
+get pub u64.f32() f32 extern
+get pub u64.f64() f64 extern
+get pub u64.decimal() Decimal extern
 fun pub u64.str() str extern
-fun pub u64.i8Mask() i8 extern
-fun pub u64.byteMask() byte extern
-fun pub u64.i16Mask() i16 extern
-fun pub u64.u16Mask() u16 extern
-fun pub u64.i32Mask() i32 extern
-fun pub u64.u32Mask() u32 extern
-fun pub u64.intMask() int extern
+get pub u64.i8Mask() i8 extern
+get pub u64.byteMask() byte extern
+get pub u64.i16Mask() i16 extern
+get pub u64.u16Mask() u16 extern
+get pub u64.i32Mask() i32 extern
+get pub u64.u32Mask() u32 extern
+get pub u64.intMask() int extern
 
 fun pub u64.getHash() int extern
 fun pub _opEq(a u64, b u64) bool extern
@@ -339,7 +343,7 @@ fun pub _opBitShl(a u64, b u64) u64 extern
 
 
 
-fun pub u64.getIterator() RangeIterator<u64>
+get pub u64.iterator() RangeIterator<u64>
     return RangeIterator<u64>(0, my)
 
 type pub ro copy i128
@@ -370,15 +374,15 @@ get pub f32.isNan() bool extern
 get pub f32.isNegativeInfinity() bool extern
 get pub f32.isPositiveInfinity() bool extern        
 
-fun pub f32.byte() ?byte extern
-fun pub f32.int() ?int extern
-fun pub f32.u64() ?u64 extern
-fun pub f32.f64() f64 extern
-fun pub f32.decimal() Decimal extern    
+get pub f32.byte() ?byte extern
+get pub f32.int() ?int extern
+get pub f32.u64() ?u64 extern
+get pub f32.f64() f64 extern
+get pub f32.decimal() Decimal extern    
 fun pub f32.str() str extern
-fun pub f32.byteMask() byte extern
-fun pub f32.intMask() int extern
-fun pub f32.u64Mask() u64 extern
+get pub f32.byteMask() byte extern
+get pub f32.intMask() int extern
+get pub f32.u64Mask() u64 extern
 
         
 fun pub f32.getHash() int extern
@@ -394,7 +398,7 @@ fun pub _opMul(a f32, b f32) f32 extern
 fun pub _opDiv(a f32, b f32) f32 extern
 fun pub _opRem(a f32, b f32) f32 extern
 
-fun pub f32.getIterator() RangeIterator<f32>
+get pub f32.iterator() RangeIterator<f32>
     return RangeIterator<f32>(0, my)
 
 type pub ro copy f64
@@ -416,15 +420,15 @@ get pub f64.isNan() bool extern
 get pub f64.isNegativeInfinity() bool extern
 get pub f64.isPositiveInfinity() bool extern        
 
-fun pub f64.byte() ?byte extern
-fun pub f64.int() ?int extern
-fun pub f64.u64() ?u64 extern
-fun pub f64.decimal() Decimal extern
+get pub f64.byte() ?byte extern
+get pub f64.int() ?int extern
+get pub f64.u64() ?u64 extern
+get pub f64.decimal() Decimal extern
 fun pub f64.str() str extern
-fun pub f64.byteMask() byte extern
-fun pub f64.intMask() int extern
-fun pub f64.u64Mask() u64 extern
-fun pub f64.f32Clamp() f32 extern
+get pub f64.byteMask() byte extern
+get pub f64.intMask() int extern
+get pub f64.u64Mask() u64 extern
+get pub f64.f32Clamp() f32 extern
 
 fun pub f64.getHash() int extern
 
@@ -440,7 +444,7 @@ fun pub _opMul(a f64, b f64) f64 extern
 fun pub _opDiv(a f64, b f64) f64 extern
 fun pub _opRem(a f64, b f64) f64 extern
 
-fun pub f64.getIterator() RangeIterator<f64>
+get pub f64.iterator() RangeIterator<f64>
     return RangeIterator<f64>(0, my)
 
 
@@ -462,15 +466,16 @@ get pub Decimal.isNan() bool extern
 get pub Decimal.isNegativeInfinity() bool extern
 get pub Decimal.isPositiveInfinity() bool extern
 
-fun pub Decimal.byte() ?byte extern
-fun pub Decimal.int() ?int extern
-fun pub Decimal.u64() ?u64 extern
-fun pub Decimal.byteMask() byte extern
-fun pub Decimal.intMask() int extern
-fun pub Decimal.u64Mask() u64 extern
-fun pub Decimal.intClamp() int extern
-fun pub Decimal.f32Clamp() f32 extern
-fun pub Decimal.f64Clamp() f64 extern
+get pub Decimal.byte() ?byte extern
+get pub Decimal.int() ?int extern
+get pub Decimal.u64() ?u64 extern
+fun pub Decimal.str() str extern
+get pub Decimal.byteMask() byte extern
+get pub Decimal.intMask() int extern
+get pub Decimal.u64Mask() u64 extern
+get pub Decimal.intClamp() int extern
+get pub Decimal.f32Clamp() f32 extern
+get pub Decimal.f64Clamp() f64 extern
 
 fun pub Decimal.getHash() int extern
 fun pub _opEq(a Decimal, b Decimal) bool extern

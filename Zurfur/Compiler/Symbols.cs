@@ -44,7 +44,9 @@ namespace Gosub.Zurfur.Compiler
         Extern = 0x20000,
         PassCopy = 0x40000,
         ParamOut = 0x80000,
-        Anonymous = 0x100000
+        Anonymous = 0x100000,
+        Own = 0x200000,
+        Copy = 0x400000
     }
 
     /// <summary>
@@ -296,6 +298,8 @@ namespace Gosub.Zurfur.Compiler
                 if (Qualifiers.HasFlag(SymQualifiers.Static)) t += " static";
                 if (Qualifiers.HasFlag(SymQualifiers.Unsafe)) t += " unsafe";
                 if (Qualifiers.HasFlag(SymQualifiers.Anonymous)) t += " anonymous";
+                if (Qualifiers.HasFlag(SymQualifiers.Own)) t += " own";
+                if (Qualifiers.HasFlag(SymQualifiers.Copy)) t += " copy";
                 sTags[key] = t;
                 return t;
             }
@@ -346,6 +350,8 @@ namespace Gosub.Zurfur.Compiler
                 case "impl": Qualifiers |= SymQualifiers.Impl; break;
                 case "pass_copy": Qualifiers |= SymQualifiers.PassCopy; break;
                 case "anonymous": Qualifiers |= SymQualifiers.Anonymous; break;
+                case "own": Qualifiers |= SymQualifiers.Own;  break;
+                case "copy": Qualifiers |= SymQualifiers.Copy; break;
                 default: Debug.Assert(false);  break;
             }
         }

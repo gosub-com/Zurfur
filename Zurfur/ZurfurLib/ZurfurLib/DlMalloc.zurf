@@ -37,7 +37,7 @@ use Zurfur[u64, todo]
 fun panicFatal(m str)
 {
     // TBD: Dump process
-    todo()
+    todo
 }
     
 
@@ -47,7 +47,7 @@ fun panicFatal(m str)
 // the size of allocated memory if desired  (must be in units of page size).
 // Returns nil when out of memory or on error.
 fun DlMalloc.CallMoreCore(length ref u64) ^void
-    todo()
+    todo
 
 // This was originally CALL_MUNMAP and is used to release memory pages
 // back to the OS.  This function works with pages, not with units
@@ -56,7 +56,7 @@ fun DlMalloc.CallMoreCore(length ref u64) ^void
 // Return true for success, or false for failure (in which
 // case the pages are retained and used for future requests)
 fun DlMalloc.CallReleaseCore(address ^void, length u64) bool
-    todo()
+    todo
 
 // Called when the heap is known to be corrupted.  Throws an exception
 // and calls ResetOnError by default.
@@ -416,7 +416,7 @@ fun DlMalloc.should_trim(s u64) bool
 //  that may be needed to place segment records and fenceposts when new
 //  noncontiguous segments are added.
 get TOP_FOOT_SIZE() u64
-    return align_offset(chunk2mem(cast(^mchunk)0u64)) + pad_request(sizeof(msegment).u64Mask()) + MIN_CHUNK_SIZE
+    return align_offset(chunk2mem(cast(^mchunk)0u64)) + pad_request(sizeof(msegment).u64Mask) + MIN_CHUNK_SIZE
 
 // -------------------------- Debugging setup ----------------------------
 
@@ -805,9 +805,9 @@ fun pub DlMalloc.CheckHeap() HeapStats
 
     // check bins
     for @i in 0..NSMALLBINS
-        do_check_smallbin(i)
+        my.do_check_smallbin(i)
     for @i in 0..NTREEBINS
-        do_check_treebin(i)
+        my.do_check_treebin(i)
 
     if my.dvsize != 0
         // check dv chunk
@@ -861,11 +861,11 @@ fun pub DlMalloc.CheckHeap() HeapStats
     assert(my.footprint <= my.max_footprint)
 
     @stats = HeapStats()
-    stats.HeapSize = heapSize.intMask()
+    stats.HeapSize = heapSize.intMask
     stats.FreeChunks = freeChunks
-    stats.FreeBytes = freeBytes.intMask()
+    stats.FreeBytes = freeBytes.intMask
     stats.UsedChunks = usedChunks
-    stats.UsedBytes = usedBytes.intMask()
+    stats.UsedBytes = usedBytes.intMask
     return stats
 
     // ----------------------- Operations on smallbins -----------------------
@@ -1102,7 +1102,7 @@ fun mut DlMalloc.init_top(p ^mchunk, psize u64)
 fun mut DlMalloc.init_bins()
     // Establish circular links for smallbins
     for @i in NSMALLBINS
-        @bin = smallbin_at(i)
+        @bin = my.smallbin_at(i)
         bin.bk = bin
         bin.fd = bin
 
@@ -1171,7 +1171,7 @@ fun mut DlMalloc.add_segment(tbase ^byte, tsize u64, mmapped flag_t)
     @old_top = cast(^byte)my.top
     @oldsp = my.segment_holding(old_top)
     @old_end = oldsp.baseAddr + oldsp.size
-    @ssize = pad_request(sizeof(msegment).u64Mask())
+    @ssize = pad_request(sizeof(msegment).u64Mask)
     @rawsp = old_end - (ssize + FOUR_SIZE_T_SIZES + CHUNK_ALIGN_MASK)
     @offset = align_offset(chunk2mem(rawsp))
     @asp = rawsp + offset
@@ -1569,11 +1569,11 @@ fun mut DlMalloc.init_user_mstate(tbase ^byte, tsize u64)
     @msp = align_as_chunk(tbase)
     @m ^void = chunk2mem(msp)
 
-    my.smallbins = cast(^^mchunk)(Marshal.AllocHGlobal(sizeof(^mchunk).u64Mask() * ((NSMALLBINS + 1) * 2)))
-    my.treebins = cast(^^tchunk)(Marshal.AllocHGlobal(sizeof(^tchunk).u64Mask() * NTREEBINS))
+    my.smallbins = cast(^^mchunk)(Marshal.AllocHGlobal(sizeof(^mchunk).u64Mask * ((NSMALLBINS + 1) * 2)))
+    my.treebins = cast(^^tchunk)(Marshal.AllocHGlobal(sizeof(^tchunk).u64Mask * NTREEBINS))
     my.seg = cast(^msegment)Marshal.AllocHGlobal(sizeof(msegment))
-    memClear(my.smallbins, sizeof(^mchunk) * (((NSMALLBINS + 1) * 2)).intMask())
-    memClear(my.treebins, sizeof(^tchunk) * NTREEBINS.intMask())
+    memClear(my.smallbins, sizeof(^mchunk) * (((NSMALLBINS + 1) * 2)).intMask)
+    memClear(my.treebins, sizeof(^tchunk) * NTREEBINS.intMask)
     memClear(my.seg, sizeof(msegment))
 
     @msize u64 = 0

@@ -14,6 +14,11 @@ use Zurfur[Decimal, Log]
 use Zurfur.Collections[Iterator]
 use Zurfur.Math[cos,sin]
 
+// TBD: Include all extension methods with Zurfur.ConvertBytes[Span,List]
+// TBD: Scan use statements for methods (see code in CompileCode.cs, FindInType)
+//      if (identifier == "bytesToHex")
+use Zurfur.ConvertBytes[bytesToHex]
+
 
 // Simple types have public fields:
 type pub SimpleType(firstName str, lastName str)
@@ -65,7 +70,7 @@ fun test_HelloWorld()
         if a
             doit()
             
-type pub owned box AGenericType<Q>
+type pub boxed AGenericType<Q>
     @a int
 
 fun pub circle1(a f64, r f64) -> (x f64, y f64)
@@ -80,11 +85,15 @@ fun pub circle3(a f64, r f64) -> (x f64, y f64)
 fun pub circle3(a f64, b f64) -> (c int, d int)
     return 0
 
+
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
 // PREVIOUSLY: fun pub GetIterator<T>.AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIterator<T>
 fun pub Iterator<Item>.alphaLengthWise<L>(lengthProvider fun(t Item) L) Iterator<Item>
     return my.orderBy(@a => lengthProvider(a))
              .thenBy(@a => a)
+
+fun Iterator<Item>.orderBy() Iterator<Item>
+    Zurfur.nop
 
 type pub Example
     
@@ -123,6 +132,10 @@ type pub Zim<T>
     @q T pub get set
 
 
+// Type test for test_main
+type Token(a int)
+fun AcceptMatch(m str) Token {}
+
 // This is a public documentation comment.  Do not use XML.
 // Use `name` to refer to variables in the code.
 fun pub test_Main(args Array<str>, stream Zurfur.Io.Reader)
@@ -149,10 +162,10 @@ fun pub test_Main(args Array<str>, stream Zurfur.Io.Reader)
 
     @a = tr"Column 1{\t}Column 2{\rn}"
     @data = "Name:{name}{\t}Occupation:{lastName}{\rn}"
-    @buffer = Array<byte>()
+    @buffer = Buffer<byte>()
     
-    while stream.read(buffer[0..4])@size != 0
-        @a = MyFun as Hello
+    while stream.read(buffer[0..4])@size == 4
+        @bytes = buffer[0..4].bytesToHex() // TBD: Scan use statements for extension methods
 
 
     // AcceptMatch returns ?Token = (bool, Token)
@@ -222,7 +235,7 @@ fun pub memCopy(dest ^void, source ^void, length int)
         return
     
     // Byte copy
-    @end = d + length.u64Mask()
+    @end = d + length.u64Mask
     while end-d >= 4
         (cast(^byte)d).* = (cast(^byte)s).*; d+=1; s+=1
         (cast(^byte)d).* = (cast(^byte)s).*; d+=1; s+=1
@@ -239,7 +252,7 @@ fun pub memCopy32(dest ^void, source ^void, length int)
         return
 
     // Try 64 bit copy first
-    @end = d + length.u64Mask()
+    @end = d + length.u64Mask
     if (d~s) & 4 == 0 and length >= 8
         if d & 4 != 0
             (cast(^i32)d).* = (cast(^i32)s).*; d+=4; s+=4

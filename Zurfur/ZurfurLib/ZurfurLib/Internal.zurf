@@ -54,4 +54,4 @@ type pub __heap<T>
 fun pub __heap<T>.Inc()
     my.refCount += 1
     if my.refCount < 0
-        todo() // TBD: Queue to call drop and reclaim memory
+        todo // TBD: Queue to call drop and reclaim memory
