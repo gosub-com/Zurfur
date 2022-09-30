@@ -7,12 +7,28 @@ module Zurfur
 pragma AllowUnderscoreDefinitions
 
 // Blank function
-[pub] get nop() {}
+[pub] get nop() extern
+
+// These implement throw and require reserved words
+[pub] fun __throw(code ErrorCode, message str) extern
+[pub] fun __throw(condition bool, code ErrorCode, message str) extern
+[pub] fun __require(condition bool) extern
+[pub] fun __require(condition bool, message str) extern
+
+// 
+[pub] fun assert(condition bool) extern
+[pub] fun assert(condition bool, message str) extern
+
+[pub] interface Error
+    get code() ErrorCode impl
+    get Message() str impl
+
+// This will probably be a specially recognized error code type
+[pub] enum ErrorCode
+    Success = 0 
 
 // TBD: Probably need to remove this
-get todo()
-    require(false)
-    nop
+get todo() require(false) extern
 
 // Return type of functions that don't return anything
 [pub] type void { }

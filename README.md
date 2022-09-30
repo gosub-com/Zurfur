@@ -7,7 +7,7 @@ spelled **_ZurFUR_** because our cat has fur.
 I love C#.  It's my favorite language to program in.  But, I'd like to fix
 some [warts](http://www.informit.com/articles/article.aspx?p=2425867) and have
 some features from other languages built in from the ground up.  I'm thinking
-about traits, mutability, nullability, ownership, and functional programming.
+about mutability, nullability, ownership, and functional programming.
 
 **Status Update**
 
@@ -33,17 +33,17 @@ Here are some key features:
     * Stretch goal: Rewrite compiler and IDE in Zurfur on Node.js
 * **Mutability, ownership, and nullabilty are part of the type system:**
     * Function parameters must be explicitly marked `mut` if they mutate anything
-    * All objects are value types unless explicitly boxed (e.g. `*MyType`)
-    * References are non-nullable, but may use `?MyType` or `?*MyType` for nullable
-    * `ro` means read only *all the way down* (i.e. you can't mutate a `ro` object through a pointer)
+    * All objects are value types, except for pointers (e.g. `^MyType`)
+    * References are non-nullable, but may use `?MyType` or `?^MyType` for nullable
+    * `ro` means read only *all the way down* (not like C#, where `readonly` only protects the top level)
     * Get/set of mutable properties works (e.g. `myList[0].VectorProperty.X = 3` mutates `X`)
     * Deterministic destructors (e.g. `FileStream` closes itself automatically)
 * **Fast and efficient:**
     * Return references and span used everywhere. `[]int` is `Span<int>`, and OK to pass to async functions
     * Functions pass parameters by reference, but will pass a copy when it is more efficient
-    * Explicit `clone` required when copying an object would require dynamic allocation
+    * Explicit `clone` required when copying an object that requires dynamic allocation
     * Most objects are deleted without needing GC.  Heap objects are reference counted.
-    * Safe multi-threading via web workers (`DeepClone` and `bag` defined as fast deep copy for message passing)
+    * Safe multi-threading via web workers (`deepClone` and `bag` defined as fast deep copy for message passing)
     * Async acts like a Golang blocking call without the `await` keyword (no garbage created for the task)
 
 #### Inspirations
@@ -92,25 +92,28 @@ For `type MyPointXY(X int, Y int)`, the following are identical:
 Functions are declared with the `fun` keyword. The type name comes after the
 argument, and the return type comes after the parameters:
 
-    // This is a public documentation comment.  Do not use XML.
+    // This comment is public documentation.
     // Use `name` to refer to variables in the code. 
-    pub fun main(args Array<str>)
+    [pub] fun main(args Array<str>)
         Log.info("Hello World, 2+2=${2+2}")
 
 Methods and extension methods are declared with the same syntax and
 use the `my` keyword to refer to fields or other methods in the type:
 
     // Declare an extension method for strings
-    pub fun str.rest() str
-        // NOTE: sub is a member of Array, and str is an Array
-        return my.count == 0 ? "" : my.sub(1)
+    fun str.rest() str
+        return my.count == 0 ? "" : my.sub(1)  // `sub` is defined by `Array`
+
+    // TBD: Still considering golang method syntax
+    fun (str) rest() str
+        return my.count == 0 ? "" : my.sub(1) 
 
 Properties are declared with `get` and `set` keywords:
 
-    pub get MyType.myString() str
+    get MyType.myString() str
         return my.cachedStr
 
-    pub set MyType.myString(v str)
+    set MyType.myString(v str)
         my.cachedString = v
         my.stringChangedEvent()
   
@@ -119,7 +122,7 @@ exception is that small types (e.g. `int`, and `Span<T>`) are passed by
 copy because it is more efficient to do so.  Other qualifiers, `mut`, `ref`,
 and `own` can be used to change the passing behavior:
 
-    pub fun test(
+    fun test(
         a               int,  // Pass a copy because it is efficient (i.e. `type copy`)
         b       mut ref int,  // Pass by ref, allow assignment
         c         List<int>,  // Pass by ref, read-only
@@ -149,13 +152,13 @@ If the type is mutable *and* requires dynamic allocation, the function can
 take ownership of the object by using the `own` keyword.  The caller must
 then never use the object again, or must explicitly `clone` the object.
 
-    pub fun storeList(list own List<int>)
+    fun storeList(list own List<int>)
         // Take ownership of the list
 
 Functions can return multiple values:
 
     // Multiple returns
-    pub fun circle(a f64, r f64) -> (x f64, y f64)
+    fun circle(a f64, r f64) -> (x f64, y f64)
         return cos(a)*r, sin(a)*r
 
 The return parameters are named, and can be used by the calling function:
@@ -166,11 +169,11 @@ The return parameters are named, and can be used by the calling function:
 Normally the return value becomes owned by the caller, but this behavior
 can be changed with the `ref` keyword:
 
-    pub fun getRoList() ref List<int>           // Read-only ref
+    fun getRoList() ref List<int>           // Read-only ref
         return ref myListField
-    pub fun getMutList() mut List<int>          // Mutable (mutation allowed, assignment not allowed)
+    fun getMutList() mut List<int>          // Mutable (mutation allowed, assignment not allowed)
         return mut myListField
-    pub fun getMutRefList() mut ref List<int>   // Mutable ref (mutation or assignment is allowed)
+    fun getMutRefList() mut ref List<int>   // Mutable ref (mutation or assignment is allowed)
         return mut ref myListField
 
 Return qualifiers:
@@ -185,13 +188,12 @@ Return qualifiers:
 
 The ones we all know and love:
 
-    bool, i8, byte, i16, u16, i32, u32, int, u64, f32, f64
+    nil, bool, i8, byte, i16, u16, i32, u32, int, u64, f32, f64
     
-
 | Type | Description
 | :--- | :---
 | Array\<T\> | An immutable array of **immutable** elements and a constant `count`.  Even if the array contains mutable elements, they become immutable when copied into the array.  Arrays can be copied very quickly, just by copying a reference.
-| str | An `Array<byte>` with support for UTF-8.  `Array` is immutable, therefore `str` is also immutable
+| str, str16 | An `Array<byte>` with support for UTF-8.  `Array` is immutable, therefore `str` is also immutable.  `str16` is a Javascript style unicode string (i.e `Array<u16>`)
 | List\<T\> | Dynamically sized mutable list with mutable elements
 | Span\<T\> | Span into `Array`, `Buffer`, or `List`.  It has a constant `Count`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `Buffer` or `List` is mutable)
 | Map<K,V> | Unordered mutable map. 
@@ -223,13 +225,13 @@ explicit clone because they are read-only.
 
 Simple data-only types can declare their fields in parentheses.  They are
 mutable by default, but can also be immutable by adding the `ro` qualifier.
-No other constructors, methods, or properties may be added.
+All fields are public.
 
     // Simple types - all fields are public
-    pub type Point(x int, y int)
-    pub type Line(p1 Point, p2 Point)
-    pub type WithInitialization(x int = 1, y int = 2)
-    pub type ro Person(Id int, firstName str, lastName str, birthYear int)
+    type Point(x int, y int)
+    type Line(p1 Point, p2 Point)
+    type WithInitialization(x int = 1, y int = 2)
+    type ro Person(Id int, firstName str, lastName str, birthYear int)
 
 The default constructor can take all the fields in positional order, or any
 of the fields as named parameters. 
@@ -244,11 +246,11 @@ of the fields as named parameters.
 
 ### Complex Types
 
-A complex type must define all of its fields in the body. Fields are declared
+A complex type defines all of its fields in the body. Fields are declared
 with `@` and are private, but may have public properties with `pub get`,
 `pub get set`, etc.
 
-    pub type Example
+    type Example
         // Mutable fields
         @text1 str = "hello"                // Private
         @text2 str pub get = "hello"        // Public get (copy, not a reference)
@@ -264,21 +266,21 @@ with `@` and are private, but may have public properties with `pub get`,
         @roText3 ro str pub init = "Hello"  // Constructor or client can override
         
     // Getter and setter functions (passing copies)
-    pub get Example.text() str
+    get Example.text() str
         return my.text1
 
-    pub set Example.text(value str)
+    set Example.text(value str)
         if value == my.text1
             return
         my.text1 = value
         my.sendTextChangedEvent()
 
     // Getter returning references
-    pub get Example.list1a() ref List<int>      // Immutable reference
+    get Example.list1a() ref List<int>      // Immutable reference
         return ref my.list1
-    pub get Example.list1b() mut List<int>      // Mutable reference, not assignable
+    get Example.list1b() mut List<int>      // Mutable reference, not assignable
         return ref my.list1
-    pub get Example.list1c() mut ref List<int>  // Mutable reference, assignable
+    get Example.list1c() mut ref List<int>  // Mutable reference, assignable
         return ref my.list1
 
 
@@ -310,57 +312,132 @@ They can be created explicitly, or implicitly when a function is called.
     personRef.firstName = "Jeremy"
 
     // Reference is created implicitly when a function is called
-    pub fun setPersonName(p mut Person)
+    fun setPersonName(p mut Person)
         p.FirstName = "Jeremy"
-
-### Anonymous Type
-
-An anonymous type can be created like this: `@a = type(x f64, y f64)`
-or `@a = type(x=1, y=MyFunc())`.  Fields are public, and do not need
-explict type names when used as a local variable. 
-
-    @a = type(x=1, y=2)
-    Log.Info("X={a.x}, Y={a.y}")   // Prints "X=1, Y=2"
 
 ## Interfaces
 
-Zurfur uses Golang style interfaces, which fit nicely with the
-dynamic nature of Javascript.
+Zurfur uses Golang style interfaces, which fit nicely with the dynamic nature
+of Javascript.
+
+## Async
+
+Async is built into the type system but it looks and acts as if it were sync.
+Calling an async function from async code blocks without using the `await` keyword:
+
+    // The keyword `afun` denotes an async function
+    afun MySlowIoFunctionAsync(server str) str
+        @a = fetchHttp(server)      // Blocks without `await` keyword
+        Task.delay(100);            // Also blocks without `await` keyword
+        return a;
+
+Async code normally looks and acts as if it were sync.  But, when we want
+to start or wait for multiple tasks, we can also use the `astart` keyword.
+
+    afun GetStuffFromSeveralServers() str
+        @a = astart fetchHttp(request1)
+        @b = astart fetchHttp(request1)
+        @c = astart fetchHttp(request1)
+        await(a,b,c)
+        // We are guaranteed that a, b, and c have completed succesfully.
+
+The result of an `afun` function is actually a `Future` that can be used in a
+similar way to `Task` in C#.
+
+#### Async Implementation 
+
+Async will be implemented with an actual stack, not with heap objects. 
+This should improve GC performance since each task call won't be
+required to create a heap allocation.  
+
+## Errors and Exceptions
+
+Joe Duffy has some great thoughts on error handling here [Midori](http://joeduffyblog.com/2016/02/07/the-error-model/).
+
+But does the distinction between throwing and non-throwing make sense for
+async? Almost all async functions can throw, so that will be the default:
+
+    fun myFun1() int            // Sync, can not throw but can panic
+    fun myFun2() int throws     // Sync, can throw, can panic
+    afun myFun3() int           // Async, can throw, can panic
+    afun myFun4() int nothrow   // Async, must handle errors or panic
+
+The purpose of `nothrow` is to force top level functions to handle errors.
+For instance, the click event for a GUI might require a `nothrow` function.
+
+|Error Type | Action | Examples
+| :--- | :--- | :---
+|Normal | No stack trace, debugger not stopped | `throw` - File not found, task cancelled
+|Panic | Stack trace logged, debugger stopped | `require` - Array bounds check
+|Critical | End process, stack trace, maybe core dump | Memory corruption, type safety violation
+
+Panics always stop the debugger (if attached) and log a stack trace. They are
+unrecoverable from within sync code.  In async code they continue unwinding
+the async stack up to some special top level exception handler.  The program
+can recover, but a web server might report "500 Internal Server Error" or a
+GUI might save the document and send a bug report back to the developer.
+
+Normal error handling uses `throw` or `throwIf` to send the error up to the
+caller.  There is no need to use a keyword to unwrap the result.  By default,
+the caller will either get the result or automatically re-throw the error up
+to its caller if it may do so.  If it may not re-throw, the caller must
+manually check the result for an error.  The normal non-error path looks
+like C# exception handling.
+
+
+    // File.open either opens the file, or automatically passes the error up
+    @stream = File.open("config.json")
+
+    // If readAllLines fails, the file is closed and the error is passed up
+    @textLines = stream.readAllLines()
+
+An error can be detected when the function is called:
+
+    if try File.open("config.json")@stream
+        // Do something with `stream`, which is a FileStream
+        // The file is closed at the end of the scope, even if it is a panic
+    else
+        // Do something with `stream`, which is an Error
+
+Resource cleanup can be performed by the `drop` function, such as with
+`FileStream` above.  Another method is to use `defer`:
+
+    // Use `defer` to cleanup at the end of the scope
+    @databaseHandle = c_function_to_open_a_database_handle("database")
+    defer c_function_to_close_a_database_handle(databaseHandle)
+    // The above function is called at the end of the scope, even if panic
+
+The third method is to use `scope`..`finally` which is similar to C#
+`try`..`finally`.  
+
 
 ### New, Equality, Clone, and Drop
 
 The `new` function is the type constructor.  It does not have access to
-`this` and may not call member functions except for another `new` function
-(e.g. `new(a int)` may call `new()`).  `unsafe` can be used to get access
-to `this` in the constructor.  `init` is called after the object is
-created and it has access to `this` and may call other member functions.
+`my` and may not call member functions except for another `new` function
+(e.g. `new(a int)` may call `new()`).  
 
-`Equals`, `GetHashCode`, `Clone`, and `DeepClone` are generated automatically
-for types that don't contain pointers or define a `drop` function.  The `Equals`
-function compares values, not object references (although object references may
-be used to speed up the comparison).  Types that don't have an `Equals` function
-may not be compared with `==` or `!=`.
+`_opEq`, `getHash`, `clone`, and `deepClone` are generated automatically
+for types where all of the elements also implement these functions.  The 
+`_opEq` function compares values, not object references.  Types that don't
+implement an `_opEq` function may not be compared with `==` or `!=`.
 
-Like Rust, an explicit `clone` is required to copy any type that requires
-dynamic allocation.  If the type contains only `int`, `str`, and `Array`,
-it will implicitly copy itself.  If the type contains `List`, `Map`, or
-any other dynamically allocated mutable data, it must be explicitly cloned.
+Like Rust, an explicit `clone` is required to copy any mutable type that
+requires dynamic allocation.  If the type contains only `int`, `str`, and
+`Array`, it will implicitly copy itself.  If the type contains `List`, `Map`,
+or any other dynamically allocated mutable data, it must be explicitly cloned.
 Some types, such as `FileStream` can't be cloned at all.
 
 `clone` clones the entire object, but does a shallow copy of pointers.
 For instance, `List<MyType>>` is cloned fully provided that `MyType`
 doesn't contain a pointer.  Even if `MyType` contained a `List<str>`,
 everything is cloned.  For `List<*MyType>`, the pointer is copied
-and `MyType` is not cloned.  `DeepClone` can be used to clone the
+and `MyType` is not cloned.  `deepClone` can be used to clone the
 entire object graph regardless of pointers or circular references.
 
-A type may define `drop`, which is called deterministically when the
-object goes out of scope. If the object is boxed (e.g. `*MyType`), then
-there is no such guarantee.  Boxed objects may have `drop` called at any
-time after they are no longer reachable.  If a `*FileStream` were still
-open when the object is dropped non-deterministically, it is considered
-a programming error. In debug mode, the debugger would stop.  In release
-mode, an error is logged, but the program would carry on.
+A type may define `drop`, which is called deterministically when a
+local stack object goes out of scope.  If the object is not
+local, the `drop` function may be called some time later.
 
 The `drop` function does not have access to any references or `boxed`
 types.  There is no zombie resurrection. 
@@ -408,12 +485,13 @@ Strings (i.e. `str`) are immutable byte arrays (i.e. `Array<byte>`), generally
 assumed to hold UTF8 encoded characters.  However, there is no rule enforcing
 the UTF8 encoding so they may hold any binary data.
 
-String literals start with a quote `"` and can be translated at runtime
-using `tr"string"` syntax.  They are interpolated with curly braces (e.g
-`${expression}`). Control characters may be put inside an interpolation
-(e.g. `${\t}` is a tab).  Inside the quoted string, the backslash `\`
+String literals start with a backtick and can be translated at runtime
+using `` tr`string` `` syntax.  They are interpolated with curly braces (e.g
+`` `${expression}` ``). Control characters may be put inside an interpolation
+(e.g. `` `${\t}` `` is a tab).  Inside the quoted string, the backslash `\`
 is not treated differently than any other character.
 
+**TBD:** fix this picture:
 ![](Doc/Strings.png)
 
 There is no `StringBuilder` type, use `List<byte>` instead:
@@ -421,7 +499,7 @@ There is no `StringBuilder` type, use `List<byte>` instead:
     @sb = List<byte>()
     sb.push("Count from 1 to 10: ")
     for @count in 1..+10
-        sb.push(" {count}")
+        sb.push(` ${count}`)
     return sb.toArray()
 
 #### Span
@@ -505,8 +583,7 @@ Enumerations are similar to C# enumerations, in that they are just
 a wrapped `int`.  But they are implemented internally as a `type`
 and do not use `,` to separate values.
 
-    pub enum MyEnum
-    {
+    enum MyEnum
         A           // A is 0
         B; C        // B is 1, C is 2
         D = 32      // D is 32
@@ -515,7 +592,6 @@ and do not use `,` to separate values.
         // Enumerations can define ToStr
         fun ToStr() str
             return MyConvertToTranslatedName()
-    }
 
 The default `ToStr` function shows the value as an integer rather
 than the name of the field, but it is possible to override and make it
@@ -682,7 +758,7 @@ The simplest form of the for loop is when the expression evaluates to an integer
 
     // Print the numbers 0 to 9
     for @i in 10
-        Console.WriteLine(i)   // `i` is an integer
+        Console.writeLine(i)   // `i` is an integer
 
     // Increment all the numbers in an list
     for @i in list.Count
@@ -692,18 +768,17 @@ The range operators can be used as follows:
 
     // Print all the numbers in the list
     for @i in 0..list.Count
-        Console.WriteLine(list[i])
+        Console.writeLine(list[i])
 
     // Collect elements 5,6, and 7 into myList
     for @i in 5..+3
-        myList.Add(myArray[i])
+        myList.push(myArray[i])
 
-Any object that supplies an enumerator (or has a `get` indexer and a `Count` property)
-can be enumerated.  The `Map` enumerator supplies key value pairs:
+Maps can be iterated over:
 
-    // Print key value pairs of all elements in a map
+    // Log key value pairs of all elements in a map
     for @kv in map
-        Console.WriteLine("Key: " + kv.Key.ToString() + " is " + kv.Value.ToString())
+        Log.info(`Key: ${kv.key} is {kv.value}`)
 
 The expression after `in` is evaluated at the start of the loop and never
 changes once calculated:
@@ -742,39 +817,6 @@ Both `switch` and `match` are reserved for future use.  For now, use `if`,
     else myNum >= 3
         DoTheLastThing()
 
-## Errors and Exceptions
-
-Joe Duffy has some great thoughts on error handling here [Midori](http://joeduffyblog.com/2016/02/07/the-error-model/).
-
-That is what we will do for sync code.  **TBD:** But does it make sense for
-async?  All async functions can fail, either because they are IO or because
-they can be cancelled.  In this case, all `afun` functions must be marked
-as throwing, so why not just assume `afun` can always throw?
-
-|Error Type | Action | Examples
-| :--- | :--- | :---
-|Normal | No stack trace, debugger not stopped | `throw` - File not found, file permissions
-|Abnormal | Stack trace logged, debugger stopped | `require` - Array bounds check, RPC
-|Critical | End process | Memory corruptiopn
-
-
-    fun myFun1() int        // Sync, can't throw (but can have an abnormal error)
-    fun myFun2() !int       // Sync, can throw (and can have a abnormal error)
-    afun myFun3() int       // TBD: Allow all async functions to throw?
-    afun myFun4() !int      // TBD: If all async can throw, this isn't needed
-
-**TBD:** All async functions can throw?  Abnormal errors converted to
-normal errors in async code?
-
-Abnormal errors always stop the debugger (if attached) and log a stack trace
-and are unrecoverable from within sync code.  In async code they
-**TBD:** either convert to a normal exception (C#/Javascript style) or
-continue unwinding the async stack up to some top level exception handler.
-
-**TBD:** I am leaning towards having runtime errors in async code convert
-to normal C#/Javascript style exceptions.  It might not be ideal from a type
-safety point of view, but it's easy and we're all used to it.  Futhermore, an
-async function represents the future, and who knows what can fail in the future.
 
 
 ## Garbage Collection
@@ -810,7 +852,7 @@ The `^` type is a raw C style pointer.  The `.` operator is used to access
 fields or members of the referenced data.  The `.*` operator can dereference
 the data.
  
-    pub fun strcpy(dest ^byte, source ^byte)
+    fun strcpy(dest ^byte, source ^byte)
         while source.* != 0
             { dest.* = source.*;  dest += 1;  source += 1 }
         dest.* = 0
@@ -873,76 +915,6 @@ followed by a project (e.g. `com.gosub.zurfur`).  For now, top level module
 names must be unique across an entire project.  If there are any top level
 module name clashes, the project will fail to build.  In the future, there
 may be syntax or project settings to resolve that.
-
-## Async
-
-Golang's concept of async is awesome.  Everything should be async by
-default, but look as if it were sync. 
-
-The problem with this approach is that WebAssembly doesn't support
-the same kind of stack switching used by Golang. It would be difficult
-to optimize function calls through a delegate that may or may not be
-async.  One of the goals of Zurfur is that it be as fast and efficient
-as C, so this is too high a price to pay.
-
-For the time being, async is built into the type system but it looks and
-acts as if it were sync.  Calling an async function from async code blocks
-without using the `await` keyword:
-
-    afun MySlowIoFunctionAsync(server str) str
-        // In C# `await` would be needed before both function calls
-        @a = MakeXhrCallToServerAsync(server)    // Blocks without await keyword
-        Task.Delay(100);                            // Also blocks without a keyword
-        return a;
-
-Notice that async functions are defined with the `afun` keyword.
-
-Async code normally looks and acts as if it were sync.  But, when we want
-to start or wait for multiple tasks, we can also use the `astart` and
-`await` keywords.
-
-    afun GetStuffFromSeveralServers() str
-        // Start the functions, but do not block
-        @a = astart { MySlowIoFunctionAsync("server1") }
-        @b = astart { MySlowIoFunctionAsync("server2") }
-        @c = astart { MySlowIoFunctionAsync("server3") }
-
-        // The timeout cancels the task after 10 seconds, but we'll hand
-        // the task to the user who may push a button to cancel early
-        // TBD: Timeouts and cancellation are still TBD
-        @timeout = astart Task.Delay(10000); 
-        GiveThisTaskToAUserWhoCancelTheOperationEarly(timeout)
-
-        // Collect the results in the order they complete order
-        @sum = new list<str>()
-        await a, b, c, timeout
-            case a.HasResult: sum += a.Result
-            case b.HasResult: sum += b.Result
-            case c.HasResult: sum += c.Result
-            case a.HasException: sum += "a failed"   // It threw an exception but swallow it and continue
-            case b.HasException: sum += "b failed"   // Cancel remaining tasks and exit immediately
-            case timeout.HasResult: break            // 10 seconds has passed, cancel automatically
-            case timeout.HasException: break         // The user has canceled the operation early
-            // TBD: break cancels all remaining tasks
-            // TBD: If `c` throws, all remaining tasks are canceled.
-
-        // TBD: The only way to get out of an `await` is when all of the awaited
-        // tasks have completed completed (possibly with an exception)
-
-        // Not strictly necessary, but TBD good practice? 
-        // TBD: Make sure Task functions can use `FinalizeNotify` to clean up
-        timeout.Cancel()
-
-A sync function cannot implicitly call an async function, but it can start it
-using the `astart` keyword, like this: `fun MySyncFunction() { astart MyAsyncFunction() }`
-
-#### Async Implementation 
-
-Async will be implemented with an actual stack, not with heap objects. 
-This should improve GC performance since each task call won't be
-required to create a heap allocation.  Stacks themselves won't be
-GC objects.  Instead there will be a reusable list of stack arrays.
-
 
 
 

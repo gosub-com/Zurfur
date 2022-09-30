@@ -1125,6 +1125,9 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         bool ParseExtensionTypeAndMethodName(out SyntaxExpr extensionType, out Token funcName, out SyntaxExpr genericTypeArgs)
         {
+            if (mToken == "(")
+                return ParseExtensionTypeAndMethodNameGolangStyle(out extensionType, out funcName, out genericTypeArgs);
+
             extensionType = null;
             genericTypeArgs = null;
             funcName = mToken;
@@ -1170,6 +1173,44 @@ namespace Gosub.Zurfur.Compiler
             RejectUnderscoreDefinition(funcName);
             return nameExpr.Count == 0;
         }
+
+        /// <summary>
+        /// Returns true if we are a valid method name
+        /// </summary>
+        bool ParseExtensionTypeAndMethodNameGolangStyle(out SyntaxExpr extensionType, out Token funcName, out SyntaxExpr genericTypeArgs)
+        {
+            extensionType = null;
+            genericTypeArgs = null;
+
+            // Parse extension method parameter
+            Debug.Assert(mToken == "(");
+            var open = Accept();
+            var mutToken = mToken == "mut" ? Accept() : null;
+            extensionType = ParseType();
+            
+            // TBD: Record 'mut' token for static functions inside interfaces
+            if (mutToken != null)
+                extensionType = new SyntaxUnary(mutToken, extensionType);
+
+            if (AcceptMatchOrReject(")"))
+                Connect(open, mPrevToken);
+
+            if (sReservedUserFuncNames.Contains(mTokenName))
+            {
+                // Reserved function
+                funcName = Accept();
+                funcName.Type = eTokenType.Reserved;
+                return true;
+            }
+
+            funcName = mToken;
+            if (!AcceptIdentifier("Expecting a function or property name", sRejectTypeName))
+                return false;
+            funcName.Type = eTokenType.DefineMethod;
+            genericTypeArgs = ParseTypeParameters();
+            return true;
+        }
+
 
         /// <summary>
         /// returns SyntaxExpr:

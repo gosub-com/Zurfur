@@ -12,6 +12,7 @@ use Zurfur.Collections[Iterator]
     @end T pub init get
 
 [pub] get Range<T>.count() T
+    where T is OpSub<T>
     return my.end-my.begin
 
 [pub] get Range<T>.iterator() RangeIterator<T>
