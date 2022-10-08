@@ -17,23 +17,23 @@ namespace Gosub.Zurfur.Compiler
 
     class Rval
     {
-        public Token Identifier;
+        public Token Token;
         public Symbol Type;
         public List<Symbol> Symbols = new List<Symbol>();
-        public Symbol LeftDotType;
+        public Symbol InType;
         public bool IsUntypedConst; // NOTE: 3int is a typed const
 
-        public Rval(Token identifier, Symbol returnType = null)
+        public Rval(Token token, Symbol returnType = null)
         {
             Type = returnType;
-            Identifier = identifier;
+            Token = token;
         }
 
         public override string ToString()
         {
-            return $"Identifier: '{Identifier}', symbols: {Symbols.Count}, "
+            return $"Token: '{Token}', symbols: {Symbols.Count}, "
                   +$"type: {(Type == null ? "(unresolved)" : Type.FullName)}, "
-                  +$"leftDotType: {(LeftDotType == null ? "(unresolved)": LeftDotType.FullName)}";
+                  +$"InType: {(InType == null ? "(none)": InType.FullName)}";
         }
     }
 
@@ -45,9 +45,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sOperators = new WordSet("+ - * / % & | ~ ! == != >= <= > < << >> and or in |= &= += -= <<= >>= .. ..+ ]");
         static WordSet sCmpOperators = new WordSet("== != >= <= > <");
         static WordSet sIntTypeNames = new WordSet("Zurfur.int Zurfur.u64 Zurfur.i32 Zurfur.u32");
-        static WordSet sDerefAll = new WordSet("ref ^ * mut own");
-        static WordSet sDerefMutOwn = new WordSet("mut own");
-        static WordSet sDerefPointer = new WordSet("^");
+        static WordSet sDerefPointers = new WordSet("ref ^ *");
         static WordMap<string> sBinOpNames = new WordMap<string> {
             {"+", "_opAdd"}, {"+=", "_opAdd"}, {"-", "_opSub"}, {"-=", "_opSub"},
             {"*", "_opMul"}, {"*=", "_opMul"}, {"/", "_opDiv"}, {"/=", "_opDiv"},
@@ -94,6 +92,7 @@ namespace Gosub.Zurfur.Compiler
             var typeInt = table.Lookup("Zurfur.int");
             var typeU64 = table.Lookup("Zurfur.u64");
             var typeI32 = table.Lookup("Zurfur.i32");
+            var typeU32 = table.Lookup("Zurfur.u32");
             var typeStr = table.Lookup("Zurfur.str");
             var typeBool = table.Lookup("Zurfur.bool");
             var typeF64 = table.Lookup("Zurfur.f64");
@@ -118,6 +117,15 @@ namespace Gosub.Zurfur.Compiler
                     if (expr != null)
                         EvalType(expr);
                 }
+
+            // Unresolved local symbols generate an error
+            // TBD: This is anoying while writing code, so show the error
+            //      only when the symbol is used somewhere else in the code.
+            //      Or don't show error when the cursor is over the symbol?
+            // foreach (var local in locals.Values)
+            //     if (local.Type == null)
+            //         Reject(local.Token, $"'{local.SimpleName}'  has an unresolved type");
+
             return;
 
 
@@ -194,14 +202,16 @@ namespace Gosub.Zurfur.Compiler
                         numberType = typeInt;
                     else if (customType == "u64")
                         numberType = typeU64;
+                    else if (customType == "i32")
+                        numberType = typeI32;
+                    else if (customType == "u32")
+                        numberType = typeU32;
                     else if (customType == "f64")
                         numberType = typeF64;
                     else if (customType == "f32")
                         numberType = typeF32;
                     else
-                    {
-                        Reject(ex[0].Token, "Undefined number type");
-                    }
+                        Reject(ex[0].Token, $"'{ex[0].Token}' undefined number type");
                 }
 
                 var rval = new Rval(ex.Token, numberType) { IsUntypedConst = untypedConst };
@@ -212,12 +222,10 @@ namespace Gosub.Zurfur.Compiler
 
             Rval GenIdentifier(SyntaxExpr ex)
             {
-                var rval = new Rval(ex.Token);
-                FindGlobal(ex.Token, rval.Symbols);
-                if (rval.Symbols.Count == 0)
-                    Reject(ex.Token, "Undefined symbol");
-                RemoveLastDuplicates(rval.Symbols);
-                return rval;
+                var symbols = FindGlobal(ex.Token, ex.Token.Name);
+                if (symbols == null)
+                    return null;
+                return new Rval(ex.Token) {  Symbols = symbols };
             }
 
             // Similar to identifier, except we know it's a type (e.g. List<int>, etc)
@@ -227,7 +235,8 @@ namespace Gosub.Zurfur.Compiler
                 if (type == null)
                     return null;
 
-                return new Rval(ex.Token, type);
+                return new Rval(ResolveType.FindTypeArgLeftDotRight(ex))
+                    { Symbols = new List<Symbol>() { type } };
             }
 
             Rval GenParen(SyntaxExpr ex)
@@ -256,28 +265,25 @@ namespace Gosub.Zurfur.Compiler
                     return null;
 
                 // Automatically dereference pointers, etc
-                leftType = DerefMutOwn(leftType);
-                leftType = DerefAll(leftType);
+                leftType = DerefPointers(leftType);
 
                 // Generic parameters not finished
-                var identifier = ex[1].Token;
+                var token = ex[1].Token;
                 if (leftType.FullName.StartsWith("#"))
                 {
                     // TBD: Use constraints to find the type
-                    Reject(identifier, "Compiler not finished: Dot operator on generic type");
+                    Reject(token, "Compiler not finished: Dot operator on generic type");
                     return null;
                 }
 
-                var rval = new Rval(identifier);
-                rval.LeftDotType = leftType;
-                FindInType(identifier, leftType, rval.Symbols);
-                RemoveLastDuplicates(rval.Symbols);
-                if (rval.Symbols.Count == 0)
-                    Reject(identifier, $"Undefined symbol in the type '{leftType}'");
-
+                var rval = FindInType(token, token.Name, leftType);
+                if (rval == null)
+                    return null;
                 return rval;
             }
 
+            Symbol DerefPointers(Symbol type)
+                => Deref(type, sDerefPointers);
 
             // Dereference the given type names
             Symbol Deref(Symbol type, WordSet typeNames)
@@ -293,10 +299,6 @@ namespace Gosub.Zurfur.Compiler
                 }
                 return type;
             }
-
-            Symbol DerefMutOwn(Symbol type) => Deref(type, sDerefMutOwn);
-            Symbol DerefAll(Symbol type) => Deref(type, sDerefAll);
-            Symbol DerefPointer(Symbol type) => Deref(type, sDerefPointer);
 
             Rval GenDotStar(SyntaxExpr ex)
             {
@@ -314,7 +316,7 @@ namespace Gosub.Zurfur.Compiler
                     Reject(ex.Token, $"Only pointers may be dereferenced, but the type is '${leftType}'");
                     return null;
                 }
-                var deref = DerefPointer(leftType);
+                var deref = DerefPointers(leftType);
                 ex.Token.AddInfo(deref);
                 return new Rval(ex.Token, deref);
             }
@@ -342,7 +344,7 @@ namespace Gosub.Zurfur.Compiler
                 // Assign type to local variable
                 Debug.Assert(variables.Symbols.Count == 1 && variables.Symbols[0].IsLocal && variables.Symbols[0].Type == null);
                 variables.Symbols[0].Type = valueType;
-                variables.Identifier.AddInfo(valueType);
+                variables.Token.AddInfo(valueType);
                 return value;
             }
 
@@ -354,14 +356,14 @@ namespace Gosub.Zurfur.Compiler
                     if (e.Count == 0 || e.Token == "")
                         return null; // Syntax error
 
-                    var newVarIdentifier = e.Token;
-                    if (FindLocal(newVarIdentifier) != null)
+                    var newVarToken = e.Token;
+                    if (FindLocal(newVarToken) != null)
                     {
-                        Reject(newVarIdentifier, $"Duplicate symbole.  There is already a {FindLocal(newVarIdentifier).KindName} named '{newVarIdentifier}'");
+                        Reject(newVarToken, $"'{newVarToken}' is a duplicate symbol.");
                         return null;
                     }
-                    var local = new SymLocal(null, newVarIdentifier);
-                    locals[newVarIdentifier] = local;
+                    var local = new SymLocal(null, newVarToken);
+                    locals[newVarToken] = local;
                     newSymbols.Add(local);
 
                     // Check for type name
@@ -373,12 +375,12 @@ namespace Gosub.Zurfur.Compiler
 
                 if (newSymbols.Count == 0)
                 {
-                    Reject(rejectToken, "Expecting at least 1 symbol");
+                    Reject(rejectToken, $"'{rejectToken}' expecting at least 1 symbol");
                     return null;
                 }
                 if (newSymbols.Count != 1)
                 {
-                    Reject(rejectToken, "Multiple symbols not supported yet");
+                    Reject(rejectToken, $"'{rejectToken}' multiple symbols not supported yet");
                     return null;
                 }
                 var rval = new Rval(newSymbols[0].Token);
@@ -428,10 +430,9 @@ namespace Gosub.Zurfur.Compiler
                 if (type == null || expr == null)
                     return null;
 
-                var typeNoMut = DerefMutOwn(type);
-                if (typeNoMut.Parent.SimpleName != "^" && typeNoMut != typeU64)
+                if (type.Parent.SimpleName != "^" && type != typeU64)
                 {
-                    Reject(ex.Token, $"The cast type must be a pointer or u64, but it is '{typeNoMut}'");
+                    Reject(ex.Token, $"The cast type must be a pointer or u64, but it is '{type}'");
                     return null;
                 }
 
@@ -439,10 +440,9 @@ namespace Gosub.Zurfur.Compiler
                 if (exprType == null)
                     return null;
 
-                var exprTypeNoMut = DerefMutOwn(exprType);
-                if (exprTypeNoMut.Parent.SimpleName != "^" && exprTypeNoMut != typeU64)
+                if (exprType.Parent.SimpleName != "^" && exprType != typeU64)
                 {
-                    Reject(ex.Token, $"The expression must evaluate to a pointer or u64, but is a '{exprTypeNoMut}'");
+                    Reject(ex.Token, $"The expression must evaluate to a pointer or u64, but is a '{exprType}'");
                     return null;
                 }
                 return new Rval(ex.Token, type);
@@ -517,7 +517,7 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 // TBD: Must afigure out how to deal with mut
-                if (DerefMutOwn(leftType).FullName != DerefMutOwn(rightType).FullName)
+                if (leftType.FullName != rightType.FullName)
                 {
                     Reject(ex.Token, $"Types must match: {leftType.FullName} = {rightType.FullName}");
                     return null;
@@ -616,8 +616,9 @@ namespace Gosub.Zurfur.Compiler
                         operatorName = "_opBitNot";
                 }
                 
-                var functions = new List<Symbol>();
-                FindGlobal(operatorName, functions);
+                var functions = FindGlobal(ex.Token, operatorName);
+                if (functions == null)
+                    return null;
 
                 var rval = FindCompatibleFunction(ex.Token, args, functions, 
                     $" '{operatorName}' (operator '{ex.Token}')");
@@ -693,52 +694,52 @@ namespace Gosub.Zurfur.Compiler
 
                 // Generate function call and then parameters
                 var funCall = GenExpr(ex[0]);
-
-                // TBD: This is temporary until we collect "new" methods from types
-                //      Allow this so all 'Type<T>(expression)' returns Type for now
-                if (funCall != null && funCall.Type != null)
-                    return funCall;
-
                 var args = GenCallParams(ex, 1);
 
-                if (funCall == null || funCall.Symbols.Count == 0)
+                if (funCall == null)
                     return null;  // Undefined symbol or error evaluating left side
 
+                var funToken = funCall.Token;
                 if (args == null)
                 {
                     // Give some feedback on the functions that could be called
+                    if (funCall.Type != null)
+                        funToken.AddInfo(funCall.Type);
                     foreach (var sym in funCall.Symbols)
-                        funCall.Identifier.AddInfo(sym);
+                        funToken.AddInfo(sym);
                     return null;
                 }
 
-                // TBD: This is temporary until we collect "new" methods from types
-                //      Allow this so all 'Type(expression)' returns Type for now 
-                if (funCall.Symbols.Count == 1 && !funCall.Symbols[0].IsMethod)
+                if (funCall.Type != null)
                 {
-                    return funCall;
+                    Reject(funToken, "Method name expected");
+                    return null;
                 }
+                Debug.Assert(funCall.Symbols.Count != 0); // Filtered when retrieving symbol
 
-                // TBD: Collect "new" methods from types, allow function calls on types and fields, etc.
-                foreach (var s in funCall.Symbols)
+                // TBD: Allow function calls on fields, etc.
+                // If it's a type, collect "new" methods
+                var rejectStr = $"'{funToken}'";
+                var symbols = funCall.Symbols;
+                var inType = funCall.InType;
+                if (symbols[0].IsAnyType)
                 {
-                    // For now, reject anything that is not a method
-                    if (!s.IsMethod)
-                    {
-                        Reject(funCall.Identifier, $"Compiler not finished: Function calls on {s.KindName} not working yet");
+                    Debug.Assert(inType == null);
+                    inType = symbols[0];
+                    rejectStr = $"'new' (constructor for '{inType}')";
+                    funToken.Type = eTokenType.TypeName;
+                    var rval = FindInType(funToken, "new", symbols[0]);
+                    if (rval == null)
                         return null;
-                    }
+                    symbols = rval.Symbols;
                 }
 
-                // Insert leftDot type as first parameter so all types match
+                // Insert inType type as first parameter so all types match
                 // TBD: I don't think this is a long term solution
-                if (funCall.LeftDotType != null && !funCall.LeftDotType.IsModule)
-                {
-                    funCall.Type = funCall.LeftDotType;
-                    args.Insert(0, funCall);
-                }
+                if (inType != null && !inType.IsModule)
+                    args.Insert(0, new Rval(funToken, inType));
 
-                var function = FindCompatibleFunction(funCall.Identifier, args, funCall.Symbols, $"'{funCall.Identifier}'");
+                var function = FindCompatibleFunction(funToken, args, symbols, rejectStr);
                 if (function != null && function.Symbols.Count > 0 && function.Symbols[0].IsGetter)
                     Reject(ex.Token, "Getter cannot be called with parenthesis");
 
@@ -756,38 +757,40 @@ namespace Gosub.Zurfur.Compiler
                     }
 
                 var oldCalls = functions.ToArray();
-                functions.RemoveAll(callFunc => !IsCallCompatible((SymMethod)callFunc, args));
+                functions.RemoveAll(callFunc => !IsCallCompatible(callFunc, args));
 
                 // TBD: Would be nice to give an error on the parameter if it's obvious
                 //      which one it is.  Error messages can be improved a lot.
                 if (functions.Count == 0)
                 {
-                    Reject(token, $"No function {rejectName} taking parameters {ParamTypes(args)} is in scope.");
-                    foreach (var sym in oldCalls)
-                        token.AddInfo(sym);
+                    RejectSymbols(token, oldCalls, 
+                        $"No function {rejectName} taking parameters {ParamTypes(args)} is in scope.");
                     return null;
                 }
 
                 if (functions.Count != 1)
                 {
-                    Reject(token, $"Found multiple functions {rejectName} taking {ParamTypes(args)}");
-                    foreach (var sym in functions)
-                        token.AddInfo(sym);
+                    RejectSymbols(token, functions, 
+                        $"Found multiple functions {rejectName} taking {ParamTypes(args)}");
                     return null;
                 }
 
                 var method = (SymMethod)functions[0];
                 token.AddInfo(method);
                 return new Rval(token) { Type = method.GetReturnType(table), Symbols = functions };
-            }
 
+            }
 
             // Return parameter types as a string, eg. '(type1, type2,...)'
             string ParamTypes(List<Rval> args)
                 => "'(" + string.Join(", ", args.Select(a => a.Type.FullName)) + ")'";
 
-            bool IsCallCompatible(SymMethod method, List<Rval> args)
+            bool IsCallCompatible(Symbol symbol, List<Rval> args)
             {
+                var method = symbol as SymMethod;
+                if (method == null)
+                    return false;
+
                 var methodParamTypes = method.GetParamTypeList();
                 if (args.Count != methodParamTypes.Count)
                     return false;
@@ -799,12 +802,12 @@ namespace Gosub.Zurfur.Compiler
                         return false;
 
                     // TBD: Consider making 'mut' into a type attribute
-                    var arg = DerefMutOwn(args[i].Type);
-                    var param = DerefMutOwn(methodParamTypes[i]);
+                    var arg = args[i].Type;
+                    var param = methodParamTypes[i];
 
                     // Implicit conversion from ^Type to ^void
                     if (arg.Parent.SimpleName == "^" && param.Parent.SimpleName == "^"
-                        && DerefPointer(param) == typeVoid)
+                        && DerefPointers(param) == typeVoid)
                     {
                         continue;
                     }
@@ -837,10 +840,13 @@ namespace Gosub.Zurfur.Compiler
             }
 
 
-            // Get return type or null if symbol is not found, is unresolved, or ambiguous.
+            // Get return type of symbol.
+            // Returns null if symbol is not found, is unresolved, or ambiguous.
+            // When lvalue is true, the symbol may be an unresolved local.
             // Mark an error when there is no match.
             Symbol EvalType(Rval rval, bool ignoreLocalUntypedError = false)
             {
+                //Debug.Assert(rval.Type == null || rval.Symbols.Count == 0);
                 // Done if we already have return type
                 if (rval.Type != null)
                     return rval.Type;
@@ -849,31 +855,28 @@ namespace Gosub.Zurfur.Compiler
                 if (symbols.Count == 0)
                     return null;
 
-                // Filter out functions, except getter's
+                // Filter out functions, except getters
                 var oldCalls = symbols.ToArray();
                 symbols.RemoveAll(callFunc => callFunc.IsMethod && !callFunc.IsGetter);
+                var token = rval.Token;
                 if (symbols.Count == 0)
                 {
-                    Reject(rval.Identifier, $"Can't find variable, field, or getter function");
-                    foreach (var oldSym in oldCalls)
-                        rval.Identifier.AddInfo(oldSym);
+                    RejectSymbols(token, oldCalls,
+                        $"'{token}' can't find variable, field, or getter function");
                     return null;
                 }
 
                 // Don't allow multiple symbols
-                var identifier = rval.Identifier;
                 if (symbols.Count != 1)
                 {
-                    Reject(identifier, "Found multiple symbols");
-                    foreach (var symbol in symbols)
-                        identifier.AddInfo(symbol);
+                    RejectSymbols(token, symbols,  $"'{token}' is ambiguous");
                     return null;
                 }
 
                 var sym = symbols[0];
-                identifier.AddInfo(sym);
+                token.AddInfo(sym);
                 if (sym.IsType || sym.IsModule)
-                    identifier.Type = eTokenType.TypeName;
+                    token.Type = eTokenType.TypeName;
 
                 if (sym.IsAnyType)
                 {
@@ -884,14 +887,14 @@ namespace Gosub.Zurfur.Compiler
                 if (sym.IsLocal)
                 {
                     if (sym.Type == null && !ignoreLocalUntypedError)
-                        Reject(rval.Identifier, $"'{sym.SimpleName}'  has an unresolved type");
+                        Reject(token, $"'{token}'  has an unresolved type");
                     rval.Type = sym.Type;
                     return sym.Type;
                 }
                 if (sym.IsField || sym.IsMethodParam)
                 {
                     if (sym.Type == null)
-                        Reject(rval.Identifier, $"'{sym.SimpleName}'  has an unresolved type");
+                        Reject(token, $"'{token}'  has an unresolved type");
                     rval.Type = sym.Type;
                     return sym.Type;
                 }
@@ -899,11 +902,11 @@ namespace Gosub.Zurfur.Compiler
                 {
                     var returnType = ((SymMethod)sym).GetReturnType(table);
                     if (returnType == null)
-                        Reject(rval.Identifier, $"'{sym}' has no type"); // Syntax error
+                        Reject(token, $"'{token}' has no type"); // Syntax error
                     rval.Type = returnType;
                     return returnType;
                 }
-                Reject(rval.Identifier, $"Compiler failure: '{sym}' is {sym.KindName}");
+                Reject(token, $"'{token}' compiler failure: '{sym}' is {sym.KindName}");
                 Debug.Assert(false);
                 return null;
             }
@@ -911,36 +914,41 @@ namespace Gosub.Zurfur.Compiler
             /// <summary>
             /// Find symbols in the type, including methods defined in
             /// the type's module, this module, or use statements.
+            /// Returns NULL and rejects token on error.
             /// </summary>
-            void FindInType(string identifier, Symbol inType, List<Symbol> symbols)
+            Rval FindInType(Token token, string name, Symbol inType)
             {
                 // Find symbols defined in the type (specialized and un-specialized)
-                AddSymbolsNamed(identifier, inType, symbols);
+                var symbols = new List<Symbol>();
+                AddSymbolsNamed(name, inType, symbols);
                 if (inType is SymSpecializedType)
-                    AddSymbolsNamed(identifier, inType.Parent, symbols);
+                    AddSymbolsNamed(name, inType.Parent, symbols);
 
-                // Find methods in the type's module
-                AddMethodsNamedInModule(identifier, inType.Parent, inType, symbols);
+                // Find methods in the type's module and current module
+                AddMethodsNamedInModule(name, inType.Parent, inType, symbols);
+                AddMethodsNamedInModule(name, currentMethod.Parent, inType, symbols);
 
-                // Find methods in the current function's module
-                AddMethodsNamedInModule(identifier, currentMethod.Parent, inType, symbols);
-
-                // TBD: Scan use statements for methods
-                if (identifier == "bytesToHex")
+                if (symbols.Count == 0)
                 {
-
+                    Reject(token, $"'{name}' is an undefined symbol in the type '{inType}'");
+                    return null;
                 }
 
+                RemoveLastDuplicates(symbols);
+                if (RejectAmbiguousPrimary(token, symbols))
+                    return null;
+
+                return new Rval(token) { Symbols = symbols, InType = inType };
             }
 
-            // Add all children with the given name (primary or method)
+            // Add all children with the given name (primary or non-extension method)
             void AddSymbolsNamed(string name, Symbol inType, List<Symbol> symbols)
             {
                 if (inType.TryGetPrimary(name, out Symbol sym))
                     symbols.Add(sym);
                 if (inType.HasMethodNamed(name))
                     foreach (var child in inType.Children)
-                        if (child.IsMethod && child.Token == name)
+                        if (child.IsMethod && !child.IsExtension && child.Token == name)
                             symbols.Add(child);
             }
 
@@ -953,7 +961,6 @@ namespace Gosub.Zurfur.Compiler
                     return;
 
                 // Ignore mut, etc., then just compare the non-specialized type.
-                withMethodType = DerefMutOwn(withMethodType);
                 if (withMethodType.IsSpecializedType)
                     withMethodType = withMethodType.Parent;
 
@@ -965,9 +972,9 @@ namespace Gosub.Zurfur.Compiler
                     if (parameters.Count == 0)
                         continue;
 
-                    // Ignore mut, etc., then just compare the non-specialized type
+                    // Compare the non-specialized type
                     //      e.g: List<#1> matches List<byte> so we get all functions
-                    var paramType = DerefMutOwn(parameters[0]);
+                    var paramType = parameters[0];
                     if (paramType.IsSpecializedType)
                         paramType = paramType.Parent;
                    
@@ -980,43 +987,60 @@ namespace Gosub.Zurfur.Compiler
 
             /// <summary>
             /// Find symbols in the local/global scope that match this
-            /// identifier.  If it's a local or parameter in the current
+            /// token.  If it's a local or parameter in the current
             /// method, stop searching.  Otherwise find a list of matching
-            /// symbols in the current module (or parents) and also the use
-            /// statements.
+            /// symbols in the current module or use symbols.
+            /// Returns NULL and rejects token on error.
             /// </summary>
-            void FindGlobal(string identifier, List<Symbol> symbols)
+            List<Symbol> FindGlobal(Token token, string name)
             {
-                var local = FindLocal(identifier);
+                var symbols = new List<Symbol>();
+                var local = FindLocal(name);
                 if (local != null)
                 {
                     symbols.Add(local);
-                    return;
+                    return symbols;
                 }
 
                 // Find global symbols in this module
-                AddGlobalSymbolsNamed(identifier, currentMethod.Parent, symbols);
-
-                // Search 'use' symbol
-                if (fileUses.UseSymbols.TryGetValue(identifier, out var useSymbols))
-                {
-                    foreach (var sym in useSymbols)
-                        if (!symbols.Contains(sym))
-                            symbols.Add(sym);
-                }
-            }
-
-            // Add all children with the given name (primary or method)
-            void AddGlobalSymbolsNamed(string name, Symbol module, List<Symbol> symbols)
-            {
-                if (module.TryGetPrimary(name, out Symbol sym))
-                    symbols.Add(sym);
+                var module = currentMethod.Parent;
+                if (module.TryGetPrimary(name, out Symbol sym1))
+                    symbols.Add(sym1);
                 if (module.HasMethodNamed(name))
                     foreach (var child in module.Children)
                         if (child.IsMethod && child.Token == name && !child.IsExtension)
                             symbols.Add(child);
+
+                // Search 'use' symbol
+                if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
+                {
+                    foreach (var sym2 in useSymbols)
+                        if (!sym2.IsExtension && !symbols.Contains(sym2))
+                            symbols.Add(sym2);
+                }
+
+                if (symbols.Count == 0)
+                {
+                    Reject(token, $"'{name}' is an undefined symbol");
+                    return null;
+                }
+
+                RemoveLastDuplicates(symbols);
+                if (RejectAmbiguousPrimary(token, symbols))
+                    return null;
+
+                return symbols;
             }
 
+            // Find a local variable or function parameter, return NULL if there isn't one.
+            Symbol FindLocal(string name)
+            {
+                if (locals.TryGetValue(name, out var local))
+                    return local;
+                if (currentMethod.TryGetPrimary(name, out var primary))
+                    return primary;
+                return null;
+            }
 
             void RemoveLastDuplicates(List<Symbol> symbols)
             {
@@ -1031,24 +1055,37 @@ namespace Gosub.Zurfur.Compiler
                 }
             }
 
-            // Find a local variable or function parameter, return NULL if there isn't one.
-            Symbol FindLocal(string name)
+            // Only allow one primary or multiple functions, but not both.
+            // On error, reject and clear the symbols.
+            bool RejectAmbiguousPrimary(Token token, List<Symbol> symbols)
             {
-                if (locals.TryGetValue(name, out var local))
-                    return local;
-                if (currentMethod.TryGetPrimary(name, out var primary))
-                    return primary;
-                return null;
+                var methods = 0;
+                var primaries = 0;
+                foreach (var symbol in symbols)
+                    if (symbol.IsMethod)
+                        methods++;
+                    else
+                        primaries++;
+
+                var reject = primaries >= 2 || primaries == 1 && methods >= 1;
+                if (reject)
+                    RejectSymbols(token, symbols,
+                        $"'{token}' is ambiguous because there are multiple types/fields mixed with functions");
+                return reject;
             }
 
+            void RejectSymbols(Token token, IEnumerable<Symbol> symbols, string message)
+            {
+                Reject(token, message);
+                foreach (var sym in symbols)
+                    token.AddInfo(sym);
+            }
 
             void Reject(Token token, string message)
             {
                 // TBD: Limit errors based on nearby syntax errors?
-
                 table.Reject(token, message);
             }
-
 
             // Does not add a warning if there is already an error there
             void Warn(Token token, string message)

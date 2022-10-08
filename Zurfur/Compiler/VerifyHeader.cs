@@ -82,7 +82,7 @@ namespace Gosub.Zurfur.Compiler
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
 
                     var methodParent = symbol.Parent;
-                    if (symbol.IsStatic && methodParent.IsModule)
+                    if (symbol.IsStatic && methodParent.IsModule && !symbol.IsExtension)
                         Reject(symbol.Token, "'static' not allowed at module level");
                     if (methodParent.IsInterface && !symbol.IsImpl)
                         Reject(symbol.Token, "Method must be 'impl'");

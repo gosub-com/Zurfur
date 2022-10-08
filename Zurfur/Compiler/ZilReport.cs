@@ -30,17 +30,24 @@ namespace Gosub.Zurfur.Compiler
                 List<string> errorMessages = new List<string>();
                 foreach (var lexer in files)
                 {
+                    var errorList = new List<Token>();
                     foreach (var token in lexer)
+                        if (token.Error)
+                            errorList.Add(token);
+                    foreach (var token in lexer.MetaTokens)
+                        if (token.Error)
+                            errorList.Add(token);
+                    errorList.Sort((a,b) => a.Location.CompareTo(b.Location));
+
+                    foreach (var token in errorList)
                     {
-                        if (!token.Error)
-                            continue;
                         totalErrors++;
                         if (errorMessages.Count > MAX_ERROR_MESSAGES)
                             continue;
 
                         var errors = token.GetInfos<TokenError>();
                         var errorMessage = Path.GetFileName(token.Path)
-                            + $" ({token.Y + 1}:{token.X + 1}) \"{token}\"";
+                            + $" ({token.Y + 1}:{token.X + 1})";
 
                         if (errors.Length == 0)
                             errorMessage += "Unknown!";

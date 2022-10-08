@@ -58,9 +58,6 @@ fun test_ForSimple()
     @Message2 Label pub get set
     @Message3 Label pub get set
 
-
-fun TestGuiForm.new()
-    my.InitializeComponent()
    
    
 [NewCallableAttribute()]

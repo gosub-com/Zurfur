@@ -65,8 +65,8 @@ namespace Gosub.Zurfur.Compiler
             AddModules();
             table.GenerateLookup();
             AddTypes();
-            var useSymbols = ProcessUseStatements(false);
             table.GenerateLookup();
+            var useSymbols = ProcessUseStatements(false);
             ResolveFields();
             ResolveMethods();
             ResolveTypeConstraints();
@@ -186,7 +186,7 @@ namespace Gosub.Zurfur.Compiler
                     {
                         foreach (var op in module.Children)
                         {
-                            if (op.IsFunc
+                            if (op.IsMethod
                                 && sOperatorFunctionNames.Contains(op.SimpleName)
                                 && ((SymMethod)op).GetParamTypeList().FindIndex(f => f.Unspecial() == typeSym) >= 0)
                             {
@@ -207,9 +207,9 @@ namespace Gosub.Zurfur.Compiler
 
             void AddTypes()
             {
-                foreach (var syntaxFile in syntaxFiles)
+                foreach (var syntaxFile in syntaxFiles.Values)
                 {
-                    foreach (var type in syntaxFile.Value.Types)
+                    foreach (var type in syntaxFile.Types)
                     {
                         if (!syntaxToSymbol.TryGetValue(type.Parent, out var parent))
                             continue; // Syntax errors
@@ -221,6 +221,8 @@ namespace Gosub.Zurfur.Compiler
                             AddTypeParams(newType, type.TypeArgs);
                         Debug.Assert(!syntaxToSymbol.ContainsKey(type));
                         syntaxToSymbol[type] = newType;
+
+                        GenerateTypeFunctions(newType, syntaxFile.Lexer);
                     }
                 }
             }
@@ -357,6 +359,48 @@ namespace Gosub.Zurfur.Compiler
                 scope.Constraints = symCon;
             }
 
+
+            // Generate a `new` function that matches this:
+            //      fun (type) new() type
+            // Might be easier to just create a string and compile it.
+            // TBD: Need a better way to create compiler generated code
+            void GenerateTypeFunctions(Symbol typeSym, Lexer lexer)
+            {
+                // There are problems generating code this way:
+                //      Tokens need to point somewhere in the code
+                //      and they don't have any source code.
+                //      So, point them to the type name for now.
+                var tokenLoc = typeSym.Token.Location;
+                var newMethodName = new Token("new", tokenLoc);
+                lexer.MetaTokensAdd(newMethodName);
+
+
+                var method = new SymMethod(typeSym.Parent, newMethodName, "new");
+                method.Qualifiers |= SymQualifiers.Static | SymQualifiers.Extension | SymQualifiers.Pub;
+
+                // Generate generic parameters
+                var genericParamCount = typeSym.GenericParamTotal();
+                for (int i = 0; i < genericParamCount; i++)
+                {
+                    var typeParamName = new Token($"#{i}", tokenLoc);
+                    lexer.MetaTokensAdd(typeParamName);
+                    var typeParam = new SymTypeParam(method, typeParamName);
+                    table.AddOrReject(typeParam);
+                }
+
+                // Generate parameters
+                var methodParam = new SymMethodParam(method, typeSym.Token, "my");
+                var methodParamOut = new SymMethodParam(method, typeSym.Token, "$return");
+                methodParamOut.Qualifiers |= SymQualifiers.ParamOut;
+                var specializedType = ResolveType.AddOuterGenericParameters(table, typeSym, typeSym);
+                methodParam.Type = specializedType;
+                methodParamOut.Type = specializedType;
+                table.AddOrReject(methodParam);
+                table.AddOrReject(methodParamOut);
+                SetFunctionName("new", method);
+                table.AddOrReject(method);
+            }
+
             void ResolveMethods()
             {
                 foreach (var syntaxFile in syntaxFiles)
@@ -371,7 +415,7 @@ namespace Gosub.Zurfur.Compiler
                 if (!syntaxToSymbol.TryGetValue(synFunc.Parent, out var scope))
                     return; // Syntax errors
 
-                Debug.Assert(scope.IsModule  || scope.IsType);
+                Debug.Assert(scope.IsModule || scope.IsType);
                 if (synFunc.MethodSignature.Count != 3)
                 {
                     Reject(synFunc.Name, "Syntax error or compiler error");
@@ -385,9 +429,12 @@ namespace Gosub.Zurfur.Compiler
 
                 AddExtensionMethodGenerics(method, synFunc);
                 AddTypeParams(method, synFunc.TypeArgs);
-                AddMyParam(method, synFunc);
+                var myParam = AddMyParam(method, synFunc);
                 ResolveMethodParams(method, synFunc.MethodSignature[0], false); // Parameters
                 ResolveMethodParams(method, synFunc.MethodSignature[1], true);  // Returns
+
+                if (synFunc.Name == "new")
+                    CheckNewFunction(method, synFunc, myParam);
 
                 method.Token.AddInfo(method);
                 if (synFunc.Parent.Name.Error)
@@ -398,28 +445,33 @@ namespace Gosub.Zurfur.Compiler
                     return;
                 }
 
-                // Set the final function name: "`#(t1,t2...)(r1,r2...)"
-                //      # - Number of generic parameters
-                //      t1,t2... - Parameter types
-                //      r1,r2... - Return types
-                var genericsCount = method.GenericParamCount();
-                var mp = method.ChildrenFilter(SymKind.MethodParam).Where(child => !child.ParamOut).ToList();
-                var mpr = method.ChildrenFilter(SymKind.MethodParam).Where(child => child.ParamOut).ToList();
-                mp.Sort((a, b) => a.Order.CompareTo(b.Order));
-                mpr.Sort((a, b) => a.Order.CompareTo(b.Order));
-                var methodName = synFunc.Name
-                            + (genericsCount == 0 ? "" : "`" + genericsCount)
-                            + "(" + string.Join(",", mp.ConvertAll(a => a.TypeName)) + ")"
-                            + "(" + string.Join(",", mpr.ConvertAll(a => a.TypeName)) + ")";
-                method.SetLookupName(methodName);
+                SetFunctionName(synFunc.Name, method);
                 table.AddOrReject(method);
 
                 ResolveConstraints(method, synFunc.Constraints);
 
                 Debug.Assert(!syntaxToSymbol.ContainsKey(synFunc));
                 syntaxToSymbol[synFunc] = method;
-
             }
+
+            // Set the final function name: "`#(t1,t2...)(r1,r2...)"
+            //      # - Number of generic parameters
+            //      t1,t2... - Parameter types
+            //      r1,r2... - Return types
+            void SetFunctionName(string simpleName, SymMethod method)
+            {
+                var genericsCount = method.GenericParamCount();
+                var mp = method.ChildrenFilter(SymKind.MethodParam).Where(child => !child.ParamOut).ToList();
+                var mpr = method.ChildrenFilter(SymKind.MethodParam).Where(child => child.ParamOut).ToList();
+                mp.Sort((a, b) => a.Order.CompareTo(b.Order));
+                mpr.Sort((a, b) => a.Order.CompareTo(b.Order));
+                var methodName = simpleName
+                            + (genericsCount == 0 ? "" : "`" + genericsCount)
+                            + "(" + string.Join(",", mp.ConvertAll(a => a.TypeName)) + ")"
+                            + "(" + string.Join(",", mpr.ConvertAll(a => a.TypeName)) + ")";
+                method.SetLookupName(methodName);
+            }
+
 
             // For now, extension methods with generic receivers
             // allow only 1 level deep with all type parameters matching:
@@ -476,10 +528,8 @@ namespace Gosub.Zurfur.Compiler
             }
             
 
-            // Add $my parameter for extension methods and member functions.
-            // NOTE: Even static methods get $this, but it is used as a
-            //       type name and not passed as a parameter
-            void AddMyParam(Symbol method, SyntaxFunc func)
+            // Add `my` parameter for extension methods and member functions.
+            Symbol AddMyParam(Symbol method, SyntaxFunc func)
             {
                 // Interface method syntax
                 if (method.Parent.IsInterface && !method.IsStatic)
@@ -488,22 +538,48 @@ namespace Gosub.Zurfur.Compiler
                     var ifaceMethodParam = new SymMethodParam(method, func.Name, "my");
                     ifaceMethodParam.Type = method.Parent;
                     table.AddOrReject(ifaceMethodParam);
-                    return;
+                    return ifaceMethodParam;
                 }
 
                 var extType = func.ExtensionType;
                 if (extType == null || extType.Token == "")
-                    return;
+                    return null;
 
                 // Extension method syntax
                 var methodParam = new SymMethodParam(method, func.Name, "my");
+                if (extType.Token == "mut")
+                {
+                    methodParam.SetQualifier("mut");
+                    extType = extType[0];
+                }
                 methodParam.Type = ResolveTypeNameOrReject(methodParam, extType);
                 method.Qualifiers |= SymQualifiers.Extension;
                 if (methodParam.TypeName == "" && !noCompilerChecks)
                     methodParam.Token.AddInfo(new VerifySuppressError());
                 table.AddOrReject(methodParam);
+                return methodParam;
             }
-            
+
+            // Give `new` function correct return type
+            void CheckNewFunction(SymMethod method, SyntaxFunc synFunc, Symbol myParam)
+            {
+
+                method.Qualifiers |= SymQualifiers.Static;
+                foreach (var parameter in synFunc.MethodSignature[1])
+                    if (parameter[0].Token != "")
+                        Reject(parameter[0].Token, "'new' function must not have return parameters");
+                if (myParam == null)
+                {
+                    Reject(method.Token, "'new' must be an extension method");
+                    return;
+                }
+                var returnParam = new SymMethodParam(method, synFunc.Name, "$return");
+                returnParam.Qualifiers |= SymQualifiers.ParamOut;
+                returnParam.Type = myParam.Type;
+                table.AddOrReject(returnParam);
+            }
+
+
 
             void ResolveMethodParams(Symbol method, SyntaxExpr parameters, bool isReturn)
             {
@@ -554,8 +630,8 @@ namespace Gosub.Zurfur.Compiler
             {
                 table.Reject(token, message);
             }
-
         }
+
 
         // Does not add a warning if there is already an error there
         static void Warning(Token token, string message)

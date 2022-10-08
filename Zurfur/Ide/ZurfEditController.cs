@@ -161,8 +161,8 @@ namespace Gosub.Zurfur.Ide
             }
 
             // Highlight all tokens on the screen with the same symbol info
-            var symbol = newToken.GetInfo<Symbol>();
-            if (symbol != null)
+            var symbols = newToken.GetInfos<Symbol>();
+            foreach (var symbol in symbols)
             {
                 var endLine = editor.TopVisibleLine + editor.LinesInWindow();
                 foreach (var token in editor.Lexer.GetEnumeratorStartAtLine(editor.TopVisibleLine))
@@ -315,8 +315,9 @@ namespace Gosub.Zurfur.Ide
             if (symbols.Length == 0)
                 return "";
 
-            // When a token has multiple symbols, display a summary.
-            if (symbols.Length > 1)
+            // When a token has multiple symbols or an error, display a summary.
+            if (symbols.Length > 1
+                || symbols.Length == 1 && mHoverToken.Error)
             {
                 message += "SYMBOLS:\r\n";
                 message += string.Join("\r\n", symbols.Select(sym =>

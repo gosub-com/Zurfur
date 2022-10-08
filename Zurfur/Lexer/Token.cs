@@ -84,6 +84,12 @@ namespace Gosub.Zurfur.Lex
             X = x;
             Y = y;
         }
+        public Token(string name, TokenLoc loc)
+        {
+            Name = name;
+            X = loc.X;
+            Y = loc.Y;
+        }
 
         public Token(string name, int x, int y, eTokenType tokenType)
         {
@@ -467,7 +473,7 @@ namespace Gosub.Zurfur.Lex
     /// <summary>
     /// Keep track of the token location (Y is line number, X is column)
     /// </summary>
-    public struct TokenLoc
+    public struct TokenLoc : IComparable<TokenLoc>
     {
         /// <summary>
         /// Line number of token
@@ -534,6 +540,13 @@ namespace Gosub.Zurfur.Lex
                 return false;
             return this == (TokenLoc)obj;
         }
+        public int CompareTo(TokenLoc value)
+        {
+            if (X == value.X && Y == value.Y)
+                return 0;
+            return this > value ? 1 : -1;
+        }
+
         public override string ToString()
         {
             return "" + "X=" + X + ", Y=" + Y;

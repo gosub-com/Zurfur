@@ -108,7 +108,12 @@ namespace Gosub.Zurfur.Compiler
 
         public string SimpleName
         {
-            get { return mToken != null ? Token.Name : LookupName; }
+            get 
+            {
+                if (IsMethodParam || IsTypeParam || IsLocal)
+                    return FullName;
+                return mToken == null ? LookupName : Token.Name;
+            }
         }
 
         public string TypeName => Type == null ? "" : Type.FullName;
@@ -376,7 +381,6 @@ namespace Gosub.Zurfur.Compiler
         public bool IsStatic => Qualifiers.HasFlag(SymQualifiers.Static);
         public bool IsGetter => Qualifiers.HasFlag(SymQualifiers.Get);
         public bool IsSetter => Qualifiers.HasFlag(SymQualifiers.Set);
-        public bool IsFunc => Kind == SymKind.Method && !IsGetter && !IsSetter;
         public bool IsImpl => Qualifiers.HasFlag(SymQualifiers.Impl);
         
         public bool ParamOut

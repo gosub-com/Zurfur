@@ -210,7 +210,7 @@ get todo() require(false) extern
 [pub] fun _opBitShr(a i32, b int) i32 extern
 
 [pub] get i32.iterator() RangeIterator<i32>
-    return RangeIterator<i32>(0, my)
+    return RangeIterator<i32>(0 i32, my)
 
 
 // 32 bit unsigned integer
@@ -257,7 +257,7 @@ get todo() require(false) extern
 [pub] fun _opBitShr(a u32, b int) u32 extern
 
 [pub] get u32.iterator() RangeIterator<u32>
-    return RangeIterator<u32>(0, my)
+    return RangeIterator<u32>(0 u32, my)
 
 
 // A 64 bit integer (same as int)
@@ -360,7 +360,7 @@ get todo() require(false) extern
 
 
 [pub] get u64.iterator() RangeIterator<u64>
-    return RangeIterator<u64>(0, my)
+    return RangeIterator<u64>(0 u64, my)
 
 [pub] type ro copy i128
     const __size int = 16
@@ -414,8 +414,6 @@ get todo() require(false) extern
 [pub] fun _opDiv(a f32, b f32) f32 extern
 [pub] fun _opRem(a f32, b f32) f32 extern
 
-[pub] get f32.iterator() RangeIterator<f32>
-    return RangeIterator<f32>(0, my)
 
 [pub] type ro copy f64
     const __size int = 8
@@ -460,9 +458,6 @@ get todo() require(false) extern
 [pub] fun _opDiv(a f64, b f64) f64 extern
 [pub] fun _opRem(a f64, b f64) f64 extern
 
-[pub] get f64.iterator() RangeIterator<f64>
-    return RangeIterator<f64>(0, my)
-
 
 // 128 bit decimal integer.  This will support NAN, infinity, and
 // exponents covering the entire range of f64 with more precision.
@@ -506,7 +501,5 @@ get todo() require(false) extern
 [pub] fun _opDiv(a Decimal, b Decimal) Decimal extern
 [pub] fun _opRem(a Decimal, b Decimal) Decimal extern
 
-[pub] fun Decimal.getIterator() RangeIterator<Decimal>
-    return RangeIterator<Decimal>(0, my)
 
     

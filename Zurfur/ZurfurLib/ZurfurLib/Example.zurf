@@ -35,10 +35,10 @@ use Zurfur.ConvertBytes[bytesToHex]
     @mapChanged fun()
 
 // Properties are public by default
-get ComplexType.myMap() ref Map<str, int>
+[pub] get (ComplexType) myMap() ref Map<str, int>
     return ref my.map // Return a read only reference
     
-set ComplexType.myMap(v own Map<str, int>)
+[pub] set (ComplexType) myMap(v own Map<str, int>)
     my.map = v
     my.mapChanged()
 

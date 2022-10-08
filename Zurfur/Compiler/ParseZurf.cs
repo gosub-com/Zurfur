@@ -1092,7 +1092,7 @@ namespace Gosub.Zurfur.Compiler
             synFunc.Comments = mComments.ToString();
             mComments.Clear();
 
-            var validMethodName = ParseExtensionTypeAndMethodName(out synFunc.ExtensionType, out synFunc.Name, out synFunc.TypeArgs);
+            var validMethodName = ParseExtensionTypeAndMethodName(out synFunc.ExtensionType, out synFunc.Name, out synFunc.TypeArgs, qualifiers);
 
             // Don't process function while user is typing (this is for a better error message)
             if (!IsMatchPastMetaSemicolon("("))
@@ -1123,10 +1123,16 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Returns true if we are a valid method name
         /// </summary>
-        bool ParseExtensionTypeAndMethodName(out SyntaxExpr extensionType, out Token funcName, out SyntaxExpr genericTypeArgs)
+        bool ParseExtensionTypeAndMethodName(
+            out SyntaxExpr extensionType, 
+            out Token funcName, 
+            out SyntaxExpr genericTypeArgs, 
+            List<Token> qualifiers)
         {
+
+            // fun (type) name()
             if (mToken == "(")
-                return ParseExtensionTypeAndMethodNameGolangStyle(out extensionType, out funcName, out genericTypeArgs);
+                return ParseExtensionTypeAndMethodNameGolangStyle(out extensionType, out funcName, out genericTypeArgs, qualifiers);
 
             extensionType = null;
             genericTypeArgs = null;
@@ -1139,6 +1145,19 @@ namespace Gosub.Zurfur.Compiler
 
             var nameExpr = ParseType();
 
+            // WITH SPACE:
+            //      fun type name()
+            if (mToken.Type == eTokenType.Identifier)
+            {
+                extensionType = nameExpr;
+                funcName = Accept();
+                if (mToken == "<")
+                    genericTypeArgs = ParseTypeParameters();
+                return true;
+            }
+
+            // WITH DOT:
+            //      fun type.name()
             // Generic type args
             if (nameExpr.Count >= 2 && nameExpr.Token == VT_TYPE_ARG)
             {
@@ -1177,7 +1196,11 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Returns true if we are a valid method name
         /// </summary>
-        bool ParseExtensionTypeAndMethodNameGolangStyle(out SyntaxExpr extensionType, out Token funcName, out SyntaxExpr genericTypeArgs)
+        bool ParseExtensionTypeAndMethodNameGolangStyle(
+            out SyntaxExpr extensionType, 
+            out Token funcName, 
+            out SyntaxExpr genericTypeArgs, 
+            List<Token> qualifiers)
         {
             extensionType = null;
             genericTypeArgs = null;
@@ -1188,7 +1211,7 @@ namespace Gosub.Zurfur.Compiler
             var mutToken = mToken == "mut" ? Accept() : null;
             extensionType = ParseType();
             
-            // TBD: Record 'mut' token for static functions inside interfaces
+            // This is an attribute, but store it as if it were a generic type (remove when compiling header)
             if (mutToken != null)
                 extensionType = new SyntaxUnary(mutToken, extensionType);
 
@@ -1202,6 +1225,10 @@ namespace Gosub.Zurfur.Compiler
                 funcName.Type = eTokenType.Reserved;
                 return true;
             }
+
+            // TBD: Experiment with putting `set` or `get` in front of function name
+            if ((mTokenName == "get" || mTokenName == "set") && mEnum.PeekOnLine() != "(")
+                qualifiers.Add(Accept());
 
             funcName = mToken;
             if (!AcceptIdentifier("Expecting a function or property name", sRejectTypeName))

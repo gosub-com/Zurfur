@@ -277,6 +277,16 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         static public void RejectTypeArgLeftDotRight(SyntaxExpr expr, SymbolTable table, string errorMessage)
         {
+            table.Reject(FindTypeArgLeftDotRight(expr), errorMessage);
+        }
+
+        /// <summary>
+        /// Find the type name identifier.
+        /// For type args, it's on the left.  For dots, it's on the right.
+        /// e.g. Zurfur.List<byte> = `List`
+        /// </summary>
+        static public Token FindTypeArgLeftDotRight(SyntaxExpr expr)
+        {
             bool walking;
             do
             {
@@ -293,15 +303,14 @@ namespace Gosub.Zurfur.Compiler
                 }
             } while (walking);
 
-            table.Reject(expr.Token, errorMessage);
+            return expr.Token;
         }
-
 
         /// <summary>
         /// Add outer generic parameters to the concrete type
         /// e.g: OuterType`1.InnerType => OuterType`1.InnerType<#0>
         /// </summary>
-        static Symbol AddOuterGenericParameters(SymbolTable table, Symbol symbol, Symbol outerScope)
+        public static Symbol AddOuterGenericParameters(SymbolTable table, Symbol symbol, Symbol outerScope)
         {
             Debug.Assert(symbol.IsType);
             var genericParamCount = outerScope.GenericParamTotal();
