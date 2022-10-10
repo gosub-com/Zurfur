@@ -279,6 +279,11 @@ namespace Gosub.Zurfur.Compiler
                 var rval = FindInType(token, token.Name, leftType);
                 if (rval == null)
                     return null;
+                if (rval.Symbols.Count == 0)
+                {
+                    Reject(token, $"'{token}' is an undefined symbol in the type '{leftType}'");
+                    return null;
+                }
                 return rval;
             }
 
@@ -724,6 +729,8 @@ namespace Gosub.Zurfur.Compiler
                 var inType = funCall.InType;
                 if (symbols[0].IsAnyType)
                 {
+                    if (args.Count == 0)
+                        return new Rval(funToken, symbols[0]);
                     Debug.Assert(inType == null);
                     inType = symbols[0];
                     rejectStr = $"'new' (constructor for '{inType}')";
@@ -927,12 +934,6 @@ namespace Gosub.Zurfur.Compiler
                 // Find methods in the type's module and current module
                 AddMethodsNamedInModule(name, inType.Parent, inType, symbols);
                 AddMethodsNamedInModule(name, currentMethod.Parent, inType, symbols);
-
-                if (symbols.Count == 0)
-                {
-                    Reject(token, $"'{name}' is an undefined symbol in the type '{inType}'");
-                    return null;
-                }
 
                 RemoveLastDuplicates(symbols);
                 if (RejectAmbiguousPrimary(token, symbols))

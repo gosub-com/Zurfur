@@ -221,8 +221,6 @@ namespace Gosub.Zurfur.Compiler
                             AddTypeParams(newType, type.TypeArgs);
                         Debug.Assert(!syntaxToSymbol.ContainsKey(type));
                         syntaxToSymbol[type] = newType;
-
-                        GenerateTypeFunctions(newType, syntaxFile.Lexer);
                     }
                 }
             }
@@ -357,48 +355,6 @@ namespace Gosub.Zurfur.Compiler
                         symCon[argName] = constrainers.ToArray();
                 }
                 scope.Constraints = symCon;
-            }
-
-
-            // Generate a `new` function that matches this:
-            //      fun (type) new() type
-            // Might be easier to just create a string and compile it.
-            // TBD: Need a better way to create compiler generated code
-            void GenerateTypeFunctions(Symbol typeSym, Lexer lexer)
-            {
-                // There are problems generating code this way:
-                //      Tokens need to point somewhere in the code
-                //      and they don't have any source code.
-                //      So, point them to the type name for now.
-                var tokenLoc = typeSym.Token.Location;
-                var newMethodName = new Token("new", tokenLoc);
-                lexer.MetaTokensAdd(newMethodName);
-
-
-                var method = new SymMethod(typeSym.Parent, newMethodName, "new");
-                method.Qualifiers |= SymQualifiers.Static | SymQualifiers.Extension | SymQualifiers.Pub;
-
-                // Generate generic parameters
-                var genericParamCount = typeSym.GenericParamTotal();
-                for (int i = 0; i < genericParamCount; i++)
-                {
-                    var typeParamName = new Token($"#{i}", tokenLoc);
-                    lexer.MetaTokensAdd(typeParamName);
-                    var typeParam = new SymTypeParam(method, typeParamName);
-                    table.AddOrReject(typeParam);
-                }
-
-                // Generate parameters
-                var methodParam = new SymMethodParam(method, typeSym.Token, "my");
-                var methodParamOut = new SymMethodParam(method, typeSym.Token, "$return");
-                methodParamOut.Qualifiers |= SymQualifiers.ParamOut;
-                var specializedType = ResolveType.AddOuterGenericParameters(table, typeSym, typeSym);
-                methodParam.Type = specializedType;
-                methodParamOut.Type = specializedType;
-                table.AddOrReject(methodParam);
-                table.AddOrReject(methodParamOut);
-                SetFunctionName("new", method);
-                table.AddOrReject(method);
             }
 
             void ResolveMethods()
