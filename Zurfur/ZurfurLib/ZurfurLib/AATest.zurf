@@ -103,7 +103,7 @@ fun AAFun.af7<X>(p fun(v X)bool) {}
 type OneGeneric<T> { } 
 type Point<T>(x T, y T)
 type Size<T>(width T, height T)
-get Point<T>.toSize() Size<T> { return Size(my.x, my.y) }
+fun get Point<T>.toSize() Size<T> { return Size(my.x, my.y) }
 
 [pub] type AAFunc<T1,T2>
     @Invoke fun (v T1) T2

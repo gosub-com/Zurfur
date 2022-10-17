@@ -8,14 +8,13 @@ use Zurfur[todo]
 // TBD: Figure out how to get default file names and line numbers.
 //      Also figure out if this should be created per file
 
-[pub] get level() Level { todo }
+[pub] fun get level() Level { todo }
 [pub] fun critical(message str, li Line = default) { todo }
 [pub] fun error(message str, li Line = default) { todo }
 [pub] fun warn(message str, li Line = default) { todo }
 [pub] fun info(message str, li Line = default) { todo }
 [pub] fun info(message str) { todo } // TBD: Remove when we figure out default line info
 [pub] fun debug(message str, li Line = default) { todo }
-
 
 [pub] fun timeBegin(name str, message str = "") { todo }
 [pub] fun timeEnd(name str, message str = "") { todo }

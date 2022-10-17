@@ -58,35 +58,42 @@ fun test_Shape()
     @width T pub init
     @height T pub init
 
+// TBD: Shortcut syntax for this:
+[pub] fun Rect<T>.new(x T, y T, width T, height T)
+    my.x = x
+    my.y = y
+    my.width = width
+    my.height = height
     
 [pub] fun Rect<T>.new(location Point<T>, size Size<T>)
     my.location = location
     my.size = size
 
-    // TBD: Operators (add, multiply, divide, sizes, etc.)
 
-[pub] get Rect<T>.left() T
+// TBD: Operators (add, multiply, divide, sizes, etc.)
+
+[pub] fun get Rect<T>.left() T
     return my.x
     
-[pub] get Rect<T>.right() T
+[pub] fun get Rect<T>.right() T
     return my.x + my.width
 
-[pub] get Rect<T>.top() T
+[pub] fun get Rect<T>.top() T
     return my.y
     
-[pub] get Rect<T>.bottom() T
+[pub] fun get Rect<T>.bottom() T
     return my.y + my.height
     
-[pub] get Rect<T>.location() Point<T>
+[pub] fun get Rect<T>.location() Point<T>
     return Point<T>(my.x, my.y)
     
-[pub] set Rect<T>.location(value Point<T>)
+[pub] fun set Rect<T>.location(value Point<T>)
     my.x = value.x
     my.y = value.y
     
-[pub] get Rect<T>.size() Size<T>
+[pub] fun get Rect<T>.size() Size<T>
     return Size<T>(my.width, my.height)
     
-[pub] set Rect<T>.size(value Size<T>)
+[pub] fun set Rect<T>.size(value Size<T>)
     my.width = value.width
     my.height = value.height

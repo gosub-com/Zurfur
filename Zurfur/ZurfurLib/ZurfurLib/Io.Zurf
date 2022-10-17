@@ -17,9 +17,9 @@ enum SeekOrigin
 interface Seeker
     fun mut seek(offset int, origin SeekOrigin) int throws impl
     
-[pub] get Seeker.length() int throws { }
-[pub] get Seeker.position() int throws { }
-[pub] set Seeker.position(value int) throws { }
+[pub] fun get Seeker.length() int throws { }
+[pub] fun get Seeker.position() int throws { }
+[pub] fun set Seeker.position(value int) throws { }
 
 interface FileStream { }
 

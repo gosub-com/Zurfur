@@ -265,7 +265,8 @@ namespace Gosub.Zurfur.Ide
             var showForm = mActiveEditor != null
                     && mHoverToken != null
                     && mHoverToken.Type != eTokenType.Comment
-                    && (mHoverToken.GetInfoString() != ""
+                    && (mHoverToken.GetInfo<string>() != null
+                            || mHoverToken.GetInfo<ParseInfo>() != null
                             || mHoverToken.GetInfo<Symbol>() != null
                             || mHoverToken.GetInfo<TokenError>() != null
                             || mHoverToken.GetInfo<TokenWarn>() != null)
@@ -295,7 +296,11 @@ namespace Gosub.Zurfur.Ide
                 message += "\r\n";
             message += GetSymbolInfo();
 
-            message += mHoverToken.GetInfoString();
+            foreach (var s in mHoverToken.GetInfos<ParseInfo>())
+                message += s + "\r\n\r\n";
+            foreach (var s in mHoverToken.GetInfos<string>())
+                message += s + "\r\n\r\n";
+            
             mHoverMessageForm.Message.Text = message.Trim();
 
             // Show form with proper size and location

@@ -252,7 +252,6 @@ namespace Gosub.Zurfur.Lex
         }
         public T GetInfo<T>() => mInfo.GetInfo<T>();
         public T[] GetInfos<T>() => mInfo.GetInfos<T>();
-        public string GetInfoString() => mInfo.GetInfoString();
 
         /// <summary>
         /// Add an error to this token, set error flag and append TokenError(errorMessage)
@@ -446,24 +445,12 @@ namespace Gosub.Zurfur.Lex
                     return new T[1] { (T)obj };
                 var list = obj as object[];
                 if (list == null || list.GetType() != typeof(object[]))
-                    return new T[0];
+                    return Array.Empty<T>();
                 var infos = new List<T>();
                 foreach (var elem in list)
                     if (elem is T)
                         infos.Add((T)elem);
                 return infos.ToArray();
-            }
-
-            public string GetInfoString()
-            {
-                var strings = GetInfos<string>();
-                var sb = new StringBuilder();
-                foreach (var s in strings)
-                {
-                    sb.Append(s);
-                    sb.Append("\r\n\r\n");
-                }
-                return sb.ToString();
             }
 
         }

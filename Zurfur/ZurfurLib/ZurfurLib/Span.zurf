@@ -7,7 +7,7 @@ use Zurfur.Operators[OpEq]
 // []T is converted to Span<T>
 [pub] type ref copy Span<T>
     @data ro mut ?ref T
-    @count ro int pub get
+    @count ro int pub ro
     
 [pub] fun Span<T>.opIndex(i int) mut ref T
     require i in 0..my.count

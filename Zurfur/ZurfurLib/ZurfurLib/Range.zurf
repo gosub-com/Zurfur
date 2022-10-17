@@ -8,16 +8,16 @@ use Zurfur.Collections[Iterator]
 
 [pub] type ro copy Range<T>
         where T is Copy<T> + OpSub<T> + OpCmp<T> + OpOne<T>
-    @begin T pub init get
-    @end T pub init get
+    @begin T pub ro init
+    @end T pub ro init
 
 [pub] fun (Range<T>) new(begin T, end T) extern
 
-[pub] get (Range<T>) count() T
+[pub] fun get (Range<T>) count() T
     where T is OpSub<T>
     return my.end-my.begin
 
-[pub] get (Range<T>) iterator() RangeIterator<T>
+[pub] fun get (Range<T>) iterator() RangeIterator<T>
     if my.begin >= my.end
         return  RangeIterator<T>(my.begin, my.begin)
     return RangeIterator<T>(my.begin, my.end)
@@ -37,7 +37,7 @@ use Zurfur.Collections[Iterator]
 [pub] fun (RangeIterator<int>) new(a int, b int) extern
     
     
-[pub] get (RangeIterator<T>) next() ?T
+[pub] fun get (RangeIterator<T>) next() ?T
     if my.current == my.end
         return null
     @r = my.current

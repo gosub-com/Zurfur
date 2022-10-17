@@ -4,7 +4,7 @@ module Zurfur.Collections
 
 
 interface Iterable<Item>
-    get iterator() Iterator<Item> impl
+    fun get iterator() Iterator<Item> impl
 
 
 // Implement this on all iterators

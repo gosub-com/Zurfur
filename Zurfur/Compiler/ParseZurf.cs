@@ -16,7 +16,7 @@ namespace Gosub.Zurfur.Compiler
     {
         public const string VT_TYPE_ARG = "$"; // Differentiate from '<' (must be 1 char long)
         public const string TOKEN_STR_LITERAL = "\"";
-        public const string TOKEN_STR_LITERAL_MULTI = "``";
+        public const string TOKEN_STR_LITERAL_MULTI = "`";
         public const string TOKEN_COMMENT = "//";
 
         // Probably will also allow 2, but must also require
@@ -80,7 +80,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sScopeQualifiers = new WordSet("pub public private unsafe unsealed static protected");
         static WordSet sFieldQualifiers = new WordSet("ro mut static");
         static WordSet sTypeQualifiers = new WordSet("ro ref boxed class copy nocopy unsafe");
-        static WordSet sPostFieldQualifiers = new WordSet("init set get ref mut");
+        static WordSet sPostFieldQualifiers = new WordSet("init ro mut");
         static WordSet sParamQualifiers = new WordSet("ro own mut");
 
         static WordSet sReservedUserFuncNames = new WordSet("new clone drop cast default");
@@ -232,9 +232,9 @@ namespace Gosub.Zurfur.Compiler
                     ScanBeginningOfLine();
 
                 if (token == TOKEN_STR_LITERAL)
-                    ScanQuote();
+                    ScanQuoteSingleLine();
                 else if (token == TOKEN_STR_LITERAL_MULTI)
-                    ScanDoubleQuote();
+                    ScanQuoteMultiLine();
                 else
                     prevToken = token;
             }
@@ -281,7 +281,7 @@ namespace Gosub.Zurfur.Compiler
                 }
             }
 
-            void ScanQuote()
+            void ScanQuoteSingleLine()
             {
                 // Single line quote (always ends at end of line)
                 token.Type = eTokenType.Quote;
@@ -307,14 +307,14 @@ namespace Gosub.Zurfur.Compiler
                 }
             }
 
-            void ScanDoubleQuote()
+            void ScanQuoteMultiLine()
             {
                 // Multi line quote
                 token.Type = eTokenType.Quote;
                 while (e.MoveNext(out token) && token != TOKEN_STR_LITERAL_MULTI && token != "")
                     token.Type = eTokenType.Quote;
                 if (token == "")
-                    RejectToken(token, "Expecting double back ticks '``' to end the multi-line string literal");
+                    RejectToken(token, "Expecting back tick '`' to end the multi-line string literal");
                 else
                     prevToken = token;
             }
@@ -538,8 +538,6 @@ namespace Gosub.Zurfur.Compiler
                         RejectToken(keyword, "Types must be declared at the module level");
                     break;
 
-                case "get":
-                case "set":
                 case "fun":
                 case "afun":
                     mToken.Type = eTokenType.ReservedControl;
@@ -1092,6 +1090,12 @@ namespace Gosub.Zurfur.Compiler
             synFunc.Comments = mComments.ToString();
             mComments.Clear();
 
+            if (mTokenName == "get" || mTokenName == "set")
+            {
+                mToken.Type = eTokenType.ReservedControl;
+                qualifiers.Add(Accept());
+            }
+
             var validMethodName = ParseExtensionTypeAndMethodName(out synFunc.ExtensionType, out synFunc.Name, out synFunc.TypeArgs, qualifiers);
 
             // Don't process function while user is typing (this is for a better error message)
@@ -1477,8 +1481,6 @@ namespace Gosub.Zurfur.Compiler
 
                 case "fun":
                 case "afun":
-                case "func":
-                case "afunc":
                     // TBD: Process local functions
                     //      Need to pass scope into ParseMethod
                     //      Require `local` keyword
@@ -1570,7 +1572,7 @@ namespace Gosub.Zurfur.Compiler
 
         SyntaxExpr ParseLambda()
         {
-            var result = ParseTernary();
+            var result = ParseConditionalOr();
 
             if (mTokenName == "=>")
             {
@@ -1581,41 +1583,10 @@ namespace Gosub.Zurfur.Compiler
                 if (IsMatchPastMetaSemicolon("{"))
                     result = new SyntaxBinary(lambdaToken, result, ParseStatements(lambdaToken));
                 else
-                    result = new SyntaxBinary(lambdaToken, result, ParseTernary());
+                    result = new SyntaxBinary(lambdaToken, result, ParseConditionalOr());
 
                 if (mTokenName == "=>")
                     Reject("Lambda operator '=>' is not associative, must use parentheses");
-            }
-            return result;
-        }
-
-        SyntaxExpr ParseTernary()
-        {
-            var result = ParseConditionalOr();
-            while (mTokenName == "?")
-            {
-                if (mTernaryLevel != 0)
-                    RejectToken(mToken, "Ternary expressions may not be nested");
-                mTernaryLevel++;
-                mToken.Type = eTokenType.BoldSymbol;
-                var operatorToken = Accept();
-                var firstConditional = ParseRange();
-                if (mTokenName != ":")
-                {
-                    mTernaryLevel--;
-                    Reject("Expecting a ':' to separate expression for the ternary '?' operator");
-                    return result;
-                }
-                mToken.Type = eTokenType.BoldSymbol;
-                Connect(mToken, operatorToken);
-                Accept();
-                result = new SyntaxMulti(operatorToken, result, firstConditional, ParseRange());
-                mTernaryLevel--;
-
-                if (mTokenName == "?")
-                    RejectToken(mToken, "Ternary operator is not associative");
-                else if (mTokenName == ":")
-                    RejectToken(mToken, "Ternary operator already has an else clause.");
             }
             return result;
         }
@@ -1796,13 +1767,18 @@ namespace Gosub.Zurfur.Compiler
 
         SyntaxExpr ParsePrimary()
         {
+
+            if (mTokenName == "if")
+            { 
+                return new SyntaxUnary(Accept(), ParseParen("(", null));
+            }
+
             var result = ParseAtom();
 
             if (result.Token == "sizeof" || result.Token == "typeof")
             {
                 result = new SyntaxUnary(result.Token, ParseTypeFunc());
             }
-
 
             // Primary: function call 'f()', array 'a[]', type argument f<type>
             bool accepted;
@@ -1958,10 +1934,7 @@ namespace Gosub.Zurfur.Compiler
             var scoopStartY = -1;
             var scoopStartX = -1;
 
-            if (mToken == TOKEN_STR_LITERAL)
-                ParseSingleQuote();
-            else
-                ParseDoubleQuote();
+            ParseQuote(quote);
 
             // Show final string
             var str = literalSb.ToString();
@@ -1980,50 +1953,24 @@ namespace Gosub.Zurfur.Compiler
                     continue;
                 if (containsReplacement && STR_PARAM.Contains(token.Name))
                     RejectToken(token, $"Interpolated string literal may not contain {STR_PARAM}");
-                token.AddInfo(strPrint);
+                token.AddInfo(new ParseInfo(strPrint));
                 token.Type = eTokenType.Quote;
             }
 
             return new SyntaxUnary(quote, new SyntaxMulti(new Token(str), FreeExprList(literalExpr)));
 
-            void ParseSingleQuote()
+            void ParseQuote(string terminator)
             {
-                while (mToken == TOKEN_STR_LITERAL)
+                while (mToken == terminator)
                 {
                     // Read until end quote or end of line
                     BeginScoop(mToken);
                     literalTokens.Add(Accept());
-                    while (mToken != TOKEN_STR_LITERAL && !(mToken.Meta && mToken == ";"))
-                    {
-                        if (mToken == "{")
-                            ParseInterpolatedExpression();
-                        else
-                            literalTokens.Add(Accept());
-                    }
-                    EndScoop(mToken);
-
-                    if (mToken == TOKEN_STR_LITERAL)
-                    {
-                        var prev = mToken;
-                        literalTokens.Add(Accept());
-                        if (mToken == TOKEN_STR_LITERAL && prev.Y == mToken.Y)
-                            RejectToken(mToken, "Double quote not allowed in string");
-                    }
-                }
-            }
-
-            void ParseDoubleQuote()
-            {
-                // TBD: Scoop needs to collect "\n"
-                while (mToken == TOKEN_STR_LITERAL_MULTI)
-                {
-                    // Read until end quote or end of line
-                    BeginScoop(mToken);
-                    literalTokens.Add(Accept());
-                    while (mToken != TOKEN_STR_LITERAL_MULTI && mToken != "")
+                    while (mToken != terminator && mToken != "" && !(mToken.Meta && mToken == ";"))
                     {
                         if (mToken == "$" && mEnum.PeekNoSpace() == "{")
                         {
+                            EndScoop(mToken);
                             Accept().Type = eTokenType.Reserved;
                             ParseInterpolatedExpression();
                         }
@@ -2032,12 +1979,12 @@ namespace Gosub.Zurfur.Compiler
                     }
                     EndScoop(mToken);
 
-                    if (mToken == TOKEN_STR_LITERAL_MULTI)
+                    if (mToken == terminator)
                     {
                         var prev = mToken;
                         literalTokens.Add(Accept());
-                        if (mToken == TOKEN_STR_LITERAL_MULTI && prev.Y == mToken.Y)
-                            RejectToken(mToken, "Double '``' not allowed in string");
+                        if (mToken == terminator && prev.Y == mToken.Y)
+                            RejectToken(mToken, $"Double '{terminator}' not allowed in string");
                     }
                 }
             }
@@ -2066,7 +2013,6 @@ namespace Gosub.Zurfur.Compiler
 
             void ParseInterpolatedExpression()
             {
-                EndScoop(mToken);
                 Accept(); // "{"
                 mPrevToken.Type = eTokenType.ReservedControl;
 
@@ -2120,7 +2066,7 @@ namespace Gosub.Zurfur.Compiler
 
             // Read open token, '(' or '['
             if (!AcceptMatchOrReject(expecting))
-                return SyntaxError;
+                return new SyntaxError(mToken);
 
             // Parse parameters
             var openToken = mPrevToken;
@@ -2162,6 +2108,12 @@ namespace Gosub.Zurfur.Compiler
                             e.Token.Type = eTokenType.BoldSymbol;
                     }
                 }
+            }
+            else
+            {
+                // Put syntax error into expression so code generator
+                // doesn't mark more errors
+                parameters.Add(new SyntaxError(mToken));
             }
 
             return new SyntaxMulti(keyword, FreeExprList(parameters));

@@ -4,31 +4,36 @@
 //
 module Zurfur.UnitTests
 
+use Zurfur[Log]
+
+// TBD: Remove after generics are working
+fun _opIndex(a Map<str, int>, b str) int{}
+
 fun test_HelloWorld()
-    Console.Log("Hello World.  Let's count from 1 to 10.")
+    Log.info("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
-        Console.Log("Count={a}")
+        Log.info("Count=${a}")
 
     @a = "Regular string literal"       // No interpolation
-    @b = "Column 1{\t}Column 2{\rn}"    // Containing a tab, ending with \r\n
+    @b = "Column 1${\t}Column 2${\n}"   // Containing a tab, ending with \n
     @c = tr"Translated string"          // Translated at runtime
-    @d = "Hello world, a+b={a+b}{\rn}"  // Interpolated with \r\n at the end
-    @e = tr"Hello world, X={X}!{\rn}"   // Translated, interpolated, \r\n at end
-    @g = ``{"X":1,"Y":2}``              // Containing '{' or a quote
-    @h = ``Hello "${name}"``            // Containing quote and interpolated
+    @d = "Hello world, a+b=${a+b}${\n}" // Interpolated with \n at the end
+    @e = tr"Hello world, X=${X}!${\n}"  // Translated, interpolated, \n at end
+    @g = `{"X":1,"Y":2}`                // Containing quote
+    @h = `{"X":${x},"Y":2}`             // Containing quote and interpolated
 
 [pub] type Example
     @info str                  // Private string initialized to ""
     @array Array<int> = [1,2,3]             // Private mutable array
     @list List<str> = ["Hello", "World"]    // Private mutable list
     @m ro Map<str,int> = ["A":1, "B":2]     // Private immutable map
-    @Header ro str pub get = "Zurfur"       // Public immutable string
+    @Header ro str pub ro = "Zurfur"        // Public immutable string
 
 [pub] fun Example.F(a int) int
-    return m["A"]+10   // Public function
+    return my.m["A"]+10   // Public function
 
-get Example.P() str
-    return Header + info     // Public property
+fun get Example.P() str
+    return my.Header + my.info     // Public property
 
 fun test_ForSimple()
     @count int
@@ -43,36 +48,35 @@ fun test_ForSimple()
         else
             count += 100000
         count += a
-    Console.Log("For loop: "(count == 622145 ? "Pass" : "Fail"))
+    Log.info("For loop: ${if(count == 622145, "Pass" : "Fail")}")
 
 
 [pub] fun test_Convert()
-    @a = List<float>()
+    @a = List<f64>()
     @b = List<int>()
-    @c = a.Convert(@i => int(i))
+    @c = a.convert(@i => i.intMask)
 
 
 [pub] type Label { }
 [pub] type class TestGuiForm // TBD: How to do this without extends Form
-    @Message1 Label pub get set
-    @Message2 Label pub get set
-    @Message3 Label pub get set
+    @Message1 Label pub mut
+    @Message2 Label pub mut
+    @Message3 Label pub mut
 
-   
    
 [NewCallableAttribute()]
 
 fun TestGuiForm.InitializeComponent()    
-    Message1 = Label(Text: "Message 1",
+    my.Message1 = Label(Text: "Message 1",
                     Location: Point(X:4, Y:4),
                     Size: Size(Width:100,Height:24))
-    Message2 = Label(Text: "Message 2",
+    my.Message2 = Label(Text: "Message 2",
                     Location: Point(100, 4),
                     Size: Size(100,24))
-    Message3 = Label(Text: "Message 3",
+    my.Message3 = Label(Text: "Message 3",
                     Location.X: 200,
                     Size: Size(100,24))
                    
-    @x Json = ["Hello":"a",
+    @x Variant = ["Hello":"a",
                   "World":"b",
                   "List":[1,2,3]]

@@ -102,20 +102,24 @@ use the `my` keyword to refer to fields or other methods in the type:
 
     // Declare an extension method for strings
     fun str.rest() str
-        return my.count == 0 ? "" : my.sub(1)  // `sub` is defined by `Array`
+        return if(my.count == 0, "" : my.sub(1))  // `sub` is defined by `Array`
 
     // TBD: Still considering golang method syntax
     fun (str) rest() str
-        return my.count == 0 ? "" : my.sub(1) 
+        return if(my.count == 0, "" : my.sub(1)) 
 
-Properties are declared with `get` and `set` keywords:
+Properties are functions declared with `get` and `set` keywords:
 
-    get MyType.myString() str
+    fun get MyType.myString() str
         return my.cachedStr
 
-    set MyType.myString(v str)
+    fun set MyType.myString(v str)
         my.cachedString = v
         my.stringChangedEvent()
+
+    // TBD: Still considering golang syntax
+    fun (MyType) get myString() str
+        return my.cachedStr
   
 By default, function parameters are passed as read-only reference.  The
 exception is that small types (e.g. `int`, and `Span<T>`) are passed by
@@ -197,6 +201,7 @@ The ones we all know and love:
 | List\<T\> | Dynamically sized mutable list with mutable elements
 | Span\<T\> | Span into `Array`, `Buffer`, or `List`.  It has a constant `Count`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `Buffer` or `List` is mutable)
 | Map<K,V> | Unordered mutable map. 
+| Variant, VaraiantMap | The type used to interface with dynamically typed languages.  Easy conversion to/from JSON and string representations of built-in types.
 
 There are several different kinds of types.  There is `ro` for read-only
 immutable types, `box` for a type always on the heap, and `owned` for a mutable
@@ -266,21 +271,21 @@ with `@` and are private, but may have public properties with `pub get`,
         @roText3 ro str pub init = "Hello"  // Constructor or client can override
         
     // Getter and setter functions (passing copies)
-    get Example.text() str
+    fun get Example.text() str
         return my.text1
 
-    set Example.text(value str)
+    fun set Example.text(value str)
         if value == my.text1
             return
         my.text1 = value
         my.sendTextChangedEvent()
 
     // Getter returning references
-    get Example.list1a() ref List<int>      // Immutable reference
+    fun get Example.list1a() ref List<int>      // Immutable reference
         return ref my.list1
-    get Example.list1b() mut List<int>      // Mutable reference, not assignable
+    fun get Example.list1b() mut List<int>      // Mutable reference, not assignable
         return ref my.list1
-    get Example.list1c() mut ref List<int>  // Mutable reference, assignable
+    fun get Example.list1c() mut ref List<int>  // Mutable reference, assignable
         return ref my.list1
 
 
@@ -315,6 +320,150 @@ They can be created explicitly, or implicitly when a function is called.
     fun setPersonName(p mut Person)
         p.FirstName = "Jeremy"
 
+### Array and List
+
+`List` is the default data structure for working with mutable data.  Once the
+list has been created, it can be converted to an `Array` which is immutable.
+Assigning an array is very fast since it is just copying a reference,
+whereas assigning a `List` will create a copy unless it can be optimized
+to a move operation.
+
+    @x = [1,2,3]            // x is List<int>
+    @y = ["A", "B", "C"]    // y is List<str>
+    @z = [[1,2,3],[4,5,6]]  // z is List<List<int>>
+    x.Push(4)               // x contains [1,2,3,4]
+    x.Push([5,6])           // x contains [1,2,3,4,5,6]
+    @a = x.ToArray()        // a is Array<int>
+    fieldx = x              // fieldx is a copy of x (with optimization, x may have been moved)
+    fielda = a              // fielda is always a reference to the array `a`
+
+`List` should be used to build and manipulate mutable data, while `Array`
+should be used to store immutable data.
+
+### Strings
+
+Strings (i.e. `str`) are immutable byte arrays (i.e. `Array<byte>`), generally
+assumed to hold UTF8 encoded characters.  However, there is no rule enforcing
+the UTF8 encoding so they may hold any binary data.
+
+String literals start with a quote (single line) or backtick (multi-line), and
+can be translated at runtime using `tr"string"` syntax.  They are interpolated
+with curly braces (e.g `"${expression}"`). Control characters may be put inside
+an interpolation (e.g. `"${\t}"` is a tab).  Inside the quoted string, the
+backslash `\` is not treated differently than any other character.
+
+![](Doc/Strings.png)
+
+**TBD:** Remove quotes, since it's redundant?  Or are we so used to quotes, we
+keep them?  Coding standard requires quotes unless the string is truly multi-line?
+
+There is no `StringBuilder` type, use `List<byte>` instead:
+
+    @sb = List<byte>()
+    sb.push("Count from 1 to 10: ")
+    for @count in 1..+10
+        sb.push(` ${count}`)
+    return sb.toArray()
+
+### Span
+
+Span is a view into a `str`, `Array`, or `List`.  They are `type ref` and
+may never be stored on the heap.  Unlike in C#, a span can be used to pass
+data to an async function.  
+
+Array syntax translates directly to Span (not to Array like C#).
+The following definitions are identical:
+
+    // The following definitions are identical:
+    afun mut write(data Span<byte>) int error impl
+    afun mut write(data []byte) int error impl
+
+Spans are as fast, simple, and efficient as it gets.  They are just a pointer
+and count.  They are passed down the *execution stack* or stored on the async
+task frame when necessary.  More on this in the GC section below.
+
+Given a range, the index operator can be used to slice a List.  A change to
+the list is a change to the span and a change to the span is a change to the list.
+
+    @a = ["a","b","c","d","e"]  // a is List<str>
+    @b = a[1..4]                // b is a span, with b[0] == "b" (b aliases ["b","c","d"])
+    @c = a[2..+2]               // c is a span, with c[0] == "c" (c aliases ["c","d"])
+    c[0] = "hello"              // now a = ["a","b","hello","d","e"], and b=["b","hello","d"]
+
+Mutating the `count` or `capacity` of a `List` (not the elements of it) while
+there is a `Span` or reference  pointing into it is a programming error, and
+fails the same as indexing outside of array bounds.
+
+    @list = List<byte>()
+    list.push("Hello Pat")  // list is "Hello Pat"
+    @slice = a[6..+3]       // slice is "Pat"
+    slice[0] = "M"[0]       // slice is "Mat", list is "Hello Mat"
+    list.Push("!")          // Runtime failure with stack trace in log file
+
+
+### Map
+
+`Map` is a hash table and is similar to `Dictionary` in C#.  The type can be
+inferred from the expression, or it can be explicit:
+
+    @a = ["Hello":1, "World":2]     // a is Map<str,int>
+    @b Map<int,f64> = [0:1, 1:2.3]  // b is Map<int,f64>
+
+When indexing a map, the return type is `?ref T`, so it must either be checked
+before being used or have a default:
+
+    // Check for its existence
+    if a["hello"]@item
+        // Use item here
+    else
+        // item is invalid, insert new pobject
+
+    // Get the value, or get a default if it doesn't exist
+    @x = a["hello"]??3      // Get the value, or the default if it doesn't exist
+
+
+If the map contains objects that can't be trivially copied (e.g. `List<int>`),
+they must be cloned or reference captured:
+
+    // TBD: explicit `ref` might not be needed here since
+    //      @ capture is a new operator, different than assignment
+    if ref myLists["hello"]@item
+        // Use item here.  You don't own it and may not modify it
+
+    if clone myLists["hello"]@item
+        // Use item here.  You own they copy and may modify it
+
+When assigning, the item is always created.  If it is also used at the same
+time, it gets the default value:
+
+    a["hello"] = 23         // Created if it doesn't exist
+    a["new"] += 1           // Created with 0, or uses existing value
+
+    
+### Enum
+
+Enumerations are similar to C# enumerations, in that they are just
+a wrapped `int`.  But they are implemented internally as a `type`
+and do not use `,` to separate values.
+
+    enum MyEnum
+        A           // A is 0
+        B; C        // B is 1, C is 2
+        D = 32      // D is 32
+        E           // E is 33
+    
+        // Enumerations can define ToStr
+        fun ToStr() str
+            return MyConvertToTranslatedName()
+
+The default `ToStr` function shows the value as an integer rather
+than the name of the field, but it is possible to override and make it
+display anything you want.  This allows enumerations to be just as light
+weight as an integer and need no metadata in the compiled executable.
+
+**TBD:** Differentiate an enum having only scalar values vs one with flags?
+The one with flags allows `|` and `&`, etc but the other doesn't.
+
 ## Interfaces
 
 Zurfur uses Golang style interfaces, which fit nicely with the dynamic nature
@@ -340,6 +489,7 @@ to start or wait for multiple tasks, we can also use the `astart` keyword.
         @c = astart fetchHttp(request1)
         await(a,b,c)
         // We are guaranteed that a, b, and c have completed succesfully.
+        // The first failure will return an error and cancel the other tasks.
 
 The result of an `afun` function is actually a `Future` that can be used in a
 similar way to `Task` in C#.
@@ -457,152 +607,7 @@ from thom the nearest `fun` scope.  Instead, `exit` is used.
 
 **TBD:** Consider how to `break` out of the lambda.  Use a return type of `Breakable`?
 
-
-#### Array and List
-
-`List` is the default data structure for working with mutable data.  Once the
-list has been created, it can be converted to an `Array` which is immutable.
-Assigning to an array is very fast since it is just copying a reference,
-whereas assigning to a `List` will create a copy unless it can be optimized
-to a move operation.
-
-
-    @x = [1,2,3]            // x is List<int>
-    @y = ["A", "B", "C"]    // y is List<str>
-    @z = [[1,2,3],[4,5,6]]  // z is List<List<int>>
-    x.Push(4)               // x contains [1,2,3,4]
-    x.Push([5,6])           // x contains [1,2,3,4,5,6]
-    @a = x.ToArray()        // a is Array<int>
-    fieldx = x              // fieldx is a copy of x (with optimization, x may have been moved)
-    fielda = a              // fielda is always a reference to the array `a`
-
-`List` should be used to build and manipulate mutable data, while `Array`
-should be used to store immutable data.
-
-#### Strings
-
-Strings (i.e. `str`) are immutable byte arrays (i.e. `Array<byte>`), generally
-assumed to hold UTF8 encoded characters.  However, there is no rule enforcing
-the UTF8 encoding so they may hold any binary data.
-
-String literals start with a backtick and can be translated at runtime
-using `` tr`string` `` syntax.  They are interpolated with curly braces (e.g
-`` `${expression}` ``). Control characters may be put inside an interpolation
-(e.g. `` `${\t}` `` is a tab).  Inside the quoted string, the backslash `\`
-is not treated differently than any other character.
-
-**TBD:** fix this picture:
-![](Doc/Strings.png)
-
-There is no `StringBuilder` type, use `List<byte>` instead:
-
-    @sb = List<byte>()
-    sb.push("Count from 1 to 10: ")
-    for @count in 1..+10
-        sb.push(` ${count}`)
-    return sb.toArray()
-
-#### Span
-
-Span is a view into a `str`, `Array`, or `List`.  They are `type ref` and
-may never be stored on the heap.  Unlike in C#, a span can be used to pass
-data to an async function.  
-
-Array syntax translates directly to Span (not to Array like C#).
-The following definitions are identical:
-
-    // The following definitions are identical:
-    afun mut write(data Span<byte>) int error impl
-    afun mut write(data []byte) int error impl
-
-Spans are as fast, simple, and efficient as it gets.  They are just a pointer
-and count.  They are passed down the *execution stack* or stored on the async
-task frame when necessary.  More on this in the GC section below.
-
-Given a range, the index operator can be used to slice a List.  A change to
-the list is a change to the span and a change to the span is a change to the list.
-
-    @a = ["a","b","c","d","e"]  // a is List<str>
-    @b = a[1..4]                // b is a span, with b[0] == "b" (b aliases ["b","c","d"])
-    @c = a[2..+2]               // c is a span, with c[0] == "c" (c aliases ["c","d"])
-    c[0] = "hello"              // now a = ["a","b","hello","d","e"], and b=["b","hello","d"]
-
-Mutating the `count` or `capacity` of a `List` (not the elements of it) while
-there is a `Span` or reference  pointing into it is a programming error, and
-fails the same as indexing outside of array bounds.
-
-    @list = List<byte>()
-    list.push("Hello Pat")  // list is "Hello Pat"
-    @slice = a[6..+3]       // slice is "Pat"
-    slice[0] = "M"[0]       // slice is "Mat", list is "Hello Mat"
-    list.Push("!")          // Runtime failure with stack trace in log file
-
-
-#### Map
-
-`Map` is a hash table and is similar to `Dictionary` in C#.  The type can be
-inferred from the expression, or it can be explicit:
-
-    @a = ["Hello":1, "World":2]     // a is Map<str,int>
-    @b Map<int,f64> = [0:1, 1:2.3]  // b is Map<int,f64>
-
-When indexing a map, the return type is `?ref T`, so it must either be checked
-before being used or have a default:
-
-    // Check for its existence
-    if a["hello"]@item
-        // Use item here
-    else
-        // item is invalid, insert new pobject
-
-    // Get the value, or get a default if it doesn't exist
-    @x = a["hello"]??3      // Get the value, or the default if it doesn't exist
-
-
-If the map contains objects that can't be trivially copied (e.g. `List<int>`),
-they must be cloned or reference captured:
-
-    // TBD: explicit `ref` might not be needed here since
-    //      @ capture is a new operator, different than assignment
-    if ref myLists["hello"]@item
-        // Use item here.  You don't own it and may not modify it
-
-    if clone myLists["hello"]@item
-        // Use item here.  You own they copy and may modify it
-
-When assigning, the item is always created.  If it is also used at the same
-time, it gets the default value:
-
-    a["hello"] = 23         // Created if it doesn't exist
-    a["new"] += 1           // Created with 0, or uses existing value
-
-    
-### Enum
-
-Enumerations are similar to C# enumerations, in that they are just
-a wrapped `int`.  But they are implemented internally as a `type`
-and do not use `,` to separate values.
-
-    enum MyEnum
-        A           // A is 0
-        B; C        // B is 1, C is 2
-        D = 32      // D is 32
-        E           // E is 33
-    
-        // Enumerations can define ToStr
-        fun ToStr() str
-            return MyConvertToTranslatedName()
-
-The default `ToStr` function shows the value as an integer rather
-than the name of the field, but it is possible to override and make it
-display anything you want.  This allows enumerations to be just as light
-weight as an integer and need no metadata in the compiled executable.
-
-**TBD:** Differentiate an enum having only scalar values vs one with flags?
-The one with flags allows `|` and `&`, etc but the other doesn't.
-
-
-## Operator Precedence
+## Operators
 
 Operator precedence is mostly from Golang, but more compatible
 with C and gives an error where not compatible:
@@ -621,7 +626,6 @@ with C and gives an error where not compatible:
 |== != < <= > >= === !== in|Not associative, === and !== is only for pointers
 |and|Conditional, short circuit
 |or|Conditional, short circuit
-|a ? b : c| Not associative, no nesting (see below for restrictions)
 |=>|Lambda
 |key:Value|Key value pair (only inside `()`, `[]` or where expected)
 |,|Comma Separator (not an expression)
@@ -649,13 +653,9 @@ Operator `==` does not default to object comparison, and only works when it
 is defined for the given type.  Use `===` and `!==` for object comparison. 
 Comparisons are not associative, so `a == b == c` is illegal.
 
-The ternary operator is not associative and cannot be nested.  Examples
-of illegal expresions are `c1 ? x : c2 ? y : z` (not associative),
-`c1 ? x : (c2 ? y : z)` (no nesting).  The result expressions may not
-directly contain an operator with lower precedence than range.
-For example, `a==b ? x==3 : y==4` is illegal.  parentheses can be
-used to override that behavior, `a==b ? (x==3) : (y==4)` and
-`a==b ? (@p=> p==3) : (@p=> p==4)` are acceptable.
+There is no ternary operator, but an `if` expression can be
+used with the same effect (e.g. `@a = if(a>b, "pass":"fail")`).
+The syntax is still TBD.
 
 The pair operator `:` makes a key/value pair which can be used
 in an array to initialize a map.

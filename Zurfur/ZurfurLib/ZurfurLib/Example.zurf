@@ -24,31 +24,46 @@ use Zurfur.ConvertBytes[bytesToHex]
 [pub] type SimpleType(firstName str, lastName str)
 [pub] type ro SimpleImmutableType(firstName str, fastName str)
 
-[pub] type ComplexType
-    // Fields are private, but may have public properties
-    
-    @map Map<str,int> = ["A":1, "B":2]  // Private, mutable
-    @list ro List<int> = [1,2,3]       // Private, read-only
-    @header str pub get = "Zurfur" // Private, public get
-    @text str pub get set          // Private, public get/set
-    @myList List<int> pub ref   // Has public `ro` reference
-    @mapChanged fun()
 
-// Properties are public by default
-[pub] get (ComplexType) myMap() ref Map<str, int>
+// Define a type
+[pub] type MyType
+    @map Map<str,int> = ["A":1, "B":2]  // Private mutable
+    @list ro List<int> = [1,2,3]    // Private read-only
+    @header str pub ro = "Zurfur"   // Private mutable, pub ro
+    @text str pub mut               // Public mutable
+
+// Method
+[pub] fun MyType.countToTen()
+    Log.info("Hello world.  Let's count to 10.")
+    for @a in 1..+10
+        Log.info("Count=${a}, text=${my.text}")
+
+// Getter method
+[pub] fun get MyType.myMap() ref Map<str, int>
+    return ref my.map // Return a read only reference
+
+// Setter method
+[pub] fun set MyType.myMap(v own Map<str, int>)
+    my.map = v
+    my.MapChangedEvent()
+
+
+
+[pub] fun (MyType) get myMapGolang() ref Map<str, int>
     return ref my.map // Return a read only reference
     
-[pub] set (ComplexType) myMap(v own Map<str, int>)
+[pub] fun (MyType) set myMapGoLang(v own Map<str, int>)
     my.map = v
-    my.mapChanged()
+    //my.mapChanged() // Add `@mapChanged fun()` to MyType
 
+fun MyType.MapChangedEvent() {}
 
 // This is a public documentation comment.
 // Functions are private by default.
 [pub] fun countToTen() str
     Log.info("Hello world.  Let's count to 10.")
     for @a in 1..11
-        Log.info("Count={a}, Text={text}")
+        Log.info("Count=${a}, Text=${text}")
 
 fun doit() {}
 fun hello() {}
@@ -101,9 +116,9 @@ fun Iterator<Item>.orderBy() Iterator<Item>
     @a2 str = "Hello"
     @a3 List<str> = ["Hello", "World"]
     @a4 List<int> = [1,2]
-    @a5 List<int> pub get
+    @a5 List<int> pub ro
     @a6 List<int> pub mut
-    @a7 List<int> pub get set
+    @a7 List<int> pub mut
     //pub a8 List<int>
     //pub a9 private set List<int>
     //pub private set a9 List<int>
@@ -130,7 +145,7 @@ fun Iterator<Item>.orderBy() Iterator<Item>
 
 [pub]
 type Zim<T>
-    @q T pub get set
+    @q T pub mut
 
 // Type test for test_main
 type Token(a int)
@@ -142,7 +157,7 @@ fun AcceptMatch(m str) Token {}
 
 
     // This is a regular private comment
-    Log.info("Hello World, 2+2={2+2}")
+    Log.info("Hello World, 2+2=${2+2}")
 
     @v = ""
     //@myStrings = ["a", "b", "c"]
@@ -160,8 +175,8 @@ fun AcceptMatch(m str) Token {}
         v = "none"
     
 
-    @a = tr"Column 1{\t}Column 2{\rn}"
-    @data = "Name:{name}{\t}Occupation:{lastName}{\rn}"
+    @a = tr"Column 1${\t}Column 2${\rn}"
+    @data = "Name:${name}${\t}Occupation:${lastName}${\rn}"
     @buffer = Buffer<byte>()
     
     while stream.read(buffer[0..4])@size == 4
@@ -176,6 +191,7 @@ fun AcceptMatch(m str) Token {}
     }
 
     @sum = 0
+    @list List<int>
     list.forEach(@item =>
     {
         sum += item
@@ -189,7 +205,7 @@ fun AcceptMatch(m str) Token {}
         Debug.Assert(squareTriple(2) == 36)
     
         for @v in 1..23
-            Log.Info("Count={v}")
+            Log.Info("Count=${v}")
 
     // Compose f(g(x))
     fun compose(f fun(x int) int,

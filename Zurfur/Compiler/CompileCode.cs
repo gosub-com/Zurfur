@@ -143,7 +143,7 @@ namespace Gosub.Zurfur.Compiler
                 // Terminals: Number, string, identifier
                 if (char.IsDigit(name[0]))
                     return GenConstNumber(ex);
-                else if (name == "\"" || name == "``")
+                else if (name == "\"" || name == "`")
                     return new Rval(token, typeStr);
                 else if ((char.IsLetter(name[0]) || name[0] == '_') && !ParseZurf.ReservedWords.Contains(name))
                     return GenIdentifier(ex);
@@ -165,7 +165,7 @@ namespace Gosub.Zurfur.Compiler
                     return GenAssign(ex);
                 else if (sOperators.Contains(name))
                     return GenOperator(ex);
-                else if (name == "?")
+                else if (name == "if" && ex.Count == 1)
                     return GenTernary(ex);
                 else if (name == "null" || name == "nil")
                     return new Rval(token, typeNil);
@@ -241,6 +241,9 @@ namespace Gosub.Zurfur.Compiler
 
             Rval GenParen(SyntaxExpr ex)
             {
+                if (HasError(ex))
+                    return null;
+
                 if (ex.Count == 0)
                 {
                     Reject(ex.Token, "Expecting an expression inside parenthesis");
@@ -249,6 +252,17 @@ namespace Gosub.Zurfur.Compiler
                 if (ex.Count != 1)
                     Reject(ex.Token, "Compiler not finished: Doesn't support tuples yet");
                 return GenExpr(ex[0]);
+            }
+
+            // Check top level for syntax error
+            bool HasError(SyntaxExpr ex)
+            {
+                if (ex.Token.Error)
+                    return true;
+                foreach (var e in ex)
+                    if (e.Token.Error)
+                        return true;
+                return false;
             }
 
 
@@ -393,14 +407,27 @@ namespace Gosub.Zurfur.Compiler
                 return rval;
             }
 
-
             Rval GenTernary(SyntaxExpr ex)
             {
-                if (ex.Count != 3)
-                    return null;  // Syntax error
-                var cond = GenExpr(ex[0]);
-                var condIf = GenExpr(ex[1]);
-                var condElse = GenExpr(ex[2]);
+                if (HasError(ex))
+                    return null;
+                var parameters = ex[0];
+                if (HasError(parameters))
+                    return null;
+                if (parameters.Count != 2)
+                {
+                    Reject(ex.Token, "Expecting two parameters");
+                    return null;
+                }
+                if (parameters[1].Token != ":")
+                {
+                    Reject(ex.Token, "Expecting second parameter to use ':' for the 'else' part");
+                    return null;
+                }
+
+                var cond = GenExpr(parameters[0]);
+                var condIf = GenExpr(parameters[1][0]);
+                var condElse = GenExpr(parameters[1][1]);
 
                 if (cond == null || condIf == null || condElse == null)
                     return null;
@@ -411,12 +438,12 @@ namespace Gosub.Zurfur.Compiler
 
                 if (condType != null && condType != typeBool)
                 {
-                    Reject(ex.Token, $"Left side must evaluate to 'Zurfur.bool', but it evaluates to '{condType}'");
+                    Reject(ex.Token, $"First parameter must evaluate to 'bool', but it evaluates to '{condType}'");
                     return null;
                 }
                 if (condTypeIf != null && condTypeElse != null && condTypeIf.FullName != condTypeElse.FullName)
                 {
-                    Reject(ex.Token, $"Left and right sides must evaluate to same type, but they evaluate to '{condTypeIf}' and '{condTypeElse}'");
+                    Reject(parameters[1].Token, $"Left and right sides must evaluate to same type, but they evaluate to '{condTypeIf}' and '{condTypeElse}'");
                     return null;
                 }
                 if (condTypeIf != null)

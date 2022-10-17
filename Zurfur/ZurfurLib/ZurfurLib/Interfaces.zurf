@@ -19,8 +19,8 @@ interface NumOps<T>
     [static] fun _opNeg(a T) T impl
     [static] fun _opMul(a T, b T) T impl
     [static] fun _opDiv(a T, b T) T impl
-    [static] get ZERO() T impl
-    [static] get ONE() T impl
+    [static] fun get ZERO() T impl
+    [static] fun get ONE() T impl
     
 
 // Equality for containers and sorting (NaN == NaN, Nan < -Inf)
@@ -72,9 +72,9 @@ interface OpRem<T>
     [static] fun _opRem(a T, b T) T impl
 
 interface OpZero<T>
-    [static] get ZERO() T impl
+    [static] fun get ZERO() T impl
 
 interface OpOne<T>
-    [static] get ONE() T impl
+    [static] fun get ONE() T impl
 
     

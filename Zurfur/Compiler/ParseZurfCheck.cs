@@ -5,6 +5,13 @@ using Gosub.Zurfur.Lex;
 
 namespace Gosub.Zurfur.Compiler
 {
+    class ParseInfo
+    {
+        public string Info { get; set; } = "";
+        public ParseInfo(string info) { Info = info; }
+        public override string ToString() { return Info; }
+    }
+
     /// <summary>
     /// Check the parse tree for various errors and warnings.
     /// NOTE: Many of these errors will be moved to analysis phase
@@ -322,7 +329,7 @@ namespace Gosub.Zurfur.Compiler
         {
             if (expr == null)
                 return expr;
-            expr.Token.AddInfo("Parse tree: " + expr.ToString());
+            expr.Token.AddInfo(new ParseInfo("Parse tree: " + expr.ToString()));
             foreach (var e in expr)
                 ShowParseTree(e); // Subtrees without info token
             return expr;

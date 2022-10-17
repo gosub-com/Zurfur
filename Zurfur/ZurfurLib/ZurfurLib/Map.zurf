@@ -16,8 +16,8 @@ use Zurfur.Collections[Iterator, Iterable]
 
 // TBD: This wants to be inside Map<K,V>
 [pub] type KvPair<K,V>
-    @key K pub ref
-    @value V pub ref mut
+    @key K pub ro
+    @value V pub mut
 
 // TBD: Need this: fun (kv Map<K,V>.Pair) ...
 [pub] fun KvPair<K,V>.new(key own K, value own V)
@@ -31,7 +31,7 @@ use Zurfur.Collections[Iterator, Iterable]
 [pub] fun Map<K,V>.new(keyValues Iterator<KvPair<K,V>>)
     return todo
     
-[pub] get Map<K,V>.count() int
+[pub] fun get Map<K,V>.count() int
     return todo
 
 // TBD: Figure out map["Hello"] += 1
@@ -46,13 +46,13 @@ use Zurfur.Collections[Iterator, Iterable]
     return todo
 
 // TBD: Return Iterable<(K, V)>???
-[pub] get Map<K,V>.iterator() mut Iterator<KvPair<K,V>>
+[pub] fun get Map<K,V>.iterator() mut Iterator<KvPair<K,V>>
     return todo
 
-[pub] get Map<K,V>.keys() Iterator<K>
+[pub] fun get Map<K,V>.keys() Iterator<K>
     return todo
 
-[pub] get Map<K,V>.values() mut Iterator<V>
+[pub] fun get Map<K,V>.values() mut Iterator<V>
     return todo
 
 [pub] fun mut Map<K,V>.clear()
