@@ -490,7 +490,7 @@ namespace Gosub.Zurfur.Compiler
                 // Interface method syntax
                 if (method.Parent.IsInterface && !method.IsStatic)
                 {
-                    Debug.Assert(func.ExtensionType == null && method.Parent.IsType);
+                    //Debug.Assert(func.ExtensionType == null && method.Parent.IsType);
                     var ifaceMethodParam = new SymMethodParam(method, func.Name, "my");
                     ifaceMethodParam.Type = method.Parent;
                     table.AddOrReject(ifaceMethodParam);

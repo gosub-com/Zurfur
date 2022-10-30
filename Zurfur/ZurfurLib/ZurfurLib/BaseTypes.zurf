@@ -36,11 +36,21 @@ fun get todo() require(false) extern
 // Empty value for pointers and optionals
 [pub] type nil { }
 
+// Garbage collected pointer
+[pub] type Pointer<T> { }
+
+// Nullable<T> - Same as ?T
+[pub] type Nullable<T> { }
+
+// Nullable reference (or pointer), optimization of ?ref T
+[pub] type NullableRef<T> { }
+
 // a UTF8 encoded character, same as i32
 [pub] type rune = i32
 
 // Base interface for all types
 [pub] interface object { }
+
 
 // All types have a unique `id`, but other
 // non-essential metadata is opt-in

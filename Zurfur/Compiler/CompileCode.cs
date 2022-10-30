@@ -42,10 +42,13 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     static class CompileCode
     {
+        const string RAW_POINTER_TYPE = "Zurfur.RawPointer`1";
+        const string REF_TYPE = "Zurfur.Ref`1";
+
         static WordSet sOperators = new WordSet("+ - * / % & | ~ ! == != >= <= > < << >> and or in |= &= += -= <<= >>= .. ..+ ]");
         static WordSet sCmpOperators = new WordSet("== != >= <= > <");
         static WordSet sIntTypeNames = new WordSet("Zurfur.int Zurfur.u64 Zurfur.i32 Zurfur.u32");
-        static WordSet sDerefPointers = new WordSet("ref ^ *");
+        static WordSet sDerefPointers = new WordSet("Zurfur.RawPointer`1 Zurfur.Pointer`1");
         static WordMap<string> sBinOpNames = new WordMap<string> {
             {"+", "_opAdd"}, {"+=", "_opAdd"}, {"-", "_opSub"}, {"-=", "_opSub"},
             {"*", "_opMul"}, {"*=", "_opMul"}, {"/", "_opDiv"}, {"/=", "_opDiv"},
@@ -310,7 +313,7 @@ namespace Gosub.Zurfur.Compiler
                 // Auto-dereference pointers and references
                 if (type is SymSpecializedType genericSym
                     && genericSym.Params.Length != 0
-                    && typeNames.Contains(genericSym.Parent.SimpleName))
+                    && typeNames.Contains(genericSym.Parent.FullName))
                 {
                     // Move up to non-generic concrete type
                     // TBD: Preserve concrete type parameters
@@ -330,7 +333,7 @@ namespace Gosub.Zurfur.Compiler
                 if (leftType == null)
                     return null;
 
-                if (leftType.Parent == null || leftType.Parent.SimpleName != "^")
+                if (leftType.Parent == null || leftType.Parent.FullName != RAW_POINTER_TYPE)
                 {
                     Reject(ex.Token, $"Only pointers may be dereferenced, but the type is '${leftType}'");
                     return null;
@@ -345,11 +348,11 @@ namespace Gosub.Zurfur.Compiler
                 if (ex.Count == 0)
                     return null;  // Syntax error
 
-                // Create variables
+                // Unary operator, create variables
                 if (ex.Count == 1)
                     return GenNewVars(ex[0], ex.Token);
 
-                // Capture variabes
+                // Binary operator, capture variabes
                 var value = GenExpr(ex[0]);
                 var variables = GenNewVars(ex[1], ex.Token);
 
@@ -462,7 +465,7 @@ namespace Gosub.Zurfur.Compiler
                 if (type == null || expr == null)
                     return null;
 
-                if (type.Parent.SimpleName != "^" && type != typeU64)
+                if (type.Parent.FullName != RAW_POINTER_TYPE && type != typeU64)
                 {
                     Reject(ex.Token, $"The cast type must be a pointer or u64, but it is '{type}'");
                     return null;
@@ -472,7 +475,7 @@ namespace Gosub.Zurfur.Compiler
                 if (exprType == null)
                     return null;
 
-                if (exprType.Parent.SimpleName != "^" && exprType != typeU64)
+                if (exprType.Parent.FullName != RAW_POINTER_TYPE && exprType != typeU64)
                 {
                     Reject(ex.Token, $"The expression must evaluate to a pointer or u64, but is a '{exprType}'");
                     return null;
@@ -497,7 +500,12 @@ namespace Gosub.Zurfur.Compiler
                     return null;
 
                 // Ref or address off
-                var refType = ex.Token == "ref" ? table.UnaryTypeSymbols["ref"] : table.UnaryTypeSymbols["^"];
+                var refType = table.Lookup(ex.Token == "ref" ? REF_TYPE : RAW_POINTER_TYPE);
+                if (refType == null)
+                {
+                    Reject(ex.Token, "Undefined type");
+                    return null;
+                }
 
                 return new Rval(ex.Token, 
                     table.GetSpecializedType(refType, new Symbol[] { exprType }));
@@ -511,19 +519,14 @@ namespace Gosub.Zurfur.Compiler
 
                 var left = GenExpr(ex[0]);
                 var right = GenExpr(ex[1]);
+                var rightType = right == null ? null : EvalType(right);
+                if (left != null)
+                    EvalType(left, true);
 
-                if (left == null || right == null)
+                if (left == null || right == null || rightType == null)
                     return null;
 
-                // Assign or verify type names
-                // TBD allow destructuring: @(x,y) = Point()
-                var rightType = EvalType(right);
-                if (rightType == null)
-                    return null;
-
-                EvalType(left, true);
-
-                // Assign type to local variable
+                // Assign type to local variable (if type not already assigned)
                 if (left.Symbols.Count == 1 && left.Symbols[0].IsLocal && left.Symbols[0].Type == null)
                 {
                     // Assign untyped local
@@ -543,7 +546,7 @@ namespace Gosub.Zurfur.Compiler
                 if (sIntTypeNames.Contains(leftType.FullName) && right.IsUntypedConst && sIntTypeNames.Contains(rightType.FullName))
                     rightType = leftType; // Dummy
 
-                if (leftType.Parent != null && leftType.Parent.SimpleName == "^" && rightType == typeNil)
+                if (leftType.Parent != null && leftType.Parent.FullName == RAW_POINTER_TYPE && rightType == typeNil)
                 {
                     return null; // Pointer = nil is ok
                 }
@@ -620,7 +623,8 @@ namespace Gosub.Zurfur.Compiler
                 if (ex.Token == "and" || ex.Token == "or" || ex.Token == "!")
                     return GenBooleanOperator(ex, args);
 
-                if (args.Count == 2 && (args[0].Type.Parent.SimpleName == "^" || args[1].Type.Parent.SimpleName == "^"))
+                if (args.Count == 2 && (args[0].Type.Parent.FullName == RAW_POINTER_TYPE 
+                        || args[1].Type.Parent.FullName == RAW_POINTER_TYPE))
                     return GenRawPointerOperator(ex, args[0], args[1]);
 
                 // Implicit conversion of untyped constant to integer types
@@ -678,12 +682,12 @@ namespace Gosub.Zurfur.Compiler
                 // Add/subtract pointers to number types
                 if (ex.Token == "+" || ex.Token == "-")
                 {
-                    if (leftType.Parent.SimpleName == "^" && sIntTypeNames.Contains(rightType.FullName))
+                    if (leftType.Parent.FullName == RAW_POINTER_TYPE && sIntTypeNames.Contains(rightType.FullName))
                         return DummyFunction(ex.Token, leftType, leftType, rightType);
-                    if (rightType.Parent.SimpleName == "^" && sIntTypeNames.Contains(leftType.FullName))
+                    if (rightType.Parent.FullName == RAW_POINTER_TYPE && sIntTypeNames.Contains(leftType.FullName))
                         return DummyFunction(ex.Token, rightType, leftType, rightType);
                     if (ex.Token == "-"
-                        && leftType.Parent.SimpleName == "^" && rightType.Parent.SimpleName == "^"
+                        && leftType.Parent.FullName == RAW_POINTER_TYPE && rightType.Parent.FullName == RAW_POINTER_TYPE
                         && leftType.FullName == rightType.FullName)
                     {
                         return DummyFunction(ex.Token, typeU64, leftType, rightType);
@@ -695,13 +699,13 @@ namespace Gosub.Zurfur.Compiler
                 // Compare pointers to pointers and nil
                 if (sCmpOperators.Contains(ex.Token))
                 {
-                    if (leftType.Parent.SimpleName == "^" && rightType.Parent.SimpleName == "^")
+                    if (leftType.Parent.FullName == RAW_POINTER_TYPE && rightType.Parent.FullName == RAW_POINTER_TYPE)
                         return DummyFunction(ex.Token, typeBool, leftType, rightType);
                     if (ex.Token == "==" || ex.Token == "!=")
                     {
-                        if (leftType.Parent.SimpleName == "^" && rightType == typeNil)
+                        if (leftType.Parent.FullName == RAW_POINTER_TYPE && rightType == typeNil)
                             return DummyFunction(ex.Token, typeBool, leftType, rightType);
-                        if (leftType == typeNil && rightType.Parent.SimpleName == "^")
+                        if (leftType == typeNil && rightType.Parent.FullName == RAW_POINTER_TYPE)
                             return DummyFunction(ex.Token, typeBool, leftType, rightType);
                     }
                     Reject(ex.Token, $"Operator '{ex.Token}' cannot be used with types '({leftType},{rightType})'");
@@ -783,13 +787,6 @@ namespace Gosub.Zurfur.Compiler
             // If there is an error, mark it and give feedback on possible matches.
             Rval FindCompatibleFunction(Token token, List<Rval> args, List<Symbol> functions, string rejectName)
             {
-                foreach (var sym in args)
-                    if (sym.Type.FullName.Contains("#"))
-                    {
-                        Reject(token, "Generics not supported yet");
-                        return null;
-                    }
-
                 var oldCalls = functions.ToArray();
                 functions.RemoveAll(callFunc => !IsCallCompatible(callFunc, args));
 
@@ -840,7 +837,7 @@ namespace Gosub.Zurfur.Compiler
                     var param = methodParamTypes[i];
 
                     // Implicit conversion from ^Type to ^void
-                    if (arg.Parent.SimpleName == "^" && param.Parent.SimpleName == "^"
+                    if (arg.Parent.FullName == RAW_POINTER_TYPE && param.Parent.FullName == RAW_POINTER_TYPE
                         && DerefPointers(param) == typeVoid)
                     {
                         continue;

@@ -1,7 +1,7 @@
 ﻿
 module Zurfur
 
-use Zurfur.Unsafe
+
 use Zurfur.Collections[Iterator]
 use Zurfur[Clone]
 use Zurfur.Math[max]

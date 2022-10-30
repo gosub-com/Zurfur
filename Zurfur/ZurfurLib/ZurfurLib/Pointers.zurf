@@ -1,0 +1,43 @@
+﻿module Zurfur
+
+// Unsigned extended int (u32 or u64, depending on machine word size)
+[pub unsafe] type Xuint
+    @value u32 // or u64
+
+// Raw pointer (i.e *T in C)
+[pub unsafe] type RawPointer<T>
+    @value Xuint
+
+// Internal representation of `ref` type
+[pub unsafe] type ref Ref<T>
+    @value Xuint
+
+// This is private, so only RawPointer<T>, Ref<T> and Xuint can implement IsRawPointer.
+[unsafe] type RawPointerMarker{}
+
+// Only RawPointer<T>, Ref<T> and Xuint implement this.  It is impossible for
+// any other type to implement this since RawPointerMarker is private.
+[unsafe] interface IsRawPointer
+    fun isRawPointer() RawPointerMarker impl
+
+// Mark these types as the only pointer types in the system
+[unsafe] fun Xuint.isRawPointer() RawPointerMarker
+    return RawPointerMarker()
+[unsafe] fun RawPointer<T>.isRawPointer() RawPointerMarker
+    return RawPointerMarker()
+[unsafe] fun Ref<T>.isRawPointer() RawPointerMarker
+    return RawPointerMarker()
+    
+
+// Cast from one pointer type to another pointer type.  
+[unsafe] fun castPointer<Out>(i IsRawPointer) Out
+    where Out is IsRawPointer
+    extern
+
+fun _opAdd<T>(a *T, b int) *T extern
+fun _opAdd<T>(a int, b *T) *T extern
+
+fun test_Add()
+    @a = RawPointer<int>()
+    @b = a + 1
+    

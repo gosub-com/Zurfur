@@ -7,6 +7,16 @@ namespace Gosub.Zurfur.Compiler
 {
     static class ResolveType
     {
+        static WordMap<string> sUnaryTypeSymbols = new WordMap<string>()
+        {
+            {"*", "Zurfur.RawPointer`1" },
+            {"^", "Zurfur.Pointer`1" },
+            {"ref", "Zurfur.Ref`1" },
+            {"?", "Zurfur.Nullable`1"},
+            {"[", "Zurfur.Span`1" },
+            {ParseZurf.VT_TYPE_ARG, ParseZurf.VT_TYPE_ARG }
+        };
+
         /// <summary>
         /// Resolve a type.  Non-generic types are found in the symbol table
         /// and given a full name (e.g. 'int' -> 'Zufur.int').  Generic types
@@ -32,7 +42,7 @@ namespace Gosub.Zurfur.Compiler
             if (typeExpr.Token == "fun" || typeExpr.Token == "afun")
                 return ResolveLambdaFunOrReject();
 
-            if (table.UnaryTypeSymbols.ContainsKey(typeExpr.Token) || typeExpr.Token == ParseZurf.VT_TYPE_ARG)
+            if (sUnaryTypeSymbols.ContainsKey(typeExpr.Token))
                 return ResolveGenericTypeOrReject();
 
             // Resolve regular symbol
@@ -235,8 +245,11 @@ namespace Gosub.Zurfur.Compiler
                 int typeParamIndex = 0;
                 if (typeExpr.Token != ParseZurf.VT_TYPE_ARG)
                 {
-                    // Unary type symbol symbol
-                    typeParent = table.UnaryTypeSymbols[typeExpr.Token];
+                    typeParent = table.Lookup(sUnaryTypeSymbols[typeExpr.Token]);
+                    if (typeParent == null)
+                        resolved = false;  // Only if base library is broken
+                    else
+                        typeExpr.Token.AddInfo(typeParent);
                 }
                 else
                 {

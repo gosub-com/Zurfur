@@ -46,7 +46,7 @@ fun panicFatal(m str)
 // the system. It's similar to CALL_MMAP, but the function can increase
 // the size of allocated memory if desired  (must be in units of page size).
 // Returns nil when out of memory or on error.
-fun (DlMalloc) CallMoreCore(length ref u64) ^void
+fun (DlMalloc) CallMoreCore(length ref u64) *void
     todo
 
 // This was originally CALL_MUNMAP and is used to release memory pages
@@ -55,7 +55,7 @@ fun (DlMalloc) CallMoreCore(length ref u64) ^void
 // free part of an allocated memory block or even multiple blocks at a time.
 // Return true for success, or false for failure (in which
 // case the pages are retained and used for future requests)
-fun (DlMalloc) CallReleaseCore(address ^void, length u64) bool
+fun (DlMalloc) CallReleaseCore(address *void, length u64) bool
     todo
 
 // Called when the heap is known to be corrupted.  Throws an exception
@@ -65,7 +65,7 @@ fun (DlMalloc) CallCorruptionErrorAction()
 
 // Called when the malloc is used incorrectly.  Throws an exception
 // and calls ResetOnError by default.
-fun (DlMalloc) CallUsageErrorAction(m2 ^void)
+fun (DlMalloc) CallUsageErrorAction(m2 *void)
     panicFatal("Malloc Usage Error: TBD: Give more info about address")
 
 // Called before malloc returns nil.  The default action is to throw an exception
@@ -167,18 +167,18 @@ fun get MAX_SMALL_REQUEST() u64
     @treemap u64
     @dvsize u64
     @topsize u64
-    @least_addr ^byte
-    @dv ^mchunk
-    @top ^mchunk
+    @least_addr *byte
+    @dv *mchunk
+    @top *mchunk
     @trim_check u64
     @release_checks u64
     @magic u64
-    @smallbins ^^mchunk
-    @treebins ^^tchunk
+    @smallbins **mchunk
+    @treebins **tchunk
     @footprint u64
     @max_footprint u64
     @mflags flag_t
-    @seg ^msegment
+    @seg *msegment
     @malloc_corruption_error_count int
     @mparams malloc_params
 
@@ -186,7 +186,7 @@ fun (mut DlMalloc) new(capacity u64)
     my.ensure_initialization()
     @rs = if(capacity == 0, my.mparams.granularity : capacity + TOP_FOOT_SIZE)
     @tsize = my.granularity_align(rs)
-    @tbase = cast(^byte)my.CallMoreCore(ref tsize)
+    @tbase = cast(*byte)my.CallMoreCore(ref tsize)
     if tbase != nil
         my.init_user_mstate(tbase, tsize)
         my.seg.sflags = flag_t.USE_MMAP_BIT
@@ -338,11 +338,11 @@ fun get FOUR_SIZE_T_SIZES() u64
 const CHUNK_ALIGN_MASK u64 = MALLOC_ALIGNMENT - SIZE_T_ONE
 
 // True if address a has acceptable alignment
-fun is_aligned(a ^void) bool
+fun is_aligned(a *void) bool
     return (cast(u64)a & CHUNK_ALIGN_MASK) == 0
 
 // the number of bytes to offset an address to align it
-fun align_offset(a ^void) u64
+fun align_offset(a *void) u64
     if (cast(u64)a & CHUNK_ALIGN_MASK) == 0
         return 0u64
     return (MALLOC_ALIGNMENT - (cast(u64)a & CHUNK_ALIGN_MASK)) & CHUNK_ALIGN_MASK
@@ -387,11 +387,11 @@ fun (DlMalloc) is_granularity_aligned(s u64) bool
     return (s & (my.mparams.granularity - SIZE_T_ONE)) == 0
 
 //  True if segment S holds address A
-fun (DlMalloc) segment_holds(s ^msegment, a ^void) bool
-    return a >= cast(^void)s.baseAddr and a < cast(^void)s.baseAddr + s.size
+fun (DlMalloc) segment_holds(s *msegment, a *void) bool
+    return a >= cast(*void)s.baseAddr and a < cast(*void)s.baseAddr + s.size
 
 // Return segment holding given address
-fun (DlMalloc) segment_holding(addr ^byte) ^msegment
+fun (DlMalloc) segment_holding(addr *byte) *msegment
     @sp = my.seg
     while true
         if addr >= sp.baseAddr and addr < sp.baseAddr + sp.size
@@ -401,10 +401,10 @@ fun (DlMalloc) segment_holding(addr ^byte) ^msegment
             return nil
 
 // Return true if segment contains a segment link
-fun (DlMalloc) has_segment_link(ss ^msegment) bool
+fun (DlMalloc) has_segment_link(ss *msegment) bool
     @sp = my.seg
     while true
-        if cast(^byte)sp >= ss.baseAddr and cast(^byte)sp < ss.baseAddr + ss.size
+        if cast(*byte)sp >= ss.baseAddr and cast(*byte)sp < ss.baseAddr + ss.size
             return true
         sp = sp.next
         if sp == nil
@@ -417,21 +417,21 @@ fun (DlMalloc) should_trim(s u64) bool
 //  that may be needed to place segment records and fenceposts when new
 //  noncontiguous segments are added.
 fun get TOP_FOOT_SIZE() u64
-    return align_offset(chunk2mem(cast(^mchunk)0u64)) + pad_request(sizeof(msegment).u64Mask) + MIN_CHUNK_SIZE
+    return align_offset(chunk2mem(cast(*mchunk)0u64)) + pad_request(sizeof(msegment).u64Mask) + MIN_CHUNK_SIZE
 
 // -------------------------- Debugging setup ----------------------------
 
 [Conditional("DEBUG")]
-fun (DlMalloc) check_free_chunk(p ^mchunk) { my.do_check_free_chunk(p) }
+fun (DlMalloc) check_free_chunk(p *mchunk) { my.do_check_free_chunk(p) }
 
 [Conditional("DEBUG")]
-fun (DlMalloc) check_inuse_chunk(p ^mchunk) { my.do_check_inuse_chunk(p) }
+fun (DlMalloc) check_inuse_chunk(p *mchunk) { my.do_check_inuse_chunk(p) }
 
 [Conditional("DEBUG")]
-fun (DlMalloc) check_malloced_chunk(mem ^void, s u64) { my.do_check_malloced_chunk(mem, s) }
+fun (DlMalloc) check_malloced_chunk(mem *void, s u64) { my.do_check_malloced_chunk(mem, s) }
 
 [Conditional("DEBUG")]
-fun (DlMalloc) check_top_chunk(p ^mchunk) { my.do_check_top_chunk(p) }
+fun (DlMalloc) check_top_chunk(p *mchunk) { my.do_check_top_chunk(p) }
 
 // ---------------------------- Indexing Bins ----------------------------
 
@@ -445,10 +445,10 @@ fun get MIN_SMALL_INDEX() u64
     return small_index(MIN_CHUNK_SIZE)
 
 // addressing by index. See above about smallbin repositioning
-fun (DlMalloc) smallbin_at(i u64) ^mchunk
-    return cast(^mchunk)&my.smallbins[(i) << 1]
-fun (DlMalloc) treebin_at(i u64) ^^tchunk
-    return cast(^^tchunk)&my.treebins[i]
+fun (DlMalloc) smallbin_at(i u64) *mchunk
+    return cast(*mchunk)&my.smallbins[(i) << 1]
+fun (DlMalloc) treebin_at(i u64) **tchunk
+    return cast(**tchunk)&my.treebins[i]
 
 // Find tree index for size S
 fun compute_tree_index(s u64) u64
@@ -562,16 +562,16 @@ fun compute_bit2idx(x u64) u64
 
 
 // Check if address a is at least as high as any from MORECORE or MMAP
-fun (DlMalloc) ok_address(a ^void) bool
-    return a >= cast(^void)my.least_addr
+fun (DlMalloc) ok_address(a *void) bool
+    return a >= cast(*void)my.least_addr
         
-fun ok_next(p ^tchunk, n ^mchunk) bool
-    return cast(^byte)p < cast(^byte)n
-fun ok_next(p ^mchunk, n ^mchunk) bool
-    return cast(^byte)p < cast(^byte)n
-fun ok_inuse(p ^mchunk) bool
+fun ok_next(p *tchunk, n *mchunk) bool
+    return cast(*byte)p < cast(*byte)n
+fun ok_next(p *mchunk, n *mchunk) bool
+    return cast(*byte)p < cast(*byte)n
+fun ok_inuse(p *mchunk) bool
     return is_inuse(p)
-fun ok_pinuse(p ^mchunk) bool
+fun ok_pinuse(p *mchunk) bool
     return pinuse(p)
 
 
@@ -581,15 +581,15 @@ fun (DlMalloc) ok_magic() bool
 fun RTCHECK(e bool) bool
     return e
 
-fun set_inuse_and_pinuse(p mut ^mchunk, s u64)
+fun set_inuse_and_pinuse(p mut *mchunk, s u64)
     p.head = s | PINUSE_BIT | CINUSE_BIT
-    (cast(^mchunk)(cast(^byte)p + s)).head |= PINUSE_BIT
+    (cast(*mchunk)(cast(*byte)p + s)).head |= PINUSE_BIT
 
-fun set_inuse_and_pinuse(p mut ^tchunk, s u64)
+fun set_inuse_and_pinuse(p mut *tchunk, s u64)
     p.head = s | PINUSE_BIT | CINUSE_BIT
-    (cast(^mchunk)(cast(^byte)p + s)).head |= PINUSE_BIT
+    (cast(*mchunk)(cast(*byte)p + s)).head |= PINUSE_BIT
 
-fun set_size_and_pinuse_of_inuse_chunk(p mut ^mchunk, s u64)
+fun set_size_and_pinuse_of_inuse_chunk(p mut *mchunk, s u64)
     p.head = s | PINUSE_BIT | CINUSE_BIT
 
 // ---------------------------- setting mparams --------------------------
@@ -606,7 +606,7 @@ fun (mut DlMalloc) init_mparams() int
     // Alignment, min chunk size, and page size must all be powers of 2.
     @psize = GetEnvironmentSystemPageSize()
     @gsize = if(DEFAULT_GRANULARITY != 0, DEFAULT_GRANULARITY : psize)
-    if sizeof(size_t) < sizeof(^byte)
+    if sizeof(size_t) < sizeof(*byte)
             or MAX_SIZE_T < MIN_CHUNK_SIZE
             or sizeof(int) < 4
             or MALLOC_ALIGNMENT < 8
@@ -634,25 +634,25 @@ fun assert(c bool)
         panicFatal("Malloc assert failed")
 
 // Check properties of any chunk, whether free, inuse, mmapped etc
-fun (DlMalloc) do_check_any_chunk(p ^mchunk)
+fun (DlMalloc) do_check_any_chunk(p *mchunk)
     assert(is_aligned(chunk2mem(p)) or p.head == FENCEPOST_HEAD)
     assert(my.ok_address(p))
 
 // Check properties of top chunk
-fun (DlMalloc) do_check_top_chunk(p ^mchunk)
-    @sp = my.segment_holding(cast(^byte)p)
+fun (DlMalloc) do_check_top_chunk(p *mchunk)
+    @sp = my.segment_holding(cast(*byte)p)
     @sz = p.head & ~INUSE_BITS // third-lowest bit can be set!
     assert(sp != nil)
     assert(is_aligned(chunk2mem(p)) or p.head == FENCEPOST_HEAD)
     assert(my.ok_address(p))
     assert(sz == my.topsize)
     assert(sz > 0)
-    assert(sz == cast(u64)((sp.baseAddr + sp.size) - cast(^byte)p) - TOP_FOOT_SIZE)
+    assert(sz == cast(u64)((sp.baseAddr + sp.size) - cast(*byte)p) - TOP_FOOT_SIZE)
     assert(pinuse(p))
     assert(!pinuse(chunk_plus_offset(p, sz)))
 
 // Check properties of inuse chunks
-fun (DlMalloc) do_check_inuse_chunk(p ^mchunk)
+fun (DlMalloc) do_check_inuse_chunk(p *mchunk)
     my.do_check_any_chunk(p)
     assert(is_inuse(p))
     assert(next_pinuse(p))
@@ -661,7 +661,7 @@ fun (DlMalloc) do_check_inuse_chunk(p ^mchunk)
     assert(!is_mmapped(p))
 
 // Check properties of free chunks
-fun (DlMalloc) do_check_free_chunk(p ^mchunk)
+fun (DlMalloc) do_check_free_chunk(p *mchunk)
     @sz = chunksize(p)
     @next = chunk_plus_offset(p, sz)
     my.do_check_any_chunk(p)
@@ -681,7 +681,7 @@ fun (DlMalloc) do_check_free_chunk(p ^mchunk)
             assert(sz == SIZE_T_SIZE)
 
 // Check properties of malloced chunks at the point they are malloced
-fun (DlMalloc) do_check_malloced_chunk(mem ^void, s u64)
+fun (DlMalloc) do_check_malloced_chunk(mem *void, s u64)
     if mem != nil
         @p = mem2chunk(mem)
         @sz = p.head & ~INUSE_BITS
@@ -694,8 +694,8 @@ fun (DlMalloc) do_check_malloced_chunk(mem ^void, s u64)
         assert(!is_mmapped(p))
 
 // Check a tree and its subtrees.
-fun (DlMalloc) do_check_tree(t ^tchunk)
-    @head ^tchunk = nil
+fun (DlMalloc) do_check_tree(t *tchunk)
+    @head *tchunk = nil
     @u = t
     @tindex = t.index
     @tsize = chunksize(t)
@@ -707,7 +707,7 @@ fun (DlMalloc) do_check_tree(t ^tchunk)
 
     do
         // traverse through chain of same-sized nodes
-        my.do_check_any_chunk((cast(^mchunk)u))
+        my.do_check_any_chunk((cast(*mchunk)u))
         assert(u.index == tindex)
         assert(chunksize(u) == tsize)
         assert(!is_inuse(u))
@@ -723,7 +723,7 @@ fun (DlMalloc) do_check_tree(t ^tchunk)
             assert(u.parent != u)
             assert(u.parent.child0 == u
                     or u.parent.child1 == u
-                    or (cast(^^tchunk)u.parent).* == u)
+                    or (cast(**tchunk)u.parent).* == u)
             if u.child0 != nil
                 assert(u.child0.parent == u)
                 assert(u.child0 != u)
@@ -758,7 +758,7 @@ fun (DlMalloc) do_check_smallbin(i u64)
     if !empty
         while p != b
             @size = chunksize(p)
-            @q ^mchunk
+            @q *mchunk
             // each chunk claims to be free
             my.do_check_free_chunk(p)
             // chunk belongs in bin
@@ -771,7 +771,7 @@ fun (DlMalloc) do_check_smallbin(i u64)
             p = p.bk
 
 // Find x in a bin. Used in other check functions.
-fun (DlMalloc) bin_find(x ^mchunk) bool
+fun (DlMalloc) bin_find(x *mchunk) bool
     @size = chunksize(x)
     if is_small(size)
         @sidx = small_index(size)
@@ -795,7 +795,7 @@ fun (DlMalloc) bin_find(x ^mchunk) bool
             if t != nil
                 @u = t
                 do
-                    if u == cast(^tchunk)x
+                    if u == cast(*tchunk)x
                         return true
                     u = u.fd
                 dowhile u != t
@@ -835,7 +835,7 @@ fun (DlMalloc) bin_find(x ^mchunk) bool
     @s = my.seg
     while s != nil
         @q = align_as_chunk(s.baseAddr)
-        @lastq ^mchunk = nil
+        @lastq *mchunk = nil
         assert(pinuse(q))
 
         // Walk chunks
@@ -879,7 +879,7 @@ fun (DlMalloc) bin_find(x ^mchunk) bool
 
 // Link a free chunk into a smallbin
 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-fun (mut DlMalloc) insert_small_chunk(p ^mchunk, s u64)
+fun (mut DlMalloc) insert_small_chunk(p *mchunk, s u64)
     @I = small_index(s)
     @B = my.smallbin_at(I)
     @F = B
@@ -897,7 +897,7 @@ fun (mut DlMalloc) insert_small_chunk(p ^mchunk, s u64)
 
 // Unlink a chunk from a smallbin
 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-fun (mut DlMalloc) unlink_small_chunk(p ^mchunk, s u64)
+fun (mut DlMalloc) unlink_small_chunk(p *mchunk, s u64)
     @F = p.fd
     @B = p.bk
     @I = small_index(s)
@@ -918,7 +918,7 @@ fun (mut DlMalloc) unlink_small_chunk(p ^mchunk, s u64)
 
 // Unlink the first chunk from a smallbin
 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-fun (mut DlMalloc) unlink_first_small_chunk(b ^mchunk, p ^mchunk, i u64)
+fun (mut DlMalloc) unlink_first_small_chunk(b *mchunk, p *mchunk, i u64)
     @F = p.fd
     assert(p != b)
     assert(p != F)
@@ -934,7 +934,7 @@ fun (mut DlMalloc) unlink_first_small_chunk(b ^mchunk, p ^mchunk, i u64)
 // Replace dv node, binning the old one
 // Used only when dvsize known to be small
 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-fun (mut DlMalloc) replace_dv(p ^mchunk, s u64)
+fun (mut DlMalloc) replace_dv(p *mchunk, s u64)
     @DVS = my.dvsize
     assert(is_small(DVS))
     if DVS != 0
@@ -944,8 +944,8 @@ fun (mut DlMalloc) replace_dv(p ^mchunk, s u64)
     my.dv = p
 
 // Insert chunk into tree
-fun (DlMalloc) insert_large_chunk(x ^tchunk, s u64)
-    @H ^^tchunk
+fun (DlMalloc) insert_large_chunk(x *tchunk, s u64)
+    @H **tchunk
     @I = compute_tree_index(s)
     H = my.treebin_at(I)
     x.index = I
@@ -954,7 +954,7 @@ fun (DlMalloc) insert_large_chunk(x ^tchunk, s u64)
     if !my.treemap_is_marked(I)
         my.mark_treemap(I)
         H.* = x
-        x.parent = cast(^tchunk)H
+        x.parent = cast(*tchunk)H
         x.fd = x
         x.bk = x
     else
@@ -1003,9 +1003,9 @@ fun (DlMalloc) insert_large_chunk(x ^tchunk, s u64)
 //     because on average a node in a tree is near the bottom.
 //  3. If x is the base of a chain (i.e., has parent links) relink
 //     x's parent and children to x's replacement (or nil if none).
-fun (DlMalloc) unlink_large_chunk(x ^tchunk)
+fun (DlMalloc) unlink_large_chunk(x *tchunk)
     @XP = x.parent
-    @R ^tchunk
+    @R *tchunk
     if x.bk != x
         @F = x.fd
         R = x.bk
@@ -1015,14 +1015,14 @@ fun (DlMalloc) unlink_large_chunk(x ^tchunk)
         else
             my.CallCorruptionErrorAction()
     else
-        @RP ^^tchunk
+        @RP **tchunk
         RP = &x.child1
         R = RP.*
         if R == nil
             RP = &x.child0
             R = RP.*
         if R != nil
-            @CP ^^tchunk
+            @CP **tchunk
             CP = &R.child1
             if CP.* == nil
                 CP = &R.child0
@@ -1051,8 +1051,8 @@ fun (DlMalloc) unlink_large_chunk(x ^tchunk)
             my.CallCorruptionErrorAction()
         if R != nil
             if RTCHECK(my.ok_address(R))
-                @C0 ^tchunk
-                @C1 ^tchunk
+                @C0 *tchunk
+                @C1 *tchunk
                 R.parent = XP
                 C0 = x.child0
                 if C0 != nil
@@ -1074,24 +1074,24 @@ fun (DlMalloc) unlink_large_chunk(x ^tchunk)
 
 
 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-fun (mut DlMalloc) insert_chunk(p ^mchunk, s u64)
+fun (mut DlMalloc) insert_chunk(p *mchunk, s u64)
     if is_small(s)
         my.insert_small_chunk(p, s)
     else
-        my.insert_large_chunk(cast(^tchunk)p, s)
+        my.insert_large_chunk(cast(*tchunk)p, s)
 
 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-fun (mut DlMalloc) unlink_chunk(p ^mchunk, s u64)
+fun (mut DlMalloc) unlink_chunk(p *mchunk, s u64)
     if is_small(s)
         my.unlink_small_chunk(p, s)
     else
-        my.unlink_large_chunk(cast(^tchunk)p)
+        my.unlink_large_chunk(cast(*tchunk)p)
 
 // Initialize top chunk and its size
-fun (mut DlMalloc) init_top(p ^mchunk, psize u64)
+fun (mut DlMalloc) init_top(p *mchunk, psize u64)
     // Ensure alignment
     @offset = align_offset(chunk2mem(p))
-    p = cast(^mchunk)(cast(^byte)p + offset)
+    p = cast(*mchunk)(cast(*byte)p + offset)
     psize -= offset
 
     my.top = p
@@ -1129,17 +1129,17 @@ fun (mut DlMalloc) ResetOnError()
 
 // Allocate chunk and prepend remainder with chunk in successor base.
 fun (mut DlMalloc) prepend_alloc(
-        newbase ^byte,
-        oldbase ^byte,
-        nb u64) ^void
+        newbase *byte,
+        oldbase *byte,
+        nb u64) *void
     @p = align_as_chunk(newbase)
     @oldfirst = align_as_chunk(oldbase)
-    @psize = cast (u64)(cast(^byte)oldfirst - cast(^byte)p)
+    @psize = cast (u64)(cast(*byte)oldfirst - cast(*byte)p)
     @q = chunk_plus_offset(p, nb)
     @qsize = psize - nb
     set_size_and_pinuse_of_inuse_chunk(p, nb)
 
-    assert(cast(^byte)oldfirst > cast(^byte)q)
+    assert(cast(*byte)oldfirst > cast(*byte)q)
     assert(pinuse(oldfirst))
     assert(qsize >= MIN_CHUNK_SIZE)
 
@@ -1169,9 +1169,9 @@ fun (mut DlMalloc) prepend_alloc(
     return chunk2mem(p)
 
 // Add a segment to hold a new noncontiguous region
-fun (mut DlMalloc) add_segment(tbase ^byte, tsize u64, mmapped flag_t)
+fun (mut DlMalloc) add_segment(tbase *byte, tsize u64, mmapped flag_t)
     // Determine locations and sizes of segment, fenceposts, old top
-    @old_top = cast(^byte)my.top
+    @old_top = cast(*byte)my.top
     @oldsp = my.segment_holding(old_top)
     @old_end = oldsp.baseAddr + oldsp.size
     @ssize = pad_request(sizeof(msegment).u64Mask)
@@ -1179,14 +1179,14 @@ fun (mut DlMalloc) add_segment(tbase ^byte, tsize u64, mmapped flag_t)
     @offset = align_offset(chunk2mem(rawsp))
     @asp = rawsp + offset
     @csp = if(asp < old_top + MIN_CHUNK_SIZE, old_top : asp)
-    @sp = cast(^mchunk)csp
-    @ss = cast(^msegment)chunk2mem(sp)
+    @sp = cast(*mchunk)csp
+    @ss = cast(*msegment)chunk2mem(sp)
     @tnext = chunk_plus_offset(sp, ssize)
     @p = tnext
     @nfences = 0
 
     // reset top to new space
-    my.init_top(cast(^mchunk)tbase, tsize - TOP_FOOT_SIZE)
+    my.init_top(cast(*mchunk)tbase, tsize - TOP_FOOT_SIZE)
 
     // Set up segment record
     assert(is_aligned(ss))
@@ -1202,7 +1202,7 @@ fun (mut DlMalloc) add_segment(tbase ^byte, tsize u64, mmapped flag_t)
         @nextp = chunk_plus_offset(p, SIZE_T_SIZE)
         p.head = FENCEPOST_HEAD
         nfences += 1
-        if cast(^byte)&nextp.head_ptr < old_end
+        if cast(*byte)&nextp.head_ptr < old_end
             p = nextp
         else
             break
@@ -1210,7 +1210,7 @@ fun (mut DlMalloc) add_segment(tbase ^byte, tsize u64, mmapped flag_t)
 
     // Insert the rest of old top into a bin as an ordinary free chunk
     if csp != old_top
-        @q = cast(^mchunk)old_top
+        @q = cast(*mchunk)old_top
         @psize = cast(u64)(csp - old_top)
         @tn = chunk_plus_offset(q, psize)
         set_free_with_pinuse(q, psize, tn)
@@ -1219,8 +1219,8 @@ fun (mut DlMalloc) add_segment(tbase ^byte, tsize u64, mmapped flag_t)
     my.check_top_chunk(my.top)
 
 // Get memory from system using MMAP
-fun (mut DlMalloc) sys_alloc(nb u64) ^void
-    @tbase ^byte = nil
+fun (mut DlMalloc) sys_alloc(nb u64) *void
+    @tbase *byte = nil
     @tsize = 0u64
     @mmap_flag = flag_t.NONE
     @asize u64 // allocation size
@@ -1239,7 +1239,7 @@ fun (mut DlMalloc) sys_alloc(nb u64) ^void
 
     if tbase == nil
         // Try MMAP
-        @mp = cast(^byte)my.CallMoreCore(ref asize)
+        @mp = cast(*byte)my.CallMoreCore(ref asize)
         if mp != nil
             tbase = mp
             tsize = asize
@@ -1314,9 +1314,9 @@ fun (mut DlMalloc) release_unused_segments() u64
             @p = align_as_chunk(baseAddr)
             @psize = chunksize(p)
             // Can unmap if first chunk holds entire segment and not pinned
-            if !is_inuse(p) and cast(^byte)p + psize >= baseAddr + size - TOP_FOOT_SIZE
-                @tp = cast(^tchunk)p
-                assert(my.segment_holds(sp, cast(^byte)sp))
+            if !is_inuse(p) and cast(*byte)p + psize >= baseAddr + size - TOP_FOOT_SIZE
+                @tp = cast(*tchunk)p
+                assert(my.segment_holds(sp, cast(*byte)sp))
                 if p == my.dv
                     my.dv = nil
                     my.dvsize = 0
@@ -1351,7 +1351,7 @@ fun (mut DlMalloc) sys_trim(pad u64) int
             @unit = my.mparams.granularity
             @extra = ((my.topsize - pad + (unit - SIZE_T_ONE)) / unit
                             - SIZE_T_ONE) * unit
-            @sp = my.segment_holding(cast(^byte)my.top)
+            @sp = my.segment_holding(cast(*byte)my.top)
 
             if !is_extern_segment(sp)
                 if is_mmapped_segment(sp)
@@ -1379,10 +1379,10 @@ fun (mut DlMalloc) sys_trim(pad u64) int
 
 // Consolidate and bin a chunk. Differs from exported versions
 //   of free mainly in that the chunk need not be marked as inuse.
-fun (mut DlMalloc) dispose_chunk(p ^mchunk, psize u64)
+fun (mut DlMalloc) dispose_chunk(p *mchunk, psize u64)
     @next = chunk_plus_offset(p, psize)
     if !pinuse(p)
-        @prev ^mchunk
+        @prev *mchunk
         @prevsize = p.prev_foot
         prev = chunk_minus_offset(p, prevsize)
         psize += prevsize
@@ -1432,18 +1432,18 @@ fun (mut DlMalloc) dispose_chunk(p ^mchunk, psize u64)
 
 
 // allocate a large request from the best fitting chunk in a treebin
-fun (mut DlMalloc) tmalloc_large(nb u64) ^void
-    @v ^tchunk = nil
+fun (mut DlMalloc) tmalloc_large(nb u64) *void
+    @v *tchunk = nil
     @rsize = -nb // Unsigned negation
-    @t ^tchunk
+    @t *tchunk
     @idx = compute_tree_index(nb)
     t = my.treebin_at(idx).*
     if t != nil
         // Traverse tree for this bin looking for node with size == nb
         @sizebits = nb << leftshift_for_tree_index(idx)
-        @rst ^tchunk = nil  // The deepest untaken right subtree
+        @rst *tchunk = nil  // The deepest untaken right subtree
         while true
-            @rt ^tchunk
+            @rt *tchunk
             @trem = chunksize(t) - nb
             if trem < rsize
                 v = t
@@ -1486,7 +1486,7 @@ fun (mut DlMalloc) tmalloc_large(nb u64) ^void
                 if rsize < MIN_CHUNK_SIZE
                     set_inuse_and_pinuse(v, (rsize + nb))
                 else
-                    set_size_and_pinuse_of_inuse_chunk(cast(^mchunk)v, nb)
+                    set_size_and_pinuse_of_inuse_chunk(cast(*mchunk)v, nb)
                     set_size_and_pinuse_of_free_chunk(r, rsize)
                     my.insert_chunk(r, rsize)
                 return chunk2mem(v)
@@ -1494,9 +1494,9 @@ fun (mut DlMalloc) tmalloc_large(nb u64) ^void
     return nil
 
 // allocate a small request from the best fitting chunk in a treebin
-fun (mut DlMalloc) tmalloc_small(nb u64) ^void
-    @t ^tchunk
-    @v ^tchunk
+fun (mut DlMalloc) tmalloc_small(nb u64) *void
+    @t *tchunk
+    @v *tchunk
     @rsize u64
     @leastbit = least_bit(my.treemap)
     @i = compute_bit2idx(leastbit)
@@ -1520,7 +1520,7 @@ fun (mut DlMalloc) tmalloc_small(nb u64) ^void
             if rsize < MIN_CHUNK_SIZE
                 set_inuse_and_pinuse(v, (rsize + nb))
             else
-                set_size_and_pinuse_of_inuse_chunk(cast(^mchunk)v, nb)
+                set_size_and_pinuse_of_inuse_chunk(cast(*mchunk)v, nb)
                 set_size_and_pinuse_of_free_chunk(r, rsize)
                 my.replace_dv(r, rsize)
             return chunk2mem(v)
@@ -1529,7 +1529,7 @@ fun (mut DlMalloc) tmalloc_small(nb u64) ^void
     return nil
 
 // Traversal
-fun (DlMalloc) internal_inspect_all(handler fun(start ^void, next ^void, used int))
+fun (DlMalloc) internal_inspect_all(handler fun(start *void, next *void, used int))
     if !my.is_initialized()
         return
 
@@ -1541,7 +1541,7 @@ fun (DlMalloc) internal_inspect_all(handler fun(start ^void, next ^void, used in
             @next = next_chunk(q)
             @sz = chunksize(q)
             @used u64
-            @start ^void
+            @start *void
             if is_inuse(q)
                 used = sz - CHUNK_OVERHEAD // must not be mmapped
                 start = chunk2mem(q)
@@ -1549,10 +1549,10 @@ fun (DlMalloc) internal_inspect_all(handler fun(start ^void, next ^void, used in
                 used = 0
                 if is_small(sz)
                     // offset by possible bookkeeping
-                    start = cast(^void)(cast(^byte)q + sizeof(mchunk))
+                    start = cast(*void)(cast(*byte)q + sizeof(mchunk))
                 else
-                    start = cast(^void)(cast(^byte)q + sizeof(tchunk))
-            if start < cast(^void)next  // skip if all space is bookkeeping
+                    start = cast(*void)(cast(*byte)q + sizeof(tchunk))
+            if start < cast(*void)next  // skip if all space is bookkeeping
                 handler(start, next, used)
             if q == top2
                 break
@@ -1560,22 +1560,22 @@ fun (DlMalloc) internal_inspect_all(handler fun(start ^void, next ^void, used in
         s = s.next
 
 // TBD: Optimize and move to standard library
-fun memClear(mem ^void, size int)
-    @b = cast(^byte)mem
+fun memClear(mem *void, size int)
+    @b = cast(*byte)mem
     for @s in 0..size
         b.* = 0
         b += 1
 
 
-fun (mut DlMalloc) init_user_mstate(tbase ^byte, tsize u64)
+fun (mut DlMalloc) init_user_mstate(tbase *byte, tsize u64)
     @msp = align_as_chunk(tbase)
-    @m ^void = chunk2mem(msp)
+    @m *void = chunk2mem(msp)
 
-    my.smallbins = cast(^^mchunk)(Marshal.AllocHGlobal(sizeof(^mchunk).u64Mask * ((NSMALLBINS + 1) * 2)))
-    my.treebins = cast(^^tchunk)(Marshal.AllocHGlobal(sizeof(^tchunk).u64Mask * NTREEBINS))
-    my.seg = cast(^msegment)Marshal.AllocHGlobal(sizeof(msegment))
-    memClear(my.smallbins, sizeof(^mchunk) * (((NSMALLBINS + 1) * 2)).intMask)
-    memClear(my.treebins, sizeof(^tchunk) * NTREEBINS.intMask)
+    my.smallbins = cast(**mchunk)(Marshal.AllocHGlobal(sizeof(*mchunk).u64Mask * ((NSMALLBINS + 1) * 2)))
+    my.treebins = cast(**tchunk)(Marshal.AllocHGlobal(sizeof(*tchunk).u64Mask * NTREEBINS))
+    my.seg = cast(*msegment)Marshal.AllocHGlobal(sizeof(msegment))
+    memClear(my.smallbins, sizeof(*mchunk) * (((NSMALLBINS + 1) * 2)).intMask)
+    memClear(my.treebins, sizeof(*tchunk) * NTREEBINS.intMask)
     memClear(my.seg, sizeof(msegment))
 
     @msize u64 = 0
@@ -1591,12 +1591,12 @@ fun (mut DlMalloc) init_user_mstate(tbase ^byte, tsize u64)
 
     my.init_bins()
     @mn = next_chunk(mem2chunk(m))
-    my.init_top(mn, cast (u64)((tbase + tsize) - cast(^byte)mn) - TOP_FOOT_SIZE)
+    my.init_top(mn, cast (u64)((tbase + tsize) - cast(*byte)mn) - TOP_FOOT_SIZE)
     my.check_top_chunk(my.top)
 
 
 // Allocate a block of memory
-[pub] fun (mut DlMalloc) malloc(length u64) ^void
+[pub] fun (mut DlMalloc) malloc(length u64) *void
     //     Basic algorithm:
     //     If a small request (< 256 bytes minus per-chunk overhead):
     //       1. If one exists, use a remainderless chunk in associated smallbin.
@@ -1619,7 +1619,7 @@ fun (mut DlMalloc) init_user_mstate(tbase ^byte, tsize u64)
     if !my.ok_magic()
         my.CallUsageErrorAction(nil)
         return nil
-    @mem ^void
+    @mem *void
     @nb u64
     if length <= MAX_SMALL_REQUEST
         @idx u64
@@ -1630,8 +1630,8 @@ fun (mut DlMalloc) init_user_mstate(tbase ^byte, tsize u64)
 
         if (smallbits & 0x3u64) != 0
             // Remainderless fit to a smallbin.
-            @b ^mchunk
-            @p ^mchunk
+            @b *mchunk
+            @p *mchunk
             idx += ~smallbits & 1       // Uses next bin if idx empty
             b = my.smallbin_at(idx)
             p = b.fd
@@ -1644,9 +1644,9 @@ fun (mut DlMalloc) init_user_mstate(tbase ^byte, tsize u64)
         elif nb > my.dvsize
             if smallbits != 0
                 // Use chunk in next nonempty smallbin
-                @b ^mchunk
-                @p ^mchunk
-                @r ^mchunk
+                @b *mchunk
+                @p *mchunk
+                @r *mchunk
                 @rsize u64
                 @leftbits = (smallbits << idx) & left_bits(idx2bit(idx))
                 @leastbit = least_bit(leftbits)
@@ -1720,7 +1720,7 @@ fun (mut DlMalloc) init_user_mstate(tbase ^byte, tsize u64)
     return mem
 
 // Free a block of memory
-[pub] fun (mut DlMalloc) free(mem ^void)
+[pub] fun (mut DlMalloc) free(mem *void)
     // Consolidate freed chunks with preceeding or succeeding bordering
     // free chunks, if they exist, and then place in a bin.  Intermixed
     // with special cases for top, dv, mmapped chunks, and usage errors.
@@ -1792,7 +1792,7 @@ fun (mut DlMalloc) init_user_mstate(tbase ^byte, tsize u64)
             my.insert_small_chunk(p, psize)
             my.check_free_chunk(p)
         else
-            @tp = cast(^tchunk)p
+            @tp = cast(*tchunk)p
             my.insert_large_chunk(tp, psize)
             my.check_free_chunk(p)
             my.release_checks -= 1
@@ -1802,7 +1802,7 @@ fun (mut DlMalloc) init_user_mstate(tbase ^byte, tsize u64)
     my.CallUsageErrorAction(p)
 
 
-[pub] fun (DlMalloc) inspectAll(handler fun(start ^void, next ^void, used u32))
+[pub] fun (DlMalloc) inspectAll(handler fun(start *void, next *void, used u32))
     if my.ok_magic()
         my.internal_inspect_all(handler)
     else
@@ -1969,56 +1969,56 @@ fun (mut DlMalloc) init_user_mstate(tbase ^byte, tsize u64)
 //
 // Originally malloc_chunk, now mchunk
 [pub] type mchunk
-    @prev_foot_ptr ^void pub mut // Size of previous chunk (if free).
-    @head_ptr ^void  pub mut     // Size and inuse bits.
-    @fd ^mchunk pub mut          // double links -- used only if free.
-    @bk ^mchunk pub mut
+    @prev_foot_ptr *void pub mut // Size of previous chunk (if free).
+    @head_ptr *void  pub mut     // Size and inuse bits.
+    @fd *mchunk pub mut          // double links -- used only if free.
+    @bk *mchunk pub mut
 
 fun (mchunk) get prev_foot() u64
     return cast(u64)my.prev_foot_ptr
 fun (mchunk) set prev_foot(value u64)
-    my.prev_foot_ptr = cast(^void)value
+    my.prev_foot_ptr = cast(*void)value
 fun (mchunk) get head() u64
     return cast(u64)my.head_ptr
 fun (mchunk) set head(value u64)
-    my.head_ptr = cast(^void)value
+    my.head_ptr = cast(*void)value
     
 
-fun cinuse(p ^mchunk) bool
+fun cinuse(p *mchunk) bool
     return (p.head & CINUSE_BIT) != 0
-fun pinuse(p ^mchunk) bool
+fun pinuse(p *mchunk) bool
     return (p.head & PINUSE_BIT) != 0
-fun flag4inuse(p ^mchunk) bool
+fun flag4inuse(p *mchunk) bool
     return (p.head & FLAG4_BIT) != 0
-fun is_inuse(p ^mchunk) bool
+fun is_inuse(p *mchunk) bool
     return (p.head & INUSE_BITS) != PINUSE_BIT
-fun is_mmapped(p ^mchunk) bool
+fun is_mmapped(p *mchunk) bool
     return (p.head & INUSE_BITS) == 0
-fun chunksize(p ^mchunk) u64
+fun chunksize(p *mchunk) u64
     return p.head & ~FLAG_BITS
-fun clear_pinuse(p ^mchunk)
+fun clear_pinuse(p *mchunk)
     p.head &= ~PINUSE_BIT
-fun set_flag4(p ^mchunk)
+fun set_flag4(p *mchunk)
     p.head |= FLAG4_BIT
-fun clear_flag4(p ^mchunk)
+fun clear_flag4(p *mchunk)
     p.head &= ~FLAG4_BIT
-fun chunk_plus_offset(p ^mchunk, s u64) ^mchunk
-    return cast(^mchunk)(cast(^byte)p + s)
-fun chunk_minus_offset(p ^mchunk, s u64) ^mchunk
-    return cast(^mchunk)(cast(^byte)p - s)
-fun next_chunk(p ^mchunk) ^mchunk
-    return cast(^mchunk)(cast(^byte)p + (p.head & ~FLAG_BITS))
-fun prev_chunk(p ^mchunk) ^mchunk
-    return cast(^mchunk)(cast(^byte)p - (p.prev_foot))
-fun next_pinuse(p ^mchunk) bool
+fun chunk_plus_offset(p *mchunk, s u64) *mchunk
+    return cast(*mchunk)(cast(*byte)p + s)
+fun chunk_minus_offset(p *mchunk, s u64) *mchunk
+    return cast(*mchunk)(cast(*byte)p - s)
+fun next_chunk(p *mchunk) *mchunk
+    return cast(*mchunk)(cast(*byte)p + (p.head & ~FLAG_BITS))
+fun prev_chunk(p *mchunk) *mchunk
+    return cast(*mchunk)(cast(*byte)p - (p.prev_foot))
+fun next_pinuse(p *mchunk) bool
     return ((next_chunk(p).head) & PINUSE_BIT) != 0
-fun get_foot(p ^mchunk, s u64) u64
-    return ((cast(^mchunk)(cast(^byte)p + s)).prev_foot)
-fun set_foot(p ^mchunk, s u64)
-    (cast(^mchunk)(cast(^byte)p + s)).prev_foot = s
-fun set_size_and_pinuse_of_free_chunk(p ^mchunk, s u64)
+fun get_foot(p *mchunk, s u64) u64
+    return ((cast(*mchunk)(cast(*byte)p + s)).prev_foot)
+fun set_foot(p *mchunk, s u64)
+    (cast(*mchunk)(cast(*byte)p + s)).prev_foot = s
+fun set_size_and_pinuse_of_free_chunk(p *mchunk, s u64)
     p.head = s | PINUSE_BIT; set_foot(p, s)
-fun set_free_with_pinuse(p ^mchunk, s u64, n ^mchunk)
+fun set_free_with_pinuse(p *mchunk, s u64, n *mchunk)
     clear_pinuse(n); set_size_and_pinuse_of_free_chunk(p, s)
 
 // ------------------- Chunks sizes and alignments -----------------------
@@ -2035,12 +2035,12 @@ fun get MIN_REQUEST() u64
     return MIN_CHUNK_SIZE - CHUNK_OVERHEAD - SIZE_T_ONE
 
 // conversion from malloc headers to user pointers, and back
-fun chunk2mem(p ^void) ^void
-    return cast(^void)(cast(^byte)p + TWO_SIZE_T_SIZES)
-fun mem2chunk(mem ^void) ^mchunk
-    return cast(^mchunk)(cast(^byte)mem - TWO_SIZE_T_SIZES)
-fun align_as_chunk(A ^byte) ^mchunk
-    return cast(^mchunk)(A + align_offset(chunk2mem(A)))
+fun chunk2mem(p *void) *void
+    return cast(*void)(cast(*byte)p + TWO_SIZE_T_SIZES)
+fun mem2chunk(mem *void) *mchunk
+    return cast(*mchunk)(cast(*byte)mem - TWO_SIZE_T_SIZES)
+fun align_as_chunk(A *byte) *mchunk
+    return cast(*mchunk)(A + align_offset(chunk2mem(A)))
 fun pad_request(req u64) u64
     return ((req) + CHUNK_OVERHEAD + CHUNK_ALIGN_MASK) & ~CHUNK_ALIGN_MASK
 fun request2size(req u64) u64
@@ -2156,41 +2156,41 @@ fun get FENCEPOST_HEAD() u64
 // Originally malloc_tree_chunk, now tchunk
 [pub] type tchunk
     // The first four fields must be compatible with mchunk
-    @prev_foot_ptr ^void pub mut
-    @head_ptr ^void pub mut
-    @fd ^tchunk pub mut
-    @bk ^tchunk pub mut
+    @prev_foot_ptr *void pub mut
+    @head_ptr *void pub mut
+    @fd *tchunk pub mut
+    @bk *tchunk pub mut
 
-    @child0 ^tchunk pub mut
-    @child1 ^tchunk pub mut
-    @parent ^tchunk pub mut
+    @child0 *tchunk pub mut
+    @child1 *tchunk pub mut
+    @parent *tchunk pub mut
     @index u64 pub mut
 
 fun get tchunk.prev_foot() u64
     return cast(u64)my.prev_foot_ptr
 fun set tchunk.prev_foot(value u64)
-    my.prev_foot_ptr = cast(^void)value
+    my.prev_foot_ptr = cast(*void)value
 
 fun get tchunk.head() u64
     return cast(u64)my.head_ptr
 fun set tchunk.head(value u64)
-    my.head_ptr = cast(^void)value
+    my.head_ptr = cast(*void)value
 
-fun chunk_plus_offset(p ^tchunk, s u64) ^mchunk
-    return cast(^mchunk)(cast(^byte)p + s)
-fun is_inuse(p ^tchunk) bool
+fun chunk_plus_offset(p *tchunk, s u64) *mchunk
+    return cast(*mchunk)(cast(*byte)p + s)
+fun is_inuse(p *tchunk) bool
     return (p.head & INUSE_BITS) != PINUSE_BIT
-fun chunksize(p ^tchunk) u64
+fun chunksize(p *tchunk) u64
     return p.head & ~FLAG_BITS
-fun next_chunk(p ^tchunk) ^tchunk
-    return cast(^tchunk)(cast(^byte)p + (p.head & ~FLAG_BITS))
-fun prev_chunk(p ^tchunk) ^tchunk
-    return cast(^tchunk)(cast(^byte)p - (p.prev_foot))
+fun next_chunk(p *tchunk) *tchunk
+    return cast(*tchunk)(cast(*byte)p + (p.head & ~FLAG_BITS))
+fun prev_chunk(p *tchunk) *tchunk
+    return cast(*tchunk)(cast(*byte)p - (p.prev_foot))
 
 
-fun next_pinuse(p ^tchunk) bool
+fun next_pinuse(p *tchunk) bool
     return ((next_chunk(p).head) & PINUSE_BIT) != 0
-fun leftmost_child(t ^tchunk) ^tchunk
+fun leftmost_child(t *tchunk) *tchunk
     return if(t.child0 != nil, t.child0 : t.child1)
 
 
@@ -2251,14 +2251,14 @@ fun leftmost_child(t ^tchunk) ^tchunk
 //
 // malloc_segment
 type msegment
-    @baseAddr ^byte pub mut     // base address
+    @baseAddr *byte pub mut     // base address
     @size u64 pub mut         // allocated size
-    @next ^msegment pub mut     // ptr to next segment
+    @next *msegment pub mut     // ptr to next segment
     @sflags flag_t pub mut      // mmap and extern flag
 
-fun is_mmapped_segment(s ^msegment) bool
+fun is_mmapped_segment(s *msegment) bool
     return (s.sflags & flag_t.USE_MMAP_BIT) != 0
-fun is_extern_segment(s ^msegment) bool
+fun is_extern_segment(s *msegment) bool
     return (s.sflags & flag_t.EXTERN_BIT) != 0
 
 // Everything is mmaped in this malloc, so these flags are mostly unused

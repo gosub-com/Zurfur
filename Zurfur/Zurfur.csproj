@@ -251,7 +251,7 @@
     <None Include="ZurfurLib\ZurfurLib\TestVerifier.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Unsafe.zurf">
+    <None Include="ZurfurLib\ZurfurLib\Pointers.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

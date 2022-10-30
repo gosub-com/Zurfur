@@ -13,8 +13,6 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     class SymbolTable
     {
-        const string GENERIC_UNARY_TYPES = "* ^ [ ? ref own mut ro";
-
         SymModule mRoot;
 
         // TBD: Move to compiler options class, including pragmas and command line, etc.
@@ -30,21 +28,12 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         Dictionary<string, SymSpecializedType> mSpecializedTypes = new Dictionary<string, SymSpecializedType>();
 
-        public Dictionary<string, Symbol> UnaryTypeSymbols = new Dictionary<string, Symbol>();
-
-
         public Symbol Root => mRoot;
 
         public SymbolTable()
         {
             var preRoot = new SymModule(null, "");
             mRoot = new SymModule(preRoot, "");
-
-            // Add built in unary generic types
-            foreach (var genericType in GENERIC_UNARY_TYPES.Split(' '))
-            {                
-                UnaryTypeSymbols[genericType] = AddIntrinsicType(genericType, 1);
-            }
         }
 
 

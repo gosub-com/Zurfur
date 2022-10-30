@@ -2,12 +2,61 @@
 // Misc compiler testing
 module AATest
 
+
 use Zurfur
-use Zurfur[Log]
+use Zurfur[Log, Xuint, RawPointer, castPointer]
 use Zurfur.Operators[OpEq, OpNeg, OpAdd]
 use Zurfur.Math[cos]
 
 pragma ShowParse
+
+type MyPoint<T1,T2,T3>
+    @a T1
+    @b T2
+    @c T3
+
+fun MyFun1<T1,T2,T3>(a T1, b T2, c T3) T2
+    @q = b
+    return q
+
+fun MyFun2<I,O>(i I) O
+    @a = I()
+    return a
+
+fun Test<X1,X2,X3>()
+    @a = MyPoint<int,f64,str>()
+    @b = MyPoint<int, X2,str>()
+    @c = MyFun1(0, MyPoint<int,int,int>(), "hello")
+    @d = MyFun1(0, MyPoint<int,X1,int>(), "hello")
+    @e = MyFun2(0)
+    @f = MyFun2<int>(0)
+    @g = MyFun2<int,f64>(0)
+    @h = MyFun2<int,f64,int>(0)
+    @i Size = 0
+    @j Size<int> = Size(0,0)
+    @k f64 = 0
+    @l f64 = f64(0)
+    @p1 = Xuint()
+    @p2 = castPointer<RawPointer<byte>>(p1)
+    @p3 = castPointer<RawPointer<int>>(p2)
+    @p4 = castPointer<Xuint>(p3)
+    @t = (0,1,2)
+
+type OneGeneric<T> { } 
+type Point<T>(x T, y T)
+type Size<T>(width T, height T)
+
+fun get Point<T>.toSize() Size<T>
+    @a = Size(0,0)
+    @b = Size()
+    @c = Size(my.x, my.y)
+    return Size(my.x, my.y)
+
+[pub] fun _opAdd<T>(a Point<T>, b Point<T>) Point<T>
+    return Point<T>(a.x+b.x, a.y+b.y)
+
+
+
 
 fun helloVoid() {}
 fun helloInt() int {}
@@ -99,11 +148,6 @@ fun AAFun.aaf3s<T1,T2>(i T1)T2 { }
 fun AAFun.af6(p fun(v int)bool) {}
 fun AAFun.af7<X>(p fun(v X)bool) {}
 
-//get PAoint<T>::Size() Size<T> { return Size(X, Y) }
-type OneGeneric<T> { } 
-type Point<T>(x T, y T)
-type Size<T>(width T, height T)
-fun get Point<T>.toSize() Size<T> { return Size(my.x, my.y) }
 
 [pub] type AAFunc<T1,T2>
     @Invoke fun (v T1) T2
