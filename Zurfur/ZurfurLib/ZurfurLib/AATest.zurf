@@ -11,9 +11,9 @@ use Zurfur.Math[cos]
 pragma ShowParse
 
 type MyPoint<T1,T2,T3>
-    @a T1
-    @b T2
-    @c T3
+    a T1
+    b T2
+    c T3
 
 fun MyFun1<T1,T2,T3>(a T1, b T2, c T3) T2
     @q = b
@@ -79,10 +79,10 @@ fun Span<byte>.hello()
     nop()
 
 type AAAA<T>
-    @v void
+    v void
 
 type BBBB
-    @v void
+    v void
         
 fun BBBB.BBBB_fm1() {}
 fun BBBB.BBBB_fm2(a BBBB) {}
@@ -108,10 +108,10 @@ fun BBBB.hello() {}
     
 
 type aapoint
-    @v void
+    v void
     
 type bbpoint
-    @v void
+    v void
 
 [pub] fun aapoint.x() {}
 
@@ -126,15 +126,15 @@ fun aaa_arith(a int, b int) int
     return y
   
 [pub] type AAFun    
-    @aaf4 fun(a int, b int) int
-    @aaf5 AAFunc<int, int>
-    @aaf6 fun()->()
-    @aaf7 fun()
-    @aaf8 fun()int
-    @aaf9 fun(a int)
-    @aaf9a fun(a int) int
-    @aaf9b fun(a int)->(x int)
-    @af10 fun(v int)int
+    aaf4 fun(a int, b int) int
+    aaf5 AAFunc<int, int>
+    aaf6 fun()->()
+    aaf7 fun()
+    aaf8 fun()int
+    aaf9 fun(a int)
+    aaf9a fun(a int) int
+    aaf9b fun(a int)->(x int)
+    af10 fun(v int)int
 
 fun AAFun.aaaa(a int, b int) int { }
 fun AAFun.aaaa(a int, b f64) int { }
@@ -150,7 +150,7 @@ fun AAFun.af7<X>(p fun(v X)bool) {}
 
 
 [pub] type AAFunc<T1,T2>
-    @Invoke fun (v T1) T2
+    Invoke fun (v T1) T2
 
 
 // TBD: These are identical to the ones defined in the class
@@ -190,14 +190,14 @@ fun AGenericTest<T, QQQ>.af6(p fun(v int)bool) {}
 
 [pub] type AGenericTest<T, QQQ>
     where QQQ is OpEq<T>//: new() where T : new()
-    @af0 fun()->()
-    @af1 fun()
-    @af2 fun()int
-    @af3 fun(a int)
-    @af4 fun(a int) int
-    @af5 fun(a int)->(x int)
+    af0 fun()->()
+    af1 fun()
+    af2 fun()int
+    af3 fun(a int)
+    af4 fun(a int) int
+    af5 fun(a int)->(x int)
     
-    @field0 T = 0
-    @Xfield6 Zurfur.int
+    field0 T = 0
+    Xfield6 Zurfur.int
 
     

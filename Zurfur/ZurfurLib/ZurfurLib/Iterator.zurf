@@ -4,14 +4,14 @@ module Zurfur.Collections
 
 
 interface Iterable<Item>
-    fun get iterator() Iterator<Item> impl
+    fun get iterator() Iterator<Item>
 
 
 // Implement this on all iterators
 interface Iterator<Item>
 
     // Return the next item, or null if it doesn't exist
-    fun mut next() ?Item impl
+    fun mut next() ?Item
 
 
 [pub] fun mut Iterator<Item>.toArray() Array<Item>

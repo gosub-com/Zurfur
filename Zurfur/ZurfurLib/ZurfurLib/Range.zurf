@@ -8,8 +8,8 @@ use Zurfur.Collections[Iterator]
 
 [pub] type ro copy Range<T>
         where T is Copy<T> + OpSub<T> + OpCmp<T> + OpOne<T>
-    @begin T pub ro init
-    @end T pub ro init
+    begin T pub ro init
+    end T pub ro init
 
 [pub] fun (Range<T>) new(begin T, end T) extern
 
@@ -25,8 +25,8 @@ use Zurfur.Collections[Iterator]
 
 [pub] type RangeIterator<T>
         where T is Copy<T> + OpSub<T> + OpCmp<T> + OpOne<T>
-    @current T pub init
-    @end T pub init
+    current T pub init
+    end T pub init
 
 [pub] fun (RangeIterator<T>) new(begin T, end T) extern
 

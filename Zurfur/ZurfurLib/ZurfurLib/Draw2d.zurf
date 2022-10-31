@@ -12,8 +12,8 @@ fun test_Shape()
 
 [pub] type copy Point<T>
         where T is NumOps<T>
-    @x T pub init
-    @y T pub init
+    x T pub init
+    y T pub init
 
 
 [pub] fun Point<T>.toSize() Size<T>
@@ -44,8 +44,8 @@ fun test_Shape()
 
 [pub] type copy Size<T>
         where T is NumOps<T>
-    @width T pub init
-    @height T pub init
+    width T pub init
+    height T pub init
     
     // TBD: Same as Point<T>
 [pub] fun Size<T>.point() Point<T>
@@ -53,10 +53,10 @@ fun test_Shape()
 
 [pub] type copy Rect<T>
         where T is NumOps<T>
-    @x T pub init
-    @y T pub init
-    @width T pub init
-    @height T pub init
+    x T pub init
+    y T pub init
+    width T pub init
+    height T pub init
 
 // TBD: Shortcut syntax for this:
 [pub] fun Rect<T>.new(x T, y T, width T, height T)

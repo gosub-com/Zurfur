@@ -27,10 +27,10 @@ use Zurfur.ConvertBytes[bytesToHex]
 
 // Define a type
 [pub] type MyType
-    @map Map<str,int> = ["A":1, "B":2]  // Private mutable
-    @list ro List<int> = [1,2,3]    // Private read-only
-    @header str pub ro = "Zurfur"   // Private mutable, pub ro
-    @text str pub mut               // Public mutable
+    map Map<str,int> = ["A":1, "B":2]  // Private mutable
+    list ro List<int> = [1,2,3]    // Private read-only
+    header str pub ro = "Zurfur"   // Private mutable, pub ro
+    text str pub mut               // Public mutable
 
 // Method
 [pub] fun MyType.countToTen()
@@ -86,7 +86,7 @@ fun test_HelloWorld()
             doit()
             
 [pub] type boxed AGenericType<Q>
-    @a int
+    a int
 
 [pub] fun circle1(a f64, r f64) -> (x f64, y f64)
     return cos(a)*r, sin(a)*r
@@ -112,40 +112,40 @@ fun Iterator<Item>.orderBy() Iterator<Item>
 
 [pub] type Example
     
-    @a1 str
-    @a2 str = "Hello"
-    @a3 List<str> = ["Hello", "World"]
-    @a4 List<int> = [1,2]
-    @a5 List<int> pub ro
-    @a6 List<int> pub mut
-    @a7 List<int> pub mut
+    a1 str
+    a2 str = "Hello"
+    a3 List<str> = ["Hello", "World"]
+    a4 List<int> = [1,2]
+    a5 List<int> pub ro
+    a6 List<int> pub mut
+    a7 List<int> pub mut
     //pub a8 List<int>
     //pub a9 private set List<int>
     //pub private set a9 List<int>
 
-    @map1 ro Map<str,int> = ["A":1,"B":2]        // Immutable map
-    @map2 ro mut Map<str,int> = ["A":1,"B":2]    // Can't be assigned, can be mutated
-    @map3 ro Map<str,int> pub init               // Read only, init in constructor or allow public init
+    map1 ro Map<str,int> = ["A":1,"B":2]        // Immutable map
+    map2 ro mut Map<str,int> = ["A":1,"B":2]    // Can't be assigned, can be mutated
+    map3 ro Map<str,int> pub init               // Read only, init in constructor or allow public init
     
-    @a Zim<void>
-    @b Zim<object>
-    @c Zim<i8>
-    @e Zim<byte>
-    @f Zim<i16>
-    @g Zim<u16>
-    @h Zim<i32>
-    @i Zim<u32>
-    @j Zim<int>
-    @m Zim<f64>
-    @n Zim<f32>
-    @o Zim<str>
-    @p Zim<Decimal>
+    a Zim<void>
+    b Zim<object>
+    c Zim<i8>
+    e Zim<byte>
+    f Zim<i16>
+    g Zim<u16>
+    h Zim<i32>
+    i Zim<u32>
+    j Zim<int>
+    m Zim<f64>
+    n Zim<f32>
+    o Zim<str>
+    p Zim<Decimal>
     
 
 
 [pub]
 type Zim<T>
-    @q T pub mut
+    q T pub mut
 
 // Type test for test_main
 type Token(a int)

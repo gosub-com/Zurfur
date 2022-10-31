@@ -2,15 +2,15 @@
 
 // Unsigned extended int (u32 or u64, depending on machine word size)
 [pub unsafe] type Xuint
-    @value u32 // or u64
+    value u32 // or u64
 
 // Raw pointer (i.e *T in C)
 [pub unsafe] type RawPointer<T>
-    @value Xuint
+    value Xuint
 
 // Internal representation of `ref` type
 [pub unsafe] type ref Ref<T>
-    @value Xuint
+    value Xuint
 
 // This is private, so only RawPointer<T>, Ref<T> and Xuint can implement IsRawPointer.
 [unsafe] type RawPointerMarker{}
@@ -18,7 +18,7 @@
 // Only RawPointer<T>, Ref<T> and Xuint implement this.  It is impossible for
 // any other type to implement this since RawPointerMarker is private.
 [unsafe] interface IsRawPointer
-    fun isRawPointer() RawPointerMarker impl
+    fun isRawPointer() RawPointerMarker
 
 // Mark these types as the only pointer types in the system
 [unsafe] fun Xuint.isRawPointer() RawPointerMarker

@@ -163,24 +163,24 @@ fun get MAX_SMALL_REQUEST() u64
     //    trimming, and a counter to force periodic scanning to release unused
     //    non-topmost segments.
 
-    @smallmap u64
-    @treemap u64
-    @dvsize u64
-    @topsize u64
-    @least_addr *byte
-    @dv *mchunk
-    @top *mchunk
-    @trim_check u64
-    @release_checks u64
-    @magic u64
-    @smallbins **mchunk
-    @treebins **tchunk
-    @footprint u64
-    @max_footprint u64
-    @mflags flag_t
-    @seg *msegment
-    @malloc_corruption_error_count int
-    @mparams malloc_params
+    smallmap u64
+    treemap u64
+    dvsize u64
+    topsize u64
+    least_addr *byte
+    dv *mchunk
+    top *mchunk
+    trim_check u64
+    release_checks u64
+    magic u64
+    smallbins **mchunk
+    treebins **tchunk
+    footprint u64
+    max_footprint u64
+    mflags flag_t
+    seg *msegment
+    malloc_corruption_error_count int
+    mparams malloc_params
 
 fun (mut DlMalloc) new(capacity u64)
     my.ensure_initialization()
@@ -1819,11 +1819,11 @@ fun (mut DlMalloc) init_user_mstate(tbase *byte, tsize u64)
 // ------ End of DlMalloc ------
 
 [pub] type HeapStats
-    @HeapSize int pub mut
-    @UsedChunks int pub mut
-    @UsedBytes int pub mut
-    @FreeChunks int pub mut
-    @FreeBytes int pub mut
+    HeapSize int pub mut
+    UsedChunks int pub mut
+    UsedBytes int pub mut
+    FreeChunks int pub mut
+    FreeBytes int pub mut
 
 [pub] fun HeapStats.toStr() str
     return "HeapSize={HeapSize}"
@@ -1969,10 +1969,10 @@ fun (mut DlMalloc) init_user_mstate(tbase *byte, tsize u64)
 //
 // Originally malloc_chunk, now mchunk
 [pub] type mchunk
-    @prev_foot_ptr *void pub mut // Size of previous chunk (if free).
-    @head_ptr *void  pub mut     // Size and inuse bits.
-    @fd *mchunk pub mut          // double links -- used only if free.
-    @bk *mchunk pub mut
+    prev_foot_ptr *void pub mut // Size of previous chunk (if free).
+    head_ptr *void  pub mut     // Size and inuse bits.
+    fd *mchunk pub mut          // double links -- used only if free.
+    bk *mchunk pub mut
 
 fun (mchunk) get prev_foot() u64
     return cast(u64)my.prev_foot_ptr
@@ -2156,15 +2156,15 @@ fun get FENCEPOST_HEAD() u64
 // Originally malloc_tree_chunk, now tchunk
 [pub] type tchunk
     // The first four fields must be compatible with mchunk
-    @prev_foot_ptr *void pub mut
-    @head_ptr *void pub mut
-    @fd *tchunk pub mut
-    @bk *tchunk pub mut
+    prev_foot_ptr *void pub mut
+    head_ptr *void pub mut
+    fd *tchunk pub mut
+    bk *tchunk pub mut
 
-    @child0 *tchunk pub mut
-    @child1 *tchunk pub mut
-    @parent *tchunk pub mut
-    @index u64 pub mut
+    child0 *tchunk pub mut
+    child1 *tchunk pub mut
+    parent *tchunk pub mut
+    index u64 pub mut
 
 fun get tchunk.prev_foot() u64
     return cast(u64)my.prev_foot_ptr
@@ -2251,10 +2251,10 @@ fun leftmost_child(t *tchunk) *tchunk
 //
 // malloc_segment
 type msegment
-    @baseAddr *byte pub mut     // base address
-    @size u64 pub mut         // allocated size
-    @next *msegment pub mut     // ptr to next segment
-    @sflags flag_t pub mut      // mmap and extern flag
+    baseAddr *byte pub mut     // base address
+    size u64 pub mut         // allocated size
+    next *msegment pub mut     // ptr to next segment
+    sflags flag_t pub mut      // mmap and extern flag
 
 fun is_mmapped_segment(s *msegment) bool
     return (s.sflags & flag_t.USE_MMAP_BIT) != 0
@@ -2272,8 +2272,8 @@ enum flag_t
 //  initialized in init_mparams. Note that the non-zeroness of "magic"
 //  also serves as an initialization flag.
 type malloc_params
-    @magic u64 pub mut
-    @page_size u64 pub mut
-    @granularity u64 pub mut
-    @trim_threshold u64 pub mut
-    @default_mflags flag_t pub mut
+    magic u64 pub mut
+    page_size u64 pub mut
+    granularity u64 pub mut
+    trim_threshold u64 pub mut
+    default_mflags flag_t pub mut

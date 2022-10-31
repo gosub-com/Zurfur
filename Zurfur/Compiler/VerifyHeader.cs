@@ -84,8 +84,6 @@ namespace Gosub.Zurfur.Compiler
                     var methodParent = symbol.Parent;
                     if (symbol.IsStatic && methodParent.IsModule && !symbol.IsExtension)
                         Reject(symbol.Token, "'static' not allowed at module level");
-                    if (methodParent.IsInterface && !symbol.IsImpl)
-                        Reject(symbol.Token, "Method must be 'impl'");
                     if (!methodParent.IsInterface && !methodParent.IsModule)
                         Reject(symbol.Token, "Method must be scoped at the at the module level");
 

@@ -20,8 +20,8 @@ pragma AllowUnderscoreDefinitions
 [pub] fun assert(condition bool, message str) extern
 
 [pub] interface Error
-    fun get code() ErrorCode impl
-    fun get Message() str impl
+    fun get code() ErrorCode
+    fun get Message() str
 
 // This will probably be a specially recognized error code type
 [pub] enum ErrorCode
@@ -55,7 +55,7 @@ fun get todo() require(false) extern
 // All types have a unique `id`, but other
 // non-essential metadata is opt-in
 [pub] type ro copy Type
-    @id i32 pub ro
+    id i32 pub ro
 
 
 // Swap two items

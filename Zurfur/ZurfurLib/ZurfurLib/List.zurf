@@ -25,9 +25,9 @@ fun get ListBuffer<T>.count() int {}
 
 [pub] type List<T>
     [pub] const MaxItems int = MAX_ARRAY_SIZE_BYTES/Math.Max(1,sizeof(t))
-    @buffer ListBuffer<T>
-    @count int pub ro
-    @version int pub ro
+    buffer ListBuffer<T>
+    count int pub ro
+    version int pub ro
 
 [pub] fun List<T>.isLocked() bool
     return my.buffer.isLocked()

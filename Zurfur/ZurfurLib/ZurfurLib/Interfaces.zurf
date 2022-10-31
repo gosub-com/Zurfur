@@ -12,69 +12,67 @@ module Zurfur.Operators
 
 // Common math operators
 interface NumOps<T>
-    [static] fun _opEq(a T, b T) bool impl
-    [static] fun _opCmp(a T, b T) int impl
-    [static] fun _opAdd(a T, b T) T impl
-    [static] fun _opSub(a T, b T) T impl
-    [static] fun _opNeg(a T) T impl
-    [static] fun _opMul(a T, b T) T impl
-    [static] fun _opDiv(a T, b T) T impl
-    [static] fun get ZERO() T impl
-    [static] fun get ONE() T impl
+    [static] fun _opEq(a T, b T) bool
+    [static] fun _opCmp(a T, b T) int
+    [static] fun _opAdd(a T, b T) T
+    [static] fun _opSub(a T, b T) T
+    [static] fun _opNeg(a T) T
+    [static] fun _opMul(a T, b T) T
+    [static] fun _opDiv(a T, b T) T
+    [static] fun get ZERO() T
+    [static] fun get ONE() T
     
 
 // Equality for containers and sorting (NaN == NaN, Nan < -Inf)
 interface OpEq<T>
-    [static] fun _opEq(a T, b T) bool impl
+    fun getHash() u32
+    [static] fun _opEq(a T, b T) bool
 
 // Comparison for containers and sorting (NaN == Nan, Nan < -Inf)
 interface OpCmp<T>
-    [static] fun _opEq(a T, b T) bool impl
-    [static] fun _opCmp(a T, b T) int impl
+    fun getHash() u32
+    [static] fun _opEq(a T, b T) bool
+    [static] fun _opCmp(a T, b T) int
 
-// Logical equality (e.g. -0 == +0, NaN == NaN even if bit pattern is different)
-// TBD: Implemented by compiler
-interface GetHash
-    fun getHash() int impl
 
 // Equality for floating point numbers (NaN != NaN)
 // Not implemented for most other types (e.g. int and str)
 interface OpEqPartial<T>
-    [static] fun _opEqPartial(a T, b T) bool impl
+    [static] fun _opEqPartial(a T, b T) bool
 
 // Comparison for floating point numbers (NaN is unordered)
 // Not implemented for most other types (e.g. int, str)
 interface OpCmpPartial<T>
-    [static] fun _opEqPartial(a T, b T) bool impl
-    [static] fun _opCmpPartial(a T, b T) ?int impl
+    [static] fun _opEqPartial(a T, b T) bool
+    [static] fun _opCmpPartial(a T, b T) ?int
 
 interface OpIn<T>
-    [static] fun _opEq(a T, b T) bool impl
-    [static] fun _opCmp(a T, b T) int impl
-    [static] fun _opIn(a T, b T) bool impl
+    [static] fun _opEq(a T, b T) bool
+    [static] fun _opCmp(a T, b T) int
+    [static] fun _opIn(a T, b T) bool
     
 interface OpAdd<T>
-    [static] fun _opAdd(a T, b T) T impl
+    [static] fun _opAdd(a T, b T) T
     
 interface OpSub<T>
-    [static] fun _opSub(a T, b T) T impl
+    [static] fun _opSub(a T, b T) T
     
 interface OpNeg<T>
-    [static] fun _opNeg(a T) T impl
+    [static] fun _opNeg(a T) T
     
 interface OpMul<T>
-    [static] fun _opMul(a T, b T) T impl
+    [static] fun _opMul(a T, b T) T
     
 interface OpDiv<T>
-    [static] fun _opDiv(a T, b T) T impl
+    [static] fun _opDiv(a T, b T) T
     
 interface OpRem<T>
-    [static] fun _opRem(a T, b T) T impl
+    [static] fun _opRem(a T, b T) T
 
 interface OpZero<T>
-    [static] fun get ZERO() T impl
+    [static] fun get ZERO() T
 
 interface OpOne<T>
-    [static] fun get ONE() T impl
+    [static] fun get ONE() T
 
     

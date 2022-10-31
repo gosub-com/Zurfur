@@ -8,7 +8,7 @@ pragma AllowUnderscoreDefinitions
 
 // Internal definition of a reference.
 [pub] type ro __ref<T>
-    @r ro *T
+    r ro *T
 
 [pub] fun __ref<T>.new(reference *T)
     require reference != null
@@ -24,8 +24,8 @@ pragma AllowUnderscoreDefinitions
 // Owned reference.  This is specific to reference counting
 // and wouldn't exist for a different kind of GC.
 [pub] type ro __oref<T>
-    @r *T
-    @owner ?*__heap<T>
+    r *T
+    owner ?*__heap<T>
 
 // Owner is null when on the stack
 [pub] fun __oref<T>.new(reference *T, owner ?*__heap<T>)
@@ -48,8 +48,8 @@ pragma AllowUnderscoreDefinitions
 // All objects on the heap start with this header.
 // This is specific to reference counted GC.
 [pub] type __heap<T>
-    @vtable *void // TBD: Type info for GC and metadata
-    @refCount u64
+    vtable *void // TBD: Type info for GC and metadata
+    refCount u64
 
 [pub] fun __heap<T>.Inc()
     my.refCount += 1

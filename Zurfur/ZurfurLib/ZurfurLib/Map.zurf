@@ -1,23 +1,23 @@
 ﻿
 module Zurfur
 
-use Zurfur.Operators[OpIn, OpEq, GetHash]
+use Zurfur.Operators[OpIn, OpEq]
 use Zurfur.Collections[Iterator, Iterable]
 
 
 
 [pub] type Map<K,V>
-    @items List<str> // TBD: Buffer of items in hash table
+    items List<str> // TBD: Buffer of items in hash table
 
     // TBD: Allow this
     //type Pair
-    //    @key K pub ref
-    //    @value V pub ref mut
+    //    key K pub ref
+    //    value V pub ref mut
 
 // TBD: This wants to be inside Map<K,V>
 [pub] type KvPair<K,V>
-    @key K pub ro
-    @value V pub mut
+    key K pub ro
+    value V pub mut
 
 // TBD: Need this: fun (kv Map<K,V>.Pair) ...
 [pub] fun KvPair<K,V>.new(key own K, value own V)
