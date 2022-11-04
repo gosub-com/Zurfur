@@ -200,17 +200,17 @@ fun AcceptMatch(m str) Token {}
     return
 
     fun test_compose()
-   
-        @squareTriple = compose(&square, &triple)
-        Debug.Assert(squareTriple(2) == 36)
-    
-        for @v in 1..23
-            Log.Info("Count=${v}")
+        Log.info("Count=${v}")
+        //@squareTriple = compose(&square, &triple)
+        //Debug.Assert(squareTriple(2) == 36)
+        //    
+        //for @v in 1..23
+        //    Log.Info("Count=${v}")
 
     // Compose f(g(x))
     fun compose(f fun(x int) int,
                 g fun(x int) int) fun(x int) int
-        return @x => f(g(x))
+        return //@x => f(g(x))
 
     fun triple(x int) int
         return x*3

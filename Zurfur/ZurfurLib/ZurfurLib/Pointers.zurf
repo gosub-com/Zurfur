@@ -1,36 +1,110 @@
 ﻿module Zurfur
 
-// Unsigned extended int (u32 or u64, depending on machine word size)
-[pub unsafe] type Xuint
+pragma AllowUnderscoreDefinitions
+
+// Unsigned extended int, u32 or u64 depending on machine pointer size.
+// This is the internal representation of a pointer.
+[pub]
+type copy Xuint
     value u32 // or u64
 
-// Raw pointer (i.e *T in C)
-[pub unsafe] type RawPointer<T>
-    value Xuint
+// A raw pointer.  The compiler translates *T to RawPointer<T>
+// and automatically dereferences when "." is used.
+[pub unsafe]
+type copy RawPointer<T>
+    // `__valueNoDeref` is a special identifier that tells the compiler
+    // not to automatically dereference this field.
+    __valueNoDeref Xuint
 
-// Internal representation of `ref` type
-[pub unsafe] type ref Ref<T>
-    value Xuint
+// Internal representation of `ref`, a compiler generated stack only pointer.
+// These are not tracked by the GC, so must be "covered".
+type copy ref Ref<T>
+    __valueNoDeref *T
 
-// This is private, so only RawPointer<T>, Ref<T> and Xuint can implement IsRawPointer.
-[unsafe] type RawPointerMarker{}
+// A pointer to heap memory.  The garbage collector must be aware of this
+// type so it con reclaim unused memory.  This implementation uses reference
+// counting, but future implementations might be compacting instead.
+type copy Pointer<T>
+    // `__valueNoDeref` is a special identifier that tells the compiler
+    // not to automatically dereference this field.
+    __valueNoDeref *GcHeapObject  // Can also point to GcHeapArray<T>
+    
+fun Pointer<T>.new()
+    require(false) extern // TBD: Fix, shouldn't need `extern`
 
-// Only RawPointer<T>, Ref<T> and Xuint implement this.  It is impossible for
-// any other type to implement this since RawPointerMarker is private.
-[unsafe] interface IsRawPointer
+fun Pointer<T>.new(value *GcHeapObject)
+    my.__valueNoDeref = value
+
+fun Pointer<T>.clone() Pointer<T>
+    my.__valueNoDeref.refCount += 1
+
+fun Pointer<T>.drop()
+    my.__valueNoDeref.refCount -= 1
+    if my.__valueNoDeref.refCount < 0
+        free(my.__valueNoDeref)
+
+
+// Internal `ref` type that tracks a heap object.  Not used by the compiler
+// or user code.  This is used by the code generator when it is necessary
+// to cover a `GcHeapObject` so it can't be collected.  This could also be
+// called a ReturnRef since that's when it is used.
+type copy ref OwnerRef<T>
+    owner ^T
+    value *T
+
+// All heap objects start with this header.  It must be 64 bits wide to
+// ensure proper alignment. 
+type GcHeapObject
+    refCount i32
+    typeId Type     // Must be 32 bits even on 64 bit machines.
+    // Object data is stored following this header
+
+// The one and only variable length heap object.  It must be 128 bits
+// wide to ensure proper alignment.
+type GcHeapArray
+    gcHeapObject GcHeapObject    // TBD: `use` GcHeapObject
+    length u32
+    capacity u32
+    // Array of object data is stored following this header
+
+// This is private, so only Xuint, RawPointer<T>, Ref<T>, and Pointer<T>
+// implement IsRawPointer.  When implemented, the compiler knows it is a
+// pointer (32 or 64 bits) and can allow `castPointer`.
+type RawPointerMarker{}
+
+// When implemented, the compiler knows it is a pointer (32 or 64 bits)
+// and can allow `castPointer`.  `RawPointerMarker` is private, so only
+// pointer types can implement this.
+interface IsRawPointer
     fun isRawPointer() RawPointerMarker
+    fun getRawPointer() Xuint
 
 // Mark these types as the only pointer types in the system
-[unsafe] fun Xuint.isRawPointer() RawPointerMarker
+fun Xuint.isRawPointer() RawPointerMarker
     return RawPointerMarker()
-[unsafe] fun RawPointer<T>.isRawPointer() RawPointerMarker
+fun Xuint.getRawPointer() Xuint
+    return my.value
+fun RawPointer<T>.isRawPointer() RawPointerMarker
     return RawPointerMarker()
-[unsafe] fun Ref<T>.isRawPointer() RawPointerMarker
+fun RawPointer<T>.getRawPointer() Xuint
+    return my.__valueNoDeref
+fun Ref<T>.isRawPointer() RawPointerMarker
     return RawPointerMarker()
+fun Ref<T>.getRawPointer() Xuint
+    return my.__valueNoDeref
+fun Pointer<T>.isRawPointer() RawPointerMarker
+    return RawPointerMarker()
+fun Pointer<T>.getRawPointer() Xuint
+    return my.__valueNoDeref.__valueNoDeref
+
+
+fun free(memory *GcHeapObject)
+    extern // Pass to DlMalloc.free
     
 
-// Cast from one pointer type to another pointer type.  
-[unsafe] fun castPointer<Out>(i IsRawPointer) Out
+// Cast from one pointer type to another pointer type.
+[unsafe]
+fun castPointer<Out>(i IsRawPointer) Out
     where Out is IsRawPointer
     extern
 

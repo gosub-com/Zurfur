@@ -36,9 +36,6 @@ fun get todo() require(false) extern
 // Empty value for pointers and optionals
 [pub] type nil { }
 
-// Garbage collected pointer
-[pub] type Pointer<T> { }
-
 // Nullable<T> - Same as ?T
 [pub] type Nullable<T> { }
 
@@ -52,10 +49,11 @@ fun get todo() require(false) extern
 [pub] interface object { }
 
 
-// All types have a unique `id`, but other
-// non-essential metadata is opt-in
+// All types have a unique `id`, but other non-essential metadata is opt-in.
+// This must always be 32 bits, even on 64 bit machines, so as not to change
+// the `GcHeapObject` footprint.
 [pub] type ro copy Type
-    id i32 pub ro
+    id u32 pub ro
 
 
 // Swap two items

@@ -282,23 +282,24 @@ namespace Gosub.Zurfur.Compiler
                     return null;
 
                 // Automatically dereference pointers, etc
-                leftType = DerefPointers(leftType);
+                var identifier = ex[1].Token;
+                if (identifier != "__valueNoDeref")
+                    leftType = DerefPointers(leftType);
 
                 // Generic parameters not finished
-                var token = ex[1].Token;
                 if (leftType.FullName.StartsWith("#"))
                 {
                     // TBD: Use constraints to find the type
-                    Reject(token, "Compiler not finished: Dot operator on generic type");
+                    Reject(identifier, "Compiler not finished: Dot operator on generic type");
                     return null;
                 }
 
-                var rval = FindInType(token, token.Name, leftType);
+                var rval = FindInType(identifier, identifier.Name, leftType);
                 if (rval == null)
                     return null;
                 if (rval.Symbols.Count == 0)
                 {
-                    Reject(token, $"'{token}' is an undefined symbol in the type '{leftType}'");
+                    Reject(identifier, $"'{identifier}' is an undefined symbol in the type '{leftType}'");
                     return null;
                 }
                 return rval;
