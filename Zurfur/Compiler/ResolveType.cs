@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Gosub.Zurfur.Lex;
 
 namespace Gosub.Zurfur.Compiler
@@ -13,8 +14,7 @@ namespace Gosub.Zurfur.Compiler
             {"^", "Zurfur.Pointer`1" },
             {"ref", "Zurfur.Ref`1" },
             {"?", "Zurfur.Nullable`1"},
-            {"[", "Zurfur.Span`1" },
-            {ParseZurf.VT_TYPE_ARG, ParseZurf.VT_TYPE_ARG }
+            {"[", "Zurfur.Span`1" }
         };
 
         /// <summary>
@@ -22,14 +22,15 @@ namespace Gosub.Zurfur.Compiler
         /// and given a full name (e.g. 'int' -> 'Zufur.int').  Generic types
         /// must have all type arguments resolved as well.
         /// Return symbol is always a module, type, or type parameter.
-        /// Null is returned for error, and the error is marked.
+        /// On error, the token is rejected and null is returned.
         /// </summary>
-        public static Symbol ResolveTypeOrReject(SyntaxExpr typeExpr,
-                                   SymbolTable table,
-                                   bool isDot,
-                                   Symbol scope,
-                                   UseSymbolsFile useScope,
-                                   bool hasGenericParams = false)
+        public static Symbol Resolve(
+                SyntaxExpr typeExpr,
+                SymbolTable table,
+                bool isDot,
+                Symbol scope,
+                UseSymbolsFile useScope,
+                bool hasGenericParams = false)
         {
             // There will also be a syntax error
             if (typeExpr == null || typeExpr.Token.Name == "")
@@ -37,18 +38,18 @@ namespace Gosub.Zurfur.Compiler
             Debug.Assert(!scope.IsSpecializedType);
 
             if (typeExpr.Token.Name == ".")
-                return ResolveDotOrReject();
+                return ResolveDot();
 
             if (typeExpr.Token == "fun" || typeExpr.Token == "afun")
-                return ResolveLambdaFunOrReject();
+                return ResolveLambdaFun();
 
-            if (sUnaryTypeSymbols.ContainsKey(typeExpr.Token))
-                return ResolveGenericTypeOrReject();
+            if (typeExpr.Token == ParseZurf.VT_TYPE_ARG)
+                return ResolveGenericType();
 
             // Resolve regular symbol
             bool foundInScope = false;
-            var symbol = isDot ? FindLocalTypeOrReject(typeExpr.Token, table, scope)
-                               : FindGlobalTypeOrReject(typeExpr.Token, table, scope, useScope, out foundInScope);
+            var symbol = isDot ? FindLocalType(typeExpr.Token, table, scope)
+                               : FindGlobalType(typeExpr.Token, table, scope, useScope, out foundInScope);
             if (symbol == null)
                 return null; // Error already marked
 
@@ -80,9 +81,10 @@ namespace Gosub.Zurfur.Compiler
 
             return symbol;
 
-            Symbol ResolveDotOrReject()
+            // On error, the token is rejected and null is returned.
+            Symbol ResolveDot()
             {
-                var leftSymbol = ResolveTypeOrReject(typeExpr[0], table, isDot, scope, useScope);
+                var leftSymbol = Resolve(typeExpr[0], table, isDot, scope, useScope);
                 if (leftSymbol == null)
                     return null;
                 if (typeExpr.Count != 2)
@@ -99,7 +101,7 @@ namespace Gosub.Zurfur.Compiler
 
                 // The right side of the "." is only a type name identifier, excluding generic parameters.
                 var leftScope = leftSymbol.IsSpecializedType ? leftSymbol.Parent : leftSymbol;
-                var rightSymbol = ResolveTypeOrReject(typeExpr[1], table, true, leftScope, useScope, hasGenericParams);
+                var rightSymbol = Resolve(typeExpr[1], table, true, leftScope, useScope, hasGenericParams);
                 if (rightSymbol == null)
                     return null;
 
@@ -116,8 +118,9 @@ namespace Gosub.Zurfur.Compiler
             }
 
 
-            // Resolve "fun" or "afun" types
-            Symbol ResolveLambdaFunOrReject()
+            // Resolve "fun" or "afun" types.
+            // On error, the token is rejected and null is returned.
+            Symbol ResolveLambdaFun()
             {
                 if (typeExpr.Count < 3)
                 {
@@ -142,8 +145,8 @@ namespace Gosub.Zurfur.Compiler
 
                 var paramTypes = new List<Symbol>();
                 var returnTypes = new List<Symbol>();
-                var resolved1 = ResolveTypeFunParamsOrReject(funParamsScope, typeExpr[0], paramTypes, false);
-                var resolved2 = ResolveTypeFunParamsOrReject(funParamsScope, typeExpr[1], returnTypes, true);
+                var resolved1 = ResolveTypeFunParams(funParamsScope, typeExpr[0], paramTypes, false);
+                var resolved2 = ResolveTypeFunParams(funParamsScope, typeExpr[1], returnTypes, true);
                 Debug.Assert(!funParamsScope.Token.Error);
                 if (!resolved1 || !resolved2)
                     return null;
@@ -162,7 +165,8 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Resolve "fun" or "afun" parameter types. 
-            bool ResolveTypeFunParamsOrReject(Symbol paramScope,
+            // On error, the token is rejected and null is returned.
+            bool ResolveTypeFunParams(Symbol paramScope,
                                               SyntaxExpr paramExprs,
                                               List<Symbol> paramTypes,
                                               bool isReturn)
@@ -172,7 +176,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     if (pType is SyntaxError)
                         continue;
-                    var sym = ResolveTypeOrReject(pType[0], table, false, paramScope, useScope);
+                    var sym = Resolve(pType[0], table, false, paramScope, useScope);
                     if (sym == null)
                     {
                         resolved = false;
@@ -197,16 +201,19 @@ namespace Gosub.Zurfur.Compiler
 
             // Resolve 'List<int>', 'Map<str,str>', *<int>, etc.
             // First token is '$' for 'List<int>', but can also
-            // be any unary type symbol ('*', '?', '^', etc)
-            Symbol ResolveGenericTypeOrReject()
+            // be any unary type symbol ('*', '?', '^', etc).
+            // On error, the token is rejected and null is returned.
+            Symbol ResolveGenericType()
             {
                 // Resolve type parameters
-                if (!ResolveTypeGenericParamsOrReject(out var typeParent, out var typeParams))
+                var typeParent = ResolveTypeName();
+                var typeParams = ResolveTypeArgs(typeExpr, table, scope, useScope);
+                if (typeParent == null || typeParams == null)
                     return null;
 
                 if (typeParams.Count == 0)
                 {
-                    table.Reject(typeExpr.Token, "Syntax error, unexpected empty type argument list");
+                    table.Reject(typeExpr.Token, "Unexpected empty type argument list");
                     return null;
                 }
 
@@ -226,63 +233,70 @@ namespace Gosub.Zurfur.Compiler
                     for (int i = 0; i < pt.Params.Length; i++)
                         typeParams.Insert(i, pt.Params[i]);
                 }
-
                 return table.GetSpecializedType(concreteType, typeParams.ToArray());
             }
 
 
-            bool ResolveTypeGenericParamsOrReject(out Symbol typeParent, out List<Symbol> typeParams)
+            // On error, the token is rejected and null is returned.
+            Symbol ResolveTypeName()
             {
                 if (typeExpr.Count == 0)
                 {
                     table.Reject(typeExpr.Token, "Syntax error");
-                    typeParent = null;
-                    typeParams = null;
-                    return false;
+                    return null;
                 }
 
-                var resolved = true;
-                int typeParamIndex = 0;
-                if (typeExpr.Token != ParseZurf.VT_TYPE_ARG)
+                Symbol typeParent = null;
+                if (sUnaryTypeSymbols.TryGetValue(typeExpr[0].Token, out var unaryTypeName))
                 {
-                    typeParent = table.Lookup(sUnaryTypeSymbols[typeExpr.Token]);
+                    typeParent = table.Lookup(unaryTypeName);
                     if (typeParent == null)
-                        resolved = false;  // Only if base library is broken
-                    else
-                        typeExpr.Token.AddInfo(typeParent);
+                        table.Reject(typeExpr[0].Token, $"Base library doesn't contain '{unaryTypeName}'");
                 }
                 else
                 {
                     // Parameter list, eg: typeParent<T1,T2,...>
-                    typeParamIndex = 1;
-                    typeParent = ResolveTypeOrReject(typeExpr[0], table, false, scope, useScope, true);
-                    if (typeParent == null)
-                        resolved = false;
-                    else if (!typeParent.IsAnyTypeNotModule)
-                    {
-                        table.Reject(typeExpr[typeParamIndex].Token, $"Expecting a type, but got a {typeParent.KindName}");
-                        resolved = false;
-                    }
+                    typeParent = Resolve(typeExpr[0], table, false, scope, useScope, true);
+                }
+
+                if (typeParent != null && !typeParent.IsAnyTypeNotModule)
+                {
+                    table.Reject(typeExpr[0].Token, $"Expecting a type, but got a {typeParent.KindName}");
+                    typeParent = null;
                 }
 
                 // Process type parameters
-                typeParams = new List<Symbol>();
-                for (; typeParamIndex < typeExpr.Count; typeParamIndex++)
-                {
-                    var sym = ResolveTypeOrReject(typeExpr[typeParamIndex], table, false, scope, useScope);
-                    if (sym == null)
-                        resolved = false;
-                    else if (sym.IsAnyTypeNotModule)
-                        typeParams.Add(sym);
-                    else
-                    {
-                        table.Reject(typeExpr[typeParamIndex].Token, $"Expecting a type, but got a {sym.KindName}");
-                        resolved = false;
-                    }
-                }
-                return resolved;
+                return typeParent;
             }
         }
+
+        /// <summary>
+        /// Resolves just the type arguments, but not type name.
+        /// e.g. `Map<int,str>` ignores `Map`, returns a list of [`int`,`str`].
+        /// On error, returns NULL and rejects the token.
+        /// </summary>
+        public static List<Symbol> ResolveTypeArgs(
+            SyntaxExpr typeExpr, SymbolTable table, Symbol scope, UseSymbolsFile useScope)
+        {
+            bool resolved = true;
+            List<Symbol> typeParams = new List<Symbol>();
+            foreach (var typExprParam in typeExpr.Skip(1))
+            {
+                var sym = Resolve(typExprParam, table, false, scope, useScope);
+                if (sym == null)
+                    resolved = false;
+                else if (sym.IsAnyTypeNotModule)
+                    typeParams.Add(sym);
+                else
+                {
+                    table.Reject(typExprParam.Token, $"Expecting a type, but got a {sym.KindName}");
+                    resolved = false;
+                }
+            }
+
+            return resolved ? typeParams : null;
+        }
+
 
         /// <summary>
         /// Reject the symbol that actually caused the problem.
@@ -339,9 +353,9 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Find a type or module at the current scope.
-        /// Return null if not found.
+        /// When not found, the token is rejected and null is returned.
         /// </summary>
-        static public Symbol FindLocalTypeOrReject(Token name, SymbolTable table, Symbol scope)
+        static public Symbol FindLocalType(Token name, SymbolTable table, Symbol scope)
         {
             if (!scope.TryGetPrimary(name, out var symbol))
             {
@@ -357,11 +371,13 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Find a type or module in the current scope.
         /// If it's not found, scan use statements for all occurences. 
-        /// Marks an error if undefined or duplicate.  Returns null on error.
+        /// On error (undefined or duplicate), the token is rejected and
+        /// null is returned.
+        /// 
         /// TBD: If symbol is unique in this package, but duplicated in an
         /// external package, is that an error?  Yes for now.
         /// </summary>
-        static public Symbol FindGlobalTypeOrReject(Token name, SymbolTable table, Symbol scope, UseSymbolsFile use, out bool foundInScope)
+        static public Symbol FindGlobalType(Token name, SymbolTable table, Symbol scope, UseSymbolsFile use, out bool foundInScope)
         {
             var symbol = FindTypeInScopeWalk(name.Name, scope);
             if (symbol != null)
@@ -393,6 +409,7 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Find the type or module in the scope, or null if not found.
+        /// Errors do not reject the symbol.
         /// Scope includes all parent types and just one parent module
         /// (e.g. `Zurfur.Io` does not include `Zurfur`)
         /// </summary>

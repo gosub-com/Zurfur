@@ -24,12 +24,12 @@ fun MyFun2<I,O>(i I) O
     return a
 
 fun Test<X1,X2,X3>()
+    @f = MyFun2<int>(0)
     @a = MyPoint<int,f64,str>()
     @b = MyPoint<int, X2,str>()
     @c = MyFun1(0, MyPoint<int,int,int>(), "hello")
     @d = MyFun1(0, MyPoint<int,X1,int>(), "hello")
     @e = MyFun2(0)
-    @f = MyFun2<int>(0)
     @g = MyFun2<int,f64>(0)
     @h = MyFun2<int,f64,int>(0)
     @i Size = 0
@@ -73,7 +73,7 @@ fun test(x f64)
     @f = helloVoid()
     @g = helloInt()
     Log.info("Hello world, 2+2={2+2}")
-    @h = cos(2.0+3.0*23.0).str()
+    @h = cos(2.0+3.0*23.0).toStr
 
 fun Span<byte>.hello()
     nop()

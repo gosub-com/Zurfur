@@ -455,7 +455,7 @@ namespace Gosub.Zurfur.Compiler
                     return;
 
                 var typeName = extensionType[0].Token;
-                var typeSymbol = ResolveType.FindGlobalTypeOrReject(typeName, table, method, useSymbols.Files[typeName.Path], out var inScope);
+                var typeSymbol = ResolveType.FindGlobalType(typeName, table, method, useSymbols.Files[typeName.Path], out var inScope);
                 if (typeSymbol == null)
                     return;
 
@@ -571,7 +571,7 @@ namespace Gosub.Zurfur.Compiler
                 // There will also be a syntax error
                 if (typeExpr == null || typeExpr.Token.Name == "")
                     return null;
-                var symbol = ResolveType.ResolveTypeOrReject(typeExpr, table, false, scope, useSymbols.Files[typeExpr.Token.Path]);
+                var symbol = ResolveType.Resolve(typeExpr, table, false, scope, useSymbols.Files[typeExpr.Token.Path]);
                 if (symbol == null)
                     return null;
 

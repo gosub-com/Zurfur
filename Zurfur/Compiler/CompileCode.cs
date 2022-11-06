@@ -153,7 +153,7 @@ namespace Gosub.Zurfur.Compiler
                 else if (name == "my")
                     return GenIdentifier(ex);
                 else if (name == ParseZurf.VT_TYPE_ARG)
-                    return GenGenericType(ex);
+                    return GenGenericTypeArgs(ex);
                 else if (name == "(")
                     return GenParen(ex);
                 else if (name == ".")
@@ -231,10 +231,13 @@ namespace Gosub.Zurfur.Compiler
                 return new Rval(ex.Token) {  Symbols = symbols };
             }
 
-            // Similar to identifier, except we know it's a type (e.g. List<int>, etc)
-            Rval GenGenericType(SyntaxExpr ex)
+            // Type or function call (e.g. List<int>(), f<int>(), etc)
+            Rval GenGenericTypeArgs(SyntaxExpr ex)
             {
-                var type = ResolveType.ResolveTypeOrReject(ex, table, false, currentMethod, fileUses);
+                // TBD: This is what I am working on
+                var rv = GenExpr(ex[0]);
+
+                var type = ResolveType.Resolve(ex, table, false, currentMethod, fileUses);
                 if (type == null)
                     return null;
 
@@ -392,7 +395,7 @@ namespace Gosub.Zurfur.Compiler
                     // Check for type name
                     if (e.Count >= 1 && e[0].Token != "")
                     {
-                        local.Type = ResolveType.ResolveTypeOrReject(e[0], table, false, currentMethod, fileUses);
+                        local.Type = ResolveType.Resolve(e[0], table, false, currentMethod, fileUses);
                     }
                 }
 
@@ -460,7 +463,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 if (ex.Count != 2)
                     return null; // Syntax error
-                var type = ResolveType.ResolveTypeOrReject(ex[0], table, false, currentMethod, fileUses);
+                var type = ResolveType.Resolve(ex[0], table, false, currentMethod, fileUses);
                 var expr = GenExpr(ex[1]);
 
                 if (type == null || expr == null)

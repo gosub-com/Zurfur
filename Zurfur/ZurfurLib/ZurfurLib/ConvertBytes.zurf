@@ -30,18 +30,18 @@ fun Test_ConvertExample()
 // Convert 4 bytes (u32) to int (little endian)
 [pub] fun Span<byte>.bytesToU32() u32
     require count == 4
-    return     my[0].u32
-            + (my[1].u32 << 8)
-            + (my[2].u32 << 16)
-            + (my[3].u32 << 24)
+    return     my[0].toU32
+            + (my[1].toU32 << 8)
+            + (my[2].toU32 << 16)
+            + (my[3].toU32 << 24)
 
 // Convert u32 to 4 bytes (little endian) 
 [pub] fun mut Span<byte>.setBytesU32(v u32)
     require count == 4
-    my[0] = v.byteMask
-    my[1] = (v<<8).byteMask
-    my[2] = (v<<16).byteMask
-    my[3] = (v<<24).byteMask
+    my[0] = v.toByteMask
+    my[1] = (v<<8).toByteMask
+    my[2] = (v<<16).toByteMask
+    my[3] = (v<<24).toByteMask
 
 // Convert u32 to 4 bytes (little endian) and push to list
 [pub] fun mut List<byte>.pushBytesU32(v u32)
@@ -51,14 +51,14 @@ fun Test_ConvertExample()
 
 [pub] fun Span<byte>.bytesToI32() i32
     require count == 4
-    return my.bytesToU32().i32Mask
+    return my.bytesToU32().toI32Mask
     
 [pub] fun mut Span<byte>.setBytesI32(v i32)
     require count == 4
-    my.setBytesU32(v.u32Mask)
+    my.setBytesU32(v.toU32Mask)
     
 [pub] fun mut List<byte>.pushBytesI32(v i32)
-    my.pushBytesU32(v.u32Mask)
+    my.pushBytesU32(v.toU32Mask)
 
 [pub] fun Span<byte>.bytesToU16() u16 require count == 2 { }
 [pub] fun mut Span<byte>.setBytesU16(v u16) require count == 2 { }

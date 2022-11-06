@@ -9,6 +9,27 @@ interface Clone<T> {}
 interface Copy<T> {}
 
 module Zurfur.Operators
+    
+// Equality for containers and sorting (NaN == NaN).
+// For floating point equality, use _opEqUnordered.
+interface OpEq<T>
+    [static] fun _opEq(a T, b T) bool
+
+// Comparison for containers and sorting (NaN == NaN, NaN < -Inf).
+// For floating point, use _opGtUnordered, _opGeUnordered, etc.
+interface OpCmp<T>
+    [static] fun _opEq(a T, b T) bool
+    [static] fun _opCmp(a T, b T) int
+
+// Operator "in".
+interface OpIn<Item, Container>
+    [static] fun _opIn(a Item, b Container) bool
+
+interface GetHash
+    fun getHash() u32
+
+interface GenericTest<T>
+    fun genericTest() u32
 
 // Common math operators
 interface NumOps<T>
@@ -21,36 +42,7 @@ interface NumOps<T>
     [static] fun _opDiv(a T, b T) T
     [static] fun get ZERO() T
     [static] fun get ONE() T
-    
 
-// Equality for containers and sorting (NaN == NaN, Nan < -Inf)
-interface OpEq<T>
-    fun getHash() u32
-    [static] fun _opEq(a T, b T) bool
-
-// Comparison for containers and sorting (NaN == Nan, Nan < -Inf)
-interface OpCmp<T>
-    fun getHash() u32
-    [static] fun _opEq(a T, b T) bool
-    [static] fun _opCmp(a T, b T) int
-
-
-// Equality for floating point numbers (NaN != NaN)
-// Not implemented for most other types (e.g. int and str)
-interface OpEqPartial<T>
-    [static] fun _opEqPartial(a T, b T) bool
-
-// Comparison for floating point numbers (NaN is unordered)
-// Not implemented for most other types (e.g. int, str)
-interface OpCmpPartial<T>
-    [static] fun _opEqPartial(a T, b T) bool
-    [static] fun _opCmpPartial(a T, b T) ?int
-
-interface OpIn<T>
-    [static] fun _opEq(a T, b T) bool
-    [static] fun _opCmp(a T, b T) int
-    [static] fun _opIn(a T, b T) bool
-    
 interface OpAdd<T>
     [static] fun _opAdd(a T, b T) T
     

@@ -1160,6 +1160,7 @@ namespace Gosub.Zurfur.Compiler
             //      fun type name()
             if (mToken.Type == eTokenType.Identifier)
             {
+                mToken.Type = eTokenType.DefineMethod;
                 extensionType = nameExpr;
                 funcName = Accept();
                 if (mToken == "<")
@@ -2136,13 +2137,8 @@ namespace Gosub.Zurfur.Compiler
                 if (token.Name == "[")
                     if (AcceptMatchOrReject("]"))
                         mPrevToken.Type = eTokenType.TypeName;
-                return new SyntaxUnary(token, ParseType());
-            }
-
-            if (mToken == "This")
-            {
-                mToken.Type = eTokenType.TypeName;
-                return new SyntaxToken(Accept());
+                return new SyntaxBinary(NewMetaToken(mToken, VT_TYPE_ARG), 
+                                        new SyntaxToken(token), ParseType());
             }
 
             if (mToken == "fun" || mToken == "afun")

@@ -615,7 +615,7 @@ with C and gives an error where not compatible:
 |Operators | Notes
 | :--- | :---
 |x.y  f<type>(x)  a[i] | Primary
-|- ! & ~ sizeof use unsafe cast| Unary
+|- ! & ~ sizeof unsafe | Unary
 |@|Capture new variable
 |as is | Type conversion and comparison
 |<< >>| Bitwise shift (not associative, can't mix with arithmetic operators)
@@ -630,7 +630,7 @@ with C and gives an error where not compatible:
 |key:Value|Key value pair (only inside `()`, `[]` or where expected)
 |,|Comma Separator (not an expression)
 |= += -= *= /= %= &= |= ~= <<= >>=|Assignment Statements (not an expression)
-|=>|Statement Separator
+
 
 The `~` operator is both xor and unary complement, same as `^` in Golang.
 
