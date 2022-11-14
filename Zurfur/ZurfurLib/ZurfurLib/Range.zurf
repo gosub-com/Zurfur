@@ -11,13 +11,13 @@ use Zurfur.Collections[Iterator]
     begin T pub ro init
     end T pub ro init
 
-[pub] fun (Range<T>) new(begin T, end T) extern
+[pub] fun Range<T>.new(begin T, end T) extern
 
-[pub] fun get (Range<T>) count() T
+[pub] fun get Range<T>.count() T
     where T is OpSub<T>
     return my.end-my.begin
 
-[pub] fun get (Range<T>) iterator() RangeIterator<T>
+[pub] fun get Range<T>.iterator() RangeIterator<T>
     if my.begin >= my.end
         return  RangeIterator<T>(my.begin, my.begin)
     return RangeIterator<T>(my.begin, my.end)
@@ -28,13 +28,13 @@ use Zurfur.Collections[Iterator]
     current T pub init
     end T pub init
 
-[pub] fun (RangeIterator<T>) new(begin T, end T) extern
+[pub] fun RangeIterator<T>.new(begin T, end T) extern
 
 // TBD: Delete these since the above
-[pub] fun (RangeIterator<i32>) new(a i32, b i32) extern
-[pub] fun (RangeIterator<u32>) new(a u32, b u32) extern
-[pub] fun (RangeIterator<u64>) new(a u64, b u64) extern
-[pub] fun (RangeIterator<int>) new(a int, b int) extern
+[pub] fun RangeIterator<i32>.new(a i32, b i32) extern
+[pub] fun RangeIterator<u32>.new(a u32, b u32) extern
+[pub] fun RangeIterator<u64>.new(a u64, b u64) extern
+[pub] fun RangeIterator<int>.new(a int, b int) extern
     
     
 [pub] fun get (RangeIterator<T>) next() ?T

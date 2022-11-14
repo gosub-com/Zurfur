@@ -280,11 +280,11 @@ namespace Gosub.Zurfur.Ide
             {
                 var errorType = "";
                 if (error is ParseZurf.ParseError)
-                    errorType = " (parse)";
-                else if (error is ZilHeaderError)
-                    errorType = " (gen header)";
-                else if (error is VerifyHeaderError)
-                    errorType = " (verify header)";
+                    errorType = " (syntax)";
+                else if (error is ZilCompileError)
+                    errorType = " (compile)";
+                else if (error is VerifyError)
+                    errorType = " (verify)";
                 message += $"ERROR{errorType}: {error}\r\n";
             }
 

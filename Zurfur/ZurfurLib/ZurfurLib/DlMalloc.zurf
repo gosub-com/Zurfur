@@ -320,9 +320,9 @@ const MAX_SIZE_T u64 = xunit.MaxValue
 
 // The byte and bit size of a u64
 fun get SIZE_T_SIZE() u64
-    return sizeof(u64)
+    return sizeof(u64).toU64Mask
 fun get SIZE_T_BITSIZE() u64
-    return sizeof(u64) << 3
+    return (sizeof(u64) << 3).toU64Mask
 
 // Some constants coerced to size_t
 const SIZE_T_ZERO u64 = 0
@@ -454,7 +454,7 @@ fun DlMalloc.treebin_at(i u64) **tchunk
 fun compute_tree_index(s u64) u64
     @x = s >> TREEBIN_SHIFT
     if x == 0
-        return 0
+        return 0 u64
     if x > 0xFFFF
         return NTREEBINS - 1u64
     @y = x
@@ -479,8 +479,8 @@ fun bit_for_tree_index(i u64) u64
 // Shift placing maximum resolved bit in a treebin at i as sign bit
 fun leftshift_for_tree_index(i u64) int
     if i == NTREEBINS - 1u64
-        return 0u64
-    return SIZE_T_BITSIZE - SIZE_T_ONE - ((i >> 1) + TREEBIN_SHIFT - 2u64)
+        return 0 int
+    return (SIZE_T_BITSIZE - SIZE_T_ONE - ((i >> 1) + TREEBIN_SHIFT - 2u64)).toIntMask
 
 // The size of the smallest chunk held in bin with index i
 fun minsize_for_tree_index(i u64) u64
@@ -2026,7 +2026,7 @@ fun set_free_with_pinuse(p *mchunk, s u64, n *mchunk)
 fun get CHUNK_OVERHEAD() u64
     return SIZE_T_SIZE
 fun get MCHUNK_SIZE() u64
-    return sizeof(mchunk)
+    return sizeof(mchunk).toU64Mask
 fun get MIN_CHUNK_SIZE() u64
     return (MCHUNK_SIZE + CHUNK_ALIGN_MASK) & ~CHUNK_ALIGN_MASK
 fun get MAX_REQUEST() u64

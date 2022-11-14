@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using Gosub.Zurfur.Lex;
 
 namespace Gosub.Zurfur.Compiler
 {
-    static class ResolveType
+    static class Resolver
     {
         static WordMap<string> sUnaryTypeSymbols = new WordMap<string>()
         {
@@ -28,14 +29,14 @@ namespace Gosub.Zurfur.Compiler
                 SyntaxExpr typeExpr,
                 SymbolTable table,
                 bool isDot,
-                Symbol scope,
-                UseSymbolsFile useScope,
+                Symbol searchScope,
+                UseSymbolsFile useSymbols,
                 bool hasGenericParams = false)
         {
             // There will also be a syntax error
             if (typeExpr == null || typeExpr.Token.Name == "")
                 return null;
-            Debug.Assert(!scope.IsSpecializedType);
+            Debug.Assert(!searchScope.IsSpecializedType);
 
             if (typeExpr.Token.Name == ".")
                 return ResolveDot();
@@ -48,8 +49,8 @@ namespace Gosub.Zurfur.Compiler
 
             // Resolve regular symbol
             bool foundInScope = false;
-            var symbol = isDot ? FindLocalType(typeExpr.Token, table, scope)
-                               : FindGlobalType(typeExpr.Token, table, scope, useScope, out foundInScope);
+            var symbol = isDot ? FindLocalType(typeExpr.Token, table, searchScope)
+                               : FindGlobalType(typeExpr.Token, table, searchScope, useSymbols, out foundInScope);
             if (symbol == null)
                 return null; // Error already marked
 
@@ -84,7 +85,7 @@ namespace Gosub.Zurfur.Compiler
             // On error, the token is rejected and null is returned.
             Symbol ResolveDot()
             {
-                var leftSymbol = Resolve(typeExpr[0], table, isDot, scope, useScope);
+                var leftSymbol = Resolve(typeExpr[0], table, isDot, searchScope, useSymbols);
                 if (leftSymbol == null)
                     return null;
                 if (typeExpr.Count != 2)
@@ -101,7 +102,7 @@ namespace Gosub.Zurfur.Compiler
 
                 // The right side of the "." is only a type name identifier, excluding generic parameters.
                 var leftScope = leftSymbol.IsSpecializedType ? leftSymbol.Parent : leftSymbol;
-                var rightSymbol = Resolve(typeExpr[1], table, true, leftScope, useScope, hasGenericParams);
+                var rightSymbol = Resolve(typeExpr[1], table, true, leftScope, useSymbols, hasGenericParams);
                 if (rightSymbol == null)
                     return null;
 
@@ -128,112 +129,47 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 }
 
-                // Generic type arguments: TBD
-                //foreach (var generic in typeExpr[0])
-                //    mSymbols.Add(new SymTypeArg(scope, generic.Token, 0));
+                // Create an anonymous type to hold the function type.
+                // NOTE: This is not finished, just temporary for now.
+                var funParams = new Symbol(SymKind.Type, table.AnonymousTypes, "");
+                ResolveMethodParams(typeExpr[0], table, funParams, searchScope, useSymbols, false);
+                ResolveMethodParams(typeExpr[1], table, funParams, searchScope, useSymbols, true);
 
-                // NOTE: This holds more info about the function, such as the
-                // variable name.  For now, we are going to throw away this
-                // extra info, but it might be nice to keep around to show
-                // the user.  So for now, these type definitions are identical
-                // and consolidated in the symbol table:
-                //      @a fun(a int)int   ==   @ fun(int)int
-                //      @b fun(b int)int   ==   @ fun(int)int
-                // NOTE 2: This scope is only used to resolve the function
-                //         parameters, then it is thrown away.
-                var funParamsScope = new SymMethod(scope, new Token("$unused"), "$unused");
+                funParams.SetLookupName(GetFunctionName("$fun", funParams));
 
-                var paramTypes = new List<Symbol>();
-                var returnTypes = new List<Symbol>();
-                var resolved1 = ResolveTypeFunParams(funParamsScope, typeExpr[0], paramTypes, false);
-                var resolved2 = ResolveTypeFunParams(funParamsScope, typeExpr[1], returnTypes, true);
-                Debug.Assert(!funParamsScope.Token.Error);
-                if (!resolved1 || !resolved2)
-                    return null;
 
-                // TBD: Figure out what to do with this (error/exit attribute)
-                //if (typeExpr[2].Token.Name != "") // error attribute
-                //    returnTypes.Add(typeExpr[2].Token.Name);
-
-                // Add generic "$fun#" symbol to root, where # is the number of generic arguments
-                var numGenerics = paramTypes.Count + returnTypes.Count;
-                var name = "$" + typeExpr.Token.Name + numGenerics;
-                Symbol genericFunType = table.FindOrAddIntrinsicType(name, numGenerics);
-
-                var concreteType = genericFunType;
-                return table.GetSpecializedType(concreteType, paramTypes.ToArray(), returnTypes.ToArray());
+                return table.FindOrAddAnonymousType(funParams);
             }
 
-            // Resolve "fun" or "afun" parameter types. 
-            // On error, the token is rejected and null is returned.
-            bool ResolveTypeFunParams(Symbol paramScope,
-                                              SyntaxExpr paramExprs,
-                                              List<Symbol> paramTypes,
-                                              bool isReturn)
-            {
-                bool resolved = true;
-                foreach (var pType in paramExprs)
-                {
-                    if (pType is SyntaxError)
-                        continue;
-                    var sym = Resolve(pType[0], table, false, paramScope, useScope);
-                    if (sym == null)
-                    {
-                        resolved = false;
-                        continue;
-                    }
-                    if (sym.IsAnyTypeNotModule)
-                    {
-                        paramTypes.Add(sym);
-                        var newMethodParam = new SymMethodParam(paramScope, pType.Token);
-                        newMethodParam.ParamOut = isReturn;
-                        newMethodParam.Token.AddInfo(newMethodParam);
-                        table.AddOrReject(newMethodParam); // TBD: Fix
-                    }
-                    else
-                    {
-                        table.Reject(sym.Token, $"Expecting a type, but got a {sym.KindName}");
-                        resolved = false;
-                    }
-                }
-                return resolved;
-            }
 
             // Resolve 'List<int>', 'Map<str,str>', *<int>, etc.
-            // First token is '$' for 'List<int>', but can also
-            // be any unary type symbol ('*', '?', '^', etc).
+            // Token is '$' for VT_TYPE_ARG.
             // On error, the token is rejected and null is returned.
             Symbol ResolveGenericType()
             {
                 // Resolve type parameters
-                var typeParent = ResolveTypeName();
-                var typeParams = ResolveTypeArgs(typeExpr, table, scope, useScope);
-                if (typeParent == null || typeParams == null)
+                var typeName = ResolveTypeName();
+                var typeParams = ResolveTypeArgs(typeExpr, table, searchScope, useSymbols);
+                if (typeName == null || typeParams == null)
                     return null;
-
-                if (typeParams.Count == 0)
-                {
-                    table.Reject(typeExpr.Token, "Unexpected empty type argument list");
-                    return null;
-                }
 
                 // Reject incorrect number of type arguments, for example, `List<int,int>`
-                var concreteType = typeParent.IsSpecializedType ? typeParent.Parent : typeParent;
-                if (concreteType.GenericParamCount() != typeParams.Count)
+                var typeNameConcrete = typeName.IsSpecializedType ? typeName.Parent : typeName;
+                if (typeNameConcrete.GenericParamCount() != typeParams.Count)
                 {
                     RejectTypeArgLeftDotRight(typeExpr, table,
-                        $"Expecting {concreteType.GenericParamCount()} generic parameter(s), but got {typeParams.Count}");
+                        $"Expecting {typeNameConcrete.GenericParamCount()} generic parameter(s), but got {typeParams.Count}");
                     if (!table.NoCompilerChecks)
                         return null;
                 }
 
-                if (typeParent is SymSpecializedType pt)
+                // Add parent type parameters (i.e. Map<int,int>.KvPair -> Map.KeyVal<int,int>)
+                if (typeName is SymSpecializedType pt)
                 {
-                    Debug.Assert(pt.Returns.Length == 0); // TBD: Fix for functions
                     for (int i = 0; i < pt.Params.Length; i++)
                         typeParams.Insert(i, pt.Params[i]);
                 }
-                return table.GetSpecializedType(concreteType, typeParams.ToArray());
+                return table.GetSpecializedType(typeNameConcrete, typeParams.ToArray());
             }
 
 
@@ -256,7 +192,7 @@ namespace Gosub.Zurfur.Compiler
                 else
                 {
                     // Parameter list, eg: typeParent<T1,T2,...>
-                    typeParent = Resolve(typeExpr[0], table, false, scope, useScope, true);
+                    typeParent = Resolve(typeExpr[0], table, false, searchScope, useSymbols, true);
                 }
 
                 if (typeParent != null && !typeParent.IsAnyTypeNotModule)
@@ -270,19 +206,38 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
+        // Get the function name: "`#(t1,t2...)(r1,r2...)"
+        //      # - Number of generic parameters
+        //      t1,t2... - Parameter types
+        //      r1,r2... - Return types
+        public static string GetFunctionName(string simpleName, Symbol method)
+        {
+            var genericsCount = method.GenericParamCount();
+            var mp = method.ChildrenFilter(SymKind.MethodParam).Where(child => !child.ParamOut).ToList();
+            var mpr = method.ChildrenFilter(SymKind.MethodParam).Where(child => child.ParamOut).ToList();
+            mp.Sort((a, b) => a.Order.CompareTo(b.Order));
+            mpr.Sort((a, b) => a.Order.CompareTo(b.Order));
+            var functionName = simpleName
+                        + (genericsCount == 0 ? "" : "`" + genericsCount)
+                        + "(" + string.Join(",", mp.ConvertAll(a => a.TypeName)) + ")"
+                        + "(" + string.Join(",", mpr.ConvertAll(a => a.TypeName)) + ")";
+            return functionName;
+        }
+
+
         /// <summary>
         /// Resolves just the type arguments, but not type name.
         /// e.g. `Map<int,str>` ignores `Map`, returns a list of [`int`,`str`].
         /// On error, returns NULL and rejects the token.
         /// </summary>
         public static List<Symbol> ResolveTypeArgs(
-            SyntaxExpr typeExpr, SymbolTable table, Symbol scope, UseSymbolsFile useScope)
+            SyntaxExpr typeExpr, SymbolTable table, Symbol searchScope, UseSymbolsFile useScope)
         {
             bool resolved = true;
             List<Symbol> typeParams = new List<Symbol>();
             foreach (var typExprParam in typeExpr.Skip(1))
             {
-                var sym = Resolve(typExprParam, table, false, scope, useScope);
+                var sym = Resolve(typExprParam, table, false, searchScope, useScope);
                 if (sym == null)
                     resolved = false;
                 else if (sym.IsAnyTypeNotModule)
@@ -297,6 +252,43 @@ namespace Gosub.Zurfur.Compiler
             return resolved ? typeParams : null;
         }
 
+        public static void ResolveMethodParams(
+            SyntaxExpr parameters,
+            SymbolTable table,
+            Symbol method,
+            Symbol searchScope,
+            UseSymbolsFile useSymbols,
+            bool isReturn)
+        {
+            if (parameters is SyntaxError)
+                return;
+
+            foreach (var expr in parameters)
+            {
+                if (expr is SyntaxError)
+                    continue;
+                Debug.Assert(expr.Count >= 3);
+
+                var token = expr.Token == "" ? expr[1].Token : expr.Token;
+                var name = expr.Token == "" ? "$0" : expr.Token.Name;
+                var methodParam = new Symbol(SymKind.MethodParam, method, token, name);
+                methodParam.ParamOut = isReturn;
+                methodParam.Type = Resolve(expr[0], table, false, searchScope, useSymbols);
+                if (methodParam.Type == null)
+                    continue; // Unresolved symbol
+
+                if (!(methodParam.Type.IsAnyTypeNotModule || table.NoCompilerChecks))
+                    RejectTypeArgLeftDotRight(expr[0], table, 
+                        $"The symbol is not a type, it is a {methodParam.Type.KindName}");
+                expr.Token.AddInfo(methodParam);
+
+                // Add qualifiers
+                foreach (var qualifier in expr[2])
+                    methodParam.SetQualifier(qualifier.Token);
+
+                table.AddOrReject(methodParam);
+            }
+        }
 
         /// <summary>
         /// Reject the symbol that actually caused the problem.

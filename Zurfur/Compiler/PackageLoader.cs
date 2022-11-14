@@ -37,9 +37,6 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         static void Save(Symbol symbol, PackageSymbolJson parent, List<PackageSymbolJson> packSyms, bool onlyPublic)
         {
-            if (symbol.IsIntrinsic)
-                return;
-
             if (onlyPublic && symbol.IsField
                 || onlyPublic
                     && !symbol.Qualifiers.HasFlag(SymQualifiers.Pub)
@@ -131,7 +128,7 @@ namespace Gosub.Zurfur.Compiler
         [Conditional("DEBUG")]
         private static void DebugVerifySymbolTables(SymbolTable table, List<PackageSymbolJson> symbols)
         {
-            foreach (var s in table.Symbols)
+            foreach (var s in table.LookupSymbols)
                 if (s.HasToken && s.Token.Error)
                 {
                     Console.WriteLine("Not verifying symbols because of errors in source");
@@ -140,10 +137,8 @@ namespace Gosub.Zurfur.Compiler
 
             var reloadSymbols = new SymbolTable().Load(symbols);
 
-            foreach (var savedSym in table.Symbols)
+            foreach (var savedSym in table.LookupSymbols)
             {
-                if (savedSym.IsIntrinsic)
-                    continue;
                 var loadedSym = reloadSymbols.Lookup(savedSym.FullName);
                 if (loadedSym == null)
                 {

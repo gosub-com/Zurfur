@@ -17,7 +17,7 @@ fun require_tbd(c bool) require c {}
 type unsafe ListBuffer<T> is Buffer<T>
 
 // TBD: Protect the list against being moved while there is a reference to an item
-[pub] fun get ListBuffer<T>.isLocked()
+[pub] fun get ListBuffer<T>.isLocked() bool
     todo
 
 // TBD: Implement "type is" instead of stubbing like this

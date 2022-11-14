@@ -426,8 +426,8 @@ namespace Gosub.Zurfur.Compiler
         {
             token.RemoveInfo<Symbol>();
             token.RemoveInfo<VerifySuppressError>();
-            token.RemoveInfo<ZilHeaderError>();
-            token.RemoveInfo<VerifyHeaderError>();
+            token.RemoveInfo<ZilCompileError>();
+            token.RemoveInfo<VerifyError>();
             token.RemoveInfo<ZilWarn>();
             token.RemoveInfo<string>();
         }

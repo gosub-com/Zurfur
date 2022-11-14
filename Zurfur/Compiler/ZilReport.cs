@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using Gosub.Zurfur.Lex;
-
+using System.Diagnostics.CodeAnalysis;
 
 namespace Gosub.Zurfur.Compiler
 {
@@ -81,7 +81,7 @@ namespace Gosub.Zurfur.Compiler
                 int typesGeneric = 0;
                 int methods = 0;
                 int fields = 0;
-                foreach (var sym in symbols.Symbols)
+                foreach (var sym in symbols.LookupSymbols)
                 {
                     count++;
                     if (sym.IsType)
@@ -102,6 +102,7 @@ namespace Gosub.Zurfur.Compiler
                 headerFile.Add("SYMBOLS: " + count);
                 headerFile.Add($"    Types: {types} ({typesNonGeneric} non-generic, {typesGeneric} generic)");
                 headerFile.Add($"    Specializations: {symbols.SpecializedSymbols.Count} (generated from generics)");
+                headerFile.Add($"    Anonymous types: {symbols.AnonymousTypes.ChildrenCount}");
                 headerFile.Add($"    Methods: {methods}");
                 headerFile.Add($"    Fields: {fields}");
                 headerFile.Add("");
@@ -111,7 +112,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 // Get modules and all symbols
                 var modules = new List<string>();
-                foreach (var s in symbols.Symbols)
+                foreach (var s in symbols.LookupSymbols)
                 {
                     if (s.IsModule)
                         modules.Add(s.FullName);
@@ -137,7 +138,7 @@ namespace Gosub.Zurfur.Compiler
             void ShowTypes()
             {
                 headerFile.Add("SYMBOLS:");
-                var syms = new List<Symbol>(symbols.Symbols);
+                var syms = new List<Symbol>(symbols.LookupSymbols);
                 syms.Sort((a, b) => Compare(a.FullName, b.FullName));
                 foreach (var s in syms)
                     headerFile.Add($"{s.KindName,16}: {s.FullName}");
@@ -149,6 +150,15 @@ namespace Gosub.Zurfur.Compiler
                 special.Sort((a, b) => Compare(a.FullName, b.FullName));
                 foreach (var s in special)
                     headerFile.Add($"    {s.FullName}");
+
+                headerFile.Add("");
+                headerFile.Add("");
+                headerFile.Add("ANONYMOUS:");
+                var anon = new List<Symbol>(symbols.AnonymousTypes.ChildrenFilter(SymKind.All));
+                anon.Sort((a, b) => Compare(a.FullName, b.FullName));
+                foreach (var s in anon)
+                    headerFile.Add($"    {s.FullName}");
+
 
             }
 

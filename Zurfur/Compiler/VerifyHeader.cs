@@ -8,9 +8,9 @@ using Gosub.Zurfur.Lex;
 
 namespace Gosub.Zurfur.Compiler
 {
-    public class VerifyHeaderError : TokenError
+    public class VerifyError : TokenError
     {
-        public VerifyHeaderError(string message) : base(message) { }
+        public VerifyError(string message) : base(message) { }
     }
 
     /// <summary>
@@ -132,12 +132,10 @@ namespace Gosub.Zurfur.Compiler
                 {
                     var ptype = (SymSpecializedType)s;
                     var genericParams = s.GenericParamTotal();
-                    var genericArgs = ptype.Params.Length + ptype.Returns.Length;
-                    if (genericParams != genericArgs)
-                        Reject(token, $"The type '{typeName}' requires {genericParams} generic type parameters, but {genericArgs} were supplied");
+                    var genericArgsCount = ptype.Params.Length;
+                    if (genericParams != genericArgsCount)
+                        Reject(token, $"The type '{typeName}' requires {genericParams} generic type parameters, but {genericArgsCount} were supplied");
                     foreach (var t in ptype.Params)
-                        CheckTypeName(token, t.FullName);
-                    foreach (var t in ptype.Returns)
                         CheckTypeName(token, t.FullName);
                 }
             }
@@ -165,19 +163,19 @@ namespace Gosub.Zurfur.Compiler
                 switch (sSuppressErrors)
                 {
                     case SuppressErrorMode.Strict:
-                        token.AddError(new VerifyHeaderError(message));
+                        token.AddError(new VerifyError(message));
                         break;
 
                     case SuppressErrorMode.Warn:
                         if (token.GetInfo<VerifySuppressError>() == null)
-                            token.AddError(new VerifyHeaderError(message));
+                            token.AddError(new VerifyError(message));
                         else
                             token.AddWarning(new TokenWarn("(Error suppressed): " + message));
                         break;
 
                     case SuppressErrorMode.Ignore:
                         if (token.GetInfo<VerifySuppressError>() == null)
-                            token.AddError(new VerifyHeaderError(message));
+                            token.AddError(new VerifyError(message));
                         break;
                 }
 

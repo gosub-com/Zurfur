@@ -102,11 +102,11 @@ use the `my` keyword to refer to fields or other methods in the type:
 
     // Declare an extension method for strings
     fun str.rest() str
-        return if(my.count == 0, "" : my.sub(1))  // `sub` is defined by `Array`
+        return if(my.count == 0, "" : my.subRange(1))  // `subRange` is defined by `List`
 
     // TBD: Still considering golang method syntax
     fun (str) rest() str
-        return if(my.count == 0, "" : my.sub(1)) 
+        return if(my.count == 0, "" : my.subRange(1)) 
 
 Properties are functions declared with `get` and `set` keywords:
 
@@ -131,7 +131,7 @@ and `own` can be used to change the passing behavior:
         b       mut ref int,  // Pass by ref, allow assignment
         c         List<int>,  // Pass by ref, read-only
         d     mut List<int>,  // Pass by ref, allow mutation, but not assignment
-        e ref mut List<int>,  // Pass by ref, allow mutation and assignment
+        e mut ref List<int>,  // Pass by ref, allow mutation and assignment
         f     own List<int>)  // Take ownership of the list
 
 Parameter qualifiers:
@@ -139,9 +139,9 @@ Parameter qualifiers:
 | Qualifier | Passing style | Notes
 | :--- | :--- | :---
 |  | Read-only reference | Copy small `type copy` types (e.g. `int`, `Span`, etc.)
-| `mut` | Allow mutation but not assignment | Not valid for `ro` types (e.g. `Array`, `str`, etc.)
-| `ref mut` | Allow mutation and assignment | Requires annotation (i.e. `ref`) at the call site
-| `own` | Take ownership | Not valid for `ro` types and types that don't require allocation
+| `mut` | Allow mutation but not assignment | Not valid for `ro` types (e.g. `str`, `ro List`, etc.)
+| `mut ref` | Allow mutation and assignment | Requires annotation (i.e. `ref`) at the call site
+| `own` | Take ownership | Not valid for `ro` types or non-allocating types
 
 Arguments passed by `mut` do not need to be annotated at the call site.  This
 is because it is obvious that `f(myList)` could mutate `myList` and it's easy
@@ -196,24 +196,26 @@ The ones we all know and love:
     
 | Type | Description
 | :--- | :---
-| Array\<T\> | An immutable array of **immutable** elements and a constant `count`.  Even if the array contains mutable elements, they become immutable when copied into the array.  Arrays can be copied very quickly, just by copying a reference.
-| str, str16 | An `Array<byte>` with support for UTF-8.  `Array` is immutable, therefore `str` is also immutable.  `str16` is a Javascript style unicode string (i.e `Array<u16>`)
-| List\<T\> | Dynamically sized mutable list with mutable elements
-| Span\<T\> | Span into `Array`, `Buffer`, or `List`.  It has a constant `Count`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `Buffer` or `List` is mutable)
-| Map<K,V> | Unordered mutable map. 
+| List\<T\> | Dynamically sized mutable list with mutable elements.
+| Array<\T\>| An alias for `ro List<T>`.  An immutable list of immutable elements. Even if the array contains mutable elements, they become immutable when copied into the list.  Array's can be copied very quickly, just by copying a reference.
+| str, str16 | An `Array<byte>` or `Array<u16>` with support for UTF-8 and UTF-16.  `Array` (an ailias for`ro List`) is immutable, therefore `str` is also immutable.  `str16` is a Javascript or C# style unicode string
+| Span\<T\> | Span into a `List` or `Array`.  It has a constant `count`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `List` is mutable)
+| Map<K,V> | Unordered mutable map.  `ro Map<K,V` is the immutable counterpart. 
 | Variant, VaraiantMap | The type used to interface with dynamically typed languages.  Easy conversion to/from JSON and string representations of built-in types.
 
-There are several different kinds of types.  There is `ro` for read-only
-immutable types, `box` for a type always on the heap, and `owned` for a mutable
-heap type that requires an explicit clone or implicit move.
+All types have a compiler generated `ro` counterpart.  They can be copied
+very quickly since cloning them is just copying a pointer.
+
+There are different kinds of types.  There is `ref` for types, such as `Span`
+that hold a reference to other objects.  The rest of this is still a **TBD**:
 
 | Type Qualifier | Passing Style | Explicit Clone | Examples | Copy/clone speed and notes
 | :--- | :--- | :--- | :--- | :---
-|  | Ref | No | types containing `int`, `str`, `Array`, etc. | Fast. Copy bytes, doesn't allocate.  Can't contain `owned` types.
+|  | Ref | No | types containing `int`, `str`, `ro List`, etc. | Fast. Copy bytes, doesn't allocate.  Can't contain `owned` types.
 | `copy` | Copy | No | `int`, `f64`, `Span` | Fast. Small, pass copy (not a reference), doesn't allocate.  Can't contain `owned` types.
 | `ref` | Ref or copy | No | `Span`, `ref` | Fast.  Type contains a reference, so must never leave the stack.  Can't contain `owned` types.
 | `ro` | Ref | No | | Fast. Copy bytes, doesn't' allocate.  Can contain `owned` types, but they become read-only forever after.
-| `ro box` | Ref | No | `str`, `Array` | Fast.  Copy a reference. Can contain `owned` types, but they become read-only forever after.
+| `ro box` | Ref | No | `str`, `ro List` | Fast.  Copy a reference. Can contain `owned` types, but they become read-only forever after.
 | `owned box` | Ref | Yes |  | Slow. Always allocates.  May contain `owned` types.
 | `owned` | Ref | Yes | `List`, `Map` | Slow. Always allocates.  May contain `owned` types.
 | `async` | Ref | (see above) | `FileStream` | Any type that has an async destructor.
@@ -222,7 +224,7 @@ heap type that requires an explicit clone or implicit move.
 (or stack frame) that owns them.  Because they are mutable and use dynamic
 allocation, they require an explicit clone.
 
-`Array` and `str` are `ro box`.  They are reference types, but don't require an
+`ro List` and `str` are `ro box`.  They are reference types, but don't require an
 explicit clone because they are read-only.
 
 
@@ -292,39 +294,21 @@ with `@` and are private, but may have public properties with `pub get`,
 ### Immutability
 
 `ro` means read-only, not just at the top level, but at all levels.  When
-a field is `ro`, there is no way to modify or mutate any part of it:
+a field is `ro`, there is no way to modify or mutate any part of it.
 
-    type Preson(firstName str, lastName str)
-    @a List<List<Person>> = [[("John", "Doe")]]
-    @b ro List<List<Person>> = [[("John", "Doe")]]
-    @c Array<List<Person>> = [[("John", "Doe")]]
-
-    a[0][0].firstName = "Jeremy"    // Legal - List is mutable
-    b[0][0].firstName = "Jeremy"    // Illegal - Read-only all the way down
-    c[0][0].firstName = "Jeremy"    // Illegal - Array is read-only
+TBD: Document more
 
 ### References
 
 References are short lived pointers that may never leave the stack.
 They can be created explicitly, or implicitly when a function is called.
 
-    // Create a reference, then use it later
-    @nameRef = ref a[0][0].firstName
-    nameRef = "Jeremy"
 
-    // Identical to above
-    @personRef = ref a[0][0]
-    personRef.firstName = "Jeremy"
-
-    // Reference is created implicitly when a function is called
-    fun setPersonName(p mut Person)
-        p.FirstName = "Jeremy"
-
-### Array and List
+### List and ro List
 
 `List` is the default data structure for working with mutable data.  Once the
-list has been created, it can be converted to an `Array` which is immutable.
-Assigning an array is very fast since it is just copying a reference,
+list has been created, it can be converted to a `ro List` which is immutable.
+Assigning a `ro List` is very fast since it is just copying a reference,
 whereas assigning a `List` will create a copy unless it can be optimized
 to a move operation.
 
@@ -333,16 +317,16 @@ to a move operation.
     @z = [[1,2,3],[4,5,6]]  // z is List<List<int>>
     x.Push(4)               // x contains [1,2,3,4]
     x.Push([5,6])           // x contains [1,2,3,4,5,6]
-    @a = x.ToArray()        // a is Array<int>
+    @a = x.toRo()           // a is `ro List<int>`
     fieldx = x              // fieldx is a copy of x (with optimization, x may have been moved)
-    fielda = a              // fielda is always a reference to the array `a`
+    fielda = a              // fielda is always a reference to the ro list `a`
 
-`List` should be used to build and manipulate mutable data, while `Array`
-should be used to store immutable data.
+`List` can be used to quickly build and manipulate mutable data, while `ro List`
+can be used to store immutable data.
 
 ### Strings
 
-Strings (i.e. `str`) are immutable byte arrays (i.e. `Array<byte>`), generally
+Strings (i.e. `str`) are immutable byte lists (i.e. `ro List<byte>`), generally
 assumed to hold UTF8 encoded characters.  However, there is no rule enforcing
 the UTF8 encoding so they may hold any binary data.
 
@@ -363,20 +347,20 @@ There is no `StringBuilder` type, use `List<byte>` instead:
     sb.push("Count from 1 to 10: ")
     for @count in 1..+10
         sb.push(` ${count}`)
-    return sb.toArray()
+    return sb.toStr()
 
 ### Span
 
-Span is a view into a `str`, `Array`, or `List`.  They are `type ref` and
+Span is a view into a `str`, `List`, or `ro List`.  They are `type ref` and
 may never be stored on the heap.  Unlike in C#, a span can be used to pass
 data to an async function.  
 
-Array syntax translates directly to Span (not to Array like C#).
-The following definitions are identical:
+The array declaration syntax `[]Type` translates directly to Span (not to
+`Array` like C#).  The following definitions are identical:
 
     // The following definitions are identical:
-    afun mut write(data Span<byte>) int error impl
-    afun mut write(data []byte) int error impl
+    afun mut write(data Span<byte>) int throws
+    afun mut write(data []byte) int throws
 
 Spans are as fast, simple, and efficient as it gets.  They are just a pointer
 and count.  They are passed down the *execution stack* or stored on the async
@@ -518,7 +502,7 @@ For instance, the click event for a GUI might require a `nothrow` function.
 |Error Type | Action | Examples
 | :--- | :--- | :---
 |Normal | No stack trace, debugger not stopped | `throw` - File not found, task cancelled
-|Panic | Stack trace logged, debugger stopped | `require` - Array bounds check
+|Panic | Stack trace logged, debugger stopped | `require` - List bounds check
 |Critical | End process, stack trace, maybe core dump | Memory corruption, type safety violation
 
 Panics always stop the debugger (if attached) and log a stack trace. They are
@@ -573,8 +557,8 @@ for types where all of the elements also implement these functions.  The
 implement an `_opEq` function may not be compared with `==` or `!=`.
 
 Like Rust, an explicit `clone` is required to copy any mutable type that
-requires dynamic allocation.  If the type contains only `int`, `str`, and
-`Array`, it will implicitly copy itself.  If the type contains `List`, `Map`,
+requires dynamic allocation.  If the type contains only `int`, `str`, or
+`ro List`, it will implicitly copy itself.  If the type contains `List`, `Map`,
 or any other dynamically allocated mutable data, it must be explicitly cloned.
 Some types, such as `FileStream` can't be cloned at all.
 
@@ -658,7 +642,7 @@ used with the same effect (e.g. `@a = if(a>b, "pass":"fail")`).
 The syntax is still TBD.
 
 The pair operator `:` makes a key/value pair which can be used
-in an array to initialize a map.
+in a list to initialize a map.
 
 Assignment is a statement, not an expression.  Therefore, expressions like
 `a = b = 1` and `while (a = count) < 20` are not allowed. In the latter
@@ -772,7 +756,7 @@ The range operators can be used as follows:
 
     // Collect elements 5,6, and 7 into myList
     for @i in 5..+3
-        myList.push(myArray[i])
+        myList.push(myList[i])
 
 Maps can be iterated over:
 

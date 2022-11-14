@@ -20,13 +20,29 @@ fun MyFun1<T1,T2,T3>(a T1, b T2, c T3) T2
     return q
 
 fun MyFun2<I,O>(i I) O
-    @a = I()
+    //@a = I()
     return a
 
-fun Test<X1,X2,X3>()
-    @f = MyFun2<int>(0)
+fun MyFun3<I,O>(i int) O
+    //@a = I()
+    return a
+
+fun MyFun4<T0,T1,T2,T3>(i int) List<T2>
+    //@a = I()
+    return a
+
+fun MyFun5<T0,T1,T2,T3>(i int) -> (a List<T1>, b List<T3>)
+    //@a = I()
+    return a
+
+fun Test<X0,X1,X2,X3>()
+    @f1 = MyFun2<int, f64>(0)
+    @f2 = MyFun3<int,f64>(1)
+    @f3 = MyFun3<f64,int>(1)
+    @f4 = MyFun4<f64,int,List<X3>,u32>(1)
+    @f5 = MyFun5<f64,int,str,u64>(1)
     @a = MyPoint<int,f64,str>()
-    @b = MyPoint<int, X2,str>()
+    @b = MyPoint<X2, List<X3>, Map<X1,X3>>()
     @c = MyFun1(0, MyPoint<int,int,int>(), "hello")
     @d = MyFun1(0, MyPoint<int,X1,int>(), "hello")
     @e = MyFun2(0)

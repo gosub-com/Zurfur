@@ -59,13 +59,9 @@ namespace Gosub.Zurfur.Compiler
     ///     #   Generic argument (followed by argument number)
     ///     ()  Method parameters
     ///     <>  Generic parameters
-    ///     $   Special symbol, e.g. $this, $return, etc.
-    ///    
-    /// Sepecial symbols (prefixed with $):
-    ///     $this       Implicit extension/member method parameter
-    ///     $return     Implicit return parameter name
+    ///     $   Special symbol, e.g. $0, $fun, etc.
     /// </summary>
-    abstract class Symbol
+    class Symbol
     {
         static Dictionary<string, Symbol> sEmptyDict = new Dictionary<string, Symbol>();
 
@@ -88,15 +84,11 @@ namespace Gosub.Zurfur.Compiler
         // NOTE: This is an optimization (we could use only mChildren)
         Dictionary<string, bool> mHasMethodNamed;
 
-        /// <summary>
-        /// True for built in unary types that don't get serialized,
-        /// such as "? * ^ ref", etc.
-        /// </summary>
-        public bool IsIntrinsic;
-
         // Set by `SetChildInternal`.  Type parameters are always first.
         public int Order { get; private set; } = -1;
         string mFullNameCache = null;
+        List<Symbol> mParamTypeListCache;
+
 
         /// <summary>
         /// Name as it appears in the lookup table.  For most types, it is
@@ -104,19 +96,6 @@ namespace Gosub.Zurfur.Compiler
         /// and SymSpecializedType which include type info.
         /// </summary>        
         public string LookupName { get; private set; }
-
-
-        public string SimpleName
-        {
-            get 
-            {
-                if (IsMethodParam || IsTypeParam || IsLocal)
-                    return FullName;
-                return mToken == null ? LookupName : Token.Name;
-            }
-        }
-
-        public string TypeName => Type == null ? "" : Type.FullName;
 
         /// <summary>
         /// Field or parameter type (not applicable to types, etc.).
@@ -133,8 +112,9 @@ namespace Gosub.Zurfur.Compiler
         /// Create a symbol that is unique in the soruce code (e.g. SymMethod,
         /// SymType, SymField, etc.) and can be marked with token information.
         /// </summary>
-        public Symbol(Symbol parent, Token token, string name = null)
+        public Symbol(SymKind kind, Symbol parent, Token token, string name = null)
         {
+            Kind = kind;
             Parent = parent;
             LookupName = name == null ? token.Name : name;
             mToken = token;
@@ -145,43 +125,44 @@ namespace Gosub.Zurfur.Compiler
         /// code (e.g. SymSpecializedType, SymModule,
         /// and built-in types like "ref", "*", etc.)
         /// </summary>
-        public Symbol(Symbol parent, string name)
+        public Symbol(SymKind kind, Symbol parent, string name)
         {
+            Kind = kind;
             Parent = parent;
             LookupName = name;
         }
 
-
-        public abstract string KindName { get; }
-
-
         public int ChildrenCount => mChildren == null ? 0 : mChildren.Count;
         public int PrimaryCount => mPrimary == null ? 0 : mPrimary.Count;
+        public string KindName => sKindNames[Kind];
 
+        public string TypeName => Type == null ? "" : Type.FullName;
+        public bool HasToken => mToken != null;
 
-        /// <summary>
-        /// Prefix for the kind of symbol. 
-        /// </summary>
-        protected abstract string Separator { get; }
-
-        /// <summary>
-        /// Only for type names with generic parameters.  A backtick followed
-        /// by a number (e.g. "`2" for a type with two generic parameters).
-        /// </summary>
-        public string Suffix
+        public string SimpleName
         {
             get
             {
-                if (!IsType)
-                    return "";
-                var count = GenericParamCount();
-                return count == 0 ? "" : $"`{count}";
+                if (IsMethodParam || IsTypeParam || IsLocal)
+                    return FullName;
+                return mToken == null ? LookupName : Token.Name;
             }
         }
 
-        public bool HasToken => mToken != null;
 
-
+        public static Dictionary<SymKind, string> sKindNames = new Dictionary<SymKind, string>()
+        {
+            { SymKind.None, "none" },
+            { SymKind.Module, "module" },
+            { SymKind.Type, "type" },
+            { SymKind.TypeParam, "type parameter" },
+            { SymKind.SpecializedType, "specialized type" },
+            { SymKind.Field, "field" },
+            { SymKind.Method, "method" },
+            { SymKind.MethodParam, "method parameter" },
+            { SymKind.Local, "local variable" },
+            { SymKind.All, "(all)" },
+        };
 
         // Find module, type, field, or parameter (ignore methods) 
         public bool TryGetPrimary(string key, out Symbol sym)
@@ -398,7 +379,8 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Source code token if it exists.  Throws an exception for
-        /// SymSpecializedType, SymModule
+        /// SymModule, and other symbols that don't hava a token.
+        /// TBD: Force all symbols to have a source code token.
         /// </summary>
         public Token Token
         {
@@ -466,12 +448,22 @@ namespace Gosub.Zurfur.Compiler
             {
                 if (mFullNameCache != null)
                     return mFullNameCache;
+
                 if (IsLocal || IsMethodParam || IsTypeParam)
                     mFullNameCache = LookupName;
                 else if (Parent == null || Parent.LookupName == "")
-                    mFullNameCache = LookupName + Suffix;
+                    mFullNameCache = LookupName;
                 else
-                    mFullNameCache = Parent.FullName + Separator + LookupName + Suffix;
+                {
+                    var suffix = "";
+                    if (IsType)
+                    {
+                        var count = GenericParamCount();
+                        suffix = count == 0 ? "" : $"`{count}";
+                    }
+                    var separator = Kind == SymKind.SpecializedType ? "" : ".";
+                    mFullNameCache = Parent.FullName + separator + LookupName + suffix;
+                }
                 return mFullNameCache;
             }
         }
@@ -516,100 +508,59 @@ namespace Gosub.Zurfur.Compiler
             return Parent.Parent.GenericParamTotal() + Order;
         }
 
+        /// <summary>
+        /// Get list of field types.  
+        /// TBD: Still working on a generic tuple system
+        /// </summary>
+        public List<Symbol> GetTupleTypeList(SymbolTable table)
+        {
+            if (mParamTypeListCache != null)
+                return mParamTypeListCache;
+            var parameters = Children.ToList();
+            parameters.Sort((a, b) => a.Order.CompareTo(b.Order));
+            mParamTypeListCache = new List<Symbol>(parameters.Count);
+            foreach (var param in parameters)
+                mParamTypeListCache.Add(param.Type);
+            return mParamTypeListCache;
+        }
+
+
     }
 
     class SymModule : Symbol
     {
         public SymModule(Symbol parent, string name) 
-            : base(parent, name)
+            : base(SymKind.Module, parent, name)
         {
-            Kind = SymKind.Module;
         }
-        public override string KindName => "module";
-        protected override string Separator => ".";
-    }
-
-    class SymType : Symbol
-    {
-        public SymType(Symbol parent, Token token, string name = null)
-            : base(parent, token, name)
-        { 
-            Kind = SymKind.Type;
-        }
-        public SymType(Symbol parent, string name)
-            : base(parent, name) 
-        {
-            Kind = SymKind.Type;
-        }
-        public override string KindName => "type";
-        protected override string Separator => ".";
-    }
-
-    class SymTypeParam : Symbol
-    {
-        public SymTypeParam(Symbol parent, Token token)
-            : base(parent, token)
-        {
-            Kind = SymKind.TypeParam;
-        }
-        public override string KindName => "type parameter";
-        protected override string Separator => ".";
-    }
-
-    class SymField : Symbol
-    {
-        public SymField(Symbol parent, Token token) 
-            : base(parent, token) 
-        {
-            Kind = SymKind.Field;
-        }
-        public override string KindName => "field";
-        protected override string Separator => ".";
     }
 
     class SymMethod : Symbol
     {
         public SymMethod(Symbol parent, Token token, string name) 
-            : base(parent, token, name)
+            : base(SymKind.Method, parent, token, name)
         {
-            Kind = SymKind.Method;
         }
-        public override string KindName => "method";
-        protected override string Separator => ".";
 
-        List<Symbol> mParamTypeListCache;
+        // TBD: These should be part of a generic tuple system
         Symbol mReturnTypeCache;
+        Symbol mParamTypeCache;
 
-        // If any parameter type is unresolved, return an empty type list
-        public List<Symbol> GetParamTypeList()
+        /// <summary>
+        /// Get a single return type as a non-tuple, or multiple types as a tuple.
+        /// </summary>
+        public Symbol GetReturnTupleOrType(SymbolTable table)
         {
-            if (mParamTypeListCache != null)
-                return mParamTypeListCache;
-            
-            mParamTypeListCache = new List<Symbol>();
-            var parameters = ChildrenFilter(SymKind.MethodParam).Where(child => !child.ParamOut).ToList();
-            if (parameters.Count == 0)
-                return mParamTypeListCache;
-            parameters.Sort((a, b) => a.Order.CompareTo(b.Order));
-
-            foreach (var param in parameters)
-            {
-                if (param.Type != null)
-                {
-                    mParamTypeListCache.Add(param.Type);
-                }
-                else
-                {
-                    mParamTypeListCache.Clear();
-                    break;
-                }
-            }
-
-            return mParamTypeListCache;
+            var returnTuple = GetReturnTuple(table);
+            var returnTypeList = returnTuple.GetTupleTypeList(table);
+            if (returnTypeList.Count == 1)
+                return returnTypeList[0];
+            return returnTuple;
         }
 
-        // Get the return type, or multiple returns as an anonymous type
-        public Symbol GetReturnType(SymbolTable table)
+        /// <summary>
+        /// Gets the return type, always as an anonymous tuple type
+        public Symbol GetReturnTuple(SymbolTable table)
         {
             if (mReturnTypeCache != null)
                 return mReturnTypeCache;
@@ -617,18 +568,26 @@ namespace Gosub.Zurfur.Compiler
             return mReturnTypeCache;
         }
 
-        // Get parameters or returns as an anonymous type (or just the type if single return)
+        /// <summary>
+        /// Get the parameters type, always as an anonymous tuple type
+        /// </summary>
+        public Symbol GetParamTuple(SymbolTable table)
+        {
+            if (mParamTypeCache != null)
+                return mParamTypeCache;
+            mParamTypeCache = GetParams(table, false);
+            return mParamTypeCache;
+        }
+
+        // Get parameters or returns as an anonymous tuple type,
+        // except for singe returns, which are just the type itself.
         Symbol GetParams(SymbolTable table, bool returns)
         {
             var parameters = ChildrenFilter(SymKind.MethodParam).Where(child => returns == child.ParamOut).ToList();
-            if (parameters.Count == 0)
-                return table.Lookup("Zurfur.void");
-            if (returns && parameters.Count == 1)
-                return parameters[0].Type;
             parameters.Sort((a, b) => a.Order.CompareTo(b.Order));
 
             // Create anonymous type of parameters
-            var paramType = new SymType(null, "");
+            var paramType = new Symbol(SymKind.Type, table.AnonymousTypes, "");
             paramType.Qualifiers |= SymQualifiers.Anonymous;
             var sb = new StringBuilder("(");
             for (var i = 0; i < parameters.Count; i++)
@@ -638,12 +597,12 @@ namespace Gosub.Zurfur.Compiler
                 if (parameter.Type == null)
                     continue;  // Unresolved type name
 
-                var field = new SymField(paramType, parameter.Token);
+                var field = new Symbol(SymKind.Field, paramType, parameter.SimpleName);
                 field.Type = parameter.Type;
 
                 // Update the anonymous type name
                 paramType.SetChildInternal(field, out var d);
-                sb.Append(parameter.Token);
+                sb.Append(parameter.SimpleName);
                 sb.Append(" ");
                 sb.Append(parameter.Type.FullName);
                 if (i != parameters.Count - 1)
@@ -651,70 +610,38 @@ namespace Gosub.Zurfur.Compiler
             }
             sb.Append(")");
             paramType.SetLookupName(sb.ToString());
-            return paramType;
+            return table.FindOrAddAnonymousType(paramType);
         }
-    }
-
-    class SymMethodParam : Symbol
-    {
-        public SymMethodParam(Symbol parent, Token token, string name = null)
-            : base(parent, token, name)
-        {
-            Kind = SymKind.MethodParam;
-        }
-        public override string KindName => "method parameter";
-        protected override string Separator => ".";
-    }
-    class SymLocal : Symbol
-    {
-        public SymLocal(Symbol parent, Token token, string name = null)
-            : base(parent, token, name)
-        {
-            Kind = SymKind.Local;
-        }
-        public override string KindName => "local variable";
-        protected override string Separator => ".";
     }
 
     /// <summary>
     /// Parent is the full name of the generic type, typeParams are the full name of each argument.
     /// The symbol name is a combination of both parentName<T0,T1,T2...>
-    /// or for generic functions fun(T0,T1)(R0,R1)
     /// </summary>
     class SymSpecializedType : Symbol
     {
         public readonly Symbol[] Params;
-        public readonly Symbol[] Returns;
-
-        public override string KindName => "specialized type";
-        protected override string Separator => "";
 
         // Constructor for generic type argument
         public SymSpecializedType(Symbol parent, string name)
-            : base(parent, name)
+            : base(SymKind.SpecializedType, parent, parent.HasToken ? parent.Token : null, name)
         {
             Debug.Assert(parent.IsType || parent.LookupName == "");
-            Kind = SymKind.SpecializedType;
             Params = Array.Empty<Symbol>();
-            Returns = Array.Empty<Symbol>();
         }
 
 
         // Constructor for generic type 'F<T>' or function 'F<p1,p2...><r1,r2...>'
-        public SymSpecializedType(Symbol parent, Symbol[] typeParams, Symbol[] typeReturns = null)
-            : base(parent, FullTypeParamNames(typeParams, typeReturns))
+        public SymSpecializedType(Symbol parent, Symbol[] typeParams)
+            : base(SymKind.SpecializedType, parent, parent.HasToken ? parent.Token : null, FullTypeParamNames(typeParams))
         {
             Debug.Assert(parent.IsType);
-            Kind = SymKind.SpecializedType;
             Params = typeParams;
-            Returns = typeReturns != null ? typeReturns : Array.Empty<Symbol>();
         }
 
-        public static string FullTypeParamNames(Symbol[] typeParams, Symbol[] typeReturns)
+        public static string FullTypeParamNames(Symbol[] typeParams)
         {
-            if (typeReturns == null || typeReturns.Length == 0)
-                return "<" + TypeParamNames(typeParams) + ">";
-            return "<" + TypeParamNames(typeParams) + "><" + TypeParamNames(typeReturns) + ">";
+            return "<" + TypeParamNames(typeParams) + ">";
         }
 
         static string TypeParamNames(Symbol[] typeParams)

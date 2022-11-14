@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using Gosub.Zurfur.Lex;
 using System.Text;
 using System.Diagnostics;
+using Newtonsoft.Json.Serialization;
+using System.Runtime.InteropServices;
 
 namespace Gosub.Zurfur.Compiler
 {
     /// <summary>
     /// The master symbol table is a tree holding modules and types
     /// at the top level, and functions, and parameters at lower levels.
-    /// The top level is populated with the non-lambda intrinsic types.
     /// </summary>
     class SymbolTable
     {
@@ -28,43 +29,25 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         Dictionary<string, SymSpecializedType> mSpecializedTypes = new Dictionary<string, SymSpecializedType>();
 
-        public Symbol Root => mRoot;
+        // The generic arguments: #0, #1, #2...
+        List<SymSpecializedType> mGenericArguments = new List<SymSpecializedType>();
+        Symbol mGenericArgumentHolder; // Holder so they have `Order` set properly
 
+        Symbol mAnonymousTypes;
+
+        public Symbol Root => mRoot;
+        public Symbol AnonymousTypes => mAnonymousTypes;
+
+        
         public SymbolTable()
         {
             var preRoot = new SymModule(null, "");
             mRoot = new SymModule(preRoot, "");
+            mGenericArgumentHolder = new SymModule(mRoot, "");
+            mAnonymousTypes = new Symbol(SymKind.Type, mRoot, "");
+            FindOrAddAnonymousType(new Symbol(SymKind.Type, mAnonymousTypes, "()"));
         }
 
-
-        /// <summary>
-        /// Add an intrinsic type, such as "*", "^", "?", "ref", "$fun3", etc.
-        /// </summary>
-        Symbol AddIntrinsicType(string type, int numGenerics)
-        {
-            var sym = new SymType(Root, type);
-            sym.IsIntrinsic = true;
-            AddOrReject(sym);
-            for (int i = 0; i < numGenerics; i++)
-            {
-                var tn = "T" + (numGenerics == 1 ? "" : $"{i + 1}");
-                var t = new SymTypeParam(sym, new Token(tn));
-                t.IsIntrinsic = true;
-                var ok = AddOrReject(t);
-                Debug.Assert(ok);
-            }
-            return sym;
-        }
-
-        /// <summary>
-        /// Retrieve (or add if it doesn't exist) a built in intrinsic, such as "$fun3"
-        /// </summary>
-        public Symbol FindOrAddIntrinsicType(string name, int numGenerics)
-        {
-            if (!Root.TryGetPrimary(name, out var genericFunType))
-                genericFunType = AddIntrinsicType(name, numGenerics);
-            return genericFunType;
-        }
 
         /// <summary>
         /// Generates a lookup table, excluding specialized types,
@@ -98,6 +81,8 @@ namespace Gosub.Zurfur.Compiler
                 return symbol1;
             if (mLookup.TryGetValue(name, out var symbol2))
                 return symbol2;
+            if (mAnonymousTypes.TryGetPrimary(name, out var symbol3))
+                return symbol3;
             return null;
         }
 
@@ -105,7 +90,7 @@ namespace Gosub.Zurfur.Compiler
         /// All symbols, excluding specialized types.
         /// Call `GenerateLookup` before using this.
         /// </summary>
-        public Dictionary<string, Symbol>.ValueCollection Symbols
+        public Dictionary<string, Symbol>.ValueCollection LookupSymbols
             => mLookup.Values;
 
         public Dictionary<string, SymSpecializedType>.ValueCollection SpecializedSymbols
@@ -143,10 +128,10 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Get or create (and add to symbol table) a specialized type.
         /// </summary>
-        public SymSpecializedType GetSpecializedType(Symbol concreteType, Symbol[] typeParams, Symbol[] typeReturns = null)
+        public SymSpecializedType GetSpecializedType(Symbol concreteType, Symbol[] typeParams)
         {
             Debug.Assert(concreteType.IsType);
-            var sym = new SymSpecializedType(concreteType, typeParams, typeReturns);
+            var sym = new SymSpecializedType(concreteType, typeParams);
             if (mSpecializedTypes.TryGetValue(sym.FullName, out var specExists))
                 return specExists;
 
@@ -154,25 +139,45 @@ namespace Gosub.Zurfur.Compiler
             //  "AATest.AGenericTest`2.Inner1`2<#0,#1>"   (while adding outer generic params)
             //  "AATest.AGenericTest`2.Inner1`2<Zurfur.str,Zurfur.str>" (while parsing dot operator)
 
-            if (sym.Params.Length + sym.Returns.Length == concreteType.GenericParamTotal())
+            if (sym.Params.Length == concreteType.GenericParamTotal())
                 mSpecializedTypes[sym.FullName] = sym;
 
             return sym;
         }
 
         /// <summary>
-        /// Get or create a generic parameter ('#0', '#1', etc.)
+        /// Get or create a generic parameter: #0, #1, #2...
         /// </summary>
         public SymSpecializedType GetGenericParam(int argNum)
         {
-            var name = "#" + argNum;
-            if (mSpecializedTypes.ContainsKey(name))
-                return mSpecializedTypes[name];
-            var spec = new SymSpecializedType(Root, name);
-            mSpecializedTypes[name] = spec;
-            return spec;
+            if (argNum < mGenericArguments.Count)
+                return mGenericArguments[argNum];
+            for (int i = mGenericArguments.Count; i <= argNum; i++)
+            {
+                var name = $"#{i}";
+                var arg = new SymSpecializedType(mGenericArgumentHolder, name);
+                mGenericArguments.Add(arg);
+                AddOrReject(arg);
+                mSpecializedTypes[name] = arg;
+            }
+            return mGenericArguments[argNum];
         }
 
+        /// <summary>
+        /// Find or add the given anonymous type.  There are types with
+        /// names (a int, b f64) such as function parameters, and types
+        /// without names ($0 int, $1 f64) such as tuples. The names are
+        /// part of the symbol type, so (a int) is not the same as (b int).
+        /// </summary>
+        public Symbol FindOrAddAnonymousType(Symbol type)
+        {
+            if (mAnonymousTypes.TryGetPrimary(type.FullName, out var anonType))
+                return anonType;
+            Debug.Assert(type.Parent == mAnonymousTypes);
+            type.Qualifiers |= SymQualifiers.Anonymous;
+            AddOrReject(type);
+            return type;
+        }
 
         /// <summary>
         /// Returns the symbol at the given path in the package.
@@ -204,7 +209,7 @@ namespace Gosub.Zurfur.Compiler
             else
             {
                 if (!token.Error)
-                    token.AddError(new ZilHeaderError(message));
+                    token.AddError(new ZilCompileError(message));
             }
         }
 

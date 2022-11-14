@@ -65,7 +65,7 @@ namespace Gosub.Zurfur.Compiler
             + "continue default delegate do then else elif enum explicit extern true false defer use "
             + "finally fixed for goto if in interface internal is lock namespace module include "
             + "new null out override pub public private protected readonly ro ref mut imut "
-            + "return unsealed unseal sealed sizeof struct switch this This self Self throw try "
+            + "return ret unsealed unseal sealed sizeof struct switch this This self Self throw try "
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "
             + "box boxed init move copy clone bag drop dispose own owned "
@@ -102,11 +102,11 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sNoSubCompoundStatement = new WordSet("type class catch " 
                                 + "get set pub private namespace module static static");
 
-        // C# uses these symbols to resolve type argument ambiguities: "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"
-        // The following symbols allow us to call functions, create types, access static members, and cast
-        // For example `F<T1>()` to call a function or constructor, `F<T1>.Name` to access a static or member,
-        // and #F<T1>(expression) to cast.
-        static WordSet sTypeArgumentParameterSymbols = new WordSet("( ) .");
+        // C# uses "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"  to resolve type
+        // argument ambiguities. The following symbols allow us to call functions,
+        // create types, and access static members. For example `F<T1>()` to
+        // call a function or constructor and `F<T1>.Name` to access a static member.
+        static WordSet sTypeArgumentParameterSymbols = new WordSet("( ) . , ;");
 
         Regex sFindUrl = new Regex(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
 
