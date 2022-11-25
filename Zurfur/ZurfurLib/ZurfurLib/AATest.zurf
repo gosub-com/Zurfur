@@ -5,8 +5,9 @@ module AATest
 
 use Zurfur
 use Zurfur[Log, Xuint, RawPointer, castPointer]
-use Zurfur.Operators[OpEq, OpNeg, OpAdd]
+use Zurfur.Operators[OpEq]
 use Zurfur.Math[cos]
+use Zurfur.Draw2d[Size, Point]
 
 pragma ShowParse
 
@@ -20,20 +21,16 @@ fun MyFun1<T1,T2,T3>(a T1, b T2, c T3) T2
     return q
 
 fun MyFun2<I,O>(i I) O
-    //@a = I()
-    return a
+    return O()
 
 fun MyFun3<I,O>(i int) O
-    //@a = I()
-    return a
+    return O()
 
 fun MyFun4<T0,T1,T2,T3>(i int) List<T2>
-    //@a = I()
-    return a
+    return List<T2>()
 
 fun MyFun5<T0,T1,T2,T3>(i int) -> (a List<T1>, b List<T3>)
-    //@a = I()
-    return a
+    return (List<T1>(), List<T3>())
 
 fun Test<X0,X1,X2,X3>()
     @f1 = MyFun2<int, f64>(0)
@@ -43,15 +40,16 @@ fun Test<X0,X1,X2,X3>()
     @f5 = MyFun5<f64,int,str,u64>(1)
     @a = MyPoint<int,f64,str>()
     @b = MyPoint<X2, List<X3>, Map<X1,X3>>()
-    @c = MyFun1(0, MyPoint<int,int,int>(), "hello")
-    @d = MyFun1(0, MyPoint<int,X1,int>(), "hello")
-    @e = MyFun2(0)
+    @c = MyFun1<int, MyPoint<int,int,int>, str>(0, MyPoint<int,int,int>(), "hello")
+    @d = MyFun1<int, MyPoint<int,X3,int>, str>(0, MyPoint<int,X3,int>(), "hello")
+    @e = MyFun2<X2,X3>(0)
     @g = MyFun2<int,f64>(0)
-    @h = MyFun2<int,f64,int>(0)
-    @i Size = 0
-    @j Size<int> = Size(0,0)
-    @k f64 = 0
-    @l f64 = f64(0)
+    @h = MyFun2<f64,int>(0.0)
+    @f4a = MyFun4<int,str,f32,u64>(0)
+    @f5a = MyFun5<int,str,f32,u64>(0)  TBD// TBD: Fix return type
+    @i Size<int> = Size<int>(0,0)  
+    @k f64 = 0.0
+    @l f64 = 0f64
     @p1 = Xuint()
     @p2 = castPointer<RawPointer<byte>>(p1)
     @p3 = castPointer<RawPointer<int>>(p2)
@@ -59,14 +57,14 @@ fun Test<X0,X1,X2,X3>()
     @t = (0,1,2)
 
 type OneGeneric<T> { } 
-type Point<T>(x T, y T)
-type Size<T>(width T, height T)
+//type Point<T>(x T, y T)
+//type Size<T>(width T, height T)
 
 fun get Point<T>.toSize() Size<T>
-    @a = Size(0,0)
-    @b = Size()
-    @c = Size(my.x, my.y)
-    return Size(my.x, my.y)
+    @a = Size<T>(0,0)
+    @b = Size<T>()
+    @c = Size<T>(my.x, my.y)
+    return Size<T>(my.x, my.y)
 
 [pub] fun _opAdd<T>(a Point<T>, b Point<T>) Point<T>
     return Point<T>(a.x+b.x, a.y+b.y)
@@ -205,7 +203,7 @@ fun AGenericTest<T, QQQ>.af6(p fun(v int)bool) {}
     return a.toStr().Length + b.toStr().Length    
 
 [pub] type AGenericTest<T, QQQ>
-    where QQQ is OpEq<T>//: new() where T : new()
+    where QQQ has OpEq<T>//: new() where T : new()
     af0 fun()->()
     af1 fun()
     af2 fun()int

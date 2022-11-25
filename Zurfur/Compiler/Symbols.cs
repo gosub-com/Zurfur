@@ -86,7 +86,7 @@ namespace Gosub.Zurfur.Compiler
 
         // Set by `SetChildInternal`.  Type parameters are always first.
         public int Order { get; private set; } = -1;
-        string mFullNameCache = null;
+        public string FullName { get; private set; }
         List<Symbol> mParamTypeListCache;
 
 
@@ -118,6 +118,7 @@ namespace Gosub.Zurfur.Compiler
             Parent = parent;
             LookupName = name == null ? token.Name : name;
             mToken = token;
+            FullName = GetFullName();
         }
 
         /// <summary>
@@ -130,6 +131,7 @@ namespace Gosub.Zurfur.Compiler
             Kind = kind;
             Parent = parent;
             LookupName = name;
+            FullName = GetFullName();
         }
 
         public int ChildrenCount => mChildren == null ? 0 : mChildren.Count;
@@ -138,6 +140,9 @@ namespace Gosub.Zurfur.Compiler
 
         public string TypeName => Type == null ? "" : Type.FullName;
         public bool HasToken => mToken != null;
+
+        public bool IsGenericArg => FullName.Length != 0 && FullName[0] == '#';
+        public bool HasGenericArg => FullName.Contains('#');
 
         public string SimpleName
         {
@@ -401,7 +406,7 @@ namespace Gosub.Zurfur.Compiler
         public void SetLookupName(string name)
         {
             LookupName = name;
-            mFullNameCache = null;
+            FullName = GetFullName();
         }
         
         /// <summary>
@@ -435,36 +440,29 @@ namespace Gosub.Zurfur.Compiler
                 mHasMethodNamed[value.Token] = true;
             }
 
-            mFullNameCache = null;
+            FullName = GetFullName();
             return true;
         }
 
         /// <summary>
         /// The complete name of the symbol, including all parents up the tree.
         /// </summary>
-        public string FullName
+        public string GetFullName()
         {
-            get
+            if (IsLocal || IsMethodParam || IsTypeParam)
+                return LookupName;
+            else if (Parent == null || Parent.LookupName == "")
+                return LookupName;
+            else
             {
-                if (mFullNameCache != null)
-                    return mFullNameCache;
-
-                if (IsLocal || IsMethodParam || IsTypeParam)
-                    mFullNameCache = LookupName;
-                else if (Parent == null || Parent.LookupName == "")
-                    mFullNameCache = LookupName;
-                else
+                var suffix = "";
+                if (IsType)
                 {
-                    var suffix = "";
-                    if (IsType)
-                    {
-                        var count = GenericParamCount();
-                        suffix = count == 0 ? "" : $"`{count}";
-                    }
-                    var separator = Kind == SymKind.SpecializedType ? "" : ".";
-                    mFullNameCache = Parent.FullName + separator + LookupName + suffix;
+                    var count = GenericParamCount();
+                    suffix = count == 0 ? "" : $"`{count}";
                 }
-                return mFullNameCache;
+                var separator = Kind == SymKind.SpecializedType ? "" : ".";
+                return Parent.FullName + separator + LookupName + suffix;
             }
         }
 
@@ -492,7 +490,7 @@ namespace Gosub.Zurfur.Compiler
         {
             var count = GenericParamCount();
             var p = Parent;
-            while (p.IsType || p.IsMethod)
+            while (p != null && (p.IsType || p.IsMethod))
             {
                 count += p.GenericParamCount();
                 p = p.Parent;

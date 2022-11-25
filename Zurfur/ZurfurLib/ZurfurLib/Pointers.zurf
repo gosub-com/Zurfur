@@ -83,7 +83,7 @@ interface IsRawPointer
 fun Xuint.isRawPointer() RawPointerMarker
     return RawPointerMarker()
 fun Xuint.getRawPointer() Xuint
-    return my.value
+    return my
 fun RawPointer<T>.isRawPointer() RawPointerMarker
     return RawPointerMarker()
 fun RawPointer<T>.getRawPointer() Xuint
@@ -91,7 +91,7 @@ fun RawPointer<T>.getRawPointer() Xuint
 fun Ref<T>.isRawPointer() RawPointerMarker
     return RawPointerMarker()
 fun Ref<T>.getRawPointer() Xuint
-    return my.__valueNoDeref
+    return my.__valueNoDeref.__valueNoDeref
 fun Pointer<T>.isRawPointer() RawPointerMarker
     return RawPointerMarker()
 fun Pointer<T>.getRawPointer() Xuint
@@ -103,10 +103,26 @@ fun free(memory *GcHeapObject)
     
 
 // Cast from one pointer type to another pointer type.
-[unsafe]
+[pub unsafe]
 fun castPointer<Out>(i IsRawPointer) Out
-    where Out is IsRawPointer
+    where Out has IsRawPointer
     extern
+
+fun castPointer<Out>(i Xuint) Out
+    where Out has IsRawPointer
+    extern
+
+fun castPointer<Out>(i u64) Out
+    where Out has IsRawPointer
+    extern
+
+fun castPointer<Out>(i int) Out
+    where Out has IsRawPointer
+    extern
+
+// TBD: Remove this when castPointer<Out>(i IsRawPointer) works
+fun castPointer<Out>(i *void) Out
+    extern // TBD: Remove
 
 fun _opAdd<T>(a *T, b int) *T extern
 fun _opAdd<T>(a int, b *T) *T extern

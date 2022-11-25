@@ -312,11 +312,7 @@ namespace Gosub.Zurfur.Compiler
                     }
 
                     string argName;
-                    if (constrainedType.SimpleName == "This")
-                    {
-                        argName = "#This";
-                    }
-                    else if (constrainedType.IsTypeParam)
+                    if (constrainedType.IsTypeParam)
                     {
                         argName = "#" + constrainedType.GenericParamNum();
                         synConstraint.TypeName.AddInfo(constrainedType);
@@ -380,7 +376,6 @@ namespace Gosub.Zurfur.Compiler
                 }
                 var useSymbolsFile = useSymbols.Files[synFunc.Token.Path];
 
-
                 // Give each function a unique name (final name calculated below)
                 var method = new SymMethod(scope, synFunc.Name, $"$LOADING...${scope.ChildrenCount}");
                 method.SetQualifiers(synFunc.Qualifiers);
@@ -391,8 +386,6 @@ namespace Gosub.Zurfur.Compiler
                 Resolver.ResolveMethodParams(synFunc.MethodSignature[0], table, method, method, useSymbolsFile, false);
                 Resolver.ResolveMethodParams(synFunc.MethodSignature[1], table, method, method, useSymbolsFile, true);
                 SetNewFunction(method, synFunc, myParam);
-
-                
 
                 // Set the function name F(type1,type2)(returnType)
                 method.SetLookupName(Resolver.GetFunctionName(synFunc.Name, method));
@@ -477,7 +470,8 @@ namespace Gosub.Zurfur.Compiler
                 {
                     //Debug.Assert(func.ExtensionType == null && method.Parent.IsType);
                     var ifaceMethodParam = new Symbol(SymKind.MethodParam, method, func.Name, "my");
-                    ifaceMethodParam.Type = method.Parent;
+                    ifaceMethodParam.Type = Resolver.GetTypeWithGenericParameters(
+                                                table, method.Parent, method.GenericParamTotal());
                     table.AddOrReject(ifaceMethodParam);
                     return ifaceMethodParam;
                 }

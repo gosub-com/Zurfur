@@ -69,7 +69,7 @@ namespace Gosub.Zurfur.Compiler
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "
             + "box boxed init move copy clone bag drop dispose own owned "
-            + "trait mixin extends impl union fun afun def yield let cast "
+            + "trait mixin extends impl union fun afun def yield let "
             + "any dyn dynamic loop select match event aevent from to of on cofun cofunc global local it "
             + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
             + "of sync task except exception raise loc local global my");
@@ -82,8 +82,8 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sPostFieldQualifiers = new WordSet("init ro mut");
         static WordSet sParamQualifiers = new WordSet("ro own mut");
 
-        static WordSet sReservedUserFuncNames = new WordSet("new clone drop cast default");
-        static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default self super new cast move my sizeof typeof");
+        static WordSet sReservedUserFuncNames = new WordSet("new clone drop default");
+        static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default self super new move my sizeof typeof");
         static WordSet sReservedMemberNames = new WordSet("clone");
         static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref");
 
@@ -980,12 +980,12 @@ namespace Gosub.Zurfur.Compiler
         SyntaxConstraint ParseConstraint()
         {
             var constraint = new SyntaxConstraint();
-            if (!AcceptMatch("This") && !AcceptIdentifier("Expecting a type name"))
+            if (!AcceptIdentifier("Expecting a type name"))
                 return null;
             constraint.TypeName = mPrevToken;
             mPrevToken.Type = eTokenType.TypeName;
 
-            if (!AcceptMatchOrReject("is", "Expecting 'is' while parsing constraint"))
+            if (!AcceptMatchOrReject("has", "Expecting 'has' while parsing constraint"))
                 return null;
 
             var constraintTypeNames = NewExprList();
@@ -1708,16 +1708,12 @@ namespace Gosub.Zurfur.Compiler
             {
                 return new SyntaxUnary(Accept(), ParseNewVars());
             }
-            if (mTokenName == "cast")
-            {
-                return new SyntaxBinary(Accept(), ParseTypeFunc(), ParseUnary());
-            }
 
             return ParsePrimary();
         }
 
         /// <summary>
-        /// Parse a function taking a type name (cast, sizeof, typeof, etc)
+        /// Parse a function taking a type name (sizeof, typeof, etc)
         /// </summary>
         private SyntaxExpr ParseTypeFunc()
         {
@@ -1825,10 +1821,7 @@ namespace Gosub.Zurfur.Compiler
                     {
                         // Yes, it is a type argument list.  Keep it
                         mParseErrors = p.ParseErrors;
-                        if (typeArgIdentifier.Type != eTokenType.Reserved)
-                            typeArgIdentifier.Type = eTokenType.TypeName;
                         accepted = true;
-                        SetType(result);
                         result = typeArgs;
                     }
                     else
@@ -1840,15 +1833,6 @@ namespace Gosub.Zurfur.Compiler
             } while (accepted);
 
             return result;
-
-            // Type argument list as part of primary expression
-            void SetType(SyntaxExpr expr)
-            {
-                expr.Token.Type = eTokenType.TypeName;
-                foreach (var e in expr)
-                    SetType(e);
-            }
-
         }
 
 

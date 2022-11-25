@@ -43,6 +43,18 @@ namespace Gosub.Zurfur.Compiler
                   + (Type == null ? "" : $", Type: {Type.FullName}")
                   + (InType == null ? "" : ", InType:" + InType.FullName);
         }
+
+        // Return parameter types as a string, eg. '(type1, type2,...)<type1,type2...>'
+        public static string ParamTypes(List<Rval> args, Symbol[] typeArgs)
+        {
+
+            var typeParams = "";
+            if (typeArgs.Length != 0)
+                typeParams = $"<{string.Join(",", typeArgs.Select(a => a.FullName))}>";
+            var paramStr = $"{typeParams}({string.Join(",", args.Select(a => a.Type.FullName))})";
+            return paramStr;
+        }
+
     }
 
     /// <summary>
@@ -246,12 +258,8 @@ namespace Gosub.Zurfur.Compiler
                 var typeParams = Resolver.ResolveTypeArgs(ex, table, currentMethod, fileUses);
                 if (symbols == null || typeParams == null)
                     return null;
-
-                return new Rval(Resolver.FindTypeArgLeftDotRight(ex))
-                {
-                    Symbols = symbols.Symbols,
-                    TypeArgs = typeParams.ToArray()
-                };
+                symbols.TypeArgs = typeParams.ToArray();
+                return symbols;
             }
 
             Rval GenParen(SyntaxExpr ex)
@@ -299,7 +307,7 @@ namespace Gosub.Zurfur.Compiler
                     leftType = DerefPointers(leftType);
 
                 // Generic parameters not finished
-                if (leftType.FullName.StartsWith("#"))
+                if (leftType.IsGenericArg)
                 {
                     // TBD: Use constraints to find the type
                     Reject(identifier, "Compiler not finished: Dot operator on generic type");
@@ -685,8 +693,8 @@ namespace Gosub.Zurfur.Compiler
                 if (functions == null)
                     return null;
 
-                var rval = FindCompatibleFunction(ex.Token, functions, Array.Empty<Symbol>(), args,  
-                    $" '{operatorName}' (operator '{ex.Token}')");
+                var rval = FindCompatibleFunction(new Rval(ex.Token) { Symbols = functions},
+                                args,  $" '{operatorName}' (operator '{ex.Token}')");
                 if (rval == null)
                     return null;
 
@@ -747,7 +755,8 @@ namespace Gosub.Zurfur.Compiler
             Rval GenBooleanOperator(SyntaxExpr ex, List<Rval> args)
             {
                 if (args.FindIndex(a => a.Type.FullName != "Zurfur.bool") >= 0)
-                    Reject(ex.Token, $"Operator '{ex.Token}' can only take 'bool' parameters, not {ParamTypes(args, 0)}");
+                    Reject(ex.Token, $"Operator '{ex.Token}' can only take 'bool' parameters, " 
+                        + $"not '{Rval.ParamTypes(args, Array.Empty<Symbol>())}'");
                 return DummyFunction(ex.Token, typeBool, typeBool, typeBool);
 
             }
@@ -792,59 +801,22 @@ namespace Gosub.Zurfur.Compiler
                 if (call.InType != null && !call.InType.IsModule)
                     args.Insert(0, new Rval(call.Token, call.InType));
 
-
-                var function = FindCompatibleFunction(call.Token, call.Symbols, call.TypeArgs, args, $"'{call.Token}'");
+                var function = FindCompatibleFunction(call, args, $"'{call.Token}'");
                 if (function == null)
                     return null;
 
                 if (function.Symbols[0].IsGetter)
                     Reject(ex.Token, "Getter cannot be called with parenthesis");
 
-                if (function.Type.FullName.Contains('#'))
+                if (function.Type.HasGenericArg)
                     function.Type = ReplaceGenericTypeParams(call.Token, function.Type, call.TypeArgs);
 
                 if (function.Type == null)
                     return null;
 
-
                 return function;
             }
 
-            // Replace the generic type argument with the given argument,
-            // return the result, but don't change the original.
-            Symbol ReplaceGenericTypeParams(Token token, Symbol type, Symbol[] args)
-            {
-                if (!type.IsSpecializedType)
-                    return type;
-                if (type.FullName.StartsWith("#"))
-                {
-                    if (type.Order >= 0 && type.Order < args.Length)
-                        return args[type.Order];
-                    Reject(token, "Compiler error: Index out of range");
-                    return type;
-                }
-
-                if (type.IsSpecializedType)
-                {
-                    var specType = (SymSpecializedType)type;
-                    return table.GetSpecializedType(type.Parent,
-                        NewGenericTypeParams(token, specType.Params, args));
-                }
-                return type;
-
-            }
-
-            // Replace the generic type argument with the given argument,
-            // return the result, but don't change the original.
-            Symbol[]NewGenericTypeParams(Token token, Symbol []types, Symbol[] args)
-            {
-                if (types == null || types.Length == 0)
-                    return types;
-                var newTypes = new Symbol[types.Length];
-                for (int i = 0;  i < types.Length;  i++)
-                    newTypes[i] = ReplaceGenericTypeParams(token, types[i], args);
-                return newTypes;
-            }
 
             Rval GenConstructor(Rval call, List<Rval> args)
             {
@@ -891,65 +863,92 @@ namespace Gosub.Zurfur.Compiler
                 call.InType = callType;
                 call.Symbols = FindInType(call.Token, "new", callType);
                 args.Insert(0, new Rval(call.Token, callType));
-                return FindCompatibleFunction(call.Token, call.Symbols, call.TypeArgs, args, $"'new' (constructor for '{call.InType}')");
+                var function = FindCompatibleFunction(call, args, $"'new' (constructor for '{call.InType}')");
+                if (function == null)
+                    return null;
+
+                if (function.Type.HasGenericArg)
+                    function.Type = ReplaceGenericTypeParams(call.Token, function.Type, call.TypeArgs);
+
+                if (function.Type == null)
+                    return null;
+
+                return function;
             }
 
             // If there is an error, mark it and give feedback on possible matches.
             Rval FindCompatibleFunction(
-                Token callToken, 
-                List<Symbol> callFunctions,
-                Symbol[] typeArgs, 
+                Rval call,
                 List<Rval> args, 
                 string rejectName)
             {
-                var oldCalls = callFunctions.ToArray();
-                callFunctions.RemoveAll(callFunc => !IsCallCompatible(callFunc, typeArgs, args));
+                var oldCalls = call.Symbols.ToArray();
+                call.Symbols.RemoveAll(callFunc => !IsCallCompatible(callFunc, call.TypeArgs, args));
 
-                // TBD: Would be nice to give an error on the parameter if it's obvious
-                //      which one it is.  Error messages can be improved a lot.
-                //      e.g. If there is only one match, tell them which parameter
-                //      is wrong, or if all overloads have a different number of
-                //      type args tell them wrong number of type arguments, etc.
-                if (callFunctions.Count == 0)
+
+                // TBD: Error messages can be improved a lot.
+                if (call.Symbols.Count == 0 && oldCalls.Length >= 1)
                 {
-                    RejectSymbols(callToken, oldCalls, 
-                        $"No function {rejectName} taking parameters {ParamTypes(args, typeArgs.Length)} is in scope.");
+                    var numGenericArgs = oldCalls[0].GenericParamTotal();
+                    var hasNumGenericArgs = false;
+                    for (int i = 0; i < oldCalls.Length; i++)
+                        if (numGenericArgs == oldCalls[i].GenericParamTotal())
+                            hasNumGenericArgs = true;
+                        else
+                            numGenericArgs = -1;
+
+                    if (numGenericArgs >= 0 && numGenericArgs != call.TypeArgs.Length)
+                    {
+                        // Wrong number of generic arguments
+                        RejectSymbols(call.Token, oldCalls,
+                            $"The function {rejectName} expects {numGenericArgs} "
+                                + $"type arguments, but {call.TypeArgs.Length} were supplied");
+                        return null;
+                    }
+                    if (!hasNumGenericArgs)
+                    {
+                        // Nothing has correct number of generic arguments
+                        RejectSymbols(call.Token, oldCalls,
+                            $"The function {rejectName} does not have "
+                                + $"an overload with {call.TypeArgs.Length} type arguments");
+                        return null;
+                    }
+
+                }
+
+                if (call.Symbols.Count == 0)
+                {
+                    // Incorrect type
+                    RejectSymbols(call.Token, oldCalls, 
+                        $"No function {rejectName} taking '{Rval.ParamTypes(args, call.TypeArgs)}' in scope");
                     return null;
                 }
 
-                if (callFunctions.Count != 1)
+                if (call.Symbols.Count != 1)
                 {
-                    RejectSymbols(callToken, callFunctions, 
-                        $"Found multiple functions {rejectName} taking {ParamTypes(args, typeArgs.Length)}");
+                    RejectSymbols(call.Token, call.Symbols, 
+                        $"Multiple functions {rejectName} taking '{Rval.ParamTypes(args, call.TypeArgs)}' in scope");
                     return null;
                 }
 
-                var method = (SymMethod)callFunctions[0];
-                callToken.AddInfo(method);
+                var method = (SymMethod)call.Symbols[0];
+                call.Token.AddInfo(method);
                 
-                return new Rval(callToken) { 
+                return new Rval(call.Token) { 
                     Type = method.GetReturnTupleOrType(table), 
-                    Symbols = callFunctions 
+                    Symbols = call.Symbols 
                 };
 
             }
 
-            // Return parameter types as a string, eg. '(type1, type2,...)'
-            string ParamTypes(List<Rval> args, int genericTypeArgCount)
-                => "'(" + string.Join(", ", args.Select(a => a.Type.FullName)) + ")'"
-                    + $" with {genericTypeArgCount} generic type arguments";
-
             bool IsCallCompatible(Symbol symbol, Symbol []typeArgs, List<Rval> args)
             {
-                var method = symbol as SymMethod;
-                if (method == null)
+                var func = symbol as SymMethod;
+                if (func == null)
                     return false;
 
-                var methodParamTypes = method.GetParamTuple(table).GetTupleTypeList(table);
+                var methodParamTypes = func.GetParamTuple(table).GetTupleTypeList(table);
                 if (args.Count != methodParamTypes.Count)
-                    return false;
-
-                if (typeArgs.Length != symbol.GenericParamTotal())
                     return false;
 
                 for (var i = 0; i < args.Count; i++)
@@ -967,10 +966,57 @@ namespace Gosub.Zurfur.Compiler
                         continue;
                     }
 
-                    if (arg.FullName != param.FullName)
+                    if (!MatchWithGenerics(func, arg, typeArgs, param))
                         return false;
                 }
                 return true;
+            }
+
+            bool MatchWithGenerics(SymMethod func, Symbol arg, Symbol []typeArgs, Symbol param)
+            {
+                if (param.HasGenericArg)
+                {
+                    if (func.GenericParamTotal() != typeArgs.Length)
+                        return false;
+                    param = ReplaceGenericTypeParams(func.Token, param, typeArgs);
+                }
+
+                if (arg.FullName == param.FullName || param.IsGenericArg)
+                    return true;
+
+                return false;
+            }
+
+            // Replace the generic type argument with the given argument,
+            // return the result, but don't change the original.
+            Symbol ReplaceGenericTypeParams(Token token, Symbol type, Symbol[] args)
+            {
+                if (!type.IsSpecializedType)
+                    return type;
+
+                if (type.IsGenericArg)
+                {
+                    if (type.Order >= 0 && type.Order < args.Length)
+                        return args[type.Order];
+                    Reject(token, "Compiler error: Index out of range");
+                    return type;
+                }
+
+                var specType = (SymSpecializedType)type;
+                return table.GetSpecializedType(type.Parent,
+                    NewGenericTypeParams(token, specType.Params, args));
+            }
+
+            // Replace the generic type argument with the given argument,
+            // return the result, but don't change the original.
+            Symbol[] NewGenericTypeParams(Token token, Symbol[] types, Symbol[] args)
+            {
+                if (types == null || types.Length == 0)
+                    return types;
+                var newTypes = new Symbol[types.Length];
+                for (int i = 0; i < types.Length; i++)
+                    newTypes[i] = ReplaceGenericTypeParams(token, types[i], args);
+                return newTypes;
             }
 
 

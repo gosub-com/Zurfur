@@ -78,7 +78,7 @@ namespace Gosub.Zurfur.Compiler
             // Type inference: Add implied types to inner types found in this scope
             // e.g: InnerType => OuterType<T>.InnerType
             if (!isDot && symbol.IsType && foundInScope)
-                symbol = AddOuterGenericParameters(table, symbol, symbol.Parent);
+                symbol = GetTypeWithGenericParameters(table, symbol, symbol.Parent.GenericParamTotal());
 
             return symbol;
 
@@ -326,21 +326,20 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Add outer generic parameters to the concrete type
+        /// Find or create a type with outer generic parameters for this concrete type.
         /// e.g: OuterType`1.InnerType => OuterType`1.InnerType<#0>
         /// </summary>
-        public static Symbol AddOuterGenericParameters(SymbolTable table, Symbol symbol, Symbol outerScope)
+        public static Symbol GetTypeWithGenericParameters(SymbolTable table, Symbol type, int numGenerics)
         {
-            Debug.Assert(symbol.IsType);
-            var genericParamCount = outerScope.GenericParamTotal();
-            if (genericParamCount == 0)
-                return symbol;
+            Debug.Assert(type.IsType);
+            if (numGenerics == 0)
+                return type;
 
             var genericParams = new List<Symbol>();
-            for (int i = 0; i < genericParamCount; i++)
+            for (int i = 0; i < numGenerics; i++)
                 genericParams.Add(table.GetGenericParam(i));
 
-            return table.GetSpecializedType(symbol, genericParams.ToArray());
+            return table.GetSpecializedType(type, genericParams.ToArray());
         }
 
         /// <summary>

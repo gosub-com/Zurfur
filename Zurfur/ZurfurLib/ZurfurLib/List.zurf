@@ -155,11 +155,11 @@ fun get ListBuffer<T>.count() int {}
     todo
 
 [pub] fun List<T>.convert<Tout>(f fun(item T) ?Tout) List<Tout>
-    where T is Clone<T>
+    where T has Clone<T>
     todo
 
 [pub] fun List<T>.toArray() Array<T>
-    where T is Clone<T>
+    where T has Clone<T>
     todo
 
 

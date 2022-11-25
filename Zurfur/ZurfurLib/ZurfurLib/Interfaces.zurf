@@ -28,9 +28,6 @@ interface OpIn<Item, Container>
 interface GetHash
     fun getHash() u32
 
-interface GenericTest<T>
-    fun genericTest() u32
-
 // Common math operators
 interface NumOps<T>
     [static] fun _opEq(a T, b T) bool
@@ -42,29 +39,7 @@ interface NumOps<T>
     [static] fun _opDiv(a T, b T) T
     [static] fun get ZERO() T
     [static] fun get ONE() T
-
-interface OpAdd<T>
-    [static] fun _opAdd(a T, b T) T
-    
-interface OpSub<T>
-    [static] fun _opSub(a T, b T) T
-    
-interface OpNeg<T>
-    [static] fun _opNeg(a T) T
-    
-interface OpMul<T>
-    [static] fun _opMul(a T, b T) T
-    
-interface OpDiv<T>
-    [static] fun _opDiv(a T, b T) T
-    
-interface OpRem<T>
-    [static] fun _opRem(a T, b T) T
-
-interface OpZero<T>
-    [static] fun get ZERO() T
-
-interface OpOne<T>
-    [static] fun get ONE() T
+    [static] fun get MIN() T
+    [static] fun get MAX() T
 
     
