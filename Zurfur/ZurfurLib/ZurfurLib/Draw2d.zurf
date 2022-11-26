@@ -12,33 +12,51 @@ fun test_Shape()
     rect.location.y = 30 // This should work
     @rl1 = rect.location        // TBD: Make this work
     @rly1 = rect.location.y
+    @rly2 = rect.location.x2
 
-    @rl2 = rect.lf()
+    @rl2 = rect.lf<int>()
     @rl2a = rect.lf<int>()
-    @rl2b = rect.lf().yf()
+    @rl2b = rect.lf<int>().yf<int>()
     
-    @q = rect.lf().yf()
     
 
 [pub]
 type copy Point<T>
         where T has NumOps<T>
-    x T pub init
-    y T pub init
+    x T
+    y T
+
+// Identical to a field
+fun get Point<T>.x2() mut ref T
+    return ref my.x
 
 [pub]
 type copy Size<T>
         where T has NumOps<T>
-    width T pub init
-    height T pub init
+    width T
+    height T
 
 [pub]
 type copy Rect<T>
         where T has NumOps<T>
-    x T pub init
-    y T pub init
-    width T pub init
-    height T pub init
+    // TBD: use location Point<T>
+    //      use size Size<T>
+    location Point<T>
+    size Size<T>
+
+// Identical to fields (not necessary when we have 'use location Point<T>' syntax)
+[pub]
+fun get Rect<T>.x() mut ref T
+    return ref my.location.x
+[pub]
+fun get Rect<T>.y() mut ref T
+    return ref my.location.y
+[pub]
+fun get Rect<T>.width() mut ref T
+    return ref my.size.height
+[pub]
+fun get Rect<T>.height() mut ref T
+    return ref my.size.width
 
 
 [pub]
@@ -124,25 +142,8 @@ fun get Rect<T>.top() T
 fun get Rect<T>.bottom() T
     return my.y + my.height
     
-[pub]
-fun get Rect<T>.location() Point<T>
-    return Point<T>(my.x, my.y)
-
 // TBD: Remove
 [pub]
 fun Rect<T>.lf() Point<T>
     return Point<T>(my.x, my.y)
     
-[pub]
-fun set Rect<T>.location(value Point<T>)
-    my.x = value.x
-    my.y = value.y
-    
-[pub]
-fun get Rect<T>.size() Size<T>
-    return Size<T>(my.width, my.height)
-    
-[pub]
-fun set Rect<T>.size(value Size<T>)
-    my.width = value.width
-    my.height = value.height

@@ -23,6 +23,8 @@ namespace Gosub.Zurfur.Compiler
         public Symbol[] TypeArgs = Array.Empty<Symbol>();
         public Symbol InType;
         public bool IsUntypedConst; // NOTE: 3int is a typed const
+        public bool IsSetter;
+        public bool ExplicitRef;
 
         public Rval(Token token, Symbol returnType = null)
         {
@@ -64,10 +66,12 @@ namespace Gosub.Zurfur.Compiler
     {
         const string RAW_POINTER_TYPE = "Zurfur.RawPointer`1";
         const string REF_TYPE = "Zurfur.Ref`1";
+        const string NIL_TYPE = "Zurfur.nil";
 
         static WordSet sOperators = new WordSet("+ - * / % & | ~ ! == != >= <= > < << >> and or in |= &= += -= <<= >>= .. ..+ ]");
         static WordSet sCmpOperators = new WordSet("== != >= <= > <");
         static WordSet sIntTypeNames = new WordSet("Zurfur.int Zurfur.u64 Zurfur.i32 Zurfur.u32");
+        static WordSet sDerefRef = new WordSet("Zurfur.Ref`1");
         static WordSet sDerefPointers = new WordSet("Zurfur.RawPointer`1 Zurfur.Pointer`1");
         static WordMap<string> sBinOpNames = new WordMap<string> {
             {"+", "_opAdd"}, {"+=", "_opAdd"}, {"-", "_opSub"}, {"-=", "_opSub"},
@@ -118,6 +122,7 @@ namespace Gosub.Zurfur.Compiler
             var typeU32 = table.Lookup("Zurfur.u32");
             var typeStr = table.Lookup("Zurfur.str");
             var typeBool = table.Lookup("Zurfur.bool");
+            var typeByte = table.Lookup("Zurfur.byte");
             var typeF64 = table.Lookup("Zurfur.f64");
             var typeF32 = table.Lookup("Zurfur.f32");
 
@@ -128,6 +133,7 @@ namespace Gosub.Zurfur.Compiler
                 && typeI32 != null
                 && typeStr != null 
                 && typeBool != null
+                && typeByte != null
                 && typeF64 != null
                 && typeF32 != null);
 
@@ -192,8 +198,6 @@ namespace Gosub.Zurfur.Compiler
                     return GenTernary(ex);
                 else if (name == "null" || name == "nil")
                     return new Rval(token, typeNil);
-                else if (name == "cast")
-                    return GenCast(ex);
                 else if (name == "ref")
                     return GenRefOrAddressOf(ex);
                 else if (name == "sizeof")
@@ -233,6 +237,8 @@ namespace Gosub.Zurfur.Compiler
                         numberType = typeF64;
                     else if (customType == "f32")
                         numberType = typeF32;
+                    else if (customType == "byte")
+                        numberType = typeByte;
                     else
                         Reject(ex[0].Token, $"'{ex[0].Token}' undefined number type");
                 }
@@ -304,7 +310,10 @@ namespace Gosub.Zurfur.Compiler
                 // Automatically dereference pointers, etc
                 var identifier = ex[1].Token;
                 if (identifier != "__valueNoDeref")
+                {
+                    leftType = DerefRef(leftType);
                     leftType = DerefPointers(leftType);
+                }
 
                 // Generic parameters not finished
                 if (leftType.IsGenericArg)
@@ -323,12 +332,15 @@ namespace Gosub.Zurfur.Compiler
                 return new Rval(identifier) { Symbols = symbols, InType = leftType};
             }
 
-            Symbol DerefPointers(Symbol type)
-                => Deref(type, sDerefPointers);
+            Symbol DerefRef(Symbol type) => Deref(type, sDerefRef);
+            Symbol DerefPointers(Symbol type) => Deref(type, sDerefPointers);
 
             // Dereference the given type names
             Symbol Deref(Symbol type, WordSet typeNames)
             {
+                if (type == null)
+                    return null;
+
                 // Auto-dereference pointers and references
                 if (type is SymSpecializedType genericSym
                     && genericSym.Params.Length != 0
@@ -345,21 +357,21 @@ namespace Gosub.Zurfur.Compiler
             {
                 if (ex.Count != 1)
                     return null; // Syntax error
-                var leftDot = GenExpr(ex[0]);
-                if (leftDot == null)
-                    return null; // Error already marked
-                var leftType = EvalType(leftDot);
-                if (leftType == null)
+                var left = GenExpr(ex[0]);
+                EvalType(left);
+                if (left == null || left.Type == null)
                     return null;
 
-                if (leftType.Parent == null || leftType.Parent.FullName != RAW_POINTER_TYPE)
+                left.Type = DerefRef(left.Type);
+                if (left.Type.Parent.FullName != RAW_POINTER_TYPE)
                 {
-                    Reject(ex.Token, $"Only pointers may be dereferenced, but the type is '${leftType}'");
+                    Reject(ex.Token, $"Only pointers may be dereferenced, but the type is '${left.Type}'");
                     return null;
                 }
-                var deref = DerefPointers(leftType);
-                ex.Token.AddInfo(deref);
-                return new Rval(ex.Token, deref);
+                left.Type = DerefPointers(left.Type);
+                MakeIntoRef(left);
+                ex.Token.AddInfo(left.Type);
+                return new Rval(ex.Token, left.Type);
             }
 
             Rval GenNewVarsOperator(SyntaxExpr ex)
@@ -450,56 +462,38 @@ namespace Gosub.Zurfur.Compiler
                 var cond = GenExpr(parameters[0]);
                 var condIf = GenExpr(parameters[1][0]);
                 var condElse = GenExpr(parameters[1][1]);
+                EvalType(cond);
+                EvalType(condIf);
+                EvalType(condElse);
 
-                if (cond == null || condIf == null || condElse == null)
+                if (cond == null || cond.Type == null)
+                    return null;
+                if (condIf == null || condIf.Type == null)
+                    return null;
+                if (condElse == null || condElse.Type == null)
                     return null;
 
-                var condType = EvalType(cond);
-                var condTypeIf = EvalType(condIf);
-                var condTypeElse = EvalType(condElse);
-
-                if (condType != null && condType != typeBool)
+                if (DerefRef(cond.Type).FullName != "Zurfur.bool")
                 {
-                    Reject(ex.Token, $"First parameter must evaluate to 'bool', but it evaluates to '{condType}'");
-                    return null;
-                }
-                if (condTypeIf != null && condTypeElse != null && condTypeIf.FullName != condTypeElse.FullName)
-                {
-                    Reject(parameters[1].Token, $"Left and right sides must evaluate to same type, but they evaluate to '{condTypeIf}' and '{condTypeElse}'");
-                    return null;
-                }
-                if (condTypeIf != null)
-                    return new Rval(ex.Token, condTypeIf);
-
-                return null;
-            }
-
-            Rval GenCast(SyntaxExpr ex)
-            {
-                if (ex.Count != 2)
-                    return null; // Syntax error
-                var type = Resolver.Resolve(ex[0], table, false, currentMethod, fileUses);
-                var expr = GenExpr(ex[1]);
-
-                if (type == null || expr == null)
-                    return null;
-
-                if (type.Parent.FullName != RAW_POINTER_TYPE && type != typeU64)
-                {
-                    Reject(ex.Token, $"The cast type must be a pointer or u64, but it is '{type}'");
+                    Reject(ex.Token, $"First parameter must evaluate to 'bool', but it evaluates to '{cond.Type}'");
                     return null;
                 }
 
-                var exprType = EvalType(expr);
-                if (exprType == null)
-                    return null;
+                condIf.Type = DerefRef(condIf.Type);
+                condElse.Type = DerefRef(condElse.Type);
 
-                if (exprType.Parent.FullName != RAW_POINTER_TYPE && exprType != typeU64)
+                // Allow mixing of pointers and nil
+                if (condIf.Type.Parent.FullName == RAW_POINTER_TYPE && condElse.Type.FullName == NIL_TYPE)
+                    return new Rval(ex.Token, condIf.Type);
+                if (condIf.Type.FullName == NIL_TYPE && condElse.Type.Parent.FullName == RAW_POINTER_TYPE)
+                    return new Rval(ex.Token, condElse.Type);
+
+                if (condIf.Type.FullName != condElse.Type.FullName)
                 {
-                    Reject(ex.Token, $"The expression must evaluate to a pointer or u64, but is a '{exprType}'");
+                    Reject(parameters[1].Token, $"Left and right sides must evaluate to same type, but they evaluate to '{condIf.Type}' and '{condElse.Type}'");
                     return null;
                 }
-                return new Rval(ex.Token, type);
+                return new Rval(ex.Token, condIf.Type);
             }
 
             Rval GenRefOrAddressOf(SyntaxExpr ex)
@@ -508,26 +502,53 @@ namespace Gosub.Zurfur.Compiler
                     return null; // Syntax error
                 Debug.Assert(ex.Token == "ref" || ex.Token == "&");
 
-                var expr = GenExpr(ex[0]);
-                if (expr == null)
+                var rval = GenExpr(ex[0]);
+                if (rval == null)
                     return null;
 
-                // TBD: Check to make sure this is valid (ref of return parameter is not, etc.)
-
-                var exprType = EvalType(expr);
-                if (exprType == null)
+                EvalType(rval);
+                if (rval.Type == null)
                     return null;
 
-                // Ref or address off
-                var refType = table.Lookup(ex.Token == "ref" ? REF_TYPE : RAW_POINTER_TYPE);
-                if (refType == null)
+                if (ex.Token == "ref")
                 {
-                    Reject(ex.Token, "Undefined type");
-                    return null;
+                    // TBD: The thing should already be a reference, or fail same as addrss off
+                    rval.ExplicitRef = true;
+                    if (rval.Type.Parent.FullName != REF_TYPE)
+                        MakeIntoRef(rval);
+                }
+                else
+                {
+                    rval.Type = DerefRef(rval.Type);
+                    MakeIntoRef(rval, true);
                 }
 
-                return new Rval(ex.Token, 
-                    table.GetSpecializedType(refType, new Symbol[] { exprType }));
+                ex.Token.AddInfo(rval.Type);
+                return rval;
+            }
+
+            // Convert type into reference to type (or raw pointer to type)
+            void MakeIntoRef(Rval rval, bool rawPointer = false)
+            {
+                var type = rval.Type;
+                if (type == null)
+                    return; // Error already marked
+
+                if (type.IsSpecializedType && type.Parent.FullName == REF_TYPE)
+                {
+                    Reject(rval.Token, "Cannot take address of a reference");
+                    return;
+                }
+
+                // Ref or address off
+                var refType = table.Lookup(rawPointer ? RAW_POINTER_TYPE : REF_TYPE);
+                if (refType == null)
+                {
+                    Reject(rval.Token, "Compiler error: Undefined type in base library");
+                    return;
+                }
+
+                rval.Type = table.GetSpecializedType(refType, new Symbol[] { rval.Type });
             }
 
 
@@ -538,48 +559,92 @@ namespace Gosub.Zurfur.Compiler
 
                 var left = GenExpr(ex[0]);
                 var right = GenExpr(ex[1]);
-                var rightType = right == null ? null : EvalType(right);
-                if (left != null)
-                    EvalType(left, true);
+                var rightType = EvalType(right);
+                
+                EvalType(left, true);
 
                 if (left == null || right == null || rightType == null)
                     return null;
 
                 // Assign type to local variable (if type not already assigned)
-                if (left.Symbols.Count == 1 && left.Symbols[0].IsLocal && left.Symbols[0].Type == null)
+                var isLocal = left.Symbols.Count == 1 
+                    && (left.Symbols[0].IsLocal || left.Symbols[0].IsMethodParam);
+                if (isLocal && left.Symbols[0].Type == null)
                 {
-                    // Assign untyped local
-                    left.Symbols[0].Type = rightType;
-                    left.Type = rightType;
+                    // Assign untyped local (not a reference unless explicit 'ref')
+                    left.Type = right.ExplicitRef ? rightType : DerefRef(rightType);
+                    left.Symbols[0].Type = left.Type;
                 }
 
                 var leftType = left.Type;
                 if (leftType == null)
                 {
-                    Reject(ex.Token, "Untyped symbol");
+                    Reject(ex.Token, "Unresolved type");
                     return null;
                 }
 
                 // TBD: Calculate const at run time
                 // For now, pretend a constant int can be converted to any number type
-                if (sIntTypeNames.Contains(leftType.FullName) && right.IsUntypedConst && sIntTypeNames.Contains(rightType.FullName))
+                if (sIntTypeNames.Contains(DerefRef(leftType).FullName)
+                        && right.IsUntypedConst 
+                        && sIntTypeNames.Contains(DerefRef(rightType).FullName))
                     rightType = leftType; // Dummy
 
-                if (leftType.Parent != null && leftType.Parent.FullName == RAW_POINTER_TYPE && rightType == typeNil)
+                // Assigning nil to a pointer is ok
+                if (leftType.Parent != null 
+                    && DerefRef(leftType).Parent.FullName == RAW_POINTER_TYPE 
+                    && rightType.FullName == NIL_TYPE)
                 {
-                    return null; // Pointer = nil is ok
+                    return null; // Pointer = nil
                 }
 
-                // TBD: Must afigure out how to deal with mut
-                if (leftType.FullName != rightType.FullName)
+                // A setter is a function call
+                if (left.IsSetter)
                 {
-                    Reject(ex.Token, $"Types must match: {leftType.FullName} = {rightType.FullName}");
+                    if (leftType.FullName != "()")
+                    {
+                        // TBD: Enforce by verifier
+                        Reject(ex.Token, "Setter must not return a value");
+                        return null;
+                    }
+                    if (left.Symbols.Count != 1 || !(left.Symbols[0] is SymMethod setterMethod))
+                    {
+                        Reject(ex.Token, "Compiler error: Setter index out of range or not method");
+                        return null;
+                    }
+
+                    var args = setterMethod.GetParamTuple(table).GetTupleTypeList(table);
+                    if (args.Count != 2)
+                    {
+                        Reject(ex.Token, "Expecting two parameters (method type, and value type), static setters not supported yet");
+                        return null;
+                    }
+                    if (args[1].FullName != rightType.FullName)
+                    {
+                        Reject(ex.Token, $"Types must match: setter({args[1].FullName}) = ({rightType.FullName})");
+                        return null;
+                    }
+                    // Debug, TBD: Remove or get better compiler feedback system
+                    ex.Token.AddInfo($"setter({args[1].FullName}) = ({rightType.FullName})");
+
+                    // TBD: Need to make this into a function call
                     return null;
                 }
 
-                // Debug, TBD: Remove
-                ex.Token.AddInfo($"({rightType.FullName}) = ({rightType.FullName})");
+                if (!isLocal && leftType.Parent.FullName != REF_TYPE)
+                {
+                    Reject(ex.Token, "A value cannot be assigned.  Left side must be a local variable or a 'mut' reference.  "
+                        + $" ({leftType.FullName}) = ({rightType.FullName})");
+                    return null;
+                }
 
+                if (DerefRef(leftType).FullName != DerefRef(rightType).FullName)
+                {
+                    Reject(ex.Token, $"Types must match: ({leftType.FullName}) = ({rightType.FullName})");
+                    return null;
+                }
+                // Debug, TBD: Remove or get better compiler feedback system
+                ex.Token.AddInfo($"({leftType.FullName}) = ({rightType.FullName})");
                 return null;
             }
 
@@ -595,27 +660,35 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 }
 
-                var returnRval = returns.Count == 0 ? new Rval(ex.Token, table.Lookup("()")) : returns[0];
-                var returnType = EvalType(returnRval);
-                if (returnType == null)
+                var rval = returns.Count == 0 ? new Rval(ex.Token, table.Lookup("()")) : returns[0];
+                EvalType(rval);
+                if (rval == null)
                     return null;
 
-                ex.Token.AddInfo(returnType);
-                var functionReturnType = currentMethod.GetReturnTupleOrType(table);
+                ex.Token.AddInfo(rval.Type);
+                var functionType = currentMethod.GetReturnTupleOrType(table);
 
                 // TBD: This is to temporarily gloss over pointers, nullable, and nil
-                if (returnType.FullName == "Zurfur.nil"
-                    && (functionReturnType.Parent.FullName == "Zurfur.RawPointer`1")
-                        || functionReturnType.Parent.FullName == "Zurfur.Nullable`1`1")
-                    return returnRval;
+                if (rval.Type.FullName == NIL_TYPE
+                    && (functionType.Parent.FullName == "Zurfur.RawPointer`1")
+                        || functionType.Parent.FullName == "Zurfur.Nullable`1`1")
+                    return rval;
 
-
-                if (functionReturnType.FullName != returnType.FullName)
+                // TBD: This belongs in the code verifier.  Also need
+                //      to check more stuff since this can be tricked
+                var isLocal = rval.Symbols.Count == 1
+                    && (rval.Symbols[0].IsLocal || rval.Symbols[0].IsMethodParam);
+                if (isLocal && functionType.Parent.FullName == REF_TYPE)
                 {
-                    Reject(ex.Token, $"Incorrect return type, expecting '{functionReturnType}', got '{returnType}'");
+                    Reject(ex.Token, "Cannot return a reference to a local variable");
                 }
 
-                return returnRval;
+                if (DerefRef(functionType).FullName != DerefRef(rval.Type).FullName)
+                {
+                    Reject(ex.Token, $"Incorrect return type, expecting '{functionType}', got '{rval.Type}'");
+                }
+
+                return rval;
             }
 
             bool GenParams(SyntaxExpr ex, List<Rval> param)
@@ -660,8 +733,8 @@ namespace Gosub.Zurfur.Compiler
                 if (ex.Token == "and" || ex.Token == "or" || ex.Token == "!")
                     return GenBooleanOperator(ex, args);
 
-                if (args.Count == 2 && (args[0].Type.Parent.FullName == RAW_POINTER_TYPE 
-                        || args[1].Type.Parent.FullName == RAW_POINTER_TYPE))
+                if (args.Count == 2 && (DerefRef(args[0].Type).Parent.FullName == RAW_POINTER_TYPE 
+                        || DerefRef(args[1].Type).Parent.FullName == RAW_POINTER_TYPE))
                     return GenRawPointerOperator(ex, args[0], args[1]);
 
                 // Implicit conversion of untyped constant to integer types
@@ -673,10 +746,10 @@ namespace Gosub.Zurfur.Compiler
                     var left = args[0];
                     var right = args[1];
                     if (right.IsUntypedConst && !left.IsUntypedConst 
-                            && sIntTypeNames.Contains(left.Type.FullName) && sIntTypeNames.Contains(right.Type.FullName))
+                            && sIntTypeNames.Contains(DerefRef(left.Type).FullName) && sIntTypeNames.Contains(right.Type.FullName))
                         right.Type = left.Type;
                     if (!right.IsUntypedConst && left.IsUntypedConst 
-                            && sIntTypeNames.Contains(right.Type.FullName) && sIntTypeNames.Contains(left.Type.FullName))
+                            && sIntTypeNames.Contains(DerefRef(right.Type).FullName) && sIntTypeNames.Contains(left.Type.FullName))
                         left.Type = right.Type;
                 }
 
@@ -714,8 +787,8 @@ namespace Gosub.Zurfur.Compiler
 
             Rval GenRawPointerOperator(SyntaxExpr ex, Rval left, Rval right)
             {
-                var leftType = left.Type;
-                var rightType = right.Type;
+                var leftType = DerefRef(left.Type);
+                var rightType = DerefRef(right.Type);
                 // Add/subtract pointers to number types
                 if (ex.Token == "+" || ex.Token == "-")
                 {
@@ -740,9 +813,9 @@ namespace Gosub.Zurfur.Compiler
                         return DummyFunction(ex.Token, typeBool, leftType, rightType);
                     if (ex.Token == "==" || ex.Token == "!=")
                     {
-                        if (leftType.Parent.FullName == RAW_POINTER_TYPE && rightType == typeNil)
+                        if (leftType.Parent.FullName == RAW_POINTER_TYPE && rightType.FullName == NIL_TYPE)
                             return DummyFunction(ex.Token, typeBool, leftType, rightType);
-                        if (leftType == typeNil && rightType.Parent.FullName == RAW_POINTER_TYPE)
+                        if (leftType.FullName == NIL_TYPE && rightType.Parent.FullName == RAW_POINTER_TYPE)
                             return DummyFunction(ex.Token, typeBool, leftType, rightType);
                     }
                     Reject(ex.Token, $"Operator '{ex.Token}' cannot be used with types '({leftType},{rightType})'");
@@ -885,8 +958,7 @@ namespace Gosub.Zurfur.Compiler
                 var oldCalls = call.Symbols.ToArray();
                 call.Symbols.RemoveAll(callFunc => !IsCallCompatible(callFunc, call.TypeArgs, args));
 
-
-                // TBD: Error messages can be improved a lot.
+                // Show error messages if necessary.  TBD: Error messages can be improved a lot
                 if (call.Symbols.Count == 0 && oldCalls.Length >= 1)
                 {
                     var numGenericArgs = oldCalls[0].GenericParamTotal();
@@ -913,7 +985,6 @@ namespace Gosub.Zurfur.Compiler
                                 + $"an overload with {call.TypeArgs.Length} type arguments");
                         return null;
                     }
-
                 }
 
                 if (call.Symbols.Count == 0)
@@ -938,7 +1009,6 @@ namespace Gosub.Zurfur.Compiler
                     Type = method.GetReturnTupleOrType(table), 
                     Symbols = call.Symbols 
                 };
-
             }
 
             bool IsCallCompatible(Symbol symbol, Symbol []typeArgs, List<Rval> args)
@@ -958,6 +1028,10 @@ namespace Gosub.Zurfur.Compiler
 
                     var arg = args[i].Type;
                     var param = methodParamTypes[i];
+
+                    // Types match whether they are references or not
+                    arg = DerefRef(arg);
+                    param = DerefRef(param);
 
                     // Implicit conversion from *Type to *void
                     if (arg.Parent.FullName == RAW_POINTER_TYPE && param.Parent.FullName == RAW_POINTER_TYPE
@@ -1043,10 +1117,16 @@ namespace Gosub.Zurfur.Compiler
 
             // Get return type of symbol.
             // Returns null if symbol is not found, is unresolved, or ambiguous.
-            // When ignoreLocalUntypedError is true, the symbol may be an unresolved local.
+            // `assignmentTarget` allows the symbol to be an unresolved local
+            // and is also used to resolve ambiguity between getter/setter.
             // Mark an error when there is no match.
-            Symbol EvalType(Rval rval, bool ignoreLocalUntypedError = false, bool allowTypeItself = false)
+            Symbol EvalType(Rval rval, 
+                bool assignmentTarget = false, 
+                bool allowTypeItself = false)
             {
+                if (rval == null)
+                    return null;
+
                 //Debug.Assert(rval.Type == null || rval.Symbols.Count == 0);
                 // Done if we already have return type
                 if (rval.Type != null)
@@ -1059,10 +1139,19 @@ namespace Gosub.Zurfur.Compiler
                 if (RejectAmbiguousPrimary(rval.Token, rval.Symbols))
                     return null;
 
-                // Filter out functions, except getters
+                // Filter out functions, except getters and setters
                 var oldCalls = symbols.ToArray();
-                symbols.RemoveAll(callFunc => callFunc.IsMethod && !callFunc.IsGetter);
+                symbols.RemoveAll(callFunc => callFunc.IsMethod && !(callFunc.IsGetter || callFunc.IsSetter));
                 var token = rval.Token;
+
+                // If there is a tie between a getter and setter, choose based `assignmentTarget`
+                if (symbols.Count == 2 && (symbols[0].IsSetter == symbols[1].IsGetter))
+                {
+                    symbols.RemoveAll(callFunc => assignmentTarget ? callFunc.IsGetter : callFunc.IsSetter);
+                    if (symbols.Count == 1 && symbols[0].IsSetter)
+                        rval.IsSetter = true;  
+                }
+
                 if (symbols.Count == 0)
                 {
                     RejectSymbols(token, oldCalls,
@@ -1083,7 +1172,7 @@ namespace Gosub.Zurfur.Compiler
                 if (sym.IsAnyType)
                 {
                     token.Type = eTokenType.TypeName;
-                    if (allowTypeItself || sym.FullName == "Zurfur.nil")
+                    if (allowTypeItself || sym.FullName == NIL_TYPE)
                     {
                         rval.Type = sym;
                         return sym;
@@ -1097,28 +1186,55 @@ namespace Gosub.Zurfur.Compiler
 
                 if (sym.IsLocal)
                 {
-                    if (sym.Type == null && !ignoreLocalUntypedError)
+                    if (sym.Type == null && !assignmentTarget)
                         Reject(token, $"'{token}'  has an unresolved type");
                     rval.Type = sym.Type;
-                    return sym.Type;
+                    return rval.Type;
                 }
-                if (sym.IsField || sym.IsMethodParam)
+                if (sym.IsMethodParam)
                 {
                     if (sym.Type == null)
                         Reject(token, $"'{token}'  has an unresolved type");
                     rval.Type = sym.Type;
-                    return sym.Type;
+                    return rval.Type;
+                }
+                if (sym.IsField)
+                {
+                    if (sym.Type == null)
+                    {
+                        Reject(token, $"'{token}'  has an unresolved type");
+                        return null;
+                    }
+
+                    Debug.Assert(sym.Type.Parent.FullName != REF_TYPE);
+                    rval.Type = InferTypeArgsOfGetterOrField(rval.Token, sym.Type, rval.InType);
+
+                    // A field is the same thing as a getter returning a mutable ref
+                    MakeIntoRef(rval);
+                    return rval.Type;
                 }
                 if (sym.IsMethod)
                 {
                     var returnType = ((SymMethod)sym).GetReturnTupleOrType(table);
-                    rval.Type = returnType;
-                    return returnType;
+
+                    // Infer generic type arguments of getter
+                    // TBD: Doesn't work for setter because the setter uses
+                    //      the parameter (this code probably needs to be moved) 
+                    rval.Type = InferTypeArgsOfGetterOrField(rval.Token, returnType, rval.InType);
+                    return rval.Type;
                 }
                 Reject(token, $"'{token}' compiler failure: '{sym}' is {sym.KindName}");
                 Debug.Assert(false);
                 return null;
             }
+
+            Symbol InferTypeArgsOfGetterOrField(Token token, Symbol type, Symbol inType)
+            {
+                if (type == null || !type.HasGenericArg || !(inType is SymSpecializedType inSpecial))
+                    return type;
+                return ReplaceGenericTypeParams(token, type, inSpecial.Params);
+            }
+
 
             /// <summary>
             /// Find symbols in the type, including methods defined in

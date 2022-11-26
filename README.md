@@ -68,7 +68,7 @@ The above form `@variable = expression` creates a variable with the same type as
 the expression.  A second form `@variable type [=expression]` creates an explicitly
 typed variable with optional assignment from an expression. 
 
-    @a int = myIntFunc()                // Error if myIntFunc returns a float
+    @a int = myIntFunc()   // Error if myIntFunc is f32, ok if int has constructor to convert
     @b str                              // b is a string, initialized to ""
     @c List<int>                        // c is an empty List<int>
     @d List<f64> = [1, 2, 3]            // Create List<f64>, elements are converted
@@ -81,11 +81,11 @@ A list of expressions `[e1, e2, e3...]` is used to initialize a `List`
 and a list of pairs `[K1:V1, K2:V2, K3:V3...]` is used to initialize a `Map`.
 Brackets `[]` are used for both lists and maps. Curly braces are reserved
 for statement level constructs.  Constructors can be called with `()`.
-For `type MyPointXY(X int, Y int)`, the following are identical:
+For `type MyPointXy(x int, y int)`, the following are identical:
 
-    @c Map<str, MyPointXY> = ["A": (1,2), "B": (3,4)]           // MyPointXY Constructor
-    @d Map<str, MyPointXY> = ["A": (X:1,Y:2), "B": (X:3,Y:4)]   // MyPointXY field initializer
-    @a = ["A": MyPointXY(1,2), "B": MyPointXY(3,4)]
+    @c Map<str, MyPointXy> = ["A": (1,2), "B": (3,4)]           // MyPointXy Constructor
+    @d Map<str, MyPointXy> = ["A": (x:1,y:2), "B": (x:3,y:4)]   // MyPointXy field initializer
+    @a = ["A": MyPointXy(1,2), "B": MyPointXy(3,4)]
 
 ## Functions and Properties
 
@@ -94,7 +94,7 @@ argument, and the return type comes after the parameters:
 
     // This comment is public documentation.
     // Use `name` to refer to variables in the code. 
-    [pub] fun main(args Array<str>)
+    fun main(args Array<str>)
         Log.info("Hello World, 2+2=${2+2}")
 
 Methods and extension methods are declared with the same syntax and
@@ -120,6 +120,12 @@ Properties are functions declared with `get` and `set` keywords:
     // TBD: Still considering golang syntax
     fun (MyType) get myString() str
         return my.cachedStr
+
+This is identical to declaring a public field:
+
+    // The return value is known to be a borrow from an internal field
+    fun MyPointXy.x2() ref int
+        return ref my.x
   
 By default, function parameters are passed as read-only reference.  The
 exception is that small types (e.g. `int`, and `Span<T>`) are passed by
@@ -128,7 +134,7 @@ and `own` can be used to change the passing behavior:
 
     fun test(
         a               int,  // Pass a copy because it is efficient (i.e. `type copy`)
-        b       mut ref int,  // Pass by ref, allow assignment
+        b       mut ref int,  // Pass by ref, allow assignment in function
         c         List<int>,  // Pass by ref, read-only
         d     mut List<int>,  // Pass by ref, allow mutation, but not assignment
         e mut ref List<int>,  // Pass by ref, allow mutation and assignment
@@ -173,7 +179,7 @@ The return parameters are named, and can be used by the calling function:
 Normally the return value becomes owned by the caller, but this behavior
 can be changed with the `ref` keyword:
 
-    fun getRoList() ref List<int>           // Read-only ref
+    fun getRoList() ref List<int>           // Read-only ref of internal data structure
         return ref myListField
     fun getMutList() mut List<int>          // Mutable (mutation allowed, assignment not allowed)
         return mut myListField
@@ -188,6 +194,11 @@ Return qualifiers:
 | `mut` | Caller may mutate, but not assign | Callee retains ownership.  Not valid for `ro` types
 | `ref mut` | Caller may mutate or assign | Requires annotation (i.e. `ref`) at the call site
 
+**TBD:** `ref` can cross async boundaries.  Or `ref` cannot, but `aref` can.
+Probably this is better to be a compiler optimization, but mutating a `List`
+count while holding a `ref` to element will cause a runtime error, so it
+would be good to have compile time checks on that.
+
 ## Types
 
 The ones we all know and love:
@@ -201,10 +212,11 @@ The ones we all know and love:
 | str, str16 | An `Array<byte>` or `Array<u16>` with support for UTF-8 and UTF-16.  `Array` (an ailias for`ro List`) is immutable, therefore `str` is also immutable.  `str16` is a Javascript or C# style unicode string
 | Span\<T\> | Span into a `List` or `Array`.  It has a constant `count`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `List` is mutable)
 | Map<K,V> | Unordered mutable map.  `ro Map<K,V` is the immutable counterpart. 
-| Variant, VaraiantMap | The type used to interface with dynamically typed languages.  Easy conversion to/from JSON and string representations of built-in types.
+| Dynamic, DynamicMap | The type used to interface with dynamically typed languages.  Easy conversion to/from JSON and string representations of built-in types.  TBD: `dyn` keyword in the future (e.g. `myDyn["hello"]` is same as `myDyn.hello`)
 
-All types have a compiler generated `ro` counterpart.  They can be copied
-very quickly since cloning them is just copying a pointer.
+All types have a compiler generated `ro` counterpart which can be copied
+very quickly since cloning them is just a memory copy without dynamic
+allocation.  In the case of `ro List`, `Array`, `str`, it's just one pointer.
 
 There are different kinds of types.  There is `ref` for types, such as `Span`
 that hold a reference to other objects.  The rest of this is still a **TBD**:
@@ -215,18 +227,17 @@ that hold a reference to other objects.  The rest of this is still a **TBD**:
 | `copy` | Copy | No | `int`, `f64`, `Span` | Fast. Small, pass copy (not a reference), doesn't allocate.  Can't contain `owned` types.
 | `ref` | Ref or copy | No | `Span`, `ref` | Fast.  Type contains a reference, so must never leave the stack.  Can't contain `owned` types.
 | `ro` | Ref | No | | Fast. Copy bytes, doesn't' allocate.  Can contain `owned` types, but they become read-only forever after.
-| `ro box` | Ref | No | `str`, `ro List` | Fast.  Copy a reference. Can contain `owned` types, but they become read-only forever after.
-| `owned box` | Ref | Yes |  | Slow. Always allocates.  May contain `owned` types.
-| `owned` | Ref | Yes | `List`, `Map` | Slow. Always allocates.  May contain `owned` types.
 | `async` | Ref | (see above) | `FileStream` | Any type that has an async destructor.
 
-`List` and `Map` are not `box` types.  They live directly inline in the object
-(or stack frame) that owns them.  Because they are mutable and use dynamic
-allocation, they require an explicit clone.
+### Privacy
 
-`ro List` and `str` are `ro box`.  They are reference types, but don't require an
-explicit clone because they are read-only.
+At the module level, all fields (global static data), functions, and types 
+are private to that module and it's children unless the `[pub]` qualifier is
+specified.  Methods are declared at the module level, therefore they are
+private by default.
 
+Inside of a type, all fields are public by default.  Any field declared as
+private is visible only within that file.  
 
 ### Simple Data Types
 
@@ -673,36 +684,15 @@ Unlike Golang and C#, compound statements (`if`, `else`, `while`, `for`, etc.)
 can accept multiple lines without needing braces, but the indentation is
 checked to make sure it matches the expected behavior.
 
-By convention, most code in the Zurfur code base uses curly brace on
-beginning-of-next-line style and omits braces when they aren't needed.
-
-Here are the enforced style rules:
-
-1. No tabs anywhere in the source code
-2. No white space or visible semi-colons at the end of a line
-3. Indentation is enforced.  Minimum indentation is two spaces,
-   but the Zurfur code base uses four.
-4. One statement per line, unless it's a continuation line.
-   It's a continuation line if:
-   1. The end of the previous line is `{`, `[`, `(`, or `,`.
-   2. The line begins with `"`, `{`, `]`, `)`, `,` or an operator.
-      Operators include `+`, `.`, `=`, etc.
-   3. A few exceptions where continuations are expected (e.g. `where`,
-      `require`, and a few other places)
-5. Continuation lines must not be separated by a blank line or comment-only line.
-6. Compound statements (e.g. `if`, `while`, `for`, etc.) may use curly braces
-   or may omit them.  When braces are omitted, the compound part of the statement:
-   1. Must be the inner most level (i.e, the compound
-      statement may not include another compound statement)
-   2. Must on the next line and be indented
-   3. Must not be empty
-   4. May use multiple lines and multiple statements
-   4. Must have all lines at the same indentation level
-7. A brace, `{`, cannot start a scope unless it is in an expected place such as after
+1. Indentation is four spaces per scope level. No tabs anywhere in the source code.
+    **TBD:** Might allow tabs, but the entire file must use the same method (no mixing of tabs/spaces)
+2. One statement per line, unless it's a continuation line.  It's a continuation line if:
+   1. The end of the previous line is `[`, `(`, or `,`.
+   2. The line begins with `]`, `)`, `,` or any operator including `"`, `and`, `or`, `in`, `+`, `.`, `=`, etc.
+   3. A few exceptions where continuations are expected (e.g. `where`, `require`, and a few other places)
+3. Compound statements (e.g. `if`, `while`, `for`, etc.) may use or omit curly braces.  Curly braces may be at the end of the line or on their own line.
+4. A brace, `{`, cannot start a scope unless it is in an expected place such as after
 `if`, `while`, `scope`, etc., or a lambda expression.
-8. Modifiers must appear in the following order: `pub` (or `protected`, `private`),
-`unsafe`, `static` (or `const`), `unsealed`, `abstract` (or `virtual`, `override`,
-`new`), `ref`, `mut` (or `ro`)
 
 #### While and Do Statements
 

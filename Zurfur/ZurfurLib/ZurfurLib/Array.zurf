@@ -8,12 +8,12 @@
 // *** Do generic type system ***
 //      Fake it out for now
 // [pub] fun _opIndex<T>(a Array<T>, b int) extern
-[pub] fun _opIndex(a Array<str>, b int) str extern
+[pub] fun _opIndex(a Array<str>, b int) ref str extern
 [pub] fun _opIndex(a Array<byte>, b Range<int>) Span<byte>  extern
-[pub] fun _opIndex(a Buffer<str>, b int) str extern
+[pub] fun _opIndex(a Buffer<str>, b int) ref str extern
 [pub] fun _opIndex(a Buffer<byte>, b Range<int>) Span<byte>  extern
 [pub] fun _opIndex(a List<byte>, b Range<int>) Span<byte> extern
-[pub] fun _opIndex(a Span<byte>, b int) byte extern
+[pub] fun _opIndex(a Span<byte>, b int) ref byte extern
     
 
 // This is the implementation for Buffer and Array

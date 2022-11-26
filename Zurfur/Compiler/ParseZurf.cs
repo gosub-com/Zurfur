@@ -64,7 +64,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sReservedWords = new WordSet("abstract as has super break case catch class const "
             + "continue default delegate do then else elif enum explicit extern true false defer use "
             + "finally fixed for goto if in interface internal is lock namespace module include "
-            + "new null out override pub public private protected readonly ro ref mut imut "
+            + "new null out override pub public private protected readonly ro ref aref mut imut "
             + "return ret unsealed unseal sealed sizeof struct switch this This self Self throw try "
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "

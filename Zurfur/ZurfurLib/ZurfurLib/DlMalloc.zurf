@@ -33,14 +33,14 @@ module Zurfur.Internal.Memory
 
 use Zurfur[u64, todo, castPointer]
 
-
 fun panicFatal(m str)
-{
-    // TBD: Dump process
+    require(false)
     todo
-}
     
-
+// Windows allocation function (TBD: Remove this)
+fun AllocHGlobal(size u64) *void
+    require(false)
+    todo
 
 // This was originally CALL_MMAP and is used to get more memory from
 // the system. It's similar to CALL_MMAP, but the function can increase
@@ -1563,17 +1563,17 @@ fun DlMalloc.internal_inspect_all(handler fun(start *void, next *void, used int)
 fun memClear(mem *void, size int)
     @b = castPointer<*byte>(mem)
     for @s in 0..size
-        b.* = 0
-        b += 1
+        b.* = 0byte
+        b = b+1 // TBD: Allow b+=1
 
 
 fun mut DlMalloc.init_user_mstate(tbase *byte, tsize u64)
     @msp = align_as_chunk(tbase)
     @m *void = chunk2mem(msp)
 
-    my.smallbins = castPointer<**mchunk>(Marshal.AllocHGlobal(sizeof(*mchunk).toU64Mask * ((NSMALLBINS + 1) * 2)))
-    my.treebins = castPointer<**tchunk>(Marshal.AllocHGlobal(sizeof(*tchunk).toU64Mask * NTREEBINS))
-    my.seg = castPointer<*msegment>Marshal.AllocHGlobal(sizeof(msegment))
+    my.smallbins = castPointer<**mchunk>(AllocHGlobal(sizeof(*mchunk).toU64Mask * ((NSMALLBINS + 1) * 2)))
+    my.treebins = castPointer<**tchunk>(AllocHGlobal(sizeof(*tchunk).toU64Mask * NTREEBINS))
+    my.seg = castPointer<*msegment>(AllocHGlobal(sizeof(msegment).toU64Mask))
     memClear(my.smallbins, sizeof(*mchunk) * (((NSMALLBINS + 1) * 2)).toIntMask)
     memClear(my.treebins, sizeof(*tchunk) * NTREEBINS.toIntMask)
     memClear(my.seg, sizeof(msegment))

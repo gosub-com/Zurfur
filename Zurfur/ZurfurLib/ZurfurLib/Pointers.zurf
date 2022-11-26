@@ -82,20 +82,22 @@ interface IsRawPointer
 // Mark these types as the only pointer types in the system
 fun Xuint.isRawPointer() RawPointerMarker
     return RawPointerMarker()
-fun Xuint.getRawPointer() Xuint
-    return my
 fun RawPointer<T>.isRawPointer() RawPointerMarker
     return RawPointerMarker()
-fun RawPointer<T>.getRawPointer() Xuint
-    return my.__valueNoDeref
 fun Ref<T>.isRawPointer() RawPointerMarker
     return RawPointerMarker()
-fun Ref<T>.getRawPointer() Xuint
-    return my.__valueNoDeref.__valueNoDeref
 fun Pointer<T>.isRawPointer() RawPointerMarker
     return RawPointerMarker()
+fun Xuint.getRawPointer() Xuint
+    return my
+
+// TBD: Compiler implemented
+fun Ref<T>.getRawPointer() Xuint
+    extern
+fun RawPointer<T>.getRawPointer() Xuint
+    extern
 fun Pointer<T>.getRawPointer() Xuint
-    return my.__valueNoDeref.__valueNoDeref
+    extern
 
 
 fun free(memory *GcHeapObject)
