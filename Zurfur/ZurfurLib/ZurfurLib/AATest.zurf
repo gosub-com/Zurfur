@@ -46,7 +46,7 @@ fun Test<X0,X1,X2,X3>()
     @g = MyFun2<int,f64>(0)
     @h = MyFun2<f64,int>(0.0)
     @f4a = MyFun4<int,str,f32,u64>(0)
-    @f5a = MyFun5<int,str,f32,u64>(0)  TBD// TBD: Fix return type
+    @f5a = MyFun5<int,str,f32,u64>(0) 
     @i Size<int> = Size<int>(0,0)  
     @k f64 = 0.0
     @l f64 = 0f64

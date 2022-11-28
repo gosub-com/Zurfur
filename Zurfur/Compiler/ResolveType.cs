@@ -113,7 +113,7 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 if (leftSymbol.IsSpecializedType)
-                    return table.GetSpecializedType(rightSymbol, ((SymSpecializedType)leftSymbol).Params);
+                    return table.FindOrCreateSpecializedType(rightSymbol, ((SymSpecializedType)leftSymbol).Params);
 
                 return rightSymbol;
             }
@@ -123,22 +123,22 @@ namespace Gosub.Zurfur.Compiler
             // On error, the token is rejected and null is returned.
             Symbol ResolveLambdaFun()
             {
-                if (typeExpr.Count < 3)
-                {
-                    table.Reject(typeExpr.Token, "Syntax error");
-                    return null;
-                }
+                // TBD: Revisit how to do this
+                return null;
 
-                // Create an anonymous type to hold the function type.
-                // NOTE: This is not finished, just temporary for now.
-                var funParams = new Symbol(SymKind.Type, table.AnonymousTypes, "");
-                ResolveMethodParams(typeExpr[0], table, funParams, searchScope, useSymbols, false);
-                ResolveMethodParams(typeExpr[1], table, funParams, searchScope, useSymbols, true);
+                //if (typeExpr.Count < 3)
+                //{
+                //    table.Reject(typeExpr.Token, "Syntax error");
+                //    return null;
+                //}
+                //// Create an anonymous type to hold the function type.
+                //// NOTE: This is not finished, just temporary for now.
+                //var funParams = new Symbol(SymKind.Type, table.AnonymousTypes, "");
+                //ResolveMethodParams(typeExpr[0], table, funParams, searchScope, useSymbols, false);
+                //ResolveMethodParams(typeExpr[1], table, funParams, searchScope, useSymbols, true);
 
-                funParams.SetLookupName(GetFunctionName("$fun", funParams));
-
-
-                return table.FindOrAddAnonymousType(funParams);
+                //funParams.SetLookupName(GetFunctionName("$fun", funParams));
+                //return table.FindOrAddAnonymousType(funParams);
             }
 
 
@@ -169,7 +169,7 @@ namespace Gosub.Zurfur.Compiler
                     for (int i = 0; i < pt.Params.Length; i++)
                         typeParams.Insert(i, pt.Params[i]);
                 }
-                return table.GetSpecializedType(typeNameConcrete, typeParams.ToArray());
+                return table.FindOrCreateSpecializedType(typeNameConcrete, typeParams.ToArray());
             }
 
 
@@ -339,7 +339,7 @@ namespace Gosub.Zurfur.Compiler
             for (int i = 0; i < numGenerics; i++)
                 genericParams.Add(table.GetGenericParam(i));
 
-            return table.GetSpecializedType(type, genericParams.ToArray());
+            return table.FindOrCreateSpecializedType(type, genericParams.ToArray());
         }
 
         /// <summary>

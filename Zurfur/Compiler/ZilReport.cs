@@ -102,7 +102,6 @@ namespace Gosub.Zurfur.Compiler
                 headerFile.Add("SYMBOLS: " + count);
                 headerFile.Add($"    Types: {types} ({typesNonGeneric} non-generic, {typesGeneric} generic)");
                 headerFile.Add($"    Specializations: {symbols.SpecializedSymbols.Count} (generated from generics)");
-                headerFile.Add($"    Anonymous types: {symbols.AnonymousTypes.ChildrenCount}");
                 headerFile.Add($"    Methods: {methods}");
                 headerFile.Add($"    Fields: {fields}");
                 headerFile.Add("");
@@ -150,15 +149,6 @@ namespace Gosub.Zurfur.Compiler
                 special.Sort((a, b) => Compare(a.FullName, b.FullName));
                 foreach (var s in special)
                     headerFile.Add($"    {s.FullName}");
-
-                headerFile.Add("");
-                headerFile.Add("");
-                headerFile.Add("ANONYMOUS:");
-                var anon = new List<Symbol>(symbols.AnonymousTypes.ChildrenFilter(SymKind.All));
-                anon.Sort((a, b) => Compare(a.FullName, b.FullName));
-                foreach (var s in anon)
-                    headerFile.Add($"    {s.FullName}");
-
 
             }
 

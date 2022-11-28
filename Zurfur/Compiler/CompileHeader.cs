@@ -186,12 +186,16 @@ namespace Gosub.Zurfur.Compiler
                     {
                         foreach (var op in module.Children)
                         {
-                            if (op.IsMethod
-                                && sOperatorFunctionNames.Contains(op.SimpleName)
-                                && ((SymMethod)op).GetParamTuple(table).GetTupleTypeList(table)
-                                        .FindIndex(f => f.Unspecial() == typeSym) >= 0)
+                            if (op.IsMethod && sOperatorFunctionNames.Contains(op.SimpleName))
                             {
-                                symbols.Add(op);
+                                foreach (var child in op.ChildrenFilter(SymKind.MethodParam).Where(child => !child.ParamOut))
+                                {
+                                    if (child.Type != null && child.Type.Unspecial().FullName == typeSym.FullName)
+                                    {
+                                        symbols.Add(op);
+                                        break;
+                                    }
+                                }
                             }
                         }
                     }

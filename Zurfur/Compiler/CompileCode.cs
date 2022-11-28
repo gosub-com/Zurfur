@@ -278,9 +278,17 @@ namespace Gosub.Zurfur.Compiler
                     Reject(ex.Token, "Expecting an expression inside parenthesis");
                     return null;
                 }
-                if (ex.Count != 1)
-                    Reject(ex.Token, "Compiler not finished: Doesn't support tuples yet");
-                return GenExpr(ex[0]);
+                if (ex.Count == 1)
+                    return GenExpr(ex[0]);
+
+                var args = GenCallParams(ex, 0);
+                if (args == null)
+                    return null;
+
+                var types = args.Select(t => t.Type).ToArray();
+
+                var  tuple = table.FindOrCreateSpecializedType(table.GetTupleBaseType(types.Length), types);
+                return new Rval(ex.Token, tuple);
             }
 
             // Check top level for syntax error
@@ -321,6 +329,23 @@ namespace Gosub.Zurfur.Compiler
                     // TBD: Use constraints to find the type
                     Reject(identifier, "Compiler not finished: Dot operator on generic type");
                     return null;
+                }
+
+                // Find in tuple
+                if (leftType.IsTuple && leftType is SymSpecializedType tuple)
+                {
+                    if (tuple.TupleNames.Length == 0)
+                    {
+                        Reject(ex.Token, $"The type '{leftType}' is an anonymous type without field names, so cannot be resolved with '.'");
+                        return null;
+                    }
+                    var i = Array.IndexOf(tuple.TupleNames, identifier);
+                    if (i < 0)
+                    {
+                        Reject(identifier, $"'{identifier}' is an undefined symbol in the named tuple '{leftType}'");
+                        return null;
+                    }
+                    return new Rval(identifier) { Type = tuple.Params[i] };
                 }
 
                 var symbols = FindInType(identifier, identifier.Name, leftType);
@@ -510,6 +535,9 @@ namespace Gosub.Zurfur.Compiler
                 if (rval.Type == null)
                     return null;
 
+                if (rval.Type.Parent.FullName != REF_TYPE)
+                    Reject(ex.Token, $"The type '{rval.Type} is a value and cannt be converted to a reference'");
+
                 if (ex.Token == "ref")
                 {
                     // TBD: The thing should already be a reference, or fail same as addrss off
@@ -548,7 +576,7 @@ namespace Gosub.Zurfur.Compiler
                     return;
                 }
 
-                rval.Type = table.GetSpecializedType(refType, new Symbol[] { rval.Type });
+                rval.Type = table.FindOrCreateSpecializedType(refType, new Symbol[] { rval.Type });
             }
 
 
@@ -601,7 +629,7 @@ namespace Gosub.Zurfur.Compiler
                 // A setter is a function call
                 if (left.IsSetter)
                 {
-                    if (leftType.FullName != "()")
+                    if (leftType.FullName != table.EmptyTuple.FullName)
                     {
                         // TBD: Enforce by verifier
                         Reject(ex.Token, "Setter must not return a value");
@@ -613,13 +641,13 @@ namespace Gosub.Zurfur.Compiler
                         return null;
                     }
 
-                    var args = setterMethod.GetParamTuple(table).GetTupleTypeList(table);
-                    if (args.Count != 2)
+                    var args = setterMethod.GetParamTuple(table).GetTupleTypeList();
+                    if (args.Length != 2)
                     {
                         Reject(ex.Token, "Expecting two parameters (method type, and value type), static setters not supported yet");
                         return null;
                     }
-                    if (args[1].FullName != rightType.FullName)
+                    if (!TypesMatch(args[1], rightType))
                     {
                         Reject(ex.Token, $"Types must match: setter({args[1].FullName}) = ({rightType.FullName})");
                         return null;
@@ -638,7 +666,7 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 }
 
-                if (DerefRef(leftType).FullName != DerefRef(rightType).FullName)
+                if (!TypesMatch(DerefRef(leftType), DerefRef(rightType)))
                 {
                     Reject(ex.Token, $"Types must match: ({leftType.FullName}) = ({rightType.FullName})");
                     return null;
@@ -660,9 +688,9 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 }
 
-                var rval = returns.Count == 0 ? new Rval(ex.Token, table.Lookup("()")) : returns[0];
+                var rval = returns.Count == 0 ? new Rval(ex.Token, table.EmptyTuple) : returns[0];
                 EvalType(rval);
-                if (rval == null)
+                if (rval == null || rval.Type == null)
                     return null;
 
                 ex.Token.AddInfo(rval.Type);
@@ -683,13 +711,13 @@ namespace Gosub.Zurfur.Compiler
                     Reject(ex.Token, "Cannot return a reference to a local variable");
                 }
 
-                if (DerefRef(functionType).FullName != DerefRef(rval.Type).FullName)
+                if (!TypesMatch(DerefRef(functionType), DerefRef(rval.Type)))
                 {
                     Reject(ex.Token, $"Incorrect return type, expecting '{functionType}', got '{rval.Type}'");
                 }
-
                 return rval;
             }
+
 
             bool GenParams(SyntaxExpr ex, List<Rval> param)
             {
@@ -919,7 +947,7 @@ namespace Gosub.Zurfur.Compiler
 
                 // Add type parameters
                 if (callTypeParamCount != 0)
-                    callType = table.GetSpecializedType(callType, call.TypeArgs);
+                    callType = table.FindOrCreateSpecializedType(callType, call.TypeArgs);
 
                 // Empty constructor (create a default with any type parameters)
                 if (args.Count == 0)
@@ -1017,8 +1045,8 @@ namespace Gosub.Zurfur.Compiler
                 if (func == null)
                     return false;
 
-                var methodParamTypes = func.GetParamTuple(table).GetTupleTypeList(table);
-                if (args.Count != methodParamTypes.Count)
+                var methodParamTypes = func.GetParamTuple(table).GetTupleTypeList();
+                if (args.Count != methodParamTypes.Length)
                     return false;
 
                 for (var i = 0; i < args.Count; i++)
@@ -1077,8 +1105,8 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 var specType = (SymSpecializedType)type;
-                return table.GetSpecializedType(type.Parent,
-                    NewGenericTypeParams(token, specType.Params, args));
+                return table.FindOrCreateSpecializedType(type.Parent,
+                    NewGenericTypeParams(token, specType.Params, args), specType.TupleNames);
             }
 
             // Replace the generic type argument with the given argument,
@@ -1093,6 +1121,22 @@ namespace Gosub.Zurfur.Compiler
                 return newTypes;
             }
 
+            // Compare types, ignoring tuple names
+            bool TypesMatch(Symbol a, Symbol b)
+            {
+                if (a.FullName == b.FullName)
+                    return true;
+                if (!(a is SymSpecializedType a1 && b is SymSpecializedType b1))
+                    return false;
+                if (a1.Params.Length != b1.Params.Length)
+                    return false;
+                for (int i = 0; i < a1.Params.Length; i++)
+                {
+                    if (!TypesMatch(a1.Params[i], b1.Params[i]))
+                        return false;
+                }
+                return true;
+            }
 
             // Parameters are evaluated for the types. 
             // If any parameter can't be evaluated, NULL is returned.
@@ -1113,7 +1157,6 @@ namespace Gosub.Zurfur.Compiler
                 }
                 return paramHasError ? null : funArgs;
             }
-
 
             // Get return type of symbol.
             // Returns null if symbol is not found, is unresolved, or ambiguous.
@@ -1253,6 +1296,18 @@ namespace Gosub.Zurfur.Compiler
                 AddMethodsNamedInModule(name, inType.Parent, inType, symbols);
                 AddMethodsNamedInModule(name, currentMethod.Parent, inType, symbols);
 
+                // Search 'use' symbol
+                if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
+                {
+                    foreach (var sym2 in useSymbols)
+                        if (sym2.IsExtension && sym2 is SymMethod method)
+                        {
+                            var methodParams = method.GetParamTuple(table).GetTupleTypeList();
+                            if (methodParams.Length != 0 && methodParams[0].FullName == inType.FullName)
+                                symbols.Add(sym2);
+                        }
+                }
+
                 RemoveLastDuplicates(symbols);
 
                 return symbols;
@@ -1285,8 +1340,8 @@ namespace Gosub.Zurfur.Compiler
                 {
                     if (!child.IsMethod || !child.IsExtension || child.Token != name)
                         continue;
-                    var parameters = ((SymMethod)child).GetParamTuple(table).GetTupleTypeList(table);
-                    if (parameters.Count == 0)
+                    var parameters = ((SymMethod)child).GetParamTuple(table).GetTupleTypeList();
+                    if (parameters.Length == 0)
                         continue;
 
                     // Compare the non-specialized type
@@ -1332,7 +1387,7 @@ namespace Gosub.Zurfur.Compiler
                 if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
                 {
                     foreach (var sym2 in useSymbols)
-                        if (!sym2.IsExtension && !symbols.Contains(sym2))
+                        if (!sym2.IsExtension)
                             symbols.Add(sym2);
                 }
 

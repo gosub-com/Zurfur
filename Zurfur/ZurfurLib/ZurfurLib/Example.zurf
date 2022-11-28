@@ -13,10 +13,6 @@ use Zurfur
 use Zurfur[Decimal, Log]
 use Zurfur.Collections[Iterator]
 use Zurfur.Math[cos,sin]
-
-// TBD: Include all extension methods with Zurfur.ConvertBytes[Span,List]
-// TBD: Scan use statements for methods (see code in CompileCode.cs, FindInType)
-//      if (identifier == "bytesToHex")
 use Zurfur.ConvertBytes[bytesToHex]
 
 
@@ -85,20 +81,13 @@ fun test_HelloWorld()
         if a
             doit()
             
-[pub] type boxed AGenericType<Q>
+[pub]
+type boxed AGenericType<Q>
     a int
 
-[pub] fun circle1(a f64, r f64) -> (x f64, y f64)
-    return cos(a)*r, sin(a)*r
-
-[pub] fun circle2(a f32, r f32) int
-    return cos(a)*r, sin(a)*r
-
-[pub] fun circle3(a f64, r f64) -> (x f64, y f64)
-    return cos(a)*r, sin(a)*r
-
-[pub] fun circle3(a f64, b f64) -> (c int, d int)
-    return 0
+[pub]
+fun circle(a f64, r f64) -> (x f64, y f64)
+    return (cos(a)*r, sin(a)*r)
 
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
@@ -180,7 +169,7 @@ fun AcceptMatch(m str) Token {}
     @buffer = Buffer<byte>()
     
     while stream.read(buffer[0..4])@size == 4
-        @bytes = buffer[0..4].bytesToHex() // TBD: Scan use statements for extension methods
+        @bytes = buffer[0..4].bytesToHex(false) // TBD: Scan use statements for extension methods
 
 
     // AcceptMatch returns ?Token = (bool, Token)

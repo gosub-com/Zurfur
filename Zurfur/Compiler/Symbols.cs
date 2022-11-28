@@ -44,7 +44,6 @@ namespace Gosub.Zurfur.Compiler
         Extern = 0x20000,
         PassCopy = 0x40000,
         ParamOut = 0x80000,
-        Anonymous = 0x100000,
         Own = 0x200000,
         Copy = 0x400000
     }
@@ -87,7 +86,6 @@ namespace Gosub.Zurfur.Compiler
         // Set by `SetChildInternal`.  Type parameters are always first.
         public int Order { get; private set; } = -1;
         public string FullName { get; private set; }
-        List<Symbol> mParamTypeListCache;
 
 
         /// <summary>
@@ -143,6 +141,44 @@ namespace Gosub.Zurfur.Compiler
 
         public bool IsGenericArg => FullName.Length != 0 && FullName[0] == '#';
         public bool HasGenericArg => FullName.Contains('#');
+
+        public bool IsTuple => Parent != null && Parent.FullName.StartsWith("()");
+
+        public bool IsInterface
+            => IsType && Qualifiers.HasFlag(SymQualifiers.Interface)
+                || IsSpecializedType && Parent.IsType && Parent.Qualifiers.HasFlag(SymQualifiers.Interface);
+
+        public bool IsModule => Kind == SymKind.Module;
+        public bool IsType => Kind == SymKind.Type;
+        public bool IsSpecializedType => Kind == SymKind.SpecializedType;
+        public bool IsAnyType => IsModule || IsType || IsTypeParam || IsSpecializedType;
+        public bool IsAnyTypeNotModule => IsType || IsTypeParam || IsSpecializedType;
+        public bool IsField => Kind == SymKind.Field;
+        public bool IsMethod => Kind == SymKind.Method;
+        public bool IsTypeParam => Kind == SymKind.TypeParam;
+        public bool IsMethodParam => Kind == SymKind.MethodParam;
+        public bool IsLocal => Kind == SymKind.Local;
+
+
+        public bool IsExtension => Qualifiers.HasFlag(SymQualifiers.Extension);
+        public bool IsConst => Qualifiers.HasFlag(SymQualifiers.Const);
+        public bool IsStatic => Qualifiers.HasFlag(SymQualifiers.Static);
+        public bool IsGetter => Qualifiers.HasFlag(SymQualifiers.Get);
+        public bool IsSetter => Qualifiers.HasFlag(SymQualifiers.Set);
+
+        public bool ParamOut
+        {
+            get { return (Qualifiers & SymQualifiers.ParamOut) != SymQualifiers.None; }
+            set
+            {
+                if (value)
+                    Qualifiers |= SymQualifiers.ParamOut;
+                else
+                    Qualifiers &= ~SymQualifiers.ParamOut;
+            }
+        }
+
+
 
         public string SimpleName
         {
@@ -275,7 +311,6 @@ namespace Gosub.Zurfur.Compiler
                 if (Qualifiers.HasFlag(SymQualifiers.Extension)) t += " extension";
                 if (Qualifiers.HasFlag(SymQualifiers.Extern)) t += " extern";
                 if (Qualifiers.HasFlag(SymQualifiers.Get)) t += " get";
-                if (Qualifiers.HasFlag(SymQualifiers.Impl)) t += " impl";
                 if (Qualifiers.HasFlag(SymQualifiers.Init)) t += " init";
                 if (Qualifiers.HasFlag(SymQualifiers.Interface)) t += " interface";
                 if (Qualifiers.HasFlag(SymQualifiers.Mut)) t += " mut";
@@ -288,7 +323,6 @@ namespace Gosub.Zurfur.Compiler
                 if (Qualifiers.HasFlag(SymQualifiers.Set)) t += " set";
                 if (Qualifiers.HasFlag(SymQualifiers.Static)) t += " static";
                 if (Qualifiers.HasFlag(SymQualifiers.Unsafe)) t += " unsafe";
-                if (Qualifiers.HasFlag(SymQualifiers.Anonymous)) t += " anonymous";
                 if (Qualifiers.HasFlag(SymQualifiers.Own)) t += " own";
                 if (Qualifiers.HasFlag(SymQualifiers.Copy)) t += " copy";
                 sTags[key] = t;
@@ -338,49 +372,12 @@ namespace Gosub.Zurfur.Compiler
                 case "enum": Qualifiers |= SymQualifiers.Enum; break;
                 case "class": break; // TBD: Implement classes in the future
                 case "init": Qualifiers |= SymQualifiers.Init; break;
-                case "impl": Qualifiers |= SymQualifiers.Impl; break;
                 case "pass_copy": Qualifiers |= SymQualifiers.PassCopy; break;
-                case "anonymous": Qualifiers |= SymQualifiers.Anonymous; break;
                 case "own": Qualifiers |= SymQualifiers.Own;  break;
                 case "copy": Qualifiers |= SymQualifiers.Copy; break;
                 default: Debug.Assert(false);  break;
             }
         }
-
-        public bool IsInterface
-            => IsType && Qualifiers.HasFlag(SymQualifiers.Interface)
-                || IsSpecializedType && Parent.IsType && Parent.Qualifiers.HasFlag(SymQualifiers.Interface);
-
-        public bool IsModule => Kind == SymKind.Module;
-        public bool IsType => Kind == SymKind.Type;
-        public bool IsSpecializedType => Kind == SymKind.SpecializedType;
-        public bool IsAnyType => IsModule || IsType || IsTypeParam || IsSpecializedType;
-        public bool IsAnyTypeNotModule => IsType || IsTypeParam || IsSpecializedType;
-        public bool IsField => Kind == SymKind.Field;
-        public bool IsMethod => Kind == SymKind.Method;
-        public bool IsTypeParam => Kind == SymKind.TypeParam;
-        public bool IsMethodParam => Kind == SymKind.MethodParam;
-        public bool IsLocal => Kind == SymKind.Local;
-
-        public bool IsExtension => Qualifiers.HasFlag(SymQualifiers.Extension);
-        public bool IsConst => Qualifiers.HasFlag(SymQualifiers.Const);
-        public bool IsStatic => Qualifiers.HasFlag(SymQualifiers.Static);
-        public bool IsGetter => Qualifiers.HasFlag(SymQualifiers.Get);
-        public bool IsSetter => Qualifiers.HasFlag(SymQualifiers.Set);
-        public bool IsImpl => Qualifiers.HasFlag(SymQualifiers.Impl);
-        
-        public bool ParamOut
-        {
-            get { return (Qualifiers & SymQualifiers.ParamOut) != SymQualifiers.None; }
-            set
-            {
-                if (value)
-                    Qualifiers |= SymQualifiers.ParamOut;
-                else
-                    Qualifiers &= ~SymQualifiers.ParamOut;
-            }
-        }
-
 
         /// <summary>
         /// Source code token if it exists.  Throws an exception for
@@ -453,6 +450,8 @@ namespace Gosub.Zurfur.Compiler
                 return LookupName;
             else if (Parent == null || Parent.LookupName == "")
                 return LookupName;
+            else if (Parent != null && IsTuple)
+                return LookupName; // The full tuple name is set by the type
             else
             {
                 var suffix = "";
@@ -510,19 +509,11 @@ namespace Gosub.Zurfur.Compiler
         /// Get list of field types.  
         /// TBD: Still working on a generic tuple system
         /// </summary>
-        public List<Symbol> GetTupleTypeList(SymbolTable table)
+        public Symbol []GetTupleTypeList()
         {
-            if (mParamTypeListCache != null)
-                return mParamTypeListCache;
-            var parameters = Children.ToList();
-            parameters.Sort((a, b) => a.Order.CompareTo(b.Order));
-            mParamTypeListCache = new List<Symbol>(parameters.Count);
-            foreach (var param in parameters)
-                mParamTypeListCache.Add(param.Type);
-            return mParamTypeListCache;
+            Debug.Assert(this is SymSpecializedType);
+            return ((SymSpecializedType)this).Params;
         }
-
-
     }
 
     class SymModule : Symbol
@@ -550,8 +541,8 @@ namespace Gosub.Zurfur.Compiler
         public Symbol GetReturnTupleOrType(SymbolTable table)
         {
             var returnTuple = GetReturnTuple(table);
-            var returnTypeList = returnTuple.GetTupleTypeList(table);
-            if (returnTypeList.Count == 1)
+            var returnTypeList = returnTuple.GetTupleTypeList();
+            if (returnTypeList.Length == 1)
                 return returnTypeList[0];
             return returnTuple;
         }
@@ -577,38 +568,19 @@ namespace Gosub.Zurfur.Compiler
             return mParamTypeCache;
         }
 
-        // Get parameters or returns as an anonymous tuple type,
-        // except for singe returns, which are just the type itself.
+        // Get parameters or returns as an anonymous tuple.
         Symbol GetParams(SymbolTable table, bool returns)
         {
-            var parameters = ChildrenFilter(SymKind.MethodParam).Where(child => returns == child.ParamOut).ToList();
+            var parameters = ChildrenFilter(SymKind.MethodParam)
+                .Where(child => child.Type != null && returns == child.ParamOut).ToList();
+
+            var tupleParent = table.GetTupleBaseType(parameters.Count);
+
             parameters.Sort((a, b) => a.Order.CompareTo(b.Order));
+            var paramTypes = parameters.Select(p => p.Type).ToArray();
+            var paramNames = parameters.Select(p => p.FullName).ToArray();
 
-            // Create anonymous type of parameters
-            var paramType = new Symbol(SymKind.Type, table.AnonymousTypes, "");
-            paramType.Qualifiers |= SymQualifiers.Anonymous;
-            var sb = new StringBuilder("(");
-            for (var i = 0; i < parameters.Count; i++)
-            {
-                // Create a field with same type and name as parameter
-                var parameter = parameters[i];
-                if (parameter.Type == null)
-                    continue;  // Unresolved type name
-
-                var field = new Symbol(SymKind.Field, paramType, parameter.SimpleName);
-                field.Type = parameter.Type;
-
-                // Update the anonymous type name
-                paramType.SetChildInternal(field, out var d);
-                sb.Append(parameter.SimpleName);
-                sb.Append(" ");
-                sb.Append(parameter.Type.FullName);
-                if (i != parameters.Count - 1)
-                    sb.Append(",");
-            }
-            sb.Append(")");
-            paramType.SetLookupName(sb.ToString());
-            return table.FindOrAddAnonymousType(paramType);
+            return table.FindOrCreateSpecializedType(tupleParent, paramTypes, paramNames);
         }
     }
 
@@ -619,6 +591,7 @@ namespace Gosub.Zurfur.Compiler
     class SymSpecializedType : Symbol
     {
         public readonly Symbol[] Params;
+        public readonly string[] TupleNames;
 
         // Constructor for generic type argument
         public SymSpecializedType(Symbol parent, string name)
@@ -629,32 +602,40 @@ namespace Gosub.Zurfur.Compiler
         }
 
 
-        // Constructor for generic type 'F<T>' or function 'F<p1,p2...><r1,r2...>'
-        public SymSpecializedType(Symbol parent, Symbol[] typeParams)
-            : base(SymKind.SpecializedType, parent, parent.HasToken ? parent.Token : null, FullTypeParamNames(typeParams))
+        // Constructor for generic type 'Type<T0,T1,T2...>' or tuple '(T0,T1,T2...)'
+        public SymSpecializedType(Symbol parent, Symbol[] typeParams, string []tupleNames = null)
+            : base(SymKind.SpecializedType, 
+                  parent, parent.HasToken ? parent.Token : null, 
+                  FullTypeParamNames(parent, typeParams, tupleNames))
         {
             Debug.Assert(parent.IsType);
             Params = typeParams;
+            TupleNames = tupleNames == null ? Array.Empty<string>() : tupleNames;
+            Debug.Assert(TupleNames.Length == 0 || TupleNames.Length == Params.Length);
         }
 
-        public static string FullTypeParamNames(Symbol[] typeParams)
+        static string FullTypeParamNames(Symbol parent, Symbol[] typeParams, string[]tupleNames)
         {
-            return "<" + TypeParamNames(typeParams) + ">";
-        }
-
-        static string TypeParamNames(Symbol[] typeParams)
-        {
-            if (typeParams.Length == 0)
-                return "";
-            if (typeParams.Length == 1)
-                return typeParams[0].FullName;
-            StringBuilder sb = new StringBuilder();
-            sb.Append(typeParams[0].FullName);
-            for (int i = 1; i < typeParams.Length; i++)
+            var isTuple = parent.FullName.StartsWith("()");
+            var namedTuple = tupleNames != null && tupleNames.Length > 0;
+            var sb = new StringBuilder();
+            sb.Append(isTuple ? "(" : "<");
+            for (int i = 0;  i < typeParams.Length;  i++)
             {
-                sb.Append(",");
+                if (i > 0)
+                {
+                    sb.Append(",");
+                    if (namedTuple)
+                        sb.Append(" ");
+                }
+                if (namedTuple)
+                {
+                    sb.Append(tupleNames[i]);
+                    sb.Append(" ");
+                }
                 sb.Append(typeParams[i].FullName);
             }
+            sb.Append(isTuple ? ")" : ">");
             return sb.ToString();
         }
 

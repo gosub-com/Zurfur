@@ -8,12 +8,15 @@ use Zurfur.Collections[Iterator]
 
 
 [pub]
-type ro copy Range<T> where T has NumOps<T>
+type copy Range<T> where T has NumOps<T>
     low T pub ro init
     high T pub ro init
 
 [pub]
-fun Range<T>.new(low T, high T) extern
+fun Range<T>.new(low T, high T)
+    my.low = low
+    my.high = high
+    (my.low, my.high) = (low, high) // TBD: Make this work
 
 
 fun abs(i int) int
@@ -47,12 +50,13 @@ type RangeIterator<T> where T has NumOps<T>
 [pub]
 fun RangeIterator<T>.new(low T, high T)
     (my.current, my.high) = (low, high)    
-    
+
+
 [pub]
-fun get RangeIterator<T>.next() ref T
+fun mut RangeIterator<T>.next() ?T
     if my.current >= my.high
         return nil
     @r = my.current
     my.current += T.ONE
-    return r
+    return Nullable<T>(my.current)
         

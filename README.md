@@ -207,7 +207,7 @@ The ones we all know and love:
     
 | Type | Description
 | :--- | :---
-| List\<T\> | Dynamically sized mutable list with mutable elements.
+| List\<T\> | Dynamically sized mutable list with mutable elements.  This is the one and only dynamically sized object in Zurfur.
 | Array<\T\>| An alias for `ro List<T>`.  An immutable list of immutable elements. Even if the array contains mutable elements, they become immutable when copied into the list.  Array's can be copied very quickly, just by copying a reference.
 | str, str16 | An `Array<byte>` or `Array<u16>` with support for UTF-8 and UTF-16.  `Array` (an ailias for`ro List`) is immutable, therefore `str` is also immutable.  `str16` is a Javascript or C# style unicode string
 | Span\<T\> | Span into a `List` or `Array`.  It has a constant `count`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `List` is mutable)
@@ -218,16 +218,41 @@ All types have a compiler generated `ro` counterpart which can be copied
 very quickly since cloning them is just a memory copy without dynamic
 allocation.  In the case of `ro List`, `Array`, `str`, it's just one pointer.
 
-There are different kinds of types.  There is `ref` for types, such as `Span`
-that hold a reference to other objects.  The rest of this is still a **TBD**:
+This is still TBD:
 
-| Type Qualifier | Passing Style | Explicit Clone | Examples | Copy/clone speed and notes
-| :--- | :--- | :--- | :--- | :---
-|  | Ref | No | types containing `int`, `str`, `ro List`, etc. | Fast. Copy bytes, doesn't allocate.  Can't contain `owned` types.
-| `copy` | Copy | No | `int`, `f64`, `Span` | Fast. Small, pass copy (not a reference), doesn't allocate.  Can't contain `owned` types.
-| `ref` | Ref or copy | No | `Span`, `ref` | Fast.  Type contains a reference, so must never leave the stack.  Can't contain `owned` types.
-| `ro` | Ref | No | | Fast. Copy bytes, doesn't' allocate.  Can contain `owned` types, but they become read-only forever after.
-| `async` | Ref | (see above) | `FileStream` | Any type that has an async destructor.
+| Qualifier | Notes
+| :---    | :--- 
+|  (none) | Normal types (`List`, `Map`, etc.) pass by reference and require explicit clone
+| `ro`    | Read only types (`str`, `ro List`, `Array`, etc.) pass by reference and copy implicitly (copies are always fast and never allocate)
+| `passcopy` | Small types (`int`, `Span`, possibly `Point`, 'Rect`, etc.) pass by copy since that is faster
+| `copy`  | Types that never allocate can be implicitly copied but pass by reference since that is faster. 
+| `ref`   | Stack only types containing a reference
+| `boxed` | **TBD:** Heap only type, but is still owned
+| `heap`  | **TBD:** Heap only type that can get a pointer to itself
+| `async` | A type that has an async `drop`, can only be created in an async context or on the heap
+| `noclone` | Cannot be cloned
+
+**TBD:** `pass` and `passcopy` could be decided by the compiler based on the
+size of the type, but different behavior could result because of references,
+especially when combined with async. 
+
+**TBD:** Are copy/clone semantics worth the trouble?  Why not clone by default?
+A new programmer might ask why some types allow `a=b` and others require
+`a=b.clone()` and then point out that `a=f(b)` might be hiding a clone.
+For now, mutable dynamically allocated data requires an explicit clone because
+we care about efficiency.  We can remove this later by allowing an implicit
+clone.  `List` and `Map` are actually plain old data structures even though
+they do dynamic allocation. More **TBD**: `myList.pushAll` hides a clone, or
+require `myList.pushClones`?
+
+**Pro explicit clone:** Prevent accidental cloning of large data structurs
+with a simple assignment.  Encourage programmers to get a reference, rather
+than re-index (e.g. `@a = ref myList[0].myType` rather than `@a = myList[0].myType`
+which would be obvious if the compiler forces `@a = myList[0].myType.clone()`).
+
+**Con explicit clone:** Different types have different semantics, some require
+`clone` while others don't.  Largely an optimization problem.  Clones can
+easily be hidden in a function call. 
 
 ### Privacy
 

@@ -36,11 +36,21 @@ fun get todo() require(false) extern
 // Empty value for pointers and optionals
 [pub] type nil { }
 
-// Nullable<T> - Same as ?T
-[pub] type Nullable<T> { }
+// Nullable<T> - Same as ?T.  NullableRef is the 
+[pub]
+type Nullable<T>
+    hasValue bool
+    value T
+
+[pub]
+fun Nullable<T>.new(value T)
+    my.value = value
+    my.hasValue = true
+    
 
 // Nullable reference (or pointer), optimization of ?ref T
-[pub] type NullableRef<T> { }
+[pub] type ref NullableRef<T>
+    value ref T
 
 // a UTF8 encoded character, same as i32
 [pub] type rune = i32

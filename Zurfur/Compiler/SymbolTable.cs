@@ -32,11 +32,11 @@ namespace Gosub.Zurfur.Compiler
         // The generic arguments: #0, #1, #2...
         List<SymSpecializedType> mGenericArguments = new List<SymSpecializedType>();
         Symbol mGenericArgumentHolder; // Holder so they have `Order` set properly
-
-        Symbol mAnonymousTypes;
+        List<Symbol> mGenericTuples = new List<Symbol>();
+        Symbol mGenericTupleHolder;
+        Symbol mEmptyTuple;
 
         public Symbol Root => mRoot;
-        public Symbol AnonymousTypes => mAnonymousTypes;
 
         
         public SymbolTable()
@@ -44,8 +44,7 @@ namespace Gosub.Zurfur.Compiler
             var preRoot = new SymModule(null, "");
             mRoot = new SymModule(preRoot, "");
             mGenericArgumentHolder = new SymModule(mRoot, "");
-            mAnonymousTypes = new Symbol(SymKind.Type, mRoot, "");
-            FindOrAddAnonymousType(new Symbol(SymKind.Type, mAnonymousTypes, "()"));
+            mGenericTupleHolder = new SymModule(mRoot, "");
         }
 
 
@@ -81,8 +80,6 @@ namespace Gosub.Zurfur.Compiler
                 return symbol1;
             if (mLookup.TryGetValue(name, out var symbol2))
                 return symbol2;
-            if (mAnonymousTypes.TryGetPrimary(name, out var symbol3))
-                return symbol3;
             return null;
         }
 
@@ -128,19 +125,23 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Get or create (and add to symbol table) a specialized type.
         /// </summary>
-        public SymSpecializedType GetSpecializedType(Symbol concreteType, Symbol[] typeParams)
+        public SymSpecializedType FindOrCreateSpecializedType(
+            Symbol concreteType, 
+            Symbol[] typeParams, 
+            string[] tupleNames = null)
         {
             Debug.Assert(concreteType.IsType);
-            var sym = new SymSpecializedType(concreteType, typeParams);
+            var sym = new SymSpecializedType(concreteType, typeParams, tupleNames);
             if (mSpecializedTypes.TryGetValue(sym.FullName, out var specExists))
                 return specExists;
 
             // Don't store partially specialized symbols since they can't end up in the symbol table
             //  "AATest.AGenericTest`2.Inner1`2<#0,#1>"   (while adding outer generic params)
             //  "AATest.AGenericTest`2.Inner1`2<Zurfur.str,Zurfur.str>" (while parsing dot operator)
-
             if (sym.Params.Length == concreteType.GenericParamTotal())
                 mSpecializedTypes[sym.FullName] = sym;
+            else
+                Debug.Assert(false);
 
             return sym;
         }
@@ -164,19 +165,37 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Find or add the given anonymous type.  There are types with
-        /// names (a int, b f64) such as function parameters, and types
-        /// without names ($0 int, $1 f64) such as tuples. The names are
-        /// part of the symbol type, so (a int) is not the same as (b int).
+        /// Get or create a generic tuple type
         /// </summary>
-        public Symbol FindOrAddAnonymousType(Symbol type)
+        public Symbol GetTupleBaseType(int numGenerics)
         {
-            if (mAnonymousTypes.TryGetPrimary(type.FullName, out var anonType))
-                return anonType;
-            Debug.Assert(type.Parent == mAnonymousTypes);
-            type.Qualifiers |= SymQualifiers.Anonymous;
-            AddOrReject(type);
-            return type;
+            if (numGenerics < mGenericTuples.Count)
+                return mGenericTuples[numGenerics];
+            for (int i = mGenericTuples.Count; i <= numGenerics; i++)
+            {
+                var name = $"()`{i}";
+                var arg = new Symbol(SymKind.Type, mGenericTupleHolder, name);
+                mGenericTuples.Add(arg);
+                AddOrReject(arg);
+
+                for (int j = 0;  j < i; j++)
+                {
+                    var tp = new Symbol(SymKind.TypeParam, arg, $"T{j}");
+                    AddOrReject(tp);
+                }
+            }
+            return mGenericTuples[numGenerics];
+        }
+
+        public Symbol EmptyTuple
+        {
+            get
+            {
+                if (mEmptyTuple != null)
+                    return mEmptyTuple;
+                mEmptyTuple = new SymSpecializedType(GetTupleBaseType(0), Array.Empty<Symbol>());
+                return mEmptyTuple;
+            }
         }
 
         /// <summary>
