@@ -16,9 +16,9 @@ type MyPoint<T1,T2,T3>
     b T2
     c T3
 
-fun MyFun1<T1,T2,T3>(a T1, b T2, c T3) T2
+fun MyFun1<T1,T2,T3>(a T1, b T2, c T3) ->(x T2, y T3)
     @q = b
-    return q
+    return (T2(), T3())
 
 fun MyFun2<I,O>(i I) O
     return O()
@@ -32,7 +32,14 @@ fun MyFun4<T0,T1,T2,T3>(i int) List<T2>
 fun MyFun5<T0,T1,T2,T3>(i int) -> (a List<T1>, b List<T3>)
     return (List<T1>(), List<T3>())
 
+fun inferMap<T1,T2>(a Map<T1,T2>, b List<T2>) -> (x T1, y T2)
+    return (T1(), T2())
+
 fun Test<X0,X1,X2,X3>()
+    @infer1 = MyFun1(0, "", 0.0)
+    @infer2 = MyFun1(0, List<int>(), 0)
+    @infer3 = MyFun1(0, List<X2>(), 0.0)
+    @infer4 = inferMap(Map<int,str>(), List<str>())
     @f1 = MyFun2<int, f64>(0)
     @f2 = MyFun3<int,f64>(1)
     @f3 = MyFun3<f64,int>(1)

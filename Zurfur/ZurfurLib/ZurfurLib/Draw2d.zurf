@@ -7,16 +7,15 @@ module Zurfur.Draw2d
 use Zurfur.Operators[NumOps]
 
 fun test_Shape()
-    @rect = Rect<int>(1,2,3,4)
+    @rect = Rect<int>(1,2,3,4) // TBD: Type inderence for constructors
     
-    rect.location.y = 30 // This should work
-    @rl1 = rect.location        // TBD: Make this work
+    rect.location.y = 30
+    @rl1 = rect.location
     @rly1 = rect.location.y
     @rly2 = rect.location.x2
 
-    @rl2 = rect.lf<int>()
-    @rl2a = rect.lf<int>()
-    @rl2b = rect.lf<int>().yf<int>()
+    @rl2a = rect.lf()
+    @rl2b = rect.lf().yf()
     
     
 

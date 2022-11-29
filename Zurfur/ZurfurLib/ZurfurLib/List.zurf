@@ -30,7 +30,7 @@ fun get ListBuffer<T>.count() int {}
     version int pub ro
 
 [pub] fun List<T>.isLocked() bool
-    return my.buffer.isLocked()
+    return my.buffer.isLocked
 
 [pub] fun mut List<T>.incVersion()
     my.version += 1

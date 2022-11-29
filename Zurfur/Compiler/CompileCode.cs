@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Gosub.Zurfur.Lex;
-
+using System.Windows.Forms.VisualStyles;
 
 namespace Gosub.Zurfur.Compiler
 {
@@ -902,20 +902,20 @@ namespace Gosub.Zurfur.Compiler
                 if (call.InType != null && !call.InType.IsModule)
                     args.Insert(0, new Rval(call.Token, call.InType));
 
-                var function = FindCompatibleFunction(call, args, $"'{call.Token}'");
-                if (function == null)
+                call = FindCompatibleFunction(call, args, $"'{call.Token}'");
+                if (call == null)
                     return null;
 
-                if (function.Symbols[0].IsGetter)
+                if (call.Symbols[0].IsGetter)
                     Reject(ex.Token, "Getter cannot be called with parenthesis");
 
-                if (function.Type.HasGenericArg)
-                    function.Type = ReplaceGenericTypeParams(call.Token, function.Type, call.TypeArgs);
+                if (call.Type.HasGenericArg)
+                    call.Type = ReplaceGenericTypeParams(call.Token, call.Type, call.TypeArgs);
 
-                if (function.Type == null)
+                if (call.Type == null)
                     return null;
 
-                return function;
+                return call;
             }
 
 
@@ -929,24 +929,24 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 }
 
-                var callTypeParamCount = call.TypeArgs?.Length ?? 0;
                 if (callType.IsTypeParam)
                 {
-                    if (callTypeParamCount != 0)
-                        Reject(call.Token, $"Expecting 0 type parameters, but got '{callTypeParamCount}'");
+                    if (call.TypeArgs.Length != 0)
+                        Reject(call.Token, $"Expecting 0 type parameters, but got '{call.TypeArgs.Length}'");
                     if (args.Count != 0)
                         Reject(call.Token, $"New generic type with arguments not supported yet");
                     return new Rval(call.Token, table.GetGenericParam(callType.Order));
                 }
 
-                if (callTypeParamCount != callType.GenericParamTotal())
+                // TBD: Type inference for constructors, e.g. Rect(0,0,0,0) -> Rect<int>(0,0,0,0)
+                if (call.TypeArgs.Length != callType.GenericParamTotal())
                 {
                     Reject(call.Token,
-                        $"Expecting {callType.GenericParamTotal()} generic parameter(s), but got {callTypeParamCount});");
+                        $"Expecting {callType.GenericParamTotal()} generic parameter(s), but got {call.TypeArgs.Length});");
                 }
 
-                // Add type parameters
-                if (callTypeParamCount != 0)
+                // Add supplied type parameters
+                if (call.TypeArgs.Length != 0)
                     callType = table.FindOrCreateSpecializedType(callType, call.TypeArgs);
 
                 // Empty constructor (create a default with any type parameters)
@@ -964,17 +964,17 @@ namespace Gosub.Zurfur.Compiler
                 call.InType = callType;
                 call.Symbols = FindInType(call.Token, "new", callType);
                 args.Insert(0, new Rval(call.Token, callType));
-                var function = FindCompatibleFunction(call, args, $"'new' (constructor for '{call.InType}')");
-                if (function == null)
+                call = FindCompatibleFunction(call, args, $"'new' (constructor for '{call.InType}')");
+                if (call == null)
                     return null;
 
-                if (function.Type.HasGenericArg)
-                    function.Type = ReplaceGenericTypeParams(call.Token, function.Type, call.TypeArgs);
+                if (call.Type.HasGenericArg)
+                    call.Type = ReplaceGenericTypeParams(call.Token, call.Type, call.TypeArgs);
 
-                if (function.Type == null)
+                if (call.Type == null)
                     return null;
 
-                return function;
+                return call;
             }
 
             // If there is an error, mark it and give feedback on possible matches.
@@ -1034,7 +1034,8 @@ namespace Gosub.Zurfur.Compiler
                 call.Token.AddInfo(method);
                 
                 return new Rval(call.Token) { 
-                    Type = method.GetReturnTupleOrType(table), 
+                    Type = method.GetReturnTupleOrType(table),
+                    TypeArgs = InferTypeArgs(method, call.TypeArgs, args, method.GetParamTuple(table).GetTupleTypeList()),
                     Symbols = call.Symbols 
                 };
             }
@@ -1045,17 +1046,19 @@ namespace Gosub.Zurfur.Compiler
                 if (func == null)
                     return false;
 
-                var methodParamTypes = func.GetParamTuple(table).GetTupleTypeList();
-                if (args.Count != methodParamTypes.Length)
+                var funParamTypes = func.GetParamTuple(table).GetTupleTypeList();
+                if (args.Count != funParamTypes.Length)
                     return false;
+
+                typeArgs = InferTypeArgs(func, typeArgs, args, funParamTypes);
 
                 for (var i = 0; i < args.Count; i++)
                 {
-                    if (methodParamTypes[i] == null)
+                    if (funParamTypes[i] == null)
                         return false;
 
                     var arg = args[i].Type;
-                    var param = methodParamTypes[i];
+                    var param = funParamTypes[i];
 
                     // Types match whether they are references or not
                     arg = DerefRef(arg);
@@ -1068,13 +1071,71 @@ namespace Gosub.Zurfur.Compiler
                         continue;
                     }
 
-                    if (!MatchWithGenerics(func, arg, typeArgs, param))
+                    if (!MatchWithGenerics(func, typeArgs, arg, param))
                         return false;
                 }
                 return true;
             }
 
-            bool MatchWithGenerics(SymMethod func, Symbol arg, Symbol []typeArgs, Symbol param)
+            // Infer the type arguments if not given.
+            Symbol[] InferTypeArgs(SymMethod func, Symbol []typeArgs, List<Rval> args, Symbol []methodParamTypes)
+            {
+                if (typeArgs.Length != 0)
+                    return typeArgs;
+                var typeArgsNeeded = func.GenericParamCount();
+                if (typeArgsNeeded == 0 || typeArgsNeeded > methodParamTypes.Length)
+                    return typeArgs;  // Must have enough parameters to make it work
+
+                // Walk through parameters looking for matches
+                var inferredTypeArgs = new Symbol[typeArgsNeeded];
+                for (int paramIndex = 0;  paramIndex < methodParamTypes.Length;  paramIndex++)
+                    if (!InferTypeArg(args[paramIndex].Type, methodParamTypes[paramIndex], inferredTypeArgs))
+                        return typeArgs; // Fail
+
+                // Check if we got them all
+                foreach (var type in inferredTypeArgs)
+                    if (type == null)
+                        return typeArgs;
+
+                return inferredTypeArgs;
+            }
+
+            // Infer one type arg, return false if there is an error and it should bail
+            bool InferTypeArg(Symbol argType, Symbol methodParamType, Symbol[] inferredTypeArgs)
+            {
+                // If it's a generic arg, use the given parameter type
+                if (methodParamType.IsGenericArg)
+                {
+                    var order = methodParamType.Order;
+                    if (order >= inferredTypeArgs.Length)
+                        return false; // Compiler error
+                    if (inferredTypeArgs[order] != null)
+                    {
+                        // If types do not match, it's a contradiction, e.g. user calls f(0, "x") on f<T>(x T, y T).
+                        // TBD: Give better error message (this just fails with 'wrong number of type args')
+                        if (!TypesMatch(inferredTypeArgs[order], argType))
+                            return false;  // User error
+                    }
+                    inferredTypeArgs[order] = argType;
+                    return true;
+                }
+                // If they are both the same generic type, check type parameters
+                if (methodParamType is SymSpecializedType methodParamTypeSpecial
+                    && argType is SymSpecializedType argTypeSpecial
+                    && methodParamType.Parent.FullName == argType.Parent.FullName)
+                {
+                    Debug.Assert(methodParamTypeSpecial.Params.Length == argTypeSpecial.Params.Length);
+                    for (int i = 0;  i < methodParamTypeSpecial.Params.Length;  i++)
+                    {
+                        if (!InferTypeArg(argTypeSpecial.Params[i], methodParamTypeSpecial.Params[i], inferredTypeArgs))
+                            return false;
+                    }
+                }
+
+                return true;
+            }
+
+            bool MatchWithGenerics(SymMethod func, Symbol[] typeArgs, Symbol arg, Symbol param)
             {
                 if (param.HasGenericArg)
                 {
