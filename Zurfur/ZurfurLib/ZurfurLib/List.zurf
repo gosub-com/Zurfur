@@ -6,152 +6,143 @@ use Zurfur.Collections[Iterator]
 use Zurfur[Clone]
 use Zurfur.Math[max]
 
-// Use this for now until require is implemented
-fun require_tbd(c bool) require c {}
+
+// All empty lists point here
+@empty GcHeapArray
 
 
-[pub] const MAX_ARRAY_SIZE_BYTES int = i32.MaxValue/4
+// Send to DlMalloc
+fun calloc(size int) *void
+    extern
 
-// UNSAFE: This type may contains ?T and relies on List to keep track of
-// how many items it has.
-type unsafe ListBuffer<T> is Buffer<T>
 
-// TBD: Protect the list against being moved while there is a reference to an item
-[pub] fun get ListBuffer<T>.isLocked() bool
+// The one and only dynamically sized data structure.  Calling any function
+// that could modify `len` or `capacity` while a reference to an element
+// exists is a runtime error.
+[pub]
+type List<T>
+    const MaxItems int = u32.MaxValue/2
+    list *GcHeapArray
+
+[pub]
+fun List<T>.new()
+    my.list = &empty
+        
+
+[pub]
+fun List<T>.new(capacity int)
+    require capacity in 0..my.MaxItems
+    if capacity == 0
+        my.list = &empty
+    else
+        my.list = castPointer<*GcHeapArray>(calloc(sizeof(T)*capacity + sizeof(GcHeapArray)))
+
+
+// Returns true if there is a reference to any element.  When locked, the
+// list length cannot be changed.  A GC implementation might not ever lock.
+[pub]
+fun get List<T>.isLocked() bool
+    return my.list.refCount != 0
+
+// The compiler ensures drop cannot be called when there is
+// reference to an element.
+[pub]
+fun List<T>.drop()
+    require !isLocked // Not possible because the compiler ensures
     todo
 
-// TBD: Implement "type is" instead of stubbing like this
-fun get ListBuffer<T>.count() int {}
-
-[pub] type List<T>
-    [pub] const MaxItems int = MAX_ARRAY_SIZE_BYTES/Math.Max(1,sizeof(t))
-    buffer ListBuffer<T>
-    count int pub ro
-    version int pub ro
-
-[pub] fun List<T>.isLocked() bool
-    return my.buffer.isLocked
-
-[pub] fun mut List<T>.incVersion()
-    my.version += 1
-    
-
-[pub] fun List<T>.new(capacity int)
-    my.buffer = ListBuffer<T>(capacity)
 
 // Clone items into the new list
-[pub] fun List<T>.new(items []T)
-    my.buffer = ListBuffer<T>(items.Count)
-    my.push(items)
+[pub]
+fun List<T>.new(items []T)
+    where T has Clone<T>
+    todo
 
 // Clone items into the new list
-[pub] fun List<T>.new(items mut Iterator<T>)
-    my.buffer = ListBuffer<T>(items.countHint)
-    my.push(items)
-    
-[pub] fun _opIndex<T>(list List<T>, i int) mut ref T
+[pub]
+fun List<T>.new(items mut Iterator<T>)
+    todo
+
+[pub]
+fun _opIndex<T>(list List<T>, i int) mut ref T
     require i in 0..count
-    return ref list.buffer[i]
+    todo
 
-[pub] fun _opIndex<T>(list List<T>, r Range<int>) mut []T
+[pub]
+fun _opIndex<T>(list List<T>, r Range<int>) mut []T
     require r.start in 0..count
     require r.end in 0..count
     require r.start <= range.end
-    return ref list.buffer[r]
+    todo
+
+[pub]
+fun get List<T>.iterator() SpanIterator<T>
+    todo
 
 
-
-// Grow the capacity to be at least minCapacity size.
-// If minCapacity is <= capacity nothing happens,
-// otherwise the list is expanded exponentially.
-[pub] fun mut List<T>.grow(minCapacity int)
-    require !isLocked()
-    if minCapacity <= my.buffer.count
-        my.incVersion()
-        return
-    @newCap = max(my.capacity*2, minCapacity)
-    if sizeof(T) == 1
-        newCap = max(newCap, 12)
-    elif sizeof(T) <= 64
-        newCap = max(newCap, 4)
-    else
-        newCap = max(newCap, 1)
-    my.setCapacity(newCap)
-
-[pub] fun mut List<T>.trim(extra int = 0)
-    require !hasRef()        
-    my.setCapacity(my.count + extra)
-
-[pub] fun get List<T>.capacity() int
-    return my.buffer.count
+[pub]
+fun get List<T>.capacity() int
+    return my.list.capacity.toInt
 
 // Set the capacity, won't shrink below count.
-[pub] fun mut List<T>.setCapacity(value int)
-    require !isLocked()        
-    @newCap = max(value, my.count)
-    if newCap == my.buffer.count
-        return
-    require_tbd(newCap < my.MaxItems)
-    
-    // Copy items into new array
-    @newBuffer = ListBuffer<T>(newCap)
-    for @i in 0..my.count
-        newBuffer[i] = move(my.buffer[i])
-    my.buffer = newBuffer
+[pub]
+fun set List<T>.capacity(value int)
+    require !isLocked and value < my.MaxItems
+    todo
 
 
 // Return a new array with all occurences of `seqSearch`
 // replaced by `seqReplace`.
 [pub] fun mut List<T>.replace(seqSearch []T, seqReplace[]T)
-    require !hasRef()
+    require !isLocked
     todo
 
 [pub] fun mut List<T>.clear()
-    require !hasRef()
+    require !isLocked
     todo
 
 [pub] fun mut List<T>.push(item own T)
-    require !hasRef()
+    require !isLocked
     todo
 
 [pub] fun mut List<T>.pushClones(items Span<T>)
-    require !hasRef()
+    require !isLocked
     todo
 
 [pub] fun mut List<T>.pushClones(items mut Iterator<T>)
-    require !hasRef()
+    require !isLocked
     todo
 
 [pub] fun mut List<T>.pushClones(item T, count int)
-    require !hasRef()
+    require !isLocked
     todo
 
 [pub] fun mut List<T>.pop() ?T
-    require !hasRef()
+    require !isLocked
     todo
 
 [pub] fun mut List<T>.insert(index int, item own T)
-    require !hasRef()
+    require !isLocked
     todo
 
 [pub] fun mut List<T>.insert(index int, items []T)
-    require !hasRef()
+    require !isLocked
     todo
 
 [pub] fun mut List<T>.insert(index int, items mut Iterator<T>)
-    require !hasRef()
+    require !isLocked
     todo
 
 [pub] fun mut List<T>.remove(index int) T
-    require !hasRef()
+    require !isLocked
     todo
 
 [pub] fun mut List<T>.remove(range Range<int>)
-    require !hasRef()
+    require !isLocked
     todo
 
 [pub] fun mut List<T>.remove(test fun(item T) bool)
-    require !hasRef()
+    require !isLocked
     todo
 
 [pub] fun List<T>.convert<Tout>(f fun(item T) ?Tout) List<Tout>
@@ -166,7 +157,5 @@ fun get ListBuffer<T>.count() int {}
 // Usage: myList.For @item => DoStuffWithItem()
 [pub] fun mut List<T>.forEach(f fun(item mut T)) {}
 
-[pub] fun mut List<T>.getIter()
-    return this[0..my.count]
 
  

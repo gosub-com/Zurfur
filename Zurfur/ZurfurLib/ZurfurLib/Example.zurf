@@ -211,10 +211,10 @@ type MyStruct(a int)
 
 [pub] fun sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
     // Simple selection sort
-    for @i in s.count-1
+    for @i in s.length-1
         @lowElem = s[i]
         @lowIndex = i
-        for @j in i+1..s.count
+        for @j in i+1..s.length
             if lessThan(s[j], lowElem)
                 lowElem = s[j]
                 lowIndex = j

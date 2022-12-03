@@ -6,7 +6,8 @@ use Zurfur.Collections[Iterator, Iterable]
 
 
 
-[pub] type Map<K,V>
+[pub]
+type Map<K,V>
     items List<str> // TBD: Buffer of items in hash table
 
     // TBD: Allow this
@@ -15,56 +16,71 @@ use Zurfur.Collections[Iterator, Iterable]
     //    value V pub ref mut
 
 // TBD: This wants to be inside Map<K,V>
-[pub] type KvPair<K,V>
+[pub]
+type KvPair<K,V>
     key K pub ro
     value V pub mut
 
 // TBD: Need this: fun (kv Map<K,V>.Pair) ...
-[pub] fun KvPair<K,V>.new(key own K, value own V)
+[pub]
+fun KvPair<K,V>.new(key own K, value own V)
     my.key = key
     my.value = value
 
 
-[pub] fun Map<K,V>.new(capacity int)
-    return todo
+[pub]
+fun Map<K,V>.new(capacity int)
+    todo
     
-[pub] fun Map<K,V>.new(keyValues Iterator<KvPair<K,V>>)
-    return todo
+[pub]
+fun Map<K,V>.new(keyValues Iterator<KvPair<K,V>>)
+    todo
     
-[pub] fun get Map<K,V>.count() int
-    return todo
-
-// TBD: Figure out map["Hello"] += 1
-[pub] fun _opIndex<K,V>(map Map<K,V>, key K) mut ?ref V
-    return todo
-
-// TBD: An indexer with 3 inputs???
-[pub] fun _opIndex<K,V>(map Map<K,V>, key K, item V)
+[pub]
+fun get Map<K,V>.count() int
     todo
 
-[pub] fun Map<K,V>.contains(key K) bool
-    return todo
+// TBD: Figure out map["Hello"] += 1
+[pub]
+fun _opIndex<K,V>(map Map<K,V>, key K) mut ?ref V
+    todo
+
+// TBD: An indexer with 3 inputs???
+[pub]
+fun _opIndex<K,V>(map Map<K,V>, key K, item V)
+    todo
+
+[pub]
+fun Map<K,V>.contains(key K) bool
+    todo
 
 // TBD: Return Iterable<(K, V)>???
-[pub] fun get Map<K,V>.iterator() mut Iterator<KvPair<K,V>>
-    return todo
+[pub]
+fun get Map<K,V>.iterator() mut Iterator<KvPair<K,V>>
+    todo
 
-[pub] fun get Map<K,V>.keys() Iterator<K>
-    return todo
+[pub]
+fun get Map<K,V>.keys() Iterator<K>
+    todo
 
-[pub] fun get Map<K,V>.values() mut Iterator<V>
-    return todo
+[pub]
+fun get Map<K,V>.values() mut Iterator<V>
+    todo
 
-[pub] fun mut Map<K,V>.clear()
-    return todo
+[pub]
+fun mut Map<K,V>.clear()
+    todo
 
-[pub] fun mut Map<K,V>.add(item KvPair<K,V>)
-    return todo
+[pub]
+fun mut Map<K,V>.add(item KvPair<K,V>)
+    todo
 
-[pub] fun mut Map<K,V>.add(items Iterator<KvPair<K,V>>)
-    return todo
+[pub]
+fun mut Map<K,V>.add(items Iterator<KvPair<K,V>>)
+    todo
 
-[pub] fun mut Map<K,V>.remove(key K) bool
-    return todo
+[pub]
+fun mut Map<K,V>.remove(key K) bool
+    todo
 
     

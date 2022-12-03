@@ -5,62 +5,56 @@ module Zurfur
 use Zurfur.Operators[OpEq]
 
 // []T is converted to Span<T>
-[pub] type ref copy Span<T>
-    data ro mut ?ref T
-    count ro int pub ro
+[pub]
+type ref copy Span<T>
+    data ro mut ref T
+    length ro int
+
+
+[pub]
+type ref copy SpanIterator<T>
+    data ro mut ref T
+    length ro int
+    count ro int
     
-[pub] fun Span<T>.opIndex(i int) mut ref T
-    require i in 0..my.count
+[pub]
+fun Span<T>.opIndex(i int) mut ref T
+    require i in 0..my.length
     extern // Implementation TBD
 
-[pub] fun Span<T>.opIndex(range Range<int>) mut Span<T>
-    require range.start in 0..my.count
-    require range.end in 0..my.count
+[pub]
+fun Span<T>.opIndex(range Range<int>) mut Span<T>
+    require range.start in 0..my.length
+    require range.end in 0..my.length
     require range.start <= range.end
     extern // Implementation TBD
 
-[pub] fun mut Span<T>.sort(compare fun(a T, b T)bool)
+[pub]
+fun mut Span<T>.sort(compare fun(a T, b T)bool)
     return todo
 
 // Set the span to `item` (or default if not specified)
-[pub] fun mut Span<T>.clear(item T = default)
-    for @i in 0..my.count
-        this[i] = item
-
+[pub]
+fun mut Span<T>.clear(item T = default)
+    todo
+    
 // Find index of the sequence `seq`.
 // Returns -1 if not found, or 0 if `seq` is empty.
-[pub] fun Span<T>.find(seq Span<T>) int
+[pub]
+fun Span<T>.find(seq Span<T>) int
         where T has OpEq<T>
-    if seq.count == 0
-        return 0
-    if seq.count > my.count
-        return -1
-    for @i in 0..my.count-seq.count+1
-        if this[i] != seq[0]
-            continue
-        @j = 1
-        while j < seq.count and seq[j] == my[i+j]
-            j += 1
-        if j == seq.count
-            return i
-    return -1
-
+    todo
 
 // Find the index of the `item`.  Returns -1 if not found.
-[pub] fun Span<T>.find(item T) int
+[pub]
+fun Span<T>.find(item T) int
         where T has OpEq<T>
-    for @i in 0..my.count
-        if this[i] == item
-            return i
-    return -1
-
+    todo
+    
 // Find the index of the `item` when `eq` returns true.
 // Returns -1 if not found.
-[pub] fun Span<T>.find(eq fun(item T) bool) int
-    for @i in 0..my.count
-        if eq(this[i])
-            return i
-    return -1
-
+[pub]
+fun Span<T>.find(eq fun(item T) bool) int
+    todo
 
         

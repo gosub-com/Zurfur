@@ -446,9 +446,9 @@ fun get MIN_SMALL_INDEX() u64
 
 // addressing by index. See above about smallbin repositioning
 fun DlMalloc.smallbin_at(i u64) *mchunk
-    return castPointer<*mchunk>(&my.smallbins[(i) << 1])
+    return castPointer<*mchunk>(my.smallbins + i*2)
 fun DlMalloc.treebin_at(i u64) **tchunk
-    return castPointer<**tchunk>(&my.treebins[i])
+    return castPointer<**tchunk>(my.treebins + i)
 
 // Find tree index for size S
 fun compute_tree_index(s u64) u64
@@ -1111,7 +1111,6 @@ fun mut DlMalloc.init_bins()
 
 // Default corruption action - forget all allocated memory.
 fun mut DlMalloc.ResetOnError()
-    @i u64
     my.malloc_corruption_error_count += 1
     // Reinitialize fields to forget about all memory
     my.smallmap = 0
@@ -1730,7 +1729,7 @@ fun mut DlMalloc.init_user_mstate(tbase *byte, tsize u64)
 
     @p = mem2chunk(mem)
     if !my.ok_magic()
-        my.memMan.CallUsageErrorAction(p)
+        my.CallUsageErrorAction(p)
         return
     my.check_inuse_chunk(p)
     if (!RTCHECK(my.ok_address(p) and ok_inuse(p)))
@@ -1769,7 +1768,7 @@ fun mut DlMalloc.init_user_mstate(tbase *byte, tsize u64)
                     my.dv = nil
                     my.dvsize = 0
                 if my.should_trim(tsize)
-                    my.sys_trim(0)
+                    my.sys_trim(0u64)
                 return
             elif next == my.dv
                 my.dvsize += psize

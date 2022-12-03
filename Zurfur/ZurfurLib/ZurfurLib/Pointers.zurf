@@ -1,6 +1,5 @@
 ﻿module Zurfur
 
-pragma AllowUnderscoreDefinitions
 
 // Unsigned extended int, u32 or u64 depending on machine pointer size.
 // This is the internal representation of a pointer.
@@ -12,45 +11,27 @@ type copy Xuint
 // and automatically dereferences when "." is used.
 [pub unsafe]
 type copy RawPointer<T>
-    // `__valueNoDeref` is a special identifier that tells the compiler
-    // not to automatically dereference this field.
-    __valueNoDeref Xuint
+    value Xuint
 
 // Internal representation of `ref`, a compiler generated stack only pointer.
-// These are not tracked by the GC, so must be "covered".
+// The first version is a reference counting implementation, but future
+// versions might not be.  The owner is nil when a non-heap (static global or
+// stack local) object is referenced.  These references are also called return
+// references because they get passed back up the stack.
 type copy ref Ref<T>
-    __valueNoDeref *T
+    owner ?*GcHeapObject
+    value *T
 
-// A pointer to heap memory.  The garbage collector must be aware of this
-// type so it con reclaim unused memory.  This implementation uses reference
+// Forward references are an optimization the code synthesizer can use when
+// they are passed down the stack, e.g. f(value Ref<T>) can be replaced with
+// f(value FRef<T>) since the reference is "covered".
+type copy ref FRef<T>
+    value *T
+
+// A pointer to heap memory.  This implementation uses reference
 // counting, but future implementations might be compacting instead.
 type copy Pointer<T>
-    // `__valueNoDeref` is a special identifier that tells the compiler
-    // not to automatically dereference this field.
-    __valueNoDeref *GcHeapObject  // Can also point to GcHeapArray<T>
-    
-fun Pointer<T>.new()
-    require(false) extern // TBD: Fix, shouldn't need `extern`
-
-fun Pointer<T>.new(value *GcHeapObject)
-    my.__valueNoDeref = value
-
-fun Pointer<T>.clone() Pointer<T>
-    my.__valueNoDeref.refCount += 1
-
-fun Pointer<T>.drop()
-    my.__valueNoDeref.refCount -= 1
-    if my.__valueNoDeref.refCount < 0
-        free(my.__valueNoDeref)
-
-
-// Internal `ref` type that tracks a heap object.  Not used by the compiler
-// or user code.  This is used by the code generator when it is necessary
-// to cover a `GcHeapObject` so it can't be collected.  This could also be
-// called a ReturnRef since that's when it is used.
-type copy ref OwnerRef<T>
-    owner ^T
-    value *T
+    value *GcHeapObject  // Can also point to GcHeapArray<T>
 
 // All heap objects start with this header.  It must be 64 bits wide to
 // ensure proper alignment. 
@@ -62,7 +43,11 @@ type GcHeapObject
 // The one and only variable length heap object.  It must be 128 bits
 // wide to ensure proper alignment.
 type GcHeapArray
-    gcHeapObject GcHeapObject    // TBD: `use` GcHeapObject
+    // TBD: use GcHeapObject
+    //NOTE: Until we get 'use', the first two fields MUST be the same
+    //      as GcHeapObject since we will cast pointers back and forth
+    refCount i32
+    typeId Type
     length u32
     capacity u32
     // Array of object data is stored following this header
