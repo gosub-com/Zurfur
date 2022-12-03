@@ -8,33 +8,37 @@ pragma AllowUnderscoreDefinitions
 
 // Blank function
 [pub] fun get nop() extern
+[pub] fun get todo() require(false) extern
+
 
 // These implement throw and require reserved words
 [pub] fun __throw(code ErrorCode, message str) extern
 [pub] fun __throw(condition bool, code ErrorCode, message str) extern
 [pub] fun __require(condition bool) extern
 [pub] fun __require(condition bool, message str) extern
-
-// 
 [pub] fun assert(condition bool) extern
 [pub] fun assert(condition bool, message str) extern
 
-[pub] interface Error
+
+
+// Return type of functions that don't return anything
+[pub]
+type void { }
+
+// Empty value for pointers and optionals
+[pub]
+type nil { }
+
+[pub]
+type Error interface
     fun get code() ErrorCode
     fun get Message() str
 
 // This will probably be a specially recognized error code type
-[pub] enum ErrorCode
+[pub]
+type ErrorCode enum
     Success = 0 
 
-// TBD: Probably need to remove this
-fun get todo() require(false) extern
-
-// Return type of functions that don't return anything
-[pub] type void { }
-
-// Empty value for pointers and optionals
-[pub] type nil { }
 
 // Nullable<T> - Same as ?T.  NullableRef is the 
 [pub]
@@ -49,21 +53,25 @@ fun Nullable<T>.new(value T)
     
 
 // Nullable reference (or pointer), optimization of ?ref T
-[pub] type ref NullableRef<T>
+[pub]
+type NullableRef<T> ref
     value ref T
 
 // a UTF8 encoded character, same as i32
-[pub] type rune = i32
+[pub]
+type rune = i32
 
 // Base interface for all types
-[pub] interface object { }
+[pub]
+type object interface { }
 
 
 // All types have a unique `id`, but other non-essential metadata is opt-in.
 // This must always be 32 bits, even on 64 bit machines, so as not to change
 // the `GcHeapObject` footprint.
-[pub] type ro copy Type
-    id u32 pub ro
+[pub]
+type Type ro copy
+    id u32
 
 
 // Swap two items
@@ -71,7 +79,8 @@ fun Nullable<T>.new(value T)
     extern
 
 // bool (true or false)
-[pub] type ro copy bool
+[pub]
+type bool ro copy
     const __size int = 1
 
 
@@ -79,7 +88,8 @@ fun Nullable<T>.new(value T)
 [pub] fun bool._opEq(a bool) bool extern
 
 // i8 (-128..127)
-[pub] type ro copy i8
+[pub]
+type i8 ro copy
     const __size int = 1
     const __align int = 1
     [pub] const MAX i8 = 127
@@ -103,7 +113,7 @@ fun Nullable<T>.new(value T)
 
 
 // byte (0..255)
-[pub] type ro copy byte
+[pub] type byte ro copy
     const __size int = 1
     const __align int = 1    
     [pub] const MAX byte = 255
@@ -130,7 +140,7 @@ fun Nullable<T>.new(value T)
 
 
 // i16 (-32768..32768)
-[pub] type ro copy i16
+[pub] type i16 ro copy
     const __size int = 2
     const __align int = 2    
     [pub] const MAX i16 = 32767
@@ -158,7 +168,7 @@ fun Nullable<T>.new(value T)
 
 
 // u16 (0..65535)
-[pub] type ro copy u16
+[pub] type u16 ro copy
     const __size int = 2
     const __align int = 2    
     [pub] const MAX u16 = 65535
@@ -186,7 +196,7 @@ fun Nullable<T>.new(value T)
 [pub] fun _opCmp(a u16, b u16) i32 extern
 
 // A 32 bit integer
-[pub] type ro copy i32
+[pub] type i32 ro copy
     const __size int = 4
     const __align int = 4    
     [pub] const MAX i32 = 2147483647
@@ -213,6 +223,7 @@ fun Nullable<T>.new(value T)
 [pub] fun i32.getHash() int extern
 [pub] fun _opEq(a i32, b i32) bool extern
 [pub] fun _opCmp(a i32, b i32) i32 extern
+[pub] fun _opIn(a i32, b Range<i32>) bool extern
 [pub] fun _opRange(a i32, b i32) Range<i32> extern // TBD: Generic function on range?
 [pub] fun _opAdd(a i32, b i32) i32 extern
 [pub] fun _opSub(a i32, b i32) i32 extern
@@ -232,7 +243,7 @@ fun Nullable<T>.new(value T)
 
 
 // 32 bit unsigned integer
-[pub] type ro copy u32
+[pub] type u32 ro copy
     const __size int = 4
     const __align int = 4    
     [pub] const MAX u32 = 4294967295
@@ -260,6 +271,7 @@ fun Nullable<T>.new(value T)
 [pub] fun u32.getHash() int extern
 [pub] fun _opEq(a u32, b u32) bool extern
 [pub] fun _opCmp(a u32, b u32) i32 extern
+[pub] fun _opIn(a u32, b Range<u32>) bool extern
 [pub] fun _opRange(a u32, b u32) Range<u32> extern // TBD: Generic function on range?
 [pub] fun _opAdd(a u32, b u32) u32 extern
 [pub] fun _opSub(a u32, b u32) u32 extern
@@ -279,7 +291,7 @@ fun Nullable<T>.new(value T)
 
 
 // A 64 bit integer (same as int)
-[pub] type ro copy int
+[pub] type int ro copy
     const __size int = 8
     const __align int = 8    
     [pub] const MAX int = 9223372036854775807
@@ -310,6 +322,7 @@ fun Nullable<T>.new(value T)
 [pub] fun int.getHash() int extern
 [pub] fun _opEq(a int, b int) bool extern
 [pub] fun _opCmp(a int, b int) i32 extern
+[pub] fun _opIn(a int, b Range<int>) bool extern
 [pub] fun _opRange(a int, b int) Range<int> extern // TBD: Generic function on range?
 [pub] fun _opAdd(a int, b int) int extern
 [pub] fun _opSub(a int, b int) int extern
@@ -329,7 +342,7 @@ fun Nullable<T>.new(value T)
     return RangeIterator<int>(0, my)
 
 // 64 bit unsigned integer
-[pub] type ro copy u64
+[pub] type u64 ro copy
     const __size int = 8
     const __align int = 8    
     [pub] const MAX u64 = 18446744073709551615
@@ -359,6 +372,7 @@ fun Nullable<T>.new(value T)
 [pub] fun u64.getHash() int extern
 [pub] fun _opEq(a u64, b u64) bool extern
 [pub] fun _opCmp(a u64, b u64) i32 extern
+[pub] fun _opIn(a u64, b Range<u64>) bool extern
 [pub] fun _opRange(a u64, b u64) Range<u64> extern // TBD: Generic function on range?
 [pub] fun _opAdd(a u64, b u64) u64 extern
 [pub] fun _opSub(a u64, b u64) u64 extern
@@ -380,16 +394,16 @@ fun Nullable<T>.new(value T)
 [pub] fun get u64.iterator() RangeIterator<u64>
     return RangeIterator<u64>(0 u64, my)
 
-[pub] type ro copy i128
+[pub] type i128 ro copy
     const __size int = 16
     const __align int = 16
 
-[pub] type ro copy u128
+[pub] type u128 ro copy
     const __size int = 16
     const __align int = 16
 
 
-[pub] type ro copy f32
+[pub] type f32 ro copy
     const __size int = 4
     const __align int = 4    
     [pub] const MAX f32 = 3.40282347E+38F
@@ -427,6 +441,7 @@ fun Nullable<T>.new(value T)
 [pub] fun _opGeUnordered(a f32, b f32) bool extern
 [pub] fun _opLtUnordered(a f32, b f32) bool extern
 [pub] fun _opLeUnordered(a f32, b f32) bool extern
+[pub] fun _opIn(a f32, b Range<f32>) bool extern
 [pub] fun _opRange(a f32, b f32) Range<i32> extern // TBD: Generic function on range?
 [pub] fun _opAdd(a f32, b f32) f32 extern
 [pub] fun _opSub(a f32, b f32) f32 extern
@@ -436,7 +451,7 @@ fun Nullable<T>.new(value T)
 [pub] fun _opRem(a f32, b f32) f32 extern
 
 
-[pub] type ro copy f64
+[pub] type f64 ro copy
     const __size int = 8
     const __align int = 8    
     [pub] const MAX f64 = 1.7976931348623157E+308
@@ -474,6 +489,7 @@ fun Nullable<T>.new(value T)
 [pub] fun _opGeUnordered(a f64, b f64) bool extern
 [pub] fun _opLtUnordered(a f64, b f64) bool extern
 [pub] fun _opLeUnordered(a f64, b f64) bool extern
+[pub] fun _opIn(a f64, b Range<f64>) bool extern
 [pub] fun _opRange(a f64, b f64) Range<f64> extern // TBD: Generic function on range?
 [pub] fun _opAdd(a f64, b f64) f64 extern
 [pub] fun _opSub(a f64, b f64) f64 extern
@@ -485,7 +501,7 @@ fun Nullable<T>.new(value T)
 
 // 128 bit decimal integer.  This will support NAN, infinity, and
 // exponents covering the entire range of f64 with more precision.
-[pub] type ro copy Decimal
+[pub] type Decimal ro copy
     const __size int = 16
     const __align int = 16
     [pub] const MAX Decimal = 1E+1000M
@@ -520,6 +536,7 @@ fun Nullable<T>.new(value T)
 [pub] fun _opGeUnordered(a Decimal, b Decimal) bool extern
 [pub] fun _opLtUnordered(a Decimal, b Decimal) bool extern
 [pub] fun _opLeUnordered(a Decimal, b Decimal) bool extern
+[pub] fun _opIn(a Decimal, b Range<Decimal>) bool extern
 [pub] fun _opRange(a Decimal, b Decimal) Range<i32> extern // TBD: Generic function on range?
 [pub] fun _opAdd(a Decimal, b Decimal) Decimal extern
 [pub] fun _opSub(a Decimal, b Decimal) Decimal extern

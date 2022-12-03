@@ -3,12 +3,12 @@ module Zurfur.Collections
 
 
 
-interface Iterable<Item>
+type Iterable<Item> interface
     fun get iterator() Iterator<Item>
 
 
 // Implement this on all iterators
-interface Iterator<Item>
+type Iterator<Item> interface
 
     // Return the next item, or null if it doesn't exist
     fun mut next() ?Item

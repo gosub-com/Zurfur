@@ -27,7 +27,7 @@ fun test_HelloWorld()
     array Array<int> = [1,2,3]             // Private mutable array
     list List<str> = ["Hello", "World"]    // Private mutable list
     m ro Map<str,int> = ["A":1, "B":2]     // Private immutable map
-    Header ro str pub ro = "Zurfur"        // Public immutable string
+    Header ro str pub = "Zurfur"        // Public immutable string
 
 [pub] fun Example.F(a int) int
     return my.m["A"]+10   // Public function
@@ -58,7 +58,7 @@ fun test_ForSimple()
 
 
 [pub] type Label { }
-[pub] type class TestGuiForm // TBD: How to do this without extends Form
+[pub] type TestGuiForm // TBD: How to do this without extends Form
     Message1 Label pub mut
     Message2 Label pub mut
     Message3 Label pub mut

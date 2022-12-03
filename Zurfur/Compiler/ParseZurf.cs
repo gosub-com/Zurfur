@@ -69,23 +69,23 @@ namespace Gosub.Zurfur.Compiler
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "
             + "box boxed init move copy clone bag drop dispose own owned "
-            + "trait mixin extends impl union fun afun def yield let "
+            + "mixin extends impl union fun afun def yield let "
             + "any dyn dynamic loop select match event aevent from to of on cofun cofunc global local it "
-            + "throws atask task scope assign @ # and or not xor with cap exit pragma require ensure "
+            + "throws atask task scope assign @ # and or not xor with exit pragma require ensure "
             + "of sync task except exception raise loc local global my");
 
         public static WordSet ReservedWords => sReservedWords;
 
         static WordSet sScopeQualifiers = new WordSet("pub public private unsafe unsealed static protected");
         static WordSet sFieldQualifiers = new WordSet("ro mut static");
-        static WordSet sTypeQualifiers = new WordSet("ro ref boxed class copy nocopy unsafe");
+        static WordSet sPostTypeQualifiers = new WordSet("ro ref copy nocopy unsafe enum interface");
         static WordSet sPostFieldQualifiers = new WordSet("init ro mut");
         static WordSet sParamQualifiers = new WordSet("ro own mut");
 
         static WordSet sReservedUserFuncNames = new WordSet("new clone drop default");
         static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default self super new move my sizeof typeof");
         static WordSet sReservedMemberNames = new WordSet("clone");
-        static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref");
+        static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref ro");
 
         static WordSet sEmptyWordSet = new WordSet("");
 
@@ -95,7 +95,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sXorOps = new WordSet("~");
         static WordSet sMultiplyOps = new WordSet("* / % &");
         static WordSet sAssignOps = new WordSet("= += -= *= /= %= |= &= ~= <<= >>=");
-        static WordSet sUnaryOps = new WordSet("+ - ! & ~ use unsafe ref clone mut");
+        static WordSet sUnaryOps = new WordSet("+ - & ~ use unsafe ref clone mut not");
 
         // For now, do not allow more than one level.  Maybe we want to allow it later,
         // but definitely do not allow them to include compounds with curly braces.
@@ -504,8 +504,6 @@ namespace Gosub.Zurfur.Compiler
                     qualifiers.Clear();
                     break;
 
-                case "interface":
-                case "enum":
                 case "type":
                     mToken.Type = eTokenType.ReservedControl;
                     qualifiers.Add(Accept());
@@ -833,19 +831,16 @@ namespace Gosub.Zurfur.Compiler
             synType.Comments = mComments.ToString();
             mComments.Clear();
 
-            if (keyword.Name == "type")
-                ParseQualifiers(sTypeQualifiers, qualifiers);
-
-            synType.Qualifiers = qualifiers.ToArray();
-
-            // Parse class name and type parameters
+            // Parse type name
             if (!CheckIdentifier("Expecting a type name"))
                 return;
-
             synType.Name = Accept();
             synType.Name.Type = eTokenType.TypeName;
-            if (mTokenName == "<" && (keyword == "type" || keyword == "interface"))
+            if (mTokenName == "<")
                 synType.TypeArgs = ParseTypeParameters();
+
+            ParseQualifiers(sPostTypeQualifiers, qualifiers);
+            synType.Qualifiers = qualifiers.ToArray();
 
             mSyntax.Types.Add(synType);
             RejectUnderscoreDefinition(synType.Name);
@@ -856,7 +851,7 @@ namespace Gosub.Zurfur.Compiler
             mScopeStack.Add(synType);
 
             // Simple struct
-            if (keyword == "type" && AcceptMatch("("))
+            if (AcceptMatch("("))
             {
                 synType.Simple = true;
                 var open = mPrevToken;
@@ -876,7 +871,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Alias or 'is' type
-            if (keyword == "type" && (AcceptMatch("=") || AcceptMatch("is")))
+            if (AcceptMatch("=") || AcceptMatch("is"))
             {
                 var prev = mPrevToken.Name;
                 synType.Simple = true;
@@ -890,17 +885,19 @@ namespace Gosub.Zurfur.Compiler
             var qualifiers2 = new List<Token>();
             ParseScopeLevel(keyword, sEmptyWordSet, () =>
             {
-                ParseTypeScopeStatement(keyword, qualifiers2);
+                ParseTypeScopeStatement(synType, qualifiers2);
             });
 
             // Restore old path
             mScopeStack = oldScopeStack;
         }
 
-        private void ParseTypeScopeStatement(Token keyword, List<Token> qualifiers)
+        private void ParseTypeScopeStatement(SyntaxType parent, List<Token> qualifiers)
         {
             // Read attributes and qualifiers
             ParseAttributes(qualifiers);
+            var isInterface = Array.Find(parent.Qualifiers, a => a == "interface") != null;
+            var isEnum = Array.Find(parent.Qualifiers, a => a == "enum") != null;
 
             switch (mTokenName)
             {
@@ -908,8 +905,8 @@ namespace Gosub.Zurfur.Compiler
                     break;
 
                 case "const":
-                    if (keyword != "type")
-                        RejectToken(mToken, $"'{keyword}' may not contain 'const'");
+                    if (isInterface || isEnum)
+                        RejectToken(mToken, $"Interfaces and enumerations may not contain 'const'");
                     mToken.Type = eTokenType.ReservedControl;
                     qualifiers.Add(Accept());
                     AddField(ParseFieldSimple(qualifiers));
@@ -918,21 +915,21 @@ namespace Gosub.Zurfur.Compiler
 
                 case "fun":
                 case "afun":
-                    if (keyword != "interface")
-                        RejectToken(mToken, $"'{keyword}' may not contain '{mTokenName}'");
+                    if (!isInterface)
+                        RejectToken(mToken, $"Only interfaces may not contain '{mTokenName}'");
                     mToken.Type = eTokenType.ReservedControl;
                     qualifiers.Add(Accept());
-                    ParseMethod(mToken, qualifiers, keyword != "interface");
+                    ParseMethod(mToken, qualifiers, !isInterface);
                     qualifiers.Clear();
                     break;
 
                 default:
-                    if (keyword == "type")
-                        ParseFieldFull(qualifiers);
-                    else if (keyword == "enum")
+                    if (isEnum)
                         AddField(ParseEnumField(qualifiers));
-                    else // interface
+                    else if (isInterface)
                         RejectToken(mToken, "Interface is expecting 'fun'");
+                    else
+                        ParseFieldFull(qualifiers);
 
                     qualifiers.Clear();
                     break;

@@ -41,14 +41,14 @@ fun List<T>.new(capacity int)
 // Returns true if there is a reference to any element.  When locked, the
 // list length cannot be changed.  A GC implementation might not ever lock.
 [pub]
-fun get List<T>.isLocked() bool
+fun get List<T>.locked() bool
     return my.list.refCount != 0
 
 // The compiler ensures drop cannot be called when there is
 // reference to an element.
 [pub]
 fun List<T>.drop()
-    require !isLocked // Not possible because the compiler ensures
+    require not my.locked // Not possible because the compiler ensures
     todo
 
 
@@ -87,62 +87,62 @@ fun get List<T>.capacity() int
 // Set the capacity, won't shrink below count.
 [pub]
 fun set List<T>.capacity(value int)
-    require !isLocked and value < my.MaxItems
+    require not my.locked and value < my.MaxItems
     todo
 
 
 // Return a new array with all occurences of `seqSearch`
 // replaced by `seqReplace`.
 [pub] fun mut List<T>.replace(seqSearch []T, seqReplace[]T)
-    require !isLocked
+    require not my.locked
     todo
 
 [pub] fun mut List<T>.clear()
-    require !isLocked
+    require not my.locked
     todo
 
 [pub] fun mut List<T>.push(item own T)
-    require !isLocked
+    require not my.locked
     todo
 
 [pub] fun mut List<T>.pushClones(items Span<T>)
-    require !isLocked
+    require not my.locked
     todo
 
 [pub] fun mut List<T>.pushClones(items mut Iterator<T>)
-    require !isLocked
+    require not my.locked
     todo
 
 [pub] fun mut List<T>.pushClones(item T, count int)
-    require !isLocked
+    require not my.locked
     todo
 
 [pub] fun mut List<T>.pop() ?T
-    require !isLocked
+    require not my.locked
     todo
 
 [pub] fun mut List<T>.insert(index int, item own T)
-    require !isLocked
+    require not my.locked
     todo
 
 [pub] fun mut List<T>.insert(index int, items []T)
-    require !isLocked
+    require not my.locked
     todo
 
 [pub] fun mut List<T>.insert(index int, items mut Iterator<T>)
-    require !isLocked
+    require not my.locked
     todo
 
 [pub] fun mut List<T>.remove(index int) T
-    require !isLocked
+    require not my.locked
     todo
 
 [pub] fun mut List<T>.remove(range Range<int>)
-    require !isLocked
+    require not my.locked
     todo
 
 [pub] fun mut List<T>.remove(test fun(item T) bool)
-    require !isLocked
+    require not my.locked
     todo
 
 [pub] fun List<T>.convert<Tout>(f fun(item T) ?Tout) List<Tout>

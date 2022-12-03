@@ -147,6 +147,8 @@ namespace Gosub.Zurfur.Compiler
         public bool IsInterface
             => IsType && Qualifiers.HasFlag(SymQualifiers.Interface)
                 || IsSpecializedType && Parent.IsType && Parent.Qualifiers.HasFlag(SymQualifiers.Interface);
+        public bool IsEnum
+            => Qualifiers.HasFlag(SymQualifiers.Enum);
 
         public bool IsModule => Kind == SymKind.Module;
         public bool IsType => Kind == SymKind.Type;

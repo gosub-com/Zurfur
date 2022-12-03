@@ -18,7 +18,7 @@ use Zurfur.ConvertBytes[bytesToHex]
 
 // Simple types have public fields:
 [pub] type SimpleType(firstName str, lastName str)
-[pub] type ro SimpleImmutableType(firstName str, fastName str)
+[pub] type SimpleImmutableType ro(firstName str, fastName str)
 
 
 // Define a type
@@ -82,7 +82,7 @@ fun test_HelloWorld()
             doit()
             
 [pub]
-type boxed AGenericType<Q>
+type AGenericType<Q>
     a int
 
 [pub]

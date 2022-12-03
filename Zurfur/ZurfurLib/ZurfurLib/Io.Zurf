@@ -4,24 +4,25 @@ module Zurfur.Io
 
 use Zurfur.Io[FileStream]
 
-interface Reader
+type Reader interface
     afun mut read(data mut Span<byte>) int throws
 
-interface Writer
+type Writer interface
     afun mut write(data Span<byte>) int throws
     afun mut flush() throws
 
-enum SeekOrigin
+type SeekOrigin enum
     Begin; Current; End
 
-interface Seeker
+type Seeker interface
     fun mut seek(offset int, origin SeekOrigin) int throws
     
 [pub] fun get Seeker.length() int throws { }
 [pub] fun get Seeker.position() int throws { }
 [pub] fun set Seeker.position(value int) throws { }
 
-interface FileStream { }
+// Interface or concrete type?
+type FileStream interface { }
 
 module Zurfur.Io.File
 

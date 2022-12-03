@@ -71,7 +71,7 @@ namespace Gosub.Zurfur.Compiler
         const string NIL_TYPE = "Zurfur.nil";
         const string NULLABLE_TYPE = "Zurfur.Nullable`1";
 
-        static WordSet sOperators = new WordSet("+ - * / % & | ~ ! == != >= <= > < << >> and or in |= &= += -= <<= >>= .. ..+ ]");
+        static WordSet sOperators = new WordSet("+ - * / % & | ~ == != >= <= > < << >> and or not in |= &= += -= <<= >>= .. ..+ ]");
         static WordSet sCmpOperators = new WordSet("== != >= <= > <");
         static WordSet sIntTypeNames = new WordSet("Zurfur.int Zurfur.u64 Zurfur.i32 Zurfur.u32");
         static WordSet sDerefRef = new WordSet("Zurfur.Ref`1");
@@ -81,7 +81,7 @@ namespace Gosub.Zurfur.Compiler
             {"*", "_opMul"}, {"*=", "_opMul"}, {"/", "_opDiv"}, {"/=", "_opDiv"},
             {"%","_opRem" }, {"%=","_opRem" },
             {"..", "_opRange" }, {"..+", "_opRange" },
-            {"==", "_opEq"}, {"!=", "_opEq" }, {"in", "_opIn" },
+            {"==", "_opEq"}, {"!=", "_opEq" }, { "not", "_opEq" }, {"in", "_opIn" },
             {">", "_opCmp" }, {">=", "_opCmp" }, {"<", "_opCmp" }, {"<=", "_opCmp" },
             {"<<", "_opBitShl"}, {"<<=", "_opBitShl"}, {">>", "_opBitShr"}, {">>=", "_opBitShr"},
             {"&", "_opBitAnd"}, {"&=", "_opBitAnd"}, {"|", "_opBitOr"}, {"|=", "_opBitOr"},
@@ -767,7 +767,7 @@ namespace Gosub.Zurfur.Compiler
                 if (args == null || args.Count == 0)
                     return null;  // Unresolved type or syntax error
 
-                if (ex.Token == "and" || ex.Token == "or" || ex.Token == "!")
+                if (ex.Token == "and" || ex.Token == "or" || ex.Token == "not")
                     return GenBooleanOperator(ex, args);
 
                 if (args.Count == 2 && (DerefRef(args[0].Type).Parent.FullName == RAW_POINTER_TYPE 

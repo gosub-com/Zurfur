@@ -8,7 +8,7 @@ use Zurfur.Collections[Iterator]
 
 
 [pub]
-type copy Range<T> where T has NumOps<T>
+type Range<T> copy where T has NumOps<T>
     low T pub ro init
     high T pub ro init
 
@@ -24,7 +24,7 @@ fun abs(i int) int
 
 
 // TBD: Shortcut syntax
-interface Abs<T>
+type Abs<T> interface
     [static] fun abs(n T) T
 
 

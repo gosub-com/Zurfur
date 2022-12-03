@@ -263,7 +263,7 @@ namespace Gosub.Zurfur.Compiler
                         symField.Token.AddInfo(symField);
                         table.AddOrReject(symField);
 
-                        if (field.Parent != null && field.Parent.Keyword == "enum")
+                        if (symParent.Parent != null && symParent.IsEnum)
                         {
                             // Enum feilds have their parent enum type
                             symField.Type = symField.Parent;

@@ -2,8 +2,8 @@
 
 use Zurfur[todo]
 
-[pub] enum Level { Fatal; Error; Warn; Info; Debug }
-[pub] type ro copy Line(filePath str, line int)
+[pub] type Level enum { Fatal; Error; Warn; Info; Debug }
+[pub] type Line ro copy { filePath str; line int }
 
 // TBD: Figure out how to get default file names and line numbers.
 //      Also figure out if this should be created per file

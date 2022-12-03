@@ -20,7 +20,7 @@ fun test_Shape()
     
 
 [pub]
-type copy Point<T>
+type Point<T> copy
         where T has NumOps<T>
     x T
     y T
@@ -30,13 +30,13 @@ fun get Point<T>.x2() mut ref T
     return ref my.x
 
 [pub]
-type copy Size<T>
+type Size<T> copy
         where T has NumOps<T>
     width T
     height T
 
 [pub]
-type copy Rect<T>
+type Rect<T> copy
         where T has NumOps<T>
     // TBD: use location Point<T>
     //      use size Size<T>

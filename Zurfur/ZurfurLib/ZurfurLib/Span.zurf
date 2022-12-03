@@ -6,13 +6,13 @@ use Zurfur.Operators[OpEq]
 
 // []T is converted to Span<T>
 [pub]
-type ref copy Span<T>
+type Span<T> ref copy
     data ro mut ref T
     length ro int
 
 
 [pub]
-type ref copy SpanIterator<T>
+type SpanIterator<T> ref copy
     data ro mut ref T
     length ro int
     count ro int

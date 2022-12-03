@@ -5,31 +5,31 @@
 
 module Zurfur
 
-interface Clone<T> {}
-interface Copy<T> {}
+type Clone<T> interface {}
+type Copy<T> interface {}
 
 module Zurfur.Operators
     
 // Equality for containers and sorting (NaN == NaN).
 // For floating point equality, use _opEqUnordered.
-interface OpEq<T>
+type OpEq<T> interface
     [static] fun _opEq(a T, b T) bool
 
 // Comparison for containers and sorting (NaN == NaN, NaN < -Inf).
 // For floating point, use _opGtUnordered, _opGeUnordered, etc.
-interface OpCmp<T>
+type OpCmp<T> interface
     [static] fun _opEq(a T, b T) bool
     [static] fun _opCmp(a T, b T) int
 
 // Operator "in".
-interface OpIn<Item, Container>
+type OpIn<Item, Container> interface
     [static] fun _opIn(a Item, b Container) bool
 
-interface GetHash
+type GetHash interface
     fun getHash() u32
 
 // Common math operators
-interface NumOps<T>
+type NumOps<T> interface
     [static] fun _opEq(a T, b T) bool
     [static] fun _opCmp(a T, b T) int
     [static] fun _opAdd(a T, b T) T

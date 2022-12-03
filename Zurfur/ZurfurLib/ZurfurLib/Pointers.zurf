@@ -4,13 +4,13 @@
 // Unsigned extended int, u32 or u64 depending on machine pointer size.
 // This is the internal representation of a pointer.
 [pub]
-type copy Xuint
+type Xuint copy
     value u32 // or u64
 
 // A raw pointer.  The compiler translates *T to RawPointer<T>
 // and automatically dereferences when "." is used.
 [pub unsafe]
-type copy RawPointer<T>
+type RawPointer<T> copy
     value Xuint
 
 // Internal representation of `ref`, a compiler generated stack only pointer.
@@ -18,19 +18,19 @@ type copy RawPointer<T>
 // versions might not be.  The owner is nil when a non-heap (static global or
 // stack local) object is referenced.  These references are also called return
 // references because they get passed back up the stack.
-type copy ref Ref<T>
+type Ref<T> ref copy
     owner ?*GcHeapObject
     value *T
 
 // Forward references are an optimization the code synthesizer can use when
 // they are passed down the stack, e.g. f(value Ref<T>) can be replaced with
 // f(value FRef<T>) since the reference is "covered".
-type copy ref FRef<T>
+type FRef<T> ref copy
     value *T
 
 // A pointer to heap memory.  This implementation uses reference
 // counting, but future implementations might be compacting instead.
-type copy Pointer<T>
+type Pointer<T> copy
     value *GcHeapObject  // Can also point to GcHeapArray<T>
 
 // All heap objects start with this header.  It must be 64 bits wide to
@@ -60,7 +60,7 @@ type RawPointerMarker{}
 // When implemented, the compiler knows it is a pointer (32 or 64 bits)
 // and can allow `castPointer`.  `RawPointerMarker` is private, so only
 // pointer types can implement this.
-interface IsRawPointer
+type IsRawPointer interface
     fun isRawPointer() RawPointerMarker
     fun getRawPointer() Xuint
 
