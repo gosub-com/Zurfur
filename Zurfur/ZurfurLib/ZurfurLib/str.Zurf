@@ -13,7 +13,6 @@
 [pub] fun _opEq(a str, b str) bool {}
 [pub] fun _opCmp(a str, b str) i32 {}
 
-[pub] fun str.new(st str) { todo }
-[pub] fun str.new(st Span<byte>) { todo }
+[pub] fun str.new(st Span<byte>) extern
     
 // TBD: Implicit conversion to and from Span?

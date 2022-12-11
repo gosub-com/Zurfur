@@ -31,23 +31,23 @@
 
 module Zurfur.Internal.Memory
 
-use Zurfur[u64, todo, castPointer]
+use Zurfur[u64, castPointer]
 
 fun panicFatal(m str)
     require(false)
-    todo
+    extern
     
 // Windows allocation function (TBD: Remove this)
 fun AllocHGlobal(size u64) *void
     require(false)
-    todo
+    extern
 
 // This was originally CALL_MMAP and is used to get more memory from
 // the system. It's similar to CALL_MMAP, but the function can increase
 // the size of allocated memory if desired  (must be in units of page size).
 // Returns nil when out of memory or on error.
 fun DlMalloc.CallMoreCore(length ref u64) *void
-    todo
+    extern
 
 // This was originally CALL_MUNMAP and is used to release memory pages
 // back to the OS.  This function works with pages, not with units
@@ -56,7 +56,7 @@ fun DlMalloc.CallMoreCore(length ref u64) *void
 // Return true for success, or false for failure (in which
 // case the pages are retained and used for future requests)
 fun DlMalloc.CallReleaseCore(address *void, length u64) bool
-    todo
+    extern
 
 // Called when the heap is known to be corrupted.  Throws an exception
 // and calls ResetOnError by default.
@@ -177,7 +177,6 @@ fun get MAX_SMALL_REQUEST() u64
     treebins **tchunk
     footprint u64
     max_footprint u64
-    mflags flag_t
     seg *msegment
     malloc_corruption_error_count int
     mparams malloc_params
@@ -189,7 +188,6 @@ fun mut DlMalloc.new(capacity u64)
     @tbase = castPointer<*byte>(my.CallMoreCore(ref tsize))
     if tbase != nil
         my.init_user_mstate(tbase, tsize)
-        my.seg.sflags = flag_t.USE_MMAP_BIT
     else
         panicFatal("Out of memory, cannot initialize malloc.")
 
@@ -358,12 +356,6 @@ fun DlMalloc.is_initialized() bool
 // -------------------------- system alloc setup -------------------------
 
 // Operations on mflags
-
-fun DlMalloc.use_mmap() bool
-    return (my.mflags & flag_t.USE_MMAP_BIT) != flag_t.NONE
-    
-fun DlMalloc.enable_mmap()
-    my.mflags |= flag_t.USE_MMAP_BIT
 
 // page-align a size
 fun DlMalloc.page_align(s u64) u64
@@ -620,7 +612,6 @@ fun mut DlMalloc.init_mparams() int
         my.mparams.granularity = gsize
         my.mparams.page_size = psize
         my.mparams.trim_threshold = DEFAULT_TRIM_THRESHOLD
-        my.mparams.default_mflags = flag_t.USE_MMAP_BIT
         @magic = GetTimeNowNowTicks() + 0x55555555u64
         magic |= 8u64    // ensure nonzero
         magic &= ~7u64   // improve chances of fault for bad values
@@ -1168,7 +1159,7 @@ fun mut DlMalloc.prepend_alloc(
     return chunk2mem(p)
 
 // Add a segment to hold a new noncontiguous region
-fun mut DlMalloc.add_segment(tbase *byte, tsize u64, mmapped flag_t)
+fun mut DlMalloc.add_segment(tbase *byte, tsize u64)
     // Determine locations and sizes of segment, fenceposts, old top
     @old_top = castPointer<*byte>(my.top)
     @oldsp = my.segment_holding(old_top)
@@ -1193,7 +1184,6 @@ fun mut DlMalloc.add_segment(tbase *byte, tsize u64, mmapped flag_t)
     ss.* = my.seg.* // Push current record
     my.seg.baseAddr = tbase
     my.seg.size = tsize
-    my.seg.sflags = mmapped
     my.seg.next = ss
 
     // Insert trailing fenceposts
@@ -1221,7 +1211,6 @@ fun mut DlMalloc.add_segment(tbase *byte, tsize u64, mmapped flag_t)
 fun mut DlMalloc.sys_alloc(nb u64) *void
     @tbase *byte = nil
     @tsize = 0u64
-    @mmap_flag = flag_t.NONE
     @asize u64 // allocation size
 
     my.ensure_initialization()
@@ -1242,7 +1231,6 @@ fun mut DlMalloc.sys_alloc(nb u64) *void
         if mp != nil
             tbase = mp
             tsize = asize
-            mmap_flag = flag_t.USE_MMAP_BIT
 
     if tbase != nil
         my.footprint += tsize
@@ -1259,8 +1247,6 @@ fun mut DlMalloc.sys_alloc(nb u64) *void
             sp = if(NO_SEGMENT_TRAVERSAL, nil : sp.next)
 
         if sp != nil
-                and not is_extern_segment(sp)
-                and (sp.sflags & flag_t.USE_MMAP_BIT) == mmap_flag
                 and my.segment_holds(sp, my.top)
             // append
             sp.size += tsize
@@ -1272,14 +1258,12 @@ fun mut DlMalloc.sys_alloc(nb u64) *void
             while sp != nil and sp.baseAddr != tbase + tsize
                 sp = if(NO_SEGMENT_TRAVERSAL, nil : sp.next)
             if sp != nil
-                    and not is_extern_segment(sp)
-                    and (sp.sflags & flag_t.USE_MMAP_BIT) == mmap_flag
                 @oldbase = sp.baseAddr
                 sp.baseAddr = tbase
                 sp.size += tsize
                 return my.prepend_alloc(tbase, oldbase, nb)
             else
-                my.add_segment(tbase, tsize, mmap_flag)
+                my.add_segment(tbase, tsize)
 
         if nb < my.topsize
             // Allocate from new or extended top space
@@ -1309,27 +1293,26 @@ fun mut DlMalloc.release_unused_segments() u64
         @size = sp.size
         @next = sp.next
         nsegs += 1
-        if is_mmapped_segment(sp) and not is_extern_segment(sp)
-            @p = align_as_chunk(baseAddr)
-            @psize = chunksize(p)
-            // Can unmap if first chunk holds entire segment and not pinned
-            if not is_inuse(p) and castPointer<*byte>(p) + psize >= baseAddr + size - TOP_FOOT_SIZE
-                @tp = castPointer<*tchunk>(p)
-                assert(my.segment_holds(sp, castPointer<*byte>(sp)))
-                if p == my.dv
-                    my.dv = nil
-                    my.dvsize = 0
-                else
-                    my.unlink_large_chunk(tp)
-                if my.CallReleaseCore(baseAddr, size)
-                    released += size
-                    my.footprint -= size
-                    // unlink obsoleted record
-                    sp = pred
-                    sp.next = next
-                else
-                    // back out if cannot unmap
-                    my.insert_large_chunk(tp, psize)
+        @p = align_as_chunk(baseAddr)
+        @psize = chunksize(p)
+        // Can unmap if first chunk holds entire segment and not pinned
+        if not is_inuse(p) and castPointer<*byte>(p) + psize >= baseAddr + size - TOP_FOOT_SIZE
+            @tp = castPointer<*tchunk>(p)
+            assert(my.segment_holds(sp, castPointer<*byte>(sp)))
+            if p == my.dv
+                my.dv = nil
+                my.dvsize = 0
+            else
+                my.unlink_large_chunk(tp)
+            if my.CallReleaseCore(baseAddr, size)
+                released += size
+                my.footprint -= size
+                // unlink obsoleted record
+                sp = pred
+                sp.next = next
+            else
+                // back out if cannot unmap
+                my.insert_large_chunk(tp, psize)
         if NO_SEGMENT_TRAVERSAL  // scan only first segment
             break
         pred = sp
@@ -1352,14 +1335,12 @@ fun mut DlMalloc.sys_trim(pad u64) int
                             - SIZE_T_ONE) * unit
             @sp = my.segment_holding(castPointer<*byte>(my.top))
 
-            if not is_extern_segment(sp)
-                if is_mmapped_segment(sp)
-                    if sp.size >= extra
-                            and not my.has_segment_link(sp)
-                        // can't shrink if pinned
-                        @newsize = sp.size - extra
-                        if my.CallReleaseCore(sp.baseAddr + newsize, extra)
-                            released = extra
+            if sp.size >= extra
+                    and not my.has_segment_link(sp)
+                // can't shrink if pinned
+                @newsize = sp.size - extra
+                if my.CallReleaseCore(sp.baseAddr + newsize, extra)
+                    released = extra
 
             if released != 0
                 sp.size -= released
@@ -1586,7 +1567,6 @@ fun mut DlMalloc.init_user_mstate(tbase *byte, tsize u64)
     my.max_footprint = tsize
     my.magic = my.mparams.magic
     my.release_checks = MAX_RELEASE_CHECK_RATE
-    my.mflags = my.mparams.default_mflags
 
     my.init_bins()
     @mn = next_chunk(mem2chunk(m))
@@ -2253,18 +2233,6 @@ type msegment
     baseAddr *byte pub mut     // base address
     size u64 pub mut         // allocated size
     next *msegment pub mut     // ptr to next segment
-    sflags flag_t pub mut      // mmap and extern flag
-
-fun is_mmapped_segment(s *msegment) bool
-    return (s.sflags & flag_t.USE_MMAP_BIT) != 0
-fun is_extern_segment(s *msegment) bool
-    return (s.sflags & flag_t.EXTERN_BIT) != 0
-
-// Everything is mmaped in this malloc, so these flags are mostly unused
-type flag_t enum
-    NONE = 0
-    USE_MMAP_BIT = 1
-    EXTERN_BIT = 8
 
 //  malloc_params holds global properties, including those that can be
 //  dynamically set using mallopt. There is a single instance, mparams,
@@ -2275,4 +2243,3 @@ type malloc_params
     page_size u64 pub mut
     granularity u64 pub mut
     trim_threshold u64 pub mut
-    default_mflags flag_t pub mut

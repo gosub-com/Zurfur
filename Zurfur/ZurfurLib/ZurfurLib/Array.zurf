@@ -21,7 +21,7 @@
 
 
 [pub] fun Buffer<T>.replace(search []T, repl []T)
-    todo
+    extern
 
 
 

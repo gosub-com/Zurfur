@@ -30,57 +30,57 @@ fun KvPair<K,V>.new(key own K, value own V)
 
 [pub]
 fun Map<K,V>.new(capacity int)
-    todo
+    extern
     
 [pub]
 fun Map<K,V>.new(keyValues Iterator<KvPair<K,V>>)
-    todo
+    extern
     
 [pub]
 fun get Map<K,V>.count() int
-    todo
+    extern
 
 // TBD: Figure out map["Hello"] += 1
 [pub]
 fun _opIndex<K,V>(map Map<K,V>, key K) mut ?ref V
-    todo
+    extern
 
 // TBD: An indexer with 3 inputs???
 [pub]
 fun _opIndex<K,V>(map Map<K,V>, key K, item V)
-    todo
+    extern
 
 [pub]
 fun Map<K,V>.contains(key K) bool
-    todo
+    extern
 
 // TBD: Return Iterable<(K, V)>???
 [pub]
 fun get Map<K,V>.iterator() mut Iterator<KvPair<K,V>>
-    todo
+    extern
 
 [pub]
 fun get Map<K,V>.keys() Iterator<K>
-    todo
+    extern
 
 [pub]
 fun get Map<K,V>.values() mut Iterator<V>
-    todo
+    extern
 
 [pub]
 fun mut Map<K,V>.clear()
-    todo
+    extern
 
 [pub]
 fun mut Map<K,V>.add(item KvPair<K,V>)
-    todo
+    extern
 
 [pub]
 fun mut Map<K,V>.add(items Iterator<KvPair<K,V>>)
-    todo
+    extern
 
 [pub]
 fun mut Map<K,V>.remove(key K) bool
-    todo
+    extern
 
     

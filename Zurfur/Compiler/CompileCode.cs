@@ -58,7 +58,18 @@ namespace Gosub.Zurfur.Compiler
             var paramStr = $"{typeParams}({string.Join(",", args.Select(a => a.Type.FullName))})";
             return paramStr;
         }
+    }
 
+    class LocalSymbol
+    {
+        public int ScopeNum;
+        public Symbol Symbol;
+
+        public LocalSymbol(int scopeNum, Symbol symbol)
+        {
+            ScopeNum = scopeNum;
+            Symbol = symbol;
+        }
     }
 
     /// <summary>
@@ -140,25 +151,245 @@ namespace Gosub.Zurfur.Compiler
                 && typeF64 != null
                 && typeF32 != null);
 
-            var locals = new Dictionary<string, Symbol>();
+            var locals = new Dictionary<string, LocalSymbol>();
+            var scopeNum = 0;
 
+            BeginLocalScope();
             if (synFunc.Statements != null)
-                foreach (var statement in synFunc.Statements)
-                {
-                    var expr = GenExpr(statement);
-                    if (expr != null)
-                        EvalType(expr);
-                }
-
-            // Unresolved local symbols generate an error
-            // TBD: This is anoying while writing code, so show the error
-            //      only when the symbol is used somewhere else in the code.
-            //      Or don't show error when the cursor is over the symbol?
-            // foreach (var local in locals.Values)
-            //     if (local.Type == null)
-            //         Reject(local.Token, $"'{local.SimpleName}'  has an unresolved type");
+                GenStatements(synFunc.Statements);
+            EndLocalScope();
 
             return;
+
+
+            void GenStatements(SyntaxExpr ex)
+            {
+                for (int i = 0;  i < ex.Count;  i++)
+                {
+                    var s = ex[i];
+                    var name = s.Token.Name;
+                    if (name == "while")
+                        GenWhileStatement(s);
+                    else if (name == "scope")
+                        GenScopeStatement(s);
+                    else if (name == "do")
+                        i = GenDoStatement(ex, i);
+                    else if (name == "if")
+                        i = GenIfStatement(ex, i);
+                    else if (name == "break")
+                        GenBreakStatement(s);
+                    else if (name == "continue")
+                        GenContinueStatement(s);
+                    else if (name == "for")
+                        GenForStatement(s);
+                    else if (name == "return")
+                        GenReturnStatement(s);
+                    else
+                        EvalTypeStatement(GenExpr(s));
+                }
+            }
+
+            void GenWhileStatement(SyntaxExpr ex)
+            {
+                var cond = GenExpr(ex[0]);
+                EvalType(cond);
+                CheckBool(ex[0].Token, cond?.Type, "if");
+                BeginLocalScope();
+                GenStatements(ex[1]);
+                EndLocalScope();
+            }
+
+            void GenScopeStatement(SyntaxExpr ex)
+            {
+                BeginLocalScope();
+                GenStatements(ex[0]);
+                EndLocalScope();
+            }
+
+            int GenDoStatement(SyntaxExpr s, int i)
+            {
+                BeginLocalScope();
+                GenStatements(s[i]);
+                if (i+1 < s.Count && s[i+1].Token == "dowhile")
+                {
+                    i += 1;
+                    var cond = GenExpr(s[i][0]);
+                    EvalType(cond);
+                    CheckBool(s[i].Token, cond?.Type, "dowhile");
+                }
+                else
+                {
+                    if (!HasError(s[i]))
+                        Reject(s[i].Token, "Expecting 'dowhile'");
+                }
+                EndLocalScope();
+                return i;
+            }
+
+            int GenIfStatement(SyntaxExpr s, int i)
+            {
+                // If...
+                GenIfCondStatement(s[i]);
+
+                // ...elif...
+                while (i+1 < s.Count && s[i+1].Token == "elif")
+                {
+                    i += 1;
+                    GenIfCondStatement(s[i]);
+                }
+
+                // ...else
+                if (i + 1 < s.Count && s[i+1].Token == "else")
+                {
+                    i += 1;
+                    BeginLocalScope();
+                    GenStatements(s[i][0]);
+                    EndLocalScope();
+                }
+                return i;
+            }
+
+            void GenIfCondStatement(SyntaxExpr ex)
+            {
+                var cond = GenExpr(ex[0]);
+                EvalType(cond);
+                CheckBool(ex[0].Token, cond?.Type, "if");
+                BeginLocalScope();
+                GenStatements(ex[1]);
+                EndLocalScope();
+            }
+
+            bool CheckBool(Token token, Symbol conditionType, string name)
+            {
+                if (conditionType == null)
+                    return false;
+                if (DerefRef(conditionType).FullName != "Zurfur.bool")
+                {
+                    Reject(token, $"'{name}' condition must evaluate to 'bool', but it evaluates to '{conditionType}'");
+                    return false;
+                }
+                return true;
+            }
+
+
+            void GenBreakStatement(SyntaxExpr ex)
+            {
+                // TBD
+            }
+
+            void GenContinueStatement(SyntaxExpr ex)
+            {
+                // TBD
+            }
+
+            void GenForStatement(SyntaxExpr ex)
+            {
+                if (ex.Count != 3)
+                    return; // Syntax error
+
+                BeginLocalScope();
+
+                var local = CreateLocal(ex[0].Token);
+                if (local != null)
+                    local.Token.AddInfo(local);
+                var inRval = GenExpr(ex[1]);
+                EvalType(inRval);
+
+                if (inRval != null && inRval.Type != null)
+                {
+                    var iterType = GenForIterator(ex[0].Token, inRval.Type);
+                    if (iterType != null && local != null)
+                        local.Type = iterType;
+                }
+
+                var loopExpr = GenExpr(ex[2]);
+                if (loopExpr != null)
+                    EvalType(loopExpr);
+
+                EndLocalScope();
+            }
+
+            // Get the for loop iterator type, e.g. T in object.iterator.next() -> Nullable<T>
+            Symbol GenForIterator(Token token, Symbol inType)
+            {
+                var getIter = FindAndCall(token, DerefRef(inType), "iterator");
+                if (getIter == null)
+                    return null;
+                var getNext = FindAndCall(token, getIter, "next");
+                if (getNext == null)
+                    return null;
+                if (!(getNext is SymSpecializedType nextSpecial)
+                    || nextSpecial.Params.Length != 1
+                    || getNext.Parent.FullName != NULLABLE_TYPE)
+                {
+                    Reject(token, $"Expecting the function '{getIter}.next()' to return a nullable, but it returns '{getNext}'");
+                    return null;
+                }
+                return nextSpecial.Params[0];
+            }
+
+            // Find and call a function (or getter) taking no arguments
+            Symbol FindAndCall(Token token, Symbol inType, string name)
+            {
+                var functions = FindInType(name, inType);
+                functions.RemoveAll(s => !(s is SymMethod func
+                    && func.GetParamTuple(table).GetTupleTypeList().Length == 1));
+                if (functions.Count == 0)
+                {
+                    Reject(token, $"Could not find a function or getter named '{name}()' in the type '{inType}'");
+                    return null;
+                }
+                if (functions.Count > 1)
+                {
+                    RejectSymbols(token, functions, $"'{token}' is ambiguous");
+                    return null;
+                }
+
+                var returnType = ((SymMethod)functions[0]).GetReturnTupleOrType(table);
+                return InferTypeArgsOfPrimary(token, returnType, inType);
+            }
+
+            Rval GenReturnStatement(SyntaxExpr ex)
+            {
+                var returns = GenCallParams(ex, 0);
+                if (returns == null)
+                    return null;
+                if (returns.Count >= 2)
+                {
+                    Reject(ex.Token, "Use parenthesis to return multiple values.  TBD: Allow not using them.");
+                    return null;
+                }
+
+                var rval = returns.Count == 0 ? new Rval(ex.Token, table.EmptyTuple) : returns[0];
+                EvalType(rval);
+                if (rval == null || rval.Type == null)
+                    return null;
+
+                ex.Token.AddInfo(rval.Type);
+                var functionType = currentMethod.GetReturnTupleOrType(table);
+
+                // TBD: This is to temporarily gloss over pointers, nullable, and nil
+                if (rval.Type.FullName == NIL_TYPE
+                    && (functionType.Parent.FullName == "Zurfur.RawPointer`1")
+                        || functionType.Parent.FullName == "Zurfur.Nullable`1`1")
+                    return rval;
+
+                // TBD: This belongs in the code verifier.  Also need
+                //      to check more stuff since this can be tricked
+                var isLocal = rval.Symbols.Count == 1
+                    && (rval.Symbols[0].IsLocal || rval.Symbols[0].IsMethodParam);
+                if (isLocal && functionType.Parent.FullName == REF_TYPE)
+                {
+                    Reject(ex.Token, "Cannot return a reference to a local variable");
+                }
+
+                if (!TypesMatch(DerefRef(functionType), DerefRef(rval.Type)))
+                {
+                    Reject(ex.Token, $"Incorrect return type, expecting '{functionType}', got '{rval.Type}'");
+                }
+                return rval;
+            }
+
 
 
             // Evaluate an expression.  When null is returned, the error is already marked.
@@ -168,7 +399,7 @@ namespace Gosub.Zurfur.Compiler
                 var name = token.Name;
                 if (name == "")
                 {
-                    Warn(token, "Compiler error: Not compiled");
+                    Reject(token, "Compiler error: Not compiled");
                     return null;  // Syntax error should already be marked
                 }
 
@@ -197,24 +428,25 @@ namespace Gosub.Zurfur.Compiler
                     return GenAssign(ex);
                 else if (sOperators.Contains(name))
                     return GenOperator(ex);
-                else if (name == "if" && ex.Count == 1)
-                    return GenTernary(ex);
-                else if (name == "for")
-                    return GenFor(ex);
+                else if (name == "if")
+                    return GenIfExpr(ex);
                 else if (name == "null" || name == "nil")
                     return new Rval(token, typeNil);
                 else if (name == "ref")
                     return GenRefOrAddressOf(ex);
                 else if (name == "sizeof")
                     return new Rval(token, typeInt);
-                else if (name == "return")
-                    return GenReturn(ex);
                 else if (name == "true" || name == "false")
                     return new Rval(token, typeBool);
+                else if (name == ";" || name == "{")
+                    GenStatements(ex);
                 else
                 {
-                    Warn(ex.Token, "Not compiled yet");
-                    GenParams(ex, new List<Rval>());
+                    if (name == "else" || name == "elif" || name == "dowhile")
+                        Reject(ex.Token, $"Unexpected '{name}' statement");
+                    else
+                        Reject(ex.Token, "Not compiled yet");
+                    GenCallParams(ex, 0);
                 }
                 return null;
             }
@@ -296,7 +528,8 @@ namespace Gosub.Zurfur.Compiler
                 return new Rval(ex.Token, tuple);
             }
 
-            // Check top level for syntax error
+            // Check top level for syntax error so we can skip compiling stuff
+            // that always fails, giving the user un-necessary error messages.
             bool HasError(SyntaxExpr ex)
             {
                 if (ex.Token.Error)
@@ -424,7 +657,7 @@ namespace Gosub.Zurfur.Compiler
                 // Assign type to local variable
                 Debug.Assert(variables.Symbols.Count == 1 && variables.Symbols[0].IsLocal && variables.Symbols[0].Type == null);
                 variables.Symbols[0].Type = valueType;
-                variables.Token.AddInfo(valueType);
+                variables.Token.AddInfo(variables.Symbols[0]);
                 return value;
             }
 
@@ -460,74 +693,6 @@ namespace Gosub.Zurfur.Compiler
                 var rval = new Rval(newSymbols[0].Token);
                 rval.Symbols.Add(newSymbols[0]);
                 return rval;
-            }
-
-            // Create a new variable in the local scope, return null if it already exists
-            Symbol CreateLocal(Token variable)
-            {
-                if (FindLocal(variable) != null)
-                {
-                    Reject(variable, $"'{variable}' is a duplicate symbol.");
-                    return null;
-                }
-                var local = new Symbol(SymKind.Local, null, variable);
-                locals[variable] = local;
-                return local;
-            }
-
-            Rval GenTernary(SyntaxExpr ex)
-            {
-                if (HasError(ex))
-                    return null;
-                var parameters = ex[0];
-                if (HasError(parameters))
-                    return null;
-                if (parameters.Count != 2)
-                {
-                    Reject(ex.Token, "Expecting two parameters");
-                    return null;
-                }
-                if (parameters[1].Token != ":")
-                {
-                    Reject(ex.Token, "Expecting second parameter to use ':' for the 'else' part");
-                    return null;
-                }
-
-                var cond = GenExpr(parameters[0]);
-                var condIf = GenExpr(parameters[1][0]);
-                var condElse = GenExpr(parameters[1][1]);
-                EvalType(cond);
-                EvalType(condIf);
-                EvalType(condElse);
-
-                if (cond == null || cond.Type == null)
-                    return null;
-                if (condIf == null || condIf.Type == null)
-                    return null;
-                if (condElse == null || condElse.Type == null)
-                    return null;
-
-                if (DerefRef(cond.Type).FullName != "Zurfur.bool")
-                {
-                    Reject(ex.Token, $"First parameter must evaluate to 'bool', but it evaluates to '{cond.Type}'");
-                    return null;
-                }
-
-                condIf.Type = DerefRef(condIf.Type);
-                condElse.Type = DerefRef(condElse.Type);
-
-                // Allow mixing of pointers and nil
-                if (condIf.Type.Parent.FullName == RAW_POINTER_TYPE && condElse.Type.FullName == NIL_TYPE)
-                    return new Rval(ex.Token, condIf.Type);
-                if (condIf.Type.FullName == NIL_TYPE && condElse.Type.Parent.FullName == RAW_POINTER_TYPE)
-                    return new Rval(ex.Token, condElse.Type);
-
-                if (condIf.Type.FullName != condElse.Type.FullName)
-                {
-                    Reject(parameters[1].Token, $"Left and right sides must evaluate to same type, but they evaluate to '{condIf.Type}' and '{condElse.Type}'");
-                    return null;
-                }
-                return new Rval(ex.Token, condIf.Type);
             }
 
             Rval GenRefOrAddressOf(SyntaxExpr ex)
@@ -683,71 +848,6 @@ namespace Gosub.Zurfur.Compiler
                 // Debug, TBD: Remove or get better compiler feedback system
                 ex.Token.AddInfo($"({leftType.FullName}) = ({rightType.FullName})");
                 return null;
-            }
-
-            Rval GenReturn(SyntaxExpr ex)
-            {
-                var returns = new List<Rval>();
-                var hasError = GenParams(ex, returns);
-                if (hasError)
-                    return null;
-                if (returns.Count >= 2)
-                {
-                    Reject(ex.Token, "Use parenthesis to return multiple values.  TBD: Allow not using them.");
-                    return null;
-                }
-
-                var rval = returns.Count == 0 ? new Rval(ex.Token, table.EmptyTuple) : returns[0];
-                EvalType(rval);
-                if (rval == null || rval.Type == null)
-                    return null;
-
-                ex.Token.AddInfo(rval.Type);
-                var functionType = currentMethod.GetReturnTupleOrType(table);
-
-                // TBD: This is to temporarily gloss over pointers, nullable, and nil
-                if (rval.Type.FullName == NIL_TYPE
-                    && (functionType.Parent.FullName == "Zurfur.RawPointer`1")
-                        || functionType.Parent.FullName == "Zurfur.Nullable`1`1")
-                    return rval;
-
-                // TBD: This belongs in the code verifier.  Also need
-                //      to check more stuff since this can be tricked
-                var isLocal = rval.Symbols.Count == 1
-                    && (rval.Symbols[0].IsLocal || rval.Symbols[0].IsMethodParam);
-                if (isLocal && functionType.Parent.FullName == REF_TYPE)
-                {
-                    Reject(ex.Token, "Cannot return a reference to a local variable");
-                }
-
-                if (!TypesMatch(DerefRef(functionType), DerefRef(rval.Type)))
-                {
-                    Reject(ex.Token, $"Incorrect return type, expecting '{functionType}', got '{rval.Type}'");
-                }
-                return rval;
-            }
-
-
-            bool GenParams(SyntaxExpr ex, List<Rval> param)
-            {
-                bool hasError = false;
-                for (int p = 0; p < ex.Count; p++)
-                {
-                    var rval = GenExpr(ex[p]);
-                    if (rval != null)
-                    {
-                        param.Add(rval);
-                        EvalType(rval);
-                    }
-                    else
-                    {
-                        hasError = true;
-                        Warn(ex.Token, $"Not compiled: Param #{p} has an error");
-                        if (ex[p].Token != "")
-                            Warn(ex.Token, $"Not compiled: Expression has an error");
-                    }
-                }
-                return hasError;
             }
 
             Rval DummyFunction(Token token, Symbol returnType, Symbol arg1Type, Symbol arg2Type)
@@ -986,72 +1086,55 @@ namespace Gosub.Zurfur.Compiler
                 return call;
             }
 
-            Rval GenFor(SyntaxExpr ex)
+            Rval GenIfExpr(SyntaxExpr ex)
             {
-                if (ex.Count != 3)
-                    return null; // Syntax error
-                
-                var local = CreateLocal(ex[0].Token);
-                if (local != null)
-                    local.Token.AddInfo(local);
-                var inRval = GenExpr(ex[1]);
-                EvalType(inRval);
-
-                if (inRval != null && inRval.Type != null)
+                if (HasError(ex))
+                    return null;
+                if (ex.Count != 1 || ex[0].Count != 2)
                 {
-                    var iterType = GenForIterator(ex[0].Token, inRval.Type);
-                    if (iterType != null && local != null)
-                        local.Type = iterType;
+                    Reject(ex.Token, "Compiler error: Incorrect number of parameters");
+                    return null;
                 }
+                var parameters = ex[0];
+                if (HasError(parameters))
+                    return null;
+                if (parameters[1].Token != ":")
+                {
+                    Reject(ex.Token, "Expecting second parameter to use ':' for the 'else' part");
+                    return null;
+                }
+                var cond = GenExpr(parameters[0]);
+                var condIf = GenExpr(parameters[1][0]);
+                var condElse = GenExpr(parameters[1][1]);
+                EvalType(cond);
+                EvalType(condIf);
+                EvalType(condElse);
 
-                var loopExpr = GenExpr(ex[2]);
-                if (loopExpr != null)
-                    EvalType(loopExpr);
-                return null;
+                if (cond == null || cond.Type == null)
+                    return null;
+                if (condIf == null || condIf.Type == null)
+                    return null;
+                if (condElse == null || condElse.Type == null)
+                    return null;
+                if (!CheckBool(ex.Token, cond.Type, "if"))
+                    return null;
+
+                condIf.Type = DerefRef(condIf.Type);
+                condElse.Type = DerefRef(condElse.Type);
+
+                // Allow mixing of pointers and nil
+                if (condIf.Type.Parent.FullName == RAW_POINTER_TYPE && condElse.Type.FullName == NIL_TYPE)
+                    return new Rval(ex.Token, condIf.Type);
+                if (condIf.Type.FullName == NIL_TYPE && condElse.Type.Parent.FullName == RAW_POINTER_TYPE)
+                    return new Rval(ex.Token, condElse.Type);
+
+                if (condIf.Type.FullName != condElse.Type.FullName)
+                {
+                    Reject(parameters[1].Token, $"Left and right sides must evaluate to same type, but they evaluate to '{condIf.Type}' and '{condElse.Type}'");
+                    return null;
+                }
+                return new Rval(ex.Token, condIf.Type);
             }
-
-            // Get the for loop iterator type, e.g. T in object.iterator.next() -> Nullable<T>
-            Symbol GenForIterator(Token token, Symbol inType)
-            {
-                var getIter = FindAndCall(token, DerefRef(inType), "iterator");
-                if (getIter == null)
-                    return null;
-                var getNext = FindAndCall(token, getIter, "next");
-                if (getNext == null)
-                    return null;
-                if (!(getNext is SymSpecializedType nextSpecial) 
-                    || nextSpecial.Params.Length != 1 
-                    || getNext.Parent.FullName != NULLABLE_TYPE)
-                {
-                    Reject(token, $"Expecting the function '{getIter}.next()' to return a nullable, but it returns '{getNext}'");
-                    return null;
-                }
-
-                return nextSpecial.Params[0];
-            }
-
-            // Find and call a function (or getter) taking no arguments
-            Symbol FindAndCall(Token token, Symbol inType, string name)
-            {
-                var functions = FindInType(name, inType);
-                functions.RemoveAll(s => !(s is SymMethod  func 
-                    && func.GetParamTuple(table).GetTupleTypeList().Length == 1));
-                if (functions.Count == 0)
-                {
-                    Reject(token, $"Could not find a function or getter named '{name}()' in the type '{inType}'");
-                    return null;
-                }
-                if (functions.Count > 1)
-                {
-                    RejectSymbols(token, functions, $"'{token}' is ambiguous");
-                    return null;
-                }
-
-                var returnType = ((SymMethod)functions[0]).GetReturnTupleOrType(table);
-                return InferTypeArgsOfPrimary(token, returnType, inType);
-            }
-
-
 
 
             // If there is an error, mark it and give feedback on possible matches.
@@ -1286,14 +1369,28 @@ namespace Gosub.Zurfur.Compiler
                 for (int i = startParam; i < ex.Count; i++)
                 {
                     var rval = GenExpr(ex[i]);
-                    if (rval != null)
-                        EvalType(rval);
+                    EvalType(rval);
                     if (rval != null && rval.Type != null)
                         funArgs.Add(rval);
                     else
                         paramHasError = true;
                 }
                 return paramHasError ? null : funArgs;
+            }
+
+            // Top level statement evaluation
+            void EvalTypeStatement(Rval rval)
+            {
+                EvalType(rval, true);
+                if (rval == null || rval.Symbols.Count != 1)
+                    return;
+                
+                if (rval.Symbols[0] is SymMethod method)
+                {
+                    // TBD: Mark an error for non-mut function calls
+                    if (method.IsGetter || method.IsSetter)
+                        Reject(rval.Token, "Top level statement cannot be a getter or setter");
+                }
             }
 
             // Get return type of symbol.
@@ -1414,7 +1511,6 @@ namespace Gosub.Zurfur.Compiler
                 return ReplaceGenericTypeParams(token, type, inSpecial.Params);
             }
 
-
             /// <summary>
             /// Find symbols in the type, including methods defined in
             /// the type's module, this module, or use statements.
@@ -1493,6 +1589,34 @@ namespace Gosub.Zurfur.Compiler
                 }
             }
 
+            // Create a new variable in the local scope, return null if it already exists.
+            // Don't allow shadowing.
+            Symbol CreateLocal(Token name)
+            {
+                if (currentMethod.TryGetPrimary(name, out var primary))
+                {
+                    Reject(name, $"'{name}' is already defined as a local parameter.");
+                    return null;
+                }
+                if (locals.TryGetValue(name, out var localSymbol))
+                {
+                    if (localSymbol.Symbol != null)
+                    {
+                        Reject(name, $"'{name}' is already defined as a local variable in this scope.");
+                        return null;
+                    }
+
+                    if (localSymbol.ScopeNum > scopeNum)
+                    {
+                        Reject(name, $"'{name}' is already defined as a local variable in a previous scope.");
+                        return null;
+                    }
+                }
+                var local = new Symbol(SymKind.Local, null, name);
+                locals[name] = new LocalSymbol(scopeNum, local);
+                return local;
+            }
+
             /// <summary>
             /// Find symbols in the local/global scope that match this
             /// token.  If it's a local or parameter in the current
@@ -1502,16 +1626,20 @@ namespace Gosub.Zurfur.Compiler
             /// </summary>
             List<Symbol> FindGlobal(Token token, string name)
             {
-                var symbols = new List<Symbol>();
-                var local = FindLocal(name);
-                if (local != null)
+                // Find local
+                if (currentMethod.TryGetPrimary(name, out var localParam))
+                    return new List<Symbol>() { localParam };
+                if (locals.TryGetValue(name, out var local))
                 {
-                    symbols.Add(local);
-                    return symbols;
+                    if (local.Symbol != null)
+                        return new List<Symbol>() { local.Symbol };
+                    Reject(token, $"'{token}' is an out of scope local variable");
+                    return null;
                 }
 
                 // Find global symbols in this module
                 var module = currentMethod.Parent;
+                var symbols = new List<Symbol>();
                 if (module.TryGetPrimary(name, out Symbol sym1))
                     symbols.Add(sym1);
                 if (module.HasMethodNamed(name))
@@ -1537,14 +1665,27 @@ namespace Gosub.Zurfur.Compiler
                 return symbols;
             }
 
-            // Find a local variable or function parameter, return NULL if there isn't one.
-            Symbol FindLocal(string name)
+            void BeginLocalScope()
             {
-                if (locals.TryGetValue(name, out var local))
-                    return local;
-                if (currentMethod.TryGetPrimary(name, out var primary))
-                    return primary;
-                return null;
+                scopeNum++;
+            }
+
+            void EndLocalScope()
+            {
+                foreach (var local in locals.Values)
+                {
+                    if (local.ScopeNum == scopeNum)
+                    {
+                        if (local.Symbol != null && local.Symbol.Type == null)
+                            Reject(local.Symbol.Token, $"'{local.Symbol.Token}' has an unresolved type");
+                        local.Symbol = null;
+                    }
+                    else if (local.ScopeNum > scopeNum)
+                    {
+                        local.ScopeNum = scopeNum;
+                    }
+                }
+                scopeNum--;
             }
 
             void RemoveLastDuplicates(List<Symbol> symbols)

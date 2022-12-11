@@ -49,35 +49,35 @@ fun get List<T>.locked() bool
 [pub]
 fun List<T>.drop()
     require not my.locked // Not possible because the compiler ensures
-    todo
+    extern
 
 
 // Clone items into the new list
 [pub]
 fun List<T>.new(items []T)
     where T has Clone<T>
-    todo
+    extern
 
 // Clone items into the new list
 [pub]
 fun List<T>.new(items mut Iterator<T>)
-    todo
+    extern
 
 [pub]
 fun _opIndex<T>(list List<T>, i int) mut ref T
     require i in 0..count
-    todo
+    extern
 
 [pub]
 fun _opIndex<T>(list List<T>, r Range<int>) mut []T
     require r.start in 0..count
     require r.end in 0..count
     require r.start <= range.end
-    todo
+    extern
 
 [pub]
 fun get List<T>.iterator() SpanIterator<T>
-    todo
+    extern
 
 
 [pub]
@@ -88,70 +88,70 @@ fun get List<T>.capacity() int
 [pub]
 fun set List<T>.capacity(value int)
     require not my.locked and value < my.MaxItems
-    todo
+    extern
 
 
 // Return a new array with all occurences of `seqSearch`
 // replaced by `seqReplace`.
 [pub] fun mut List<T>.replace(seqSearch []T, seqReplace[]T)
     require not my.locked
-    todo
+    extern
 
 [pub] fun mut List<T>.clear()
     require not my.locked
-    todo
+    extern
 
 [pub] fun mut List<T>.push(item own T)
     require not my.locked
-    todo
+    extern
 
 [pub] fun mut List<T>.pushClones(items Span<T>)
     require not my.locked
-    todo
+    extern
 
 [pub] fun mut List<T>.pushClones(items mut Iterator<T>)
     require not my.locked
-    todo
+    extern
 
 [pub] fun mut List<T>.pushClones(item T, count int)
     require not my.locked
-    todo
+    extern
 
 [pub] fun mut List<T>.pop() ?T
     require not my.locked
-    todo
+    extern
 
 [pub] fun mut List<T>.insert(index int, item own T)
     require not my.locked
-    todo
+    extern
 
 [pub] fun mut List<T>.insert(index int, items []T)
     require not my.locked
-    todo
+    extern
 
 [pub] fun mut List<T>.insert(index int, items mut Iterator<T>)
     require not my.locked
-    todo
+    extern
 
 [pub] fun mut List<T>.remove(index int) T
     require not my.locked
-    todo
+    extern
 
 [pub] fun mut List<T>.remove(range Range<int>)
     require not my.locked
-    todo
+    extern
 
 [pub] fun mut List<T>.remove(test fun(item T) bool)
     require not my.locked
-    todo
+    extern
 
 [pub] fun List<T>.convert<Tout>(f fun(item T) ?Tout) List<Tout>
     where T has Clone<T>
-    todo
+    extern
 
 [pub] fun List<T>.toArray() Array<T>
     where T has Clone<T>
-    todo
+    extern
 
 
 // Usage: myList.For @item => DoStuffWithItem()

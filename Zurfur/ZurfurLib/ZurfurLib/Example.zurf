@@ -65,20 +65,19 @@ fun doit() {}
 fun hello() {}
 
 fun test_HelloWorld()
-    @a = 3
-    while a == 3
-        doit()
-        doit()
-        a += 1
     Log.info("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
+        Log.info("Hello world.  count=${a}")
         doit()
         doit()
-        while a == 3
-            doit()
-            doit()
         hello()
-        if a
+        if a == 3
+            doit()
+        elif a == 4
+            doit()
+        elif a == 5
+            doit()
+        else
             doit()
             
 [pub]
@@ -97,7 +96,7 @@ fun circle(a f64, r f64) -> (x f64, y f64)
              .thenBy(@a => a)
 
 fun Iterator<Item>.orderBy() Iterator<Item>
-    Zurfur.nop
+    extern
 
 [pub] type Example
     

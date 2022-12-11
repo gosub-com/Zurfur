@@ -1381,20 +1381,14 @@ namespace Gosub.Zurfur.Compiler
                     break;
 
                 case "do":
-                    // DO (condition) (body)
+                    // DO (body)
                     mToken.Type = eTokenType.ReservedControl;
-                    var doKeyword = Accept();
-                    var doStatements = ParseStatements(keyword);
-                    var doExpr = (SyntaxExpr)SyntaxError;
-                    if (mToken == ";")
-                        Accept();
-                    if (AcceptMatchOrReject("dowhile"))
-                    {
-                        mPrevToken.Type = eTokenType.ReservedControl;
-                        doExpr = ParseExpr();
-                    }
+                    statements.Add(new SyntaxUnary(Accept(), ParseStatements(keyword)));
+                    break;
+
+                case "dowhile":
                     mToken.Type = eTokenType.ReservedControl;
-                    statements.Add(new SyntaxBinary(doKeyword, doExpr, doStatements));
+                    statements.Add(new SyntaxUnary(Accept(), ParseExpr()));
                     break;                        
 
                 case "if":
