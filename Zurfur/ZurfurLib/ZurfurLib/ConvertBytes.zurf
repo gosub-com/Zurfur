@@ -24,7 +24,7 @@ fun Test_ConvertExample()
 
 [pub] fun Span<byte>.bytesToHex(capitalize bool = false) str { }
 [pub] fun mut List<byte>.pushBytesToHex(bytes []byte, capitalize bool = false) { }
-[pub] fun mut List<byte>.pushHexToBytes(hex []byte) throws { }
+[pub] fun mut List<byte>.pushHexToBytes(hex []byte) !void { }
 
 
 // Convert 4 bytes (u32) to int (little endian)

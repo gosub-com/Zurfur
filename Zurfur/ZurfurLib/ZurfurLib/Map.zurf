@@ -18,7 +18,7 @@ type Map<K,V>
 // TBD: This wants to be inside Map<K,V>
 [pub]
 type KvPair<K,V>
-    key K pub ro
+    key K pub ref
     value V pub mut
 
 // TBD: Need this: fun (kv Map<K,V>.Pair) ...

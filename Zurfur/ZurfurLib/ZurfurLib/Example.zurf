@@ -22,44 +22,30 @@ use Zurfur.ConvertBytes[bytesToHex]
 
 
 // Define a type
-[pub] type MyType
-    map Map<str,int> = ["A":1, "B":2]  // Private mutable
-    list ro List<int> = [1,2,3]    // Private read-only
-    header str pub ro = "Zurfur"   // Private mutable, pub ro
-    text str pub mut               // Public mutable
+[pub]
+type MyType
+    text str                // Public
+    _misc str               // Private
+    _list List<int> pub ref // Private with pub ro
 
 // Method
-[pub] fun MyType.countToTen()
+[pub]
+fun MyType.countToTen()
     Log.info("Hello world.  Let's count to 10.")
-    for @a in 1..+10
-        Log.info("Count=${a}, text=${my.text}")
+    for @i in 1..+10
+        Log.info("Count=${i}, text=${my.text}")
 
-// Getter method
-[pub] fun get MyType.myMap() ref Map<str, int>
-    return ref my.map // Return a read only reference
-
-// Setter method
-[pub] fun set MyType.myMap(v own Map<str, int>)
-    my.map = v
-    my.MapChangedEvent()
+// Setter for list, which is already public read-only
+[pub]
+fun set MyType.list(v own List<int>)
+    my._list = v
+    my.mapChangedEvent()
 
 
 
-[pub] fun (MyType) get myMapGolang() ref Map<str, int>
-    return ref my.map // Return a read only reference
-    
-[pub] fun (MyType) set myMapGoLang(v own Map<str, int>)
-    my.map = v
-    //my.mapChanged() // Add `@mapChanged fun()` to MyType
+fun MyType.mapChangedEvent() {}
 
-fun MyType.MapChangedEvent() {}
 
-// This is a public documentation comment.
-// Functions are private by default.
-[pub] fun countToTen() str
-    Log.info("Hello world.  Let's count to 10.")
-    for @a in 1..11
-        Log.info("Count=${a}, Text=${text}")
 
 fun doit() {}
 fun hello() {}
@@ -89,22 +75,13 @@ fun circle(a f64, r f64) -> (x f64, y f64)
     return (cos(a)*r, sin(a)*r)
 
 
-// https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-// PREVIOUSLY: [pub] fun GetIterator<T>.AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIterator<T>
-[pub] fun Iterator<Item>.alphaLengthWise<L>(lengthProvider fun(t Item) L) Iterator<Item>
-    return my.orderBy(@a => lengthProvider(a))
-             .thenBy(@a => a)
-
-fun Iterator<Item>.orderBy() Iterator<Item>
-    extern
-
 [pub] type Example
     
     a1 str
     a2 str = "Hello"
     a3 List<str> = ["Hello", "World"]
     a4 List<int> = [1,2]
-    a5 List<int> pub ro
+    a5 List<int> pub ref
     a6 List<int> pub mut
     a7 List<int> pub mut
     //pub a8 List<int>
@@ -204,6 +181,15 @@ fun AcceptMatch(m str) Token {}
         return x*3
     fun square(x int) int
         return x*x
+
+// https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
+// PREVIOUSLY: [pub] fun GetIterator<T>.AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIterator<T>
+[pub] fun Iterator<Item>.alphaLengthWise<L>(lengthProvider fun(t Item) L) Iterator<Item>
+    return my.orderBy(@a => lengthProvider(a))
+             .thenBy(@a => a)
+
+fun Iterator<Item>.orderBy() Iterator<Item>
+    extern
 
 
 type MyStruct(a int)

@@ -45,7 +45,9 @@ namespace Gosub.Zurfur.Compiler
         PassCopy = 0x40000,
         ParamOut = 0x80000,
         Own = 0x200000,
-        Copy = 0x400000
+        Copy = 0x400000,
+        Union = 0x800000,
+        NoCopy = 0x1000000
     }
 
     /// <summary>
@@ -317,7 +319,7 @@ namespace Gosub.Zurfur.Compiler
                 if (Qualifiers.HasFlag(SymQualifiers.Interface)) t += " interface";
                 if (Qualifiers.HasFlag(SymQualifiers.Mut)) t += " mut";
                 if (Qualifiers.HasFlag(SymQualifiers.ParamOut)) t += " out";
-                if (Qualifiers.HasFlag(SymQualifiers.PassCopy)) t += " pass_copy";
+                if (Qualifiers.HasFlag(SymQualifiers.PassCopy)) t += " passcopy";
                 if (Qualifiers.HasFlag(SymQualifiers.Protected)) t += " protected";
                 if (Qualifiers.HasFlag(SymQualifiers.Pub)) t += " pub";
                 if (Qualifiers.HasFlag(SymQualifiers.Ref)) t += " ref";
@@ -327,6 +329,8 @@ namespace Gosub.Zurfur.Compiler
                 if (Qualifiers.HasFlag(SymQualifiers.Unsafe)) t += " unsafe";
                 if (Qualifiers.HasFlag(SymQualifiers.Own)) t += " own";
                 if (Qualifiers.HasFlag(SymQualifiers.Copy)) t += " copy";
+                if (Qualifiers.HasFlag(SymQualifiers.Union)) t += " union";
+                if (Qualifiers.HasFlag(SymQualifiers.NoCopy)) t += " nocopy";
                 sTags[key] = t;
                 return t;
             }
@@ -357,8 +361,6 @@ namespace Gosub.Zurfur.Compiler
                 case "set": Qualifiers |= SymQualifiers.Set; break;
                 case "get": Qualifiers |= SymQualifiers.Get; break;
                 case "afun": Qualifiers |= SymQualifiers.Async; Debug.Assert(Kind == SymKind.Method); break;
-                case "aset": Qualifiers |= SymQualifiers.Async | SymQualifiers.Set; break;
-                case "aget": Qualifiers |= SymQualifiers.Async | SymQualifiers.Get; break;
                 case "extension": Qualifiers |= SymQualifiers.Extension; break;
                 case "interface": Qualifiers |= SymQualifiers.Interface; break;
                 case "extern": Qualifiers |= SymQualifiers.Extern; break;
@@ -374,9 +376,11 @@ namespace Gosub.Zurfur.Compiler
                 case "enum": Qualifiers |= SymQualifiers.Enum; break;
                 case "class": break; // TBD: Implement classes in the future
                 case "init": Qualifiers |= SymQualifiers.Init; break;
-                case "pass_copy": Qualifiers |= SymQualifiers.PassCopy; break;
+                case "passcopy": Qualifiers |= SymQualifiers.PassCopy; break;
                 case "own": Qualifiers |= SymQualifiers.Own;  break;
                 case "copy": Qualifiers |= SymQualifiers.Copy; break;
+                case "union": Qualifiers |= SymQualifiers.Union; break;
+                case "nocopy": Qualifiers |= SymQualifiers.NoCopy; break;
                 default: Debug.Assert(false);  break;
             }
         }

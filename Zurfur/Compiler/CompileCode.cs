@@ -406,7 +406,7 @@ namespace Gosub.Zurfur.Compiler
                 // Terminals: Number, string, identifier
                 if (char.IsDigit(name[0]))
                     return GenConstNumber(ex);
-                else if (name == "\"" || name == "`")
+                else if (name == "\"" || name == "\"\"\"")
                     return new Rval(token, typeStr);
                 else if ((char.IsLetter(name[0]) || name[0] == '_') && !ParseZurf.ReservedWords.Contains(name))
                     return GenIdentifier(ex);

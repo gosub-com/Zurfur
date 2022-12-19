@@ -16,7 +16,7 @@ namespace Gosub.Zurfur.Compiler
     {
         public const string VT_TYPE_ARG = "$"; // Differentiate from '<' (must be 1 char long)
         public const string TOKEN_STR_LITERAL = "\"";
-        public const string TOKEN_STR_LITERAL_MULTI = "`";
+        public const string TOKEN_STR_LITERAL_MULTI = "\"\"\"";
         public const string TOKEN_COMMENT = "//";
 
         // Probably will also allow 2, but must also require
@@ -59,7 +59,7 @@ namespace Gosub.Zurfur.Compiler
             + "get set if while for return break continue else");
         static WordSet sContinuationBegin = new WordSet("] ) , . + - * / % | & || && and or "
                             + "== != : ? ?? > << <= < => -> .. :: !== ===  is in as has "
-                            + "= += -= *= /= %= |= &= ~= " + TOKEN_STR_LITERAL + " " + TOKEN_STR_LITERAL_MULTI);
+                            + "= += -= *= /= %= |= &= ~= " + TOKEN_STR_LITERAL);
 
         static WordSet sReservedWords = new WordSet("abstract as has super break case catch class const "
             + "continue default delegate do then else elif enum explicit extern true false defer use "
@@ -69,23 +69,23 @@ namespace Gosub.Zurfur.Compiler
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
             + "async await astart func afunc get set aset aget global partial var where when nameof "
             + "box boxed init move copy clone bag drop dispose own owned "
-            + "mixin extends impl union fun afun def yield let "
+            + "mixin extends impl union fun afun sfun def yield let "
             + "any dyn dynamic loop select match event aevent from to of on cofun cofunc global local it "
-            + "throws atask task scope assign @ # and or not xor with exit pragma require ensure "
+            + "throws rethrow atask task scope assign @ # and or not xor with exit pragma require ensure "
             + "of sync task except exception raise loc local global my");
 
         public static WordSet ReservedWords => sReservedWords;
 
         static WordSet sScopeQualifiers = new WordSet("pub public private unsafe unsealed static protected");
         static WordSet sFieldQualifiers = new WordSet("ro mut static");
-        static WordSet sPostTypeQualifiers = new WordSet("ro ref copy nocopy unsafe enum interface");
-        static WordSet sPostFieldQualifiers = new WordSet("init ro mut");
+        static WordSet sPostTypeQualifiers = new WordSet("ro ref copy nocopy passcopy unsafe enum union interface");
+        static WordSet sPostFieldQualifiers = new WordSet("init mut ref");
         static WordSet sParamQualifiers = new WordSet("ro own mut");
 
         static WordSet sReservedUserFuncNames = new WordSet("new clone drop default");
         static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default self super new move my sizeof typeof");
         static WordSet sReservedMemberNames = new WordSet("clone");
-        static WordSet sTypeUnaryOps = new WordSet("? * ^ [ ref ro");
+        static WordSet sTypeUnaryOps = new WordSet("? ! * ^ [ ref ro");
 
         static WordSet sEmptyWordSet = new WordSet("");
 
@@ -1282,11 +1282,7 @@ namespace Gosub.Zurfur.Compiler
                 returnParams = new SyntaxMulti(EmptyToken, FreeExprList(returns));
             }
 
-            SyntaxToken qualifier = EmptyExpr;
-            if (AcceptMatchPastMetaSemicolon("throws"))
-                qualifier = new SyntaxToken(mPrevToken);
-
-            return new SyntaxMulti(keyword, funcParams, returnParams, qualifier);
+            return new SyntaxMulti(keyword, funcParams, returnParams, EmptyExpr);
         }
 
 

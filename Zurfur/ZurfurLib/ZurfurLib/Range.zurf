@@ -9,8 +9,8 @@ use Zurfur.Collections[Iterator]
 
 [pub]
 type Range<T> copy where T has NumOps<T>
-    low T pub ro init
-    high T pub ro init
+    low T pub ref init
+    high T pub ref init
 
 [pub]
 fun Range<T>.new(low T, high T)

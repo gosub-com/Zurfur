@@ -30,9 +30,16 @@ type void { }
 type nil { }
 
 [pub]
-type Error interface
+type Error ro interface
     fun get code() ErrorCode
-    fun get Message() str
+    fun get message() str
+
+
+// Result<T> - Same as !T
+[pub]
+type Result<T> union
+    ok T
+    error ro Error
 
 // This will probably be a specially recognized error code type
 [pub]
@@ -40,22 +47,17 @@ type ErrorCode enum
     Success = 0 
 
 
-// Nullable<T> - Same as ?T.  NullableRef is the 
+// Nullable<T> - Same as ?T
 [pub]
 type Nullable<T>
-    hasValue bool
     value T
+    hasValue bool
 
 [pub]
 fun Nullable<T>.new(value T)
     my.value = value
     my.hasValue = true
     
-
-// Nullable reference (or pointer), optimization of ?ref T
-[pub]
-type NullableRef<T> ref
-    value ref T
 
 // a UTF8 encoded character, same as i32
 [pub]

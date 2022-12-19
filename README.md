@@ -1,28 +1,21 @@
-# ![Logo](Zurfur.jpg) Zurfur
+# Zurfur
+
+![Logo](Zurfur.jpg)
 
 Zurfur is is a programming language I'm designing for fun and enlightenment.
 The language is named after our cat, Zurfur, who was named by my son.  It's
 spelled **_ZurFUR_** because our cat has fur.
 
-I love C#.  It's my favorite language to program in.  But, I'd like to fix
-some [warts](http://www.informit.com/articles/article.aspx?p=2425867) and have
+I love C#.  It's my favorite language to program in.  But, I'd like to have
 some features from other languages built in from the ground up.  I'm thinking
-about mutability, nullability, ownership, and functional programming.
-
-**Status Update**
-
-Header file generation is working, and I am starting code generation.
-Hit F4 to see the header file in JSON format.  The syntax is still being
-developed, nothing is set in stone.  Feel free to send me comments letting
-me know what you think should be changed.
+about ownership, immutability, nullability, and functional programming.
 
 ![](Doc/IDE.png)
 
-#### Design Goals
-
+## Design Goals
 
 Zurfur takes its main inspiration from C#, but borrows syntax and design
-concepts from Golang, Rust, Zig, Lobster, and many other languages.
+concepts from Golang, Rust, Zig, Python, JavaScript, and other languages.
 Here are some key features:
 
 * **Prime directives:**
@@ -30,27 +23,24 @@ Here are some key features:
     * Faster than C# and unsafe code just as fast as C
     * Target WebAssembly with ahead of time static compilation
     * Typesafe replacement for JavaScript
-    * Stretch goal: Rewrite compiler and IDE in Zurfur on Node.js
-* **Mutability, ownership, and nullabilty are part of the type system:**
-    * Function parameters must be explicitly marked `mut` if they mutate anything
+* **Ownership, mutability, and nullabilty are part of the type system:**
     * All objects are value types, except for pointers (e.g. `^MyType`)
-    * References are non-nullable, but may use `?MyType` or `?^MyType` for nullable
     * `ro` means read only *all the way down* (not like C#, where `readonly` only protects the top level)
-    * Get/set of mutable properties works (e.g. `myList[0].VectorProperty.X = 3` mutates `X`)
+    * Function parameters must be explicitly marked `mut` if they mutate anything
+    * References and pointers are non-nullable, but may use `?MyType` or `?^MyType` for nullable
     * Deterministic destructors (e.g. `FileStream` closes itself automatically)
 * **Fast and efficient:**
-    * Return references and span used everywhere. `[]int` is `Span<int>`, and OK to pass to async functions
+    * Return references and span used everywhere. `[]int` is `Span<int>`
     * Functions pass parameters by reference, but will pass a copy when it is more efficient
     * Explicit `clone` required when copying an object that requires dynamic allocation
     * Most objects are deleted without needing GC.  Heap objects are reference counted.
-    * Safe multi-threading via web workers (`deepClone` and `bag` defined as fast deep copy for message passing)
-    * Async acts like a Golang blocking call without the `await` keyword (no garbage created for the task)
 
-#### Inspirations
+**Status Update**
 
-* [Lobster](http://strlen.com/lobster/) - A really cool language that uses reference counting GC
-* [Zig](https://ziglang.org/) - A better and safer C
-* [Pinecone](https://github.com/wmww/Pinecone/blob/master/readme.md) - Inspiration to keep plugging away
+Header file generation is working, and I am working on code generation.
+Hit F4 to see the header file in JSON format.  The syntax is still being
+developed, nothing is set in stone.  Feel free to send me comments letting
+me know what you think should be changed.
 
 ## Variables
 
@@ -87,7 +77,7 @@ For `type MyPointXy(x int, y int)`, the following are identical:
     @d Map<str, MyPointXy> = ["A": (x:1,y:2), "B": (x:3,y:4)]   // MyPointXy field initializer
     @a = ["A": MyPointXy(1,2), "B": MyPointXy(3,4)]
 
-## Functions and Properties
+## Functions, Methods, Getters, and Setters
 
 Functions are declared with the `fun` keyword. The type name comes after the
 argument, and the return type comes after the parameters:
@@ -97,36 +87,30 @@ argument, and the return type comes after the parameters:
     fun main(args Array<str>)
         Log.info("Hello World, 2+2=${2+2}")
 
-Methods and extension methods are declared with the same syntax and
-use the `my` keyword to refer to fields or other methods in the type:
+Methods and extension methods are declared outside of the type and use the
+`my` keyword to refer to fields or other methods in the type:
 
     // Declare an extension method for strings
     fun str.rest() str
         return if(my.count == 0, "" : my.subRange(1))  // `subRange` is defined by `List`
 
-    // TBD: Still considering golang method syntax
-    fun (str) rest() str
-        return if(my.count == 0, "" : my.subRange(1)) 
-
-Properties are functions declared with `get` and `set` keywords:
+Getters and setters are functions declared with `get` and `set` keywords:
 
     fun get MyType.myString() str
-        return my.cachedStr
+        return my._myString
 
-    fun set MyType.myString(v str)
-        my.cachedString = v
-        my.stringChangedEvent()
-
-    // TBD: Still considering golang syntax
-    fun (MyType) get myString() str
-        return my.cachedStr
+    fun set MyType.myString(value str)
+        my._myString = value
+        my.myStringChangedEvent()
 
 This is identical to declaring a public field:
 
-    // The return value is known to be a borrow from an internal field
-    fun MyPointXy.x2() ref int
+    // Identical to declaring a public field
+    fun get MyPoint.x2() mut ref int
         return ref my.x
   
+### Function Parameters
+
 By default, function parameters are passed as read-only reference.  The
 exception is that small types (e.g. `int`, and `Span<T>`) are passed by
 copy because it is more efficient to do so.  Other qualifiers, `mut`, `ref`,
@@ -165,6 +149,8 @@ then never use the object again, or must explicitly `clone` the object.
     fun storeList(list own List<int>)
         // Take ownership of the list
 
+### Function Returns
+
 Functions can return multiple values:
 
     // Multiple returns
@@ -179,11 +165,16 @@ The return parameters are named, and can be used by the calling function:
 Normally the return value becomes owned by the caller, but this behavior
 can be changed with the `ref` keyword:
 
-    fun getRoList() ref List<int>           // Read-only ref of internal data structure
+    // Read-only ref of internal data structure
+    fun getRoList() ref List<int>
         return ref myListField
-    fun getMutList() mut List<int>          // Mutable (mutation allowed, assignment not allowed)
+
+    // Mutable (mutation allowed, assignment not allowed)
+    fun getMutList() mut List<int>
         return mut myListField
-    fun getMutRefList() mut ref List<int>   // Mutable ref (mutation or assignment is allowed)
+
+    // Mutable ref (mutation or assignment is allowed)
+    fun getMutRefList() mut ref List<int>
         return mut ref myListField
 
 Return qualifiers:
@@ -194,11 +185,6 @@ Return qualifiers:
 | `mut` | Caller may mutate, but not assign | Callee retains ownership.  Not valid for `ro` types
 | `ref mut` | Caller may mutate or assign | Requires annotation (i.e. `ref`) at the call site
 
-**TBD:** `ref` can cross async boundaries.  Or `ref` cannot, but `aref` can.
-Probably this is better to be a compiler optimization, but mutating a `List`
-count while holding a `ref` to element will cause a runtime error, so it
-would be good to have compile time checks on that.
-
 ## Types
 
 The ones we all know and love:
@@ -207,68 +193,60 @@ The ones we all know and love:
     
 | Type | Description
 | :--- | :---
-| List\<T\> | Dynamically sized mutable list with mutable elements.  This is the one and only dynamically sized object in Zurfur.
-| Array<\T\>| An alias for `ro List<T>`.  An immutable list of immutable elements. Even if the array contains mutable elements, they become immutable when copied into the list.  Array's can be copied very quickly, just by copying a reference.
-| str, str16 | An `Array<byte>` or `Array<u16>` with support for UTF-8 and UTF-16.  `Array` (an ailias for`ro List`) is immutable, therefore `str` is also immutable.  `str16` is a Javascript or C# style unicode string
-| Span\<T\> | Span into a `List` or `Array`.  It has a constant `count`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `List` is mutable)
-| Map<K,V> | Unordered mutable map.  `ro Map<K,V` is the immutable counterpart. 
+| List\<T\> | Re-sizable mutable list of mutable elements.  This is the one and only dynamically sized object in Zurfur.
+| Array\<T\>| An alias for `ro List<T>`.  An immutable list of immutable elements. Even if the array contains mutable elements, they become immutable when copied into the list.  Array's can be copied very quickly, just by copying a reference.
+| str, str16 | An `Array<byte>` or `Array<u16>` with support for UTF-8 and UTF-16.  `Array` (an alias for `ro List`) is immutable, therefore `str` is also immutable.  `str16` is a JavaScript or C# style Unicode string
+| Span\<T\> | A view into a `List` or `Array`.  It has a constant `count`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `List` is mutable)
+| Map<K,V> | Unordered mutable map.  `ro Map<K,V>` is the immutable counterpart. 
 | Dynamic, DynamicMap | The type used to interface with dynamically typed languages.  Easy conversion to/from JSON and string representations of built-in types.  TBD: `dyn` keyword in the future (e.g. `myDyn["hello"]` is same as `myDyn.hello`)
 
 All types have a compiler generated `ro` counterpart which can be copied
 very quickly since cloning them is just a memory copy without dynamic
 allocation.  In the case of `ro List`, `Array`, `str`, it's just one pointer.
 
-This is still TBD:
+### Declaring Types
 
-| Qualifier | Notes
-| :---    | :--- 
-|  (none) | Normal types (`List`, `Map`, etc.) pass by reference and require explicit clone
-| `ro`    | Read only types (`str`, `ro List`, `Array`, etc.) pass by reference and copy implicitly (copies are always fast and never allocate)
-| `passcopy` | Small types (`int`, `Span`, possibly `Point`, 'Rect`, etc.) pass by copy since that is faster
-| `copy`  | Types that never allocate can be implicitly copied but pass by reference since that is faster. 
-| `ref`   | Stack only types containing a reference
-| `boxed` | **TBD:** Heap only type, but is still owned
-| `heap`  | **TBD:** Heap only type that can get a pointer to itself
-| `async` | A type that has an async `drop`, can only be created in an async context or on the heap
-| `noclone` | Cannot be cloned
+At the module level, fields, functions, methods, and types are private to that
+module and it's children unless the `[pub]` qualifier is specified.  
 
-**TBD:** `pass` and `passcopy` could be decided by the compiler based on the
-size of the type, but different behavior could result because of references,
-especially when combined with async. 
+Type fields are public by default but can be made private by prefixing them
+with an `_` underscore.  Private fields can have public getters and setters
+or public read-only access which does not use the `_` prefix.  The scope of
+a private variable is the file that it is declared in.
 
-**TBD:** Are copy/clone semantics worth the trouble?  Why not clone by default?
-A new programmer might ask why some types allow `a=b` and others require
-`a=b.clone()` and then point out that `a=f(b)` might be hiding a clone.
-For now, mutable dynamically allocated data requires an explicit clone because
-we care about efficiency.  We can remove this later by allowing an implicit
-clone.  `List` and `Map` are actually plain old data structures even though
-they do dynamic allocation. More **TBD**: `myList.pushAll` hides a clone, or
-require `myList.pushClones`?
+    [pub]                               // Make this type public
+    type Example
+        // Mutable fields
+        list1 List<int> = [1,2,3]       // Public, initialized with [1,2,3]
+        _list2 List<int>                // Private, initialized with []
+        _list3 List<int> pub ref        // Private with public read-only access
+        _list4 List<int> pub mut        // Private with public modify but not assign
 
-**Pro explicit clone:** Prevent accidental cloning of large data structurs
-with a simple assignment.  Encourage programmers to get a reference, rather
-than re-index (e.g. `@a = ref myList[0].myType` rather than `@a = myList[0].myType`
-which would be obvious if the compiler forces `@a = myList[0].myType.clone()`).
+        // Read-only fields
+        text1 ro str                    // Constructor can override
+        text2 ro str = "Hello"          // Constructor cannot override
+        text3 ro str init = "Hello"     // Constructor can override
 
-**Con explicit clone:** Different types have different semantics, some require
-`clone` while others don't.  Largely an optimization problem.  Clones can
-easily be hidden in a function call. 
 
-### Privacy
+ Using the private variable requires the `_`, while the public version does
+ not (e.g. both `my._list3=[]` and `@a=my._list3[0]` are okay within the file
+ scope, but only `@a=my.list3[0]` may be used outside the file scope).
+Private fields can have public getters or setters. 
 
-At the module level, all fields (global static data), functions, and types 
-are private to that module and it's children unless the `[pub]` qualifier is
-specified.  Methods are declared at the module level, therefore they are
-private by default.
+        
+    // Public getter function that provides read-write
+    // access identical to declaring a public field
+    [pub]
+    fun get Example.list2() mut ref str
+        return ref my._list2
 
-Inside of a type, all fields are public by default.  Any field declared as
-private is visible only within that file.  
+    // Public setter to allow user to modify _list3
+    [pub]
+    fun set Example2.list3(value own List<int>)
+        my._list3 = value
+        // Call list3ChangedEvent
 
-### Simple Data Types
-
-Simple data-only types can declare their fields in parentheses.  They are
-mutable by default, but can also be immutable by adding the `ro` qualifier.
-All fields are public.
+Simple types can be defined with a simplified syntax:
 
     // Simple types - all fields are public
     type Point(x int, y int)
@@ -287,86 +265,13 @@ of the fields as named parameters.
     @p1 = Person(1, "John", "Doe", 32)  // Read-only data
 
 
-### Complex Types
-
-A complex type defines all of its fields in the body. Fields are declared
-with `@` and are private, but may have public properties with `pub get`,
-`pub get set`, etc.
-
-    type Example
-        // Mutable fields
-        @text1 str = "hello"                // Private
-        @text2 str pub get = "hello"        // Public get (copy, not a reference)
-        @text3 str pub get set = "hello"    // Public get/set (copy, not a reference)
-        @list1 List<int>                    // Private
-        @list2 List<int> pub ref;           // Public read-only reference
-        @list3 List<int> pub mut;           // Public mutable reference, not assignable
-        @list4 List<int> pub mut ref;       // Public mutable reference, assignable
-
-        // Read-only fields
-        @roText1 ro str                     // Constructor can override
-        @roText2 ro str = "Hello"           // Constructor cannot override
-        @roText3 ro str pub init = "Hello"  // Constructor or client can override
-        
-    // Getter and setter functions (passing copies)
-    fun get Example.text() str
-        return my.text1
-
-    fun set Example.text(value str)
-        if value == my.text1
-            return
-        my.text1 = value
-        my.sendTextChangedEvent()
-
-    // Getter returning references
-    fun get Example.list1a() ref List<int>      // Immutable reference
-        return ref my.list1
-    fun get Example.list1b() mut List<int>      // Mutable reference, not assignable
-        return ref my.list1
-    fun get Example.list1c() mut ref List<int>  // Mutable reference, assignable
-        return ref my.list1
-
-
-### Immutability
-
-`ro` means read-only, not just at the top level, but at all levels.  When
-a field is `ro`, there is no way to modify or mutate any part of it.
-
-TBD: Document more
-
-### References
-
-References are short lived pointers that may never leave the stack.
-They can be created explicitly, or implicitly when a function is called.
-
-
-### List and ro List
-
-`List` is the default data structure for working with mutable data.  Once the
-list has been created, it can be converted to a `ro List` which is immutable.
-Assigning a `ro List` is very fast since it is just copying a reference,
-whereas assigning a `List` will create a copy unless it can be optimized
-to a move operation.
-
-    @x = [1,2,3]            // x is List<int>
-    @y = ["A", "B", "C"]    // y is List<str>
-    @z = [[1,2,3],[4,5,6]]  // z is List<List<int>>
-    x.Push(4)               // x contains [1,2,3,4]
-    x.Push([5,6])           // x contains [1,2,3,4,5,6]
-    @a = x.toRo()           // a is `ro List<int>`
-    fieldx = x              // fieldx is a copy of x (with optimization, x may have been moved)
-    fielda = a              // fielda is always a reference to the ro list `a`
-
-`List` can be used to quickly build and manipulate mutable data, while `ro List`
-can be used to store immutable data.
-
 ### Strings
 
-Strings (i.e. `str`) are immutable byte lists (i.e. `ro List<byte>`), generally
+Strings (i.e. `str`) are immutable byte arrays (i.e. `Array<byte>`), generally
 assumed to hold UTF8 encoded characters.  However, there is no rule enforcing
 the UTF8 encoding so they may hold any binary data.
 
-String literals start with a quote (single line) or backtick (multi-line), and
+String literals start with a quote `"` (single line) or with `"""` (multi-line), and
 can be translated at runtime using `tr"string"` syntax.  They are interpolated
 with curly braces (e.g `"${expression}"`). Control characters may be put inside
 an interpolation (e.g. `"${\t}"` is a tab).  Inside the quoted string, the
@@ -374,20 +279,17 @@ backslash `\` is not treated differently than any other character.
 
 ![](Doc/Strings.png)
 
-**TBD:** Remove quotes, since it's redundant?  Or are we so used to quotes, we
-keep them?  Coding standard requires quotes unless the string is truly multi-line?
-
 There is no `StringBuilder` type, use `List<byte>` instead:
 
     @sb = List<byte>()
     sb.push("Count from 1 to 10: ")
     for @count in 1..+10
-        sb.push(` ${count}`)
+        sb.push(" ${count}")
     return sb.toStr()
 
 ### Span
 
-Span is a view into a `str`, `List`, or `ro List`.  They are `type ref` and
+Span is a view into a `str`, `List`, or `Array`.  They are `type ref` and
 may never be stored on the heap.  Unlike in C#, a span can be used to pass
 data to an async function.  
 
@@ -395,12 +297,12 @@ The array declaration syntax `[]Type` translates directly to Span (not to
 `Array` like C#).  The following definitions are identical:
 
     // The following definitions are identical:
-    afun mut write(data Span<byte>) int throws
-    afun mut write(data []byte) int throws
+    afun mut write(data Span<byte>) !int
+    afun mut write(data []byte) !int
 
 Spans are as fast, simple, and efficient as it gets.  They are just a pointer
-and count.  They are passed down the *execution stack* or stored on the async
-task frame when necessary.  More on this in the GC section below.
+and count.  They are passed down the execution stack or stored on the async
+task frame when necessary.
 
 Given a range, the index operator can be used to slice a List.  A change to
 the list is a change to the span and a change to the span is a change to the list.
@@ -420,167 +322,6 @@ fails the same as indexing outside of array bounds.
     slice[0] = "M"[0]       // slice is "Mat", list is "Hello Mat"
     list.Push("!")          // Runtime failure with stack trace in log file
 
-
-### Map
-
-`Map` is a hash table and is similar to `Dictionary` in C#.  The type can be
-inferred from the expression, or it can be explicit:
-
-    @a = ["Hello":1, "World":2]     // a is Map<str,int>
-    @b Map<int,f64> = [0:1, 1:2.3]  // b is Map<int,f64>
-
-When indexing a map, the return type is `?ref T`, so it must either be checked
-before being used or have a default:
-
-    // Check for its existence
-    if a["hello"]@item
-        // Use item here
-    else
-        // item is invalid, insert new pobject
-
-    // Get the value, or get a default if it doesn't exist
-    @x = a["hello"]??3      // Get the value, or the default if it doesn't exist
-
-
-If the map contains objects that can't be trivially copied (e.g. `List<int>`),
-they must be cloned or reference captured:
-
-    // TBD: explicit `ref` might not be needed here since
-    //      @ capture is a new operator, different than assignment
-    if ref myLists["hello"]@item
-        // Use item here.  You don't own it and may not modify it
-
-    if clone myLists["hello"]@item
-        // Use item here.  You own they copy and may modify it
-
-When assigning, the item is always created.  If it is also used at the same
-time, it gets the default value:
-
-    a["hello"] = 23         // Created if it doesn't exist
-    a["new"] += 1           // Created with 0, or uses existing value
-
-    
-### Enum
-
-Enumerations are similar to C# enumerations, in that they are just
-a wrapped `int`.  But they are implemented internally as a `type`
-and do not use `,` to separate values.
-
-    enum MyEnum
-        A           // A is 0
-        B; C        // B is 1, C is 2
-        D = 32      // D is 32
-        E           // E is 33
-    
-        // Enumerations can define ToStr
-        fun ToStr() str
-            return MyConvertToTranslatedName()
-
-The default `ToStr` function shows the value as an integer rather
-than the name of the field, but it is possible to override and make it
-display anything you want.  This allows enumerations to be just as light
-weight as an integer and need no metadata in the compiled executable.
-
-**TBD:** Differentiate an enum having only scalar values vs one with flags?
-The one with flags allows `|` and `&`, etc but the other doesn't.
-
-## Interfaces
-
-Zurfur uses Golang style interfaces, which fit nicely with the dynamic nature
-of Javascript.
-
-## Async
-
-Async is built into the type system but it looks and acts as if it were sync.
-Calling an async function from async code blocks without using the `await` keyword:
-
-    // The keyword `afun` denotes an async function
-    afun MySlowIoFunctionAsync(server str) str
-        @a = fetchHttp(server)      // Blocks without `await` keyword
-        Task.delay(100);            // Also blocks without `await` keyword
-        return a;
-
-Async code normally looks and acts as if it were sync.  But, when we want
-to start or wait for multiple tasks, we can also use the `astart` keyword.
-
-    afun GetStuffFromSeveralServers() str
-        @a = astart fetchHttp(request1)
-        @b = astart fetchHttp(request1)
-        @c = astart fetchHttp(request1)
-        await(a,b,c)
-        // We are guaranteed that a, b, and c have completed succesfully.
-        // The first failure will return an error and cancel the other tasks.
-
-The result of an `afun` function is actually a `Future` that can be used in a
-similar way to `Task` in C#.
-
-#### Async Implementation 
-
-Async will be implemented with an actual stack, not with heap objects. 
-This should improve GC performance since each task call won't be
-required to create a heap allocation.  
-
-## Errors and Exceptions
-
-Joe Duffy has some great thoughts on error handling here [Midori](http://joeduffyblog.com/2016/02/07/the-error-model/).
-
-But does the distinction between throwing and non-throwing make sense for
-async? Almost all async functions can throw, so that will be the default:
-
-    fun myFun1() int            // Sync, can not throw but can panic
-    fun myFun2() int throws     // Sync, can throw, can panic
-    afun myFun3() int           // Async, can throw, can panic
-    afun myFun4() int nothrow   // Async, must handle errors or panic
-
-The purpose of `nothrow` is to force top level functions to handle errors.
-For instance, the click event for a GUI might require a `nothrow` function.
-
-|Error Type | Action | Examples
-| :--- | :--- | :---
-|Normal | No stack trace, debugger not stopped | `throw` - File not found, task cancelled
-|Panic | Stack trace logged, debugger stopped | `require` - List bounds check
-|Critical | End process, stack trace, maybe core dump | Memory corruption, type safety violation
-
-Panics always stop the debugger (if attached) and log a stack trace. They are
-unrecoverable from within sync code.  In async code they continue unwinding
-the async stack up to some special top level exception handler.  The program
-can recover, but a web server might report "500 Internal Server Error" or a
-GUI might save the document and send a bug report back to the developer.
-
-Normal error handling uses `throw` or `throwIf` to send the error up to the
-caller.  There is no need to use a keyword to unwrap the result.  By default,
-the caller will either get the result or automatically re-throw the error up
-to its caller if it may do so.  If it may not re-throw, the caller must
-manually check the result for an error.  The normal non-error path looks
-like C# exception handling.
-
-
-    // File.open either opens the file, or automatically passes the error up
-    @stream = File.open("config.json")
-
-    // If readAllLines fails, the file is closed and the error is passed up
-    @textLines = stream.readAllLines()
-
-An error can be detected when the function is called:
-
-    if try File.open("config.json")@stream
-        // Do something with `stream`, which is a FileStream
-        // The file is closed at the end of the scope, even if it is a panic
-    else
-        // Do something with `stream`, which is an Error
-
-Resource cleanup can be performed by the `drop` function, such as with
-`FileStream` above.  Another method is to use `defer`:
-
-    // Use `defer` to cleanup at the end of the scope
-    @databaseHandle = c_function_to_open_a_database_handle("database")
-    defer c_function_to_close_a_database_handle(databaseHandle)
-    // The above function is called at the end of the scope, even if panic
-
-The third method is to use `scope`..`finally` which is similar to C#
-`try`..`finally`.  
-
-
 ### New, Equality, Clone, and Drop
 
 The `new` function is the type constructor.  It does not have access to
@@ -593,7 +334,7 @@ for types where all of the elements also implement these functions.  The
 implement an `_opEq` function may not be compared with `==` or `!=`.
 
 Like Rust, an explicit `clone` is required to copy any mutable type that
-requires dynamic allocation.  If the type contains only `int`, `str`, or
+requires dynamic allocation.  If the type contains only `int`, `str`, `Array`, or
 `ro List`, it will implicitly copy itself.  If the type contains `List`, `Map`,
 or any other dynamically allocated mutable data, it must be explicitly cloned.
 Some types, such as `FileStream` can't be cloned at all.
@@ -626,6 +367,86 @@ Inside the lambda function, `return` is forbidden since it doesn't return
 from thom the nearest `fun` scope.  Instead, `exit` is used.
 
 **TBD:** Consider how to `break` out of the lambda.  Use a return type of `Breakable`?
+
+
+## Interfaces
+
+Zurfur uses Golang style interfaces, which fit nicely with the dynamic nature
+of JavaScript.
+
+## Async
+
+Sync and async functions look and act identically, except that async functions
+use the keyword `afun` and can't be called from sync `fun` functions.  There
+is no `await` keyword at the call site.  Instead, it looks like a regular
+blocking function call.
+
+**TBD:** All functions are async.  The compiler optimizes to make them as sync
+as possible.  The only downside here is that calls through an interface might
+not be optimizable.  Even though there could be a loss of efficiency, I'm
+leaning towards doing this because it is easier to use, especially when
+a type has an async destructor.
+
+## Threading
+
+The first version of Zurfur is targeted at replacing JavaScript and will
+support multi-threading only via web workers and async message passing.  Each
+web worker has its own address space, so everything is single threaded.
+
+For now, a combination of async, web-workers, and message passing can mostly
+replace the need for true multi-threading, as demonstrated by Node.js.  
+
+## Errors and Exceptions
+
+Joe Duffy has some great thoughts on error handling here [Midori](http://joeduffyblog.com/2016/02/07/the-error-model/).
+
+Errors are classified like this:
+
+|Error Type | Action | Examples
+| :--- | :--- | :---
+|Normal | No stack trace, debugger not stopped | `throw` - File not found
+|Panic | Stack trace logged, debugger stopped | `require` - Array bounds check
+|Critical | End process, stack trace, maybe core dump | Memory corruption, type safety violation
+
+Panics always stop the debugger (if attached) and log a stack trace. They
+are recoverable in top level handlers, like `astart`, but recovery should
+be used sparingly.  In a GUI, recovery might print an error but allow the
+user to continue so they can save work.  In a server, recovery might log an
+error and report 500 internal server error, but then continue processing
+requests.  A buggy deserializer might convert a panic into a regular error.
+
+Normal error handling uses `Result<T>` which can be either the return type
+or an `Error` interface. The type `Result<T>` is abbreviated as `!T`, so a
+function that throws an error can be prototyped as:
+
+    afun open(fileName str) !FileStream
+
+`throw` or `throwIf` is used to send the error up to the caller.  The postfix
+`!` operator can be used to unwrap the error or send it up to the caller.
+The `!!` can be used to unwrap the error or panic.
+
+    // Use `!` to get the result or send the error up to the caller
+    @user = File.readJson<UserType>("userDataForJeremy.json")!
+
+    // The application can't start without a configuration, so panic
+    @config = File.readJson<ConfigType>("config.json")!!
+
+An error can be detected when the function is called:
+
+    if try File.open("config.json")@stream
+        // Do something with `stream`, which is a FileStream
+        // The file is closed at the end of the scope, even if it is a panic
+    else
+        // Do something with `stream`, which is an Error
+
+There are two ways to cleanup resources that work for both regular errors and
+also for panics.  The first is cleanup by the `drop` function, such as with
+a `FileStream` which closes the file.  Another method is to use `defer`:
+
+    // Use `defer` to cleanup at the end of the scope
+    @databaseHandle = c_function_to_open_a_database_handle("database")
+    defer c_function_to_close_a_database_handle(databaseHandle)
+    // The above function is called at the end of the scope, even if panic
 
 ## Operators
 
@@ -789,20 +610,8 @@ changes once calculated:
         Console.WriteLine(i)
 
 When iterating over a collection, just like in C#, it is illegal to add
-or remove elements from the collection.  An exception is thrown if
-it is attempted.  Here are two examples of things to avoid:
+or remove elements from the collection.  
 
-    for @i in myIntList
-        myIntList.Add(1)   // Exception thrown on next iteration
-
-    // This does not remove 0's and increment the remaining elements
-    // The count is evaluated only at the beginning of the loop.
-    for @i in myIntList.Count
-        if myIntList[i] == 0
-            RemoveAt(i)        // There are at least two problems with this
-        else:
-            myIntList[i] += 1  // This will throw an exception if any element was removed
- 
 #### Switch and Match
 
 Both `switch` and `match` are reserved for future use.  For now, use `if`,
@@ -834,17 +643,6 @@ doesn't need to be traced since it can't have a cycle.
 Calling an async function doesn't create garbage because each task has its
 own stack.  No dynamic allocations are needed for async calls.
 
-## Threading
-
-The first version of Zurfur is targeted at replacing JavaScript, and will
-support multi-threading only via web workers and message passing.  Each web
-worker has its own address space, so everything appears to be single threaded.
-
-JavaScript has done pretty well with the single threaded model.
-IO is async and doesn't block.  Long CPU bound tasks can be
-offloaded to a web worker.  Even Windows uses a single threaded
-model for user interface objects.
-
 ## Raw Pointers
 
 The `^` type is a raw C style pointer.  The `.` operator is used to access
@@ -860,14 +658,14 @@ the data.
 
 For now...
 
-Raw pointers are not safe.  They act axactly as they do in C.  You can corrupt
+Raw pointers are not safe.  They act exactly as they do in C.  You can corrupt
 memory and crash your application.  They can be null, and the compiler
 does not add run time null checks.  The data they point to is always
 mutable.  There are three reasons for this.
 
 First, it makes porting from C easier.  I need to port DlMalloc without
 worrying about pointer type safety.  Second, they are fast.  It is
-necessary to have low level libraries and infrustructure running
+necessary to have low level libraries and infrastructure running
 fast and efficiently.  Third, without pointers, Zurfur is a type
 safe language.  Pointers should only be used where necessary.
 

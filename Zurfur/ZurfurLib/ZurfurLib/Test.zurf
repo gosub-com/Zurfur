@@ -11,7 +11,7 @@ fun _opIndex(a Map<str, int>, b str) int{}
 
 fun test_HelloWorld()
     Log.info("Hello World.  Let's count from 1 to 10.")
-    for @a in 1..11
+    for @i in 1..11
         Log.info("Count=${a}")
 
     @a = "Regular string literal"       // No interpolation
@@ -19,8 +19,8 @@ fun test_HelloWorld()
     @c = tr"Translated string"          // Translated at runtime
     @d = "Hello world, a+b=${a+b}${\n}" // Interpolated with \n at the end
     @e = tr"Hello world, X=${X}!${\n}"  // Translated, interpolated, \n at end
-    @g = `{"X":1,"Y":2}`                // Containing quote
-    @h = `{"X":${x},"Y":2}`             // Containing quote and interpolated
+    @g = """{"X":1,"Y":2}"""            // Containing quote
+    @h = """{"X":${x},"Y":2}"""         // Containing quote and interpolated
 
 [pub] type Example
     info str                  // Private string initialized to ""
