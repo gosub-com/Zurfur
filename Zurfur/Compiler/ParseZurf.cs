@@ -55,7 +55,7 @@ namespace Gosub.Zurfur.Compiler
 
         // Add semicolons to all lines, except for:
         static WordSet sContinuationEnd = new WordSet("[ ( ,");
-        static WordSet sContinuationNoBegin = new WordSet("} namespace module type use pragma pub fun afun " 
+        static WordSet sContinuationNoBegin = new WordSet("} namespace mod type use pragma pub fun afun " 
             + "get set if while for return break continue else");
         static WordSet sContinuationBegin = new WordSet("] ) , . + - * / % | & || && and or "
                             + "== != : ? ?? > << <= < => -> .. :: !== ===  is in as has "
@@ -63,7 +63,7 @@ namespace Gosub.Zurfur.Compiler
 
         static WordSet sReservedWords = new WordSet("abstract as has super break case catch class const "
             + "continue default delegate do then else elif enum explicit extern true false defer use "
-            + "finally fixed for goto if in interface internal is lock namespace module include "
+            + "finally fixed for goto go if in interface internal is lock namespace mod app include "
             + "new null out override pub public private protected readonly ro ref aref mut imut "
             + "return ret unsealed unseal sealed sizeof struct switch this This self Self throw try "
             + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
@@ -95,12 +95,12 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sXorOps = new WordSet("~");
         static WordSet sMultiplyOps = new WordSet("* / % &");
         static WordSet sAssignOps = new WordSet("= += -= *= /= %= |= &= ~= <<= >>=");
-        static WordSet sUnaryOps = new WordSet("+ - & ~ use unsafe ref clone mut not");
+        static WordSet sUnaryOps = new WordSet("+ - & ~ use unsafe ref clone mut not astart");
 
         // For now, do not allow more than one level.  Maybe we want to allow it later,
         // but definitely do not allow them to include compounds with curly braces.
         static WordSet sNoSubCompoundStatement = new WordSet("type class catch " 
-                                + "get set pub private namespace module static static");
+                                + "get set pub private namespace mod static static");
 
         // C# uses "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"  to resolve type
         // argument ambiguities. The following symbols allow us to call functions,
@@ -438,20 +438,25 @@ namespace Gosub.Zurfur.Compiler
         {
             var qualifiers = new List<Token>();
 
-            // Search for 'module' keyword
-            while (mTokenName != "" && mTokenName != "module")
+            // Search for 'mod' keyword
+            while (mTokenName != "")
             {
                 if (mTokenName == "pragma")
                     ParsePragma();
-                else if (!Reject("Expecting 'module' or 'pragma' keyword"))
+                else if (mTokenName == "mod")
+                {
+                    if (ParseModuleStatement(Accept()))
+                        break;
+                }
+                else if (!Reject("Expecting 'mod' or 'pragma' keyword"))
                     Accept();
                 if (mTokenName == ";")
                     Accept();
             }
+            if (mToken == ";" && mToken.Meta)
+                Accept();
             if (mTokenName == "")
                 return;
-            if (mToken.X != 0)
-                RejectToken(mToken, "'module' statement must be in the first column");
 
             while (mTokenName != "")
             {
@@ -495,10 +500,10 @@ namespace Gosub.Zurfur.Compiler
                     qualifiers.Clear();
                     break;
 
-                case "module":
+                case "mod":
                     mToken.Type = eTokenType.ReservedControl;
                     if (mToken.X != 0)
-                        RejectToken(keyword, "'module' statement must be in the first column");
+                        RejectToken(keyword, "'mod' statement must be in the first column");
                     Accept();
                     ParseModuleStatement(keyword);
                     qualifiers.Clear();
@@ -742,8 +747,12 @@ namespace Gosub.Zurfur.Compiler
             return synUsing;
         }
 
-        void ParseModuleStatement(Token keyword)
+        bool ParseModuleStatement(Token keyword)
         {
+            if (keyword.X != 0)
+                RejectToken(mToken, "'mod' statement must be in the first column");
+            keyword.Type = eTokenType.ReservedControl;
+
             var namePath = new List<Token>();
             do
             {
@@ -754,7 +763,7 @@ namespace Gosub.Zurfur.Compiler
             } while (AcceptMatch("."));
 
             if (namePath.Count == 0)
-                return; // Rejected above
+                return false; // Rejected above
 
             bool scopeAdded = false;
             for (int i = 0;  i <  namePath.Count;  i++)
@@ -765,7 +774,7 @@ namespace Gosub.Zurfur.Compiler
                     if (namePath[i] != mModuleBasePath[i])
                     {
                         RejectToken(namePath[i], $"Expecting module name to start with '{mModuleBaseStr}'");
-                        return;
+                        return false;
                     }
                     continue;
                 }
@@ -777,7 +786,7 @@ namespace Gosub.Zurfur.Compiler
             if (!scopeAdded)
             {
                 RejectToken(namePath[namePath.Count - 1], $"Expecting module name to have another identifier after '{mModuleBaseStr}.'");
-                return;
+                return false;
             }
 
             // Collect base module name
@@ -794,6 +803,7 @@ namespace Gosub.Zurfur.Compiler
             // Accumulate comments and keyword tokens for this module
             module.Comments += " " + mComments;
             mComments.Clear();
+            return true;
         }
 
         void ParsePragma()
@@ -1428,6 +1438,10 @@ namespace Gosub.Zurfur.Compiler
                     var forCondition = ParseExpr();
                     statements.Add(new SyntaxMulti(keyword, forVariable, forCondition, 
                                     ParseStatements(keyword)));
+                    break;
+
+                case "astart":
+                    statements.Add(new SyntaxUnary(Accept(), ParseExpr()));
                     break;
 
                 case "throw":
@@ -2095,7 +2109,7 @@ namespace Gosub.Zurfur.Compiler
             return mToken.Type == eTokenType.Identifier
                 || sTypeUnaryOps.Contains(mTokenName)
                 || sParamQualifiers.Contains(mTokenName)
-                || mToken == "fun" || mToken == "afun" || mToken == "This";
+                || mToken == "fun" || mToken == "afun";
         }
 
         SyntaxExpr ParseType()
@@ -2108,8 +2122,13 @@ namespace Gosub.Zurfur.Compiler
                 if (token.Name == "[")
                     if (AcceptMatchOrReject("]"))
                         mPrevToken.Type = eTokenType.TypeName;
-                return new SyntaxBinary(NewMetaToken(mToken, VT_TYPE_ARG), 
-                                        new SyntaxToken(token), ParseType());
+
+
+                var tArg = NewMetaToken(token, VT_TYPE_ARG);
+                var tName = new SyntaxToken(token);
+                if (token == "!" && !BeginsType())
+                    return new SyntaxBinary(tArg, tName, new SyntaxToken(NewMetaToken(token, "void")));
+                return new SyntaxBinary(tArg, tName, ParseType());
             }
 
             if (mToken == "fun" || mToken == "afun")

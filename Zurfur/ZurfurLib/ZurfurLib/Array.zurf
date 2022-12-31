@@ -1,4 +1,4 @@
-﻿module Zurfur
+﻿mod Zurfur
 
 // Immutable array (all inherited from Buffer)
 [pub] type Array<T> is ro List<T>

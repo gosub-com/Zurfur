@@ -1,5 +1,5 @@
 ﻿
-module Zurfur
+mod Zurfur
 
 use Zurfur[Copy]
 use Zurfur.Math[abs]

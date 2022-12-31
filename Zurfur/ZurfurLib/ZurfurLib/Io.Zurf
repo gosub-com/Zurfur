@@ -1,6 +1,6 @@
 ﻿
 
-module Zurfur.Io
+mod Zurfur.Io
 
 use Zurfur.Io[FileStream]
 
@@ -24,7 +24,7 @@ type Seeker interface
 // Interface or concrete type?
 type FileStream interface { }
 
-module Zurfur.Io.File
+mod Zurfur.Io.File
 
 [pub] afun open(fileName str, mode str="r") !FileStream { }
 [pub] afun readAllText(fileName str) !List<str> { }

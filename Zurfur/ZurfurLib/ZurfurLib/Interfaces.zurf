@@ -3,12 +3,12 @@
 //      Zurfur.Markers
 //      Zurfur.Operators
 
-module Zurfur
+mod Zurfur
 
 type Clone<T> interface {}
 type Copy<T> interface {}
 
-module Zurfur.Operators
+mod Zurfur.Operators
     
 // Equality for containers and sorting (NaN == NaN).
 // For floating point equality, use _opEqUnordered.

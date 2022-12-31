@@ -29,7 +29,7 @@
 //   Note: There may be an updated version of this malloc obtainable at
 //           ftp://gee.cs.oswego.edu/pub/misc/malloc.c
 
-module Zurfur.Internal.Memory
+mod Zurfur.Internal.Memory
 
 use Zurfur[u64, castPointer]
 

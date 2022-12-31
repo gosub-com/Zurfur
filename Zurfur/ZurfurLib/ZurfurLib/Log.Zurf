@@ -1,4 +1,4 @@
-﻿module Zurfur.Log
+﻿mod Zurfur.Log
 
 [pub] type Level enum { Fatal; Error; Warn; Info; Debug }
 [pub] type Line ro copy { filePath str; line int }

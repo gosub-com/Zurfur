@@ -428,6 +428,11 @@ namespace Gosub.Zurfur.Compiler
                     return new Rval(token, typeInt);
                 else if (name == "true" || name == "false")
                     return new Rval(token, typeBool);
+                else if (name == "astart")
+                {
+                    GenCallParams(ex, 0);
+                    return null;
+                }
                 else if (name == ";" || name == "{")
                     GenStatements(ex);
                 else

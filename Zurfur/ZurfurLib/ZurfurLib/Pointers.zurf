@@ -1,4 +1,4 @@
-﻿module Zurfur
+﻿mod Zurfur
 
 
 // Unsigned extended int, u32 or u64 depending on machine pointer size.

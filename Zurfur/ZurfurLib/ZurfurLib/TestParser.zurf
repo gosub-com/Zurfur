@@ -3,7 +3,7 @@
 // messages look good and no crashes, etc.
 
 
-module TestSyntax
+mod TestSyntax
 
 use Zurfur
 

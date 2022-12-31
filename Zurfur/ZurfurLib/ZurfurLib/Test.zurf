@@ -2,7 +2,7 @@
 // This is where we will keep working unit tests.
 // Nothing works yet.
 //
-module Zurfur.UnitTests
+mod Zurfur.UnitTests
 
 use Zurfur[Log]
 

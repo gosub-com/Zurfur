@@ -1,6 +1,6 @@
 ﻿
 
-module TestCompiler
+mod TestCompiler
 
 use Zurfur
 

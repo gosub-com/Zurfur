@@ -1,5 +1,5 @@
 ﻿
-module Zurfur
+mod Zurfur
 
 use Zurfur.Operators[OpIn, OpEq]
 use Zurfur.Collections[Iterator, Iterable]

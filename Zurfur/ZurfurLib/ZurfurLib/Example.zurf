@@ -7,7 +7,7 @@
 
 
 // http://zurfur.com
-module TestExample
+mod TestExample
 
 use Zurfur
 use Zurfur[Decimal, Log]

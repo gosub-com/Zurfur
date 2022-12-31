@@ -2,7 +2,7 @@
 //     i8, byte, i16, u16, i32, u32, int, u64, f32, f64, Decimal
 //
 
-module Zurfur
+mod Zurfur
 
 pragma AllowUnderscoreDefinitions
 

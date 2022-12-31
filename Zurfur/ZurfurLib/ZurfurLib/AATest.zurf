@@ -1,6 +1,6 @@
 ﻿
 // Misc compiler testing
-module AATest
+mod AATest
 
 
 use Zurfur

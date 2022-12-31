@@ -2,7 +2,7 @@
 
 // Intrinsics for all the base types
 
-module Zurfur.Math
+mod Zurfur.Math
 
 use Zurfur[Decimal]
 

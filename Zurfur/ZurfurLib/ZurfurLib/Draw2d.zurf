@@ -2,7 +2,7 @@
 // Basic shapes for use with 2d drawing library.
 // Point, Size, Rect.
 // TBD: Vec2, Vec3, Vec4 for 3d, is Point same as Vec2?
-module Zurfur.Draw2d
+mod Zurfur.Draw2d
 
 use Zurfur.Operators[NumOps]
 

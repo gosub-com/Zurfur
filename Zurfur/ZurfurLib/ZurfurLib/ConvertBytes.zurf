@@ -12,7 +12,7 @@
 //     myList[index::4].setBytesU32(myU32)
 //     myList.pushBytesU32(myU32)
 //
-module Zurfur.ConvertBytes
+mod Zurfur.ConvertBytes
 
 
 fun Test_ConvertExample()

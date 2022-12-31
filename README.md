@@ -24,7 +24,7 @@ Here are some key features:
     * Target WebAssembly with ahead of time static compilation
     * Typesafe replacement for JavaScript
 * **Ownership, mutability, and nullabilty are part of the type system:**
-    * All objects are value types, except for pointers (e.g. `^MyType`)
+    * All objects are value types except for pointers (e.g. `^MyType`) and short lived references (e.g. `ref myValue`)
     * `ro` means read only *all the way down* (not like C#, where `readonly` only protects the top level)
     * Function parameters must be explicitly marked `mut` if they mutate anything
     * References and pointers are non-nullable, but may use `?MyType` or `?^MyType` for nullable
@@ -342,7 +342,7 @@ Some types, such as `FileStream` can't be cloned at all.
 `clone` clones the entire object, but does a shallow copy of pointers.
 For instance, `List<MyType>>` is cloned fully provided that `MyType`
 doesn't contain a pointer.  Even if `MyType` contained a `List<str>`,
-everything is cloned.  For `List<*MyType>`, the pointer is copied
+everything is cloned.  For `List<^MyType>`, the pointer is copied
 and `MyType` is not cloned.  `deepClone` can be used to clone the
 entire object graph regardless of pointers or circular references.
 
@@ -381,11 +381,23 @@ use the keyword `afun` and can't be called from sync `fun` functions.  There
 is no `await` keyword at the call site.  Instead, it looks like a regular
 blocking function call.
 
+Calling an async function blocks by default, but the `astart` keyword can be
+used to start a new task.
+
+    @p = astart getHttpAsString("gosub.com")
+
+References to mutable dynamically allocated data cannot be passed into
+`astart`, but types owned by the function (locals, or passed with `own`)
+may be:
+
+    @myList = List<int>()
+    astart fillListFromHttp("gosub.com", myList)
+
+In this case, `myList` is moved into a closure.
+
 **TBD:** All functions are async.  The compiler optimizes to make them as sync
-as possible.  The only downside here is that calls through an interface might
-not be optimizable.  Even though there could be a loss of efficiency, I'm
-leaning towards doing this because it is easier to use, especially when
-a type has an async destructor.
+as possible.  The main downside here is that calls through an interface might
+not be optimizable.
 
 ## Threading
 
@@ -393,8 +405,8 @@ The first version of Zurfur is targeted at replacing JavaScript and will
 support multi-threading only via web workers and async message passing.  Each
 web worker has its own address space, so everything is single threaded.
 
-For now, a combination of async, web-workers, and message passing can mostly
-replace the need for true multi-threading, as demonstrated by Node.js.  
+A combination of async, web-workers, and message passing can mostly
+replace the need for true multi-threading, as demonstrated by Node.js.
 
 ## Errors and Exceptions
 
@@ -433,7 +445,7 @@ The `!!` can be used to unwrap the error or panic.
 
 An error can be detected when the function is called:
 
-    if try File.open("config.json")@stream
+    if File.open("config.json")@stream
         // Do something with `stream`, which is a FileStream
         // The file is closed at the end of the scope, even if it is a panic
     else
@@ -455,20 +467,20 @@ with C and gives an error where not compatible:
 
 |Operators | Notes
 | :--- | :---
-|x.y  f<type>(x)  a[i] | Primary
-|- ! & ~ sizeof unsafe | Unary
+|`x.y`  `f<type>(x)` `x.(type)` `a[i]` | Primary
+|- ~ & `ref` `not` `sizeof` `typeof` `unsafe` | Unary
 |@|Capture new variable
-|as is | Type conversion and comparison
+|`is` `is not` `as` | Type conversion and comparison
 |<< >>| Bitwise shift (not associative, can't mix with arithmetic operators)
 |* / % & | Multiply, bitwise *AND* (can't mix arithmetic and bit operators)
 |~| Bitwise *XOR* (can't mix with arithmetic operators)
 |+ - &#124; | Add, bitwise *OR* (can't mix arithmetic and bit operators)
 |.. ..+|Range (Low..High) and range count (Low..+Count).  Inclusive of low, exclusive of high. 
-|== != < <= > >= === !== in|Not associative, === and !== is only for pointers
-|and|Conditional, short circuit
-|or|Conditional, short circuit
+|== != < <= > >= === !== `in` `not in`|Not associative, === and !== is only for pointers
+|`and`|Conditional, short circuit
+|`or`|Conditional, short circuit
 |=>|Lambda
-|key:Value|Key value pair (only inside `()`, `[]` or where expected)
+|key:value|Key value pair (only inside `()`, `[]` or where expected)
 |,|Comma Separator (not an expression)
 |= += -= *= /= %= &= |= ~= <<= >>=|Assignment Statements (not an expression)
 
@@ -645,29 +657,22 @@ own stack.  No dynamic allocations are needed for async calls.
 
 ## Raw Pointers
 
-The `^` type is a raw C style pointer.  The `.` operator is used to access
+The `*` type is a raw C style pointer.  The `.` operator is used to access
 fields or members of the referenced data.  The `.*` operator can dereference
 the data.
  
-    fun strcpy(dest ^byte, source ^byte)
+    fun strcpy(dest *byte, source *byte)
         while source.* != 0
-            { dest.* = source.*;  dest += 1;  source += 1 }
+            dest.* = source.*
+            dest += 1
+            source += 1
         dest.* = 0
 
-#### Pointer Safety
-
-For now...
 
 Raw pointers are not safe.  They act exactly as they do in C.  You can corrupt
 memory and crash your application.  They can be null, and the compiler
 does not add run time null checks.  The data they point to is always
-mutable.  There are three reasons for this.
-
-First, it makes porting from C easier.  I need to port DlMalloc without
-worrying about pointer type safety.  Second, they are fast.  It is
-necessary to have low level libraries and infrastructure running
-fast and efficiently.  Third, without pointers, Zurfur is a type
-safe language.  Pointers should only be used where necessary.
+mutable. 
 
 Perhaps, after Zurfur is running, I might add a few things from
 [Zig](https://ziglang.org/).  Among them is null safety (e.g. `?*int`),
@@ -675,15 +680,9 @@ explicit array types (i.e. `*[]int`), and mutability attribute.
 That would be a major breaking change, which might be acceptable if
 done before version 1.0.  But, speed cannot be sacrificed.
 
-Raw pointers are never tracked by the GC.  Any object that may have a
-pointer pointing into it must be pinned.
+In an unsafe context, pointers can be cast from one pointer type to another:
 
-In an unsafe context, pointers can be cast from one type to another
-using the `cast` operator.  The format is `cast(type)expression`.
-For those coming directly from C, it will look almost the same
-as an old C style cast, except the keyword `cast` must be used.
-
-    @b = myFloatPtr.cast(^int)   // Cast myFloatPtr to *int
+    @b = castPointer<*byte>(myFloatPtr)   // Cast myFloatPtr to *int
 
 ## Packages and Modules
 
@@ -696,34 +695,19 @@ static functions, fields, and extension methods.  From within a package,
 module names act like namespaces and stitch together just as they do in C#.
 From outside the package, they look and act like a C# static class.
 
-The `module` keyword does not nest, or require curly braces.  The module name
+The `mod` keyword does not nest, or require curly braces.  The module name
 must be declared at the top of each file, after `use` statements, and before
 type, function, or field definitions.  A file may contain other modules, but
 all of them must be nested inside the top level module:
 
 
-    module MyCompany.MyProject               // Top level module
-    module MyCompany.MyProject.Utils         // Ok since it is nested in the top level
-    module MyCompany.MyProject.OtherUtils    // Ok since it is also nested
-    module MyCompany.MyOtherProject          // ILLEGAL since it is not nested
+    mod MyCompany.MyProject               // Top level module
+    mod MyCompany.MyProject.Utils         // Ok since it is nested in the top level
+    mod MyCompany.MyProject.OtherUtils    // Ok since it is also nested
+    mod MyCompany.MyOtherProject          // ILLEGAL since it is not nested
 
 Package names should be unique across the world, such as a domain name
 followed by a project (e.g. `com.gosub.zurfur`).  For now, top level module
 names must be unique across an entire project.  If there are any top level
 module name clashes, the project will fail to build.  In the future, there
 may be syntax or project settings to resolve that.
-
-
-
-## Open Questions
-
-Should NAN`s compare the way IEEE numbers are supposed to? Since this is a new
-language, my preference would be to have them compare so NAN != NAN and they
-sort so NAN > INF.  This way we don't have to worry about doing special
-things for Map or sorted collections.  OTOH, it could be confusing when
-porting code from other places.  OTOOH, I've had plenty of problems with
-the IEEE comparison behavior as it is.
-
-
-
-
