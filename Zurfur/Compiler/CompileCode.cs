@@ -20,7 +20,6 @@ namespace Gosub.Zurfur.Compiler
     {
         public Token Token;
         public Symbol Type;
-        public List<Symbol> Symbols = new List<Symbol>();
         public Symbol[] TypeArgs = Array.Empty<Symbol>();
         public Symbol InType;
         public bool IsUntypedConst; // NOTE: 3int is a typed const
@@ -43,7 +42,7 @@ namespace Gosub.Zurfur.Compiler
                     + string.Join(",", TypeArgs.Select(x => x.ToString()))
                     + ">";
             }
-            return $"Token: '{Token}'{typeParams}, symbols: {Symbols.Count}"
+            return $"Token: '{Token}'{typeParams}"
                   + (Type == null ? "" : $", Type: {Type.FullName}")
                   + (InType == null ? "" : ", InType:" + InType.FullName);
         }
@@ -374,15 +373,6 @@ namespace Gosub.Zurfur.Compiler
                         || functionType.Parent.FullName == "Zurfur.Nullable`1`1")
                     return rval;
 
-                // TBD: This belongs in the code verifier.  Also need
-                //      to check more stuff since this can be tricked
-                var isLocal = rval.Symbols.Count == 1
-                    && (rval.Symbols[0].IsLocal || rval.Symbols[0].IsMethodParam);
-                if (isLocal && functionType.Parent.FullName == REF_TYPE)
-                {
-                    Reject(ex.Token, "Cannot return a reference to a local variable");
-                }
-
                 if (!TypesMatch(DerefRef(functionType), DerefRef(rval.Type)))
                 {
                     Reject(ex.Token, $"Incorrect return type, expecting '{functionType}', got '{rval.Type}'");
@@ -491,7 +481,7 @@ namespace Gosub.Zurfur.Compiler
                 var symbols = FindGlobal(ex.Token, ex.Token.Name);
                 if (symbols == null)
                     return null;
-                return new Rval(ex.Token) {  Symbols = symbols };
+                return new Rval(ex.Token);
             }
 
             // Type or function call (e.g. List<int>(), f<int>(), etc)
@@ -549,7 +539,8 @@ namespace Gosub.Zurfur.Compiler
                 var leftDot = GenExpr(ex[0]);
                 if (leftDot == null)
                     return null; // Error already marked
-                var leftType = EvalType(leftDot, false, true);
+                EvalType(leftDot, false, true);
+                var leftType = leftDot.Type;
                 if (leftType == null)
                     return null;
 
@@ -583,13 +574,7 @@ namespace Gosub.Zurfur.Compiler
                     return new Rval(identifier) { Type = tuple.Params[i] };
                 }
 
-                var symbols = FindInType(identifier.Name, leftType);
-                if (symbols.Count == 0)
-                {
-                    Reject(identifier, $"'{identifier}' is an undefined symbol in the type '{leftType}'");
-                    return null;
-                }
-                return new Rval(identifier) { Symbols = symbols, InType = leftType};
+                return new Rval(identifier) { InType = leftType};
             }
 
             Symbol DerefRef(Symbol type) => Deref(type, sDerefRef);
@@ -650,14 +635,16 @@ namespace Gosub.Zurfur.Compiler
                 if (value == null || variables == null)
                     return null;
 
-                var valueType = EvalType(value);
+                EvalType(value);
+                var valueType = value.Type;
                 if (valueType == null)
                     return null;
 
                 // Assign type to local variable
-                Debug.Assert(variables.Symbols.Count == 1 && variables.Symbols[0].IsLocal && variables.Symbols[0].Type == null);
-                variables.Symbols[0].Type = valueType;
-                variables.Token.AddInfo(variables.Symbols[0]);
+                var symbols = FindRvalSymbols(variables);
+                Debug.Assert(symbols.Count == 1 && symbols[0].IsLocal && symbols[0].Type == null);
+                symbols[0].Type = valueType;
+                variables.Token.AddInfo(symbols[0]);
                 return value;
             }
 
@@ -690,9 +677,7 @@ namespace Gosub.Zurfur.Compiler
                     Reject(rejectToken, $"'{rejectToken}' multiple symbols not supported yet");
                     return null;
                 }
-                var rval = new Rval(newSymbols[0].Token);
-                rval.Symbols.Add(newSymbols[0]);
-                return rval;
+                return new Rval(newSymbols[0].Token);
             }
 
             Rval GenRefOrAddressOf(SyntaxExpr ex)
@@ -761,21 +746,21 @@ namespace Gosub.Zurfur.Compiler
 
                 var left = GenExpr(ex[0]);
                 var right = GenExpr(ex[1]);
-                var rightType = EvalType(right);
-                
-                EvalType(left, true);
-
+                EvalType(right);
+                var assignedSymbol = EvalType(left, true);
+                var rightType = right?.Type;
                 if (left == null || right == null || rightType == null)
                     return null;
 
                 // Assign type to local variable (if type not already assigned)
-                var isLocal = left.Symbols.Count == 1 
-                    && (left.Symbols[0].IsLocal || left.Symbols[0].IsMethodParam);
-                if (isLocal && left.Symbols[0].Type == null)
+                var isLocal = assignedSymbol != null 
+                    && (assignedSymbol.IsLocal || assignedSymbol.IsMethodParam);
+
+                if (isLocal && assignedSymbol.Type == null)
                 {
                     // Assign untyped local (not a reference unless explicit 'ref')
                     left.Type = right.ExplicitRef ? rightType : DerefRef(rightType);
-                    left.Symbols[0].Type = left.Type;
+                    assignedSymbol.Type = left.Type;
                 }
 
                 var leftType = left.Type;
@@ -809,7 +794,7 @@ namespace Gosub.Zurfur.Compiler
                         Reject(ex.Token, "Setter must not return a value");
                         return null;
                     }
-                    if (left.Symbols.Count != 1 || !(left.Symbols[0] is SymMethod setterMethod))
+                    if (!(assignedSymbol is SymMethod setterMethod))
                     {
                         Reject(ex.Token, "Compiler error: Setter index out of range or not method");
                         return null;
@@ -903,7 +888,7 @@ namespace Gosub.Zurfur.Compiler
                 if (functions == null)
                     return null;
 
-                var rval = FindCompatibleFunction(new Rval(ex.Token) { Symbols = functions},
+                var rval = FindCompatibleFunction(new Rval(ex.Token), functions,
                                 args,  $" '{operatorName}' (operator '{ex.Token}')");
                 if (rval == null)
                     return null;
@@ -983,12 +968,16 @@ namespace Gosub.Zurfur.Compiler
                 if (call == null)
                     return null;  // Undefined symbol or error evaluating left side
 
+                var symbols = FindRvalSymbols(call);
+                if (symbols == null || symbols.Count == 0)
+                    return null;
+
                 if (args == null)
                 {
                     // Give some feedback on the functions that could be called
                     if (call.Type != null)
                         call.Token.AddInfo(call.Type);
-                    foreach (var sym in call.Symbols)
+                    foreach (var sym in symbols)
                         call.Token.AddInfo(sym);
                     return null;
                 }
@@ -999,23 +988,23 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 }
 
-                if (RejectAmbiguousPrimary(call.Token, call.Symbols))
+                if (RejectAmbiguousPrimary(call.Token, symbols))
                     return null;
 
                 // Constructor
-                if (call.Symbols[0].IsAnyType)
-                    return GenConstructor(call, args);
+                if (symbols[0].IsAnyType)
+                    return GenConstructor(call, symbols[0], args);
 
                 // Insert inType type as first parameter so all types match
                 // TBD: I don't think this is a long term solution
                 if (call.InType != null && !call.InType.IsModule)
                     args.Insert(0, new Rval(call.Token, call.InType));
 
-                call = FindCompatibleFunction(call, args, $"'{call.Token}'");
+                call = FindCompatibleFunction(call, symbols, args, $"'{call.Token}'");
                 if (call == null)
                     return null;
 
-                if (call.Symbols[0].IsGetter)
+                if (symbols[0].IsGetter)
                     Reject(ex.Token, "Getter cannot be called with parenthesis");
 
                 if (call.Type.HasGenericArg)
@@ -1028,10 +1017,9 @@ namespace Gosub.Zurfur.Compiler
             }
 
 
-            Rval GenConstructor(Rval call, List<Rval> args)
+            Rval GenConstructor(Rval call, Symbol callType, List<Rval> args)
             {
                 call.Token.Type = eTokenType.TypeName;
-                var callType = call.Symbols[0];
                 if (callType.IsSpecializedType)
                 {
                     Reject(call.Token, "Compiler error: Unexpected specialized type");
@@ -1071,9 +1059,8 @@ namespace Gosub.Zurfur.Compiler
                 // Search for `new` function
                 Debug.Assert(call.InType == null);
                 call.InType = callType;
-                call.Symbols = FindInType("new", callType);
                 args.Insert(0, new Rval(call.Token, callType));
-                call = FindCompatibleFunction(call, args, $"'new' (constructor for '{call.InType}')");
+                call = FindCompatibleFunction(call, FindInType("new", callType), args, $"'new' (constructor for '{call.InType}')");
                 if (call == null)
                     return null;
 
@@ -1140,14 +1127,15 @@ namespace Gosub.Zurfur.Compiler
             // If there is an error, mark it and give feedback on possible matches.
             Rval FindCompatibleFunction(
                 Rval call,
+                List<Symbol> callSymbols,
                 List<Rval> args, 
                 string rejectName)
             {
-                var oldCalls = call.Symbols.ToArray();
-                call.Symbols.RemoveAll(callFunc => !IsCallCompatible(callFunc, call.TypeArgs, args));
+                var oldCalls = callSymbols.ToArray();
+                callSymbols.RemoveAll(callFunc => !IsCallCompatible(callFunc, call.TypeArgs, args));
 
                 // Show error messages if necessary.  TBD: Error messages can be improved a lot
-                if (call.Symbols.Count == 0 && oldCalls.Length >= 1)
+                if (callSymbols.Count == 0 && oldCalls.Length >= 1)
                 {
                     var numGenericArgs = oldCalls[0].GenericParamTotal();
                     var hasNumGenericArgs = false;
@@ -1175,7 +1163,7 @@ namespace Gosub.Zurfur.Compiler
                     }
                 }
 
-                if (call.Symbols.Count == 0)
+                if (callSymbols.Count == 0)
                 {
                     // Incorrect type
                     RejectSymbols(call.Token, oldCalls, 
@@ -1183,20 +1171,19 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 }
 
-                if (call.Symbols.Count != 1)
+                if (callSymbols.Count != 1)
                 {
-                    RejectSymbols(call.Token, call.Symbols, 
+                    RejectSymbols(call.Token, callSymbols, 
                         $"Multiple functions {rejectName} taking '{Rval.ParamTypes(args, call.TypeArgs)}' in scope");
                     return null;
                 }
 
-                var method = (SymMethod)call.Symbols[0];
+                var method = (SymMethod)callSymbols[0];
                 call.Token.AddInfo(method);
                 
                 return new Rval(call.Token) { 
                     Type = method.GetReturnTupleOrType(table),
-                    TypeArgs = InferTypeArgs(method, call.TypeArgs, args, method.GetParamTuple(table).GetTupleTypeList()),
-                    Symbols = call.Symbols 
+                    TypeArgs = InferTypeArgs(method, call.TypeArgs, args, method.GetParamTuple(table).GetTupleTypeList())
                 };
             }
 
@@ -1381,11 +1368,11 @@ namespace Gosub.Zurfur.Compiler
             // Top level statement evaluation
             void EvalTypeStatement(Rval rval)
             {
-                EvalType(rval, true);
-                if (rval == null || rval.Symbols.Count != 1)
+                var symbol = EvalType(rval, true);
+                if (rval == null || symbol == null)
                     return;
                 
-                if (rval.Symbols[0] is SymMethod method)
+                if (symbol is SymMethod method)
                 {
                     // TBD: Mark an error for non-mut function calls
                     if (method.IsGetter || method.IsSetter)
@@ -1393,11 +1380,13 @@ namespace Gosub.Zurfur.Compiler
                 }
             }
 
-            // Get return type of symbol.
-            // Returns null if symbol is not found, is unresolved, or ambiguous.
+            // Set return type of symbol, or null if symbol is not found,
+            // is unresolved, or ambiguous.
             // `assignmentTarget` allows the symbol to be an unresolved local
             // and is also used to resolve ambiguity between getter/setter.
             // Mark an error when there is no match.
+            // Returns the symbol that generated the type (or null if
+            // there wasn't one)
             Symbol EvalType(Rval rval, 
                 bool assignmentTarget = false, 
                 bool allowTypeItself = false)
@@ -1405,16 +1394,15 @@ namespace Gosub.Zurfur.Compiler
                 if (rval == null)
                     return null;
 
-                //Debug.Assert(rval.Type == null || rval.Symbols.Count == 0);
                 // Done if we already have return type
                 if (rval.Type != null)
-                    return rval.Type;
-
-                var symbols = rval.Symbols;
-                if (symbols.Count == 0)
                     return null;
 
-                if (RejectAmbiguousPrimary(rval.Token, rval.Symbols))
+                var symbols = FindRvalSymbols(rval);
+                if (symbols == null || symbols.Count == 0)
+                    return null;
+
+                if (RejectAmbiguousPrimary(rval.Token, symbols))
                     return null;
 
                 // Filter out functions, except getters and setters
@@ -1458,7 +1446,7 @@ namespace Gosub.Zurfur.Compiler
                     else
                     {
                         Reject(token, $"'{token}' is a {sym.KindName}, which is not valid when used like this");
-                        return null;
+                        return sym;
                     }
                 }
 
@@ -1468,7 +1456,7 @@ namespace Gosub.Zurfur.Compiler
                         Reject(token, $"'{token}'  has an unresolved type");
                     rval.Type = sym.Type;
                     rval.IsLocal = true;
-                    return rval.Type;
+                    return sym;
                 }
                 if (sym.IsMethodParam)
                 {
@@ -1476,14 +1464,14 @@ namespace Gosub.Zurfur.Compiler
                         Reject(token, $"'{token}'  has an unresolved type");
                     rval.Type = sym.Type;
                     rval.IsLocal = true;
-                    return rval.Type;
+                    return sym;
                 }
                 if (sym.IsField)
                 {
                     if (sym.Type == null)
                     {
                         Reject(token, $"'{token}'  has an unresolved type");
-                        return null;
+                        return sym;
                     }
 
                     Debug.Assert(sym.Type.Parent.FullName != REF_TYPE);
@@ -1491,17 +1479,17 @@ namespace Gosub.Zurfur.Compiler
 
                     // A field is the same thing as a getter returning a mutable ref
                     MakeIntoRef(rval);
-                    return rval.Type;
+                    return sym;
                 }
                 if (sym.IsMethod)
                 {
                     var returnType = ((SymMethod)sym).GetReturnTupleOrType(table);
                     rval.Type = InferTypeArgsOfPrimary(rval.Token, returnType, rval.InType);
-                    return rval.Type;
+                    return sym;
                 }
                 Reject(token, $"'{token}' compiler failure: '{sym}' is {sym.KindName}");
                 Debug.Assert(false);
-                return null;
+                return sym;
             }
 
             Symbol InferTypeArgsOfPrimary(Token token, Symbol type, Symbol inType)
@@ -1509,6 +1497,17 @@ namespace Gosub.Zurfur.Compiler
                 if (type == null || !type.HasGenericArg || !(inType is SymSpecializedType inSpecial))
                     return type;
                 return ReplaceGenericTypeParams(token, type, inSpecial.Params);
+            }
+
+            List<Symbol> FindRvalSymbols(Rval rval)
+            {
+                if (rval.InType == null)
+                    return FindGlobal(rval.Token, rval.Token);
+
+                var symbols = FindInType(rval.Token, rval.InType);
+                if (symbols.Count == 0)
+                    Reject(rval.Token, $"'{rval.Token}' is an undefined symbol in the type '{rval.InType}'");
+                return symbols;
             }
 
             /// <summary>
