@@ -14,7 +14,7 @@ namespace Gosub.Zurfur.Compiler
         public List<SyntaxUsing> Using = new List<SyntaxUsing>();
         public Dictionary<string, SyntaxModule> Modules = new Dictionary<string, SyntaxModule>();
         public List<SyntaxType> Types = new List<SyntaxType>();
-        public List<SyntaxFunc> Methods = new List<SyntaxFunc>();
+        public List<SyntaxFunc> Functions = new List<SyntaxFunc>();
         public List<SyntaxField> Fields = new List<SyntaxField>();
     }
 
@@ -133,7 +133,7 @@ namespace Gosub.Zurfur.Compiler
 
         public SyntaxExpr ExtensionType;
         public SyntaxExpr TypeArgs;
-        public SyntaxExpr MethodSignature;
+        public SyntaxExpr FunctionSignature;
         public SyntaxConstraint[] Constraints;
         public SyntaxExpr Statements;
     }

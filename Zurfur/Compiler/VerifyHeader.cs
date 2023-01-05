@@ -77,7 +77,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
                 }
-                else if (symbol.IsMethod)
+                else if (symbol.IsFun)
                 {
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
 
@@ -91,7 +91,7 @@ namespace Gosub.Zurfur.Compiler
                     //if (symbol.Parent.Parent is SymModule && symbol.Qualifiers.Contains("static"))
                     //    Reject(symbol.Token, "Methods in a module may not have the static qualifier");
                 }
-                else if (symbol.IsMethodParam)
+                else if (symbol.IsFunParam)
                 {
                     if (symbol.LookupName == symbol.Parent.Token.Name)
                         Reject(symbol.Token, "Must not be same name as method");
@@ -116,7 +116,7 @@ namespace Gosub.Zurfur.Compiler
                         Reject(token, $"Unknown type name: '{typeName}'");
                     return;
                 }
-                if (!s.IsAnyTypeNotModule)
+                if (!s.IsAnyType)
                 {
                     Reject(token, $"The type '{typeName}' is not a type, it is a '{s.KindName}'");
                     return;
@@ -128,14 +128,13 @@ namespace Gosub.Zurfur.Compiler
                     if (genericParams != genericArgs)
                         Reject(token, $"The type '{typeName}' requires {genericParams} generic type parameters, but {genericArgs} were supplied");
                 }
-                if (s.IsSpecializedType)
+                if (s.IsSpecialized)
                 {
-                    var ptype = (SymSpecializedType)s;
                     var genericParams = s.GenericParamTotal();
-                    var genericArgsCount = ptype.Params.Length;
+                    var genericArgsCount = s.TypeArgs.Length;
                     if (genericParams != genericArgsCount)
                         Reject(token, $"The type '{typeName}' requires {genericParams} generic type parameters, but {genericArgsCount} were supplied");
-                    foreach (var t in ptype.Params)
+                    foreach (var t in s.TypeArgs)
                         CheckTypeName(token, t.FullName);
                 }
             }

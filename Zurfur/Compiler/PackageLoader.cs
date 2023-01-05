@@ -42,7 +42,7 @@ namespace Gosub.Zurfur.Compiler
                     && !symbol.Qualifiers.HasFlag(SymQualifiers.Pub)
                         // TBD: Add "pub" to bits, and remove this
                     && !symbol.IsModule
-                    && !symbol.IsMethodParam
+                    && !symbol.IsFunParam
                     && !symbol.IsTypeParam)
             {
                 // Ignore private symbols (except parmeters).
@@ -64,7 +64,7 @@ namespace Gosub.Zurfur.Compiler
                 foreach (var s in symbol.Children)
                     Save(s, ps, packSyms, onlyPublic);
             }
-            else if (symbol.IsMethod)
+            else if (symbol.IsFun)
             {
                 ps.Name = symbol.FullName;
                 packSyms.Add(ps);
@@ -73,7 +73,7 @@ namespace Gosub.Zurfur.Compiler
 
                 CheckMethodName(ps, symbol);
             }
-            else if (symbol.IsTypeParam || symbol.IsMethodParam || symbol.IsField)
+            else if (symbol.IsTypeParam || symbol.IsFunParam || symbol.IsField)
             {
                 ps.Name = symbol.LookupName;
                 Debug.Assert(parent != null);
@@ -107,9 +107,6 @@ namespace Gosub.Zurfur.Compiler
                     }
                 }
             }
-            var n = "(" + string.Join(",", paramIn)
-                            + ")(" + string.Join(",", paramOut) + ")";
-            Debug.Assert(ps.Name.EndsWith(n));
         }
 
         /// <summary>

@@ -93,7 +93,7 @@ namespace Gosub.Zurfur.Compiler
                         else
                             typesGeneric++;
                     }
-                    if (sym.IsMethod)
+                    if (sym.IsFun)
                         methods++;
                     if (sym.IsField)
                         fields++;

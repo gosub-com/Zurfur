@@ -27,10 +27,10 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// TBD: Still figuring out how to deal with specialzied types.
         /// </summary>
-        Dictionary<string, SymSpecializedType> mSpecializedTypes = new Dictionary<string, SymSpecializedType>();
+        Dictionary<string, Symbol> mSpecializedTypes = new Dictionary<string, Symbol>();
 
         // The generic arguments: #0, #1, #2...
-        List<SymSpecializedType> mGenericArguments = new List<SymSpecializedType>();
+        List<Symbol> mGenericArguments = new List<Symbol>();
         Symbol mGenericArgumentHolder; // Holder so they have `Order` set properly
         List<Symbol> mGenericTuples = new List<Symbol>();
         Symbol mGenericTupleHolder;
@@ -43,7 +43,7 @@ namespace Gosub.Zurfur.Compiler
         {
             var preRoot = new SymModule(null, "");
             mRoot = new SymModule(preRoot, "");
-            mGenericArgumentHolder = new SymModule(mRoot, "");
+            mGenericArgumentHolder = new Symbol(SymKind.Type, mRoot, "");
             mGenericTupleHolder = new SymModule(mRoot, "");
         }
 
@@ -57,9 +57,9 @@ namespace Gosub.Zurfur.Compiler
             mLookup.Clear();
             foreach (var s in mRoot.ChildrenRecurse())
             {
-                if (s.IsTypeParam || s.IsMethodParam || s.IsLocal)
+                if (s.IsTypeParam || s.IsFunParam || s.IsLocal)
                     continue;
-                Debug.Assert(!s.IsSpecializedType);
+                Debug.Assert(!s.IsSpecialized);
                 var fullName = s.FullName;
                 Debug.Assert(!mLookup.ContainsKey(fullName));
                 mLookup[fullName] = s;
@@ -90,7 +90,7 @@ namespace Gosub.Zurfur.Compiler
         public Dictionary<string, Symbol>.ValueCollection LookupSymbols
             => mLookup.Values;
 
-        public Dictionary<string, SymSpecializedType>.ValueCollection SpecializedSymbols
+        public Dictionary<string, Symbol>.ValueCollection SpecializedSymbols
             => mSpecializedTypes.Values;
 
         /// <summary>
@@ -125,20 +125,21 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Get or create (and add to symbol table) a specialized type.
         /// </summary>
-        public SymSpecializedType FindOrCreateSpecializedType(
+        public Symbol FindOrCreateSpecializedType(
             Symbol concreteType, 
             Symbol[] typeParams, 
             string[] tupleNames = null)
         {
+            Debug.Assert(concreteType.GenericParamTotal() == typeParams.Length);
             Debug.Assert(concreteType.IsType);
-            var sym = new SymSpecializedType(concreteType, typeParams, tupleNames);
+            var sym = new Symbol(SymKind.Specialized, concreteType, typeParams, tupleNames);
             if (mSpecializedTypes.TryGetValue(sym.FullName, out var specExists))
                 return specExists;
 
             // Don't store partially specialized symbols since they can't end up in the symbol table
             //  "AATest.AGenericTest`2.Inner1`2<#0,#1>"   (while adding outer generic params)
             //  "AATest.AGenericTest`2.Inner1`2<Zurfur.str,Zurfur.str>" (while parsing dot operator)
-            if (sym.Params.Length == concreteType.GenericParamTotal())
+            if (sym.TypeArgs.Length == concreteType.GenericParamTotal())
                 mSpecializedTypes[sym.FullName] = sym;
             else
                 Debug.Assert(false);
@@ -149,14 +150,14 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Get or create a generic parameter: #0, #1, #2...
         /// </summary>
-        public SymSpecializedType GetGenericParam(int argNum)
+        public Symbol GetGenericParam(int argNum)
         {
             if (argNum < mGenericArguments.Count)
                 return mGenericArguments[argNum];
             for (int i = mGenericArguments.Count; i <= argNum; i++)
             {
                 var name = $"#{i}";
-                var arg = new SymSpecializedType(mGenericArgumentHolder, name);
+                var arg = new Symbol(SymKind.Specialized, mGenericArgumentHolder, Array.Empty<Symbol>(), null, name);
                 mGenericArguments.Add(arg);
                 AddOrReject(arg);
                 mSpecializedTypes[name] = arg;
@@ -193,7 +194,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 if (mEmptyTuple != null)
                     return mEmptyTuple;
-                mEmptyTuple = new SymSpecializedType(GetTupleBaseType(0), Array.Empty<Symbol>());
+                mEmptyTuple = new Symbol(SymKind.Specialized, GetTupleBaseType(0), Array.Empty<Symbol>());
                 return mEmptyTuple;
             }
         }

@@ -68,7 +68,7 @@ namespace Gosub.Zurfur.Compiler
             table.GenerateLookup();
             var useSymbols = ProcessUseStatements(false);
             ResolveFields();
-            ResolveMethods();
+            ResolveFunctions();
             ResolveTypeConstraints();
             table.GenerateLookup();
 
@@ -186,9 +186,9 @@ namespace Gosub.Zurfur.Compiler
                     {
                         foreach (var op in module.Children)
                         {
-                            if (op.IsMethod && sOperatorFunctionNames.Contains(op.SimpleName))
+                            if (op.IsFun && sOperatorFunctionNames.Contains(op.SimpleName))
                             {
-                                foreach (var child in op.ChildrenFilter(SymKind.MethodParam).Where(child => !child.ParamOut))
+                                foreach (var child in op.ChildrenFilter(SymKind.FunParam).Where(child => !child.ParamOut))
                                 {
                                     if (child.Type != null && child.Type.Unspecial().FullName == typeSym.FullName)
                                     {
@@ -201,9 +201,9 @@ namespace Gosub.Zurfur.Compiler
                     }
                 }
                 
-                if (module.HasMethodNamed(name))
+                if (module.HasFunNamed(name))
                     foreach (var child in module.Children)
-                        if (child.IsMethod && child.Token == name)
+                        if (child.IsFun && child.Token == name)
                             symbols.Add(child);
 
                 return symbols;
@@ -248,8 +248,6 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var field in syntaxFile.Value.Fields)
                     {
-                        // TBD: Maybe convert const fields to get methods
-
                         if (!syntaxToSymbol.TryGetValue(field.Parent, out var symParent))
                         {
                             Reject(field.Name, $"Symbol not processed because the parent scope has an error");
@@ -358,22 +356,22 @@ namespace Gosub.Zurfur.Compiler
                 scope.Constraints = symCon;
             }
 
-            void ResolveMethods()
+            void ResolveFunctions()
             {
                 foreach (var syntaxFile in syntaxFiles)
-                    foreach (var synFunc in syntaxFile.Value.Methods)
-                        ResolveMethod(synFunc);
+                    foreach (var synFunc in syntaxFile.Value.Functions)
+                        ResolveFunction(synFunc);
             }
 
             // Scope is where the function is defined (a module or type)
-            void ResolveMethod(SyntaxFunc synFunc)
+            void ResolveFunction(SyntaxFunc synFunc)
             {
                 // Get module containing function
                 if (!syntaxToSymbol.TryGetValue(synFunc.Parent, out var scope))
                     return; // Syntax errors
 
                 Debug.Assert(scope.IsModule || scope.IsType);
-                if (synFunc.MethodSignature.Count != 3)
+                if (synFunc.FunctionSignature.Count != 3)
                 {
                     Reject(synFunc.Name, "Syntax error or compiler error");
                     return;
@@ -381,34 +379,46 @@ namespace Gosub.Zurfur.Compiler
                 var useSymbolsFile = useSymbols.Files[synFunc.Token.Path];
 
                 // Give each function a unique name (final name calculated below)
-                var method = new SymMethod(scope, synFunc.Name, $"$LOADING...${scope.ChildrenCount}");
-                method.SetQualifiers(synFunc.Qualifiers);
-                method.Comments = synFunc.Comments;
-                AddExtensionMethodGenerics(method, synFunc);
-                AddTypeParams(method, synFunc.TypeArgs);
-                var myParam = AddMyParam(method, synFunc);
-                Resolver.ResolveMethodParams(synFunc.MethodSignature[0], table, method, method, useSymbolsFile, false);
-                Resolver.ResolveMethodParams(synFunc.MethodSignature[1], table, method, method, useSymbolsFile, true);
-                SetNewFunction(method, synFunc, myParam);
+                var function = new SymFun(scope, synFunc.Name, $"$LOADING...${scope.ChildrenCount}");
+                function.SetQualifiers(synFunc.Qualifiers);
+                function.Comments = synFunc.Comments;
+                AddExtensionMethodGenerics(function, synFunc);
+                AddTypeParams(function, synFunc.TypeArgs);
+                var myParam = AddMyParam(function, synFunc);
+                Resolver.ResolveFunParams(synFunc.FunctionSignature[0], table, function, function, useSymbolsFile, false);
+                Resolver.ResolveFunParams(synFunc.FunctionSignature[1], table, function, function, useSymbolsFile, true);
+                SetNewFunction(function, synFunc, myParam);
+
+                // Create parameters/returns tuple
+                var parameters = GetFunParamsTuple(function, false);
+                var returns = GetFunParamsTuple(function, true);
+                var tupleBaseType = table.GetTupleBaseType(2);
+                var paramTuple = table.FindOrCreateSpecializedType(tupleBaseType, new Symbol[] { parameters, returns });
+                function.Type = paramTuple;
 
                 // Set the function name F(type1,type2)(returnType)
-                method.SetLookupName(Resolver.GetFunctionName(synFunc.Name, method));
+                var genericsCount = function.GenericParamCount();
+                var name = synFunc.Name + (genericsCount == 0 ? "" : "`" + genericsCount)
+                    +"(" + string.Join<Symbol>(",", function.FunParamTuple.TypeArgs) + ")"
+                    +"(" + string.Join<Symbol>(",", function.FunReturnTuple.TypeArgs) + ")";
+                function.SetLookupName(name);
 
-                method.Token.AddInfo(method);
+                function.Token.AddInfo(function);
                 if (synFunc.Parent.Name.Error)
                 {
-                    // NOTE: Since the symbol is not stored, the method will not be compiled.
+                    // NOTE: Since the symbol is not stored, the function will not be compiled.
                     // TBD: Consider changing this so user can get feedback on errors.
-                    Warning(synFunc.Token, $"Method not processed because '{synFunc.Parent.Name}' has an error");
+                    Warning(synFunc.Token, $"Function not processed because '{synFunc.Parent.Name}' has an error");
                     return;
                 }
 
-                table.AddOrReject(method);
 
-                ResolveConstraints(method, synFunc.Constraints);
+                table.AddOrReject(function);
+
+                ResolveConstraints(function, synFunc.Constraints);
 
                 Debug.Assert(!syntaxToSymbol.ContainsKey(synFunc));
-                syntaxToSymbol[synFunc] = method;
+                syntaxToSymbol[synFunc] = function;
             }
 
             // For now, extension methods with generic receivers
@@ -420,13 +430,13 @@ namespace Gosub.Zurfur.Compiler
             //      Span<List<T>>.f(x)    // No, multi-level not accepted
             //
             // TBD: Allow Map<K,V>.Pair, etc.
-            void AddExtensionMethodGenerics(Symbol method, SyntaxFunc f)
+            void AddExtensionMethodGenerics(Symbol function, SyntaxFunc f)
             {
                 if (f.ExtensionType == null)
                     return;
 
                 var extensionType = f.ExtensionType;
-                method.Qualifiers |= SymQualifiers.Extension;
+                function.Qualifiers |= SymQualifiers.Extension;
 
                 // Skip qualifiers. 
                 while (extensionType.Token == "mut" && extensionType.Count != 0)
@@ -437,7 +447,7 @@ namespace Gosub.Zurfur.Compiler
                     return;
 
                 var typeName = extensionType[0].Token;
-                var typeSymbol = Resolver.FindGlobalType(typeName, table, method, useSymbols.Files[typeName.Path], out var inScope);
+                var typeSymbol = Resolver.FindGlobalType(typeName, table, function, useSymbols.Files[typeName.Path], out var inScope);
                 if (typeSymbol == null)
                     return;
 
@@ -460,7 +470,7 @@ namespace Gosub.Zurfur.Compiler
                     firstMatchedType = paramName;
                 }
                 if (genericMatch)
-                    AddTypeParams(method, extensionType.Skip(1));
+                    AddTypeParams(function, extensionType.Skip(1));
                 else if (firstMatchedType != null)
                     Reject(firstMatchedType, $"Type parameter '{firstMatchedType}' found in '{typeName}', but other type parameters don't match.");
             }
@@ -470,10 +480,10 @@ namespace Gosub.Zurfur.Compiler
             Symbol AddMyParam(Symbol method, SyntaxFunc func)
             {
                 // Interface method syntax
-                if (method.Parent.IsInterface && !method.IsStatic)
+                if (method.Parent.IsInterface)
                 {
                     //Debug.Assert(func.ExtensionType == null && method.Parent.IsType);
-                    var ifaceMethodParam = new Symbol(SymKind.MethodParam, method, func.Name, "my");
+                    var ifaceMethodParam = new Symbol(SymKind.FunParam, method, func.Name, "my");
                     ifaceMethodParam.Type = Resolver.GetTypeWithGenericParameters(
                                                 table, method.Parent, method.GenericParamTotal());
                     table.AddOrReject(ifaceMethodParam);
@@ -485,7 +495,7 @@ namespace Gosub.Zurfur.Compiler
                     return null;
 
                 // Extension method syntax
-                var methodParam = new Symbol(SymKind.MethodParam, method, func.Name, "my");
+                var methodParam = new Symbol(SymKind.FunParam, method, func.Name, "my");
                 if (extType.Token == "mut")
                 {
                     methodParam.SetQualifier("mut");
@@ -500,25 +510,41 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Give `new` function correct return type
-            void SetNewFunction(Symbol method, SyntaxFunc synFunc, Symbol myParam)
+            void SetNewFunction(Symbol function, SyntaxFunc synFunc, Symbol myParam)
             {
                 if (synFunc.Name != "new")
                     return;
 
-                method.Qualifiers |= SymQualifiers.Static;
-                foreach (var parameter in synFunc.MethodSignature[1])
+                function.Qualifiers |= SymQualifiers.Static;
+                foreach (var parameter in synFunc.FunctionSignature[1])
                     if (parameter[0].Token != "")
                         Reject(parameter[0].Token, "'new' function must not have return parameters");
                 if (myParam == null)
                 {
-                    Reject(method.Token, "'new' must be an extension method");
+                    Reject(function.Token, "'new' must be an extension method");
                     return;
                 }
-                var returnParam = new Symbol(SymKind.MethodParam, method, synFunc.Name, "$0");
+                var returnParam = new Symbol(SymKind.FunParam, function, synFunc.Name, "$0");
                 returnParam.Qualifiers |= SymQualifiers.ParamOut;
                 returnParam.Type = myParam.Type;
                 table.AddOrReject(returnParam);
             }
+
+            // Get parameters or returns as a tuple.
+            Symbol GetFunParamsTuple(Symbol symbol, bool returns)
+            {
+                var parameters = symbol.ChildrenFilter(SymKind.FunParam)
+                    .Where(child => child.Type != null && returns == child.ParamOut).ToList();
+
+                var tupleParent = table.GetTupleBaseType(parameters.Count);
+
+                parameters.Sort((a, b) => a.Order.CompareTo(b.Order));
+                var paramTypes = parameters.Select(p => p.Type).ToArray();
+                var paramNames = parameters.Select(p => p.FullName).ToArray();
+
+                return table.FindOrCreateSpecializedType(tupleParent, paramTypes, paramNames);
+            }
+
 
             Symbol ResolveTypeNameOrReject(Symbol scope, SyntaxExpr typeExpr)
             {
@@ -529,7 +555,7 @@ namespace Gosub.Zurfur.Compiler
                 if (symbol == null)
                     return null;
 
-                if (symbol.IsAnyTypeNotModule  || table.NoCompilerChecks)
+                if (symbol.IsAnyType  || table.NoCompilerChecks)
                     return symbol;
 
                 Resolver.RejectTypeArgLeftDotRight(typeExpr, table, "The symbol is not a type, it is a " + symbol.KindName);
