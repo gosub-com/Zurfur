@@ -5,9 +5,11 @@ mod AATest
 
 use Zurfur
 use Zurfur[Log, Xuint, RawPointer, castPointer]
-use Zurfur.Operators[OpEq]
+use Zurfur.Operators[OpEq, NumOps, GetHash]
 use Zurfur.Math[cos]
 use Zurfur.Draw2d[Size, Point]
+use Zurfur.Collections[Iterator, Iterable]
+
 
 pragma ShowParse
 
@@ -15,6 +17,47 @@ type MyPoint<T1,T2,T3>
     a T1
     b T2
     c T3
+
+
+type Iterable2<Item> interface
+    fun iterator2() Iterator<Item>
+
+type GetMap<Item1,Item2> interface
+    fun getMap() Map<Item1, Item2>
+    fun getMapKeys() Iterator<Item1>
+    fun getMapValues() Iterator<Item2>
+
+
+fun getMapFun<K,V>() Map<K,V>
+    return Map<K,V>()
+    
+fun AAAAA<T>(i T)
+        where T has NumOps<T> + GetHash + Iterable<int> + Iterable2<int> + GetMap<f32,f64>
+    @getMap = i.getMap<int,int>()
+    @getMapFunc = getMapFun<int,int>()
+    @getMapKeys = i.getMapKeys()
+    @getMapValues = i.getMapValues()
+    @iter1 = i.iterator
+    @iter2 = i.iterator2()
+    @first = iter1.next()
+    @x = 1
+    @y = 2
+    @z1 = x + y
+    @z2 = _opAdd(x,y)
+    @a = T()
+    @b = T()
+    @z3 = a + b
+    @z4 = _opAdd(a,b)
+    @z6 = T().getHash()
+    @z7 = i.getHash()
+    @z5 = T.ONE
+    @iter2 = i.iterator()
+
+    for @item in i
+        @itemt = item
+
+
+
 
 fun MyFun1<T1,T2,T3>(a T1, b T2, c T3) ->(x T2, y T3)
     @q = b

@@ -470,7 +470,7 @@ namespace Gosub.Zurfur.Compiler
             Symbol AddMyParam(Symbol method, SyntaxFunc func)
             {
                 // Interface method syntax
-                if (method.Parent.IsInterface && !method.IsStatic)
+                if (method.Parent.IsInterface)
                 {
                     //Debug.Assert(func.ExtensionType == null && method.Parent.IsType);
                     var ifaceMethodParam = new Symbol(SymKind.MethodParam, method, func.Name, "my");
