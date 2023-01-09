@@ -91,7 +91,7 @@ namespace Gosub.Zurfur.Compiler
             // TBD: The setter must not be separated from the getter
             //      by a field or type (this only checks for methods)
             SyntaxFunc prevProp = null;
-            foreach (var func in unit.Methods)
+            foreach (var func in unit.Functions)
             {
                 LastToken = func.Keyword;
 
@@ -308,10 +308,10 @@ namespace Gosub.Zurfur.Compiler
                 if (aClass.Alias != null)
                     ShowParseTree(aClass.Alias);
             }
-            foreach (var func in unit.Methods)
+            foreach (var func in unit.Functions)
             {
                 //ShowParseTree(func.Name);
-                ShowParseTree(func.MethodSignature);
+                ShowParseTree(func.FunctionSignature);
                 if (func.Statements != null)
                     foreach (var statement in func.Statements)
                         ShowParseTree(statement);

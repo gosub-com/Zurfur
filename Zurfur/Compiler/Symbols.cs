@@ -13,10 +13,9 @@ namespace Gosub.Zurfur.Compiler
         Module = 1,
         Type = 2,
         TypeParam = 3,
-        SpecializedType = 4,
         Field = 5,
-        Method = 6,
-        MethodParam = 7,
+        Fun = 6,
+        FunParam = 7,
         Local = 8,
         All = 100
     }
@@ -47,7 +46,8 @@ namespace Gosub.Zurfur.Compiler
         Own = 0x200000,
         Copy = 0x400000,
         Union = 0x800000,
-        NoCopy = 0x1000000
+        NoCopy = 0x1000000,
+        Specialized = 0x2000000
     }
 
     /// <summary>
@@ -55,19 +55,19 @@ namespace Gosub.Zurfur.Compiler
     /// The public definitions are contained in PackageDefinitions.cs.
     /// 
     /// Symbol symbols:
-    ///     .   Module, type, or method separator
+    ///     .   Module, type, or function separator
     ///     `   Number of generic arguments, suffix for type name
     ///     #   Generic argument (followed by argument number)
-    ///     ()  Method parameters
+    ///     ()  Function parameters
     ///     <>  Generic parameters
     ///     $   Special symbol, e.g. $0, $fun, etc.
     /// </summary>
     class Symbol
     {
         static Dictionary<string, Symbol> sEmptyDict = new Dictionary<string, Symbol>();
+        static Dictionary<int, string> sTags = new Dictionary<int, string>();
 
         public Symbol Parent { get; }
-        static Dictionary<int, string> sTags = new Dictionary<int, string>();
         public SymKind Kind { get; protected set; }
         public SymQualifiers Qualifiers;
         Token mToken;
@@ -83,33 +83,68 @@ namespace Gosub.Zurfur.Compiler
 
         // Quick lookup of token name
         // NOTE: This is an optimization (we could use only mChildren)
-        Dictionary<string, bool> mHasMethodNamed;
+        Dictionary<string, bool> mHasFunNamed;
 
         // Set by `SetChildInternal`.  Type parameters are always first.
         public int Order { get; private set; } = -1;
+
+        /// <summary>
+        /// The symbol's full name, excluding tuple names.
+        /// e.g. the full name of (a int, b int) is (int,int).
+        /// </summary>
         public string FullName { get; private set; }
 
 
         /// <summary>
         /// Name as it appears in the lookup table.  For most types, it is
-        /// the same as the source code token.  The exceptions are SymMethod
-        /// and SymSpecializedType which include type info.
+        /// the same as the source code token.  The exceptions are SymFun
+        /// and specialized types which include type info.
         /// </summary>        
         public string LookupName { get; private set; }
 
         /// <summary>
-        /// Field or parameter type (not applicable to types, etc.).
+        /// Field, parameter, or function type.
+        /// A function's return type is a tuple containing two 
+        /// tuples: ((ParameterTypes),(ReturnTypes)).
         /// </summary>
         public Symbol Type;
 
         /// <summary>
-        /// Applicable to Types and Methods
+        /// Type arguments for a specialized type or function.  The parent is
+        /// always the concrete type or function.  e.g, Map`2 is the concrete
+        /// type without supplied TypeArgs, and Map<int,str> is the specialized
+        /// type with <int,str> in this array.
+        /// concrete
+        /// </summary>
+        public readonly Symbol[] TypeArgs = Array.Empty<Symbol>();
+        
+        
+        /// <summary>
+        /// When supplied, the length of this array always matches the length
+        /// of TypeArgs.  Or this array is empty when type args are not named.
+        /// Tuples from function parameters and returns have names, but other
+        /// type args don't, e.g. Map<int,str> has unnamed type args, but
+        /// fun f(a int, b str) does.
+        /// </summary>
+        public readonly string[] TupleNames = Array.Empty<string>();
+
+
+        /// <summary>
+        /// Applicable to Types and Functions
         /// </summary>
         public Dictionary<string, string[]> Constraints;
 
 
         /// <summary>
-        /// Create a symbol that is unique in the soruce code (e.g. SymMethod,
+        /// Set to true when a type or function has been specialized and
+        /// `TypeArgs` have been supplied.  The parent is always the concrete
+        /// type or function.
+        /// </summary>
+        public bool IsSpecialized => Qualifiers.HasFlag(SymQualifiers.Specialized);
+
+
+        /// <summary>
+        /// Create a symbol that is unique in the soruce code (e.g. SymFun,
         /// SymType, SymField, etc.) and can be marked with token information.
         /// </summary>
         public Symbol(SymKind kind, Symbol parent, Token token, string name = null)
@@ -123,8 +158,7 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Create a symbol that is non-existent or not unique in the source
-        /// code (e.g. SymSpecializedType, SymModule,
-        /// and built-in types like "ref", "*", etc.)
+        /// code (e.g. modules, and built-in types like "ref", "*", etc.)
         /// </summary>
         public Symbol(SymKind kind, Symbol parent, string name)
         {
@@ -133,6 +167,37 @@ namespace Gosub.Zurfur.Compiler
             LookupName = name;
             FullName = GetFullName();
         }
+
+        /// <summary>
+        /// Create a specialized type or function with type arguments.
+        /// Constructor for generic type 'Type<T0,T1,T2...>' or tuple '(T0,T1,T2...)'
+        /// </summary>
+        public Symbol(Symbol parent, Symbol[] typeArgs, string[] tupleNames = null)
+        {
+            Debug.Assert(parent.IsType || parent.IsFun);
+            Debug.Assert(!parent.IsSpecialized);
+            Debug.Assert(typeArgs != null && typeArgs.Length != 0);
+            Debug.Assert(TupleNames.Length == 0 || TupleNames.Length == TypeArgs.Length);
+
+            // Covered in CreateSpecializedType, allow this for testing
+            //Debug.Assert(parent.GenericParamTotal() == typeArgs.Length);
+
+            Qualifiers |= SymQualifiers.Specialized;
+            Kind = parent.Kind;
+            Parent = parent;
+            mToken = parent.HasToken ? parent.Token : null;
+
+            // Lookup name is (type1,type2...) for tuples and <type1,type2...>
+            // for generic arguments. 
+            var t = parent.IsTuple;
+            LookupName = (t ? "(" : "<") + string.Join<Symbol>(",", typeArgs) + (t ? ")" : ">");
+
+            TypeArgs = typeArgs;
+            TupleNames = tupleNames == null ? Array.Empty<string>() : tupleNames;
+            FullName = GetFullName();
+        }
+
+
 
         public int ChildrenCount => mChildren == null ? 0 : mChildren.Count;
         public int PrimaryCount => mPrimary == null ? 0 : mPrimary.Count;
@@ -148,19 +213,19 @@ namespace Gosub.Zurfur.Compiler
 
         public bool IsInterface
             => IsType && Qualifiers.HasFlag(SymQualifiers.Interface)
-                || IsSpecializedType && Parent.IsType && Parent.Qualifiers.HasFlag(SymQualifiers.Interface);
+                || IsSpecialized && Parent.IsType && Parent.Qualifiers.HasFlag(SymQualifiers.Interface);
         public bool IsEnum
             => Qualifiers.HasFlag(SymQualifiers.Enum);
 
         public bool IsModule => Kind == SymKind.Module;
         public bool IsType => Kind == SymKind.Type;
-        public bool IsSpecializedType => Kind == SymKind.SpecializedType;
-        public bool IsAnyType => IsModule || IsType || IsTypeParam || IsSpecializedType;
-        public bool IsAnyTypeNotModule => IsType || IsTypeParam || IsSpecializedType;
+        public bool IsAnyTypeOrModule => IsModule || IsType || IsTypeParam;
+        public bool IsAnyType => IsType || IsTypeParam;
+
         public bool IsField => Kind == SymKind.Field;
-        public bool IsMethod => Kind == SymKind.Method;
+        public bool IsFun => Kind == SymKind.Fun;
         public bool IsTypeParam => Kind == SymKind.TypeParam;
-        public bool IsMethodParam => Kind == SymKind.MethodParam;
+        public bool IsFunParam => Kind == SymKind.FunParam;
         public bool IsLocal => Kind == SymKind.Local;
 
 
@@ -182,17 +247,40 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
-
+        /// <summary>
+        /// The complete name of the symbol, including all parents up the tree.
+        /// </summary>
+        string GetFullName()
+        {
+            if (IsLocal || IsFunParam || IsTypeParam)
+                return LookupName;
+            else if (Parent == null || Parent.LookupName == "")
+                return LookupName;
+            else if (Parent != null && IsTuple)
+                return LookupName; // The full tuple name is set by the type
+            else
+            {
+                var suffix = "";
+                if (IsType)
+                {
+                    var count = GenericParamCount();
+                    suffix = count == 0 ? "" : $"`{count}";
+                }
+                var separator = IsSpecialized ? "" : ".";
+                return Parent.FullName + separator + LookupName + suffix;
+            }
+        }
 
         public string SimpleName
         {
             get
             {
-                if (IsMethodParam || IsTypeParam || IsLocal)
+                if (IsFunParam || IsTypeParam || IsLocal)
                     return FullName;
                 return mToken == null ? LookupName : Token.Name;
             }
         }
+
 
 
         public static Dictionary<SymKind, string> sKindNames = new Dictionary<SymKind, string>()
@@ -201,15 +289,14 @@ namespace Gosub.Zurfur.Compiler
             { SymKind.Module, "module" },
             { SymKind.Type, "type" },
             { SymKind.TypeParam, "type parameter" },
-            { SymKind.SpecializedType, "specialized type" },
             { SymKind.Field, "field" },
-            { SymKind.Method, "method" },
-            { SymKind.MethodParam, "method parameter" },
+            { SymKind.Fun, "function" },
+            { SymKind.FunParam, "function parameter" },
             { SymKind.Local, "local variable" },
             { SymKind.All, "(all)" },
         };
 
-        // Find module, type, field, or parameter (ignore methods) 
+        // Find module, type, field, or parameter (ignore functions) 
         public bool TryGetPrimary(string key, out Symbol sym)
         {
             if (mPrimary == null)
@@ -220,12 +307,12 @@ namespace Gosub.Zurfur.Compiler
             return mPrimary.TryGetValue(key, out sym);
         }
 
-        // Check to see if there is a method (i.e. non-primary symbol)
-        public bool HasMethodNamed(string name)
+        // Check to see if there is a function (i.e. non-primary symbol)
+        public bool HasFunNamed(string name)
         {
-            if (mHasMethodNamed == null)
+            if (mHasFunNamed == null)
                 return false;
-            return mHasMethodNamed.ContainsKey(name);
+            return mHasFunNamed.ContainsKey(name);
         }
 
         public Dictionary<string, Symbol>.ValueCollection Children
@@ -244,10 +331,10 @@ namespace Gosub.Zurfur.Compiler
                     if (named == null || named == sym.Token)
                         yield return sym;
             }
-            else if (filter == SymKind.Method)
+            else if (filter == SymKind.Fun)
             {
                 foreach (var sym in mChildren.Values)
-                    if (sym.IsMethod)
+                    if (sym.IsFun)
                         if (named == null | named == sym.Token)
                             yield return sym;
             }
@@ -263,7 +350,7 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Returns all immediate children (types, fields, methods, parameters) of this symbol
+        /// Returns all immediate children (types, fields, funs, parameters) of this symbol
         /// </summary>
         public IEnumerable<Symbol> ChildrenRecurse()
         {
@@ -285,7 +372,7 @@ namespace Gosub.Zurfur.Compiler
         /// <returns></returns>
         public Symbol Unspecial()
         {
-            return IsSpecializedType ? Parent : this;
+            return IsSpecialized ? Parent : this;
         }
 
         public string QualifiersStr()
@@ -295,14 +382,14 @@ namespace Gosub.Zurfur.Compiler
                 var key = (int)Kind + ((int)Qualifiers << 8);
                 if (sTags.TryGetValue(key, out var t))
                     return t;
+
                 switch (Kind)
                 {
                     case SymKind.Field: t = "field"; break;
-                    case SymKind.Method: t = "method"; break;
-                    case SymKind.MethodParam: t = "method_param"; break;
+                    case SymKind.Fun: t = "fun"; break;
+                    case SymKind.FunParam: t = "fun_param"; break;
                     case SymKind.TypeParam: t = "type_param"; break;
                     case SymKind.Module: t = "module"; break;
-                    case SymKind.SpecializedType: t = "specialized";  break;
                     case SymKind.Type: t = "type";  break;
                     case SymKind.Local: t = "local";  break;
                     default: t = "";  Debug.Assert(false); break;
@@ -331,6 +418,7 @@ namespace Gosub.Zurfur.Compiler
                 if (Qualifiers.HasFlag(SymQualifiers.Copy)) t += " copy";
                 if (Qualifiers.HasFlag(SymQualifiers.Union)) t += " union";
                 if (Qualifiers.HasFlag(SymQualifiers.NoCopy)) t += " nocopy";
+                if (Qualifiers.HasFlag(SymQualifiers.Specialized)) t += " specialized";
                 sTags[key] = t;
                 return t;
             }
@@ -354,13 +442,12 @@ namespace Gosub.Zurfur.Compiler
                 case "module": Debug.Assert(Kind == SymKind.Module);  break;
                 case "type": Debug.Assert(Kind == SymKind.Type); break;
                 case "type_param": Debug.Assert(Kind == SymKind.TypeParam);  break;
-                case "method_param": Debug.Assert(Kind == SymKind.MethodParam); break;
+                case "fun_param": Debug.Assert(Kind == SymKind.FunParam); break;
                 case "field": Debug.Assert(Kind == SymKind.Field);  break;
-                case "method":
-                case "fun": Debug.Assert(Kind == SymKind.Method); break;
+                case "fun": Debug.Assert(Kind == SymKind.Fun); break;
                 case "set": Qualifiers |= SymQualifiers.Set; break;
                 case "get": Qualifiers |= SymQualifiers.Get; break;
-                case "afun": Qualifiers |= SymQualifiers.Async; Debug.Assert(Kind == SymKind.Method); break;
+                case "afun": Qualifiers |= SymQualifiers.Async; Debug.Assert(Kind == SymKind.Fun); break;
                 case "extension": Qualifiers |= SymQualifiers.Extension; break;
                 case "interface": Qualifiers |= SymQualifiers.Interface; break;
                 case "extern": Qualifiers |= SymQualifiers.Extern; break;
@@ -381,6 +468,9 @@ namespace Gosub.Zurfur.Compiler
                 case "copy": Qualifiers |= SymQualifiers.Copy; break;
                 case "union": Qualifiers |= SymQualifiers.Union; break;
                 case "nocopy": Qualifiers |= SymQualifiers.NoCopy; break;
+                case "specialized":
+                    Debug.Assert(false); // Set when created
+                    break;
                 default: Debug.Assert(false);  break;
             }
         }
@@ -426,9 +516,9 @@ namespace Gosub.Zurfur.Compiler
                 return false;
             mChildren[value.LookupName] = value;
 
-            if (!value.IsMethod)
+            if (!value.IsFun)
             {
-                // Quick lookup of non-methods
+                // Quick lookup of non-functions
                 if (mPrimary == null)
                     mPrimary = new Dictionary<string, Symbol>();
                 Debug.Assert(!mPrimary.ContainsKey(value.LookupName));
@@ -437,39 +527,16 @@ namespace Gosub.Zurfur.Compiler
             }
             else
             {
-                // Quick lookup of method name
-                if (mHasMethodNamed == null)
-                    mHasMethodNamed = new Dictionary<string, bool>();
-                mHasMethodNamed[value.Token] = true;
+                // Quick lookup of function name
+                if (mHasFunNamed == null)
+                    mHasFunNamed = new Dictionary<string, bool>();
+                mHasFunNamed[value.Token] = true;
             }
 
             FullName = GetFullName();
             return true;
         }
 
-        /// <summary>
-        /// The complete name of the symbol, including all parents up the tree.
-        /// </summary>
-        public string GetFullName()
-        {
-            if (IsLocal || IsMethodParam || IsTypeParam)
-                return LookupName;
-            else if (Parent == null || Parent.LookupName == "")
-                return LookupName;
-            else if (Parent != null && IsTuple)
-                return LookupName; // The full tuple name is set by the type
-            else
-            {
-                var suffix = "";
-                if (IsType)
-                {
-                    var count = GenericParamCount();
-                    suffix = count == 0 ? "" : $"`{count}";
-                }
-                var separator = Kind == SymKind.SpecializedType ? "" : ".";
-                return Parent.FullName + separator + LookupName + suffix;
-            }
-        }
 
         public override string ToString()
         {
@@ -495,7 +562,7 @@ namespace Gosub.Zurfur.Compiler
         {
             var count = GenericParamCount();
             var p = Parent;
-            while (p != null && (p.IsType || p.IsMethod))
+            while (p != null && (p.IsType || p.IsFun))
             {
                 count += p.GenericParamCount();
                 p = p.Parent;
@@ -512,14 +579,49 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Get list of field types.  
-        /// TBD: Still working on a generic tuple system
+        /// Get the function returns as a single return type or as a tuple
+        /// when there are multiples.
+        /// Only allowed to be called on a function.
         /// </summary>
-        public Symbol []GetTupleTypeList()
+        public Symbol FunReturnTupleOrType
         {
-            Debug.Assert(this is SymSpecializedType);
-            return ((SymSpecializedType)this).Params;
+            get
+            {
+                var returnTuple = FunReturnTuple;
+                var returnTypeList = returnTuple.TypeArgs;
+                if (returnTypeList.Length == 1)
+                    return returnTypeList[0];
+                return returnTuple;
+            }
+
         }
+
+        /// <summary>
+        /// Gets the function returns as a tuple.
+        /// Only allowed to be called on a function.
+        /// </summary>
+        public Symbol FunReturnTuple
+        {
+            get
+            {
+                Debug.Assert(IsFun && Type != null && Type.TypeArgs.Length == 2);
+                return Type.TypeArgs[1];
+            }
+        }
+
+        /// <summary>
+        /// Get the function parameters as a tuple.
+        /// Only allowed to be called on a function.
+        /// </summary>
+        public Symbol FunParamTuple
+        {
+            get
+            {
+                Debug.Assert(IsFun && Type != null && Type.TypeArgs.Length == 2);
+                return Type.TypeArgs[0];
+            }
+        }
+
     }
 
     class SymModule : Symbol
@@ -530,121 +632,12 @@ namespace Gosub.Zurfur.Compiler
         }
     }
 
-    class SymMethod : Symbol
+    class SymFun : Symbol
     {
-        public SymMethod(Symbol parent, Token token, string name) 
-            : base(SymKind.Method, parent, token, name)
+        public SymFun(Symbol parent, Token token, string name) 
+            : base(SymKind.Fun, parent, token, name)
         {
         }
-
-        // TBD: These should be part of a generic tuple system
-        Symbol mReturnTypeCache;
-        Symbol mParamTypeCache;
-
-        /// <summary>
-        /// Get a single return type as a non-tuple, or multiple types as a tuple.
-        /// </summary>
-        public Symbol GetReturnTupleOrType(SymbolTable table)
-        {
-            var returnTuple = GetReturnTuple(table);
-            var returnTypeList = returnTuple.GetTupleTypeList();
-            if (returnTypeList.Length == 1)
-                return returnTypeList[0];
-            return returnTuple;
-        }
-
-        /// <summary>
-        /// Gets the return type, always as an anonymous tuple type
-        public Symbol GetReturnTuple(SymbolTable table)
-        {
-            if (mReturnTypeCache != null)
-                return mReturnTypeCache;
-            mReturnTypeCache = GetParams(table, true);
-            return mReturnTypeCache;
-        }
-
-        /// <summary>
-        /// Get the parameters type, always as an anonymous tuple type
-        /// </summary>
-        public Symbol GetParamTuple(SymbolTable table)
-        {
-            if (mParamTypeCache != null)
-                return mParamTypeCache;
-            mParamTypeCache = GetParams(table, false);
-            return mParamTypeCache;
-        }
-
-        // Get parameters or returns as an anonymous tuple.
-        Symbol GetParams(SymbolTable table, bool returns)
-        {
-            var parameters = ChildrenFilter(SymKind.MethodParam)
-                .Where(child => child.Type != null && returns == child.ParamOut).ToList();
-
-            var tupleParent = table.GetTupleBaseType(parameters.Count);
-
-            parameters.Sort((a, b) => a.Order.CompareTo(b.Order));
-            var paramTypes = parameters.Select(p => p.Type).ToArray();
-            var paramNames = parameters.Select(p => p.FullName).ToArray();
-
-            return table.FindOrCreateSpecializedType(tupleParent, paramTypes, paramNames);
-        }
-    }
-
-    /// <summary>
-    /// Parent is the full name of the generic type, typeParams are the full name of each argument.
-    /// The symbol name is a combination of both parentName<T0,T1,T2...>
-    /// </summary>
-    class SymSpecializedType : Symbol
-    {
-        public readonly Symbol[] Params;
-        public readonly string[] TupleNames;
-
-        // Constructor for generic type argument
-        public SymSpecializedType(Symbol parent, string name)
-            : base(SymKind.SpecializedType, parent, parent.HasToken ? parent.Token : null, name)
-        {
-            Debug.Assert(parent.IsType || parent.LookupName == "");
-            Params = Array.Empty<Symbol>();
-        }
-
-
-        // Constructor for generic type 'Type<T0,T1,T2...>' or tuple '(T0,T1,T2...)'
-        public SymSpecializedType(Symbol parent, Symbol[] typeParams, string []tupleNames = null)
-            : base(SymKind.SpecializedType, 
-                  parent, parent.HasToken ? parent.Token : null, 
-                  FullTypeParamNames(parent, typeParams, tupleNames))
-        {
-            Debug.Assert(parent.IsType);
-            Params = typeParams;
-            TupleNames = tupleNames == null ? Array.Empty<string>() : tupleNames;
-            Debug.Assert(TupleNames.Length == 0 || TupleNames.Length == Params.Length);
-        }
-
-        static string FullTypeParamNames(Symbol parent, Symbol[] typeParams, string[]tupleNames)
-        {
-            var isTuple = parent.FullName.StartsWith("()");
-            var namedTuple = tupleNames != null && tupleNames.Length > 0;
-            var sb = new StringBuilder();
-            sb.Append(isTuple ? "(" : "<");
-            for (int i = 0;  i < typeParams.Length;  i++)
-            {
-                if (i > 0)
-                {
-                    sb.Append(",");
-                    if (namedTuple)
-                        sb.Append(" ");
-                }
-                if (namedTuple)
-                {
-                    sb.Append(tupleNames[i]);
-                    sb.Append(" ");
-                }
-                sb.Append(typeParams[i].FullName);
-            }
-            sb.Append(isTuple ? ")" : ">");
-            return sb.ToString();
-        }
-
     }
 
 }

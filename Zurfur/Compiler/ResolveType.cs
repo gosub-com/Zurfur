@@ -37,7 +37,7 @@ namespace Gosub.Zurfur.Compiler
             // There will also be a syntax error
             if (typeExpr == null || typeExpr.Token.Name == "")
                 return null;
-            Debug.Assert(!searchScope.IsSpecializedType);
+            Debug.Assert(!searchScope.IsSpecialized);
 
             if (typeExpr.Token.Name == ".")
                 return ResolveDot();
@@ -55,7 +55,7 @@ namespace Gosub.Zurfur.Compiler
             if (symbol == null)
                 return null; // Error already marked
 
-            if (!symbol.IsAnyType || symbol.IsSpecializedType)
+            if (!symbol.IsAnyTypeOrModule)
             {
                 table.Reject(typeExpr.Token, "The symbol is not a type, it is a " + symbol.KindName);
                 return table.NoCompilerChecks ? symbol : null;
@@ -95,26 +95,26 @@ namespace Gosub.Zurfur.Compiler
                     table.Reject(typeExpr.Token, $"Syntax error");
                     return null;
                 }
-                if (!leftSymbol.IsAnyType || leftSymbol.IsTypeParam)
+                if (!leftSymbol.IsAnyTypeOrModule || leftSymbol.IsTypeParam)
                 {
                     table.Reject(typeExpr.Token, $"The left side of the '.' must evaluate to a module or type, but it is a {leftSymbol.KindName}");
                     return null;
                 }
 
                 // The right side of the "." is only a type name identifier, excluding generic parameters.
-                var leftScope = leftSymbol.IsSpecializedType ? leftSymbol.Parent : leftSymbol;
+                var leftScope = leftSymbol.IsSpecialized ? leftSymbol.Parent : leftSymbol;
                 var rightSymbol = Resolve(typeExpr[1], table, true, leftScope, useSymbols, hasGenericParams);
                 if (rightSymbol == null)
                     return null;
 
-                if (!rightSymbol.IsAnyType)
+                if (!rightSymbol.IsAnyTypeOrModule)
                 {
                     table.Reject(typeExpr[1].Token, $"The right side of the '.' must evaluate to a module or type, but it is a {rightSymbol.KindName}");
                     return null;
                 }
 
-                if (leftSymbol.IsSpecializedType)
-                    return table.FindOrCreateSpecializedType(rightSymbol, ((SymSpecializedType)leftSymbol).Params);
+                if (leftSymbol.IsSpecialized)
+                    return table.CreateSpecializedType(rightSymbol, leftSymbol.TypeArgs);
 
                 return rightSymbol;
             }
@@ -155,7 +155,7 @@ namespace Gosub.Zurfur.Compiler
                     return null;
 
                 // Reject incorrect number of type arguments, for example, `List<int,int>`
-                var typeNameConcrete = typeName.IsSpecializedType ? typeName.Parent : typeName;
+                var typeNameConcrete = typeName.IsSpecialized ? typeName.Parent : typeName;
                 if (typeNameConcrete.GenericParamCount() != typeParams.Count)
                 {
                     RejectTypeArgLeftDotRight(typeExpr, table,
@@ -165,12 +165,12 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 // Add parent type parameters (i.e. Map<int,int>.KvPair -> Map.KeyVal<int,int>)
-                if (typeName is SymSpecializedType pt)
+                if (typeName.IsSpecialized)
                 {
-                    for (int i = 0; i < pt.Params.Length; i++)
-                        typeParams.Insert(i, pt.Params[i]);
+                    for (int i = 0; i < typeName.TypeArgs.Length; i++)
+                        typeParams.Insert(i, typeName.TypeArgs[i]);
                 }
-                return table.FindOrCreateSpecializedType(typeNameConcrete, typeParams.ToArray());
+                return table.CreateSpecializedType(typeNameConcrete, typeParams.ToArray());
             }
 
 
@@ -196,7 +196,7 @@ namespace Gosub.Zurfur.Compiler
                     typeParent = Resolve(typeExpr[0], table, false, searchScope, useSymbols, true);
                 }
 
-                if (typeParent != null && !typeParent.IsAnyTypeNotModule)
+                if (typeParent != null && !typeParent.IsAnyType)
                 {
                     table.Reject(typeExpr[0].Token, $"Expecting a type, but got a {typeParent.KindName}");
                     typeParent = null;
@@ -205,24 +205,6 @@ namespace Gosub.Zurfur.Compiler
                 // Process type parameters
                 return typeParent;
             }
-        }
-
-        // Get the function name: "`#(t1,t2...)(r1,r2...)"
-        //      # - Number of generic parameters
-        //      t1,t2... - Parameter types
-        //      r1,r2... - Return types
-        public static string GetFunctionName(string simpleName, Symbol method)
-        {
-            var genericsCount = method.GenericParamCount();
-            var mp = method.ChildrenFilter(SymKind.MethodParam).Where(child => !child.ParamOut).ToList();
-            var mpr = method.ChildrenFilter(SymKind.MethodParam).Where(child => child.ParamOut).ToList();
-            mp.Sort((a, b) => a.Order.CompareTo(b.Order));
-            mpr.Sort((a, b) => a.Order.CompareTo(b.Order));
-            var functionName = simpleName
-                        + (genericsCount == 0 ? "" : "`" + genericsCount)
-                        + "(" + string.Join(",", mp.ConvertAll(a => a.TypeName)) + ")"
-                        + "(" + string.Join(",", mpr.ConvertAll(a => a.TypeName)) + ")";
-            return functionName;
         }
 
 
@@ -241,7 +223,7 @@ namespace Gosub.Zurfur.Compiler
                 var sym = Resolve(typExprParam, table, false, searchScope, useScope);
                 if (sym == null)
                     resolved = false;
-                else if (sym.IsAnyTypeNotModule)
+                else if (sym.IsAnyType)
                     typeParams.Add(sym);
                 else
                 {
@@ -253,10 +235,10 @@ namespace Gosub.Zurfur.Compiler
             return resolved ? typeParams : null;
         }
 
-        public static void ResolveMethodParams(
+        public static void ResolveFunParams(
             SyntaxExpr parameters,
             SymbolTable table,
-            Symbol method,
+            Symbol function,
             Symbol searchScope,
             UseSymbolsFile useSymbols,
             bool isReturn)
@@ -272,22 +254,22 @@ namespace Gosub.Zurfur.Compiler
 
                 var token = expr.Token == "" ? expr[1].Token : expr.Token;
                 var name = expr.Token == "" ? "$0" : expr.Token.Name;
-                var methodParam = new Symbol(SymKind.MethodParam, method, token, name);
-                methodParam.ParamOut = isReturn;
-                methodParam.Type = Resolve(expr[0], table, false, searchScope, useSymbols);
-                if (methodParam.Type == null)
+                var funParam = new Symbol(SymKind.FunParam, function, token, name);
+                funParam.ParamOut = isReturn;
+                funParam.Type = Resolve(expr[0], table, false, searchScope, useSymbols);
+                if (funParam.Type == null)
                     continue; // Unresolved symbol
 
-                if (!(methodParam.Type.IsAnyTypeNotModule || table.NoCompilerChecks))
+                if (!(funParam.Type.IsAnyType || table.NoCompilerChecks))
                     RejectTypeArgLeftDotRight(expr[0], table, 
-                        $"The symbol is not a type, it is a {methodParam.Type.KindName}");
-                expr.Token.AddInfo(methodParam);
+                        $"The symbol is not a type, it is a {funParam.Type.KindName}");
+                expr.Token.AddInfo(funParam);
 
                 // Add qualifiers
                 foreach (var qualifier in expr[2])
-                    methodParam.SetQualifier(qualifier.Token);
+                    funParam.SetQualifier(qualifier.Token);
 
-                table.AddOrReject(methodParam);
+                table.AddOrReject(funParam);
             }
         }
 
@@ -340,7 +322,7 @@ namespace Gosub.Zurfur.Compiler
             for (int i = 0; i < numGenerics; i++)
                 genericParams.Add(table.GetGenericParam(i));
 
-            return table.FindOrCreateSpecializedType(type, genericParams.ToArray());
+            return table.CreateSpecializedType(type, genericParams.ToArray());
         }
 
         /// <summary>
@@ -354,7 +336,7 @@ namespace Gosub.Zurfur.Compiler
                 table.Reject(name, $"'{name}' is not a member of '{scope}'");
                 return null;
             }
-            if (symbol.IsAnyType)
+            if (symbol.IsAnyTypeOrModule)
                 return symbol;
             table.Reject(name, $"'{name}' is not a type, it is a '{symbol.KindName}'");
             return null;
@@ -409,12 +391,12 @@ namespace Gosub.Zurfur.Compiler
         {
             while (!scope.IsModule)
             {
-                if (scope.TryGetPrimary(name, out var s1) && s1.IsAnyType)
+                if (scope.TryGetPrimary(name, out var s1) && s1.IsAnyTypeOrModule)
                     return s1;
                 scope = scope.Parent;
             }
             // This is a module
-            if (scope.TryGetPrimary(name, out var s2) && s2.IsAnyType)
+            if (scope.TryGetPrimary(name, out var s2) && s2.IsAnyTypeOrModule)
                 return s2;
 
             return null;

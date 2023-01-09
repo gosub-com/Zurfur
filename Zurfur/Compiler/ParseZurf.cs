@@ -495,7 +495,7 @@ namespace Gosub.Zurfur.Compiler
                     mToken.Type = eTokenType.ReservedControl;
                     Accept();
                     mSyntax.Using.Add(ParseUsingStatement());
-                    if (mSyntax.Types.Count != 0 || mSyntax.Methods.Count != 0 || mSyntax.Fields.Count != 0)
+                    if (mSyntax.Types.Count != 0 || mSyntax.Functions.Count != 0 || mSyntax.Fields.Count != 0)
                         RejectToken(keyword, "'use' statement must come before any types, fields, or methods are defined");
                     qualifiers.Clear();
                     break;
@@ -1117,7 +1117,7 @@ namespace Gosub.Zurfur.Compiler
             if (!IsMatchPastMetaSemicolon("("))
                 validMethodName = false;
 
-            synFunc.MethodSignature = ParseMethodSignature(keyword);
+            synFunc.FunctionSignature = ParseMethodSignature(keyword);
             synFunc.Constraints = ParseConstraints();
 
             while (AcceptMatchPastMetaSemicolon("require"))
@@ -1135,7 +1135,7 @@ namespace Gosub.Zurfur.Compiler
             synFunc.Qualifiers = qualifiers.ToArray();
 
             if (validMethodName)
-                mSyntax.Methods.Add(synFunc);
+                mSyntax.Functions.Add(synFunc);
         }
 
         /// <summary>

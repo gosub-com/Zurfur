@@ -333,22 +333,23 @@ namespace Gosub.Zurfur.Ide
             var symbol = symbols[0];
             message +=$"[{getQualifiers(symbol)}]\r\n{symbol}\r\n\r\n";
 
-            if (symbol.IsField || symbol.IsMethodParam || symbol.IsLocal)
-            {
-                message += "TYPE: " + symbol.TypeName + "\r\n";
-            }
-            else if (symbol.IsMethod)
+            if (symbol.IsFun)
             {
                 message += "PARAMS: \r\n";
                 foreach (var child in symbol.Children)
                 {
-                    if (child.IsMethodParam)
+                    if (child.IsFunParam)
                         message += $"    {child.SimpleName}: [{getQualifiers(child)}] {child.TypeName}\r\n";
                     else if (child.IsTypeParam)
                         message += $"    {child.SimpleName}: Type parameter\r\n";
                     else
                         message += $"    {child.SimpleName}: COMPILER ERROR\r\n";
                 }
+                message += "\r\n";
+            }
+            if (symbol.TypeName != null && symbol.TypeName != "")
+            {
+                message += "TYPE: " + symbol.TypeName + "\r\n";
             }
             message += "\r\n";
 
