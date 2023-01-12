@@ -15,7 +15,7 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     class SymbolTable
     {
-        SymModule mRoot;
+        Symbol mRoot;
 
         // TBD: Move to compiler options class, including pragmas and command line, etc.
         public bool NoCompilerChecks;
@@ -42,10 +42,10 @@ namespace Gosub.Zurfur.Compiler
 
         public SymbolTable()
         {
-            var preRoot = new SymModule(null, "");
-            mRoot = new SymModule(preRoot, "");
+            var preRoot = new Symbol(SymKind.Module, null, "");
+            mRoot = new Symbol(SymKind.Module, preRoot, "");
             mGenericArgumentHolder = new Symbol(SymKind.Type, mRoot, "");
-            mGenericTupleHolder = new SymModule(mRoot, "");
+            mGenericTupleHolder = new Symbol(SymKind.Module, mRoot, "");
         }
 
 
@@ -128,10 +128,11 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public Symbol CreateSpecializedType(
             Symbol concreteType, 
-            Symbol[] typeArgs, 
-            string[] tupleNames = null)
+            Symbol[] typeArgs,
+            string[] tupleNames = null,
+            Symbol returnType = null)
         {
-            Debug.Assert(concreteType.IsType || concreteType.IsFun);
+            Debug.Assert(concreteType.IsType || concreteType.IsFun || concreteType.IsField);
             if (!NoCompilerChecks)
                 Debug.Assert(concreteType.GenericParamTotal() == typeArgs.Length);
             Debug.Assert(!concreteType.IsSpecialized);
@@ -140,18 +141,28 @@ namespace Gosub.Zurfur.Compiler
             if (typeArgs.Length == 0)
                 return concreteType;
 
-            var sym = new Symbol(concreteType, typeArgs, tupleNames);
+            // Lookup name is (type1,type2...) for tuples and <type1,type2...>
+            // for generic arguments. 
+            var t = concreteType.IsTuple;
+            var lookupName = (t ? "(" : "<") + string.Join<Symbol>(",", typeArgs) + (t ? ")" : ">");
+
+            var symSpec = new Symbol(concreteType.Kind, concreteType, 
+                concreteType.HasToken ? concreteType.Token : null, lookupName, typeArgs, tupleNames);
+            symSpec.Type = returnType == null ?  concreteType.Type : returnType;
+            symSpec.Qualifiers = concreteType.Qualifiers | SymQualifiers.Specialized;
+            if (symSpec.IsFun)
+                symSpec.SetFunName();
 
             // Tuples are not stored in the specialized types
-            if (sym.IsTuple)
-                return sym;
+            if (symSpec.IsTuple)
+                return symSpec;
 
             // Store and re-use matching symbols
-            if (mSpecializedTypes.TryGetValue(sym.FullName, out var specExists))
+            if (mSpecializedTypes.TryGetValue(symSpec.FullName, out var specExists))
                 return specExists;
 
-            mSpecializedTypes[sym.FullName] = sym;
-            return sym;
+            mSpecializedTypes[symSpec.FullName] = symSpec;
+            return symSpec;
         }
 
         /// <summary>

@@ -99,7 +99,7 @@ namespace Gosub.Zurfur.Compiler
                     syntaxToSymbol[m] = s2;
                     return s2;
                 }
-                var newModule = new SymModule(parent, m.Name);
+                var newModule = new Symbol(SymKind.Module, parent, m.Name);
                 // TBD: Take qualifiers from module definition (generate error if inconsistent)
                 newModule.Qualifiers = SymQualifiers.Pub;
                 m.Name.AddInfo(newModule);
@@ -117,9 +117,9 @@ namespace Gosub.Zurfur.Compiler
                     var fileUseSymbols = new UseSymbolsFile();
 
                     // Add prelude to all files
-                    if (table.Root.TryGetPrimary("Zurfur", out var zSym) && zSym is SymModule zMod)
+                    if (table.Root.TryGetPrimary("Zurfur", out var zSym) && zSym.IsModule)
                         foreach (var name in ZURFUR_PRELUDE.Split(' '))
-                            AddUseSymbolsFromModule(zMod, name, null, fileUseSymbols);
+                            AddUseSymbolsFromModule(zSym, name, null, fileUseSymbols);
 
                     // Process use statements
                     foreach (var use in syntaxFile.Value.Using)
@@ -143,7 +143,7 @@ namespace Gosub.Zurfur.Compiler
                         // Add list of symbols from the module
                         foreach (var token in use.Symbols)
                         {
-                            AddUseSymbolsFromModule((SymModule)module, token.Name, addSymbolInfo ? token : null, fileUseSymbols);
+                            AddUseSymbolsFromModule(module, token.Name, addSymbolInfo ? token : null, fileUseSymbols);
                         }
                     }
                     uses.Files[syntaxFile.Key] = fileUseSymbols;
@@ -151,7 +151,7 @@ namespace Gosub.Zurfur.Compiler
                 return uses;
             }
 
-            void AddUseSymbolsFromModule(SymModule module, string name, Token token, UseSymbolsFile useSymbolsFile)
+            void AddUseSymbolsFromModule(Symbol module, string name, Token token, UseSymbolsFile useSymbolsFile)
             {
                 var symbols = GetUseSymbolsFromModule(module, name);
                 if (symbols.Count == 0)
@@ -174,7 +174,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Get all the symbols with a given name (include operators if it's a type)
-            List<Symbol> GetUseSymbolsFromModule(SymModule module, string name)
+            List<Symbol> GetUseSymbolsFromModule(Symbol module, string name)
             {
                 var symbols = new List<Symbol>();
                 if (module.TryGetPrimary(name, out Symbol typeSym))
@@ -379,7 +379,7 @@ namespace Gosub.Zurfur.Compiler
                 var useSymbolsFile = useSymbols.Files[synFunc.Token.Path];
 
                 // Give each function a unique name (final name calculated below)
-                var function = new SymFun(scope, synFunc.Name, $"$LOADING...${scope.ChildrenCount}");
+                var function = new Symbol(SymKind.Fun, scope, synFunc.Name, $"$LOADING...${scope.ChildrenCount}");
                 function.SetQualifiers(synFunc.Qualifiers);
                 function.Comments = synFunc.Comments;
                 AddExtensionMethodGenerics(function, synFunc);
@@ -394,13 +394,7 @@ namespace Gosub.Zurfur.Compiler
                 var returns = GetFunParamsTuple(function, true);
                 var tupleBaseType = table.GetTupleBaseType(2);
                 function.Type = table.CreateSpecializedType(tupleBaseType, new Symbol[] { parameters, returns });
-
-                // Set the function name F(type1,type2)(returnType)
-                var genericsCount = function.GenericParamCount();
-                var name = synFunc.Name + (genericsCount == 0 ? "" : "`" + genericsCount)
-                    + "(" + string.Join<Symbol>(",", parameters.TypeArgs) + ")"
-                    + "(" + string.Join<Symbol>(",", returns.TypeArgs) + ")";
-                function.SetLookupName(name);
+                function.SetFunName();
 
                 function.Token.AddInfo(function);
                 if (synFunc.Parent.Name.Error)
@@ -486,6 +480,10 @@ namespace Gosub.Zurfur.Compiler
                     ifaceMethodParam.Type = Resolver.GetTypeWithGenericParameters(
                                                 table, method.Parent, method.GenericParamTotal());
                     table.AddOrReject(ifaceMethodParam);
+
+                    if (func.ExtensionType != null)
+                        Reject(func.ExtensionType.Token, "Extension method not allowed on interface functions");
+
                     return ifaceMethodParam;
                 }
 

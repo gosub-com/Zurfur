@@ -37,4 +37,4 @@ mod Zurfur.Io.File
 type Progress(bytesTotal int, bytesTransferred int)
 afun readAllText(
     fileName str,
-    progress ?fun (p Progress) = null) !void { }
+    progress ?fun (p Progress) = nil) !void { }
