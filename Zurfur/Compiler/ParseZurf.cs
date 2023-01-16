@@ -61,18 +61,18 @@ namespace Gosub.Zurfur.Compiler
                             + "== != : ? ?? > << <= < => -> .. :: !== ===  is in as has "
                             + "= += -= *= /= %= |= &= ~= " + TOKEN_STR_LITERAL);
 
-        static WordSet sReservedWords = new WordSet("abstract as has super break case catch class const "
-            + "continue default delegate do then else elif enum explicit extern true false defer use "
-            + "finally fixed for goto go if in interface internal is lock namespace mod app include "
-            + "new null out override pub public private protected readonly ro ref aref mut imut "
-            + "return ret unsealed unseal sealed sizeof struct switch this This self Self throw try "
-            + "typeof type unsafe using static noself virtual while dowhile asm managed unmanaged "
-            + "async await astart func afunc get set aset aget global partial var where when nameof "
-            + "box boxed init move copy clone bag drop dispose own owned "
-            + "mixin extends impl union fun afun sfun def yield let "
-            + "any dyn dynamic loop select match event aevent from to of on cofun cofunc global local it "
-            + "throws rethrow atask task scope assign @ # and or not xor with exit pragma require ensure "
-            + "of sync task except exception raise loc local global my");
+        static WordSet sReservedWords = new WordSet("as has break case catch const "
+            + "continue do then else elif extern true false defer use "
+            + "finally for goto go if in is mod app include "
+            + "new out pub public private priv readonly ro ref aref mut imut "
+            + "return ret sizeof struct switch throw try "
+            + "typeof type unsafe static while dowhile scope loop "
+            + "async await astart atask task get set var where when nameof "
+            + "box init move copy clone drop own super self "
+            + "extends impl implements fun afun sfun def yield let "
+            + "any dyn select match from to of on cofun it "
+            + "throws rethrow @ # and or not xor with exit pragma require ensure "
+            + "of sync except exception loc local global my My");
 
         public static WordSet ReservedWords => sReservedWords;
 
@@ -82,8 +82,8 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sPostFieldQualifiers = new WordSet("init mut ref");
         static WordSet sParamQualifiers = new WordSet("ro own mut");
 
-        static WordSet sReservedUserFuncNames = new WordSet("new clone drop default");
-        static WordSet sReservedIdentifierVariables = new WordSet("null this self true false default self super new move my sizeof typeof");
+        static WordSet sReservedUserFuncNames = new WordSet("new clone drop");
+        static WordSet sReservedIdentifierVariables = new WordSet("true false new move my sizeof typeof");
         static WordSet sReservedMemberNames = new WordSet("clone");
         static WordSet sTypeUnaryOps = new WordSet("? ! * ^ [ ref ro");
 

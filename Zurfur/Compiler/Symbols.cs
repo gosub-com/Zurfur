@@ -147,12 +147,19 @@ namespace Gosub.Zurfur.Compiler
         /// Create a symbol that is unique in the soruce code (e.g. SymFun,
         /// SymType, SymField, etc.) and can be marked with token information.
         /// </summary>
-        public Symbol(SymKind kind, Symbol parent, Token token, string name = null)
+        public Symbol(SymKind kind, 
+            Symbol parent, 
+            Token token, 
+            string name = null, 
+            Symbol []typeArgs = null,
+            string []tupleNames = null)
         {
             Kind = kind;
             Parent = parent;
             LookupName = name == null ? token.Name : name;
             mToken = token;
+            TypeArgs = typeArgs == null ? Array.Empty<Symbol>() : typeArgs;
+            TupleNames = tupleNames == null ? Array.Empty<string>() : tupleNames;
             FullName = GetFullName();
         }
 
@@ -167,36 +174,6 @@ namespace Gosub.Zurfur.Compiler
             LookupName = name;
             FullName = GetFullName();
         }
-
-        /// <summary>
-        /// Create a specialized type or function with type arguments.
-        /// Constructor for generic type 'Type<T0,T1,T2...>' or tuple '(T0,T1,T2...)'
-        /// </summary>
-        public Symbol(Symbol parent, Symbol[] typeArgs, string[] tupleNames = null)
-        {
-            Debug.Assert(parent.IsType || parent.IsFun);
-            Debug.Assert(!parent.IsSpecialized);
-            Debug.Assert(typeArgs != null && typeArgs.Length != 0);
-            Debug.Assert(TupleNames.Length == 0 || TupleNames.Length == TypeArgs.Length);
-
-            // Covered in CreateSpecializedType, allow this for testing
-            //Debug.Assert(parent.GenericParamTotal() == typeArgs.Length);
-
-            Qualifiers |= SymQualifiers.Specialized;
-            Kind = parent.Kind;
-            Parent = parent;
-            mToken = parent.HasToken ? parent.Token : null;
-
-            // Lookup name is (type1,type2...) for tuples and <type1,type2...>
-            // for generic arguments. 
-            var t = parent.IsTuple;
-            LookupName = (t ? "(" : "<") + string.Join<Symbol>(",", typeArgs) + (t ? ")" : ">");
-
-            TypeArgs = typeArgs;
-            TupleNames = tupleNames == null ? Array.Empty<string>() : tupleNames;
-            FullName = GetFullName();
-        }
-
 
 
         public int ChildrenCount => mChildren == null ? 0 : mChildren.Count;
@@ -267,7 +244,10 @@ namespace Gosub.Zurfur.Compiler
                     suffix = count == 0 ? "" : $"`{count}";
                 }
                 var separator = IsSpecialized ? "" : ".";
-                return Parent.FullName + separator + LookupName + suffix;
+
+                // Specialized functions get the parents functions parant
+                var parentFullName = IsSpecialized && IsFun ? Parent.Parent.FullName + "." : Parent.FullName;
+                return parentFullName + separator + LookupName + suffix;
             }
         }
 
@@ -477,7 +457,7 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Source code token if it exists.  Throws an exception for
-        /// SymModule, and other symbols that don't hava a token.
+        /// modules, and other symbols that don't hava a token.
         /// TBD: Force all symbols to have a source code token.
         /// </summary>
         public Token Token
@@ -501,7 +481,7 @@ namespace Gosub.Zurfur.Compiler
             LookupName = name;
             FullName = GetFullName();
         }
-        
+
         /// <summary>
         /// This should only be called by functions in SymbolTable.
         /// It sets the symbol Order to the number of children.
@@ -622,22 +602,16 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
-    }
+        /// <summary>
+        /// Get function parameter types as an array (only call on a function)
+        /// </summary>
+        public Symbol[] FunParams => FunParamTuple.TypeArgs;
 
-    class SymModule : Symbol
-    {
-        public SymModule(Symbol parent, string name) 
-            : base(SymKind.Module, parent, name)
-        {
-        }
-    }
+        /// <summary>
+        /// Get function return types as an array (only call on a function)
+        /// </summary>
+        public Symbol[] FunReturns => FunReturnTuple.TypeArgs;
 
-    class SymFun : Symbol
-    {
-        public SymFun(Symbol parent, Token token, string name) 
-            : base(SymKind.Fun, parent, token, name)
-        {
-        }
     }
 
 }

@@ -7,6 +7,7 @@ using Gosub.Zurfur.Compiler;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace Gosub.Zurfur.Ide
 {
@@ -161,17 +162,23 @@ namespace Gosub.Zurfur.Ide
             }
 
             // Highlight all tokens on the screen with the same symbol info
-            var symbols = newToken.GetInfos<Symbol>();
-            foreach (var symbol in symbols)
+            var hoverSymbols = newToken.GetInfos<Symbol>();
+            foreach (var hoverSymbol in hoverSymbols)
             {
                 var endLine = editor.TopVisibleLine + editor.LinesInWindow();
-                foreach (var token in editor.Lexer.GetEnumeratorStartAtLine(editor.TopVisibleLine))
+                foreach (var screenToken in editor.Lexer.GetEnumeratorStartAtLine(editor.TopVisibleLine))
                 {
-                    if (token.Y > endLine)
+                    if (screenToken.Y > endLine)
                         break;
-                    if (token.GetInfo<Symbol>() == symbol && !token.Error)
-                        overrides.Add(new TokenColorOverride(token, sBoldConnectorOutlineColor, sBoldConnectorBackColor));
+                    var screenSymbol = screenToken.GetInfo<Symbol>();
+                    if (screenSymbol == null || screenToken.Error)
+                        continue;
 
+                    // Highlight symbols with the same name, and also
+                    // specialized symbols with tokens matching location of definition
+                    if (screenSymbol.FullName == hoverSymbol.FullName
+                            || hoverSymbol.HasToken && hoverSymbol.Token.Location == screenToken.Location)
+                        overrides.Add(new TokenColorOverride(screenToken, sBoldConnectorOutlineColor, sBoldConnectorBackColor));
                 }
             }
 
