@@ -38,10 +38,10 @@ namespace Gosub.Zurfur.Compiler
 
         public SymbolTable()
         {
-            var preRoot = new Symbol(SymKind.Module, null, "");
-            mRoot = new Symbol(SymKind.Module, preRoot, "");
-            mGenericArgumentHolder = new Symbol(SymKind.Type, mRoot, "");
-            mGenericTupleHolder = new Symbol(SymKind.Module, mRoot, "");
+            var preRoot = new Symbol(SymKind.Module, null, null, "");
+            mRoot = new Symbol(SymKind.Module, preRoot, null, "");
+            mGenericArgumentHolder = new Symbol(SymKind.Type, mRoot, null, "");
+            mGenericTupleHolder = new Symbol(SymKind.Module, mRoot, null, "");
         }
 
 
@@ -137,24 +137,16 @@ namespace Gosub.Zurfur.Compiler
             if (typeArgs.Length == 0)
                 return concreteType;
 
-            // Lookup name is (type1,type2...) for tuples and <type1,type2...>
-            // for generic arguments. 
-            var t = concreteType.IsTuple;
-            var lookupName = (t ? "(" : "<") + string.Join<Symbol>(",", typeArgs) + (t ? ")" : ">");
-
-            var symSpec = new Symbol(concreteType.Kind, concreteType, 
-                concreteType.HasToken ? concreteType.Token : null, lookupName, typeArgs, tupleNames);
+            var symSpec = new Symbol(concreteType.Kind, concreteType,
+                concreteType.HasToken ? concreteType.Token : null, concreteType.SimpleName)
+            {
+                TupleNames = tupleNames,
+                TypeArgs = typeArgs
+            };
             symSpec.Type = returnType == null ?  concreteType.Type : returnType;
             symSpec.Qualifiers = concreteType.Qualifiers | SymQualifiers.Specialized;
-            if (symSpec.IsFun)
-            {
-                var genericsCount = concreteType.GenericParamCount();
-                var name = symSpec.Token + (genericsCount == 0 ? "" : "`" + genericsCount)
-                    + lookupName
-                    + "(" + string.Join<Symbol>(",", symSpec.Type.TypeArgs[0].TypeArgs) + ")"
-                    + "(" + string.Join<Symbol>(",", symSpec.Type.TypeArgs[1].TypeArgs) + ")";
-                symSpec.SetLookupName(name);
-            }
+
+            symSpec.FinalizeFullName();
 
             // Tuples are not stored in the specialized types
             if (symSpec.IsTuple)
@@ -178,7 +170,7 @@ namespace Gosub.Zurfur.Compiler
             for (int i = mGenericArguments.Count; i <= argNum; i++)
             {
                 var name = $"#{i}";
-                var arg = new Symbol(SymKind.Type, mGenericArgumentHolder, name);
+                var arg = new Symbol(SymKind.Type, mGenericArgumentHolder, null, name);
                 mGenericArguments.Add(arg);
                 AddOrReject(arg);
                 mSpecializedTypes[name] = arg;
@@ -196,13 +188,13 @@ namespace Gosub.Zurfur.Compiler
             for (int i = mGenericTuples.Count; i <= numGenerics; i++)
             {
                 var name = i == 0 ? "()" :  $"()`{i}";
-                var arg = new Symbol(SymKind.Type, mGenericTupleHolder, name);
+                var arg = new Symbol(SymKind.Type, mGenericTupleHolder, null, name);
                 mGenericTuples.Add(arg);
                 AddOrReject(arg);
 
                 for (int j = 0;  j < i; j++)
                 {
-                    var tp = new Symbol(SymKind.TypeParam, arg, $"T{j}");
+                    var tp = new Symbol(SymKind.TypeParam, arg, null, $"T{j}");
                     AddOrReject(tp);
                 }
             }

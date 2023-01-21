@@ -64,7 +64,7 @@ namespace Gosub.Zurfur.Compiler
 
             foreach (var symbol in symbols.Root.ChildrenRecurse())
             {
-                if (symbol.LookupName == "")
+                if (symbol.FullName == "")
                     return;
 
                 // TBD: Reject illegal overload methods
@@ -93,7 +93,7 @@ namespace Gosub.Zurfur.Compiler
                 }
                 else if (symbol.IsFunParam)
                 {
-                    if (symbol.LookupName == symbol.Parent.Token.Name)
+                    if (symbol.SimpleName == symbol.Parent.Token.Name)
                         Reject(symbol.Token, "Must not be same name as method");
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
                     CheckTypeName(symbol.Token, symbol.TypeName);
@@ -139,7 +139,7 @@ namespace Gosub.Zurfur.Compiler
             // children scopes from declaring that symbol.
             void RejectDuplicateTypeParameterName(Token token, Symbol scope)
             {
-                while (scope.LookupName != "")
+                while (scope.FullName != "")
                 {
                     if (scope.TryGetPrimary(token.Name, out var s)
                             && s.IsTypeParam)

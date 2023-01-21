@@ -3,4 +3,18 @@
   <PropertyGroup>
     <ProjectView>ShowAllFiles</ProjectView>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Update="Ide\FormHoverMessage.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Ide\FormHtml.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Ide\FormMain.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Ide\FormSearch.cs">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
 </Project>

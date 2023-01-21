@@ -47,32 +47,26 @@ fun MyType.mapChangedEvent() {}
 
 
 
-fun doit() {}
 fun hello() {}
 
 fun test_HelloWorld()
     Log.info("Hello World.  Let's count from 1 to 10.")
     for @a in 1..11
         Log.info("Hello world.  count=${a}")
-        doit()
-        doit()
-        hello()
-        if a == 3
-            doit()
-        elif a == 4
-            doit()
-        elif a == 5
-            doit()
-        else
-            doit()
+    @t1 = circle2(1, 2.0)
+    @t1r1 = t1.x
+    @t1r2 = t1.y
             
-[pub]
-type AGenericType<Q>
-    a int
 
 [pub]
 fun circle(a f64, r f64) -> (x f64, y f64)
+    @q = circle(1.0,2.0)
+    @p = q.x
     return (cos(a)*r, sin(a)*r)
+
+
+fun circle2<T0, T1>(a T0, r T1)->(x T0, y T1)
+    return (T0(), T1())
 
 
 [pub] type Example
