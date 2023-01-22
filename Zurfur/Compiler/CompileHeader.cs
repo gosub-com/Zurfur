@@ -378,7 +378,7 @@ namespace Gosub.Zurfur.Compiler
                 var useSymbolsFile = useSymbols.Files[synFunc.Token.Path];
 
                 // Give each function a unique name (final name calculated below)
-                var function = new Symbol(SymKind.Fun, scope, synFunc.Name, $"$LOADING...${scope.ChildrenCount}");
+                var function = new Symbol(SymKind.Fun, scope, synFunc.Name);
                 function.SetQualifiers(synFunc.Qualifiers);
                 function.Comments = synFunc.Comments;
                 AddExtensionMethodGenerics(function, synFunc);
@@ -394,11 +394,7 @@ namespace Gosub.Zurfur.Compiler
                 var tupleBaseType = table.GetTupleBaseType(2);
                 function.Type = table.CreateSpecializedType(tupleBaseType, new Symbol[] { parameters, returns });
 
-                var genericsCount = function.GenericParamCount();
-                var name = function.Token + (genericsCount == 0 ? "" : "`" + genericsCount)
-                    + "(" + string.Join<Symbol>(",", parameters.TypeArgs) + ")"
-                    + "(" + string.Join<Symbol>(",", returns.TypeArgs) + ")";
-                function.SetLookupName(name);
+                function.FinalizeFullName();
 
                 function.Token.AddInfo(function);
                 if (synFunc.Parent.Name.Error)
@@ -408,7 +404,6 @@ namespace Gosub.Zurfur.Compiler
                     Warning(synFunc.Token, $"Function not processed because '{synFunc.Parent.Name}' has an error");
                     return;
                 }
-
 
                 table.AddOrReject(function);
 

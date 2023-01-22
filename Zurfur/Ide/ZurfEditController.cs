@@ -23,7 +23,8 @@ namespace Gosub.Zurfur.Ide
         static WordSet sBoldHighlightConnectors = new WordSet("( ) [ ] { } < >");
 
         FormHoverMessage mHoverMessageForm;
-        ContextMenu mContextMenuJson = new ContextMenu();
+        ContextMenuStrip mContextMenuJson = new ContextMenuStrip()
+            { AutoSize = false, Width = 100, ShowImageMargin = false }; // Autosizing didn't work, so hard code it here
 
         Token mHoverToken;
         TextEditor mActiveEditor;
@@ -40,7 +41,8 @@ namespace Gosub.Zurfur.Ide
         {
             mHoverMessageForm = new FormHoverMessage();
             mTimer.Tick += mTimer_Tick;
-            mContextMenuJson.MenuItems.Add("Format Json", new EventHandler(FormatJson));
+            mContextMenuJson.Items.Add(
+                new ToolStripLabel("Format Json", null, true, new EventHandler(FormatJson)));
         }
 
         public void AddEditor(TextEditor editor)

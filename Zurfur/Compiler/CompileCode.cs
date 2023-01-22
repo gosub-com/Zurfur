@@ -837,6 +837,7 @@ namespace Gosub.Zurfur.Compiler
                 return null;
             }
 
+            // TBD: Remove this
             Rval DummyFunction(Token token, Symbol returnType, Symbol arg1Type, Symbol arg2Type)
             {
                 var opFunc = new Symbol(SymKind.Fun, currentFunction.Parent, token, $"op{token}({arg1Type},{arg2Type})({returnType})");

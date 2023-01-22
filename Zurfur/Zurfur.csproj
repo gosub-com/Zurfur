@@ -1,268 +1,106 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>9.0.21022</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{033B3D6E-80D7-4E9E-8434-1FAC4F79DED1}</ProjectGuid>
+    <TargetFramework>net6.0-windows</TargetFramework>
     <OutputType>WinExe</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Gosub.Zurfur</RootNamespace>
-    <AssemblyName>Zurfur</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <FileUpgradeFlags>
-    </FileUpgradeFlags>
-    <UpgradeBackupLocation>
-    </UpgradeBackupLocation>
-    <OldToolsVersion>3.5</OldToolsVersion>
-    <TargetFrameworkProfile />
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
     <UseVSHostingProcess>true</UseVSHostingProcess>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.12.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Deployment" />
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Compiler\BuildPackage.cs" />
-    <Compile Include="Compiler\CompileCode.cs" />
-    <Compile Include="Compiler\PackageDefinitions.cs" />
-    <Compile Include="Compiler\PackageLoader.cs" />
-    <Compile Include="Compiler\ResolveType.cs" />
-    <Compile Include="Compiler\Symbols.cs" />
-    <Compile Include="Compiler\ZilReport.cs" />
-    <Compile Include="Compiler\VerifyHeader.cs" />
-    <Compile Include="Ide\FormSearchInstance.cs" />
-    <Compile Include="Ide\MatchText.cs" />
-    <Compile Include="Lexer\ScanZurf.cs" />
-    <Compile Include="Compiler\CompileHeader.cs" />
-    <Compile Include="Compiler\SymbolTable.cs" />
-    <Compile Include="Compiler\ParseZurfCheck.cs" />
-    <Compile Include="Ide\IEditor.cs" />
-    <Compile Include="Ide\ImageEditor.cs">
+    <Compile Update="Ide\ImageEditor.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Ide\ImageEditor.Designer.cs">
-      <DependentUpon>ImageEditor.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Ide\ProjectEditor.cs">
+    <Compile Update="Ide\ProjectEditor.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Ide\ProjectEditor.Designer.cs">
-      <DependentUpon>ProjectEditor.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Ide\ProjectTree.cs">
+    <Compile Update="Ide\ProjectTree.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Ide\ProjectTree.Designer.cs">
-      <DependentUpon>ProjectTree.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Ide\FormHoverMessage.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Ide\FormHoverMessage.Designer.cs">
-      <DependentUpon>FormHoverMessage.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Ide\FormHtml.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Ide\FormHtml.Designer.cs">
-      <DependentUpon>FormHtml.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Ide\FormSearch.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Ide\FormSearch.Designer.cs">
-      <DependentUpon>FormSearch.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Ide\MultiViewEditor.cs">
+    <Compile Update="Ide\MultiViewEditor.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Ide\MultiViewEditor.Designer.cs">
-      <DependentUpon>MultiViewEditor.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Ide\TablessTabControl.cs">
+    <Compile Update="Ide\TablessTabControl.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Ide\VerticalMarks.cs">
+    <Compile Update="Ide\VerticalMarks.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Lexer\ScanText.cs" />
-    <Compile Include="Lexer\MinTern.cs" />
-    <Compile Include="Compiler\ParseJson.cs" />
-    <Compile Include="Compiler\SyntaxExpr.cs" />
-    <Compile Include="Ide\TextEditor.cs">
+    <Compile Update="Ide\TextEditor.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Ide\TextEditor.Designer.cs">
-      <DependentUpon>TextEditor.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Ide\FormMain.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Ide\FormMain.Designer.cs">
-      <DependentUpon>FormMain.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Compiler\ParseZurf.cs" />
-    <Compile Include="Compiler\Syntax.cs" />
-    <Compile Include="Lexer\Scanner.cs" />
-    <Compile Include="Lexer\WordMap.cs" />
-    <Compile Include="Lexer\WordSet.cs" />
-    <Compile Include="Ide\ZurfEditController.cs" />
-    <Compile Include="Program.cs" />
-    <Compile Include="Ide\ZurfProjectData.cs" />
-    <Compile Include="Ide\ZurfProject.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="Ide\ImageEditor.resx">
-      <DependentUpon>ImageEditor.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Ide\ProjectEditor.resx">
-      <DependentUpon>ProjectEditor.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Ide\ProjectTree.resx">
-      <DependentUpon>ProjectTree.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Ide\TextEditor.resx">
-      <DependentUpon>TextEditor.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Ide\FormMain.resx">
-      <DependentUpon>FormMain.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Ide\FormHoverMessage.resx">
-      <DependentUpon>FormHoverMessage.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Ide\FormSearch.resx">
-      <DependentUpon>FormSearch.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Ide\MultiViewEditor.resx">
-      <DependentUpon>MultiViewEditor.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-      <DesignTime>True</DesignTime>
-    </Compile>
-    <None Include="app.config" />
-    <None Include="packages.config" />
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
-    <Compile Include="Lexer\Token.cs" />
-    <Compile Include="Lexer\Lexer.cs" />
-    <Compile Include="App.cs" />
-    <None Include="ZurfurLib\ZurfurLib\AATest.zurf">
+    <None Update="ZurfurLib\ZurfurLib\AATest.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Array.zurf">
+    <None Update="ZurfurLib\ZurfurLib\Array.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Channel.zurf">
+    <None Update="ZurfurLib\ZurfurLib\Channel.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\ConvertBytes.zurf">
+    <None Update="ZurfurLib\ZurfurLib\ConvertBytes.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\DlMalloc.zurf">
+    <None Update="ZurfurLib\ZurfurLib\DlMalloc.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Interfaces.zurf">
+    <None Update="ZurfurLib\ZurfurLib\Interfaces.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\BaseTypes.zurf">
+    <None Update="ZurfurLib\ZurfurLib\BaseTypes.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Io.Zurf">
+    <None Update="ZurfurLib\ZurfurLib\Io.Zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Iterator.zurf">
+    <None Update="ZurfurLib\ZurfurLib\Iterator.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\List.zurf">
+    <None Update="ZurfurLib\ZurfurLib\List.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Log.Zurf">
+    <None Update="ZurfurLib\ZurfurLib\Log.Zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Map.zurf">
+    <None Update="ZurfurLib\ZurfurLib\Map.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Math.zurf">
+    <None Update="ZurfurLib\ZurfurLib\Math.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Queue.zurf">
+    <None Update="ZurfurLib\ZurfurLib\Queue.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Range.zurf">
+    <None Update="ZurfurLib\ZurfurLib\Range.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Draw2d.zurf">
+    <None Update="ZurfurLib\ZurfurLib\Draw2d.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\str.Zurf">
+    <None Update="ZurfurLib\ZurfurLib\str.Zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\www\Test.json">
+    <None Update="ZurfurLib\www\Test.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\TestCompiler.zurf">
+    <None Update="ZurfurLib\ZurfurLib\TestCompiler.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\TestParser.zurf">
+    <None Update="ZurfurLib\ZurfurLib\TestParser.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\TestVerifier.zurf">
+    <None Update="ZurfurLib\ZurfurLib\TestVerifier.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Pointers.zurf">
+    <None Update="ZurfurLib\ZurfurLib\Pointers.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Ide\FormHtml.resx">
-      <DependentUpon>FormHtml.cs</DependentUpon>
-    </EmbeddedResource>
-    <None Include="License.txt">
+    <None Update="License.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
@@ -270,32 +108,23 @@
     <None Include="ZurfurLib\ZurfurLib.zurfproj">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ZurfurLib\ZurfurLib\Example.zurf">
+    <None Update="ZurfurLib\ZurfurLib\Example.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
-    <None Include="ZurfurLib\ZurfurLib\Span.zurf">
+    <None Update="ZurfurLib\ZurfurLib\Span.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Resources\ZurfurIcon.png" />
-    <Content Include="ZurfurLib\www\index.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="ZurfurLib\www\Zurfur.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <None Include="ZurfurLib\ZurfurLib\Test.zurf">
+    <None Update="ZurfurLib\ZurfurLib\Test.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+    <PackageReference Include="Microsoft.DotNet.UpgradeAssistant.Extensions.Default.Analyzers" Version="0.4.355802">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Windows.Compatibility" Version="7.0.0" />
+  </ItemGroup>
 </Project>
