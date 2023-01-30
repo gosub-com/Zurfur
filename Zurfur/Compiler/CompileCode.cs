@@ -20,6 +20,7 @@ namespace Gosub.Zurfur.Compiler
     {
         public Token Token;
         public string Name;
+        public List<Symbol> Candidates = new();
         public Symbol Type;
         public Symbol[] TypeArgs = Array.Empty<Symbol>();
         public Symbol InType;
@@ -27,7 +28,7 @@ namespace Gosub.Zurfur.Compiler
         public bool IsSetter;
         public bool IsLocal;
         public bool IsExplicitRef;
-        public bool IsStaticType;
+        public bool IsStatic;
 
         public Rval(Token token)
         {
@@ -71,12 +72,14 @@ namespace Gosub.Zurfur.Compiler
     {
         Compatible = 0,
         NotAFunction = 1,
-        IncompatibleParameterTypes = 2,
-        ExpectingSomeTypeArgs = 4,
-        ExpectingNoTypeArgs = 8,
-        WrongNumberOfTypeArgs = 16,
-        WrongNumberOfParameters = 32,
-        TypeArgsSuppliedByConstraint = 64
+        StaticCallToNonStaticMethod = 2,
+        NonStaticCallToStaticMethod = 4,
+        IncompatibleParameterTypes = 8,
+        ExpectingSomeTypeArgs = 16,
+        ExpectingNoTypeArgs = 32,
+        WrongNumberOfTypeArgs = 64,
+        WrongNumberOfParameters = 128,
+        TypeArgsSuppliedByConstraint = 256
     }
 
     class LocalSymbol
@@ -411,8 +414,8 @@ namespace Gosub.Zurfur.Compiler
                     return GenConstNumber(ex);
                 else if (name == "\"" || name == "\"\"\"")
                     return new Rval(token) { Type = typeStr };
-                else if ((char.IsLetter(name[0]) || name[0] == '_') && !ParseZurf.ReservedWords.Contains(name))
-                    return GenIdentifier(ex);
+                else if (name == "nil")
+                    return new Rval(token) { Type = typeNil };
                 else if (name == "my")
                     return GenIdentifier(ex);
                 else if (name == ParseZurf.VT_TYPE_ARG)
@@ -433,8 +436,6 @@ namespace Gosub.Zurfur.Compiler
                     return GenOperator(ex);
                 else if (name == "if")
                     return GenIfExpr(ex);
-                else if (name == "nil")
-                    return new Rval(token) { Type = typeNil };
                 else if (name == "ref")
                     return GenRefOrAddressOf(ex);
                 else if (name == "sizeof")
@@ -448,6 +449,8 @@ namespace Gosub.Zurfur.Compiler
                 }
                 else if (name == ";" || name == "{")
                     GenStatements(ex);
+                else if ((char.IsLetter(name[0]) || name[0] == '_') && !ParseZurf.ReservedWords.Contains(name))
+                    return GenIdentifier(ex);
                 else
                 {
                     if (name == "else" || name == "elif" || name == "dowhile")
@@ -496,7 +499,7 @@ namespace Gosub.Zurfur.Compiler
 
             Rval GenIdentifier(SyntaxExpr ex)
             {
-                return new Rval(ex.Token);
+                return new Rval(ex.Token) { Candidates = FindGlobal(ex.Token, ex.Token) };
             }
 
             // Type or function call (e.g. List<int>(), f<int>(), etc)
@@ -581,8 +584,11 @@ namespace Gosub.Zurfur.Compiler
                     }
                     return new Rval(identifier) { Type = leftType.TypeArgs[i] };
                 }
-
-                return new Rval(identifier) { InType = leftType};
+                return new Rval(identifier) { 
+                    InType = leftType, 
+                    Candidates = FindInType(identifier, leftType),
+                    IsStatic = leftDot.IsStatic
+                };
             }
 
             Symbol DerefRef(Symbol type) => Deref(type, sDerefRef);
@@ -649,13 +655,13 @@ namespace Gosub.Zurfur.Compiler
                     return null;
 
                 // Assign type to local variable
-                var symbols = FindRvalSymbols(variables);
-                Debug.Assert(symbols.Count == 1 && symbols[0].IsLocal && symbols[0].Type == null);
-                symbols[0].Type = valueType;
-                variables.Token.AddInfo(symbols[0]);
+                Debug.Assert(variables.Candidates.Count == 1);
+                var localVariable = variables.Candidates[0];
+                Debug.Assert(localVariable.IsLocal && localVariable.Type == null);
+                localVariable.Type = valueType;
+                variables.Token.AddInfo(localVariable);
                 return value;
             }
-
 
             Rval GenNewVars(SyntaxExpr ex, Token rejectToken)
             {
@@ -676,16 +682,14 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 if (newSymbols.Count == 0)
-                {
-                    Reject(rejectToken, $"'{rejectToken}' expecting at least 1 symbol");
-                    return null;
-                }
+                    return null; // Syntax error
+
                 if (newSymbols.Count != 1)
                 {
                     Reject(rejectToken, $"'{rejectToken}' multiple symbols not supported yet");
                     return null;
                 }
-                return new Rval(newSymbols[0].Token);
+                return new Rval(newSymbols[0].Token) { Candidates = newSymbols };
             }
 
             Rval GenRefOrAddressOf(SyntaxExpr ex)
@@ -886,9 +890,24 @@ namespace Gosub.Zurfur.Compiler
                     else if (ex.Token == "~")
                         operatorName = "_opBitNot";
                 }
-                
-                var rval = FindCompatibleFunction(new Rval(ex.Token, operatorName),
-                                args,  $" '{operatorName}' (operator '{ex.Token}')");
+
+                // Find static operators from either argument
+                var call = new Rval(ex.Token, operatorName) { IsStatic = true };
+                var candidates = FindInType(operatorName, DerefRef(args[0].Type));
+                if (args.Count >= 2)
+                    candidates.AddRange(FindInType(operatorName, DerefRef(args[1].Type)));
+                RemoveLastDuplicates(candidates);
+
+                if (candidates.Count == 0)
+                {
+                    Reject(ex.Token, $"No function '{operatorName}' (operator '{ex.Token}') " 
+                        + $"taking '{Rval.ParamTypes(args, call.TypeArgs)}' is in scope.");
+                    return null;
+                }
+                call.Candidates = candidates;
+                call.InType = table.WildCard;
+                var rval = FindCompatibleFunction(call, args,
+                                $" '{operatorName}' (operator '{ex.Token}')");
                 if (rval == null)
                     return null;
 
@@ -967,7 +986,10 @@ namespace Gosub.Zurfur.Compiler
                 if (call == null)
                     return null;  // Undefined symbol or error evaluating left side
 
-                call = FindCompatibleFunction(call, args, $"'{call.Token}'");
+                if (call.Candidates != null && call.Candidates.Count == 1 && call.Candidates[0].IsAnyType)
+                    call = FindCompatibleConstructor(call, args);
+                else
+                    call = FindCompatibleFunction(call, args, $"'{call.Token}'");
                 if (call == null)
                     return null;
 
@@ -1034,15 +1056,69 @@ namespace Gosub.Zurfur.Compiler
             Symbol FindAndCall(Token token, Symbol inType, string name)
             {
                 // This marks the local with symbol info, which we don't want here
-                return FindCompatibleFunction(new Rval(token, name) { InType = inType },
-                     new List<Rval>(), $"'{name}' in the type '{inType}'", false)?.Type;
+                var call = new Rval(token, name) { 
+                    InType = inType, Candidates = FindInType(name, inType) };
+                return FindCompatibleFunction(call, new List<Rval>(),
+                    $"'{name}' in the type '{inType}'", false)?.Type;
             }
+
+            Rval FindCompatibleConstructor(Rval call, List<Rval> args)
+            {
+                var newType = call.Candidates[0];
+                call.Token.Type = eTokenType.TypeName;
+                if (newType.IsSpecialized)
+                    throw new Exception("Compiler error: FindCompatibleConstructor, unexpected specialized type");
+
+                if (newType.IsTypeParam)
+                {
+                    if (call.TypeArgs.Length != 0)
+                        Reject(call.Token, $"Expecting 0 type parameters, but got '{call.TypeArgs.Length}'");
+                    if (args.Count != 0)
+                        Reject(call.Token, $"New generic type with arguments not supported yet");
+                    return new Rval(call.Token) { Type = table.GetGenericParam(newType.Order) };
+                }
+
+                // Empty constructor (create a default with any type parameters)
+                // TBD: This overrides all users constructors.  Put this below
+                //      `FindCompatibleFuncton`, refactor so that function
+                //      doesn't mark the error.
+                if (args == null || args.Count == 0)
+                {
+                    if (call.TypeArgs.Length == newType.GenericParamTotal())
+                    {
+                        // Add supplied type parameters
+                        if (call.TypeArgs.Length != 0)
+                            newType = table.CreateSpecializedType(newType, call.TypeArgs);
+                    }
+                    else
+                    {
+                        Reject(call.Token,
+                            $"Expecting {newType.GenericParamTotal()} generic parameter(s), but got {call.TypeArgs.Length});");
+                    }
+                    call.Token.AddInfo(newType);
+                    return new Rval(call.Token) { Type = newType };
+                }
+
+                // Search for `new` function
+                Debug.Assert(call.InType == null);
+                call.InType = table.WildCard;
+                call.Name = "new";
+                call.IsStatic = true; // Constructor is static
+                call.Candidates = FindInType(call.Name, newType);
+                call = FindCompatibleFunction(call, args,
+                            $"'new' (constructor for '{call.InType}')");
+                if (call == null || call.Type == null)
+                    return null;
+
+                return call;
+            }
+
 
             // Given the call and its parameters, find the best matching function.
             // If there is an error, mark it and give feedback on possible matches.
             Rval FindCompatibleFunction(
                 Rval call,
-                List<Rval> args, 
+                List<Rval> args,
                 string rejectName,
                 bool addSymbolInfo = true)
             {
@@ -1053,9 +1129,15 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 // Find all candidate functions in scope
-                var candidates = FindRvalSymbols(call);
+                var candidates = call.Candidates;
                 if (candidates == null || candidates.Count == 0)
+                {
+                    if (call.InType == null)
+                        Reject(call.Token, $"'{call.Name} is an undefined symbol");
+                    else
+                        Reject(call.Token, $"'{call.Name}' is an undefined symbol in the type '{call.InType}'");
                     return null;
+                }
 
                 // Unresolved arguments
                 if (args == null)
@@ -1066,9 +1148,10 @@ namespace Gosub.Zurfur.Compiler
                             call.Token.AddInfo(sym);
                     addSymbolInfo = false;
 
-                    // If there is just 1 symbol, assume that is what was called.
-                    // This gives better type inference than making it unresolved.
-                    if (candidates.Count != 1)
+                    // If there is just 1 symbol without generic arguments,
+                    // assume that is what was called. This gives better type
+                    // inference than making it unresolved.
+                    if (candidates.Count != 1 || candidates[0].HasGenericArg)
                         return null;
                     args = new List<Rval>();
                 }
@@ -1076,10 +1159,6 @@ namespace Gosub.Zurfur.Compiler
                 // Exactly 1 primary or multiple functions
                 if (RejectAmbiguousPrimary(call.Token, candidates))
                     return null;
-
-                // Constructor
-                if (candidates[0].IsAnyType)
-                    return FindCompatibleConstructor(call, candidates[0], args);
 
                 // Insert inType type as first parameter so all types match
                 if (call.InType != null && !call.InType.IsModule)
@@ -1137,62 +1216,17 @@ namespace Gosub.Zurfur.Compiler
                 return new Rval(call.Token) { Type = func.FunReturnTupleOrType };
             }
 
-            Rval FindCompatibleConstructor(Rval call, Symbol callType, List<Rval> args)
-            {
-                call.Token.Type = eTokenType.TypeName;
-                if (callType.IsSpecialized)
-                    throw new Exception("Compiler error: FindCompatibleConstructor, unexpected specialized type");
-
-                if (callType.IsTypeParam)
-                {
-                    if (call.TypeArgs.Length != 0)
-                        Reject(call.Token, $"Expecting 0 type parameters, but got '{call.TypeArgs.Length}'");
-                    if (args.Count != 0)
-                        Reject(call.Token, $"New generic type with arguments not supported yet");
-                    return new Rval(call.Token) { Type = table.GetGenericParam(callType.Order) };
-                }
-
-                // TBD: Type inference for constructors, e.g. Rect(0,0,0,0) -> Rect<int>(0,0,0,0)
-                if (call.TypeArgs.Length == callType.GenericParamTotal())
-                {
-                    // Add supplied type parameters
-                    if (call.TypeArgs.Length != 0)
-                        callType = table.CreateSpecializedType(callType, call.TypeArgs);
-                }
-                else
-                {
-                    Reject(call.Token,
-                        $"Expecting {callType.GenericParamTotal()} generic parameter(s), but got {call.TypeArgs.Length});");
-                }
-
-
-                // Empty constructor (create a default with any type parameters)
-                if (args.Count == 0)
-                {
-                    // TBD: This overrides all users constructors.  Put this below
-                    //      `FindCompatibleFuncton`, refactor so that function
-                    //      doesn't mark the error.
-                    call.Token.AddInfo(callType);
-                    return new Rval(call.Token) { Type = callType };
-                }
-
-                // Search for `new` function
-                Debug.Assert(call.InType == null);
-                call.InType = callType;
-                call.Name = "new";
-                call = FindCompatibleFunction(call, args, $"'new' (constructor for '{call.InType}')");
-                if (call == null || call.Type == null)
-                    return null;
-
-                return call;
-            }
-
             // Checks if the function call is compatible, return the possibly
             // specialized function.  Returns null if not compatible.
             (Symbol, CallCompatible) IsCallCompatible(Symbol func, Rval call, List<Rval> args)
             {
                 if (!func.IsFun)
                     return (null, CallCompatible.NotAFunction);
+
+                if (call.IsStatic && (func.IsExtension && !func.IsStatic) )
+                    return (null, CallCompatible.StaticCallToNonStaticMethod);
+                if (!call.IsStatic && (func.IsExtension && func.IsStatic))
+                    return (null, CallCompatible.NonStaticCallToStaticMethod);
 
                 // Find type args supplied by the source code (explicitly or inferred)
                 var typeArgs = InferTypeArgs(func, call.TypeArgs, args, func.FunParams);
@@ -1221,16 +1255,22 @@ namespace Gosub.Zurfur.Compiler
                     func = table.CreateSpecializedType(
                         func, typeArgs, null, ReplaceGenericTypeParams(func.Type, typeArgs));
 
+                // Skip wild card parameter in cases where it is static and known to match
+                var funParams = new Span<Symbol>(func.FunParams);
+                var startIndex = 0;
+                if (call.InType == table.WildCard)
+                    startIndex = 1;
+
                 // Match up the arguments (TBD: default parameters)
-                if (args.Count != func.FunParams.Length)
+                if (args.Count != funParams.Length)
                     return (null, CallCompatible.WrongNumberOfParameters);
-                for (var i = 0; i < args.Count; i++)
+                for (var i = startIndex; i < funParams.Length; i++)
                 {
-                    if (func.FunParams[i] == null)
+                    if (funParams[i] == null)
                         return (null, CallCompatible.IncompatibleParameterTypes);
 
                     var arg = args[i].Type;
-                    var param = func.FunParams[i];
+                    var param = funParams[i];
 
                     // Types match whether they are references or not
                     arg = DerefRef(arg);
@@ -1281,6 +1321,8 @@ namespace Gosub.Zurfur.Compiler
             // Infer one type arg, return false if there is an error and it should bail
             bool InferTypeArg(Symbol argType, Symbol funParamType, Symbol[] inferredTypeArgs)
             {
+                argType = DerefRef(argType);
+
                 // If it's a generic arg, use the given parameter type
                 if (funParamType.IsGenericArg)
                 {
@@ -1402,27 +1444,33 @@ namespace Gosub.Zurfur.Compiler
                 if (rval.Type != null)
                     return null;
 
-                var symbols = FindRvalSymbols(rval);
-                if (symbols == null || symbols.Count == 0)
+                var candidates = rval.Candidates;
+                if (candidates == null || candidates.Count == 0)
+                {
+                    if (rval.InType == null)
+                        Reject(rval.Token, $"'{rval.Name} is an undefined symbol");
+                    else
+                        Reject(rval.Token, $"'{rval.Name}' is an undefined symbol in the type '{rval.InType}'");
                     return null;
+                }
 
-                if (RejectAmbiguousPrimary(rval.Token, symbols))
+                if (RejectAmbiguousPrimary(rval.Token, candidates))
                     return null;
 
                 // Filter out functions, except getters and setters
-                var oldCalls = symbols.ToArray();
-                symbols.RemoveAll(callFunc => callFunc.IsFun && !(callFunc.IsGetter || callFunc.IsSetter));
+                var oldCalls = candidates.ToArray();
+                candidates.RemoveAll(callFunc => callFunc.IsFun && !(callFunc.IsGetter || callFunc.IsSetter));
                 var token = rval.Token;
 
                 // If there is a tie between a getter and setter, choose based `assignmentTarget`
-                if (symbols.Count == 2 && (symbols[0].IsSetter == symbols[1].IsGetter))
+                if (candidates.Count == 2 && (candidates[0].IsSetter == candidates[1].IsGetter))
                 {
-                    symbols.RemoveAll(callFunc => assignmentTarget ? callFunc.IsGetter : callFunc.IsSetter);
-                    if (symbols.Count == 1 && symbols[0].IsSetter)
+                    candidates.RemoveAll(callFunc => assignmentTarget ? callFunc.IsGetter : callFunc.IsSetter);
+                    if (candidates.Count == 1 && candidates[0].IsSetter)
                         rval.IsSetter = true;  
                 }
 
-                if (symbols.Count == 0)
+                if (candidates.Count == 0)
                 {
                     RejectSymbols(token, oldCalls,
                         $"'{token}' can't find variable, field, or getter function");
@@ -1430,13 +1478,13 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 // Don't allow multiple symbols
-                if (symbols.Count != 1)
+                if (candidates.Count != 1)
                 {
-                    RejectSymbols(token, symbols,  $"'{token}' is ambiguous");
+                    RejectSymbols(token, candidates,  $"'{token}' is ambiguous");
                     return null;
                 }
 
-                var sym = symbols[0];
+                var sym = candidates[0];
 
                 // Generic parameter subsitution
                 if ( (sym.IsFun || sym.IsField)
@@ -1459,7 +1507,7 @@ namespace Gosub.Zurfur.Compiler
                         else
                             rval.Type = sym;
 
-                        rval.IsStaticType = true;
+                        rval.IsStatic = true;
                         return sym;
                     }
                     else
@@ -1472,7 +1520,10 @@ namespace Gosub.Zurfur.Compiler
                 if (sym.IsLocal)
                 {
                     if (sym.Type == null && !assignmentTarget)
-                        Reject(token, $"'{token}'  has an unresolved type");
+                    {
+                        Reject(token, $"'{token}' has an unresolved type");
+                        Reject(sym.Token, $"'{token}' has an unresolved type");
+                    }
                     rval.Type = sym.Type;
                     rval.IsLocal = true;
                     return sym;
@@ -1480,7 +1531,7 @@ namespace Gosub.Zurfur.Compiler
                 if (sym.IsFunParam)
                 {
                     if (sym.Type == null)
-                        Reject(token, $"'{token}'  has an unresolved type");
+                        Reject(token, $"'{token}' has an unresolved type");
                     rval.Type = sym.Type;
                     rval.IsLocal = true;
                     return sym;
@@ -1489,7 +1540,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     if (sym.Type == null)
                     {
-                        Reject(token, $"'{token}'  has an unresolved type");
+                        Reject(token, $"'{token}' has an unresolved type");
                         return sym;
                     }
                     Debug.Assert(sym.Type.Parent.FullName != REF_TYPE);
@@ -1507,25 +1558,6 @@ namespace Gosub.Zurfur.Compiler
                 Reject(token, $"'{token}' compiler failure: '{sym}' is {sym.KindName}");
                 Debug.Assert(false);
                 return sym;
-            }
-
-            List<Symbol> FindRvalSymbols(Rval rval)
-            {
-                List<Symbol> symbols;
-                if (rval.InType == null)
-                {
-                    symbols = FindGlobal(rval.Token, rval.Name);
-                    if (symbols == null)
-                        return null;
-                }
-                else
-                {
-                    symbols = FindInType(rval.Name, rval.InType);
-                    if (symbols.Count == 0)
-                        Reject(rval.Token, $"'{rval.Name}' is an undefined symbol in the type '{rval.InType}'");
-                }
-                RemoveLastDuplicates(symbols);
-                return symbols;
             }
 
             /// <summary>
@@ -1553,6 +1585,7 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 AddGenericConstraints(name, inType, symbols);
+                RemoveLastDuplicates(symbols);
 
                 return symbols;
             }
@@ -1716,6 +1749,7 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 }
 
+                RemoveLastDuplicates(symbols);
                 return symbols;
             }
 
@@ -1729,15 +1763,9 @@ namespace Gosub.Zurfur.Compiler
                 foreach (var local in locals.Values)
                 {
                     if (local.ScopeNum == scopeNum)
-                    {
-                        if (local.Symbol != null && local.Symbol.Type == null)
-                            Reject(local.Symbol.Token, $"'{local.Symbol.Token}' has an unresolved type");
                         local.Symbol = null;
-                    }
                     else if (local.ScopeNum > scopeNum)
-                    {
                         local.ScopeNum = scopeNum;
-                    }
                 }
                 scopeNum--;
             }
@@ -1811,6 +1839,10 @@ namespace Gosub.Zurfur.Compiler
             var errors = new List<string>();
             if (c.HasFlag(CallCompatible.NotAFunction))
                 errors.Add("Not a function");
+            if (c.HasFlag(CallCompatible.StaticCallToNonStaticMethod))
+                errors.Add("Static call to non static method (receiver must be a value, not a type)");
+            if (c.HasFlag(CallCompatible.NonStaticCallToStaticMethod))
+                errors.Add("Non-static to static function call (receiver must be a type, not a value)");
             if (c.HasFlag(CallCompatible.ExpectingSomeTypeArgs))
                 errors.Add("Expecting some type arguments, but none supplied");
             if (c.HasFlag(CallCompatible.ExpectingNoTypeArgs))

@@ -130,8 +130,16 @@ namespace Gosub.Zurfur
 
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (!CanCloseAll())
+            if (CanCloseAll())
+            {
+                // .NET framework throws an exception while closing the
+                // application.  I'm not sure why, but this fixes it.
+                mvEditors.Dispose();
+            }
+            else
+            {
                 e.Cancel = true;
+            }
         }
 
         bool CanCloseAll()

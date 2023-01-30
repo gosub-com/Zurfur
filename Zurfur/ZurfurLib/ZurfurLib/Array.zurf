@@ -1,27 +1,40 @@
 ﻿mod Zurfur
 
-// Immutable array (all inherited from Buffer)
+// Immutable array (all inherited from List)
 [pub] type Array<T> is ro List<T>
 
 
+// TBD: A buffer is a list with a constant length and capacity
+[pub] type Buffer<T> is List<T>
 
-// *** Do generic type system ***
-//      Fake it out for now
-// [pub] fun _opIndex<T>(a Array<T>, b int) extern
-[pub] fun _opIndex(a Array<str>, b int) ref str extern
-[pub] fun _opIndex(a Array<byte>, b Range<int>) Span<byte>  extern
-[pub] fun _opIndex(a Buffer<str>, b int) ref str extern
-[pub] fun _opIndex(a Buffer<byte>, b Range<int>) Span<byte>  extern
-[pub] fun _opIndex(a List<byte>, b Range<int>) Span<byte> extern
-[pub] fun _opIndex(a Span<byte>, b int) ref byte extern
+
+// TBD: Remove this since it will be implemented by List
+[pub static]
+fun Array<T>._opIndex(s Array<T>, i int) mut ref T
+    require i in 0..my.length
+    extern // Implementation TBD
+
+
+// TBD: Remove this since it will be implemented by List
+[pub static]
+fun Buffer<T>._opIndex(s Buffer<T>, i int) mut ref T
+    require i in 0..my.length
+    extern // Implementation TBD
+
+// TBD: Remove this since it will be implemented by List
+[pub static]
+fun Buffer<T>._opIndex(s Buffer<T>, range Range<int>) mut Span<T>
+    require range.start in 0..my.length
+    require range.end in 0..my.length
+    require range.start <= range.end
+    extern // Implementation TBD
     
 
-// This is the implementation for Buffer and Array
-[pub] type Buffer<T> {}
 
 
-[pub] fun Buffer<T>.replace(search []T, repl []T)
-    extern
+
+
+
 
 
 

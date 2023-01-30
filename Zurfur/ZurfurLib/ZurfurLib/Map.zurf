@@ -41,13 +41,13 @@ fun get Map<K,V>.count() int
     extern
 
 // TBD: Figure out map["Hello"] += 1
-[pub]
-fun _opIndex<K,V>(map Map<K,V>, key K) mut ?ref V
+[pub static]
+fun Map<K,V>._opIndex(map Map<K,V>, key K) mut ?ref V
     extern
 
 // TBD: An indexer with 3 inputs???
-[pub]
-fun _opIndex<K,V>(map Map<K,V>, key K, item V)
+[pub static]
+fun Map<K,V>._opIndex(map Map<K,V>, key K, item V)
     extern
 
 [pub]

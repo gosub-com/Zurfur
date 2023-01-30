@@ -111,8 +111,8 @@ fun castPointer<Out>(i int) Out
 fun castPointer<Out>(i *void) Out
     extern // TBD: Remove
 
-fun _opAdd<T>(a *T, b int) *T extern
-fun _opAdd<T>(a int, b *T) *T extern
+[static] fun RawPointer<T>._opAdd(a *T, b int) *T extern
+[static] fun int._opAdd<T>(a int, b *T) *T extern
 
 fun test_Add()
     @a = RawPointer<int>()

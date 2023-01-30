@@ -72,32 +72,32 @@ fun Point<T>.yf() T
     return my.y
 
 
-[pub]
-fun _opAdd<T>(a Point<T>, b Point<T>) Point<T>
+[pub static]
+fun Point<T>._opAdd(a Point<T>, b Point<T>) Point<T>
     return Point<T>(a.x+b.x, a.y+b.y)
 
-[pub]
-fun _opNeg<T>(a Point<T>) Point<T>
+[pub static]
+fun Point<T>._opNeg(a Point<T>) Point<T>
     return Point<T>(-a.x, -a.y)
 
-[pub]
-fun _opSub<T>(a Point<T>, b Point<T>) Point<T>
+[pub static]
+fun Point<T>._opSub(a Point<T>, b Point<T>) Point<T>
     return Point<T>(a.x-b.x, a.y-b.y)
 
-[pub]
-fun _opMul<T>(a T, b Point<T>) Point<T>
+[pub static]
+fun Point<T>._opMul(a T, b Point<T>) Point<T>
     return Point<T>(a*b.x, a*b.y)
 
-[pub]
-fun _opMul<T>(a Point<T>, b T) Point<T>
+[pub static]
+fun Point<T>._opMul(a Point<T>, b T) Point<T>
     return Point<T>(a.x*b, a.y*b)
 
-[pub]
-fun _opDiv<T>(a T, b Point<T>) Point<T>
+[pub static]
+fun Point<T>._opDiv(a T, b Point<T>) Point<T>
     return Point<T>(a/b.x, a/b.y)
 
-[pub]
-fun _opDiv<T>(a Point<T>, b T) Point<T>
+[pub static]
+fun Point<T>._opDiv(a Point<T>, b T) Point<T>
     return Point<T>(a.x/b, a.y/b)
 
 [pub]

@@ -7,11 +7,11 @@
     //       and its implicit conversion to Span
 
 
-[pub] fun _opAdd(a str, b str) str {}
+[pub static] fun str._opAdd(a str, b str) str {}
 
 // TBD: Remove after more of the generic type system is working
-[pub] fun _opEq(a str, b str) bool {}
-[pub] fun _opCmp(a str, b str) i32 {}
+[pub static] fun str._opEq(a str, b str) bool {}
+[pub static] fun str._opCmp(a str, b str) i32 {}
 
 [pub] fun str.new(st Span<byte>) extern
     

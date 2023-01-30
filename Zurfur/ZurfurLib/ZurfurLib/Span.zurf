@@ -17,13 +17,13 @@ type SpanIterator<T> ref copy
     length ro int
     count ro int
     
-[pub]
-fun Span<T>.opIndex(i int) mut ref T
+[pub static]
+fun Span<T>._opIndex(s Span<T>, i int) mut ref T
     require i in 0..my.length
     extern // Implementation TBD
 
-[pub]
-fun Span<T>.opIndex(range Range<int>) mut Span<T>
+[pub static]
+fun Span<T>._opIndex(s Span<T>, range Range<int>) mut Span<T>
     require range.start in 0..my.length
     require range.end in 0..my.length
     require range.start <= range.end

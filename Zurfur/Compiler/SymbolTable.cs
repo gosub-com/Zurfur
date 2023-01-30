@@ -26,14 +26,16 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         Dictionary<string, Symbol> mSpecializedTypes = new Dictionary<string, Symbol>();
 
-        // The generic arguments: #0, #1, #2...
+        // Internal types: Generic arguments, Tuples, wild card
         List<Symbol> mGenericArguments = new List<Symbol>();
         Symbol mGenericArgumentHolder; // Holder so they have `Order` set properly
         List<Symbol> mGenericTuples = new List<Symbol>();
         Symbol mGenericTupleHolder;
+        Symbol mWildCard;
 
         public Symbol Root => mRoot;
         public Symbol EmptyTuple => GetTupleBaseType(0);
+        public Symbol WildCard => mWildCard;
 
 
         public SymbolTable()
@@ -42,6 +44,7 @@ namespace Gosub.Zurfur.Compiler
             mRoot = new Symbol(SymKind.Module, preRoot, null, "");
             mGenericArgumentHolder = new Symbol(SymKind.Type, mRoot, null, "");
             mGenericTupleHolder = new Symbol(SymKind.Module, mRoot, null, "");
+            mWildCard = new Symbol(SymKind.Type, mRoot, null, "_");
         }
 
 
