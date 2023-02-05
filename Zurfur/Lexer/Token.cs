@@ -11,13 +11,14 @@ namespace Gosub.Zurfur.Lex
     {
         // Lexer recognized types:
         Normal,
+        Identifier,
         Reserved,
         ReservedControl,
-        Identifier,
+        ReservedVar,
         Number,
         Quote,
         Comment,
-        PublicComment,
+        NewVarSymbol,
         DefineField,
         DefineMethod,
         DefineParam,

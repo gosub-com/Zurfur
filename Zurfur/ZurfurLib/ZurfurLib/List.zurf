@@ -23,7 +23,7 @@ fun calloc(size int) *void
 type List<T>
     const MaxItems int = u32.MaxValue/2
     list *GcHeapArray
-    _count int
+    _len int
 
 [pub]
 fun List<T>.new()
@@ -39,8 +39,8 @@ fun List<T>.new(capacity int)
         my.list = castPointer<*GcHeapArray>(calloc(sizeof(T)*capacity + sizeof(GcHeapArray)))
 
 
-fun get List<T>.count() int
-    return my._count
+fun get List<T>.len() int
+    return my._len
 
 // Returns true if there is a reference to any element.  When locked, the
 // list length cannot be changed.  A GC implementation might not ever lock.

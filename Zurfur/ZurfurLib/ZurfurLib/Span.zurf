@@ -8,24 +8,24 @@ use Zurfur.Operators[OpEq]
 [pub]
 type Span<T> ref copy
     data ro mut ref T
-    length ro int
+    len ro int
 
 
 [pub]
 type SpanIterator<T> ref copy
     data ro mut ref T
-    length ro int
-    count ro int
+    _len ro int
+    _count ro int
     
 [pub static]
 fun Span<T>._opIndex(s Span<T>, i int) mut ref T
-    require i in 0..my.length
+    require i in 0..my.len
     extern // Implementation TBD
 
 [pub static]
 fun Span<T>._opIndex(s Span<T>, range Range<int>) mut Span<T>
-    require range.start in 0..my.length
-    require range.end in 0..my.length
+    require range.start in 0..my.len
+    require range.end in 0..my.len
     require range.start <= range.end
     extern // Implementation TBD
 

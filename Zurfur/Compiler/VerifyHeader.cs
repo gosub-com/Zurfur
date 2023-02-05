@@ -64,9 +64,6 @@ namespace Gosub.Zurfur.Compiler
 
             foreach (var symbol in symbols.Root.ChildrenRecurse())
             {
-                if (symbol.FullName == "")
-                    return;
-
                 // TBD: Reject illegal overload methods
                 //      Need to see though alias types
                 //      (e.g. reject 'fun f(a int)' with 'fun f(a MyAliasInt)'
@@ -79,33 +76,78 @@ namespace Gosub.Zurfur.Compiler
                 }
                 else if (symbol.IsFun)
                 {
-                    RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
-
-                    var methodParent = symbol.Parent;
-                    if (symbol.IsStatic && methodParent.IsModule && !symbol.IsExtension)
-                        Reject(symbol.Token, "'static' not allowed at module level");
-                    if (!methodParent.IsInterface && !methodParent.IsModule)
-                        Reject(symbol.Token, "Method must be scoped at the at the module level");
-
-                    // TBD: Static may appear in extension methods
-                    //if (symbol.Parent.Parent is SymModule && symbol.Qualifiers.Contains("static"))
-                    //    Reject(symbol.Token, "Methods in a module may not have the static qualifier");
+                    CheckFunction(symbol);
                 }
                 else if (symbol.IsFunParam)
                 {
+                    // NOTE: The parameter type is checked by `CheckFunction`.
+                    //       Storing parameters as children symbols instead of
+                    //       named tuples is redundant, and should probably be
+                    //       removed. Since we have them, do the redundant type
+                    //       check here just in case (ignore module, since it's
+                    //       already checked by `CheckFunction`)
+                    CheckTypeName(symbol.Token, symbol.TypeName, true);
                     if (symbol.SimpleName == symbol.Parent.Token.Name)
                         Reject(symbol.Token, "Must not be same name as method");
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
-                    CheckTypeName(symbol.Token, symbol.TypeName);
                 }
                 else if (symbol.IsField)
                 {
                     RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent);
-                    CheckTypeName(symbol.Token, symbol.TypeName);
+                    CheckTypeName(symbol.Token, symbol.TypeName, false);
                 }
             }
 
-            void CheckTypeName(Token token, string typeName)
+            void CheckFunction(Symbol func)
+            {
+                if (func.Type == null 
+                    || !func.Type.IsTuple
+                    || func.Type.TypeArgs.Length != 2)
+                {
+                    Reject(func.Token, "Malformed function parameters (must be tuple with two parameters)");
+                    return;
+                }
+
+                var p = func.FunParamTypes;
+                if (p.Length == 0)
+                {
+                    Reject(func.Token, "Function must have a receiver parameter");
+                    return;
+                }
+
+                // Check parameter and return types
+                CheckTypeName(func.Token, p[0].FullName, true);
+                for (int i = 1;  i < p.Length; i++)
+                    CheckTypeName(func.Token, p[i].FullName, false);
+                foreach (var r in func.FunReturnTypes)
+                    CheckTypeName(func.Token, r.FullName, false);
+
+                var funParent = func.Parent;
+                if (p[0].IsModule)
+                {
+                    if (funParent.FullName != p[0].FullName)
+                        Reject(func.Token, "The module function receiver "
+                            + $"'{p[0]}' must match the module the function is in '{funParent}' ");
+                    if (!func.IsStatic)
+                        Reject(func.Token, "Functions at the module level must be static");
+                    if (func.IsMethod)
+                        Reject(func.Token, "Functions at the module level cannot be methods");
+                }
+                else
+                {
+                    if (!func.IsMethod)
+                        Reject(func.Token, "Functions taking a non-module receiver must be methods");
+                }
+
+                RejectDuplicateTypeParameterName(func.Token, funParent.Parent); // Skip containing type or method
+
+                if (!funParent.IsInterface && !funParent.IsModule)
+                    Reject(func.Token, "Method must be scoped at the at the module level");
+            }
+
+
+
+            void CheckTypeName(Token token, string typeName, bool allowModule)
             {
                 var s = symbols.Lookup(typeName);
                 if (s == null)
@@ -116,21 +158,22 @@ namespace Gosub.Zurfur.Compiler
                         Reject(token, $"Unknown type name: '{typeName}'");
                     return;
                 }
-                if (!s.IsAnyType)
-                {
+                if (!(s.IsAnyType || allowModule && s.IsModule)) 
                     Reject(token, $"The type '{typeName}' is not a type, it is a '{s.KindName}'");
-                    return;
-                }
+                if (s.IsModule && s.GenericParamTotal() != 0)
+                    Reject(token, "Module must not have generic types");
+
                 if (s.IsType)
                 {
                     var genericParams = s.GenericParamTotal();
                     var genericArgsCount = s.IsSpecialized ? s.TypeArgs.Length : 0;
                     if (genericParams != genericArgsCount)
-                        Reject(token, $"The type '{typeName}' requires {genericParams} generic type parameters, but {genericArgsCount} were supplied");
+                        Reject(token, $"The type '{typeName}' requires {genericParams} generic "
+                            + $"type parameters, but {genericArgsCount} were supplied");
                     if (s.IsSpecialized)
                     {
                         foreach (var t in s.TypeArgs)
-                            CheckTypeName(token, t.FullName);
+                            CheckTypeName(token, t.FullName, false);
                     }
                 }
             }

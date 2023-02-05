@@ -1429,8 +1429,11 @@ namespace Gosub.Zurfur.Compiler
                     // FOR (variable) (condition) (statements)
                     mToken.Type = eTokenType.ReservedControl;
                     Accept();
-                    if (!AcceptMatch("@"))
+                    if (AcceptMatch("@"))
+                        mPrevToken.Type = eTokenType.NewVarSymbol;
+                    else
                         RejectToken(mToken, "Expecting '@'");
+
                     var forVariable = new SyntaxToken(ParseIdentifier("Expecting a loop variable", sRejectForCondition));
                     forVariable.Token.Type = eTokenType.DefineLocal;
                     RejectUnderscoreDefinition(forVariable.Token);

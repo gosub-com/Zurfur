@@ -23,7 +23,7 @@ namespace Gosub.Zurfur.Compiler
     enum SymQualifiers
     {
         None = 0,
-        Extension = 0x1,
+        Method = 0x1,
         Interface = 0x2,
         Const = 0x4,
         Static = 0x8,
@@ -53,6 +53,10 @@ namespace Gosub.Zurfur.Compiler
     /// <summary>
     /// NOTE: This data structure is all internal to the compiler.
     /// The public definitions are contained in PackageDefinitions.cs.
+    /// 
+    /// TBD: Storing parameters and returns as children in the function is
+    ///      redundant since they are are stored as named tuples.  Refactor
+    ///      to remove the redundant child parameters from functions.
     /// 
     /// Symbol symbols:
     ///     .   Module, type, or function separator
@@ -174,8 +178,7 @@ namespace Gosub.Zurfur.Compiler
         public bool IsTuple => Parent != null && Parent.FullName.StartsWith("()");
 
         public bool IsInterface
-            => IsType && Qualifiers.HasFlag(SymQualifiers.Interface)
-                || IsSpecialized && Parent.IsType && Parent.Qualifiers.HasFlag(SymQualifiers.Interface);
+            => IsType && Concrete.Qualifiers.HasFlag(SymQualifiers.Interface);
         public bool IsEnum
             => Qualifiers.HasFlag(SymQualifiers.Enum);
 
@@ -191,7 +194,7 @@ namespace Gosub.Zurfur.Compiler
         public bool IsLocal => Kind == SymKind.Local;
 
 
-        public bool IsExtension => Qualifiers.HasFlag(SymQualifiers.Extension);
+        public bool IsMethod => Qualifiers.HasFlag(SymQualifiers.Method);
         public bool IsConst => Qualifiers.HasFlag(SymQualifiers.Const);
         public bool IsStatic => Qualifiers.HasFlag(SymQualifiers.Static);
         public bool IsGetter => Qualifiers.HasFlag(SymQualifiers.Get);
@@ -230,7 +233,7 @@ namespace Gosub.Zurfur.Compiler
 
             if (IsFun && Type != null)
             {
-                var genericsCount = IsSpecialized ? Parent.GenericParamCount() : GenericParamCount();
+                var genericsCount = Concrete.GenericParamCount();
                 post = (genericsCount == 0 ? "" : "`" + genericsCount)
                     + post
                     + "(" + string.Join<Symbol>(",", Type.TypeArgs[0].TypeArgs) + ")"
@@ -247,18 +250,14 @@ namespace Gosub.Zurfur.Compiler
                 var suffix = "";
                 if (IsType)
                 {
-                    var genericsCount = IsSpecialized ? Parent.GenericParamCount() : GenericParamCount(); ;
+                    var genericsCount =  Concrete.GenericParamCount(); ;
                     suffix = genericsCount == 0 ? "" : $"`{genericsCount}";
                 }
 
                 // Specialized functions get the parents functions parant
-                var parentFullName = IsSpecialized ? Parent.Parent.FullName : Parent.FullName;
+                var parentFullName = Concrete.Parent.FullName;
                 LookupName = SimpleName + suffix + post;
                 FullName = parentFullName + "." + LookupName;
-            }
-            if (FullName.StartsWith("Zurfur.RawPointer`1.<Zurfur.void>"))
-            {
-
             }
         }
 
@@ -328,10 +327,7 @@ namespace Gosub.Zurfur.Compiler
         /// Non generic types just return the type.
         /// </summary>
         /// <returns></returns>
-        public Symbol Unspecial()
-        {
-            return IsSpecialized ? Parent : this;
-        }
+        public Symbol Concrete =>  IsSpecialized ? Parent : this;
 
         public string QualifiersStr()
         {
@@ -357,7 +353,7 @@ namespace Gosub.Zurfur.Compiler
                 if (Qualifiers.HasFlag(SymQualifiers.Boxed)) t += " boxed";
                 if (Qualifiers.HasFlag(SymQualifiers.Const)) t += " const";
                 if (Qualifiers.HasFlag(SymQualifiers.Enum)) t += " enum";
-                if (Qualifiers.HasFlag(SymQualifiers.Extension)) t += " extension";
+                if (Qualifiers.HasFlag(SymQualifiers.Method)) t += " method";
                 if (Qualifiers.HasFlag(SymQualifiers.Extern)) t += " extern";
                 if (Qualifiers.HasFlag(SymQualifiers.Get)) t += " get";
                 if (Qualifiers.HasFlag(SymQualifiers.Init)) t += " init";
@@ -406,7 +402,7 @@ namespace Gosub.Zurfur.Compiler
                 case "set": Qualifiers |= SymQualifiers.Set; break;
                 case "get": Qualifiers |= SymQualifiers.Get; break;
                 case "afun": Qualifiers |= SymQualifiers.Async; Debug.Assert(Kind == SymKind.Fun); break;
-                case "extension": Qualifiers |= SymQualifiers.Extension; break;
+                case "method": Qualifiers |= SymQualifiers.Method; break;
                 case "interface": Qualifiers |= SymQualifiers.Interface; break;
                 case "extern": Qualifiers |= SymQualifiers.Extern; break;
                 case "const": Qualifiers |= SymQualifiers.Const; break;
@@ -573,12 +569,12 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Get function parameter types as an array (only call on a function)
         /// </summary>
-        public Symbol[] FunParams => FunParamTuple.TypeArgs;
+        public Symbol[] FunParamTypes => FunParamTuple.TypeArgs;
 
         /// <summary>
         /// Get function return types as an array (only call on a function)
         /// </summary>
-        public Symbol[] FunReturns => FunReturnTuple.TypeArgs;
+        public Symbol[] FunReturnTypes => FunReturnTuple.TypeArgs;
 
     }
 

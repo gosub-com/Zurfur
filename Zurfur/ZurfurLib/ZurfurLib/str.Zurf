@@ -6,6 +6,9 @@
     // NOTE: Much of the implmentation is inherited from Array
     //       and its implicit conversion to Span
 
+// TBD: Need to collect stuff from Array
+[pub] fun get str.len() int
+    return 0
 
 [pub static] fun str._opAdd(a str, b str) str {}
 

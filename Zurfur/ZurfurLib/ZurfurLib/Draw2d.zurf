@@ -60,7 +60,9 @@ fun get Rect<T>.height() mut ref T
 
 [pub]
 fun Point<T>.new(x T, y T)
-    (my.x, my.y) = (x, y)
+    // TBD: (my.x, my.y) = (x, y)
+    my.x = x
+    my.y = y
 
 
 [pub]
@@ -74,35 +76,44 @@ fun Point<T>.yf() T
 
 [pub static]
 fun Point<T>._opAdd(a Point<T>, b Point<T>) Point<T>
+        where T has NumOps<T> // TBD: Use constraints from `Point`
     return Point<T>(a.x+b.x, a.y+b.y)
 
 [pub static]
 fun Point<T>._opNeg(a Point<T>) Point<T>
+        where T has NumOps<T> // TBD: Use constraints from `Point`
     return Point<T>(-a.x, -a.y)
 
 [pub static]
 fun Point<T>._opSub(a Point<T>, b Point<T>) Point<T>
+        where T has NumOps<T> // TBD: Use constraints from `Point`
     return Point<T>(a.x-b.x, a.y-b.y)
 
 [pub static]
 fun Point<T>._opMul(a T, b Point<T>) Point<T>
+        where T has NumOps<T> // TBD: Use constraints from `Point`
     return Point<T>(a*b.x, a*b.y)
 
 [pub static]
 fun Point<T>._opMul(a Point<T>, b T) Point<T>
+        where T has NumOps<T> // TBD: Use constraints from `Point`
     return Point<T>(a.x*b, a.y*b)
 
 [pub static]
 fun Point<T>._opDiv(a T, b Point<T>) Point<T>
+        where T has NumOps<T> // TBD: Use constraints from `Point`
     return Point<T>(a/b.x, a/b.y)
 
 [pub static]
 fun Point<T>._opDiv(a Point<T>, b T) Point<T>
+        where T has NumOps<T> // TBD: Use constraints from `Point`
     return Point<T>(a.x/b, a.y/b)
 
 [pub]
 fun Size<T>.new(width T, height T)
-    (my.width, my.height) = (width, height)
+    // TBD: (my.width, my.height) = (width, height)
+    my.width = width
+    my.height = height
     
 [pub]
 fun Size<T>.toPoint() Point<T>
@@ -131,6 +142,7 @@ fun get Rect<T>.left() T
     
 [pub]
 fun get Rect<T>.right() T
+        where T has NumOps<T> // TBD: Use constraints from `Point`
     return my.x + my.width
 
 [pub]
@@ -139,6 +151,7 @@ fun get Rect<T>.top() T
     
 [pub]
 fun get Rect<T>.bottom() T
+        where T has NumOps<T> // TBD: Use constraints from `Point`
     return my.y + my.height
     
 // TBD: Remove

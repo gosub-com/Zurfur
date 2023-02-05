@@ -188,18 +188,18 @@ fun Iterator<Item>.orderBy() Iterator<Item>
 
 type MyStruct(a int)
 
-[pub] fun sort<T>(s mut Span<T>, lessThan fun(a T,b T)bool)
+[pub] fun Span<T>.sort(lessThan fun(a T,b T)bool)
     // Simple selection sort
-    for @i in s.length-1
-        @lowElem = s[i]
+    for @i in my.len-1
+        @lowElem = my[i]
         @lowIndex = i
-        for @j in i+1..s.length
-            if lessThan(s[j], lowElem)
-                lowElem = s[j]
+        for @j in i+1..my.len
+            if lessThan(my[j], lowElem)
+                lowElem = my[j]
                 lowIndex = j
         if lowIndex != i
-            s[lowIndex] = s[i]
-            s[i] = lowElem
+            my[lowIndex] = my[i]
+            my[i] = lowElem
 
 
         

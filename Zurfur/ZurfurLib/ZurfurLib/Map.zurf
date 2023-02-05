@@ -1,25 +1,30 @@
 ﻿
 mod Zurfur
 
-use Zurfur.Operators[OpIn, OpEq]
+use Zurfur.Operators[OpEq]
 use Zurfur.Collections[Iterator, Iterable]
 
 
 
-[pub]
-type Map<K,V>
-    items List<str> // TBD: Buffer of items in hash table
+// Entries in the bucket list
+type MapEntry(index u32, hash u32)
 
-    // TBD: Allow this
-    //type Pair
-    //    key K pub ref
-    //    value V pub ref mut
 
-// TBD: This wants to be inside Map<K,V>
+// Key value pair
 [pub]
 type KvPair<K,V>
+        where K has OpEq<K>
     key K pub ref
     value V pub mut
+
+// A map is a hash table
+[pub]
+type Map<K,V>
+        where K has OpEq<K>
+    _items List<KvPair<K,V>>
+    _buckets List<MapEntry>
+
+
 
 // TBD: Need this: fun (kv Map<K,V>.Pair) ...
 [pub]
@@ -37,7 +42,7 @@ fun Map<K,V>.new(keyValues Iterator<KvPair<K,V>>)
     extern
     
 [pub]
-fun get Map<K,V>.count() int
+fun get Map<K,V>.len() int
     extern
 
 // TBD: Figure out map["Hello"] += 1

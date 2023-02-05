@@ -5,7 +5,7 @@ mod AATest
 
 use Zurfur
 use Zurfur[Log, Xuint, RawPointer, castPointer]
-use Zurfur.Operators[OpEq, NumOps, GetHash]
+use Zurfur.Operators[OpEq, NumOps]
 use Zurfur.Math[cos]
 use Zurfur.Draw2d[Size, Point]
 use Zurfur.Collections[Iterator, Iterable]
@@ -17,8 +17,6 @@ type MyPoint<T1,T2,T3>
     a T1
     b T2
     c T3
-
-
 
 type Iterable2<Item> interface
     fun iterator2() Iterator<Item>
@@ -35,6 +33,8 @@ type Getter interface
 type Getter2<T> interface
     fun get myGet2() T
     fun myFun2() T
+    fun myFun2Ns() T
+    [static] fun myFun2Stat() T
 
 type MyAdd<T> interface
     fun myAddNotStatic(a T, b T) T
@@ -44,6 +44,9 @@ fun getMapFun<K,V>() Map<V,K>
     return Map<V,K>()
 
 fun myFun2Interf<T>(i T) T extern
+
+type GetHash interface
+    fun getHash() u32
     
 fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<f64>, myGetter Getter)
         where T has NumOps<T> + GetHash + Iterable<int> + Iterable2<int> + GetMap<f32,f64> + Iterator<int>
@@ -51,7 +54,12 @@ fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>,
 
     // Source code symbols should be non-generic
     @next3 = q.myGet2
-    @next4 = q.myFun2()
+    @next4 = q.myFun2Ns()
+    @next5 = Q.myFun2Stat()
+    @next6 = q.myGet
+    @next7 = q.myFun()
+
+    
     @next1 = t.next()
     @gotq = myFun2Interf(q)
     @gotInt = myFun2Interf(3) // myFun2Interf not linked to specialized
@@ -65,9 +73,8 @@ fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>,
     @myPoint = MyPoint<int,f64,f32>().b
 
     @intf2b = intf2.getHash()
-    myGet2(q)
-    @myAddNs = q.myAddNotStatic(1,2)
-    @myAdd = myAddStatic(1,2)
+    @myAddNs = q.myAddNotStatic(Q(),Q())
+    @myAdd = Q.myAddStatic(Q(),Q())
     @myFun = q.myFun()
     @myFun2 = q.myFun2()
     @aa = t.getHash()
@@ -81,20 +88,17 @@ fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>,
     @x = 1
     @y = 2
     @z1 = x + y
-    @z2 = _opAdd(x,y)
+    @z2 = int._opAdd(x,y)
     @a = T()
     @b = T()
     @z3 = a + b
-    @z4 = _opAdd(a,b)
+    @z4 = T._opAdd(a,b)
     @z6 = T().getHash()
-    @z7 = i.getHash()
     @z5 = T.ONE
-    @iter2 = t.iterator()
+    @iter3 = t.iterator()
 
     for @item in t
         @itemt = item
-
-
 
 
 fun MyFun1<T1,T2,T3>(a T1, b T2, c T3) ->(x T2, y T3)
@@ -130,7 +134,7 @@ fun Test<X0,X1,X2,X3>()
     @b = MyPoint<X2, List<X3>, Map<X1,X3>>()
     @c = MyFun1<int, MyPoint<int,int,int>, str>(0, MyPoint<int,int,int>(), "hello")
     @d = MyFun1<int, MyPoint<int,X3,int>, str>(0, MyPoint<int,X3,int>(), "hello")
-    @e = MyFun2<X2,X3>(0)
+    @e = MyFun2<X2,X3>(X2())
     @g = MyFun2<int,f64>(0)
     @h = MyFun2<f64,int>(0.0)
     @f4a = MyFun4<int,str,f32,u64>(0)
@@ -143,19 +147,17 @@ fun Test<X0,X1,X2,X3>()
     @p3 = castPointer<RawPointer<int>>(p2)
     @p4 = castPointer<Xuint>(p3)
     @t = (0,1,2)
+    @toSize = Point<f32>().toSizeTest
 
 type OneGeneric<T> { } 
-//type Point<T>(x T, y T)
-//type Size<T>(width T, height T)
 
-fun get Point<T>.toSize() Size<T>
-    @a = Size<T>(0,0)
+fun get Point<T>.toSizeTest() Size<T>
+    @a = Size<T>(T(),T())
     @b = Size<T>()
     @c = Size<T>(my.x, my.y)
-    return Size<T>(my.x, my.y)
+    @d = Size(0,0)
+    return c
 
-[pub] fun _opAdd<T>(a Point<T>, b Point<T>) Point<T>
-    return Point<T>(a.x+b.x, a.y+b.y)
 
 
 
@@ -169,7 +171,7 @@ fun test(x f64)
     @a = 3
     @b = x
     @c = x == 3.0
-    @(y,z) = cos2
+    @z = cos2(1)
     @d = cos2(3)
     @e = d.x
     @f = helloVoid()
@@ -287,8 +289,13 @@ fun AGenericTest<T, QQQ>.af6(p fun(v int)bool) {}
 //[pub] fun (AGenericTest<T, QQQ>.Inner1<Ta, Qa>) P1(a T, b QQQ, c Ta, d Qa)
 //    return 0
 
-[pub] fun GenericTest<Q1,Q2>(a Q1, b Q2)
-    return a.toStr().Length + b.toStr().Length    
+type ToStr interface
+    fun get toStr() str
+
+[pub] fun GenericTest<Q1,Q2>(a Q1, b Q2) int
+        where Q1 has ToStr
+        where Q2 has ToStr
+    return a.toStr.len + b.toStr.len    
 
 [pub] type AGenericTest<T, QQQ>
     where QQQ has OpEq<T>//: new() where T : new()

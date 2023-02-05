@@ -415,9 +415,15 @@ namespace Gosub.Zurfur.Compiler
                 else if (name == "\"" || name == "\"\"\"")
                     return new Rval(token) { Type = typeStr };
                 else if (name == "nil")
+                {
+                    ex.Token.Type = eTokenType.TypeName;
                     return new Rval(token) { Type = typeNil };
+                }
                 else if (name == "my")
+                {
+                    ex.Token.Type = eTokenType.ReservedVar;
                     return GenIdentifier(ex);
+                }
                 else if (name == ParseZurf.VT_TYPE_ARG)
                     return GenTypeArgs(ex);
                 else if (name == "(")
@@ -490,7 +496,6 @@ namespace Gosub.Zurfur.Compiler
                     else
                         Reject(ex[0].Token, $"'{ex[0].Token}' undefined number type");
                 }
-
                 var rval = new Rval(ex.Token) { Type = numberType, IsUntypedConst = untypedConst };
 
                 return rval;
@@ -635,6 +640,7 @@ namespace Gosub.Zurfur.Compiler
 
             Rval GenNewVarsOperator(SyntaxExpr ex)
             {
+                ex.Token.Type = eTokenType.NewVarSymbol;
                 if (ex.Count == 0)
                     return null;  // Syntax error
 
@@ -806,7 +812,7 @@ namespace Gosub.Zurfur.Compiler
                     if (!assignedSymbol.IsFun)
                         throw new Exception("Compiler error: GenAssign, setter index out of range or not method");
 
-                    var args = assignedSymbol.FunParams;
+                    var args = assignedSymbol.FunParamTypes;
                     if (args.Length != 2)
                     {
                         Reject(ex.Token, "Expecting two parameters (function type, and value type), static setters not supported yet");
@@ -1160,9 +1166,11 @@ namespace Gosub.Zurfur.Compiler
                 if (RejectAmbiguousPrimary(call.Token, candidates))
                     return null;
 
-                // Insert inType type as first parameter so all types match
-                if (call.InType != null && !call.InType.IsModule)
-                    args.Insert(0, new Rval(call.Token) { Type = call.InType });
+                // Insert inType type as receiver parameter
+                call.Type = call.InType == null ? table.WildCard : call.InType;
+                if (call.InType == null)
+                    call.IsStatic = true;
+                args.Insert(0, call);
 
                 // Generate list of matching symbols, update
                 // the candidates to their specialized form
@@ -1223,13 +1231,14 @@ namespace Gosub.Zurfur.Compiler
                 if (!func.IsFun)
                     return (null, CallCompatible.NotAFunction);
 
-                if (call.IsStatic && (func.IsExtension && !func.IsStatic) )
+                if (call.IsStatic && !func.IsStatic)
                     return (null, CallCompatible.StaticCallToNonStaticMethod);
-                if (!call.IsStatic && (func.IsExtension && func.IsStatic))
+                if (!call.IsStatic && func.IsStatic)
                     return (null, CallCompatible.NonStaticCallToStaticMethod);
 
+
                 // Find type args supplied by the source code (explicitly or inferred)
-                var typeArgs = InferTypeArgs(func, call.TypeArgs, args, func.FunParams);
+                var typeArgs = InferTypeArgs(func, call.TypeArgs, args, func.FunParamTypes);
 
                 // Use type args from function (or constraint) if supplied
                 if (func.TypeArgs.Length != 0)
@@ -1255,10 +1264,15 @@ namespace Gosub.Zurfur.Compiler
                     func = table.CreateSpecializedType(
                         func, typeArgs, null, ReplaceGenericTypeParams(func.Type, typeArgs));
 
-                // Skip wild card parameter in cases where it is static and known to match
-                var funParams = new Span<Symbol>(func.FunParams);
+
+                // Don't match receiver of static functions.
+                // Also don't match receier of a generic constraint
+                // since it's matched by the constaint.
+                var funParams = func.FunParamTypes;
                 var startIndex = 0;
-                if (call.InType == table.WildCard)
+                if (func.Qualifiers.HasFlag(SymQualifiers.Static))
+                    startIndex = 1;
+                if (args[0].Type.IsGenericArg && func.Concrete.Parent.IsInterface)
                     startIndex = 1;
 
                 // Match up the arguments (TBD: default parameters)
@@ -1276,11 +1290,13 @@ namespace Gosub.Zurfur.Compiler
                     arg = DerefRef(arg);
                     param = DerefRef(param);
 
-                    // Implicit conversion from *Type to *void
-                    if (arg.Parent.FullName == RAW_POINTER_TYPE && param.Parent.FullName == RAW_POINTER_TYPE
-                        && DerefPointers(param) == typeVoid)
+                    // Implicit conversion from nil to *Type or from *Type to *void
+                    if (param.Parent.FullName == RAW_POINTER_TYPE)
                     {
-                        continue;
+                        if (arg.FullName == NIL_TYPE)
+                            continue;
+                        if (arg.Parent.FullName == RAW_POINTER_TYPE && DerefPointers(param) == typeVoid)
+                            continue;
                     }
 
                     if (arg.FullName != param.FullName)
@@ -1576,9 +1592,9 @@ namespace Gosub.Zurfur.Compiler
                 if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
                 {
                     foreach (var sym2 in useSymbols)
-                        if (sym2.IsExtension && sym2.IsFun)
+                        if (sym2.IsMethod && sym2.IsFun)
                         {
-                            var funParams = sym2.FunParams;
+                            var funParams = sym2.FunParamTypes;
                             if (funParams.Length != 0 && funParams[0].FullName == inType.FullName)
                                 symbols.Add(sym2);
                         }
@@ -1586,7 +1602,6 @@ namespace Gosub.Zurfur.Compiler
 
                 AddGenericConstraints(name, inType, symbols);
                 RemoveLastDuplicates(symbols);
-
                 return symbols;
             }
 
@@ -1599,26 +1614,26 @@ namespace Gosub.Zurfur.Compiler
                     return;
                 if (!currentFunction.Constraints.TryGetValue(inType.ToString(), out var constraints))
                     return;
-                foreach (var constraint in constraints)
+                foreach (var constraintStr in constraints)
                 {
-                    var c = table.Lookup(constraint);
-                    if (c == null || !c.IsInterface)
+                    var constraint = table.Lookup(constraintStr);
+                    if (constraint == null || !constraint.IsInterface)
                     {
                         Debug.Assert(false);  // Compiler shouldn't allow this
                         continue;
                     }
                     var i = symbols.Count;
-                    AddSymbolsNamedInType(name, c, symbols);
+                    AddSymbolsNamedInType(name, constraint, symbols);
 
                     // TBD: Working on this
                     // Replace generic type args with the given type arguments
                     while (i < symbols.Count)
                     {
                         var s = symbols[i];
-                        if (s.GenericParamTotal() == c.TypeArgs.Length)
+                        if (s.GenericParamTotal() == constraint.TypeArgs.Length)
                         {
-                            symbols[i] = table.CreateSpecializedType(s, c.TypeArgs, null,
-                                ReplaceGenericTypeParams(s.Type, c.TypeArgs));
+                            symbols[i] = table.CreateSpecializedType(s, constraint.TypeArgs, null,
+                                ReplaceGenericTypeParams(s.Type, constraint.TypeArgs));
                         }
                         i++;
                     }
@@ -1640,7 +1655,7 @@ namespace Gosub.Zurfur.Compiler
                     symbols.Add(sym);
                 if (inType.HasFunNamed(name))
                     foreach (var child in inType.Children)
-                        if (child.IsFun && !child.IsExtension && child.Token == name)
+                        if (child.IsFun && child.Token == name)
                             symbols.Add(child);
             }
 
@@ -1658,9 +1673,9 @@ namespace Gosub.Zurfur.Compiler
 
                 foreach (var child in inModule.Children)
                 {
-                    if (!child.IsFun || !child.IsExtension || child.Token != name)
+                    if (!child.IsFun || !child.IsMethod || child.Token != name)
                         continue;
-                    var parameters = child.FunParams;
+                    var parameters = child.FunParamTypes;
                     if (parameters.Length == 0)
                         continue;
 
@@ -1732,14 +1747,14 @@ namespace Gosub.Zurfur.Compiler
                     symbols.Add(sym1);
                 if (module.HasFunNamed(name))
                     foreach (var child in module.Children)
-                        if (child.IsFun && child.Token == name && !child.IsExtension)
+                        if (child.IsFun && child.Token == name && !child.IsMethod)
                             symbols.Add(child);
 
                 // Search 'use' symbol
                 if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
                 {
                     foreach (var sym2 in useSymbols)
-                        if (!sym2.IsExtension)
+                        if (!sym2.IsMethod)
                             symbols.Add(sym2);
                 }
 

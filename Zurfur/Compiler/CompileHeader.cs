@@ -189,7 +189,7 @@ namespace Gosub.Zurfur.Compiler
                             {
                                 foreach (var child in op.ChildrenFilter(SymKind.FunParam).Where(child => !child.ParamOut))
                                 {
-                                    if (child.Type != null && child.Type.Unspecial().FullName == typeSym.FullName)
+                                    if (child.Type != null && child.Type.Concrete.FullName == typeSym.FullName)
                                     {
                                         symbols.Add(op);
                                         break;
@@ -427,10 +427,8 @@ namespace Gosub.Zurfur.Compiler
                 if (f.ExtensionType == null)
                     return;
 
-                var extensionType = f.ExtensionType;
-                function.Qualifiers |= SymQualifiers.Extension;
-
                 // Skip qualifiers. 
+                var extensionType = f.ExtensionType;
                 while (extensionType.Token == "mut" && extensionType.Count != 0)
                     extensionType = extensionType[0];
 
@@ -471,34 +469,39 @@ namespace Gosub.Zurfur.Compiler
             // Add `my` parameter for extension methods and member functions.
             Symbol AddMyParam(Symbol method, SyntaxFunc func)
             {
-                // Interface method syntax
-                if (method.Parent.IsInterface)
-                {
-                    //Debug.Assert(func.ExtensionType == null && method.Parent.IsType);
-                    var ifaceMethodParam = new Symbol(SymKind.FunParam, method, func.Name, "my");
-                    ifaceMethodParam.Type = Resolver.GetTypeWithGenericParameters(
-                                                table, method.Parent, method.GenericParamTotal());
-                    table.AddOrReject(ifaceMethodParam);
-
-                    if (func.ExtensionType != null)
-                        Reject(func.ExtensionType.Token, "Extension method not allowed on interface functions");
-
-                    return ifaceMethodParam;
-                }
+                var methodParam = new Symbol(SymKind.FunParam, method, func.Name, "my");
 
                 var extType = func.ExtensionType;
-                if (extType == null || extType.Token == "")
-                    return null;
-
-                // Extension method syntax
-                var methodParam = new Symbol(SymKind.FunParam, method, func.Name, "my");
-                if (extType.Token == "mut")
+                if (extType != null && extType.Token == "mut")
                 {
                     methodParam.SetQualifier("mut");
                     extType = extType[0];
                 }
-                methodParam.Type = ResolveTypeNameOrReject(methodParam, extType);
-                method.Qualifiers |= SymQualifiers.Extension;
+
+                if (method.Parent.IsInterface)
+                {
+                    // Interface method
+                    methodParam.Type = Resolver.GetTypeWithGenericParameters(
+                                                table, method.Parent, method.GenericParamTotal());
+                    method.Qualifiers |= SymQualifiers.Method;
+                    if (func.ExtensionType != null)
+                        Reject(func.ExtensionType.Token, "Extension method not allowed on interface functions");
+                }
+                else if (extType == null || extType.Token == "")
+                {
+                    // Static global
+                    methodParam.Type = method.Parent;
+                    if (method.Qualifiers.HasFlag(SymQualifiers.Static))
+                        Reject(method.Token, "'static' not allowed at module level");
+                    method.Qualifiers |= SymQualifiers.Static;
+                }
+                else
+                {
+                    // Extension method
+                    methodParam.Type = ResolveTypeNameOrReject(methodParam, extType);
+                    method.Qualifiers |= SymQualifiers.Method;
+                }
+
                 if (methodParam.TypeName == "" && !noCompilerChecks)
                     methodParam.Token.AddInfo(new VerifySuppressError());
                 table.AddOrReject(methodParam);

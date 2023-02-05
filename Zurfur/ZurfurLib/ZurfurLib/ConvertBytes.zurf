@@ -30,7 +30,7 @@ fun Test_ConvertExample()
 // Convert 4 bytes (u32) to int (little endian)
 [pub]
 fun Span<byte>.bytesToU32() u32
-    require count == 4
+    require my.len == 4
     return     my[0].toU32
             + (my[1].toU32 << 8)
             + (my[2].toU32 << 16)
@@ -39,7 +39,7 @@ fun Span<byte>.bytesToU32() u32
 // Convert u32 to 4 bytes (little endian) 
 [pub]
 fun mut Span<byte>.setBytesU32(v u32)
-    require count == 4
+    require my.len == 4
     my[0] = v.toByteMask
     my[1] = (v<<8).toByteMask
     my[2] = (v<<16).toByteMask
@@ -49,45 +49,45 @@ fun mut Span<byte>.setBytesU32(v u32)
 [pub]
 fun mut List<byte>.pushBytesU32(v u32)
     my.pushClones<byte>(byte(), 4)
-    my[my.count-4..+4].setBytesU32(v)
+    my[my.len-4..+4].setBytesU32(v)
 
 
 [pub]
 fun Span<byte>.bytesToI32() i32
-    require count == 4
+    require my.len == 4
     return my.bytesToU32().toI32Mask
     
 [pub]
 fun mut Span<byte>.setBytesI32(v i32)
-    require count == 4
+    require my.len == 4
     my.setBytesU32(v.toU32Mask)
     
 [pub]
 fun mut List<byte>.pushBytesI32(v i32)
     my.pushBytesU32(v.toU32Mask)
 
-[pub] fun Span<byte>.bytesToU16() u16 require count == 2 { }
-[pub] fun mut Span<byte>.setBytesU16(v u16) require count == 2 { }
+[pub] fun Span<byte>.bytesToU16() u16 require my.len == 2 { }
+[pub] fun mut Span<byte>.setBytesU16(v u16) require my.len == 2 { }
 [pub] fun mut List<byte>.pushBytesU16(v u16) { }
 
-[pub] fun Span<byte>.bytesToI16() i16 require count == 2 { }
-[pub] fun mut Span<byte>.setBytesI16(v i16) require count == 2 { }
+[pub] fun Span<byte>.bytesToI16() i16 require my.len == 2 { }
+[pub] fun mut Span<byte>.setBytesI16(v i16) require my.len == 2 { }
 [pub] fun mut List<byte>.pushBytesI16(v i16) { }
 
-[pub] fun Span<byte>.bytesToU64() u64 require count == 8 { }
-[pub] fun mut Span<byte>.setBytesU64(v u64) require count == 8 { }
+[pub] fun Span<byte>.bytesToU64() u64 require my.len == 8 { }
+[pub] fun mut Span<byte>.setBytesU64(v u64) require my.len == 8 { }
 [pub] fun mut List<byte>.pushBytesU64(v u64) { }
 
-[pub] fun Span<byte>.bytesToInt() int require count == 8 { }
-[pub] fun mut Span<byte>.setBytesInt(v int) require count == 8 { }
+[pub] fun Span<byte>.bytesToInt() int require my.len == 8 { }
+[pub] fun mut Span<byte>.setBytesInt(v int) require my.len == 8 { }
 [pub] fun mut List<byte>.pushBytesInt(v int) { }
 
-[pub] fun Span<byte>.bytesToF32() f32 require Count == 4 { }
-[pub] fun mut Span<byte>.setBytesF32(v f32) require count == 4 { }
+[pub] fun Span<byte>.bytesToF32() f32 require my.len == 4 { }
+[pub] fun mut Span<byte>.setBytesF32(v f32) require my.len == 4 { }
 [pub] fun mut List<byte>.pushBytesF32(v f32) { }
 
-[pub] fun Span<byte>.bytesToF64() f64 require count == 8  { }
-[pub] fun mut Span<byte>.setBytesF64(v f64) require count == 8 { }
+[pub] fun Span<byte>.bytesToF64() f64 require my.len == 8  { }
+[pub] fun mut Span<byte>.setBytesF64(v f64) require my.len == 8 { }
 [pub] fun mut List<byte>.pushBytesF64(v f64) { }
 
    

@@ -13,25 +13,21 @@ mod Zurfur.Operators
 // Equality for containers and sorting (NaN == NaN).
 // For floating point equality, use _opEqUnordered.
 type OpEq<T> interface
+    [static] fun getHash(value T) u32
     [static] fun _opEq(a T, b T) bool
 
 // Comparison for containers and sorting (NaN == NaN, NaN < -Inf).
 // For floating point, use _opGtUnordered, _opGeUnordered, etc.
 type OpCmp<T> interface
+    [static] fun getHash(value T) u32
     [static] fun _opEq(a T, b T) bool
-    [static] fun _opCmp(a T, b T) int
-
-// Operator "in".
-type OpIn<Item, Container> interface
-    [static] fun _opIn(a Item, b Container) bool
-
-type GetHash interface
-    fun getHash() u32
+    [static] fun _opCmp(a T, b T) i32
 
 // Common math operators
 type NumOps<T> interface
+    [static] fun getHash(value T) u32
     [static] fun _opEq(a T, b T) bool
-    [static] fun _opCmp(a T, b T) int
+    [static] fun _opCmp(a T, b T) i32
     [static] fun _opAdd(a T, b T) T
     [static] fun _opSub(a T, b T) T
     [static] fun _opNeg(a T) T

@@ -186,7 +186,6 @@ namespace Gosub.Zurfur.Ide
 
             // Highlight current location (if not already showing something from above)
             if (newToken.Type != eTokenType.Comment
-                && newToken.Type != eTokenType.PublicComment
                 || newToken.Subtype == eTokenSubtype.CodeInComment
                 || newToken.Underline)
             {

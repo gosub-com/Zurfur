@@ -97,7 +97,8 @@ namespace Gosub.Zurfur.Compiler
                 }
                 if (!leftSymbol.IsAnyTypeOrModule || leftSymbol.IsTypeParam)
                 {
-                    table.Reject(typeExpr.Token, $"The left side of the '.' must evaluate to a module or type, but it is a {leftSymbol.KindName}");
+                    table.Reject(typeExpr.Token, "The left side of the '.' must evaluate "
+                        + $"to a module or type, but it is a {leftSymbol.KindName}");
                     return null;
                 }
 
@@ -109,8 +110,21 @@ namespace Gosub.Zurfur.Compiler
 
                 if (!rightSymbol.IsAnyTypeOrModule)
                 {
-                    table.Reject(typeExpr[1].Token, $"The right side of the '.' must evaluate to a module or type, but it is a {rightSymbol.KindName}");
+                    table.Reject(typeExpr[1].Token, "The right side of the '.' must evaluate "
+                        + $"to a module or type, but it is a {rightSymbol.KindName}");
                     return null;
+                }
+
+                // Generic argument
+                if (rightSymbol.IsGenericArg)
+                {
+                    var argNum = rightSymbol.Order;
+                    if (argNum >= leftSymbol.TypeArgs.Length)
+                    {
+                        table.Reject(typeExpr[1].Token, "Compiler Error: Generic type arg index out of range");
+                        return null;
+                    }
+                    return leftSymbol.TypeArgs[argNum];
                 }
 
                 if (leftSymbol.IsSpecialized)

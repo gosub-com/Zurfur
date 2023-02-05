@@ -553,12 +553,13 @@ namespace Gosub.Zurfur
                 mTokenFonts = new Dictionary<eTokenType, FontInfo>()
                 {
                     { eTokenType.Normal, new FontInfo(normalFont, Color.Black) },
+                    { eTokenType.Identifier, new FontInfo(normalFont, Color.Black) },
                     { eTokenType.Reserved, new FontInfo(normalFont, Color.Blue) },
                     { eTokenType.ReservedControl, new FontInfo(boldFont, Color.Blue) },
-                    { eTokenType.Identifier, new FontInfo(normalFont, Color.Black) },
+                    { eTokenType.ReservedVar, new FontInfo(boldFont, Color.DarkBlue) },
                     { eTokenType.Quote, new FontInfo(normalFont, Color.Brown) },
                     { eTokenType.Comment, new FontInfo(normalFont, Color.Green) },
-                    { eTokenType.PublicComment, new FontInfo(boldFont, Color.Green) },
+                    { eTokenType.NewVarSymbol, new FontInfo(normalFont, Color.FromArgb(160,160,255)) },
                     { eTokenType.DefineField, new FontInfo(boldFont, Color.Black) },
                     { eTokenType.DefineMethod, new FontInfo(boldFont, Color.Black) },
                     { eTokenType.DefineParam, new FontInfo(boldFont, Color.Black) },
