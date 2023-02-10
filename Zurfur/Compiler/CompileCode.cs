@@ -424,6 +424,8 @@ namespace Gosub.Zurfur.Compiler
                     ex.Token.Type = eTokenType.ReservedVar;
                     return GenIdentifier(ex);
                 }
+                else if (name == "My")
+                    return GenMy(ex);
                 else if (name == ParseZurf.VT_TYPE_ARG)
                     return GenTypeArgs(ex);
                 else if (name == "(")
@@ -505,6 +507,12 @@ namespace Gosub.Zurfur.Compiler
             Rval GenIdentifier(SyntaxExpr ex)
             {
                 return new Rval(ex.Token) { Candidates = FindGlobal(ex.Token, ex.Token) };
+            }
+
+            Rval GenMy(SyntaxExpr ex)
+            {
+                ex.Token.Type = eTokenType.ReservedType;
+                return null;
             }
 
             // Type or function call (e.g. List<int>(), f<int>(), etc)

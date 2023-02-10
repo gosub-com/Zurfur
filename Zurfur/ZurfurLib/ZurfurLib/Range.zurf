@@ -14,7 +14,7 @@ type Range<T> copy
     high T pub ref init
 
 [pub]
-fun Range<T>.new(low T, high T)
+fun Range.new(low My.T, high My.T)
     my.low = low
     my.high = high
     // TBD: (my.low, my.high) = (low, high)
@@ -31,16 +31,16 @@ type Abs<T> interface
 // Absolute length of range: abs(high-low)
 // TBD: Allow individual functions in the where clause
 [pub]
-fun get Range<T>.length() T
-        where T has Abs<T> + NumOps<T> // TBD: Use constraints from `Range`, ALSO: fun abs(n T) T 
+fun get Range.length() My.T
+        where My.T has Abs<My.T> + NumOps<My.T> // TBD: Use constraints from `Range`, ALSO: fun abs(n T) T 
     // Alternatively:
     //      return if(my.low <= my.high, my.low : my.high) 
-    return T.abs(my.high-my.low)
+    return My.T.abs(my.high-my.low)
 
 
 [pub]
-fun get Range<T>.iterator() RangeIterator<T>
-    return RangeIterator<T>(my.low, my.high)
+fun get Range.iterator() RangeIterator<My.T>
+    return RangeIterator<My.T>(my.low, my.high)
         
 
 [pub]
@@ -49,16 +49,16 @@ type RangeIterator<T> where T has NumOps<T>
     high T pub init
 
 [pub]
-fun RangeIterator<T>.new(low T, high T)
+fun RangeIterator.new(low My.T, high My.T)
     (my.current, my.high) = (low, high)    
 
 
 [pub]
-fun mut RangeIterator<T>.next() ?T
-        where T has Abs<T> + NumOps<T>
+fun mut RangeIterator.next() ?My.T
+        where My.T has Abs<My.T> + NumOps<My.T>
     if my.current >= my.high
         return nil
     @r = my.current
-    my.current += T.ONE
-    return Nullable<T>(my.current)
+    my.current += My.T.ONE
+    return Nullable<My.T>(my.current)
         

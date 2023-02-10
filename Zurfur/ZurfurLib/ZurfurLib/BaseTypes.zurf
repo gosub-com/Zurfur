@@ -54,7 +54,7 @@ type Nullable<T>
     hasValue bool
 
 [pub]
-fun Nullable<T>.new(value T)
+fun Nullable.new(value My.T)
     my.value = value
     my.hasValue = true
     

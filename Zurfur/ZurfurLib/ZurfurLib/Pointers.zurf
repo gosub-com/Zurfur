@@ -67,21 +67,21 @@ type IsRawPointer interface
 // Mark these types as the only pointer types in the system
 fun Xuint.isRawPointer() RawPointerMarker
     return RawPointerMarker()
-fun RawPointer<T>.isRawPointer() RawPointerMarker
+fun RawPointer.isRawPointer() RawPointerMarker
     return RawPointerMarker()
-fun Ref<T>.isRawPointer() RawPointerMarker
+fun Ref.isRawPointer() RawPointerMarker
     return RawPointerMarker()
-fun Pointer<T>.isRawPointer() RawPointerMarker
+fun Pointer.isRawPointer() RawPointerMarker
     return RawPointerMarker()
 fun Xuint.getRawPointer() Xuint
     return my
 
 // TBD: Compiler implemented
-fun Ref<T>.getRawPointer() Xuint
+fun Ref.getRawPointer() Xuint
     extern
-fun RawPointer<T>.getRawPointer() Xuint
+fun RawPointer.getRawPointer() Xuint
     extern
-fun Pointer<T>.getRawPointer() Xuint
+fun Pointer.getRawPointer() Xuint
     extern
 
 
@@ -111,7 +111,7 @@ fun castPointer<Out>(i int) Out
 fun castPointer<Out>(i *void) Out
     extern // TBD: Remove
 
-[static] fun RawPointer<T>._opAdd(a *T, b int) *T extern
+[static] fun RawPointer._opAdd(a *My.T, b int) *My.T extern
 [static] fun int._opAdd<T>(a int, b *T) *T extern
 
 fun test_Add()

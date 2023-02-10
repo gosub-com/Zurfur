@@ -15,6 +15,7 @@ namespace Gosub.Zurfur.Lex
         Reserved,
         ReservedControl,
         ReservedVar,
+        ReservedType,
         Number,
         Quote,
         Comment,

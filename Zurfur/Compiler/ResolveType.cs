@@ -48,6 +48,10 @@ namespace Gosub.Zurfur.Compiler
             if (typeExpr.Token == ParseZurf.VT_TYPE_ARG)
                 return ResolveGenericType();
 
+            // Resolve My
+            if (typeExpr.Token == "My")
+                return ResolveMy(table, typeExpr.Token, searchScope);
+
             // Resolve regular symbol
             bool foundInScope = false;
             var symbol = isDot ? FindLocalType(typeExpr.Token, table, searchScope)
@@ -221,6 +225,21 @@ namespace Gosub.Zurfur.Compiler
             }
         }
 
+        /// <summary>
+        /// Resolve `My` symbol, returning its type or null if not found.
+        /// Rejects the token if null is not found.
+        /// </summary>
+        public static Symbol ResolveMy(SymbolTable table, Token token, Symbol searchScope)
+        {
+                token.Type = eTokenType.ReservedType;
+                if (searchScope.TryGetPrimary("my", out var myVar) && myVar.TypeName != "")
+                {
+                    token.AddInfo(myVar.Type);
+                    return myVar.Type;
+                }
+                table.Reject(token, "My is unresolved");
+                return null;
+        }
 
         /// <summary>
         /// Resolves just the type arguments, but not type name.

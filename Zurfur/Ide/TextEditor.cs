@@ -557,6 +557,7 @@ namespace Gosub.Zurfur
                     { eTokenType.Reserved, new FontInfo(normalFont, Color.Blue) },
                     { eTokenType.ReservedControl, new FontInfo(boldFont, Color.Blue) },
                     { eTokenType.ReservedVar, new FontInfo(boldFont, Color.DarkBlue) },
+                    { eTokenType.ReservedType, new FontInfo(boldFont, Color.FromArgb(20,125,160)) },
                     { eTokenType.Quote, new FontInfo(normalFont, Color.Brown) },
                     { eTokenType.Comment, new FontInfo(normalFont, Color.Green) },
                     { eTokenType.NewVarSymbol, new FontInfo(normalFont, Color.FromArgb(160,160,255)) },

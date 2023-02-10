@@ -28,64 +28,64 @@ type Map<K,V>
 
 // TBD: Need this: fun (kv Map<K,V>.Pair) ...
 [pub]
-fun KvPair<K,V>.new(key own K, value own V)
+fun KvPair.new(key own My.K, value own My.V)
     my.key = key
     my.value = value
 
 
 [pub]
-fun Map<K,V>.new(capacity int)
+fun Map.new(capacity int)
     extern
     
 [pub]
-fun Map<K,V>.new(keyValues Iterator<KvPair<K,V>>)
+fun Map.new(keyValues Iterator<KvPair<My.K, My.V>>)
     extern
     
 [pub]
-fun get Map<K,V>.len() int
+fun get Map.len() int
     extern
 
 // TBD: Figure out map["Hello"] += 1
 [pub static]
-fun Map<K,V>._opIndex(map Map<K,V>, key K) mut ?ref V
+fun Map._opIndex(map Map<My.K, My.V>, key My.K) mut ?ref My.V
     extern
 
 // TBD: An indexer with 3 inputs???
 [pub static]
-fun Map<K,V>._opIndex(map Map<K,V>, key K, item V)
+fun Map._opIndex(map Map<My.K, My.V>, key My.K, item My.V)
     extern
 
 [pub]
-fun Map<K,V>.contains(key K) bool
+fun Map.contains(key My.K) bool
     extern
 
 // TBD: Return Iterable<(K, V)>???
 [pub]
-fun get Map<K,V>.iterator() mut Iterator<KvPair<K,V>>
+fun get Map.iterator() mut Iterator<KvPair<My.K, My.V>>
     extern
 
 [pub]
-fun get Map<K,V>.keys() Iterator<K>
+fun get Map.keys() Iterator<My.K>
     extern
 
 [pub]
-fun get Map<K,V>.values() mut Iterator<V>
+fun get Map.values() mut Iterator<My.V>
     extern
 
 [pub]
-fun mut Map<K,V>.clear()
+fun mut Map.clear()
     extern
 
 [pub]
-fun mut Map<K,V>.add(item KvPair<K,V>)
+fun mut Map.add(item KvPair<My.K, My.V>)
     extern
 
 [pub]
-fun mut Map<K,V>.add(items Iterator<KvPair<K,V>>)
+fun mut Map.add(items Iterator<KvPair<My.K, My.V>>)
     extern
 
 [pub]
-fun mut Map<K,V>.remove(key K) bool
+fun mut Map.remove(key My.K) bool
     extern
 
     

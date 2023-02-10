@@ -83,7 +83,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sParamQualifiers = new WordSet("ro own mut");
 
         static WordSet sReservedUserFuncNames = new WordSet("new clone drop");
-        static WordSet sReservedIdentifierVariables = new WordSet("true false new move my sizeof typeof");
+        static WordSet sReservedIdentifierVariables = new WordSet("true false new move my My sizeof typeof");
         static WordSet sReservedMemberNames = new WordSet("clone");
         static WordSet sTypeUnaryOps = new WordSet("? ! * ^ [ ref ro");
 
@@ -987,8 +987,17 @@ namespace Gosub.Zurfur.Compiler
         SyntaxConstraint ParseConstraint()
         {
             var constraint = new SyntaxConstraint();
+
+            if (AcceptMatch("My"))
+            {
+                constraint.MyToken = mPrevToken;
+                constraint.MyToken.Type = eTokenType.ReservedType;
+                if (!AcceptMatchOrReject("."))
+                    return null;
+            }
             if (!AcceptIdentifier("Expecting a type name"))
                 return null;
+
             constraint.TypeName = mPrevToken;
             mPrevToken.Type = eTokenType.TypeName;
 
@@ -2110,6 +2119,7 @@ namespace Gosub.Zurfur.Compiler
         bool BeginsType()
         {
             return mToken.Type == eTokenType.Identifier
+                || mToken == "My"
                 || sTypeUnaryOps.Contains(mTokenName)
                 || sParamQualifiers.Contains(mTokenName)
                 || mToken == "fun" || mToken == "afun";
@@ -2143,7 +2153,7 @@ namespace Gosub.Zurfur.Compiler
                 return ParseMethodSignature(funKeyword);
             }
 
-            if (mToken.Type != eTokenType.Identifier)
+            if (mToken.Type != eTokenType.Identifier && mToken.Name != "My")
             {
                 AcceptIdentifier("Expecting a type name", sRejectTypeName);
                 return SyntaxError;

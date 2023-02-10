@@ -65,8 +65,6 @@ typed variable with optional assignment from an expression.
     @e Map<str,f32> = ["A":1, "B:1.2]   // Create Map<str,f32>
     @f Json = ["A":1,"B":[1,2,3.5]]     // Create a Json
 
-This form is required for field definitions.
-
 A list of expressions `[e1, e2, e3...]` is used to initialize a `List`
 and a list of pairs `[K1:V1, K2:V2, K3:V3...]` is used to initialize a `Map`.
 Brackets `[]` are used for both lists and maps. Curly braces are reserved
@@ -87,12 +85,30 @@ argument, and the return type comes after the parameters:
     fun main(args Array<str>)
         Log.info("Hello World, 2+2=${2+2}")
 
-Methods and extension methods are declared outside of the type and use the
-`my` keyword to refer to fields or other methods in the type:
+Methods are declared outside of the type (similar to extension methods in C#)
+and use the `my` keyword to refer to fields or other methods in the type:
 
-    // Declare an extension method for strings
+    // Declare a method for strings
     fun str.rest() str
-        return if(my.count == 0, "" : my.subRange(1))  // `subRange` is defined by `List`
+        return if(my.len == 0, "" : my.subRange(1))  // `subRange` is defined by `List`
+
+Methods on generic types can use the capitalized `My` keyword to refer its
+own type:
+
+    // Declare a method to sum two keys on Map<K,V>.
+    // Return 0 if either key is missing
+    fun Map.mySum(key1 My.K, key2 My.K) My.V
+            where My.V has NumOps<My.V>
+        if key1 in my and key2 in my
+            return my[key1] + my[key2]
+        return My.V.ZERO        
+
+Concrete methods can also be defined on generic types:
+
+    // Convert 4 bytes (u32) to int (little endian)
+    fun Span<byte>.bytesToU32() u32
+        require my.len == 4
+        return my[0].toU32 + (my[1].toU32 << 8) + (my[2].toU32 << 16) + (my[3].toU32 << 24)
 
 Getters and setters are functions declared with `get` and `set` keywords:
 
@@ -196,7 +212,7 @@ The ones we all know and love:
 | List\<T\> | Re-sizable mutable list of mutable elements.  This is the one and only dynamically sized object in Zurfur.
 | Array\<T\>| An alias for `ro List<T>`.  An immutable list of immutable elements. Even if the array contains mutable elements, they become immutable when copied into the list.  Array's can be copied very quickly, just by copying a reference.
 | str, str16 | An `Array<byte>` or `Array<u16>` with support for UTF-8 and UTF-16.  `Array` (an alias for `ro List`) is immutable, therefore `str` is also immutable.  `str16` is a JavaScript or C# style Unicode string
-| Span\<T\> | A view into a `List` or `Array`.  It has a constant `count`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `List` is mutable)
+| Span\<T\> | A view into a `List` or `Array`.  It has a constant `len`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `List` is mutable)
 | Map<K,V> | Unordered mutable map.  `ro Map<K,V>` is the immutable counterpart. 
 | Dynamic, DynamicMap | The type used to interface with dynamically typed languages.  Easy conversion to/from JSON and string representations of built-in types.  TBD: `dyn` keyword in the future (e.g. `myDyn["hello"]` is same as `myDyn.hello`)
 
@@ -301,7 +317,7 @@ The array declaration syntax `[]Type` translates directly to Span (not to
     afun mut write(data []byte) !int
 
 Spans are as fast, simple, and efficient as it gets.  They are just a pointer
-and count.  They are passed down the execution stack or stored on the async
+and length.  They are passed down the execution stack or stored on the async
 task frame when necessary.
 
 Given a range, the index operator can be used to slice a List.  A change to
@@ -312,7 +328,7 @@ the list is a change to the span and a change to the span is a change to the lis
     @c = a[2..+2]               // c is a span, with c[0] == "c" (c aliases ["c","d"])
     c[0] = "hello"              // now a = ["a","b","hello","d","e"], and b=["b","hello","d"]
 
-Mutating the `count` or `capacity` of a `List` (not the elements of it) while
+Mutating the `len` or `capacity` of a `List` (not the elements of it) while
 there is a `Span` or reference  pointing into it is a programming error, and
 fails the same as indexing outside of array bounds.
 
@@ -593,13 +609,13 @@ The simplest form of the for loop is when the expression evaluates to an integer
         Console.writeLine(i)   // `i` is an integer
 
     // Increment all the numbers in an list
-    for @i in list.Count
+    for @i in list.len
         list[i] += 1
 
 The range operators can be used as follows:
 
     // Print all the numbers in the list
-    for @i in 0..list.Count
+    for @i in 0..list.len
         Console.writeLine(list[i])
 
     // Collect elements 5,6, and 7 into myList

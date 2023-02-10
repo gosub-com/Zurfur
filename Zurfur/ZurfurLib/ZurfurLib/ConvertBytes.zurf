@@ -48,7 +48,7 @@ fun mut Span<byte>.setBytesU32(v u32)
 // Convert u32 to 4 bytes (little endian) and push to list
 [pub]
 fun mut List<byte>.pushBytesU32(v u32)
-    my.pushClones<byte>(byte(), 4)
+    my.pushDup<byte>(byte(), 4)
     my[my.len-4..+4].setBytesU32(v)
 
 

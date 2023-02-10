@@ -305,24 +305,34 @@ namespace Gosub.Zurfur.Compiler
                     if (synConstraint == null || synConstraint.TypeName == null || synConstraint.TypeConstraints == null)
                         continue; // Syntax errors
                     var name = synConstraint.TypeName.Name;
-                    var constrainedType = Resolver.FindTypeInScopeWalk(name, scope);
-                    if (constrainedType == null)
-                    {
-                        Reject(synConstraint.TypeName, $"The symbol '{name}' is undefined in the local scope");
-                        continue;
-                    }
 
-                    string argName;
-                    if (constrainedType.IsTypeParam)
+                    // Find constraint type
+                    Symbol constrainedType;
+                    if (synConstraint.MyToken != null)
                     {
-                        argName = "#" + constrainedType.GenericParamNum();
-                        synConstraint.TypeName.AddInfo(constrainedType);
+                        var myType = Resolver.ResolveMy(table, synConstraint.MyToken, scope);
+                        if (myType == null)
+                            continue;
+                        myType.Concrete.TryGetPrimary(name, out constrainedType);
                     }
                     else
+                    {
+                        constrainedType = Resolver.FindTypeInScopeWalk(name, scope);
+                    }
+
+                    if (constrainedType == null)
+                    {
+                        Reject(synConstraint.TypeName, $"The symbol '{name}' is undefined");
+                        continue;
+                    }
+                    if (!constrainedType.IsTypeParam)
                     {
                         Reject(synConstraint.TypeName, $"The symbol '{name}' is not a type parameter, it is a {constrainedType.KindName}");
                         continue;
                     }
+
+                    var argName = $"#{constrainedType.GenericParamNum()}";
+                    synConstraint.TypeName.AddInfo(constrainedType);
 
                     if (symCon.ContainsKey(name))
                     {
@@ -332,8 +342,7 @@ namespace Gosub.Zurfur.Compiler
                     var constrainers = new List<string>();
                     foreach (var c in synConstraint.TypeConstraints)
                     {
-                        var sym = ResolveTypeNameOrReject(constrainedType.SimpleName == "This" 
-                                                            ? scope : constrainedType, c);
+                        var sym = ResolveTypeNameOrReject(scope, c);
                         if (sym == null)
                             continue;  // Error already given
                         if (!sym.IsInterface)
@@ -381,9 +390,9 @@ namespace Gosub.Zurfur.Compiler
                 var function = new Symbol(SymKind.Fun, scope, synFunc.Name);
                 function.SetQualifiers(synFunc.Qualifiers);
                 function.Comments = synFunc.Comments;
-                AddExtensionMethodGenerics(function, synFunc);
+                var myParam = ResolveMyParam(function, synFunc);
                 AddTypeParams(function, synFunc.TypeArgs);
-                var myParam = AddMyParam(function, synFunc);
+                table.AddOrReject(myParam);
                 Resolver.ResolveFunParams(synFunc.FunctionSignature[0], table, function, function, useSymbolsFile, false);
                 Resolver.ResolveFunParams(synFunc.FunctionSignature[1], table, function, function, useSymbolsFile, true);
                 SetNewFunction(function, synFunc, myParam);
@@ -413,75 +422,21 @@ namespace Gosub.Zurfur.Compiler
                 syntaxToSymbol[synFunc] = function;
             }
 
-            // For now, extension methods with generic receivers
-            // allow only 1 level deep with all type parameters matching:
-            //      List<int>.f(x)        // Ok, no generic types
-            //      List<T>.f(x)          // Ok, 1 level, matching generic
-            //      Map<TKey,TValue>.f(x) // Ok, 1 level, all matching generic
-            //      Map<Key,int>.f(x)     // No, not all matching genrics
-            //      Span<List<T>>.f(x)    // No, multi-level not accepted
-            //
-            // TBD: Allow Map<K,V>.Pair, etc.
-            void AddExtensionMethodGenerics(Symbol function, SyntaxFunc f)
+            // Resolve `my` parameter.  Add the implicit generic types, if any.
+            Symbol ResolveMyParam(Symbol method, SyntaxFunc func)
             {
-                if (f.ExtensionType == null)
-                    return;
-
-                // Skip qualifiers. 
-                var extensionType = f.ExtensionType;
-                while (extensionType.Token == "mut" && extensionType.Count != 0)
-                    extensionType = extensionType[0];
-
-                // TBD: Follow "."
-                if (extensionType.Token != ParseZurf.VT_TYPE_ARG || extensionType.Count < 2)
-                    return;
-
-                var typeName = extensionType[0].Token;
-                var typeSymbol = Resolver.FindGlobalType(typeName, table, function, useSymbols.Files[typeName.Path], out var inScope);
-                if (typeSymbol == null)
-                    return;
-
-                var genericMatch = true;
-                Token firstMatchedType = null;
-                for (int i = 1; i < extensionType.Count; i++)
-                {
-                    var paramName = extensionType[i].Token;
-                    if (!typeSymbol.TryGetPrimary(paramName, out var matchGeneric))
-                    {
-                        genericMatch = false;
-                        continue;
-                    }
-                    if (matchGeneric.Order != i - 1)
-                    {
-                        Reject(paramName, $"Generic parameter '{paramName}' found at wrong position of '{typeName}'");
-                        genericMatch = false;
-                        break;
-                    }
-                    firstMatchedType = paramName;
-                }
-                if (genericMatch)
-                    AddTypeParams(function, extensionType.Skip(1));
-                else if (firstMatchedType != null)
-                    Reject(firstMatchedType, $"Type parameter '{firstMatchedType}' found in '{typeName}', but other type parameters don't match.");
-            }
-            
-
-            // Add `my` parameter for extension methods and member functions.
-            Symbol AddMyParam(Symbol method, SyntaxFunc func)
-            {
-                var methodParam = new Symbol(SymKind.FunParam, method, func.Name, "my");
-
+                var myParam = new Symbol(SymKind.FunParam, method, func.Name, "my");
                 var extType = func.ExtensionType;
                 if (extType != null && extType.Token == "mut")
                 {
-                    methodParam.SetQualifier("mut");
+                    myParam.SetQualifier("mut");
                     extType = extType[0];
                 }
 
                 if (method.Parent.IsInterface)
                 {
                     // Interface method
-                    methodParam.Type = Resolver.GetTypeWithGenericParameters(
+                    myParam.Type = Resolver.GetTypeWithGenericParameters(
                                                 table, method.Parent, method.GenericParamTotal());
                     method.Qualifiers |= SymQualifiers.Method;
                     if (func.ExtensionType != null)
@@ -490,7 +445,7 @@ namespace Gosub.Zurfur.Compiler
                 else if (extType == null || extType.Token == "")
                 {
                     // Static global
-                    methodParam.Type = method.Parent;
+                    myParam.Type = method.Parent;
                     if (method.Qualifiers.HasFlag(SymQualifiers.Static))
                         Reject(method.Token, "'static' not allowed at module level");
                     method.Qualifiers |= SymQualifiers.Static;
@@ -498,14 +453,32 @@ namespace Gosub.Zurfur.Compiler
                 else
                 {
                     // Extension method
-                    methodParam.Type = ResolveTypeNameOrReject(methodParam, extType);
-                    method.Qualifiers |= SymQualifiers.Method;
+                    if (extType.Token != ParseZurf.VT_TYPE_ARG)
+                    {
+                        // Generic parameters not supplied, add them if necessary
+                        var myType = Resolver.FindGlobalType(extType.Token, table, method,
+                                        useSymbols.Files[extType.Token.Path], out var inScope);
+                        if (myType != null)
+                        {
+                            var genericParamCount = myType.GenericParamTotal();
+                            myParam.Type = Resolver.GetTypeWithGenericParameters(table, myType, genericParamCount);
+                            foreach (var genericParam in myParam.Type.TypeArgs)
+                                table.AddOrReject(new Symbol(SymKind.TypeParam, method, func.Name, genericParam.SimpleName));
+                            extType.Token.AddInfo(myParam);
+                        }
+                    }
+                    else
+                    {
+                        // Generic parameters are supplied
+                        myParam.Type = ResolveTypeNameOrReject(myParam, extType);
+                    }
+                    if (myParam.Type != null)
+                        method.Qualifiers |= SymQualifiers.Method;
                 }
 
-                if (methodParam.TypeName == "" && !noCompilerChecks)
-                    methodParam.Token.AddInfo(new VerifySuppressError());
-                table.AddOrReject(methodParam);
-                return methodParam;
+                if (myParam.TypeName == "" && !noCompilerChecks)
+                    myParam.Token.AddInfo(new VerifySuppressError());
+                return myParam;
             }
 
             // Give `new` function correct return type

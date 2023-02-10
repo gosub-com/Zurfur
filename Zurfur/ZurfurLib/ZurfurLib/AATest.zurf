@@ -151,10 +151,10 @@ fun Test<X0,X1,X2,X3>()
 
 type OneGeneric<T> { } 
 
-fun get Point<T>.toSizeTest() Size<T>
-    @a = Size<T>(T(),T())
-    @b = Size<T>()
-    @c = Size<T>(my.x, my.y)
+fun get Point.toSizeTest() Size<My.T>
+    @a = Size<My.T>(My.T(),My.T())
+    @b = Size<My.T>()
+    @c = Size(my.x, my.y)
     @d = Size(0,0)
     return c
 
@@ -194,7 +194,7 @@ fun BBBB.BBBB_fm2(a BBBB) {}
 
 
 fun AAAA<int>.AAAA_fm() {}
-fun AAAA<T>.AAAA_fm() {}
+fun AAAA.AAAA_fm() {}
 fun BBBB.AAAA_fm() {}
 
 fun AAAA_f() {}
@@ -206,7 +206,7 @@ fun BBBB.AAAA_fe2(a BBBB) {}
 fun aapoint.AAAA() {}
 fun aapoint.BBBB() {}
 fun aapoint.AAAB() {}
-fun List<T>.X() {}
+fun List.X() {}
 fun int.X() {}
 fun BBBB.hello() {}
     
@@ -258,7 +258,7 @@ fun AAFun.af7<X>(p fun(v X)bool) {}
 
 
 // TBD: These are identical to the ones defined in the class
-fun AGenericTest<T, QQQ>.af6(p fun(v int)bool) {}
+fun AGenericTest.af6(p fun(v int)bool) {}
 //fun AGenericTest<T, QQQ>.af7<X>(p fun(v X)bool) {}
 //fun AGenericTest<T, QQQ>.af8<T1,T2>(i T1)T2 { }
 //fun AGenericTest<T, QQQ>.Q<T1>() {}
