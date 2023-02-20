@@ -7,8 +7,6 @@ mod Zurfur
 
 type Clone<T> interface {}
 type Copy<T> interface {}
-
-mod Zurfur.Operators
     
 // Equality for containers and sorting (NaN == NaN).
 // For floating point equality, use _opEqUnordered.
@@ -33,9 +31,9 @@ type NumOps<T> interface
     [static] fun _opNeg(a T) T
     [static] fun _opMul(a T, b T) T
     [static] fun _opDiv(a T, b T) T
-    [static] fun get ZERO() T
-    [static] fun get ONE() T
-    [static] fun get MIN() T
-    [static] fun get MAX() T
-
-    
+    [static] fun _opRem(a T, b T) T
+    [static] fun get zero() T
+    [static] fun get one() T
+    [static] fun get minValue() T
+    [static] fun get maxValue() T
+    [static] fun get nanOrMin() T

@@ -5,8 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Gosub.Zurfur.Lex;
-using System.Windows.Forms.VisualStyles;
-using System.Diagnostics.SymbolStore;
 
 namespace Gosub.Zurfur.Compiler
 {
@@ -102,7 +100,8 @@ namespace Gosub.Zurfur.Compiler
         const string RAW_POINTER_TYPE = "Zurfur.RawPointer`1";
         const string REF_TYPE = "Zurfur.Ref`1";
         const string NIL_TYPE = "Zurfur.nil";
-        const string NULLABLE_TYPE = "Zurfur.Nullable`1";
+        const string NILABLE_TYPE = "Zurfur.Nilable`1";
+        const string RESULT_TYPE = "Zurfur.Result`1";
 
         static WordSet sOperators = new WordSet("+ - * / % & | ~ == != >= <= > < << >> and or not in |= &= += -= <<= >>= .. ..+ ]");
         static WordSet sCmpOperators = new WordSet("== != >= <= > <");
@@ -345,7 +344,7 @@ namespace Gosub.Zurfur.Compiler
                 EndLocalScope();
             }
 
-            // Get the for loop iterator type, e.g. T in object.iterator.next() -> Nullable<T>
+            // Get the for loop iterator type, e.g. T in object.iterator.next() -> Nilable<T>
             Symbol GenForIterator(Token token, Symbol inType)
             {
                 var getIter = FindAndCall(token, DerefRef(inType), "iterator");
@@ -356,9 +355,9 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 if (!getNext.IsSpecialized
                     || getNext.TypeArgs.Length != 1
-                    || getNext.Parent.FullName != NULLABLE_TYPE)
+                    || getNext.Parent.FullName != NILABLE_TYPE)
                 {
-                    Reject(token, $"Expecting the function '{getIter}.next()' to return a nullable, but it returns '{getNext}'");
+                    Reject(token, $"Expecting the function '{getIter}.next()' to return a Nilable<T>, but it returns '{getNext}'");
                     return null;
                 }
                 return getNext.TypeArgs[0];
@@ -383,10 +382,10 @@ namespace Gosub.Zurfur.Compiler
                 ex.Token.AddInfo(rval.Type);
                 var functionType = currentFunction.FunReturnTupleOrType;
 
-                // TBD: This is to temporarily gloss over pointers, nullable, and nil
+                // TBD: This is to temporarily gloss over pointers, Nilable, and nil
                 if (rval.Type.FullName == NIL_TYPE
-                    && (functionType.Parent.FullName == "Zurfur.RawPointer`1")
-                        || functionType.Parent.FullName == "Zurfur.Nullable`1`1")
+                    && (functionType.Parent.FullName == RAW_POINTER_TYPE)
+                        || functionType.Parent.FullName == NILABLE_TYPE)
                     return rval;
 
                 if (!TypesMatch(DerefRef(functionType), DerefRef(rval.Type)))
@@ -451,10 +450,11 @@ namespace Gosub.Zurfur.Compiler
                 else if (name == "true" || name == "false")
                     return new Rval(token) { Type = typeBool };
                 else if (name == "astart")
-                {
-                    GenCallParams(ex, 0);
-                    return null;
-                }
+                    return GenAstart(ex);
+                else if (name == "?")
+                    return GenDefaultOperator(ex);
+                else if (name == "!")
+                    return GenErrorOperator(ex);
                 else if (name == ";" || name == "{")
                     GenStatements(ex);
                 else if ((char.IsLetter(name[0]) || name[0] == '_') && !ParseZurf.ReservedWords.Contains(name))
@@ -512,7 +512,10 @@ namespace Gosub.Zurfur.Compiler
             Rval GenMy(SyntaxExpr ex)
             {
                 ex.Token.Type = eTokenType.ReservedType;
-                return null;
+                var my = Resolver.ResolveMy(table, ex.Token, currentFunction);
+                if (my == null)
+                    return null;
+                return new Rval(ex.Token) { Candidates = new() { my } };
             }
 
             // Type or function call (e.g. List<int>(), f<int>(), etc)
@@ -651,14 +654,16 @@ namespace Gosub.Zurfur.Compiler
                 ex.Token.Type = eTokenType.NewVarSymbol;
                 if (ex.Count == 0)
                     return null;  // Syntax error
-
-                // Unary operator, create variables
                 if (ex.Count == 1)
-                    return GenNewVars(ex[0], ex.Token);
+                    return GenNewVarsUnary(ex[0], ex.Token);
+                return GenNewVarsBinary(ex);
+            }
 
-                // Binary operator, capture variabes
+            Rval GenNewVarsBinary(SyntaxExpr ex)
+            {
+                // Binary operator, capture variabe
                 var value = GenExpr(ex[0]);
-                var variables = GenNewVars(ex[1], ex.Token);
+                var variables = GenNewVarsUnary(ex[1], ex.Token);
 
                 if (value == null || variables == null)
                     return null;
@@ -669,15 +674,28 @@ namespace Gosub.Zurfur.Compiler
                     return null;
 
                 // Assign type to local variable
-                Debug.Assert(variables.Candidates.Count == 1);
+                Debug.Assert(variables.Candidates.Count == 1); // TBD: Multiple symbols
                 var localVariable = variables.Candidates[0];
-                Debug.Assert(localVariable.IsLocal && localVariable.Type == null);
-                localVariable.Type = valueType;
+                Debug.Assert(localVariable.IsLocal);
                 variables.Token.AddInfo(localVariable);
+                if (localVariable.Type != null)
+                {
+                    Reject(variables.Token, "New variables in binary '@' operator must not have types");
+                    return null;
+                }
+                // Implicitly convert Nilable<T> to bool and T
+                if (valueType.Parent.FullName == NILABLE_TYPE && valueType.TypeArgs.Length == 1)
+                {
+                    localVariable.Type = valueType.TypeArgs[0];
+                    return new Rval(value.Token) { Type = typeBool };
+                }
+
+                localVariable.Type = valueType;
                 return value;
             }
 
-            Rval GenNewVars(SyntaxExpr ex, Token rejectToken)
+            // Still doesn't resolve multiple symbols '@(v1, v2)', etc.
+            Rval GenNewVarsUnary(SyntaxExpr ex, Token rejectToken)
             {
                 var newSymbols = new List<Symbol>();
                 foreach (var e in ex)
@@ -863,6 +881,35 @@ namespace Gosub.Zurfur.Compiler
                 token.AddInfo(opFunc);
                 return new Rval(token) { Type = returnType };
             }
+
+            Rval GenAstart(SyntaxExpr ex)
+            {
+                //Reject(ex.Token, "Not implemented yet");
+                GenCallParams(ex, 0);
+                return null;
+            }
+
+            Rval GenDefaultOperator(SyntaxExpr ex)
+            {
+                Reject(ex.Token, "Not compiled yet");
+                return null;
+            }
+
+            Rval GenErrorOperator(SyntaxExpr ex)
+            {
+                var op = GenExpr(ex[0]);
+                EvalType(op);
+                if (op == null || op.Type == null)
+                    return null;
+                if (op.Type.Parent.FullName != RESULT_TYPE && op.Type.Parent.FullName != NILABLE_TYPE
+                        || op.Type.TypeArgs.Length != 1)
+                {
+                    Reject(ex.Token, $"Expecting 'Result<T>' or 'Nilable<T>', but got '{op.Type}'");
+                    return null;
+                }
+                return new Rval(ex.Token) { Type = op.Type.TypeArgs[0] };
+            }
+
 
             Rval GenOperator(SyntaxExpr ex)
             {

@@ -1,9 +1,7 @@
 ﻿
 mod Zurfur
 
-use Zurfur.Operators[OpEq]
-use Zurfur.Collections[Iterator, Iterable]
-
+use Zurfur[Iterator, Iterable, OpEq]
 
 
 // Entries in the bucket list

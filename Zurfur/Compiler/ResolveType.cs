@@ -14,7 +14,7 @@ namespace Gosub.Zurfur.Compiler
             {"*", "Zurfur.RawPointer`1" },
             {"^", "Zurfur.Pointer`1" },
             {"ref", "Zurfur.Ref`1" },
-            {"?", "Zurfur.Nullable`1"},
+            {"?", "Zurfur.Nilable`1"},
             {"[", "Zurfur.Span`1" },
             {"!", "Zurfur.Result`1" }
         };

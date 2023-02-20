@@ -2,7 +2,6 @@
 mod TestVerifier
 
 use Zurfur
-use Zurfur.Operators
 
 // Comment out the next line to see verification errors
 pragma NoParse

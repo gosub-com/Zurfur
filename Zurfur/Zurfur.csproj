@@ -35,6 +35,9 @@
     <None Update="ZurfurLib\ZurfurLib\AATest.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="ZurfurLib\ZurfurLib\AAUnfinished.zurf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="ZurfurLib\ZurfurLib\Array.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

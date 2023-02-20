@@ -1,49 +1,31 @@
 ﻿
-mod Zurfur.Collections
+mod Zurfur
 
 
 
+[pub]
 type Iterable<Item> interface
     fun get iterator() Iterator<Item>
 
 
 // Implement this on all iterators
+[pub]
 type Iterator<Item> interface
 
     // Return the next item, or null if it doesn't exist
     fun mut next() ?Item
 
 
-[pub] fun mut Iterator.toArray() Array<My.Item>
+[pub]
+fun mut Iterator.toArray() Array<My.Item>
     return my.toList().toArray()
 
-[pub] fun mut Iterator.toList() List<My.Item>
+[pub]
+fun mut Iterator.toList() List<My.Item>
     @list = List<My.Item>()
     while my.next()@item
         list.push(item)
     return list
-
-
-
-[pub] fun mut Iterator.find(f fun(item Item) bool) mut ?ref My.Item
-    while my.next()@item
-        if f(item)
-            return ref item
-    return null
-
-// TBD: Still working out how to do this:
-//
-//[pub] fun mut Iterator.filter(f fun(item Item) bool) FilterIterator<Iterator<Item>, Item>
-//    return FilterIterator<This, Item>(this, f)
-//        
-//type ref FilterIterator<Iter, Item>
-//        where Iter is Iterator<Item>
-//    @iter ref Iter pub init
-//    @f ref fun(item Item) bool pub init
-//
-//fun test_Filter() Array<int>
-//    @listIn = [1,2,3,4,5]
-//    return listIn.filter(@n => n in 2..5).toArray()
     
     
     

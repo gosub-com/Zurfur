@@ -20,64 +20,59 @@ fun C(a int, a int) void { } // Duplicate parameter
 fun D<X,X>(a X) void { } // Duplicate type parameter
 fun E<X>(a Y) void { } // Unresolved type
 
-type A { pub fun A() void { } } // Same name as parent
+// If we allow embedded functions and types
+type A { fun A() void { } } // Same name as parent
 type C<T> { type D<T> { } } // Same type arg name as parent
-type B<T> { pub fun A<T>() void { } } // Same type arg name as parent
+type B<T> { fun A<T>() void { } } // Same type arg name as parent
 
 
-pub type ro test
+// Try to give good info at the end of each line
+fun new(a i8) void // Compound statement error
+fun
+fun A
+fun B(
+fun C(a
+fun E(a int
+fun F(a int,
+fun G(a int, b
+fun J(a, x int) 
+fun H(a int, b int) void  // Compound error on this line (not next)
+fun I(a int, b int) void
+
+fun J(a int, x int) void
+NoCompoundHere()
+
+// Error in 'fun' declaration still parses function after '{'
+fun K(a int, x)  void
+    if a > 3   // Error: Next line doesn't look like a compound
+    a += 1
+
+
+    if a > 3
+        a+=1
+         b+=1  // Error: Compound statement alignment
+
+    if a >
+    a+= 1       // No error here because it's marked on the previous line
+
+    if a >
+    a+= 1       // No error here because it's marked on the previous line
+
+
+    if a > 3 return 4 // Error: Compound must be on next line
+
+
+    if
+
+    if a
+
+    if a>
+
+    if a>b        
+
+
+// TBD: The curly brace should be accepted as part of the `fun` declaration
+fun K(a int, x) hello world void
 {
-    // Try to give good info at the end of each line
-    fun new(a i8) void // Compound statement error
-    pub fun
-    fun A
-    fun B(
-    fun C(a
-    fun E(a int
-    fun F(a int,
-    fun G(a int, b
-    pub fun J(a, x int) 
-    pub fun H(a int, b int) void  // Compound error on this line (not next)
-    pub fun I(a int, b int) void
-
-    fun J(a int, x int) void
-    NoCompoundHere()
-
-    // Error in 'fun' declaration still parses function after '{'
-    fun K(a int, x)  void
-    {
-        if a > 3   // Error: Next line doesn't look like a compound
-        a += 1
-
-
-        if a > 3
-            a+=1
-             b+=1  // Error: Compound statement alignment
-
-        if a >
-        a+= 1       // No error here because it's marked on the previous line
-
-        if a >
-        a+= 1       // No error here because it's marked on the previous line
-
-
-        if a > 3 return 4 // Error: Compound must be on next line
-
-
-        if
-
-        if a
-
-        if a>
-
-        if a>b        
-        
-    }
-
-
-    // TBD: The curly brace should be accepted as part of the `fun` declaration
-    fun K(a int, x) hello world void
-    {
-    }
-    
 }
+    

@@ -1,0 +1,89 @@
+﻿
+mod Unfinished
+
+use Zurfur[Log, Iterator]
+use Zurfur.Draw2d[Point, Size]
+
+
+type VariantMap
+    notDone int
+
+fun test_Main(args Array<str>)
+        
+    @sum = 0
+    @list List<int>
+    list.forEach(@item => { sum += item })
+
+
+// https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
+// PREVIOUSLY: [pub] fun GetIterator<T>.AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIterator<T>
+fun Iterator.alphaLengthWise<L>(lengthProvider fun(t Item) L) Iterator<My.Item>
+    return my.orderBy(@a => lengthProvider(a))
+             .thenBy(@a => a)
+
+fun Iterator.orderBy() Iterator<My.Item>
+    extern
+
+fun mut Iterator.find(f fun(item Item) bool) mut ?ref My.Item
+    while my.next()@item
+        if f(item)
+            return ref item
+    return nil
+
+fun test_Convert()
+    @a = List<f64>()
+    @b = List<int>()
+    @c = a.convert(@i => i.intMask)
+
+fun Span.sort(lessThan fun(a T,b T)bool)
+    // Simple selection sort
+    for @i in my.len-1
+        @lowElem = my[i]
+        @lowIndex = i
+        for @j in i+1..my.len
+            if lessThan(my[j], lowElem)
+                lowElem = my[j]
+                lowIndex = j
+        if lowIndex != i
+            my[lowIndex] = my[i]
+            my[i] = lowElem
+
+type Label
+    text str
+    location Point<int>
+    size Size<int>
+    
+type MyForm
+    message1 Label
+    message2 Label
+
+fun MakeGui()
+    @form = MyForm(
+        message1: Label(
+            text: "Message 1",
+            location: Point(4, 4),
+            size: Size(100, 24)),
+        message2: Label(
+            text: "Message 1",
+            location: Point(4, 4),
+            size: Size(100, 24))   
+        )
+                   
+    @x VariantMap = ["Hello":"a",
+                  "World":"b",
+                  "List":[1,2,3]]
+
+// TBD: Still working out how to do this:
+//
+//[pub] fun mut Iterator.filter(f fun(item Item) bool) FilterIterator<Iterator<Item>, Item>
+//    return FilterIterator<This, Item>(this, f)
+//        
+//type ref FilterIterator<Iter, Item>
+//        where Iter is Iterator<Item>
+//    @iter ref Iter pub init
+//    @f ref fun(item Item) bool pub init
+//
+//fun test_Filter() Array<int>
+//    @listIn = [1,2,3,4,5]
+//    return listIn.filter(@n => n in 2..5).toArray()
+            

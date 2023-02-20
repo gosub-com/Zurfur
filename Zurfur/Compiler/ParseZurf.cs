@@ -1674,11 +1674,11 @@ namespace Gosub.Zurfur.Compiler
 
         SyntaxExpr ParseShift()
         {
-            var result = ParseIsAs();
+            var result = ParseIsAsCapture();
             InterceptAndReplaceGT();
             while (mTokenName == "<<" || mTokenName == ">>")
             {
-                result = new SyntaxBinary(Accept(), result, ParseIsAs());
+                result = new SyntaxBinary(Accept(), result, ParseIsAsCapture());
                 InterceptAndReplaceGT();
                 if (mTokenName == "<<" || mTokenName == ">>")
                     RejectToken(mToken, "Shift operators are not associative, must use parentheses");
@@ -1686,43 +1686,36 @@ namespace Gosub.Zurfur.Compiler
             return result;
         }
 
-        SyntaxExpr ParseIsAs()
-        {
-            var result = ParseNewVarCapture();
-            if (mTokenName == "is" || mTokenName == "as")
-                result = new SyntaxBinary(Accept(), result, ParseType());
-            else
-                while (mTokenName == "??")
-                {
-                    mToken.Type = eTokenType.BoldSymbol;
-                    result = new SyntaxBinary(Accept(), result, ParseNewVarCapture());
-                }
-
-            return result;
-        }
-
-        SyntaxExpr ParseNewVarCapture()
+        SyntaxExpr ParseIsAsCapture()
         {
             var result = ParseUnary();
-            if (mTokenName == "@")
+            if (mTokenName == "is" || mTokenName == "as")
+                result = new SyntaxBinary(Accept(), result, ParseType());
+            else if (mTokenName == "@")
                 result = new SyntaxBinary(Accept(), result, ParseNewVars());
+            else if (mTokenName == "?")
+                result = new SyntaxBinary(Accept(), result, ParseUnary());
+
             return result;
         }
 
         SyntaxExpr ParseUnary()
         {
+            if (mTokenName == "@")
+                return new SyntaxUnary(Accept(), ParseNewVars());
+
             if (sUnaryOps.Contains(mTokenName))
             {
                 if (mTokenName == "+")
                     RejectToken(mToken, "Unary '+' operator is not allowed");
                 return new SyntaxUnary(Accept(), ParseUnary());
             }
-            if (mTokenName == "@")
-            {
-                return new SyntaxUnary(Accept(), ParseNewVars());
-            }
 
-            return ParsePrimary();
+            var result = ParsePrimary();
+
+            if (mTokenName == "!")
+                result = new SyntaxUnary(Accept(), result);
+            return result;
         }
 
         /// <summary>

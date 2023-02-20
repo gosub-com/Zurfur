@@ -4,11 +4,10 @@ mod AATest
 
 
 use Zurfur
-use Zurfur[Log, Xuint, RawPointer, castPointer]
-use Zurfur.Operators[OpEq, NumOps]
+use Zurfur[Log, Xuint, RawPointer, castPointer,
+            Iterator, Iterable, OpEq, NumOps]
 use Zurfur.Math[cos]
 use Zurfur.Draw2d[Size, Point]
-use Zurfur.Collections[Iterator, Iterable]
 
 
 pragma ShowParse
@@ -94,7 +93,7 @@ fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>,
     @z3 = a + b
     @z4 = T._opAdd(a,b)
     @z6 = T().getHash()
-    @z5 = T.ONE
+    @z5 = T.one
     @iter3 = t.iterator()
 
     for @item in t

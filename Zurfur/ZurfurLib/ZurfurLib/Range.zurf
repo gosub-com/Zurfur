@@ -1,11 +1,8 @@
 ﻿
 mod Zurfur
 
-use Zurfur[Copy]
+use Zurfur[Copy, Iterator, NumOps]
 use Zurfur.Math[abs]
-use Zurfur.Operators[NumOps]
-use Zurfur.Collections[Iterator]
-
 
 [pub]
 type Range<T> copy
@@ -22,11 +19,9 @@ fun Range.new(low My.T, high My.T)
 fun abs(i int) int
     return 3
 
-
 // TBD: Shortcut syntax
 type Abs<T> interface
     [static] fun abs(n T) T
-
 
 // Absolute length of range: abs(high-low)
 // TBD: Allow individual functions in the where clause
@@ -37,12 +32,10 @@ fun get Range.length() My.T
     //      return if(my.low <= my.high, my.low : my.high) 
     return My.T.abs(my.high-my.low)
 
-
 [pub]
 fun get Range.iterator() RangeIterator<My.T>
     return RangeIterator<My.T>(my.low, my.high)
         
-
 [pub]
 type RangeIterator<T> where T has NumOps<T>
     current T pub init
@@ -50,8 +43,9 @@ type RangeIterator<T> where T has NumOps<T>
 
 [pub]
 fun RangeIterator.new(low My.T, high My.T)
-    (my.current, my.high) = (low, high)    
-
+    // TBD: (my.current, my.high) = (low, high)
+    my.current = low
+    my.high = high
 
 [pub]
 fun mut RangeIterator.next() ?My.T
@@ -59,6 +53,6 @@ fun mut RangeIterator.next() ?My.T
     if my.current >= my.high
         return nil
     @r = my.current
-    my.current += My.T.ONE
-    return Nullable<My.T>(my.current)
+    my.current += My.T.one
+    return Nilable<My.T>(my.current)
         

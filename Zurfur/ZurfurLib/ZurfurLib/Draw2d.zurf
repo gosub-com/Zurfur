@@ -4,7 +4,7 @@
 // TBD: Vec2, Vec3, Vec4 for 3d, is Point same as Vec2?
 mod Zurfur.Draw2d
 
-use Zurfur.Operators[NumOps]
+use Zurfur[NumOps]
 
 fun test_Shape()
     @rect = Rect<int>(1,2,3,4) // TBD: Type inderence for constructors

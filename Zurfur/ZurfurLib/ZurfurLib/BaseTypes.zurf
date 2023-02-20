@@ -10,7 +10,6 @@ pragma AllowUnderscoreDefinitions
 [pub] fun get nop() extern
 [pub] fun get todo() require(false) extern
 
-
 // These implement throw and require reserved words
 [pub] fun __throw(code ErrorCode, message str) extern
 [pub] fun __throw(condition bool, code ErrorCode, message str) extern
@@ -19,8 +18,6 @@ pragma AllowUnderscoreDefinitions
 [pub] fun assert(condition bool) extern
 [pub] fun assert(condition bool, message str) extern
 
-
-
 // Return type of functions that don't return anything
 [pub]
 type void { }
@@ -28,6 +25,19 @@ type void { }
 // Empty value for pointers and optionals
 [pub]
 type nil { }
+
+// Nilable<T> is the same as ?T.  Pointer and reference types are always
+// optimized so that `?ref T`, `*T`, and `^T` are just one pointer.
+[pub]
+type Nilable<T>
+    value T
+    hasValue bool
+
+[pub]
+fun Nilable.new(value My.T)
+    my.value = value
+    my.hasValue = true
+
 
 [pub]
 type Error ro interface
@@ -46,17 +56,6 @@ type Result<T> union
 type ErrorCode enum
     Success = 0 
 
-
-// Nullable<T> - Same as ?T
-[pub]
-type Nullable<T>
-    value T
-    hasValue bool
-
-[pub]
-fun Nullable.new(value My.T)
-    my.value = value
-    my.hasValue = true
     
 
 // a UTF8 encoded character, same as i32
@@ -94,10 +93,11 @@ type bool ro copy
 type i8 ro copy
     const __size int = 1
     const __align int = 1
-    [pub] const MAX i8 = 127
-    [pub] const MIN i8 = -128
-    [pub] const ZERO i8 = 0
-    [pub] const ONE i8 = 1
+    const zero i8 = 0
+    const one i8 = 1
+    const minValue i8 = -128
+    const maxValue i8 = 127
+    const nanOrMin i8 = minValue
     
 [pub] fun get i8.toStr() str extern
 [pub] fun get i8.toByte() ?byte extern
@@ -118,10 +118,11 @@ type i8 ro copy
 [pub] type byte ro copy
     const __size int = 1
     const __align int = 1    
-    [pub] const MAX byte = 255
-    [pub] const MIN byte = 0
-    [pub] const ZERO byte = 0
-    [pub] const ONE byte = 1
+    const zero byte = 0
+    const one byte = 1
+    const minValue byte = 0
+    const maxValue byte = 255
+    const nanOrMin byte = minValue
     
 [pub] fun get byte.toStr() str extern
 [pub] fun get byte.toI8() ?i8 extern
@@ -145,10 +146,11 @@ type i8 ro copy
 [pub] type i16 ro copy
     const __size int = 2
     const __align int = 2    
-    [pub] const MAX i16 = 32767
-    [pub] const MIN i16 = -32768
-    [pub] const ZERO i16 = 0
-    [pub] const ONE i16 = 1
+    const zero i16 = 0
+    const one i16 = 1
+    const minValue i16 = -32768
+    const maxValue i16 = 32767
+    const nanOrMin i16 = minValue
 
 [pub] fun get i16.toStr() str extern
 [pub] fun get i16.toI8() ?i8 extern
@@ -173,10 +175,12 @@ type i8 ro copy
 [pub] type u16 ro copy
     const __size int = 2
     const __align int = 2    
-    [pub] const MAX u16 = 65535
-    [pub] const MIN u16 = 0
-    [pub] const ZERO u16 = 0
-    [pub] const ONE u16 = 1
+    const zero u16 = 0
+    const one u16 = 1
+    const minValue u16 = 0
+    const maxValue u16 = 65535
+    const nanOrMin u16 = minValue
+    
 
 [pub] fun get u16.toStr() str extern
 [pub] fun get u16.toI8() ?i8 extern
@@ -201,10 +205,12 @@ type i8 ro copy
 [pub] type i32 ro copy
     const __size int = 4
     const __align int = 4    
-    [pub] const MAX i32 = 2147483647
-    [pub] const MIN i32 = -2147483648
-    [pub] const ZERO i32 = 0
-    [pub] const ONE i32 = 1
+    const zero i32 = 0
+    const one i32 = 1
+    const minValue i32 = -2147483648
+    const maxValue i32 = 2147483647
+    const nanOrMin i32 = minValue
+    
 
 [pub] fun get i32.toStr() str extern
 [pub] fun get i32.toI8() ?i8 extern
@@ -248,10 +254,12 @@ type i8 ro copy
 [pub] type u32 ro copy
     const __size int = 4
     const __align int = 4    
-    [pub] const MAX u32 = 4294967295
-    [pub] const MIN u32 = 0
-    [pub] const ZERO u32 = 0
-    [pub] const ONE u32 = 1
+    const zero u32 = 0
+    const one u32 = 1
+    const minValue u32 = 0
+    const maxValue u32 = 4294967295
+    const nanOrMin u32 = minValue
+    
 
 [pub] fun get u32.toStr() str extern
 [pub] fun get u32.toI8() ?i8 extern
@@ -296,10 +304,11 @@ type i8 ro copy
 [pub] type int ro copy
     const __size int = 8
     const __align int = 8    
-    [pub] const MAX int = 9223372036854775807
-    [pub] const MIN int = -9223372036854775808
-    [pub] const ZERO int = 0
-    [pub] const ONE int = 1
+    const zero int = 0
+    const one int = 1
+    const minValue int = -9223372036854775808
+    const maxValue int = 9223372036854775807
+    const nanOrMin int = minValue    
 
 [pub] fun get int.toStr() str extern
 [pub] fun get int.toI8() ?i8 extern
@@ -347,10 +356,11 @@ type i8 ro copy
 [pub] type u64 ro copy
     const __size int = 8
     const __align int = 8    
-    [pub] const MAX u64 = 18446744073709551615
-    [pub] const MIN u64 = 0
-    [pub] const ZERO u64 = 0
-    [pub] const ONE u64 = 1
+    const zero u64 = 0
+    const one u64 = 1
+    const minValue u64 = 0
+    const maxValue u64 = 18446744073709551615
+    const nanOrMin u64 = minValue
 
 [pub] fun get u64.toStr() str extern
 [pub] fun get u64.toI8() ?i8 extern
@@ -408,16 +418,17 @@ type i8 ro copy
 [pub] type f32 ro copy
     const __size int = 4
     const __align int = 4    
-    [pub] const MAX f32 = 3.40282347E+38F
-    [pub] const MIN f32 = -3.40282347E+38F
-    [pub] const ZERO f32 = 0
-    [pub] const ONE f32 = 1
-    [pub] const EPSILON f32 = 1.401298E-45F
-    [pub] const INF f32 = 1F/0F
-    [pub] const NEG_INF f32 = -1F/0F
-    [pub] const NAN f32 = 0f32/0f32
-    [pub] const PI f32 = 3.141592653589793238
-    [pub] const E f32 = 2.718281828459045235
+    const zero f32 = 0
+    const one f32 = 1
+    const minValue f32 = -3.40282347E+38F
+    const maxValue f32 = 3.40282347E+38F
+    const nanOrMin f32 = minValue    
+    const epsilon f32 = 1.401298E-45F
+    const infinity f32 = 1F/0F
+    const negativeInfinity f32 = -1F/0F
+    const nan f32 = 0f32/0f32
+    const PI f32 = 3.141592653589793238
+    const E f32 = 2.718281828459045235
 
 [pub] fun get f32.isInfinity() bool extern
 [pub] fun get f32.isNan() bool extern
@@ -433,7 +444,6 @@ type i8 ro copy
 [pub] fun get f32.toByteMask() byte extern
 [pub] fun get f32.toIntMask() int extern
 [pub] fun get f32.toU64Mask() u64 extern
-
         
 [pub] fun f32.getHash() int extern
 [pub static] fun f32._opEq(a f32, b f32) bool extern
@@ -456,16 +466,17 @@ type i8 ro copy
 [pub] type f64 ro copy
     const __size int = 8
     const __align int = 8    
-    [pub] const MAX f64 = 1.7976931348623157E+308
-    [pub] const MIN f64 = -1.7976931348623157E+308
-    [pub] const ZERO f64 = 0
-    [pub] const ONE f64 = 1
-    [pub] const EPSILON f64 = 4.94065645841247E-324
-    [pub] const INF f64 = 1.0/0.0
-    [pub] const NEG_INF f64 = -1.0/0.0
-    [pub] const NAN f64 = 0f64/0f64
-    [pub] const PI f64 = 3.141592653589793238
-    [pub] const E f64 = 2.718281828459045235
+    const zero f64 = 0
+    const one f64 = 1
+    const minValue f64 = -1.7976931348623157E+308
+    const maxValue f64 = 1.7976931348623157E+308
+    const nanOrMin f64 = minValue    
+    const epsilon f64 = 4.94065645841247E-324
+    const infinity f64 = 1.0/0.0
+    const negativeInfinity f64 = -1.0/0.0
+    const nan f64 = 0f64/0f64
+    const PI f64 = 3.141592653589793238
+    const E f64 = 2.718281828459045235
 
 [pub] fun get f64.isInfinity() bool extern
 [pub] fun get f64.isNan() bool extern
@@ -501,18 +512,19 @@ type i8 ro copy
 [pub static] fun f64._opRem(a f64, b f64) f64 extern
 
 
-// 128 bit decimal integer.  This will support NAN, infinity, and
+// 128 bit decimal integer.  This will support nan, infinity, and
 // exponents covering the entire range of f64 with more precision.
 [pub] type Decimal ro copy
     const __size int = 16
     const __align int = 16
-    [pub] const MAX Decimal = 1E+1000M
-    [pub] const MIN Decimal = -1E+1000M
-    [pub] const ZERO Decimal = 0
-    [pub] const ONE Decimal = 1
-    [pub] const INF Decimal = 1.0/0.0
-    [pub] const NEG_INF Decimal = -1.0/0.0
-    [pub] const NAN Decimal = 0.0/0.0
+    const zero Decimal = 0
+    const one Decimal = 1
+    const minValue Decimal = -1E+1000M
+    const maxValue Decimal = 1E+1000M
+    const nanOrMin Decimal = minValue    
+    const infinity Decimal = 1.0/0.0
+    const negativeInfinity Decimal = -1.0/0.0
+    const nan Decimal = 0.0/0.0
     
 [pub] fun get Decimal.isInfinity() bool extern
 [pub] fun get Decimal.isNan() bool extern
@@ -547,5 +559,3 @@ type i8 ro copy
 [pub static] fun Decimal._opDiv(a Decimal, b Decimal) Decimal extern
 [pub static] fun Decimal._opRem(a Decimal, b Decimal) Decimal extern
 
-
-    

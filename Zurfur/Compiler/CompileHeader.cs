@@ -47,7 +47,7 @@ namespace Gosub.Zurfur.Compiler
  
     static class CompileHeader
     {
-        const string ZURFUR_PRELUDE = "void nil bool i8 byte i16 u16 i32 u32 int u64 f32 f64 object str List Map Array Buffer Span";
+        const string ZURFUR_PRELUDE = "void nil Nilable bool i8 byte i16 u16 i32 u32 int u64 f32 f64 str List Map Array Buffer Span";
         static WordSet sOperatorFunctionNames = new WordSet(
             "_opAdd _opSub _opNeg _opMul _opDiv _opRem _opRange _opIn _opEq _opEqNan _opCmp _opCmpNan " 
             + "_opBitShl _opBitShr _opBitAnd _opBitOr _opBitXor _opBitNot _opIndex");

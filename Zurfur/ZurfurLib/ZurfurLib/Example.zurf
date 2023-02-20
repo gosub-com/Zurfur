@@ -10,16 +10,13 @@
 mod TestExample
 
 use Zurfur
-use Zurfur[Decimal, Log]
-use Zurfur.Collections[Iterator]
+use Zurfur[Decimal, Log, Iterator, NumOps]
 use Zurfur.Math[cos,sin]
 use Zurfur.ConvertBytes[bytesToHex]
-
 
 // Simple types have public fields:
 [pub] type SimpleType(firstName str, lastName str)
 [pub] type SimpleImmutableType ro(firstName str, fastName str)
-
 
 // Define a type
 [pub]
@@ -27,6 +24,14 @@ type MyType
     text str                // Public
     _misc str               // Private
     _list List<int> pub ref // Private with pub ro
+
+// Declare a method to multiply and add three keys on Map<K,V>.
+// Return Nan (or MinValue for integer types) if any key is missing.
+fun Map.madd(mul1 My.K, mul2 My.K, add My.K) My.V
+        where My.V has NumOps<My.V>
+    if my[mul1]@mul1Val and my[mul2]@mul2Val and my[add]@addVal
+        return mul1Val * mul2Val + addVal
+    return My.V.nanOrMin        
 
 // Method
 [pub]
@@ -41,33 +46,36 @@ fun set MyType.list(v own List<int>)
     my._list = v
     my.mapChangedEvent()
 
-
-
 fun MyType.mapChangedEvent() {}
-
-
 
 fun hello() {}
 
 fun test_HelloWorld()
     Log.info("Hello World.  Let's count from 1 to 10.")
-    for @a in 1..11
-        Log.info("Hello world.  count=${a}")
+    for @i in 1..11
+        Log.info("Count=${a}")
+
+    @a = "Regular string literal"       // No interpolation
+    @b = "Column 1${\t}Column 2${\n}"   // Containing a tab, ending with \n
+    @c = tr"Translated string"          // Translated at runtime
+    @d = "Hello world, a+b=${a+b}${\n}" // Interpolated with \n at the end
+    @e = tr"Hello world, X=${X}!${\n}"  // Translated, interpolated, \n at end
+    @g = """{"X":1,"Y":2}"""            // Containing quote
+    @h = """{"X":${x},"Y":2}"""         // Containing quote and interpolated
+
     @t1 = circle2(1, 2.0)
     @t1r1 = t1.x
     @t1r2 = t1.y
-            
 
+            
 [pub]
 fun circle(a f64, r f64) -> (x f64, y f64)
     @q = circle(1.0,2.0)
     @p = q.x
     return (cos(a)*r, sin(a)*r)
 
-
 fun circle2<T0, T1>(a T0, r T1)->(x T0, y T1)
     return (T0(), T1())
-
 
 [pub] type Example
     
@@ -87,7 +95,6 @@ fun circle2<T0, T1>(a T0, r T1)->(x T0, y T1)
     map3 ro Map<str,int> pub init               // Read only, init in constructor or allow public init
     
     a Zim<void>
-    b Zim<object>
     c Zim<i8>
     e Zim<byte>
     f Zim<i16>
@@ -99,8 +106,6 @@ fun circle2<T0, T1>(a T0, r T1)->(x T0, y T1)
     n Zim<f32>
     o Zim<str>
     p Zim<Decimal>
-    
-
 
 [pub]
 type Zim<T>
@@ -108,12 +113,13 @@ type Zim<T>
 
 // Type test for test_main
 type Token(a int)
-fun AcceptMatch(m str) Token {}
+fun AcceptMatch(m str) ?Token
+    return nil
 
 // This is a public documentation comment.  Do not use XML.
 // Use `name` to refer to variables in the code.
-[pub] fun test_Main(args Array<str>, stream Zurfur.Io.Reader)
-
+[pub]
+fun test_Main(args Array<str>, stream Zurfur.Io.Reader)
 
     // This is a regular private comment
     Log.info("Hello World, 2+2=${2+2}")
@@ -133,14 +139,12 @@ fun AcceptMatch(m str) Token {}
     else
         v = "none"
     
-
     @a = tr"Column 1${\t}Column 2${\rn}"
     @data = "Name:${name}${\t}Occupation:${lastName}${\rn}"
     @buffer = Buffer<byte>()
     
-    while stream.read(buffer[0..4])@size == 4
+    while stream.read(buffer[0..4])!@size == 4
         @bytes = buffer[0..4].bytesToHex(false) // TBD: Scan use statements for extension methods
-
 
     // AcceptMatch returns ?Token = (bool, Token)
     // @Token captures the token, leaving the bool
@@ -149,57 +153,11 @@ fun AcceptMatch(m str) Token {}
         // We got a token
     }
 
-    @sum = 0
-    @list List<int>
-    list.forEach(@item =>
-    {
-        sum += item
-    })
 
     return
 
-    fun test_compose()
-        Log.info("Count=${v}")
-        //@squareTriple = compose(&square, &triple)
-        //Debug.Assert(squareTriple(2) == 36)
-        //    
-        //for @v in 1..23
-        //    Log.Info("Count=${v}")
-
-    // Compose f(g(x))
-    fun compose(f fun(x int) int,
-                g fun(x int) int) fun(x int) int
-        return //@x => f(g(x))
-
-    fun triple(x int) int
-        return x*3
-    fun square(x int) int
-        return x*x
-
-// https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-// PREVIOUSLY: [pub] fun GetIterator<T>.AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIterator<T>
-[pub] fun Iterator.alphaLengthWise<L>(lengthProvider fun(t Item) L) Iterator<My.Item>
-    return my.orderBy(@a => lengthProvider(a))
-             .thenBy(@a => a)
-
-fun Iterator.orderBy() Iterator<My.Item>
-    extern
 
 
-type MyStruct(a int)
-
-[pub] fun Span.sort(lessThan fun(a T,b T)bool)
-    // Simple selection sort
-    for @i in my.len-1
-        @lowElem = my[i]
-        @lowIndex = i
-        for @j in i+1..my.len
-            if lessThan(my[j], lowElem)
-                lowElem = my[j]
-                lowIndex = j
-        if lowIndex != i
-            my[lowIndex] = my[i]
-            my[i] = lowElem
 
 
         

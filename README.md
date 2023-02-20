@@ -95,13 +95,13 @@ and use the `my` keyword to refer to fields or other methods in the type:
 Methods on generic types can use the capitalized `My` keyword to refer its
 own type:
 
-    // Declare a method to sum two keys on Map<K,V>.
-    // Return 0 if either key is missing
-    fun Map.mySum(key1 My.K, key2 My.K) My.V
+    // Declare a method to multiply and add three keys on Map<K,V>.
+    // Return Nan (or MinValue for integer types) if any key is missing.
+    fun Map.madd(mul1 My.K, mul2 My.K, add My.K) My.V
             where My.V has NumOps<My.V>
-        if key1 in my and key2 in my
-            return my[key1] + my[key2]
-        return My.V.ZERO        
+        if my[mul1]@mul1Val and my[mul2]@mul2Val and my[add]@addVal
+            return mul1Val * mul2Val + addVal
+        return My.V.nanOrMin        
 
 Concrete methods can also be defined on generic types:
 
@@ -119,7 +119,7 @@ Getters and setters are functions declared with `get` and `set` keywords:
         my._myString = value
         my.myStringChangedEvent()
 
-This is identical to declaring a public field:
+The following getter function is identical to declaring a public field:
 
     // Identical to declaring a public field
     fun get MyPoint.x2() mut ref int
@@ -214,6 +214,9 @@ The ones we all know and love:
 | str, str16 | An `Array<byte>` or `Array<u16>` with support for UTF-8 and UTF-16.  `Array` (an alias for `ro List`) is immutable, therefore `str` is also immutable.  `str16` is a JavaScript or C# style Unicode string
 | Span\<T\> | A view into a `List` or `Array`.  It has a constant `len`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `List` is mutable)
 | Map<K,V> | Unordered mutable map.  `ro Map<K,V>` is the immutable counterpart. 
+| Nilable\<T\> | Identical to `?T`.  Always optimized for pointers and references
+| Result\<T\> | Same as `!T`. An optional containing either a return value or an `Error` interface.
+| Error | An interface containing a `message` string and an integer `code`
 | Dynamic, DynamicMap | The type used to interface with dynamically typed languages.  Easy conversion to/from JSON and string representations of built-in types.  TBD: `dyn` keyword in the future (e.g. `myDyn["hello"]` is same as `myDyn.hello`)
 
 All types have a compiler generated `ro` counterpart which can be copied
@@ -485,7 +488,9 @@ with C and gives an error where not compatible:
 | :--- | :---
 |`x.y`  `f<type>(x)` `x.(type)` `a[i]` | Primary
 |- ~ & `ref` `not` `sizeof` `typeof` `unsafe` | Unary
-|@|Capture new variable
+|@| Capture new variable
+|?| Use default for `Nilable`
+|!| Pass error up for `Result` or when `Nilable` is `nil`
 |`is` `is not` `as` | Type conversion and comparison
 |<< >>| Bitwise shift (not associative, can't mix with arithmetic operators)
 |* / % & | Multiply, bitwise *AND* (can't mix arithmetic and bit operators)
@@ -504,10 +509,11 @@ with C and gives an error where not compatible:
 The `~` operator is both xor and unary complement, same as `^` in Golang.
 
 The `@` operator captures the expression into a new variable.
-For instance `while stream.Read(buffer)@length != 0 {...}`
-captures the value returned by `Read` into the new variable `length`.
-Or, `if maybeNullObjectFunc()@nonNullObject { }` can be used to
-convert `?Object` into `Object` inside of the braces. 
+
+The `!` opererator passes an error up to the caller when a `Result` has an
+`Error`.  For example `while stream.read(buffer)!@length != 0 {...}` passes
+an error up to the caller, or captures the value returned by `read` into the
+new variable `length`.
 
 The bitwise shift operators `<<` and `>>` are higher precedence than other
 operators, making them compatible with C for bitwise operations.  Bitwise

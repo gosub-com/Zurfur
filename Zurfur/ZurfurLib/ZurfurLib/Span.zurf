@@ -2,7 +2,7 @@
 
 mod Zurfur
 
-use Zurfur.Operators[OpEq]
+use Zurfur[OpEq]
 
 // []T is converted to Span<T>
 [pub]

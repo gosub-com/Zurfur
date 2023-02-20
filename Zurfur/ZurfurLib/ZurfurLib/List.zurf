@@ -2,8 +2,7 @@
 mod Zurfur
 
 
-use Zurfur.Collections[Iterator]
-use Zurfur[Clone]
+use Zurfur[Iterator, Clone]
 use Zurfur.Math[max]
 
 
