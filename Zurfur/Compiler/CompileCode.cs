@@ -1139,27 +1139,6 @@ namespace Gosub.Zurfur.Compiler
                     return new Rval(call.Token) { Type = table.GetGenericParam(newType.Order) };
                 }
 
-                // Empty constructor (create a default with any type parameters)
-                // TBD: This overrides all users constructors.  Put this below
-                //      `FindCompatibleFuncton`, refactor so that function
-                //      doesn't mark the error.
-                if (args == null || args.Count == 0)
-                {
-                    if (call.TypeArgs.Length == newType.GenericParamTotal())
-                    {
-                        // Add supplied type parameters
-                        if (call.TypeArgs.Length != 0)
-                            newType = table.CreateSpecializedType(newType, call.TypeArgs);
-                    }
-                    else
-                    {
-                        Reject(call.Token,
-                            $"Expecting {newType.GenericParamTotal()} generic parameter(s), but got {call.TypeArgs.Length});");
-                    }
-                    call.Token.AddInfo(newType);
-                    return new Rval(call.Token) { Type = newType };
-                }
-
                 // Search for `new` function
                 Debug.Assert(call.InType == null);
                 call.InType = table.WildCard;
@@ -1710,7 +1689,7 @@ namespace Gosub.Zurfur.Compiler
                     symbols.Add(sym);
                 if (inType.HasFunNamed(name))
                     foreach (var child in inType.Children)
-                        if (child.IsFun && child.Token == name)
+                        if (child.IsFun && child.SimpleName == name)
                             symbols.Add(child);
             }
 
@@ -1728,7 +1707,7 @@ namespace Gosub.Zurfur.Compiler
 
                 foreach (var child in inModule.Children)
                 {
-                    if (!child.IsFun || !child.IsMethod || child.Token != name)
+                    if (!child.IsFun || !child.IsMethod || child.SimpleName != name)
                         continue;
                     var parameters = child.FunParamTypes;
                     if (parameters.Length == 0)
@@ -1802,7 +1781,7 @@ namespace Gosub.Zurfur.Compiler
                     symbols.Add(sym1);
                 if (module.HasFunNamed(name))
                     foreach (var child in module.Children)
-                        if (child.IsFun && child.Token == name && !child.IsMethod)
+                        if (child.IsFun && child.SimpleName == name && !child.IsMethod)
                             symbols.Add(child);
 
                 // Search 'use' symbol

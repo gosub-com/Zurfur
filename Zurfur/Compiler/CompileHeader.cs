@@ -69,6 +69,7 @@ namespace Gosub.Zurfur.Compiler
             ResolveFields();
             ResolveFunctions();
             ResolveTypeConstraints();
+            AddConstructors();
             table.GenerateLookup();
 
             // Re-process use statements to retrieve functions
@@ -215,6 +216,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     foreach (var type in syntaxFile.Types)
                     {
+                        // Add type
                         if (!syntaxToSymbol.TryGetValue(type.Parent, out var parent))
                             continue; // Syntax errors
                         var newType = new Symbol(SymKind.Type, parent, type.Name);
@@ -226,6 +228,35 @@ namespace Gosub.Zurfur.Compiler
                         Debug.Assert(!syntaxToSymbol.ContainsKey(type));
                         syntaxToSymbol[type] = newType;
                     }
+                }
+            }
+
+            // Add a default constructor for each type, if it doesm't already exist
+            void AddConstructors()
+            {
+                foreach (var newType in table.LookupSymbols)
+                {
+                    if (newType.Kind != SymKind.Type)
+                        continue;
+
+                    // Add constructor.  Same signature as the user would write.
+                    // TBD: Simplify this, because it's identical to compiling:
+                    //          "fun Type.new() extern"
+                    //      Plus, some of this code is repeated in other places
+                    var module = newType.Parent;
+                    var constructor = new Symbol(SymKind.Fun, module, newType.Token, "new");
+                    constructor.Qualifiers |= SymQualifiers.Static | SymQualifiers.Method | SymQualifiers.Extern;
+                    var myParam = new Symbol(SymKind.FunParam, constructor, newType.Token, "my");
+                    myParam.Type = Resolver.GetTypeWithGenericParameters(table, newType, newType.GenericParamTotal());
+                    foreach (var genericParam in myParam.Type.TypeArgs)
+                        table.AddOrReject(new Symbol(SymKind.TypeParam, constructor, newType.Token, genericParam.SimpleName));
+                    table.AddOrReject(myParam);
+                    var returnParam = new Symbol(SymKind.FunParam, constructor, newType.Token, "$0");
+                    returnParam.Qualifiers |= SymQualifiers.ParamOut;
+                    returnParam.Type = myParam.Type;
+                    table.AddOrReject(returnParam);
+                    CreateFunTypeAndName(table, constructor);
+                    table.AddOrIgnore(constructor);
                 }
             }
 
@@ -396,14 +427,7 @@ namespace Gosub.Zurfur.Compiler
                 Resolver.ResolveFunParams(synFunc.FunctionSignature[0], table, function, function, useSymbolsFile, false);
                 Resolver.ResolveFunParams(synFunc.FunctionSignature[1], table, function, function, useSymbolsFile, true);
                 SetNewFunction(function, synFunc, myParam);
-
-                // Create parameters/returns tuple
-                var parameters = GetFunParamsTuple(function, false);
-                var returns = GetFunParamsTuple(function, true);
-                var tupleBaseType = table.GetTupleBaseType(2);
-                function.Type = table.CreateSpecializedType(tupleBaseType, new Symbol[] { parameters, returns });
-
-                function.FinalizeFullName();
+                CreateFunTypeAndName(table, function);
 
                 function.Token.AddInfo(function);
                 if (synFunc.Parent.Name.Error)
@@ -420,6 +444,17 @@ namespace Gosub.Zurfur.Compiler
 
                 Debug.Assert(!syntaxToSymbol.ContainsKey(synFunc));
                 syntaxToSymbol[synFunc] = function;
+
+            }
+
+            // Create function type from parameters/returns and finalize function name
+            void CreateFunTypeAndName(SymbolTable table, Symbol function)
+            {
+                var parameters = GetFunParamsTuple(function, false);
+                var returns = GetFunParamsTuple(function, true);
+                var tupleBaseType = table.GetTupleBaseType(2);
+                function.Type = table.CreateSpecializedType(tupleBaseType, new Symbol[] { parameters, returns });
+                function.FinalizeFullName();
             }
 
             // Resolve `my` parameter.  Add the implicit generic types, if any.

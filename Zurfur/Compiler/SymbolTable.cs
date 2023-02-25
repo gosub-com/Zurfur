@@ -123,6 +123,17 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
+        /// Add a new symbol to its parent.  Returns true if it was added, or
+        /// false if it was ignored because the symbol already exists.
+        /// </summary>
+        public bool AddOrIgnore(Symbol newSymbol)
+        {
+            Debug.Assert(SymbolBelongs(newSymbol));
+            var parentSymbol = newSymbol.Parent;
+            return parentSymbol.SetChildInternal(newSymbol, out var remoteSymbol);
+        }
+
+        /// <summary>
         /// Create a specialized type.
         /// </summary>
         public Symbol CreateSpecializedType(

@@ -468,7 +468,7 @@ namespace Gosub.Zurfur.Compiler
                 // Quick lookup of function name
                 if (mHasFunNamed == null)
                     mHasFunNamed = new Dictionary<string, bool>();
-                mHasFunNamed[value.Token] = true;
+                mHasFunNamed[value.SimpleName] = true;
             }
             else
             {
