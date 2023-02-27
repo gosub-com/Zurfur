@@ -53,6 +53,6 @@ fun mut RangeIterator.next() ?My.T
     if my.current >= my.high
         return nil
     @r = my.current
-    my.current += My.T.one
+    my.current += My.T.One
     return Nilable<My.T>(my.current)
         

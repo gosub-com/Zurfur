@@ -19,17 +19,22 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Lookup table for concrete types
         /// </summary>
-        Dictionary<string, Symbol> mLookup = new Dictionary<string, Symbol>();
+        Dictionary<string, Symbol> mLookup = new();
 
         /// <summary>
-        /// Specialized types, excluding tuples which can be named
+        /// Lookup table for specialized types, excluding tuples
         /// </summary>
-        Dictionary<string, Symbol> mSpecializedTypes = new Dictionary<string, Symbol>();
+        Dictionary<string, Symbol> mSpecializedTypes = new();
+
+        /// <summary>
+        /// Lookup table for tuples
+        /// </summary>
+        Dictionary<string, Symbol> mTupleTypes = new();
 
         // Internal types: Generic arguments, Tuples, wild card
-        List<Symbol> mGenericArguments = new List<Symbol>();
+        List<Symbol> mGenericArguments = new();
         Symbol mGenericArgumentHolder; // Holder so they have `Order` set properly
-        List<Symbol> mGenericTuples = new List<Symbol>();
+        List<Symbol> mGenericTuples = new();
         Symbol mGenericTupleHolder;
         Symbol mWildCard;
 
@@ -76,10 +81,12 @@ namespace Gosub.Zurfur.Compiler
         {
             if (name == "")
                 return null;
-            if (mSpecializedTypes.TryGetValue(name, out var symbol1))
-                return symbol1;
-            if (mLookup.TryGetValue(name, out var symbol2))
-                return symbol2;
+            if (mLookup.TryGetValue(name, out var sym))
+                return sym;
+            if (mSpecializedTypes.TryGetValue(name, out sym))
+                return sym;
+            if (mTupleTypes.TryGetValue(name, out sym))
+                return sym;
             return null;
         }
 
@@ -134,6 +141,14 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
+        /// Create a tuple with the given types (optionally with names)
+        /// </summary>
+        public Symbol CreateTuple(Symbol[] typeArgs, string[] tupleNames = null)
+        {
+            return CreateSpecializedType(GetTupleBaseType(typeArgs.Length), typeArgs, tupleNames)
+;        }
+
+        /// <summary>
         /// Create a specialized type.
         /// </summary>
         public Symbol CreateSpecializedType(
@@ -154,7 +169,7 @@ namespace Gosub.Zurfur.Compiler
             var symSpec = new Symbol(concreteType.Kind, concreteType,
                 concreteType.HasToken ? concreteType.Token : null, concreteType.SimpleName)
             {
-                TupleNames = tupleNames,
+                TupleNames = tupleNames == null ? Array.Empty<string>() : tupleNames,
                 TypeArgs = typeArgs
             };
             symSpec.Type = returnType == null ?  concreteType.Type : returnType;
@@ -162,15 +177,11 @@ namespace Gosub.Zurfur.Compiler
 
             symSpec.FinalizeFullName();
 
-            // Tuples are not stored in the specialized types
-            if (symSpec.IsTuple)
-                return symSpec;
-
             // Store and re-use matching symbols
-            if (mSpecializedTypes.TryGetValue(symSpec.FullName, out var specExists))
+            var symDict = symSpec.IsTuple ? mTupleTypes : mSpecializedTypes;
+            if (symDict.TryGetValue(symSpec.FullName, out var specExists))
                 return specExists;
-
-            mSpecializedTypes[symSpec.FullName] = symSpec;
+            symDict[symSpec.FullName] = symSpec;
             return symSpec;
         }
 

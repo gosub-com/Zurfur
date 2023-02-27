@@ -46,7 +46,18 @@ fun myFun2Interf<T>(i T) T extern
 
 type GetHash interface
     fun getHash() u32
+
+fun test_tuples()
+    @tuples = List<(int, str)>()
+    tuples.push((1, "Hello"))
+    @tupleElement = tuples[0]
     
+    @tuplesNamed = List<(x int,  y str)>()
+    tuplesNamed.push((1, "Hello"))
+    @tuplesNamedElement = tuplesNamed[0]
+    @element = tuplesNamedElement.x
+
+
 fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<f64>, myGetter Getter)
         where T has NumOps<T> + GetHash + Iterable<int> + Iterable2<int> + GetMap<f32,f64> + Iterator<int>
         where Q has NumOps<Q> + Getter + Getter2<int> + MyAdd<Q>
@@ -93,7 +104,7 @@ fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>,
     @z3 = a + b
     @z4 = T._opAdd(a,b)
     @z6 = T().getHash()
-    @z5 = T.one
+    @z5 = T.One
     @iter3 = t.iterator()
 
     for @item in t

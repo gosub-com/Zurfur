@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.DirectoryServices.AccountManagement;
 using System.Linq;
 
 using Gosub.Zurfur.Lex;
@@ -178,28 +179,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 var symbols = new List<Symbol>();
                 if (module.TryGetPrimary(name, out Symbol typeSym))
-                {
                     symbols.Add(typeSym);
-
-                    // Add operators for this type
-                    if (typeSym.IsType)
-                    {
-                        foreach (var op in module.Children)
-                        {
-                            if (op.IsFun && sOperatorFunctionNames.Contains(op.SimpleName))
-                            {
-                                foreach (var child in op.ChildrenFilter(SymKind.FunParam).Where(child => !child.ParamOut))
-                                {
-                                    if (child.Type != null && child.Type.Concrete.FullName == typeSym.FullName)
-                                    {
-                                        symbols.Add(op);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
                 
                 if (module.HasFunNamed(name))
                     foreach (var child in module.Children)
@@ -251,7 +231,7 @@ namespace Gosub.Zurfur.Compiler
                     foreach (var genericParam in myParam.Type.TypeArgs)
                         table.AddOrReject(new Symbol(SymKind.TypeParam, constructor, newType.Token, genericParam.SimpleName));
                     table.AddOrReject(myParam);
-                    var returnParam = new Symbol(SymKind.FunParam, constructor, newType.Token, "$0");
+                    var returnParam = new Symbol(SymKind.FunParam, constructor, newType.Token, "");
                     returnParam.Qualifiers |= SymQualifiers.ParamOut;
                     returnParam.Type = myParam.Type;
                     table.AddOrReject(returnParam);
@@ -417,7 +397,7 @@ namespace Gosub.Zurfur.Compiler
                 }
                 var useSymbolsFile = useSymbols.Files[synFunc.Token.Path];
 
-                // Give each function a unique name (final name calculated below)
+                // Generate the function
                 var function = new Symbol(SymKind.Fun, scope, synFunc.Name);
                 function.SetQualifiers(synFunc.Qualifiers);
                 function.Comments = synFunc.Comments;
@@ -447,21 +427,12 @@ namespace Gosub.Zurfur.Compiler
 
             }
 
-            // Create function type from parameters/returns and finalize function name
-            void CreateFunTypeAndName(SymbolTable table, Symbol function)
-            {
-                var parameters = GetFunParamsTuple(function, false);
-                var returns = GetFunParamsTuple(function, true);
-                var tupleBaseType = table.GetTupleBaseType(2);
-                function.Type = table.CreateSpecializedType(tupleBaseType, new Symbol[] { parameters, returns });
-                function.FinalizeFullName();
-            }
-
             // Resolve `my` parameter.  Add the implicit generic types, if any.
             Symbol ResolveMyParam(Symbol method, SyntaxFunc func)
             {
-                var myParam = new Symbol(SymKind.FunParam, method, func.Name, "my");
                 var extType = func.ExtensionType;
+                bool isStatic = method.IsStatic || extType == null || extType.Token == "";
+                var myParam = new Symbol(SymKind.FunParam, method, func.Name, isStatic ? "My" : "my");
                 if (extType != null && extType.Token == "mut")
                 {
                     myParam.SetQualifier("mut");
@@ -531,10 +502,19 @@ namespace Gosub.Zurfur.Compiler
                     Reject(function.Token, "'new' must be an extension method");
                     return;
                 }
-                var returnParam = new Symbol(SymKind.FunParam, function, synFunc.Name, "$0");
+                var returnParam = new Symbol(SymKind.FunParam, function, synFunc.Name, "");
                 returnParam.Qualifiers |= SymQualifiers.ParamOut;
                 returnParam.Type = myParam.Type;
                 table.AddOrReject(returnParam);
+            }
+
+            // Create function type from parameters/returns and finalize function name
+            void CreateFunTypeAndName(SymbolTable table, Symbol function)
+            {
+                var parameters = GetFunParamsTuple(function, false);
+                var returns = GetFunParamsTuple(function, true);
+                function.Type = table.CreateTuple(new Symbol[] { parameters, returns });
+                function.FinalizeFullName();
             }
 
             // Get parameters or returns as a tuple.
@@ -543,15 +523,12 @@ namespace Gosub.Zurfur.Compiler
                 var parameters = symbol.ChildrenFilter(SymKind.FunParam)
                     .Where(child => child.Type != null && returns == child.ParamOut).ToList();
 
-                var tupleParent = table.GetTupleBaseType(parameters.Count);
-
                 parameters.Sort((a, b) => a.Order.CompareTo(b.Order));
                 var paramTypes = parameters.Select(p => p.Type).ToArray();
                 var paramNames = parameters.Select(p => p.FullName).ToArray();
 
-                return table.CreateSpecializedType(tupleParent, paramTypes, paramNames);
+                return table.CreateTuple(paramTypes, paramNames);
             }
-
 
             Symbol ResolveTypeNameOrReject(Symbol scope, SyntaxExpr typeExpr)
             {

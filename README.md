@@ -101,7 +101,7 @@ own type:
             where My.V has NumOps<My.V>
         if my[mul1]@mul1Val and my[mul2]@mul2Val and my[add]@addVal
             return mul1Val * mul2Val + addVal
-        return My.V.nanOrMin        
+        return My.V.NanOrMin        
 
 Concrete methods can also be defined on generic types:
 
@@ -557,8 +557,6 @@ Like Golang, semicolons are required between statements but they are
 inserted automatically at the end of lines based on the last non-comment
 token and the first token of the next line. Like C#, curly braces can be
 placed anywhere.  Both end-of-line and beginning-of-next-line are acceptable.
-The Zurfur IDE shrinks curly brace only lines so they take the same vertical
-space as the brace-at-end style as when using a regular editor.
 
 Unlike Golang and C#, compound statements (`if`, `else`, `while`, `for`, etc.)
 can accept multiple lines without needing braces, but the indentation is

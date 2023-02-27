@@ -85,19 +85,19 @@ type bool ro copy
     const __size int = 1
 
 
-[pub] fun bool.getHash() int extern
-[pub] fun bool._opEq(a bool) bool extern
+[pub static] fun bool.getHash(a bool) int extern
+[pub static] fun bool._opEq(a bool, b bool) bool extern
 
 // i8 (-128..127)
 [pub]
 type i8 ro copy
     const __size int = 1
     const __align int = 1
-    const zero i8 = 0
-    const one i8 = 1
-    const minValue i8 = -128
-    const maxValue i8 = 127
-    const nanOrMin i8 = minValue
+    const Zero i8 = 0
+    const One i8 = 1
+    const MinValue i8 = -128
+    const MaxValue i8 = 127
+    const NanOrMin i8 = MinValue
     
 [pub] fun get i8.toStr() str extern
 [pub] fun get i8.toByte() ?byte extern
@@ -109,20 +109,20 @@ type i8 ro copy
 [pub] fun get i8.toF64() f64 extern
 [pub] fun get i8.toDecimal() Decimal extern
 
-[pub] fun i8.getHash() int extern
-[pub] fun _opEq(a i8, b i8) bool extern
-[pub] fun _opCmp(a i8, b i8) i32 extern
+[pub static] fun i8.getHash(a i8) int extern
+[pub static] fun i8._opEq(a i8, b i8) bool extern
+[pub static] fun i8._opCmp(a i8, b i8) i32 extern
 
 
 // byte (0..255)
 [pub] type byte ro copy
     const __size int = 1
     const __align int = 1    
-    const zero byte = 0
-    const one byte = 1
-    const minValue byte = 0
-    const maxValue byte = 255
-    const nanOrMin byte = minValue
+    const Zero byte = 0
+    const One byte = 1
+    const MinValue byte = 0
+    const MaxValue byte = 255
+    const NanOrMin byte = MinValue
     
 [pub] fun get byte.toStr() str extern
 [pub] fun get byte.toI8() ?i8 extern
@@ -137,20 +137,20 @@ type i8 ro copy
 [pub] fun get byte.toF64() f64 extern
 [pub] fun get byte.toDecimal() Decimal extern
 
-[pub] fun byte.getHash() int extern
-[pub] fun _opEq(a byte, b byte) bool extern
-[pub] fun _opCmp(a byte, b byte) i32 extern
+[pub static] fun byte.getHash(a byte) int extern
+[pub static] fun byte._opEq(a byte, b byte) bool extern
+[pub static] fun byte._opCmp(a byte, b byte) i32 extern
 
 
 // i16 (-32768..32768)
 [pub] type i16 ro copy
     const __size int = 2
     const __align int = 2    
-    const zero i16 = 0
-    const one i16 = 1
-    const minValue i16 = -32768
-    const maxValue i16 = 32767
-    const nanOrMin i16 = minValue
+    const Zero i16 = 0
+    const One i16 = 1
+    const MinValue i16 = -32768
+    const MaxValue i16 = 32767
+    const NanOrMin i16 = MinValue
 
 [pub] fun get i16.toStr() str extern
 [pub] fun get i16.toI8() ?i8 extern
@@ -165,7 +165,7 @@ type i8 ro copy
 [pub] fun get i16.toByteMask() byte extern
 [pub] fun get i16.toU16Mask() u16 extern    
 
-[pub] fun i16.getHash() int extern
+[pub static] fun i16.getHash(a i16) int extern
 [pub static] fun i16._opEq(a i16, b i16) bool extern
 [pub static] fun i16._opCmp(a i16, b i16) i32 extern
 
@@ -175,11 +175,11 @@ type i8 ro copy
 [pub] type u16 ro copy
     const __size int = 2
     const __align int = 2    
-    const zero u16 = 0
-    const one u16 = 1
-    const minValue u16 = 0
-    const maxValue u16 = 65535
-    const nanOrMin u16 = minValue
+    const Zero u16 = 0
+    const One u16 = 1
+    const MinValue u16 = 0
+    const MaxValue u16 = 65535
+    const NanOrMin u16 = MinValue
     
 
 [pub] fun get u16.toStr() str extern
@@ -197,7 +197,7 @@ type i8 ro copy
 [pub] fun get u16.toByteMask() byte extern
 [pub] fun get u16.toI16Mask() i16 extern
 
-[pub] fun u16.getHash() int extern
+[pub static] fun u16.getHash(a u16) int extern
 [pub static] fun u16._opEq(a u16, b u16) bool extern
 [pub static] fun u16._opCmp(a u16, b u16) i32 extern
 
@@ -205,11 +205,11 @@ type i8 ro copy
 [pub] type i32 ro copy
     const __size int = 4
     const __align int = 4    
-    const zero i32 = 0
-    const one i32 = 1
-    const minValue i32 = -2147483648
-    const maxValue i32 = 2147483647
-    const nanOrMin i32 = minValue
+    const Zero i32 = 0
+    const One i32 = 1
+    const MinValue i32 = -2147483648
+    const MaxValue i32 = 2147483647
+    const NanOrMin i32 = MinValue
     
 
 [pub] fun get i32.toStr() str extern
@@ -228,7 +228,7 @@ type i8 ro copy
 [pub] fun get i32.toU16Mask() u16 extern
 [pub] fun get i32.toU32Mask() u32 extern
 
-[pub] fun i32.getHash() int extern
+[pub static] fun i32.getHash(a i32) int extern
 [pub static] fun i32._opEq(a i32, b i32) bool extern
 [pub static] fun i32._opCmp(a i32, b i32) i32 extern
 [pub static] fun i32._opIn(a i32, b Range<i32>) bool extern
@@ -254,11 +254,11 @@ type i8 ro copy
 [pub] type u32 ro copy
     const __size int = 4
     const __align int = 4    
-    const zero u32 = 0
-    const one u32 = 1
-    const minValue u32 = 0
-    const maxValue u32 = 4294967295
-    const nanOrMin u32 = minValue
+    const Zero u32 = 0
+    const One u32 = 1
+    const MinValue u32 = 0
+    const MaxValue u32 = 4294967295
+    const NanOrMin u32 = MinValue
     
 
 [pub] fun get u32.toStr() str extern
@@ -278,7 +278,7 @@ type i8 ro copy
 [pub] fun get u32.toU16Mask() u16 extern
 [pub] fun get u32.toI32Mask() i32 extern
 
-[pub] fun u32.getHash() int extern
+[pub static] fun u32.getHash(a u32) int extern
 [pub static] fun u32._opEq(a u32, b u32) bool extern
 [pub static] fun u32._opCmp(a u32, b u32) i32 extern
 [pub static] fun u32._opIn(a u32, b Range<u32>) bool extern
@@ -304,11 +304,11 @@ type i8 ro copy
 [pub] type int ro copy
     const __size int = 8
     const __align int = 8    
-    const zero int = 0
-    const one int = 1
-    const minValue int = -9223372036854775808
-    const maxValue int = 9223372036854775807
-    const nanOrMin int = minValue    
+    const Zero int = 0
+    const One int = 1
+    const MinValue int = -9223372036854775808
+    const MaxValue int = 9223372036854775807
+    const NanOrMin int = MinValue    
 
 [pub] fun get int.toStr() str extern
 [pub] fun get int.toI8() ?i8 extern
@@ -330,7 +330,7 @@ type i8 ro copy
 [pub] fun get int.toU64Mask() u64 extern
 
 
-[pub] fun int.getHash() int extern
+[pub static] fun int.getHash(a int) int extern
 [pub static] fun int._opEq(a int, b int) bool extern
 [pub static] fun int._opCmp(a int, b int) i32 extern
 [pub static] fun int._opIn(a int, b Range<int>) bool extern
@@ -356,11 +356,11 @@ type i8 ro copy
 [pub] type u64 ro copy
     const __size int = 8
     const __align int = 8    
-    const zero u64 = 0
-    const one u64 = 1
-    const minValue u64 = 0
-    const maxValue u64 = 18446744073709551615
-    const nanOrMin u64 = minValue
+    const Zero u64 = 0
+    const One u64 = 1
+    const MinValue u64 = 0
+    const MaxValue u64 = 18446744073709551615
+    const NanOrMin u64 = MinValue
 
 [pub] fun get u64.toStr() str extern
 [pub] fun get u64.toI8() ?i8 extern
@@ -381,7 +381,7 @@ type i8 ro copy
 [pub] fun get u64.toU32Mask() u32 extern
 [pub] fun get u64.toIntMask() int extern
 
-[pub] fun u64.getHash() int extern
+[pub static] fun u64.getHash(a u64) int extern
 [pub static] fun u64._opEq(a u64, b u64) bool extern
 [pub static] fun u64._opCmp(a u64, b u64) i32 extern
 [pub static] fun u64._opIn(a u64, b Range<u64>) bool extern
@@ -418,11 +418,11 @@ type i8 ro copy
 [pub] type f32 ro copy
     const __size int = 4
     const __align int = 4    
-    const zero f32 = 0
-    const one f32 = 1
-    const minValue f32 = -3.40282347E+38F
-    const maxValue f32 = 3.40282347E+38F
-    const nanOrMin f32 = minValue    
+    const Zero f32 = 0
+    const One f32 = 1
+    const MinValue f32 = -3.40282347E+38F
+    const MaxValue f32 = 3.40282347E+38F
+    const NanOrMin f32 = MinValue    
     const epsilon f32 = 1.401298E-45F
     const infinity f32 = 1F/0F
     const negativeInfinity f32 = -1F/0F
@@ -445,7 +445,7 @@ type i8 ro copy
 [pub] fun get f32.toIntMask() int extern
 [pub] fun get f32.toU64Mask() u64 extern
         
-[pub] fun f32.getHash() int extern
+[pub static] fun f32.getHash(a f32) int extern
 [pub static] fun f32._opEq(a f32, b f32) bool extern
 [pub static] fun f32._opCmp(a f32, b f32) i32 extern
 [pub static] fun f32._opEqUnordered(a f32, b f32) bool extern
@@ -466,11 +466,11 @@ type i8 ro copy
 [pub] type f64 ro copy
     const __size int = 8
     const __align int = 8    
-    const zero f64 = 0
-    const one f64 = 1
-    const minValue f64 = -1.7976931348623157E+308
-    const maxValue f64 = 1.7976931348623157E+308
-    const nanOrMin f64 = minValue    
+    const Zero f64 = 0
+    const One f64 = 1
+    const MinValue f64 = -1.7976931348623157E+308
+    const MaxValue f64 = 1.7976931348623157E+308
+    const NanOrMin f64 = MinValue    
     const epsilon f64 = 4.94065645841247E-324
     const infinity f64 = 1.0/0.0
     const negativeInfinity f64 = -1.0/0.0
@@ -493,8 +493,7 @@ type i8 ro copy
 [pub] fun get f64.toU64Mask() u64 extern
 [pub] fun get f64.toF32Clamp() f32 extern
 
-[pub] fun f64.getHash() int extern
-
+[pub static] fun f64.getHash(a f64) int extern
 [pub static] fun f64._opEq(a f64, b f64) bool extern
 [pub static] fun f64._opCmp(a f64, b f64) i32 extern
 [pub static] fun f64._opEqUnordered(a f64, b f64) bool extern
@@ -517,11 +516,11 @@ type i8 ro copy
 [pub] type Decimal ro copy
     const __size int = 16
     const __align int = 16
-    const zero Decimal = 0
-    const one Decimal = 1
-    const minValue Decimal = -1E+1000M
-    const maxValue Decimal = 1E+1000M
-    const nanOrMin Decimal = minValue    
+    const Zero Decimal = 0
+    const One Decimal = 1
+    const MinValue Decimal = -1E+1000M
+    const MaxValue Decimal = 1E+1000M
+    const NanOrMin Decimal = MinValue    
     const infinity Decimal = 1.0/0.0
     const negativeInfinity Decimal = -1.0/0.0
     const nan Decimal = 0.0/0.0
@@ -542,7 +541,7 @@ type i8 ro copy
 [pub] fun get Decimal.toF32Clamp() f32 extern
 [pub] fun get Decimal.toF64Clamp() f64 extern
 
-[pub] fun Decimal.getHash() int extern
+[pub static] fun Decimal.getHash(a Decimal) int extern
 [pub static] fun Decimal._opEq(a Decimal, b Decimal) bool extern
 [pub static] fun Decimal._opCmp(a Decimal, b Decimal) i32 extern
 [pub static] fun Decimal._opEqUnordered(a Decimal, b Decimal) bool extern
@@ -558,4 +557,3 @@ type i8 ro copy
 [pub static] fun Decimal._opMul(a Decimal, b Decimal) Decimal extern
 [pub static] fun Decimal._opDiv(a Decimal, b Decimal) Decimal extern
 [pub static] fun Decimal._opRem(a Decimal, b Decimal) Decimal extern
-

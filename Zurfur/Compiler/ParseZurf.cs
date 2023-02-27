@@ -70,7 +70,7 @@ namespace Gosub.Zurfur.Compiler
             + "async await astart atask task get set var where when nameof "
             + "box init move copy clone drop own super self "
             + "extends impl implements fun afun sfun def yield let "
-            + "any dyn select match from to of on cofun it "
+            + "any dyn select match from to of on cofun "
             + "throws rethrow @ # and or not xor with exit pragma require ensure "
             + "of sync except exception loc local global my My");
 
@@ -2115,7 +2115,8 @@ namespace Gosub.Zurfur.Compiler
                 || mToken == "My"
                 || sTypeUnaryOps.Contains(mTokenName)
                 || sParamQualifiers.Contains(mTokenName)
-                || mToken == "fun" || mToken == "afun";
+                || mToken == "fun" || mToken == "afun"
+                || mToken == "(";
         }
 
         SyntaxExpr ParseType()
@@ -2129,13 +2130,16 @@ namespace Gosub.Zurfur.Compiler
                     if (AcceptMatchOrReject("]"))
                         mPrevToken.Type = eTokenType.TypeName;
 
-
                 var tArg = NewMetaToken(token, VT_TYPE_ARG);
                 var tName = new SyntaxToken(token);
                 if (token == "!" && !BeginsType())
                     return new SyntaxBinary(tArg, tName, new SyntaxToken(NewMetaToken(token, "void")));
                 return new SyntaxBinary(tArg, tName, ParseType());
             }
+
+            // Tuple
+            if (mToken == "(")
+                return ParseTypeTuple();
 
             if (mToken == "fun" || mToken == "afun")
             {
@@ -2152,6 +2156,7 @@ namespace Gosub.Zurfur.Compiler
                 return SyntaxError;
             }
 
+            // Identifier
             mToken.Type = eTokenType.TypeName;
             var result = (SyntaxExpr)new SyntaxToken(Accept());
             bool accepted;
@@ -2206,8 +2211,39 @@ namespace Gosub.Zurfur.Compiler
             return new SyntaxMulti(NewMetaToken(openToken, VT_TYPE_ARG), FreeExprList(typeArgs));
         }
 
+        SyntaxExpr ParseTypeTuple()
+        {
+            Debug.Assert(mTokenName == "(");
+            var openToken = Accept();
+            var tupleArgs = NewExprList();
 
-        
+            // TBD: The EmptyToken can be an identifier
+            tupleArgs.Add(ParseTypeTupleElement());
+            while (AcceptMatch(","))
+            {
+                Connect(openToken, mPrevToken);
+                tupleArgs.Add(ParseTypeTupleElement());
+            }
+
+            if (AcceptMatchOrReject(")", "Expecting ')' to end the type argument list"))
+                Connect(openToken, mPrevToken);
+            return new SyntaxMulti(openToken, FreeExprList(tupleArgs));
+        }
+
+        SyntaxExpr ParseTypeTupleElement()
+        {
+            // Parse type or variable name
+            var typeOrVariable = ParseType();
+            if (!BeginsType())
+                return new SyntaxUnary(EmptyToken, typeOrVariable);  // Just type
+
+            // Variable name and type
+            typeOrVariable.Token.Type = eTokenType.Identifier;
+            if (typeOrVariable.Count != 0)
+                RejectToken(typeOrVariable.Token, "Illegal variable name");
+            return new SyntaxUnary(typeOrVariable.Token, ParseType());
+        }
+
         /// <summary>
         /// Parse a qualified identifier.  
         /// Error causes reject until errorStop and returns null.

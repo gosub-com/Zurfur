@@ -36,8 +36,9 @@
             // Message
             // 
             this.Message.AutoSize = true;
-            this.Message.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Message.Location = new System.Drawing.Point(4, 4);
+            this.Message.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.Message.Location = new System.Drawing.Point(5, 5);
+            this.Message.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.Message.Name = "Message";
             this.Message.Size = new System.Drawing.Size(69, 18);
             this.Message.TabIndex = 0;
@@ -46,22 +47,25 @@
             // 
             // Picture
             // 
-            this.Picture.Location = new System.Drawing.Point(239, 4);
+            this.Picture.Location = new System.Drawing.Point(279, 5);
+            this.Picture.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.Picture.Name = "Picture";
-            this.Picture.Size = new System.Drawing.Size(100, 50);
+            this.Picture.Size = new System.Drawing.Size(117, 58);
             this.Picture.TabIndex = 1;
             this.Picture.TabStop = false;
             this.Picture.Visible = false;
             // 
             // FormHoverMessage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(482, 57);
+            this.BackColor = System.Drawing.Color.WhiteSmoke;
+            this.ClientSize = new System.Drawing.Size(562, 66);
             this.ControlBox = false;
             this.Controls.Add(this.Picture);
             this.Controls.Add(this.Message);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
+            this.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.Name = "FormHoverMessage";
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;

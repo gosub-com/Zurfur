@@ -370,7 +370,7 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 if (returns.Count >= 2)
                 {
-                    Reject(ex.Token, "Use parenthesis to return multiple values.  TBD: Allow not using them.");
+                    Reject(ex.Token, "Use parenthesis to return multiple values.");
                     return null;
                 }
 
@@ -548,7 +548,7 @@ namespace Gosub.Zurfur.Compiler
 
                 var types = args.Select(t => t.Type).ToArray();
 
-                var  tuple = table.CreateSpecializedType(table.GetTupleBaseType(types.Length), types);
+                var  tuple = table.CreateTuple(types);
                 return new Rval(ex.Token) { Type = tuple };
             }
 
@@ -1333,7 +1333,7 @@ namespace Gosub.Zurfur.Compiler
                             continue;
                     }
 
-                    if (arg.FullName != param.FullName)
+                    if (!TypesMatch(arg, param))
                         return (null, CallCompatible.IncompatibleParameterTypes);
                 }
                 return (func, CallCompatible.Compatible);
@@ -1440,7 +1440,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             bool TypesMatch(Symbol a, Symbol b)
-                => a.FullName == b.FullName;
+                => Symbol.TypesMatch(a,b);
 
             // Parameters are evaluated for the types. 
             // If any parameter can't be evaluated, NULL is returned.

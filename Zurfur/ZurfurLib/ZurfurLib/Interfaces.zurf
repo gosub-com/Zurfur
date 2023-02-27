@@ -32,8 +32,8 @@ type NumOps<T> interface
     [static] fun _opMul(a T, b T) T
     [static] fun _opDiv(a T, b T) T
     [static] fun _opRem(a T, b T) T
-    [static] fun get zero() T
-    [static] fun get one() T
-    [static] fun get minValue() T
-    [static] fun get maxValue() T
-    [static] fun get nanOrMin() T
+    [static] fun get Zero() T
+    [static] fun get One() T
+    [static] fun get MinValue() T
+    [static] fun get MaxValue() T
+    [static] fun get NanOrMin() T

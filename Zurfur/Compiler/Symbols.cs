@@ -88,11 +88,10 @@ namespace Gosub.Zurfur.Compiler
         public int Order { get; private set; } = -1;
 
         /// <summary>
-        /// The symbol's full name, excluding tuple names.
-        /// e.g. the full name of (a int, b int) is (int,int).
+        /// The symbol's full name, including tuple names.
+        /// e.g. the full name of (a int, b int) is (a int, b int).
         /// </summary>
         public string FullName { get; private set; }
-
 
         /// <summary>
         /// Name as it appears in the lookup table which is everything after
@@ -224,41 +223,51 @@ namespace Gosub.Zurfur.Compiler
                 return;
             }
 
+            if (IsTuple)
+            {
+                var fullName = new StringBuilder();
+                fullName.Append("(");
+                for (int i = 0;  i < TypeArgs.Length;  i++)
+                {
+                    if (i != 0)
+                        fullName.Append(", ");
+                    if (TupleNames.Length != 0 && TupleNames[i] != "")
+                    {
+                        fullName.Append(TupleNames[i]);
+                        fullName.Append(" ");
+                    }
+                    fullName.Append(TypeArgs[i].FullName);
+                }
+                fullName.Append(")");
+                FullName = fullName.ToString();
+                LookupName = FullName;
+                return;
+            }
+
 
             // Suffix is (type1,type2...) for tuples and <type1,type2...> for types. 
-            var t = IsTuple;
+            Debug.Assert(TupleNames.Length == 0);
             var post = "";
             if (TypeArgs.Length != 0)
-                post = (t ? "(" : "<") + string.Join<Symbol>(",", TypeArgs) + (t ? ")" : ">");
+                post = "<" + string.Join<Symbol>(",", TypeArgs) + ">";
 
             if (IsFun && Type != null)
             {
                 var genericsCount = Concrete.GenericParamCount();
-                post = (genericsCount == 0 ? "" : "`" + genericsCount)
-                    + post
-                    + "(" + string.Join<Symbol>(",", Type.TypeArgs[0].TypeArgs) + ")"
-                    + "(" + string.Join<Symbol>(",", Type.TypeArgs[1].TypeArgs) + ")";
+                post = (genericsCount == 0 ? "" : "`" + genericsCount) + post + Type.FullName;
             }
 
-            if (IsTuple)
+            var suffix = "";
+            if (IsType)
             {
-                FullName = post;
-                LookupName = post;
+                var genericsCount =  Concrete.GenericParamCount(); ;
+                suffix = genericsCount == 0 ? "" : $"`{genericsCount}";
             }
-            else
-            {
-                var suffix = "";
-                if (IsType)
-                {
-                    var genericsCount =  Concrete.GenericParamCount(); ;
-                    suffix = genericsCount == 0 ? "" : $"`{genericsCount}";
-                }
 
-                // Specialized functions get the parents functions parant
-                var parentFullName = Concrete.Parent.FullName;
-                LookupName = SimpleName + suffix + post;
-                FullName = parentFullName + "." + LookupName;
-            }
+            // Specialized functions get the parents functions parant
+            var parentFullName = Concrete.Parent.FullName;
+            LookupName = SimpleName + suffix + post;
+            FullName = parentFullName + "." + LookupName;
         }
 
         public static Dictionary<SymKind, string> sKindNames = new Dictionary<SymKind, string>()
@@ -575,6 +584,25 @@ namespace Gosub.Zurfur.Compiler
         /// Get function return types as an array (only call on a function)
         /// </summary>
         public Symbol[] FunReturnTypes => FunReturnTuple.TypeArgs;
+
+        /// <summary>
+        /// Check to see if the symbol types match, ignoring tuple names
+        /// </summary>
+        static public bool TypesMatch(Symbol a, Symbol b)
+        {
+            if (a.FullName == b.FullName)
+                return true;
+            if (!a.IsSpecialized 
+                    || !b.IsSpecialized
+                    || a.Parent.FullName != b.Parent.FullName
+                    || a.TypeArgs.Length != b.TypeArgs.Length)
+                return false;
+            for (int i = 0; i < a.TypeArgs.Length; i++)
+                if (!TypesMatch(a.TypeArgs[i], b.TypeArgs[i]))
+                    return false;
+            return true;
+        }
+
 
     }
 

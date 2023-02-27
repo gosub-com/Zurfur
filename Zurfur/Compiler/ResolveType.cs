@@ -42,11 +42,14 @@ namespace Gosub.Zurfur.Compiler
             if (typeExpr.Token.Name == ".")
                 return ResolveDot();
 
-            if (typeExpr.Token == "fun" || typeExpr.Token == "afun")
-                return ResolveLambdaFun();
-
             if (typeExpr.Token == ParseZurf.VT_TYPE_ARG)
                 return ResolveGenericType();
+
+            if (typeExpr.Token == "(")
+                return ResolveTupleType();
+
+            if (typeExpr.Token == "fun" || typeExpr.Token == "afun")
+                return ResolveLambdaFun();
 
             // Resolve My
             if (typeExpr.Token == "My")
@@ -137,32 +140,8 @@ namespace Gosub.Zurfur.Compiler
                 return rightSymbol;
             }
 
-
-            // Resolve "fun" or "afun" types.
-            // On error, the token is rejected and null is returned.
-            Symbol ResolveLambdaFun()
-            {
-                // TBD: Revisit how to do this
-                return null;
-
-                //if (typeExpr.Count < 3)
-                //{
-                //    table.Reject(typeExpr.Token, "Syntax error");
-                //    return null;
-                //}
-                //// Create an anonymous type to hold the function type.
-                //// NOTE: This is not finished, just temporary for now.
-                //var funParams = new Symbol(SymKind.Type, table.AnonymousTypes, "");
-                //ResolveMethodParams(typeExpr[0], table, funParams, searchScope, useSymbols, false);
-                //ResolveMethodParams(typeExpr[1], table, funParams, searchScope, useSymbols, true);
-
-                //funParams.SetLookupName(GetFunctionName("$fun", funParams));
-                //return table.FindOrAddAnonymousType(funParams);
-            }
-
-
             // Resolve 'List<int>', 'Map<str,str>', *<int>, etc.
-            // Token is '$' for VT_TYPE_ARG.
+            // The token is VT_TYPE_ARG (i.e. '$') instead of '<'. 
             // On error, the token is rejected and null is returned.
             Symbol ResolveGenericType()
             {
@@ -223,6 +202,57 @@ namespace Gosub.Zurfur.Compiler
                 // Process type parameters
                 return typeParent;
             }
+
+            // Resolve a tuple: '(int,List<str>,f32)', etc.
+            Symbol ResolveTupleType()
+            {
+                bool resolved = true;
+                List<Symbol> typeParams = new List<Symbol>();
+                var anyNames = false;
+                foreach (var typeExprParam in typeExpr)
+                {
+                    var sym = Resolve(typeExprParam[0], table, false, searchScope, useSymbols);
+                    if (sym == null)
+                        resolved = false;
+                    else if (sym.IsAnyType)
+                        typeParams.Add(sym);
+                    else
+                    {
+                        table.Reject(typeExprParam.Token, $"Expecting a type, but got a {sym.KindName}");
+                        resolved = false;
+                    }
+                    if (typeExprParam.Token != "")
+                        anyNames = true;
+                }
+                if (!resolved)
+                    return null;
+
+                // Create the tuple
+                return table.CreateTuple(typeParams.ToArray(),
+                    anyNames ? typeExpr.Select(e => e.Token.Name).ToArray() : null);
+            }
+
+            // Resolve "fun" or "afun" types.
+            // On error, the token is rejected and null is returned.
+            Symbol ResolveLambdaFun()
+            {
+                // TBD: Revisit how to do this
+                return null;
+
+                //if (typeExpr.Count < 3)
+                //{
+                //    table.Reject(typeExpr.Token, "Syntax error");
+                //    return null;
+                //}
+                //// Create an anonymous type to hold the function type.
+                //// NOTE: This is not finished, just temporary for now.
+                //var funParams = new Symbol(SymKind.Type, table.AnonymousTypes, "");
+                //ResolveFunParams(typeExpr[0], table, funParams, searchScope, useSymbols, false);
+                //ResolveFunParams(typeExpr[1], table, funParams, searchScope, useSymbols, true);
+
+                //funParams.SetLookupName(GetFunctionName("$fun", funParams));
+                //return table.FindOrAddAnonymousType(funParams);
+            }
         }
 
         /// <summary>
@@ -232,7 +262,8 @@ namespace Gosub.Zurfur.Compiler
         public static Symbol ResolveMy(SymbolTable table, Token token, Symbol searchScope)
         {
                 token.Type = eTokenType.ReservedType;
-                if (searchScope.TryGetPrimary("my", out var myVar) && myVar.TypeName != "")
+                if (searchScope.TryGetPrimary("my", out var myVar) && myVar.TypeName != ""
+                    || searchScope.TryGetPrimary("My", out myVar) && myVar.TypeName != "")
                 {
                     token.AddInfo(myVar.Type);
                     return myVar.Type;
@@ -247,13 +278,13 @@ namespace Gosub.Zurfur.Compiler
         /// On error, returns NULL and rejects the token.
         /// </summary>
         public static List<Symbol> ResolveTypeArgs(
-            SyntaxExpr typeExpr, SymbolTable table, Symbol searchScope, UseSymbolsFile useScope)
+            SyntaxExpr typeExpr, SymbolTable table, Symbol searchScope, UseSymbolsFile useSymbols)
         {
             bool resolved = true;
             List<Symbol> typeParams = new List<Symbol>();
             foreach (var typExprParam in typeExpr.Skip(1))
             {
-                var sym = Resolve(typExprParam, table, false, searchScope, useScope);
+                var sym = Resolve(typExprParam, table, false, searchScope, useSymbols);
                 if (sym == null)
                     resolved = false;
                 else if (sym.IsAnyType)
@@ -279,22 +310,25 @@ namespace Gosub.Zurfur.Compiler
             if (parameters is SyntaxError)
                 return;
 
+            // TBD: Since we are using named tuples as function parameters,
+            //      there is no longer a need to store them redundantly in
+            //      the function symbol type.
             foreach (var expr in parameters)
             {
                 if (expr is SyntaxError)
                     continue;
                 Debug.Assert(expr.Count >= 3);
 
-                var token = expr.Token == "" ? expr[1].Token : expr.Token;
-                var name = expr.Token == "" ? "$0" : expr.Token.Name;
-                var funParam = new Symbol(SymKind.FunParam, function, token, name);
+                // This makes a single return parameter unnamed, "".
+                // All other parameters become named tuples.
+                var funParam = new Symbol(SymKind.FunParam, function, expr.Token, expr.Token.Name);
                 funParam.ParamOut = isReturn;
                 funParam.Type = Resolve(expr[0], table, false, searchScope, useSymbols);
                 if (funParam.Type == null)
                     continue; // Unresolved symbol
 
                 if (!(funParam.Type.IsAnyType || table.NoCompilerChecks))
-                    RejectTypeArgLeftDotRight(expr[0], table, 
+                    RejectTypeArgLeftDotRight(expr[0], table,
                         $"The symbol is not a type, it is a {funParam.Type.KindName}");
                 expr.Token.AddInfo(funParam);
 
@@ -305,6 +339,7 @@ namespace Gosub.Zurfur.Compiler
                 table.AddOrReject(funParam);
             }
         }
+
 
         /// <summary>
         /// Reject the symbol that actually caused the problem.

@@ -31,7 +31,7 @@ fun Map.madd(mul1 My.K, mul2 My.K, add My.K) My.V
         where My.V has NumOps<My.V>
     if my[mul1]@mul1Val and my[mul2]@mul2Val and my[add]@addVal
         return mul1Val * mul2Val + addVal
-    return My.V.nanOrMin        
+    return My.V.NanOrMin        
 
 // Method
 [pub]
