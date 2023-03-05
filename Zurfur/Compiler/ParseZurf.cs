@@ -1713,7 +1713,7 @@ namespace Gosub.Zurfur.Compiler
 
             var result = ParsePrimary();
 
-            if (mTokenName == "!")
+            if (mTokenName == "!" || mTokenName == "!!")
                 result = new SyntaxUnary(Accept(), result);
             return result;
         }

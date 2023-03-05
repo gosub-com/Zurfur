@@ -334,12 +334,18 @@ namespace Gosub.Zurfur.Ide
             {
                 message += "SYMBOLS:\r\n";
                 message += string.Join("\r\n", symbols.Select(sym =>
-                    $"    [{getQualifiers(sym)}] {sym}"));
+                    $"    [{getQualifiers(sym)}]\r\n    {sym.FriendlyName()}\r\n    ► {sym}\r\n"));
                 return message + "\r\n\r\n";
             }
 
             var symbol = symbols[0];
-            message +=$"[{getQualifiers(symbol)}]\r\n{symbol}\r\n\r\n";
+            message +=$"[{getQualifiers(symbol)}]\r\n{symbol.FriendlyName()}\r\n► {symbol}\r\n\r\n";
+
+            if (symbol.TypeName != null && symbol.TypeName != "")
+                message += $"TYPE:\r\n    {symbol.Type.FriendlyName()}\r\n    ► {symbol.TypeName}\r\n\r\n";
+
+            if (symbol.Comments.Trim() != "")
+                message += $"COMMENTS:\r\n{symbol.Comments}\r\n\r\n";
 
             if (symbol.IsFun)
             {
@@ -355,17 +361,7 @@ namespace Gosub.Zurfur.Ide
                 }
                 message += "\r\n";
             }
-            if (symbol.TypeName != null && symbol.TypeName != "")
-            {
-                message += "TYPE: " + symbol.TypeName + "\r\n";
-            }
-            message += "\r\n";
 
-            // Comments
-            if (symbol.Comments.Trim() != "")
-            {
-                message += $"COMMENTS:\r\n{symbol.Comments}\r\n\r\n";
-            }
 
             return message;
         }

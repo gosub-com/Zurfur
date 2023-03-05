@@ -36,11 +36,11 @@
             // Message
             // 
             this.Message.AutoSize = true;
-            this.Message.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.Message.Font = new System.Drawing.Font("Arial", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.Message.Location = new System.Drawing.Point(5, 5);
             this.Message.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.Message.Name = "Message";
-            this.Message.Size = new System.Drawing.Size(69, 18);
+            this.Message.Size = new System.Drawing.Size(67, 17);
             this.Message.TabIndex = 0;
             this.Message.Text = "Message";
             this.Message.UseMnemonic = false;

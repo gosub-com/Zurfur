@@ -49,9 +49,6 @@ namespace Gosub.Zurfur.Compiler
     static class CompileHeader
     {
         const string ZURFUR_PRELUDE = "void nil Nilable bool i8 byte i16 u16 i32 u32 int u64 f32 f64 str List Map Array Buffer Span";
-        static WordSet sOperatorFunctionNames = new WordSet(
-            "_opAdd _opSub _opNeg _opMul _opDiv _opRem _opRange _opIn _opEq _opEqNan _opCmp _opCmpNan " 
-            + "_opBitShl _opBitShr _opBitAnd _opBitOr _opBitXor _opBitNot _opIndex");
 
         static public CompilerHeaderOutput GenerateHeader(
             Dictionary<string, SyntaxFile> syntaxFiles,
@@ -227,7 +224,7 @@ namespace Gosub.Zurfur.Compiler
                     var constructor = new Symbol(SymKind.Fun, module, newType.Token, "new");
                     constructor.Qualifiers |= SymQualifiers.Static | SymQualifiers.Method | SymQualifiers.Extern;
                     var myParam = new Symbol(SymKind.FunParam, constructor, newType.Token, "my");
-                    myParam.Type = Resolver.GetTypeWithGenericParameters(table, newType, newType.GenericParamTotal());
+                    myParam.Type = Resolver.GetTypeWithGenericParameters(table, newType);
                     foreach (var genericParam in myParam.Type.TypeArgs)
                         table.AddOrReject(new Symbol(SymKind.TypeParam, constructor, newType.Token, genericParam.SimpleName));
                     table.AddOrReject(myParam);
@@ -442,8 +439,7 @@ namespace Gosub.Zurfur.Compiler
                 if (method.Parent.IsInterface)
                 {
                     // Interface method
-                    myParam.Type = Resolver.GetTypeWithGenericParameters(
-                                                table, method.Parent, method.GenericParamTotal());
+                    myParam.Type = Resolver.GetTypeWithGenericParameters(table, method.Parent);
                     method.Qualifiers |= SymQualifiers.Method;
                     if (func.ExtensionType != null)
                         Reject(func.ExtensionType.Token, "Extension method not allowed on interface functions");
@@ -463,14 +459,13 @@ namespace Gosub.Zurfur.Compiler
                     {
                         // Generic parameters not supplied, add them if necessary
                         var myType = Resolver.FindGlobalType(extType.Token, table, method,
-                                        useSymbols.Files[extType.Token.Path], out var inScope);
+                                        useSymbols.Files[extType.Token.Path]);
                         if (myType != null)
                         {
-                            var genericParamCount = myType.GenericParamTotal();
-                            myParam.Type = Resolver.GetTypeWithGenericParameters(table, myType, genericParamCount);
+                            myParam.Type = Resolver.GetTypeWithGenericParameters(table, myType);
                             foreach (var genericParam in myParam.Type.TypeArgs)
                                 table.AddOrReject(new Symbol(SymKind.TypeParam, method, func.Name, genericParam.SimpleName));
-                            extType.Token.AddInfo(myParam);
+                            extType.Token.AddInfo(myParam.Type);
                         }
                     }
                     else

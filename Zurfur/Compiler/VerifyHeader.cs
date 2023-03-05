@@ -152,7 +152,11 @@ namespace Gosub.Zurfur.Compiler
                 var s = symbols.Lookup(typeName);
                 if (s == null)
                 {
-                    if (typeName == "")
+                    if (typeName.Contains('#'))
+                    {
+                        // TBD: Need to verify generic types
+                    }
+                    else if (typeName == "")
                         Reject(token, "Unresolved type");
                     else
                         Reject(token, $"Unknown type name: '{typeName}'");

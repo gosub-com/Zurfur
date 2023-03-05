@@ -380,7 +380,7 @@ fun DlMalloc.is_granularity_aligned(s u64) bool
 
 //  True if segment S holds address A
 fun DlMalloc.segment_holds(s *msegment, a *void) bool
-    return a >= castPointer<*void>(s.baseAddr) and a < castPointer<*void>(s.baseAddr) + s.size
+    return a >= castPointer<*void>(s.baseAddr) and a < castPointer<*void>(s.baseAddr + s.size)
 
 // Return segment holding given address
 fun DlMalloc.segment_holding(addr *byte) *msegment

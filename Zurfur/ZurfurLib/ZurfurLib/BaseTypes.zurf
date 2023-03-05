@@ -84,9 +84,13 @@ type Type ro copy
 type bool ro copy
     const __size int = 1
 
-
 [pub static] fun bool.getHash(a bool) int extern
 [pub static] fun bool._opEq(a bool, b bool) bool extern
+
+// TBD: These operators must be restricted to bool
+[pub static] fun bool._opLogicalAnd(a bool, b bool) bool extern
+[pub static] fun bool._opLogicalOr(a bool, b bool) bool extern
+[pub static] fun bool._opLogicalNot(a bool) bool extern
 
 // i8 (-128..127)
 [pub]

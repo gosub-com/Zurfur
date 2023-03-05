@@ -433,18 +433,19 @@ Joe Duffy has some great thoughts on error handling here [Midori](http://joeduff
 
 Errors are classified like this:
 
-|Error Type | Action | Examples
+|Type | Action | Examples
 | :--- | :--- | :---
-|Normal | No stack trace, debugger not stopped | `throw` - File not found
+|Error | No stack trace, debugger not stopped | `throw` - File not found
 |Panic | Stack trace logged, debugger stopped | `require` - Array bounds check
 |Critical | End process, stack trace, maybe core dump | Memory corruption, type safety violation
 
 Panics always stop the debugger (if attached) and log a stack trace. They
-are recoverable in top level handlers, like `astart`, but recovery should
-be used sparingly.  In a GUI, recovery might print an error but allow the
-user to continue so they can save work.  In a server, recovery might log an
-error and report 500 internal server error, but then continue processing
-requests.  A buggy deserializer might convert a panic into a regular error.
+are recoverable (similar to Golang) in top level handlers, like `astart`,
+but recovery should be used sparingly.  In a GUI, recovery might print an
+error but allow the user to continue so they can save work.  In a server,
+recovery might log an error and report 500 internal server error, but then
+continue processing other requests.  A call to buggy deserializer library
+might need to convert a panic into a regular error.
 
 Normal error handling uses `Result<T>` which can be either the return type
 or an `Error` interface. The type `Result<T>` is abbreviated as `!T`, so a
@@ -453,8 +454,9 @@ function that throws an error can be prototyped as:
     afun open(fileName str) !FileStream
 
 `throw` or `throwIf` is used to send the error up to the caller.  The postfix
-`!` operator can be used to unwrap the error or send it up to the caller.
-The `!!` can be used to unwrap the error or panic.
+`!` operator can be used to unwrap the error or send it up to the caller, but
+it can only be used in a function that returns `Result<T>`. The `!!` operator
+can be used to unwrap the error or panic and can be used in any function.
 
     // Use `!` to get the result or send the error up to the caller
     @user = File.readJson<UserType>("userDataForJeremy.json")!
@@ -490,7 +492,8 @@ with C and gives an error where not compatible:
 |- ~ & `ref` `not` `sizeof` `typeof` `unsafe` | Unary
 |@| Capture new variable
 |?| Use default for `Nilable`
-|!| Pass error up for `Result` or when `Nilable` is `nil`
+|!| For `Result` and `Nilable`, generate value or throw error when `nil`
+|!!| For `Result` and `Nilable`, generate value or panic when `nil`
 |`is` `is not` `as` | Type conversion and comparison
 |<< >>| Bitwise shift (not associative, can't mix with arithmetic operators)
 |* / % & | Multiply, bitwise *AND* (can't mix arithmetic and bit operators)

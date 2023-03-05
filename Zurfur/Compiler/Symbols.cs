@@ -7,6 +7,32 @@ using System.Diagnostics;
 
 namespace Gosub.Zurfur.Compiler
 {
+    /// <summary>
+    /// Symbols in the source code known to the compiler.
+    /// </summary>
+    static class SymTypes
+    {
+        public const string RawPointer = "Zurfur.RawPointer`1";
+        public const string Pointer = "Zurfur.Pointer`1";
+        public const string Ref = "Zurfur.Ref`1";
+        public const string Nil = "Zurfur.nil";
+        public const string Nilable = "Zurfur.Nilable`1";
+        public const string Result = "Zurfur.Result`1";
+        public const string Void = "Zurfur.void";
+        public const string Int = "Zurfur.int";
+        public const string U64 = "Zurfur.u64";
+        public const string I32 = "Zurfur.i32";
+        public const string U32 = "Zurfur.u32";
+        public const string Str = "Zurfur.str";
+        public const string Bool = "Zurfur.bool";
+        public const string Byte = "Zurfur.byte";
+        public const string F64 = "Zurfur.f64";
+        public const string F32 = "Zurfur.f32";
+
+        public static readonly WordMap<string> FriendlyNames = new WordMap<string>
+            { { RawPointer, "*" }, { Pointer, "^" }, { Nilable, "?" }, { Ref, "ref "} };
+    }
+
     enum SymKind
     {
         None = 0,
@@ -223,6 +249,7 @@ namespace Gosub.Zurfur.Compiler
                 return;
             }
 
+            // Tuples: (name1 Type1, name2 Type2, ...) or (Type1, Type2, ...)
             if (IsTuple)
             {
                 var fullName = new StringBuilder();
@@ -245,30 +272,145 @@ namespace Gosub.Zurfur.Compiler
             }
 
 
-            // Suffix is (type1,type2...) for tuples and <type1,type2...> for types. 
+            // Generic args <type1,type2...>
             Debug.Assert(TupleNames.Length == 0);
             var post = "";
             if (TypeArgs.Length != 0)
                 post = "<" + string.Join<Symbol>(",", TypeArgs) + ">";
 
+            var funParams = "";
             if (IsFun && Type != null)
-            {
-                var genericsCount = Concrete.GenericParamCount();
-                post = (genericsCount == 0 ? "" : "`" + genericsCount) + post + Type.FullName;
-            }
+                funParams = FunParamTuple.FullName + FunReturnTuple.FullName;
 
-            var suffix = "";
-            if (IsType)
+            var genericArgsCount = "";
+            if (IsType || IsFun)
             {
                 var genericsCount =  Concrete.GenericParamCount(); ;
-                suffix = genericsCount == 0 ? "" : $"`{genericsCount}";
+                genericArgsCount = genericsCount == 0 ? "" : $"`{genericsCount}";
             }
 
             // Specialized functions get the parents functions parant
             var parentFullName = Concrete.Parent.FullName;
-            LookupName = SimpleName + suffix + post;
+            LookupName = SimpleName + genericArgsCount + post + funParams;
             FullName = parentFullName + "." + LookupName;
         }
+
+        /// <summary>
+        /// Generate the symbol's friendly name. 
+        /// </summary>
+        public string FriendlyName()
+        {
+            var name = FriendlyNameInternal(false);
+
+            // TBD:
+            //      Replacing generics for variables doesn't work because the
+            //      symbol doesn't track which function it is in, so doesn't
+            //      have access to the names of type arguments.
+            //
+            //      Also fails for inner types:
+            //          List<KvPair<K,V>>
+            //
+            //      We could name our type arguments "#T" instead of "#0", but
+            //      that would take some work.
+
+            // Replace generic arguments in function
+            if (IsType && HasGenericArg 
+                    || IsFun && HasGenericArg && FunParamTypes.Length != 0)
+            {
+                Symbol myType;
+                if (IsType)
+                    myType = Concrete;
+                else if (Parent.IsInterface)
+                    myType = Parent;    // Use interface generics
+                else if (IsStatic)
+                    myType = this;      // Use generics directly from function
+                else
+                    myType = FunParamTypes[0].Concrete;  // Use `my` generics 
+
+                foreach (var genericTypeName in myType.ChildrenFilter(SymKind.TypeParam)
+                        .OrderBy(s => s.SimpleName).Select( (sym,i) => (sym.SimpleName, i)))
+                {
+                    name = name.Replace($"#{genericTypeName.i}", genericTypeName.SimpleName);
+                }
+            }
+
+            if (IsFun)
+                return "fun " + name;
+            else if (IsInterface)
+                return "interface " + name;
+            else if (IsEnum)
+                return "enum " + name;
+            else if (IsModule)
+                return "module " + name;
+            else if (IsTuple)
+                return "tuple " + name;
+            else if (IsType)
+                return "type " + name;
+            return name;
+        }
+
+        /// <summary>
+        /// Generate the symbol's friendly name without putting the kind in
+        /// front or generic parameter substitution.
+        /// </summary>
+        string FriendlyNameInternal(bool dropFirstTupleElement = false)
+        {
+            if (IsLocal || IsFunParam || IsTypeParam || Parent == null || Parent.FullName == "")
+                return SimpleName;
+
+            // Symbol types: *, ^, ?, ref
+            if (TypeArgs.Length == 1
+                    && SymTypes.FriendlyNames.TryGetValue(Parent.FullName, out var friendlyName))
+                return friendlyName + TypeArgs[0].FriendlyNameInternal();
+
+            // Tuples: (name1 Type1, name2 Type2, ...) or (Type1, Type2, ...)
+            if (IsTuple)
+            {
+                var name = new StringBuilder();
+                name.Append("(");
+                bool first = true;
+                for (var i = dropFirstTupleElement ? 1 : 0; i < TypeArgs.Length; i++)
+                {
+                    if (!first)
+                        name.Append(", ");
+                    first = false;
+                    if (TupleNames.Length != 0 && TupleNames[i] != "")
+                    {
+                        name.Append(TupleNames[i]);
+                        name.Append(" ");
+                    }
+                    name.Append(TypeArgs[i].FriendlyNameInternal());
+                }
+                name.Append(")");
+                return name.ToString();
+            }
+
+            // Generic args <type1,type2...>. 
+            Debug.Assert(TupleNames.Length == 0);
+            var genericArgs = "";
+            if (TypeArgs.Length != 0)
+            {
+                genericArgs = "<" + string.Join(",", TypeArgs.Select(s => s.FriendlyNameInternal())) + ">";
+            }
+            else if (GenericParamCount() != 0)
+            {
+                genericArgs = "<" + string.Join(",", ChildrenFilter(SymKind.TypeParam)
+                                .Select(s => s.SimpleName)) + ">";
+            }
+
+            // Function parameters and `my` type
+            var myParam = "";
+            var funParams = "";
+            if (IsFun && Type != null)
+            {
+                funParams = FunParamTuple.FriendlyNameInternal(true) + FunReturnTuple.FriendlyNameInternal();
+                if (FunParamTuple.TypeArgs.Length != 0)
+                    myParam = FunParamTuple.TypeArgs[0].FriendlyNameInternal() + ".";
+            }
+
+            return myParam + SimpleName + genericArgs + funParams;
+        }
+
 
         public static Dictionary<SymKind, string> sKindNames = new Dictionary<SymKind, string>()
         {

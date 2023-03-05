@@ -56,9 +56,8 @@ namespace Gosub.Zurfur.Compiler
                 return ResolveMy(table, typeExpr.Token, searchScope);
 
             // Resolve regular symbol
-            bool foundInScope = false;
             var symbol = isDot ? FindLocalType(typeExpr.Token, table, searchScope)
-                               : FindGlobalType(typeExpr.Token, table, searchScope, useSymbols, out foundInScope);
+                               : FindGlobalType(typeExpr.Token, table, searchScope, useSymbols);
             if (symbol == null)
                 return null; // Error already marked
 
@@ -82,11 +81,6 @@ namespace Gosub.Zurfur.Compiler
             {
                 return table.GetGenericParam(symbol.GenericParamNum());
             }
-
-            // Type inference: Add implied types to inner types found in this scope
-            // e.g: InnerType => OuterType<T>.InnerType
-            if (!isDot && symbol.IsType && foundInScope)
-                symbol = GetTypeWithGenericParameters(table, symbol, symbol.Parent.GenericParamTotal());
 
             return symbol;
 
@@ -380,9 +374,10 @@ namespace Gosub.Zurfur.Compiler
         /// Find or create a type with outer generic parameters for this concrete type.
         /// e.g: OuterType`1.InnerType => OuterType`1.InnerType<#0>
         /// </summary>
-        public static Symbol GetTypeWithGenericParameters(SymbolTable table, Symbol type, int numGenerics)
+        public static Symbol GetTypeWithGenericParameters(SymbolTable table, Symbol type)
         {
-            Debug.Assert(type.IsType);
+            Debug.Assert(type.IsType && !type.IsSpecialized);
+            var numGenerics = type.GenericParamTotal();
             if (numGenerics == 0)
                 return type;
 
@@ -419,15 +414,13 @@ namespace Gosub.Zurfur.Compiler
         /// TBD: If symbol is unique in this package, but duplicated in an
         /// external package, is that an error?  Yes for now.
         /// </summary>
-        static public Symbol FindGlobalType(Token name, SymbolTable table, Symbol scope, UseSymbolsFile use, out bool foundInScope)
+        static public Symbol FindGlobalType(Token name, SymbolTable table, Symbol scope, UseSymbolsFile use)
         {
             var symbol = FindTypeInScopeWalk(name.Name, scope);
             if (symbol != null)
             {
-                foundInScope = true;
                 return symbol;
             }
-            foundInScope = false;
 
             // Look for types in 'use' symbols
             var symbols = new List<Symbol>(); // TBD: Be kind to GC

@@ -13,6 +13,14 @@ type Xuint copy
 type RawPointer<T> copy
     value Xuint
 
+[static] fun RawPointer._opEq(p1 My, p2 My) bool extern
+[static] fun RawPointer._opCmp(p1 My, p2 My) i32 extern
+[static] fun RawPointer._opAdd(p1 My, i u64) My extern
+[static] fun RawPointer._opAdd(p1 u64, i My) My extern
+[static] fun RawPointer._opSub(p1 My, p2 My) My extern
+[static] fun RawPointer._opSub(p1 My, p2 u64) My extern
+
+
 // Internal representation of `ref`, a compiler generated stack only pointer.
 // The first version is a reference counting implementation, but future
 // versions might not be.  The owner is nil when a non-heap (static global or

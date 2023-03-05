@@ -177,7 +177,7 @@ namespace Gosub.Zurfur.Compiler
 
             symSpec.FinalizeFullName();
 
-            // Store and re-use matching symbols
+            // Store and re-use matching non-generic symbols
             var symDict = symSpec.IsTuple ? mTupleTypes : mSpecializedTypes;
             if (symDict.TryGetValue(symSpec.FullName, out var specExists))
                 return specExists;
