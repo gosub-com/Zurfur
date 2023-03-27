@@ -400,7 +400,8 @@ namespace Gosub.Zurfur.Compiler
                 function.Comments = synFunc.Comments;
                 var myParam = ResolveMyParam(function, synFunc);
                 AddTypeParams(function, synFunc.TypeArgs);
-                table.AddOrReject(myParam);
+                if (myParam != null)
+                    table.AddOrReject(myParam);
                 Resolver.ResolveFunParams(synFunc.FunctionSignature[0], table, function, function, useSymbolsFile, false);
                 Resolver.ResolveFunParams(synFunc.FunctionSignature[1], table, function, function, useSymbolsFile, true);
                 SetNewFunction(function, synFunc, myParam);
@@ -416,6 +417,13 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 table.AddOrReject(function);
+
+                // Rename generic args from #0, #1... to proper names
+                if (myParam != null && myParam.Type != null)
+                    for (int i = 0;  i < function.GenericParamNames.Length
+                                        && i < myParam.Type.GenericParamNames.Length; i++)
+                        if (function.GenericParamNames[i].StartsWith("#"))
+                            function.GenericParamNames[i] = myParam.Type.GenericParamNames[i];
 
                 ResolveConstraints(function, synFunc.Constraints);
 
@@ -442,7 +450,10 @@ namespace Gosub.Zurfur.Compiler
                     myParam.Type = Resolver.GetTypeWithGenericParameters(table, method.Parent);
                     method.Qualifiers |= SymQualifiers.Method;
                     if (func.ExtensionType != null)
-                        Reject(func.ExtensionType.Token, "Extension method not allowed on interface functions");
+                        Reject(func.ExtensionType.Token, "Interface methods cannot have a receiver type");
+                    if (func.TypeArgs != null)
+                        foreach (var typeParam in func.TypeArgs)
+                            Reject(typeParam.Token, "Interface methods cannot have type parameters");
                 }
                 else if (extType == null || extType.Token == "")
                 {
@@ -451,6 +462,7 @@ namespace Gosub.Zurfur.Compiler
                     if (method.Qualifiers.HasFlag(SymQualifiers.Static))
                         Reject(method.Token, "'static' not allowed at module level");
                     method.Qualifiers |= SymQualifiers.Static;
+                    return null;
                 }
                 else
                 {
@@ -485,7 +497,7 @@ namespace Gosub.Zurfur.Compiler
             // Give `new` function correct return type
             void SetNewFunction(Symbol function, SyntaxFunc synFunc, Symbol myParam)
             {
-                if (synFunc.Name != "new")
+                if (myParam == null || synFunc.Name != "new")
                     return;
 
                 function.Qualifiers |= SymQualifiers.Static;

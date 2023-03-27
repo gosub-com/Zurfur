@@ -16,6 +16,8 @@ type MyPoint<T1,T2,T3>
     a T1
     b T2
     c T3
+    x (int, T1, int)
+    y (a int, b T1, c int, d (r int, b int))
 
 type Iterable2<Item> interface
     fun iterator2() Iterator<Item>

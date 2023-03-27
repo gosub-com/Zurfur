@@ -108,37 +108,15 @@ namespace Gosub.Zurfur.Compiler
                     return;
                 }
 
-                var p = func.FunParamTypes;
-                if (p.Length == 0)
-                {
-                    Reject(func.Token, "Function must have a receiver parameter");
-                    return;
-                }
 
                 // Check parameter and return types
-                CheckTypeName(func.Token, p[0].FullName, true);
-                for (int i = 1;  i < p.Length; i++)
-                    CheckTypeName(func.Token, p[i].FullName, false);
+                var p = func.FunParamTypes;
+                foreach (var r in func.FunParamTypes)
+                    CheckTypeName(func.Token, r.FullName, false);
                 foreach (var r in func.FunReturnTypes)
                     CheckTypeName(func.Token, r.FullName, false);
 
                 var funParent = func.Parent;
-                if (p[0].IsModule)
-                {
-                    if (funParent.FullName != p[0].FullName)
-                        Reject(func.Token, "The module function receiver "
-                            + $"'{p[0]}' must match the module the function is in '{funParent}' ");
-                    if (!func.IsStatic)
-                        Reject(func.Token, "Functions at the module level must be static");
-                    if (func.IsMethod)
-                        Reject(func.Token, "Functions at the module level cannot be methods");
-                }
-                else
-                {
-                    if (!func.IsMethod)
-                        Reject(func.Token, "Functions taking a non-module receiver must be methods");
-                }
-
                 RejectDuplicateTypeParameterName(func.Token, funParent.Parent); // Skip containing type or method
 
                 if (!funParent.IsInterface && !funParent.IsModule)
@@ -164,12 +142,12 @@ namespace Gosub.Zurfur.Compiler
                 }
                 if (!(s.IsAnyType || allowModule && s.IsModule)) 
                     Reject(token, $"The type '{typeName}' is not a type, it is a '{s.KindName}'");
-                if (s.IsModule && s.GenericParamTotal() != 0)
+                if (s.IsModule && s.GenericParamCount() != 0)
                     Reject(token, "Module must not have generic types");
 
                 if (s.IsType)
                 {
-                    var genericParams = s.GenericParamTotal();
+                    var genericParams = s.GenericParamCount();
                     var genericArgsCount = s.IsSpecialized ? s.TypeArgs.Length : 0;
                     if (genericParams != genericArgsCount)
                         Reject(token, $"The type '{typeName}' requires {genericParams} generic "

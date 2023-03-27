@@ -36,11 +36,9 @@ namespace Gosub.Zurfur.Compiler
         Symbol mGenericArgumentHolder; // Holder so they have `Order` set properly
         List<Symbol> mGenericTuples = new();
         Symbol mGenericTupleHolder;
-        Symbol mWildCard;
 
         public Symbol Root => mRoot;
         public Symbol EmptyTuple => GetTupleBaseType(0);
-        public Symbol WildCard => mWildCard;
 
 
         public SymbolTable()
@@ -49,7 +47,6 @@ namespace Gosub.Zurfur.Compiler
             mRoot = new Symbol(SymKind.Module, preRoot, null, "");
             mGenericArgumentHolder = new Symbol(SymKind.Type, mRoot, null, "");
             mGenericTupleHolder = new Symbol(SymKind.Module, mRoot, null, "");
-            mWildCard = new Symbol(SymKind.Type, mRoot, null, "_");
         }
 
 
@@ -159,7 +156,8 @@ namespace Gosub.Zurfur.Compiler
         {
             Debug.Assert(concreteType.IsType || concreteType.IsFun || concreteType.IsField);
             if (!NoCompilerChecks)
-                Debug.Assert(concreteType.GenericParamTotal() == typeArgs.Length);
+                Debug.Assert(concreteType.GenericParamCount() == typeArgs.Length);
+
             Debug.Assert(!concreteType.IsSpecialized);
             Debug.Assert(tupleNames == null || tupleNames.Length == 0 || tupleNames.Length == typeArgs.Length);
 
@@ -177,11 +175,10 @@ namespace Gosub.Zurfur.Compiler
 
             symSpec.FinalizeFullName();
 
-            // Store and re-use matching non-generic symbols
+            // Store one copy of specialized symbol (ignoring tuple names)
             var symDict = symSpec.IsTuple ? mTupleTypes : mSpecializedTypes;
-            if (symDict.TryGetValue(symSpec.FullName, out var specExists))
-                return specExists;
-            symDict[symSpec.FullName] = symSpec;
+            if (!symDict.ContainsKey(symSpec.FullName))
+                symDict[symSpec.FullName] = symSpec;
             return symSpec;
         }
 
@@ -214,14 +211,13 @@ namespace Gosub.Zurfur.Compiler
             {
                 var name = i == 0 ? "()" :  $"()`{i}";
                 var arg = new Symbol(SymKind.Type, mGenericTupleHolder, null, name);
-                mGenericTuples.Add(arg);
-                AddOrReject(arg);
-
                 for (int j = 0;  j < i; j++)
                 {
                     var tp = new Symbol(SymKind.TypeParam, arg, null, $"T{j}");
                     AddOrReject(tp);
                 }
+                mGenericTuples.Add(arg);
+                AddOrReject(arg);
             }
             return mGenericTuples[numGenerics];
         }

@@ -950,7 +950,6 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 }
                 call.Candidates = candidates;
-                call.InType = table.WildCard;
                 var rval = FindCompatibleFunction(call, args,
                                 $" '{operatorName}' (operator '{ex.Token}')");
                 if (rval == null)
@@ -1076,7 +1075,6 @@ namespace Gosub.Zurfur.Compiler
 
                 // Search for `new` function
                 Debug.Assert(call.InType == null);
-                call.InType = table.WildCard;
                 call.Name = "new";
                 call.IsStatic = true; // Constructor is static
                 call.Candidates = FindInType(call.Name, newType);
@@ -1136,10 +1134,11 @@ namespace Gosub.Zurfur.Compiler
                     return null;
 
                 // Insert inType type as receiver parameter
-                call.Type = call.InType == null ? table.WildCard : call.InType;
-                if (call.InType == null)
-                    call.IsStatic = true;
-                args.Insert(0, call);
+                if (call.InType != null && !call.IsStatic)
+                {
+                    call.Type = call.InType;
+                    args.Insert(0, call);
+                }
 
                 // Generate list of matching symbols, update
                 // the candidates to their specialized form
@@ -1200,11 +1199,13 @@ namespace Gosub.Zurfur.Compiler
                 if (!func.IsFun)
                     return (null, CallCompatible.NotAFunction);
 
-                if (call.IsStatic && !func.IsStatic)
-                    return (null, CallCompatible.StaticCallToNonStaticMethod);
-                if (!call.IsStatic && func.IsStatic)
-                    return (null, CallCompatible.NonStaticCallToStaticMethod);
-
+                if (func.IsMethod)
+                {
+                    if (call.IsStatic && !func.IsStatic)
+                        return (null, CallCompatible.StaticCallToNonStaticMethod);
+                    if (!call.IsStatic && func.IsStatic)
+                        return (null, CallCompatible.NonStaticCallToStaticMethod);
+                }
 
                 // Find type args supplied by the source code (explicitly or inferred)
                 var typeArgs = InferTypeArgs(func, call.TypeArgs, args, func.FunParamTypes);
@@ -1218,7 +1219,7 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 // Verify number of type arguments
-                var typeArgsExpectedCount = func.GenericParamTotal();
+                var typeArgsExpectedCount = func.GenericParamCount();
                 if (typeArgs.Length != typeArgsExpectedCount)
                 {
                     if (typeArgs.Length == 0 && typeArgsExpectedCount != 0)
@@ -1233,42 +1234,34 @@ namespace Gosub.Zurfur.Compiler
                     func = table.CreateSpecializedType(
                         func, typeArgs, null, ReplaceGenericTypeParams(func.Type, typeArgs));
 
-
-                // Don't match receiver of static functions.
-                // Also don't match receier of a generic constraint
-                // since it's matched by the constaint.
-                var funParams = func.FunParamTypes;
-                var startIndex = 0;
-                if (func.Qualifiers.HasFlag(SymQualifiers.Static))
-                    startIndex = 1;
-                if (args[0].Type.IsGenericArg && func.Concrete.Parent.IsInterface)
-                    startIndex = 1;
+                // Don't consider first parameter of static method
+                var funParams = new Span<Symbol>(func.FunParamTypes);
+                if (func.IsMethod && func.IsStatic)
+                    funParams = funParams.Slice(1);
 
                 // Match up the arguments (TBD: default parameters)
                 if (args.Count != funParams.Length)
                     return (null, CallCompatible.WrongNumberOfParameters);
-                for (var i = startIndex; i < funParams.Length; i++)
+                for (var i = 0; i < funParams.Length; i++)
                 {
-                    if (funParams[i] == null)
-                        return (null, CallCompatible.IncompatibleParameterTypes);
+                    // Auto-deref references
+                    var argType = DerefRef(args[i].Type);
+                    var param = DerefRef(funParams[i]);
 
-                    var arg = args[i].Type;
-                    var param = funParams[i];
-
-                    // Types match whether they are references or not
-                    arg = DerefRef(arg);
-                    param = DerefRef(param);
+                    // Receiver for generic interface always matches
+                    if (i == 0 && func.Concrete.Parent.IsInterface && argType.IsGenericArg)
+                        continue;
 
                     // Implicit conversion from nil to *T or from *T to *void
                     if (param.Parent.FullName == SymTypes.RawPointer)
                     {
-                        if (arg.FullName == SymTypes.Nil)
+                        if (argType.FullName == SymTypes.Nil)
                             continue;
-                        if (arg.Parent.FullName == SymTypes.RawPointer && DerefPointers(param) == typeVoid)
+                        if (argType.Parent.FullName == SymTypes.RawPointer && DerefPointers(param) == typeVoid)
                             continue;
                     }
 
-                    if (!TypesMatch(arg, param))
+                    if (!TypesMatch(argType, param))
                         return (null, CallCompatible.IncompatibleParameterTypes);
                 }
                 return (func, CallCompatible.Compatible);
@@ -1284,7 +1277,7 @@ namespace Gosub.Zurfur.Compiler
                 if (func.TypeArgs.Length != 0)
                     return typeArgs;        // Supplied by the function
 
-                var typeArgsNeeded = func.GenericParamTotal();
+                var typeArgsNeeded = func.GenericParamCount();
                 if (typeArgsNeeded == 0 || typeArgsNeeded > funParamTypes.Length)
                     return typeArgs;  // Must have enough parameters to make it work
 
@@ -1599,7 +1592,7 @@ namespace Gosub.Zurfur.Compiler
                     while (i < symbols.Count)
                     {
                         var s = symbols[i];
-                        if (s.GenericParamTotal() == constraint.TypeArgs.Length)
+                        if (s.GenericParamCount() == constraint.TypeArgs.Length)
                         {
                             symbols[i] = table.CreateSpecializedType(s, constraint.TypeArgs, null,
                                 ReplaceGenericTypeParams(s.Type, constraint.TypeArgs));

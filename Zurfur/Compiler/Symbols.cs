@@ -28,9 +28,10 @@ namespace Gosub.Zurfur.Compiler
         public const string Byte = "Zurfur.byte";
         public const string F64 = "Zurfur.f64";
         public const string F32 = "Zurfur.f32";
+        public const string Span = "Zurfur.Span`1";
 
         public static readonly WordMap<string> FriendlyNames = new WordMap<string>
-            { { RawPointer, "*" }, { Pointer, "^" }, { Nilable, "?" }, { Ref, "ref "} };
+            { { RawPointer, "*" }, { Pointer, "^" }, { Nilable, "?" }, { Ref, "ref "}, { Span, "[]" } };
     }
 
     enum SymKind
@@ -114,8 +115,7 @@ namespace Gosub.Zurfur.Compiler
         public int Order { get; private set; } = -1;
 
         /// <summary>
-        /// The symbol's full name, including tuple names.
-        /// e.g. the full name of (a int, b int) is (a int, b int).
+        /// The symbol's full type name, excluding tuple names.
         /// </summary>
         public string FullName { get; private set; }
 
@@ -157,6 +157,19 @@ namespace Gosub.Zurfur.Compiler
         /// fun f(a int, b str) does.
         /// </summary>
         public string[] TupleNames { get; init; } = Array.Empty<string>();
+
+        /// <summary>
+        /// Names of generic type parameters.  Set by FinalizeFullName
+        /// </summary>
+        public string[] GenericParamNames = Array.Empty<string>();
+
+        /// <summary>
+        /// Get the generic parameter count.
+        /// </summary>
+        public int GenericParamCount()
+        {
+            return GenericParamNames.Length;
+        }
 
 
         /// <summary>
@@ -238,11 +251,22 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Generate the symbol's full name.  Must be called after updating
-        /// any symbol property that could change the name.
+        /// Generate the symbol's full name and parameter type list. Must be
+        /// called after updating any symbol property that could change the name.
         /// </summary>
         public void FinalizeFullName()
         {
+            // Set generic parameter names
+            if (IsType || IsFun)
+            {
+                if (IsSpecialized || IsFun && Parent.IsInterface)
+                    GenericParamNames = Parent.GenericParamNames;
+                else
+                    GenericParamNames = ChildrenFilter(SymKind.TypeParam).OrderBy(s => Order).Select(s => s.SimpleName).ToArray();
+            }
+            if (IsField)
+                GenericParamNames = Parent.GenericParamNames;
+
             if (IsLocal || IsFunParam || IsTypeParam || Parent == null || Parent.FullName == "")
             {
                 FullName = SimpleName;
@@ -252,25 +276,10 @@ namespace Gosub.Zurfur.Compiler
             // Tuples: (name1 Type1, name2 Type2, ...) or (Type1, Type2, ...)
             if (IsTuple)
             {
-                var fullName = new StringBuilder();
-                fullName.Append("(");
-                for (int i = 0;  i < TypeArgs.Length;  i++)
-                {
-                    if (i != 0)
-                        fullName.Append(", ");
-                    if (TupleNames.Length != 0 && TupleNames[i] != "")
-                    {
-                        fullName.Append(TupleNames[i]);
-                        fullName.Append(" ");
-                    }
-                    fullName.Append(TypeArgs[i].FullName);
-                }
-                fullName.Append(")");
-                FullName = fullName.ToString();
+                FullName = "(" + string.Join(",", TypeArgs.Select(s => s.FullName)) + ")";
                 LookupName = FullName;
                 return;
             }
-
 
             // Generic args <type1,type2...>
             Debug.Assert(TupleNames.Length == 0);
@@ -285,7 +294,7 @@ namespace Gosub.Zurfur.Compiler
             var genericArgsCount = "";
             if (IsType || IsFun)
             {
-                var genericsCount =  Concrete.GenericParamCount(); ;
+                var genericsCount =  GenericParamCount();
                 genericArgsCount = genericsCount == 0 ? "" : $"`{genericsCount}";
             }
 
@@ -302,37 +311,9 @@ namespace Gosub.Zurfur.Compiler
         {
             var name = FriendlyNameInternal(false);
 
-            // TBD:
-            //      Replacing generics for variables doesn't work because the
-            //      symbol doesn't track which function it is in, so doesn't
-            //      have access to the names of type arguments.
-            //
-            //      Also fails for inner types:
-            //          List<KvPair<K,V>>
-            //
-            //      We could name our type arguments "#T" instead of "#0", but
-            //      that would take some work.
-
             // Replace generic arguments in function
-            if (IsType && HasGenericArg 
-                    || IsFun && HasGenericArg && FunParamTypes.Length != 0)
-            {
-                Symbol myType;
-                if (IsType)
-                    myType = Concrete;
-                else if (Parent.IsInterface)
-                    myType = Parent;    // Use interface generics
-                else if (IsStatic)
-                    myType = this;      // Use generics directly from function
-                else
-                    myType = FunParamTypes[0].Concrete;  // Use `my` generics 
-
-                foreach (var genericTypeName in myType.ChildrenFilter(SymKind.TypeParam)
-                        .OrderBy(s => s.SimpleName).Select( (sym,i) => (sym.SimpleName, i)))
-                {
-                    name = name.Replace($"#{genericTypeName.i}", genericTypeName.SimpleName);
-                }
-            }
+            for (int i = 0; i < GenericParamNames.Length;  i++)
+                name = name.Replace($"#{i}", GenericParamNames[i]);
 
             if (IsFun)
                 return "fun " + name;
@@ -343,9 +324,9 @@ namespace Gosub.Zurfur.Compiler
             else if (IsModule)
                 return "module " + name;
             else if (IsTuple)
-                return "tuple " + name;
+                return name;
             else if (IsType)
-                return "type " + name;
+                return name;
             return name;
         }
 
@@ -353,15 +334,18 @@ namespace Gosub.Zurfur.Compiler
         /// Generate the symbol's friendly name without putting the kind in
         /// front or generic parameter substitution.
         /// </summary>
-        string FriendlyNameInternal(bool dropFirstTupleElement = false)
+        string FriendlyNameInternal(bool dropFirstTupleElement)
         {
             if (IsLocal || IsFunParam || IsTypeParam || Parent == null || Parent.FullName == "")
                 return SimpleName;
 
-            // Symbol types: *, ^, ?, ref
+            if (IsField)
+                return Parent.FriendlyNameInternal(false) + "." + SimpleName;
+
+            // Symbol types: *, ^, ?, [], ref
             if (TypeArgs.Length == 1
                     && SymTypes.FriendlyNames.TryGetValue(Parent.FullName, out var friendlyName))
-                return friendlyName + TypeArgs[0].FriendlyNameInternal();
+                return friendlyName + TypeArgs[0].FriendlyNameInternal(false);
 
             // Tuples: (name1 Type1, name2 Type2, ...) or (Type1, Type2, ...)
             if (IsTuple)
@@ -379,7 +363,7 @@ namespace Gosub.Zurfur.Compiler
                         name.Append(TupleNames[i]);
                         name.Append(" ");
                     }
-                    name.Append(TypeArgs[i].FriendlyNameInternal());
+                    name.Append(TypeArgs[i].FriendlyNameInternal(false));
                 }
                 name.Append(")");
                 return name.ToString();
@@ -390,12 +374,11 @@ namespace Gosub.Zurfur.Compiler
             var genericArgs = "";
             if (TypeArgs.Length != 0)
             {
-                genericArgs = "<" + string.Join(",", TypeArgs.Select(s => s.FriendlyNameInternal())) + ">";
+                genericArgs = "<" + string.Join(",", TypeArgs.Select(s => s.FriendlyNameInternal(false))) + ">";
             }
             else if (GenericParamCount() != 0)
             {
-                genericArgs = "<" + string.Join(",", ChildrenFilter(SymKind.TypeParam)
-                                .Select(s => s.SimpleName)) + ">";
+                genericArgs = "<" + string.Join(",", GenericParamNames) + ">";
             }
 
             // Function parameters and `my` type
@@ -403,9 +386,18 @@ namespace Gosub.Zurfur.Compiler
             var funParams = "";
             if (IsFun && Type != null)
             {
-                funParams = FunParamTuple.FriendlyNameInternal(true) + FunReturnTuple.FriendlyNameInternal();
-                if (FunParamTuple.TypeArgs.Length != 0)
-                    myParam = FunParamTuple.TypeArgs[0].FriendlyNameInternal() + ".";
+                if (IsMethod && FunParamTuple.TypeArgs.Length != 0)
+                {
+                    // Methods use first parameter as receiver type
+                    funParams = FunParamTuple.FriendlyNameInternal(true) + FunReturnTuple.FriendlyNameInternal(false);
+                    myParam = FunParamTuple.TypeArgs[0].FriendlyNameInternal(false) + ".";
+                }
+                else
+                {
+                    // Non-methods show parameters only
+                    funParams = FunParamTuple.FriendlyNameInternal(false) + FunReturnTuple.FriendlyNameInternal(false);
+                    myParam = "";
+                }
             }
 
             return myParam + SimpleName + genericArgs + funParams;
@@ -639,38 +631,12 @@ namespace Gosub.Zurfur.Compiler
         }
 
         /// <summary>
-        /// Get generic parameter count at this level.
-        /// </summary>
-        public int GenericParamCount()
-        {
-            var count = 0;
-            foreach (var child in ChildrenFilter(SymKind.TypeParam))
-                count++;
-            return count;
-        }
-
-        /// <summary>
-        /// Get total generic parameter count, including encolsing scopes:
-        /// (e.g, In`MyClass<T1,T2>.MyFunc<T>()`, MyFunc expects 3 parameters)
-        /// </summary>
-        public int GenericParamTotal()
-        {
-            var count = GenericParamCount();
-            var p = Parent;
-            while (p != null && (p.IsType || p.IsFun))
-            {
-                count += p.GenericParamCount();
-                p = p.Parent;
-            }
-            return count;
-        }
-
-        /// <summary>
-        /// Get the generic parameter number (only valid for type parameters)
+        /// Get the generic parameter number from a type parameter
         /// </summary>
         public int GenericParamNum()
         {
-            return Parent.Parent.GenericParamTotal() + Order;
+            Debug.Assert(this.IsTypeParam);
+            return Order;
         }
 
         /// <summary>

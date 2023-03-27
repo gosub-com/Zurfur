@@ -146,11 +146,10 @@ namespace Gosub.Zurfur.Compiler
                     return null;
 
                 // Reject incorrect number of type arguments, for example, `List<int,int>`
-                var typeNameConcrete = typeName.IsSpecialized ? typeName.Parent : typeName;
-                if (typeNameConcrete.GenericParamCount() != typeParams.Count)
+                if (typeName.GenericParamCount() != typeParams.Count)
                 {
                     RejectTypeArgLeftDotRight(typeExpr, table,
-                        $"Expecting {typeNameConcrete.GenericParamCount()} generic parameter(s), but got {typeParams.Count}");
+                        $"Expecting {typeName.GenericParamCount()} generic parameter(s), but got {typeParams.Count}");
                     if (!table.NoCompilerChecks)
                         return null;
                 }
@@ -161,7 +160,7 @@ namespace Gosub.Zurfur.Compiler
                     for (int i = 0; i < typeName.TypeArgs.Length; i++)
                         typeParams.Insert(i, typeName.TypeArgs[i]);
                 }
-                return table.CreateSpecializedType(typeNameConcrete, typeParams.ToArray());
+                return table.CreateSpecializedType(typeName.Concrete, typeParams.ToArray());
             }
 
 
@@ -372,12 +371,12 @@ namespace Gosub.Zurfur.Compiler
 
         /// <summary>
         /// Find or create a type with outer generic parameters for this concrete type.
-        /// e.g: OuterType`1.InnerType => OuterType`1.InnerType<#0>
+        /// e.g: OuterType`1 => OuterType<#0>
         /// </summary>
         public static Symbol GetTypeWithGenericParameters(SymbolTable table, Symbol type)
         {
             Debug.Assert(type.IsType && !type.IsSpecialized);
-            var numGenerics = type.GenericParamTotal();
+            var numGenerics = type.GenericParamCount();
             if (numGenerics == 0)
                 return type;
 

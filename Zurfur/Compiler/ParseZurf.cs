@@ -70,7 +70,7 @@ namespace Gosub.Zurfur.Compiler
             + "async await astart atask task get set var where when nameof "
             + "box init move copy clone drop own super self "
             + "extends impl implements fun afun sfun def yield let "
-            + "any dyn select match from to of on cofun "
+            + "any Any dyn Dyn dynamic Dynamic select match from to of on cofun "
             + "throws rethrow @ # and or not xor with exit pragma require ensure "
             + "of sync except exception loc local global my My");
 
