@@ -27,11 +27,11 @@ type MyType
 
 // Declare a method to multiply and add three keys on Map<K,V>.
 // Return Nan (or MinValue for integer types) if any key is missing.
-fun Map.madd(mul1 My.K, mul2 My.K, add My.K) My.V
-        where My.V has NumOps<My.V>
+fun Map.madd<K,V>(mul1 K, mul2 K, add K) V
+        where V has NumOps<V>
     if my[mul1]@mul1Val and my[mul2]@mul2Val and my[add]@addVal
         return mul1Val * mul2Val + addVal
-    return My.V.NanOrMin        
+    return V.NanOrMin        
 
 // Method
 [pub]
@@ -69,12 +69,12 @@ fun test_HelloWorld()
 
             
 [pub]
-fun circle(a f64, r f64) -> (x f64, y f64)
+fun circle(a f64, r f64)(x f64, y f64)
     @q = circle(1.0,2.0)
     @p = q.x
     return (cos(a)*r, sin(a)*r)
 
-fun circle2<T0, T1>(a T0, r T1)->(x T0, y T1)
+fun circle2<T0, T1>(a T0, r T1)(x T0, y T1)
     return (T0(), T1())
 
 [pub] type Example

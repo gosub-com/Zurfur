@@ -222,6 +222,19 @@ namespace Gosub.Zurfur.Compiler
             return mGenericTuples[numGenerics];
         }
 
+        Symbol mFunHolder = null;
+        public Symbol FunHolder
+        {
+            get 
+            {
+                if (mFunHolder != null)
+                    return mFunHolder;
+                mFunHolder = new Symbol(SymKind.Type, mGenericTupleHolder, null, "fun`1");
+                AddOrReject(new Symbol(SymKind.TypeParam, mFunHolder, null, $"T"));
+                return mFunHolder; 
+            }
+        }
+
 
         /// <summary>
         /// Returns the symbol at the given path in the package.

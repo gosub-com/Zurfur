@@ -24,17 +24,17 @@ type void { }
 
 // Empty value for pointers and optionals
 [pub]
-type nil { }
+type Nil { }
 
-// Nilable<T> is the same as ?T.  Pointer and reference types are always
+// Maybe<T> is the same as ?T.  Pointer and reference types are always
 // optimized so that `?ref T`, `*T`, and `^T` are just one pointer.
 [pub]
-type Nilable<T>
+type Maybe<T>
     value T
     hasValue bool
 
 [pub]
-fun Nilable.new(value My.T)
+fun Maybe.new<T>(value T)
     my.value = value
     my.hasValue = true
 

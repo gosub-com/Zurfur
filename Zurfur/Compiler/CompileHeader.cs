@@ -48,7 +48,8 @@ namespace Gosub.Zurfur.Compiler
  
     static class CompileHeader
     {
-        const string ZURFUR_PRELUDE = "void nil Nilable bool i8 byte i16 u16 i32 u32 int u64 f32 f64 str List Map Array Buffer Span";
+        const string ZURFUR_PRELUDE = "void bool i8 byte i16 u16 i32 u32 int u64 f32 f64 str "
+            + "Nil Maybe List Map Array Buffer Span";
 
         static public CompilerHeaderOutput GenerateHeader(
             Dictionary<string, SyntaxFile> syntaxFiles,
@@ -232,7 +233,7 @@ namespace Gosub.Zurfur.Compiler
                     returnParam.Qualifiers |= SymQualifiers.ParamOut;
                     returnParam.Type = myParam.Type;
                     table.AddOrReject(returnParam);
-                    CreateFunTypeAndName(table, constructor);
+                    Resolver.CreateFunTypeAndName(table, constructor);
                     table.AddOrIgnore(constructor);
                 }
             }
@@ -315,19 +316,7 @@ namespace Gosub.Zurfur.Compiler
                     var name = synConstraint.TypeName.Name;
 
                     // Find constraint type
-                    Symbol constrainedType;
-                    if (synConstraint.MyToken != null)
-                    {
-                        var myType = Resolver.ResolveMy(table, synConstraint.MyToken, scope);
-                        if (myType == null)
-                            continue;
-                        myType.Concrete.TryGetPrimary(name, out constrainedType);
-                    }
-                    else
-                    {
-                        constrainedType = Resolver.FindTypeInScopeWalk(name, scope);
-                    }
-
+                    var constrainedType = Resolver.FindTypeInScopeWalk(name, scope);
                     if (constrainedType == null)
                     {
                         Reject(synConstraint.TypeName, $"The symbol '{name}' is undefined");
@@ -398,14 +387,14 @@ namespace Gosub.Zurfur.Compiler
                 var function = new Symbol(SymKind.Fun, scope, synFunc.Name);
                 function.SetQualifiers(synFunc.Qualifiers);
                 function.Comments = synFunc.Comments;
-                var myParam = ResolveMyParam(function, synFunc);
                 AddTypeParams(function, synFunc.TypeArgs);
+                var myParam = ResolveMyParam(function, synFunc);
                 if (myParam != null)
                     table.AddOrReject(myParam);
                 Resolver.ResolveFunParams(synFunc.FunctionSignature[0], table, function, function, useSymbolsFile, false);
                 Resolver.ResolveFunParams(synFunc.FunctionSignature[1], table, function, function, useSymbolsFile, true);
                 SetNewFunction(function, synFunc, myParam);
-                CreateFunTypeAndName(table, function);
+                Resolver.CreateFunTypeAndName(table, function);
 
                 function.Token.AddInfo(function);
                 if (synFunc.Parent.Name.Error)
@@ -469,15 +458,21 @@ namespace Gosub.Zurfur.Compiler
                     // Extension method
                     if (extType.Token != ParseZurf.VT_TYPE_ARG)
                     {
-                        // Generic parameters not supplied, add them if necessary
+                        // Just type name without generic parameters
                         var myType = Resolver.FindGlobalType(extType.Token, table, method,
                                         useSymbols.Files[extType.Token.Path]);
-                        if (myType != null)
+                        if (myType == null)
+                            return null;
+                        
+                        myParam.Type = Resolver.GetTypeWithGenericParameters(table, myType);
+                        extType.Token.AddInfo(myParam.Type);
+
+                        // If the type has generic parameters, the function must have at least as many
+                        if (myParam.Type.GenericParamCount() > method.GenericParamCount())
                         {
-                            myParam.Type = Resolver.GetTypeWithGenericParameters(table, myType);
-                            foreach (var genericParam in myParam.Type.TypeArgs)
-                                table.AddOrReject(new Symbol(SymKind.TypeParam, method, func.Name, genericParam.SimpleName));
-                            extType.Token.AddInfo(myParam.Type);
+                            Reject(method.Token, $"'{method.Token}' must have at least {myParam.Type.GenericParamCount()} "
+                                + $"generic parameter(s) because '{extType.Token}' takes that many generic parameter(s)");
+                            return null;
                         }
                     }
                     else
@@ -513,28 +508,6 @@ namespace Gosub.Zurfur.Compiler
                 returnParam.Qualifiers |= SymQualifiers.ParamOut;
                 returnParam.Type = myParam.Type;
                 table.AddOrReject(returnParam);
-            }
-
-            // Create function type from parameters/returns and finalize function name
-            void CreateFunTypeAndName(SymbolTable table, Symbol function)
-            {
-                var parameters = GetFunParamsTuple(function, false);
-                var returns = GetFunParamsTuple(function, true);
-                function.Type = table.CreateTuple(new Symbol[] { parameters, returns });
-                function.FinalizeFullName();
-            }
-
-            // Get parameters or returns as a tuple.
-            Symbol GetFunParamsTuple(Symbol symbol, bool returns)
-            {
-                var parameters = symbol.ChildrenFilter(SymKind.FunParam)
-                    .Where(child => child.Type != null && returns == child.ParamOut).ToList();
-
-                parameters.Sort((a, b) => a.Order.CompareTo(b.Order));
-                var paramTypes = parameters.Select(p => p.Type).ToArray();
-                var paramNames = parameters.Select(p => p.FullName).ToArray();
-
-                return table.CreateTuple(paramTypes, paramNames);
             }
 
             Symbol ResolveTypeNameOrReject(Symbol scope, SyntaxExpr typeExpr)

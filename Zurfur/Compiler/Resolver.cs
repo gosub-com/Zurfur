@@ -14,7 +14,7 @@ namespace Gosub.Zurfur.Compiler
             {"*", "Zurfur.RawPointer`1" },
             {"^", "Zurfur.Pointer`1" },
             {"ref", "Zurfur.Ref`1" },
-            {"?", "Zurfur.Nilable`1"},
+            {"?", "Zurfur.Maybe`1"},
             {"[", "Zurfur.Span`1" },
             {"!", "Zurfur.Result`1" }
         };
@@ -46,14 +46,10 @@ namespace Gosub.Zurfur.Compiler
                 return ResolveGenericType();
 
             if (typeExpr.Token == "(")
-                return ResolveTupleType();
+                return ResolveTupleType(typeExpr);
 
             if (typeExpr.Token == "fun" || typeExpr.Token == "afun")
                 return ResolveLambdaFun();
-
-            // Resolve My
-            if (typeExpr.Token == "My")
-                return ResolveMy(table, typeExpr.Token, searchScope);
 
             // Resolve regular symbol
             var symbol = isDot ? FindLocalType(typeExpr.Token, table, searchScope)
@@ -197,7 +193,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Resolve a tuple: '(int,List<str>,f32)', etc.
-            Symbol ResolveTupleType()
+            Symbol ResolveTupleType(SyntaxExpr typeExpr)
             {
                 bool resolved = true;
                 List<Symbol> typeParams = new List<Symbol>();
@@ -229,40 +225,53 @@ namespace Gosub.Zurfur.Compiler
             // On error, the token is rejected and null is returned.
             Symbol ResolveLambdaFun()
             {
-                // TBD: Revisit how to do this
+                if (typeExpr.Count < 3)
+                {
+                    table.Reject(typeExpr.Token, "Syntax error");
+                    return null;
+                }
+                return null;
+                var paramTuple = ResolveTupleType(typeExpr[0]);
+                var returnTuple = ResolveTupleType(typeExpr[1]);
                 return null;
 
-                //if (typeExpr.Count < 3)
-                //{
-                //    table.Reject(typeExpr.Token, "Syntax error");
-                //    return null;
-                //}
-                //// Create an anonymous type to hold the function type.
-                //// NOTE: This is not finished, just temporary for now.
-                //var funParams = new Symbol(SymKind.Type, table.AnonymousTypes, "");
-                //ResolveFunParams(typeExpr[0], table, funParams, searchScope, useSymbols, false);
-                //ResolveFunParams(typeExpr[1], table, funParams, searchScope, useSymbols, true);
+                // Create an anonymous type to hold the function type.
+                // NOTE: This is not finished, just temporary for now.
+                var funParams = new Symbol(SymKind.Type, table.FunHolder, null, "");
+                ResolveFunParams(typeExpr[0], table, funParams, searchScope, useSymbols, false);
+                ResolveFunParams(typeExpr[1], table, funParams, searchScope, useSymbols, true);
+                CreateFunTypeAndName(table, funParams);
+                table.CreateSpecializedType(table.FunHolder, new Symbol[] { funParams.Type });
 
                 //funParams.SetLookupName(GetFunctionName("$fun", funParams));
                 //return table.FindOrAddAnonymousType(funParams);
+                //funParams.FinalizeFullName();
+                return funParams;
             }
         }
 
         /// <summary>
-        /// Resolve `My` symbol, returning its type or null if not found.
-        /// Rejects the token if null is not found.
+        /// Create function tuple type from parameters/returns and finalize function name 
         /// </summary>
-        public static Symbol ResolveMy(SymbolTable table, Token token, Symbol searchScope)
+        public static void CreateFunTypeAndName(SymbolTable table, Symbol function)
         {
-                token.Type = eTokenType.ReservedType;
-                if (searchScope.TryGetPrimary("my", out var myVar) && myVar.TypeName != ""
-                    || searchScope.TryGetPrimary("My", out myVar) && myVar.TypeName != "")
-                {
-                    token.AddInfo(myVar.Type);
-                    return myVar.Type;
-                }
-                table.Reject(token, "My is unresolved");
-                return null;
+            var parameters = GetFunParamsTuple(table, function, false);
+            var returns = GetFunParamsTuple(table, function, true);
+            function.Type = table.CreateTuple(new Symbol[] { parameters, returns });
+            function.FinalizeFullName();
+        }
+
+        // Get parameters or returns as a tuple.
+        static Symbol GetFunParamsTuple(SymbolTable table, Symbol symbol, bool returns)
+        {
+            var parameters = symbol.ChildrenFilter(SymKind.FunParam)
+                .Where(child => child.Type != null && returns == child.ParamOut).ToList();
+
+            parameters.Sort((a, b) => a.Order.CompareTo(b.Order));
+            var paramTypes = parameters.Select(p => p.Type).ToArray();
+            var paramNames = parameters.Select(p => p.FullName).ToArray();
+
+            return table.CreateTuple(paramTypes, paramNames);
         }
 
         /// <summary>

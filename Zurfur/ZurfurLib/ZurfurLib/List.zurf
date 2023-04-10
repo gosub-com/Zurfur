@@ -25,12 +25,12 @@ type List<T>
     _len int
 
 [pub]
-fun List.new()
+fun List.new<T>()
     my.list = &empty
         
 
 [pub]
-fun List.new(capacity int)
+fun List.new<T>(capacity int)
     require capacity in 0..my.MaxItems
     if capacity == 0
         my.list = &empty
@@ -38,132 +38,132 @@ fun List.new(capacity int)
         my.list = castPointer<*GcHeapArray>(calloc(sizeof(T)*capacity + sizeof(GcHeapArray)))
 
 
-fun get List.len() int
+fun get List.len<T>() int
     return my._len
 
 // Returns true if there is a reference to any element.  When locked, the
 // list length cannot be changed.  A GC implementation might not ever lock.
 [pub]
-fun get List.locked() bool
+fun get List.locked<T>() bool
     return my.list.refCount != 0
 
 // The compiler ensures drop cannot be called when there is
 // reference to an element.
 [pub]
-fun List.drop()
+fun List.drop<T>()
     require not my.locked // Not possible because the compiler ensures
     extern
 
 
 // Clone items into the new list
 [pub]
-fun List.new(items []My.T)
-    where My.T has Clone<My.T>
+fun List.new<T>(items []T)
+    where T has Clone<T>
     extern
 
 // Clone items into the new list
 [pub]
-fun List.new(items mut Iterator<My.T>)
+fun List.new<T>(items mut Iterator<T>)
     extern
 
 [pub static]
-fun List._opIndex(list List<My.T>, i int) mut ref My.T
+fun List._opIndex<T>(list List<T>, i int) mut ref T
     require i in 0..count
     extern
 
 [pub static]
-fun List._opIndex(list List<My.T>, r Range<int>) mut []My.T
+fun List._opIndex<T>(list List<T>, r Range<int>) mut []T
     require r.start in 0..count
     require r.end in 0..count
     require r.start <= range.end
     extern
 
 [pub]
-fun get List.iterator() SpanIterator<My.T>
+fun get List.iterator<T>() SpanIterator<T>
     extern
 
 
 [pub]
-fun get List.capacity() int
+fun get List.capacity<T>() int
     return my.list.capacity.toInt
 
 // Set the capacity, won't shrink below count.
 [pub]
-fun set List.capacity(value int)
+fun set List.capacity<T>(value int)
     require not my.locked and value < my.MaxItems
     extern
 
 
 // Return a new array with all occurences of `seqSearch`
 // replaced by `seqReplace`.
-[pub] fun mut List.replace(seqSearch []My.T, seqReplace[]My.T)
+[pub] fun mut List.replace<T>(seqSearch []T, seqReplace[]T)
     require not my.locked
     extern
 
-[pub] fun mut List.clear()
+[pub] fun mut List.clear<T>()
     require not my.locked
     extern
 
 // Push the item onto the end of the list
-[pub] fun mut List.push(item own My.T)
+[pub] fun mut List.push<T>(item own T)
     require not my.locked
     extern
 
 // Push item clones onto the end of the list
-[pub] fun mut List.push(items []My.T)
+[pub] fun mut List.push<T>(items []T)
     require not my.locked
     extern
 
 // Push item clones onto the end of the list
-[pub] fun mut List.push(items mut Iterator<My.T>)
+[pub] fun mut List.push<T>(items mut Iterator<T>)
     require not my.locked
     extern
 
 // Duplicate clones onto the end of the list
-[pub] fun mut List.pushDup(item My.T, count int)
+[pub] fun mut List.pushDup<T>(item T, count int)
     require not my.locked
     extern
 
 // Pop item from end of list
-[pub] fun mut List.pop() ?My.T
+[pub] fun mut List.pop<T>() ?T
     require not my.locked
     extern
 
-[pub] fun mut List.insert(index int, item own My.T)
+[pub] fun mut List.insert<T>(index int, item own T)
     require not my.locked
     extern
 
-[pub] fun mut List.insert(index int, items []My.T)
+[pub] fun mut List.insert<T>(index int, items []T)
     require not my.locked
     extern
 
-[pub] fun mut List.insert(index int, items mut Iterator<My.T>)
+[pub] fun mut List.insert<T>(index int, items mut Iterator<T>)
     require not my.locked
     extern
 
-[pub] fun mut List.remove(index int) My.T
+[pub] fun mut List.remove<T>(index int) T
     require not my.locked
     extern
 
-[pub] fun mut List.remove(range Range<int>)
+[pub] fun mut List.remove<T>(range Range<int>)
     require not my.locked
     extern
 
-[pub] fun mut List.remove(test fun(item My.T) bool)
+[pub] fun mut List.remove<T>(test fun(item T) bool)
     require not my.locked
     extern
 
-[pub] fun List.convert<Tout>(f fun(item My.T) ?Tout) List<Tout>
-    where My.T has Clone<My.T>
+[pub] fun List.convert<T, Tout>(f fun(item T) ?Tout) List<Tout>
+    where T has Clone<T>
     extern
 
-[pub] fun List.toArray() Array<My.T>
-    where My.T has Clone<My.T>
+[pub] fun List.toArray<T>() Array<T>
+    where T has Clone<T>
     extern
 
 
 // Usage: myList.For @item => DoStuffWithItem()
-[pub] fun mut List.forEach(f fun(item mut My.T)) {}
+[pub] fun mut List.forEach<T>(f fun(item mut T)) {}
 
 
  

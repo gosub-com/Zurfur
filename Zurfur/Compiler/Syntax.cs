@@ -94,7 +94,6 @@ namespace Gosub.Zurfur.Compiler
 
     class SyntaxConstraint
     {
-        public Token MyToken;
         public Token TypeName;
         public SyntaxExpr []TypeConstraints;
     }

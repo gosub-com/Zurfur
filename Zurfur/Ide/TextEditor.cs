@@ -560,7 +560,7 @@ namespace Gosub.Zurfur
                     { eTokenType.ReservedType, new FontInfo(boldFont, Color.FromArgb(20,125,160)) },
                     { eTokenType.Quote, new FontInfo(normalFont, Color.Brown) },
                     { eTokenType.Comment, new FontInfo(normalFont, Color.Green) },
-                    { eTokenType.NewVarSymbol, new FontInfo(normalFont, Color.FromArgb(160,160,255)) },
+                    { eTokenType.NewVarSymbol, new FontInfo(normalFont, Color.Blue) },
                     { eTokenType.DefineField, new FontInfo(boldFont, Color.Black) },
                     { eTokenType.DefineMethod, new FontInfo(boldFont, Color.Black) },
                     { eTokenType.DefineParam, new FontInfo(boldFont, Color.Black) },

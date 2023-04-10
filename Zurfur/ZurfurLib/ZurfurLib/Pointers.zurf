@@ -13,12 +13,12 @@ type Xuint copy
 type RawPointer<T> copy
     value Xuint
 
-[static] fun RawPointer._opEq(p1 My, p2 My) bool extern
-[static] fun RawPointer._opCmp(p1 My, p2 My) i32 extern
-[static] fun RawPointer._opAdd(p1 My, i u64) My extern
-[static] fun RawPointer._opAdd(p1 u64, i My) My extern
-[static] fun RawPointer._opSub(p1 My, p2 My) My extern
-[static] fun RawPointer._opSub(p1 My, p2 u64) My extern
+[static] fun RawPointer._opEq<T>(p1 RawPointer<T>, p2 RawPointer<T>) bool extern
+[static] fun RawPointer._opCmp<T>(p1 RawPointer<T>, p2 RawPointer<T>) i32 extern
+[static] fun RawPointer._opAdd<T>(p1 RawPointer<T>, i u64) RawPointer<T> extern
+[static] fun RawPointer._opAdd<T>(p1 u64, i RawPointer<T>) RawPointer<T> extern
+[static] fun RawPointer._opSub<T>(p1 RawPointer<T>, p2 RawPointer<T>) RawPointer<T> extern
+[static] fun RawPointer._opSub<T>(p1 RawPointer<T>, p2 u64) RawPointer<T> extern
 
 
 // Internal representation of `ref`, a compiler generated stack only pointer.
@@ -75,21 +75,21 @@ type IsRawPointer interface
 // Mark these types as the only pointer types in the system
 fun Xuint.isRawPointer() RawPointerMarker
     return RawPointerMarker()
-fun RawPointer.isRawPointer() RawPointerMarker
+fun RawPointer.isRawPointer<T>() RawPointerMarker
     return RawPointerMarker()
-fun Ref.isRawPointer() RawPointerMarker
+fun Ref.isRawPointer<T>() RawPointerMarker
     return RawPointerMarker()
-fun Pointer.isRawPointer() RawPointerMarker
+fun Pointer.isRawPointer<T>() RawPointerMarker
     return RawPointerMarker()
 fun Xuint.getRawPointer() Xuint
     return my
 
 // TBD: Compiler implemented
-fun Ref.getRawPointer() Xuint
+fun Ref.getRawPointer<T>() Xuint
     extern
-fun RawPointer.getRawPointer() Xuint
+fun RawPointer.getRawPointer<T>() Xuint
     extern
-fun Pointer.getRawPointer() Xuint
+fun Pointer.getRawPointer<T>() Xuint
     extern
 
 
@@ -119,7 +119,7 @@ fun castPointer<Out>(i int) Out
 fun castPointer<Out>(i *void) Out
     extern // TBD: Remove
 
-[static] fun RawPointer._opAdd(a *My.T, b int) *My.T extern
+[static] fun RawPointer._opAdd<T>(a *T, b int) *T extern
 [static] fun int._opAdd<T>(a int, b *T) *T extern
 
 fun test_Add()

@@ -4,25 +4,43 @@ mod Zurfur
 
 
 [pub]
-type Iterable<Item> interface
-    fun get iterator() Iterator<Item>
+type Iterable<T> interface
+    fun get iterator() Iterator<T>
 
 
 // Implement this on all iterators
 [pub]
-type Iterator<Item> interface
+type Iterator<T> interface
+    fun mut next() ?T
 
-    // Return the next item, or null if it doesn't exist
-    fun mut next() ?Item
 
+// TBD: Still working on these
+fun Iterator.map<Source, Result>(f fun(input Source) Result) MapIterator<Source, Result>
+    return MapIterator<Source, Result>(my)
+
+fun Iterable.map<Source, Result>(f fun(input Source) Result) MapIterator<Source, Result>
+    return MapIterator<Source, Result>(my.iterator)
+
+// TBD: Still working on this
+type MapIterator<Source, Result> ref // TBD: Ownership rules for these will be tough
+    _fun fun(input Source) Result
+    _iter Iterator<Source>
+
+fun MapIterator.new<Source, Result>(func fun(input Source) Result, iter Iterator<Source>)
+    // TBD: my._fun = func
+    my._iter = iter
+
+fun mut MapIterator.next<Source, Result>() ?Result
+    @a = my._iter.next()
+    // TBD: return func(a)
 
 [pub]
-fun mut Iterator.toArray() Array<My.Item>
+fun mut Iterator.toArray<T>() Array<T>
     return my.toList().toArray()
 
 [pub]
-fun mut Iterator.toList() List<My.Item>
-    @list = List<My.Item>()
+fun mut Iterator.toList<T>() List<T>
+    @list = List<T>()
     while my.next()@item
         list.push(item)
     return list

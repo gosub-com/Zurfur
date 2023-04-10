@@ -15,8 +15,8 @@ namespace Gosub.Zurfur.Compiler
         public const string RawPointer = "Zurfur.RawPointer`1";
         public const string Pointer = "Zurfur.Pointer`1";
         public const string Ref = "Zurfur.Ref`1";
-        public const string Nil = "Zurfur.nil";
-        public const string Nilable = "Zurfur.Nilable`1";
+        public const string Nil = "Zurfur.Nil";
+        public const string Maybe = "Zurfur.Maybe`1";
         public const string Result = "Zurfur.Result`1";
         public const string Void = "Zurfur.void";
         public const string Int = "Zurfur.int";
@@ -31,7 +31,7 @@ namespace Gosub.Zurfur.Compiler
         public const string Span = "Zurfur.Span`1";
 
         public static readonly WordMap<string> FriendlyNames = new WordMap<string>
-            { { RawPointer, "*" }, { Pointer, "^" }, { Nilable, "?" }, { Ref, "ref "}, { Span, "[]" } };
+            { { RawPointer, "*" }, { Pointer, "^" }, { Maybe, "?" }, { Ref, "ref "}, { Span, "[]" } };
     }
 
     enum SymKind

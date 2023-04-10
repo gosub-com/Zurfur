@@ -85,25 +85,25 @@ argument, and the return type comes after the parameters:
     fun main(args Array<str>)
         Log.info("Hello World, 2+2=${2+2}")
 
-Methods are declared outside of the type (similar to extension methods in C#)
-and use the `my` keyword to refer to fields or other methods in the type:
+Methods are declared outside of the type and must use the `my` keyword to
+refer to fields or other methods in the type:
 
     // Declare a method for strings
     fun str.rest() str
         return if(my.len == 0, "" : my.subRange(1))  // `subRange` is defined by `List`
 
-Methods on generic types can use the capitalized `My` keyword to refer its
-own type:
+Generic methods defined on generic types automatically pass their type
+parameters to the receiver type (e.g. use `Map.madd<K,V>`, not `Map<K,V>.madd<K,V>`):
 
     // Declare a method to multiply and add three keys on Map<K,V>.
     // Return Nan (or MinValue for integer types) if any key is missing.
-    fun Map.madd(mul1 My.K, mul2 My.K, add My.K) My.V
-            where My.V has NumOps<My.V>
+    fun Map.madd<K,V>(mul1 K, mul2 K, add K) V
+            where V has NumOps<V>
         if my[mul1]@mul1Val and my[mul2]@mul2Val and my[add]@addVal
             return mul1Val * mul2Val + addVal
-        return My.V.NanOrMin        
+        return V.NanOrMin        
 
-Concrete methods can also be defined on generic types:
+Non-geneic methods can also be defined on generic types:
 
     // Convert 4 bytes (u32) to int (little endian)
     fun Span<byte>.bytesToU32() u32
@@ -170,7 +170,7 @@ then never use the object again, or must explicitly `clone` the object.
 Functions can return multiple values:
 
     // Multiple returns
-    fun circle(a f64, r f64) -> (x f64, y f64)
+    fun circle(a f64, r f64) (x f64, y f64)
         return cos(a)*r, sin(a)*r
 
 The return parameters are named, and can be used by the calling function:
@@ -214,10 +214,10 @@ The ones we all know and love:
 | str, str16 | An `Array<byte>` or `Array<u16>` with support for UTF-8 and UTF-16.  `Array` (an alias for `ro List`) is immutable, therefore `str` is also immutable.  `str16` is a JavaScript or C# style Unicode string
 | Span\<T\> | A view into a `List` or `Array`.  It has a constant `len`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `List` is mutable)
 | Map<K,V> | Unordered mutable map.  `ro Map<K,V>` is the immutable counterpart. 
-| Nilable\<T\> | Identical to `?T`.  Always optimized for pointers and references
+| Maybe\<T\> | Identical to `?T`.  Always optimized for pointers and references
 | Result\<T\> | Same as `!T`. An optional containing either a return value or an `Error` interface.
 | Error | An interface containing a `message` string and an integer `code`
-| Dynamic, DynamicMap | The type used to interface with dynamically typed languages.  Easy conversion to/from JSON and string representations of built-in types.  TBD: `dyn` keyword in the future (e.g. `myDyn["hello"]` is same as `myDyn.hello`)
+| Any | Reserved for a JavaScript-like object, used to bridge the gap between static and dynamic type systems.  There will also be `any` types that use TypeScipt-like structural duck typing. If you want a JavaScript or TypeScript type system, these types are reserved for you.
 
 All types have a compiler generated `ro` counterpart which can be copied
 very quickly since cloning them is just a memory copy without dynamic
@@ -390,8 +390,18 @@ from thom the nearest `fun` scope.  Instead, `exit` is used.
 
 ## Interfaces
 
-Zurfur uses Golang style interfaces, which fit nicely with the dynamic nature
-of JavaScript.
+Zurfur interfaces are similar to Golang interfaces, but there are some
+differences.
+
+Duck typing is done at compile time based on all methods in the scope of
+where the interface is used.  Interface function tables are genarated
+statically at compile time.  This allows any type to be compatible with
+any interface as long as the functions are available in scope at compile
+time.
+
+An interface may be converted via type assertion to a concrete type or any
+compatible interface type, however it cannot be converted to an incompatible
+interface type.
 
 ## Async
 
@@ -491,9 +501,9 @@ with C and gives an error where not compatible:
 |`x.y`  `f<type>(x)` `x.(type)` `a[i]` | Primary
 |- ~ & `ref` `not` `sizeof` `typeof` `unsafe` | Unary
 |@| Capture new variable
-|?| Use default for `Nilable`
-|!| For `Result` and `Nilable`, generate value or throw error when `nil`
-|!!| For `Result` and `Nilable`, generate value or panic when `nil`
+|?| Use default for `Maybe`
+|!| For `Result` and `Maybe`, generate value or throw error when `nil`
+|!!| For `Result` and `Maybe`, generate value or panic when `nil`
 |`is` `is not` `as` | Type conversion and comparison
 |<< >>| Bitwise shift (not associative, can't mix with arithmetic operators)
 |* / % & | Multiply, bitwise *AND* (can't mix arithmetic and bit operators)

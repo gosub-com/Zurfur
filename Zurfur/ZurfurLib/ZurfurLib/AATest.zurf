@@ -46,6 +46,8 @@ fun getMapFun<K,V>() Map<V,K>
 
 fun myFun2Interf<T>(i T) T extern
 
+fun takeFun(i fun(a int)int) extern
+
 type GetHash interface
     fun getHash() u32
 
@@ -113,7 +115,7 @@ fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>,
         @itemt = item
 
 
-fun MyFun1<T1,T2,T3>(a T1, b T2, c T3) ->(x T2, y T3)
+fun MyFun1<T1,T2,T3>(a T1, b T2, c T3)(x T2, y T3)
     @q = b
     return (T2(), T3())
 
@@ -126,10 +128,10 @@ fun MyFun3<I,O>(i int) O
 fun MyFun4<T0,T1,T2,T3>(i int) List<T2>
     return List<T2>()
 
-fun MyFun5<T0,T1,T2,T3>(i int) -> (a List<T1>, b List<T3>)
+fun MyFun5<T0,T1,T2,T3>(i int)(a List<T1>, b List<T3>)
     return (List<T1>(), List<T3>())
 
-fun inferMap<T1,T2>(a Map<T1,T2>, b List<T2>) -> (x T1, y T2)
+fun inferMap<T1,T2>(a Map<T1,T2>, b List<T2>)(x T1, y T2)
     return (T1(), T2())
 
 fun Test<X0,X1,X2,X3>()
@@ -163,9 +165,9 @@ fun Test<X0,X1,X2,X3>()
 
 type OneGeneric<T> { } 
 
-fun get Point.toSizeTest() Size<My.T>
-    @a = Size<My.T>(My.T(),My.T())
-    @b = Size<My.T>()
+fun get Point.toSizeTest<T>() Size<T>
+    @a = Size<T>(T(),T())
+    @b = Size<T>()
     @c = Size(my.x, my.y)
     @d = Size(0,0)
     return c
@@ -176,7 +178,7 @@ fun get Point.toSizeTest() Size<My.T>
 
 fun helloVoid() {}
 fun helloInt() int {}
-fun cos2(a int) -> (x f64, y int) {}
+fun cos2(a int)(x f64, y int) {}
 fun nop() {}
  
 fun test(x f64)
@@ -206,7 +208,7 @@ fun BBBB.BBBB_fm2(a BBBB) {}
 
 
 fun AAAA<int>.AAAA_fm() {}
-fun AAAA.AAAA_fm() {}
+fun AAAA.AAAA_fm<T>() {}
 fun BBBB.AAAA_fm() {}
 
 fun AAAA_f() {}
@@ -218,7 +220,7 @@ fun BBBB.AAAA_fe2(a BBBB) {}
 fun aapoint.AAAA() {}
 fun aapoint.BBBB() {}
 fun aapoint.AAAB() {}
-fun List.X() {}
+fun List.X<T>() {}
 fun int.X() {}
 fun BBBB.hello() {}
     
@@ -244,12 +246,12 @@ fun aaa_arith(a int, b int) int
 [pub] type AAFun    
     aaf4 fun(a int, b int) int
     aaf5 AAFunc<int, int>
-    aaf6 fun()->()
+    aaf6 fun()()
     aaf7 fun()
     aaf8 fun()int
     aaf9 fun(a int)
     aaf9a fun(a int) int
-    aaf9b fun(a int)->(x int)
+    aaf9b fun(a int)(x int)
     af10 fun(v int)int
 
 fun AAFun.aaaa(a int, b int) int { }
@@ -270,7 +272,7 @@ fun AAFun.af7<X>(p fun(v X)bool) {}
 
 
 // TBD: These are identical to the ones defined in the class
-fun AGenericTest.af6(p fun(v int)bool) {}
+fun AGenericTest.af6<T,QQQ>(p fun(v int)bool) {}
 //fun AGenericTest<T, QQQ>.af7<X>(p fun(v X)bool) {}
 //fun AGenericTest<T, QQQ>.af8<T1,T2>(i T1)T2 { }
 //fun AGenericTest<T, QQQ>.Q<T1>() {}
@@ -280,7 +282,7 @@ fun AGenericTest.af6(p fun(v int)bool) {}
 //    nop()
 //[pub] fun AGenericTest<T, QQQ>.aaa(a Zurfur.Draw2d.Size<int>) {}
 //[pub] fun AGenericTest<T, QQQ>.P1() { return 0 }
-//[pub] fun AGenericTest<T, QQQ>.P2()->() { return 0}
+//[pub] fun AGenericTest<T, QQQ>.P2()() { return 0}
 //[pub] fun P2<Quack>(a Quack, b QQQ) { return (a.ToStr() + b.ToStr()).Length; }
 //[pub] fun AGenericTest<T, QQQ>.P3<Z>() { return 0; }
 //[pub] fun AGenericTest<T, QQQ>.P4<Quack, Quack1>() { return 0; }
@@ -311,12 +313,12 @@ type ToStr interface
 
 [pub] type AGenericTest<T, QQQ>
     where QQQ has OpEq<T>//: new() where T : new()
-    af0 fun()->()
+    af0 fun()()
     af1 fun()
     af2 fun()int
     af3 fun(a int)
     af4 fun(a int) int
-    af5 fun(a int)->(x int)
+    af5 fun(a int)(x int)
     
     field0 T = 0
     Xfield6 Zurfur.int

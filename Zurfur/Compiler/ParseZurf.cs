@@ -62,7 +62,7 @@ namespace Gosub.Zurfur.Compiler
                             + "= += -= *= /= %= |= &= ~= " + TOKEN_STR_LITERAL);
 
         static WordSet sReservedWords = new WordSet("as has break case catch const "
-            + "continue do then else elif extern true false defer use "
+            + "continue do then else elif extern nil true false defer use "
             + "finally for goto go if in is mod app include "
             + "new out pub public private priv readonly ro ref aref mut imut "
             + "return ret sizeof struct switch throw try "
@@ -83,7 +83,7 @@ namespace Gosub.Zurfur.Compiler
         static WordSet sParamQualifiers = new WordSet("ro own mut");
 
         static WordSet sReservedUserFuncNames = new WordSet("new clone drop");
-        static WordSet sReservedIdentifierVariables = new WordSet("true false new move my My sizeof typeof");
+        static WordSet sReservedIdentifierVariables = new WordSet("nil true false new move my sizeof typeof");
         static WordSet sReservedMemberNames = new WordSet("clone");
         static WordSet sTypeUnaryOps = new WordSet("? ! * ^ [ ref ro");
 
@@ -988,13 +988,6 @@ namespace Gosub.Zurfur.Compiler
         {
             var constraint = new SyntaxConstraint();
 
-            if (AcceptMatch("My"))
-            {
-                constraint.MyToken = mPrevToken;
-                constraint.MyToken.Type = eTokenType.ReservedType;
-                if (!AcceptMatchOrReject("."))
-                    return null;
-            }
             if (!AcceptIdentifier("Expecting a type name"))
                 return null;
 
@@ -1280,7 +1273,7 @@ namespace Gosub.Zurfur.Compiler
 
             // Returns
             SyntaxExpr returnParams;
-            if (AcceptMatchPastMetaSemicolon("->"))
+            if (mToken == ("("))
             {
                 returnParams = ParseMethodParams();
             }
@@ -1290,7 +1283,7 @@ namespace Gosub.Zurfur.Compiler
                 var returns = NewExprList();
                 if (BeginsType())
                 {
-
+                    // TBD: Param qualifiers probably need to be part of type
                     var qualifiers = NewExprList();
                     while (sParamQualifiers.Contains(mToken))
                         qualifiers.Add(new SyntaxToken(Accept()));
@@ -1337,6 +1330,7 @@ namespace Gosub.Zurfur.Compiler
             name.Type = eTokenType.DefineParam;
             RejectUnderscoreDefinition(name);
 
+            // TBD: Param qualifiers probably need to be part of type
             var qualifiers = NewExprList();
             while (sParamQualifiers.Contains(mToken))
                 qualifiers.Add(new SyntaxToken(Accept()));
@@ -1721,7 +1715,7 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Parse a function taking a type name (sizeof, typeof, etc)
         /// </summary>
-        private SyntaxExpr ParseTypeFunc()
+        private SyntaxExpr ParseFunTakingType()
         {
             if (!AcceptMatchOrReject("("))
                 return new SyntaxError(mToken);
@@ -1779,7 +1773,7 @@ namespace Gosub.Zurfur.Compiler
 
             if (result.Token == "sizeof" || result.Token == "typeof")
             {
-                result = new SyntaxUnary(result.Token, ParseTypeFunc());
+                result = new SyntaxUnary(result.Token, ParseFunTakingType());
             }
 
             // Primary: function call 'f()', array 'a[]', type argument f<type>
@@ -1798,7 +1792,7 @@ namespace Gosub.Zurfur.Compiler
                     if (mEnum.PeekNoSpace() == "(")
                     {
                         // Type assertion
-                        result = new SyntaxBinary(NewMetaToken(Accept(), ".("), ParseTypeFunc(), result);
+                        result = new SyntaxBinary(NewMetaToken(Accept(), ".("), ParseFunTakingType(), result);
                     }
                     else
                     {
@@ -2112,7 +2106,6 @@ namespace Gosub.Zurfur.Compiler
         bool BeginsType()
         {
             return mToken.Type == eTokenType.Identifier
-                || mToken == "My"
                 || sTypeUnaryOps.Contains(mTokenName)
                 || sParamQualifiers.Contains(mTokenName)
                 || mToken == "fun" || mToken == "afun"
@@ -2142,15 +2135,9 @@ namespace Gosub.Zurfur.Compiler
                 return ParseTypeTuple();
 
             if (mToken == "fun" || mToken == "afun")
-            {
-                // Type arguments
-                var funKeyword = Accept();
-                if (mTokenName == "<")
-                    RejectToken(mToken, "Generic type args on lambda not supported YET!");
-                return ParseMethodSignature(funKeyword);
-            }
+                return ParseMethodSignature(Accept());
 
-            if (mToken.Type != eTokenType.Identifier && mToken.Name != "My")
+            if (mToken.Type != eTokenType.Identifier)
             {
                 AcceptIdentifier("Expecting a type name", sRejectTypeName);
                 return SyntaxError;
@@ -2216,16 +2203,15 @@ namespace Gosub.Zurfur.Compiler
             Debug.Assert(mTokenName == "(");
             var openToken = Accept();
             var tupleArgs = NewExprList();
-
-            // TBD: The EmptyToken can be an identifier
-            tupleArgs.Add(ParseTypeTupleElement());
+            if (mTokenName != ")")
+                tupleArgs.Add(ParseTypeTupleElement());
             while (AcceptMatch(","))
             {
                 Connect(openToken, mPrevToken);
                 tupleArgs.Add(ParseTypeTupleElement());
             }
 
-            if (AcceptMatchOrReject(")", "Expecting ')' to end the type argument list"))
+            if (AcceptMatchOrReject(")", "Expecting ')' to end tuple type argument list"))
                 Connect(openToken, mPrevToken);
             return new SyntaxMulti(openToken, FreeExprList(tupleArgs));
         }

@@ -17,14 +17,14 @@ fun test_Main(args Array<str>)
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
 // PREVIOUSLY: [pub] fun GetIterator<T>.AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIterator<T>
-fun Iterator.alphaLengthWise<L>(lengthProvider fun(t Item) L) Iterator<My.Item>
+fun Iterator.alphaLengthWise<Item, L>(lengthProvider fun(t Item) L) Iterator<Item>
     return my.orderBy(@a => lengthProvider(a))
              .thenBy(@a => a)
 
-fun Iterator.orderBy() Iterator<My.Item>
+fun Iterator.orderBy<T>() Iterator<T>
     extern
 
-fun mut Iterator.find(f fun(item Item) bool) mut ?ref My.Item
+fun mut Iterator.find<T>(f fun(item Item) bool) mut ?ref T
     while my.next()@item
         if f(item)
             return ref item
@@ -35,7 +35,7 @@ fun test_Convert()
     @b = List<int>()
     @c = a.convert(@i => i.intMask)
 
-fun Span.sort(lessThan fun(a T,b T)bool)
+fun Span.sort<T>(lessThan fun(a T,b T)bool)
     // Simple selection sort
     for @i in my.len-1
         @lowElem = my[i]

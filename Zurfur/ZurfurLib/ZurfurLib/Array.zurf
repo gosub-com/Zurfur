@@ -10,33 +10,23 @@
 
 // TBD: Remove this since it will be implemented by List
 [pub static]
-fun Array._opIndex(s Array<My.T>, i int) mut ref My.T
+fun Array._opIndex<T>(s Array<T>, i int) mut ref T
     require i in 0..my.length
     extern // Implementation TBD
 
 
 // TBD: Remove this since it will be implemented by List
 [pub static]
-fun Buffer._opIndex(s Buffer<My.T>, i int) mut ref My.T
+fun Buffer._opIndex<T>(s Buffer<T>, i int) mut ref T
     require i in 0..my.length
     extern // Implementation TBD
 
 // TBD: Remove this since it will be implemented by List
 [pub static]
-fun Buffer._opIndex(s Buffer<My.T>, range Range<int>) mut Span<My.T>
+fun Buffer._opIndex<T>(s Buffer<T>, range Range<int>) mut Span<T>
     require range.start in 0..my.length
     require range.end in 0..my.length
     require range.start <= range.end
     extern // Implementation TBD
     
 
-
-
-
-
-
-
-
-
-
-    
