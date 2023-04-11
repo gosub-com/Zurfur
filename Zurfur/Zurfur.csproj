@@ -83,7 +83,7 @@
     <None Update="ZurfurLib\ZurfurLib\Draw2d.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\str.Zurf">
+    <None Update="ZurfurLib\ZurfurLib\Str.Zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="ZurfurLib\www\Test.json">

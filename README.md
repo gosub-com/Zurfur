@@ -30,7 +30,7 @@ Here are some key features:
     * References and pointers are non-nullable, but may use `?MyType` or `?^MyType` for nullable
     * Deterministic destructors (e.g. `FileStream` closes itself automatically)
 * **Fast and efficient:**
-    * Return references and span used everywhere. `[]int` is `Span<int>`
+    * Return references and span used everywhere. `[]Int` is `Span<Int>`
     * Functions pass parameters by reference, but will pass a copy when it is more efficient
     * Explicit `clone` required when copying an object that requires dynamic allocation
     * Most objects are deleted without needing GC.  Heap objects are reference counted.
@@ -47,32 +47,32 @@ me know what you think should be changed.
 Variables are declared and initialized with the `@` operator
 (i.e. the `var` keyword from C#):
 
-    @a = 3                          // a is an int
-    @b = "Hello World"              // b is a str
+    @a = 3                          // a is an Int
+    @b = "Hello World"              // b is a Str
     @c = myFunction()               // c is whatever type is returned by myFunction
-    @d = [1,2,3]                    // d is List<int>, initialized with [1,2,3]
-    @e = ["A":1.0, "B":2.0]         // e is Map<str,f64>
-    @f = [[1.0,2.0],[3.0,4.0]]      // f is List<List<f64>>
+    @d = [1,2,3]                    // d is List<Int>, initialized with [1,2,3]
+    @e = ["A":1.0, "B":2.0]         // e is Map<Str,F64>
+    @f = [[1.0,2.0],[3.0,4.0]]      // f is List<List<F64>>
 
 The above form `@variable = expression` creates a variable with the same type as
 the expression.  A second form `@variable type [=expression]` creates an explicitly
 typed variable with optional assignment from an expression. 
 
-    @a int = myIntFunc()   // Error if myIntFunc is f32, ok if int has constructor to convert
-    @b str                              // b is a string, initialized to ""
-    @c List<int>                        // c is an empty List<int>
-    @d List<f64> = [1, 2, 3]            // Create List<f64>, elements are converted
-    @e Map<str,f32> = ["A":1, "B:1.2]   // Create Map<str,f32>
+    @a Int = myIntFunc()   // Error if myIntFunc is F32, ok if Int has constructor to convert
+    @b Str                              // b is a string, initialized to ""
+    @c List<Int>                        // c is an empty List<Int>
+    @d List<F64> = [1, 2, 3]            // Create List<F64>, elements are converted
+    @e Map<Str,F32> = ["A":1, "B:1.2]   // Create Map<Str,F32>
     @f Json = ["A":1,"B":[1,2,3.5]]     // Create a Json
 
 A list of expressions `[e1, e2, e3...]` is used to initialize a `List`
 and a list of pairs `[K1:V1, K2:V2, K3:V3...]` is used to initialize a `Map`.
 Brackets `[]` are used for both lists and maps. Curly braces are reserved
 for statement level constructs.  Constructors can be called with `()`.
-For `type MyPointXy(x int, y int)`, the following are identical:
+For `type MyPointXy(x Int, y Int)`, the following are identical:
 
-    @c Map<str, MyPointXy> = ["A": (1,2), "B": (3,4)]           // MyPointXy Constructor
-    @d Map<str, MyPointXy> = ["A": (x:1,y:2), "B": (x:3,y:4)]   // MyPointXy field initializer
+    @c Map<Str, MyPointXy> = ["A": (1,2), "B": (3,4)]           // MyPointXy Constructor
+    @d Map<Str, MyPointXy> = ["A": (x:1,y:2), "B": (x:3,y:4)]   // MyPointXy field initializer
     @a = ["A": MyPointXy(1,2), "B": MyPointXy(3,4)]
 
 ## Functions, Methods, Getters, and Setters
@@ -82,14 +82,14 @@ argument, and the return type comes after the parameters:
 
     // This comment is public documentation.
     // Use `name` to refer to variables in the code. 
-    fun main(args Array<str>)
+    fun main(args Array<Str>)
         Log.info("Hello World, 2+2=${2+2}")
 
 Methods are declared outside of the type and must use the `my` keyword to
 refer to fields or other methods in the type:
 
     // Declare a method for strings
-    fun str.rest() str
+    fun Str.rest() Str
         return if(my.len == 0, "" : my.subRange(1))  // `subRange` is defined by `List`
 
 Generic methods defined on generic types automatically pass their type
@@ -105,47 +105,47 @@ parameters to the receiver type (e.g. use `Map.madd<K,V>`, not `Map<K,V>.madd<K,
 
 Non-geneic methods can also be defined on generic types:
 
-    // Convert 4 bytes (u32) to int (little endian)
-    fun Span<byte>.bytesToU32() u32
+    // Convert 4 bytes (u32) to Int (little endian)
+    fun Span<Byte>.bytesToU32() u32
         require my.len == 4
         return my[0].toU32 + (my[1].toU32 << 8) + (my[2].toU32 << 16) + (my[3].toU32 << 24)
 
 Getters and setters are functions declared with `get` and `set` keywords:
 
-    fun get MyType.myString() str
+    fun get MyType.myString() Str
         return my._myString
 
-    fun set MyType.myString(value str)
+    fun set MyType.myString(value Str)
         my._myString = value
         my.myStringChangedEvent()
 
 The following getter function is identical to declaring a public field:
 
     // Identical to declaring a public field
-    fun get MyPoint.x2() mut ref int
+    fun get MyPoint.x2() mut ref Int
         return ref my.x
   
 ### Function Parameters
 
 By default, function parameters are passed as read-only reference.  The
-exception is that small types (e.g. `int`, and `Span<T>`) are passed by
+exception is that small types (e.g. `Int`, and `Span<T>`) are passed by
 copy because it is more efficient to do so.  Other qualifiers, `mut`, `ref`,
 and `own` can be used to change the passing behavior:
 
     fun test(
-        a               int,  // Pass a copy because it is efficient (i.e. `type copy`)
-        b       mut ref int,  // Pass by ref, allow assignment in function
-        c         List<int>,  // Pass by ref, read-only
-        d     mut List<int>,  // Pass by ref, allow mutation, but not assignment
-        e mut ref List<int>,  // Pass by ref, allow mutation and assignment
-        f     own List<int>)  // Take ownership of the list
+        a               Int,  // Pass a copy because it is efficient (i.e. `type copy`)
+        b       mut ref Int,  // Pass by ref, allow assignment in function
+        c         List<Int>,  // Pass by ref, read-only
+        d     mut List<Int>,  // Pass by ref, allow mutation, but not assignment
+        e mut ref List<Int>,  // Pass by ref, allow mutation and assignment
+        f     own List<Int>)  // Take ownership of the list
 
 Parameter qualifiers:
 
 | Qualifier | Passing style | Notes
 | :--- | :--- | :---
-|  | Read-only reference | Copy small `type copy` types (e.g. `int`, `Span`, etc.)
-| `mut` | Allow mutation but not assignment | Not valid for `ro` types (e.g. `str`, `ro List`, etc.)
+|  | Read-only reference | Copy small `type copy` types (e.g. `Int`, `Span`, etc.)
+| `mut` | Allow mutation but not assignment | Not valid for `ro` types (e.g. `Str`, `ro List`, etc.)
 | `mut ref` | Allow mutation and assignment | Requires annotation (i.e. `ref`) at the call site
 | `own` | Take ownership | Not valid for `ro` types or non-allocating types
 
@@ -162,7 +162,7 @@ If the type is mutable *and* requires dynamic allocation, the function can
 take ownership of the object by using the `own` keyword.  The caller must
 then never use the object again, or must explicitly `clone` the object.
 
-    fun storeList(list own List<int>)
+    fun storeList(list own List<Int>)
         // Take ownership of the list
 
 ### Function Returns
@@ -170,7 +170,7 @@ then never use the object again, or must explicitly `clone` the object.
 Functions can return multiple values:
 
     // Multiple returns
-    fun circle(a f64, r f64) (x f64, y f64)
+    fun circle(a F64, r F64) (x F64, y F64)
         return cos(a)*r, sin(a)*r
 
 The return parameters are named, and can be used by the calling function:
@@ -182,15 +182,15 @@ Normally the return value becomes owned by the caller, but this behavior
 can be changed with the `ref` keyword:
 
     // Read-only ref of internal data structure
-    fun getRoList() ref List<int>
+    fun getRoList() ref List<Int>
         return ref myListField
 
     // Mutable (mutation allowed, assignment not allowed)
-    fun getMutList() mut List<int>
+    fun getMutList() mut List<Int>
         return mut myListField
 
     // Mutable ref (mutation or assignment is allowed)
-    fun getMutRefList() mut ref List<int>
+    fun getMutRefList() mut ref List<Int>
         return mut ref myListField
 
 Return qualifiers:
@@ -205,13 +205,13 @@ Return qualifiers:
 
 The ones we all know and love:
 
-    nil, bool, i8, byte, i16, u16, i32, u32, int, u64, f32, f64
+    nil, Bool, I8, Byte, I16, U16, I32, U32, Int, U64, F32, F64
     
 | Type | Description
 | :--- | :---
 | List\<T\> | Re-sizable mutable list of mutable elements.  This is the one and only dynamically sized object in Zurfur.
 | Array\<T\>| An alias for `ro List<T>`.  An immutable list of immutable elements. Even if the array contains mutable elements, they become immutable when copied into the list.  Array's can be copied very quickly, just by copying a reference.
-| str, str16 | An `Array<byte>` or `Array<u16>` with support for UTF-8 and UTF-16.  `Array` (an alias for `ro List`) is immutable, therefore `str` is also immutable.  `str16` is a JavaScript or C# style Unicode string
+| Str, str16 | An `Array<Byte>` or `Array<u16>` with support for UTF-8 and UTF-16.  `Array` (an alias for `ro List`) is immutable, therefore `Str` is also immutable.  `str16` is a JavaScript or C# style Unicode string
 | Span\<T\> | A view into a `List` or `Array`.  It has a constant `len`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `List` is mutable)
 | Map<K,V> | Unordered mutable map.  `ro Map<K,V>` is the immutable counterpart. 
 | Maybe\<T\> | Identical to `?T`.  Always optimized for pointers and references
@@ -221,7 +221,7 @@ The ones we all know and love:
 
 All types have a compiler generated `ro` counterpart which can be copied
 very quickly since cloning them is just a memory copy without dynamic
-allocation.  In the case of `ro List`, `Array`, `str`, it's just one pointer.
+allocation.  In the case of `ro List`, `Array`, `Str`, it's just one pointer.
 
 ### Declaring Types
 
@@ -236,15 +236,15 @@ a private variable is the file that it is declared in.
     [pub]                               // Make this type public
     type Example
         // Mutable fields
-        list1 List<int> = [1,2,3]       // Public, initialized with [1,2,3]
-        _list2 List<int>                // Private, initialized with []
-        _list3 List<int> pub ref        // Private with public read-only access
-        _list4 List<int> pub mut        // Private with public modify but not assign
+        list1 List<Int> = [1,2,3]       // Public, initialized with [1,2,3]
+        _list2 List<Int>                // Private, initialized with []
+        _list3 List<Int> pub ref        // Private with public read-only access
+        _list4 List<Int> pub mut        // Private with public modify but not assign
 
         // Read-only fields
-        text1 ro str                    // Constructor can override
-        text2 ro str = "Hello"          // Constructor cannot override
-        text3 ro str init = "Hello"     // Constructor can override
+        text1 ro Str                    // Constructor can override
+        text2 ro Str = "Hello"          // Constructor cannot override
+        text3 ro Str init = "Hello"     // Constructor can override
 
 
  Using the private variable requires the `_`, while the public version does
@@ -256,22 +256,22 @@ Private fields can have public getters or setters.
     // Public getter function that provides read-write
     // access identical to declaring a public field
     [pub]
-    fun get Example.list2() mut ref str
+    fun get Example.list2() mut ref Str
         return ref my._list2
 
     // Public setter to allow user to modify _list3
     [pub]
-    fun set Example2.list3(value own List<int>)
+    fun set Example2.list3(value own List<Int>)
         my._list3 = value
         // Call list3ChangedEvent
 
 Simple types can be defined with a simplified syntax:
 
     // Simple types - all fields are public
-    type Point(x int, y int)
+    type Point(x Int, y Int)
     type Line(p1 Point, p2 Point)
-    type WithInitialization(x int = 1, y int = 2)
-    type ro Person(Id int, firstName str, lastName str, birthYear int)
+    type WithInitialization(x Int = 1, y Int = 2)
+    type ro Person(Id Int, firstName Str, lastName Str, birthYear Int)
 
 The default constructor can take all the fields in positional order, or any
 of the fields as named parameters. 
@@ -286,7 +286,7 @@ of the fields as named parameters.
 
 ### Strings
 
-Strings (i.e. `str`) are immutable byte arrays (i.e. `Array<byte>`), generally
+Strings (i.e. `Str`) are immutable Byte arrays (i.e. `Array<Byte>`), generally
 assumed to hold UTF8 encoded characters.  However, there is no rule enforcing
 the UTF8 encoding so they may hold any binary data.
 
@@ -298,9 +298,9 @@ backslash `\` is not treated differently than any other character.
 
 ![](Doc/Strings.png)
 
-There is no `StringBuilder` type, use `List<byte>` instead:
+There is no `StringBuilder` type, use `List<Byte>` instead:
 
-    @sb = List<byte>()
+    @sb = List<Byte>()
     sb.push("Count from 1 to 10: ")
     for @count in 1..+10
         sb.push(" ${count}")
@@ -308,7 +308,7 @@ There is no `StringBuilder` type, use `List<byte>` instead:
 
 ### Span
 
-Span is a view into a `str`, `List`, or `Array`.  They are `type ref` and
+Span is a view into a `Str`, `List`, or `Array`.  They are `type ref` and
 may never be stored on the heap.  Unlike in C#, a span can be used to pass
 data to an async function.  
 
@@ -316,8 +316,8 @@ The array declaration syntax `[]Type` translates directly to Span (not to
 `Array` like C#).  The following definitions are identical:
 
     // The following definitions are identical:
-    afun mut write(data Span<byte>) !int
-    afun mut write(data []byte) !int
+    afun mut write(data Span<Byte>) !Int
+    afun mut write(data []Byte) !Int
 
 Spans are as fast, simple, and efficient as it gets.  They are just a pointer
 and length.  They are passed down the execution stack or stored on the async
@@ -326,7 +326,7 @@ task frame when necessary.
 Given a range, the index operator can be used to slice a List.  A change to
 the list is a change to the span and a change to the span is a change to the list.
 
-    @a = ["a","b","c","d","e"]  // a is List<str>
+    @a = ["a","b","c","d","e"]  // a is List<Str>
     @b = a[1..4]                // b is a span, with b[0] == "b" (b aliases ["b","c","d"])
     @c = a[2..+2]               // c is a span, with c[0] == "c" (c aliases ["c","d"])
     c[0] = "hello"              // now a = ["a","b","hello","d","e"], and b=["b","hello","d"]
@@ -335,7 +335,7 @@ Mutating the `len` or `capacity` of a `List` (not the elements of it) while
 there is a `Span` or reference  pointing into it is a programming error, and
 fails the same as indexing outside of array bounds.
 
-    @list = List<byte>()
+    @list = List<Byte>()
     list.push("Hello Pat")  // list is "Hello Pat"
     @slice = a[6..+3]       // slice is "Pat"
     slice[0] = "M"[0]       // slice is "Mat", list is "Hello Mat"
@@ -345,7 +345,7 @@ fails the same as indexing outside of array bounds.
 
 The `new` function is the type constructor.  It does not have access to
 `my` and may not call member functions except for another `new` function
-(e.g. `new(a int)` may call `new()`).  
+(e.g. `new(a Int)` may call `new()`).  
 
 `_opEq`, `getHash`, `clone`, and `deepClone` are generated automatically
 for types where all of the elements also implement these functions.  The 
@@ -353,14 +353,14 @@ for types where all of the elements also implement these functions.  The
 implement an `_opEq` function may not be compared with `==` or `!=`.
 
 Like Rust, an explicit `clone` is required to copy any mutable type that
-requires dynamic allocation.  If the type contains only `int`, `str`, `Array`, or
+requires dynamic allocation.  If the type contains only `Int`, `Str`, `Array`, or
 `ro List`, it will implicitly copy itself.  If the type contains `List`, `Map`,
 or any other dynamically allocated mutable data, it must be explicitly cloned.
 Some types, such as `FileStream` can't be cloned at all.
 
 `clone` clones the entire object, but does a shallow copy of pointers.
 For instance, `List<MyType>>` is cloned fully provided that `MyType`
-doesn't contain a pointer.  Even if `MyType` contained a `List<str>`,
+doesn't contain a pointer.  Even if `MyType` contained a `List<Str>`,
 everything is cloned.  For `List<^MyType>`, the pointer is copied
 and `MyType` is not cloned.  `deepClone` can be used to clone the
 entire object graph regardless of pointers or circular references.
@@ -419,7 +419,7 @@ References to mutable dynamically allocated data cannot be passed into
 `astart`, but types owned by the function (locals, or passed with `own`)
 may be:
 
-    @myList = List<int>()
+    @myList = List<Int>()
     astart fillListFromHttp("gosub.com", myList)
 
 In this case, `myList` is moved into a closure.
@@ -461,7 +461,7 @@ Normal error handling uses `Result<T>` which can be either the return type
 or an `Error` interface. The type `Result<T>` is abbreviated as `!T`, so a
 function that throws an error can be prototyped as:
 
-    afun open(fileName str) !FileStream
+    afun open(fileName Str) !FileStream
 
 `throw` or `throwIf` is used to send the error up to the caller.  The postfix
 `!` operator can be used to unwrap the error or send it up to the caller, but
@@ -533,8 +533,8 @@ operators, making them compatible with C for bitwise operations.  Bitwise
 and arithmetic operators may not be mixed, for example both `a + b | c` and
 `a + b << c` are illegal.  Parentheses may be used (e.g. `(a+b)|c` is legal)
 
-The range operator `..` takes two `int`s and make a `Range` which is a
-`type Range(High int, Low int)`.  The `..+` operator also makes a
+The range operator `..` takes two `Int`s and make a `Range` which is a
+`type Range(High Int, Low Int)`.  The `..+` operator also makes a
 range, but the second parameter is a count (`High = Low + Count`).  
 
 Operator `==` does not default to object comparison, and only works when it
@@ -558,9 +558,9 @@ only be used where they are expected, such as a function call or lambda.
 
 `+`, `-`, `*`, `/`, `%`, and `in` are the only operators that may be individually
 defined.  The `==` and `!=` operator may be defined together by implementing
-`fun _opEq(a myType, b myType) bool`.  All six comparison operators,
+`fun _opEq(a myType, b myType) Bool`.  All six comparison operators,
 `==`, `!=`, `<`, `<=`, `==`, `!=`, `>=`, and `>` can be implemented with just
-one function: `fun _opCmp(a myType, b myType) int`.  If both functions
+one function: `fun _opCmp(a myType, b myType) Int`.  If both functions
 are defined, `_opEq` is used for equality comparisons, and `_opCmp` is used
 for the others.
 
@@ -682,7 +682,7 @@ in Zurfur, and all that needs to be done is verify that no object graph
 cycles are created during program execution.
 
 Even if we need a tracing collector because cycles are created, it can skip
-all data structures that can't cycle.  For instance, a 100Mb `Map<str,str>`
+all data structures that can't cycle.  For instance, a 100Mb `Map<Str,Str>`
 doesn't need to be traced since it can't have a cycle.
 
 Calling an async function doesn't create garbage because each task has its
@@ -694,7 +694,7 @@ The `*` type is a raw C style pointer.  The `.` operator is used to access
 fields or members of the referenced data.  The `.*` operator can dereference
 the data.
  
-    fun strcpy(dest *byte, source *byte)
+    fun strcpy(dest *Byte, source *Byte)
         while source.* != 0
             dest.* = source.*
             dest += 1
@@ -708,14 +708,14 @@ does not add run time null checks.  The data they point to is always
 mutable. 
 
 Perhaps, after Zurfur is running, I might add a few things from
-[Zig](https://ziglang.org/).  Among them is null safety (e.g. `?*int`),
-explicit array types (i.e. `*[]int`), and mutability attribute.
+[Zig](https://ziglang.org/).  Among them is null safety (e.g. `?*Int`),
+explicit array types (i.e. `*[]Int`), and mutability attribute.
 That would be a major breaking change, which might be acceptable if
 done before version 1.0.  But, speed cannot be sacrificed.
 
 In an unsafe context, pointers can be cast from one pointer type to another:
 
-    @b = castPointer<*byte>(myFloatPtr)   // Cast myFloatPtr to *int
+    @b = castPointer<*Byte>(myFloatPtr)   // Cast myFloatPtr to *Int
 
 ## Packages and Modules
 

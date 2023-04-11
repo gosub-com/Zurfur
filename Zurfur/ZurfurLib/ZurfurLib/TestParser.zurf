@@ -13,37 +13,37 @@ pragma NoParse
 
 
 fun A() { } // Expecting a type name
-fun A() void{ } // Duplicate
-fun B() int { } // Duplicate
-fun B() f32 { } // Duplicate
-fun C(a int, a int) void { } // Duplicate parameter
-fun D<X,X>(a X) void { } // Duplicate type parameter
-fun E<X>(a Y) void { } // Unresolved type
+fun A() Void{ } // Duplicate
+fun B() Int { } // Duplicate
+fun B() F32 { } // Duplicate
+fun C(a Int, a Int) Void { } // Duplicate parameter
+fun D<X,X>(a X) Void { } // Duplicate type parameter
+fun E<X>(a Y) Void { } // Unresolved type
 
 // If we allow embedded functions and types
-type A { fun A() void { } } // Same name as parent
+type A { fun A() Void { } } // Same name as parent
 type C<T> { type D<T> { } } // Same type arg name as parent
-type B<T> { fun A<T>() void { } } // Same type arg name as parent
+type B<T> { fun A<T>() Void { } } // Same type arg name as parent
 
 
 // Try to give good info at the end of each line
-fun new(a i8) void // Compound statement error
+fun new(a I8) Void // Compound statement error
 fun
 fun A
 fun B(
 fun C(a
-fun E(a int
-fun F(a int,
-fun G(a int, b
-fun J(a, x int) 
-fun H(a int, b int) void  // Compound error on this line (not next)
-fun I(a int, b int) void
+fun E(a Int
+fun F(a Int,
+fun G(a Int, b
+fun J(a, x Int) 
+fun H(a Int, b Int) Void  // Compound error on this line (not next)
+fun I(a Int, b Int) Void
 
-fun J(a int, x int) void
+fun J(a Int, x Int) Void
 NoCompoundHere()
 
 // Error in 'fun' declaration still parses function after '{'
-fun K(a int, x)  void
+fun K(a Int, x)  Void
     if a > 3   // Error: Next line doesn't look like a compound
     a += 1
 
@@ -72,7 +72,7 @@ fun K(a int, x)  void
 
 
 // TBD: The curly brace should be accepted as part of the `fun` declaration
-fun K(a int, x) hello world void
+fun K(a Int, x) hello world Void
 {
 }
     

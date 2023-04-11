@@ -5,7 +5,7 @@ use Zurfur[Iterator, Iterable, OpEq]
 
 
 // Entries in the bucket list
-type MapEntry(index u32, hash u32)
+type MapEntry(index U32, hash U32)
 
 
 // Key value pair
@@ -32,7 +32,7 @@ fun KvPair.new<K,V>(key own K, value own V)
 
 
 [pub]
-fun Map.new<K,V>(capacity int)
+fun Map.new<K,V>(capacity Int)
     extern
     
 [pub]
@@ -40,7 +40,7 @@ fun Map.new<K,V>(keyValues Iterator<KvPair<K, V>>)
     extern
     
 [pub]
-fun get Map.len<K,V>() int
+fun get Map.len<K,V>() Int
     extern
 
 // TBD: Figure out map["Hello"] += 1
@@ -54,7 +54,7 @@ fun Map._opIndex<K,V>(map Map<K, V>, key K, item V)
     extern
 
 [pub]
-fun Map.contains<K,V>(key K) bool
+fun Map.contains<K,V>(key K) Bool
     extern
 
 // TBD: Return Iterable<(K, V)>???
@@ -83,7 +83,7 @@ fun mut Map.add<K,V>(items Iterator<KvPair<K, V>>)
     extern
 
 [pub]
-fun mut Map.remove<K,V>(key K) bool
+fun mut Map.remove<K,V>(key K) Bool
     extern
 
     

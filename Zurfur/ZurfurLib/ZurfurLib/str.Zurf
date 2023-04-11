@@ -1,21 +1,21 @@
 ﻿mod Zurfur
 
 // String is a wrapper for a read only array of bytes with support for UTF8
-[pub] type str is Array<byte>
+[pub] type Str is Array<Byte>
 
     // NOTE: Much of the implmentation is inherited from Array
     //       and its implicit conversion to Span
 
 // TBD: Need to collect stuff from Array
-[pub] fun get str.len() int
+[pub] fun get Str.len() Int
     return 0
 
-[pub static] fun str._opAdd(a str, b str) str {}
+[pub static] fun Str._opAdd(a Str, b Str) Str {}
 
 // TBD: Remove after more of the generic type system is working
-[pub static] fun str._opEq(a str, b str) bool {}
-[pub static] fun str._opCmp(a str, b str) i32 {}
+[pub static] fun Str._opEq(a Str, b Str) Bool {}
+[pub static] fun Str._opCmp(a Str, b Str) I32 {}
 
-[pub] fun str.new(st Span<byte>) extern
+[pub] fun Str.new(st Span<Byte>) extern
     
 // TBD: Implicit conversion to and from Span?

@@ -6,12 +6,12 @@ use Zurfur.Draw2d[Point, Size]
 
 
 type VariantMap
-    notDone int
+    notDone Int
 
-fun test_Main(args Array<str>)
+fun test_Main(args Array<Str>)
         
     @sum = 0
-    @list List<int>
+    @list List<Int>
     list.forEach(@item => { sum += item })
 
 
@@ -24,18 +24,18 @@ fun Iterator.alphaLengthWise<Item, L>(lengthProvider fun(t Item) L) Iterator<Ite
 fun Iterator.orderBy<T>() Iterator<T>
     extern
 
-fun mut Iterator.find<T>(f fun(item Item) bool) mut ?ref T
+fun mut Iterator.find<T>(f fun(item Item) Bool) mut ?ref T
     while my.next()@item
         if f(item)
             return ref item
     return nil
 
 fun test_Convert()
-    @a = List<f64>()
-    @b = List<int>()
+    @a = List<F64>()
+    @b = List<Int>()
     @c = a.convert(@i => i.intMask)
 
-fun Span.sort<T>(lessThan fun(a T,b T)bool)
+fun Span.sort<T>(lessThan fun(a T,b T)Bool)
     // Simple selection sort
     for @i in my.len-1
         @lowElem = my[i]
@@ -49,9 +49,9 @@ fun Span.sort<T>(lessThan fun(a T,b T)bool)
             my[i] = lowElem
 
 type Label
-    text str
-    location Point<int>
-    size Size<int>
+    text Str
+    location Point<Int>
+    size Size<Int>
     
 type MyForm
     message1 Label
@@ -75,15 +75,15 @@ fun MakeGui()
 
 // TBD: Still working out how to do this:
 //
-//[pub] fun mut Iterator.filter(f fun(item Item) bool) FilterIterator<Iterator<Item>, Item>
+//[pub] fun mut Iterator.filter(f fun(item Item) Bool) FilterIterator<Iterator<Item>, Item>
 //    return FilterIterator<This, Item>(this, f)
 //        
 //type ref FilterIterator<Iter, Item>
 //        where Iter is Iterator<Item>
 //    @iter ref Iter pub init
-//    @f ref fun(item Item) bool pub init
+//    @f ref fun(item Item) Bool pub init
 //
-//fun test_Filter() Array<int>
+//fun test_Filter() Array<Int>
 //    @listIn = [1,2,3,4,5]
 //    return listIn.filter(@n => n in 2..5).toArray()
             

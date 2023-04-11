@@ -16,7 +16,7 @@ fun Range.new<T>(low T, high T)
     my.high = high
     // TBD: (my.low, my.high) = (low, high)
 
-fun abs(i int) int
+fun abs(i Int) Int
     return 3
 
 // TBD: Shortcut syntax

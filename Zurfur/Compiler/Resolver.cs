@@ -11,12 +11,12 @@ namespace Gosub.Zurfur.Compiler
     {
         static WordMap<string> sUnaryTypeSymbols = new WordMap<string>()
         {
-            {"*", "Zurfur.RawPointer`1" },
-            {"^", "Zurfur.Pointer`1" },
-            {"ref", "Zurfur.Ref`1" },
-            {"?", "Zurfur.Maybe`1"},
-            {"[", "Zurfur.Span`1" },
-            {"!", "Zurfur.Result`1" }
+            {"*", SymTypes.RawPointer },
+            {"^", SymTypes.Pointer },
+            {"ref", SymTypes.Ref },
+            {"?", SymTypes.Maybe},
+            {"[", SymTypes.Span },
+            {"!", SymTypes.Result }
         };
 
         /// <summary>

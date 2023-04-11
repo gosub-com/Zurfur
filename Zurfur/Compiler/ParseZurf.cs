@@ -2126,7 +2126,7 @@ namespace Gosub.Zurfur.Compiler
                 var tArg = NewMetaToken(token, VT_TYPE_ARG);
                 var tName = new SyntaxToken(token);
                 if (token == "!" && !BeginsType())
-                    return new SyntaxBinary(tArg, tName, new SyntaxToken(NewMetaToken(token, "void")));
+                    return new SyntaxBinary(tArg, tName, new SyntaxToken(NewMetaToken(token, "Void")));
                 return new SyntaxBinary(tArg, tName, ParseType());
             }
 

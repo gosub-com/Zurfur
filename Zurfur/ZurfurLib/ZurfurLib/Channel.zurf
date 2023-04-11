@@ -4,7 +4,7 @@ mod Zurfur
 // Experiment on how to do golang channels using async.
 afun readSequence()
     // ch is captured by the closure
-    @ch = Channel<int>()
+    @ch = Channel<Int>()
     astart produceSequence(ch)
     @sum = 0
     while ch.read()@i
@@ -12,7 +12,7 @@ afun readSequence()
     Log.info("The sum is ${sum}")
     
 
-afun produceSequence(ch Channel<int>)
+afun produceSequence(ch Channel<Int>)
     for @i in 1..+10
         ch.write(i)
 
@@ -30,9 +30,9 @@ afun Channel.read<T>() ?T extern
 // the channel is closed. Complete synchrounously if possible.
 afun Channel.write<T>(item T) ! extern
 
-fun get Channel.len<T>() int extern
+fun get Channel.len<T>() Int extern
 
-fun get Channel.capacity<T>() int extern
+fun get Channel.capacity<T>() Int extern
 
 // Close the channel, then throw if there are any items still in the queue.
 afun Channel.close<T>() ! extern

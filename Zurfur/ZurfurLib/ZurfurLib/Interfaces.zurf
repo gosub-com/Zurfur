@@ -11,21 +11,21 @@ type Copy<T> interface {}
 // Equality for containers and sorting (NaN == NaN).
 // For floating point equality, use _opEqUnordered.
 type OpEq<T> interface
-    [static] fun getHash(value T) u32
-    [static] fun _opEq(a T, b T) bool
+    [static] fun getHash(value T) U32
+    [static] fun _opEq(a T, b T) Bool
 
 // Comparison for containers and sorting (NaN == NaN, NaN < -Inf).
 // For floating point, use _opGtUnordered, _opGeUnordered, etc.
 type OpCmp<T> interface
-    [static] fun getHash(value T) u32
-    [static] fun _opEq(a T, b T) bool
-    [static] fun _opCmp(a T, b T) i32
+    [static] fun getHash(value T) U32
+    [static] fun _opEq(a T, b T) Bool
+    [static] fun _opCmp(a T, b T) I32
 
 // Common math operators
 type NumOps<T> interface
-    [static] fun getHash(value T) u32
-    [static] fun _opEq(a T, b T) bool
-    [static] fun _opCmp(a T, b T) i32
+    [static] fun getHash(value T) U32
+    [static] fun _opEq(a T, b T) Bool
+    [static] fun _opCmp(a T, b T) I32
     [static] fun _opAdd(a T, b T) T
     [static] fun _opSub(a T, b T) T
     [static] fun _opNeg(a T) T

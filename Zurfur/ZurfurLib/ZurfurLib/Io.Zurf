@@ -5,36 +5,36 @@ mod Zurfur.Io
 use Zurfur.Io[FileStream]
 
 type Reader interface
-    afun mut read(data mut Span<byte>) !int
+    afun mut read(data mut Span<Byte>) !Int
 
 type Writer interface
-    afun mut write(data Span<byte>) !int
-    afun mut flush() !void
+    afun mut write(data Span<Byte>) !Int
+    afun mut flush() !Void
 
 type SeekOrigin enum
     Begin; Current; End
 
 type Seeker interface
-    fun mut seek(offset int, origin SeekOrigin) !int
+    fun mut seek(offset Int, origin SeekOrigin) !Int
     
-[pub] fun get Seeker.length() !int { }
-[pub] fun get Seeker.position() !int { }
-[pub] fun set Seeker.position(value int) !void { }
+[pub] fun get Seeker.length() !Int { }
+[pub] fun get Seeker.position() !Int { }
+[pub] fun set Seeker.position(value Int) !Void { }
 
 // Interface or concrete type?
 type FileStream interface { }
 
 mod Zurfur.Io.File
 
-[pub] afun open(fileName str, mode str="r") !FileStream { }
-[pub] afun readAllText(fileName str) !List<str> { }
-[pub] afun readAllBytes(fileName str) !List<byte> { }
-[pub] afun writeAllText(fileName str, data List<str>) !void { }
-[pub] afun writeAllBytes(fileName str, data List<byte>) !void { }
+[pub] afun open(fileName Str, mode Str="r") !FileStream { }
+[pub] afun readAllText(fileName Str) !List<Str> { }
+[pub] afun readAllBytes(fileName Str) !List<Byte> { }
+[pub] afun writeAllText(fileName Str, data List<Str>) !Void { }
+[pub] afun writeAllBytes(fileName Str, data List<Byte>) !Void { }
 
 // TBD: It's probably better to have cancellation built
 //      into the async system.  Maybe progress too.
-type Progress(bytesTotal int, bytesTransferred int)
+type Progress(bytesTotal Int, bytesTransferred Int)
 afun readAllText(
-    fileName str,
-    progress ?fun (p Progress) = nil) !void { }
+    fileName Str,
+    progress ?fun (p Progress) = nil) !Void { }
