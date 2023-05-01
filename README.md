@@ -211,7 +211,7 @@ The ones we all know and love:
 | :--- | :---
 | List\<T\> | Re-sizable mutable list of mutable elements.  This is the one and only dynamically sized object in Zurfur.
 | Array\<T\>| An alias for `ro List<T>`.  An immutable list of immutable elements. Even if the array contains mutable elements, they become immutable when copied into the list.  Array's can be copied very quickly, just by copying a reference.
-| Str, str16 | An `Array<Byte>` or `Array<u16>` with support for UTF-8 and UTF-16.  `Array` (an alias for `ro List`) is immutable, therefore `Str` is also immutable.  `str16` is a JavaScript or C# style Unicode string
+| Str, Str16 | An `Array<Byte>` or `Array<u16>` with support for UTF-8 and UTF-16.  `Array` (an alias for `ro List`) is immutable, therefore `Str` is also immutable.  `Str16` is a JavaScript or C# style Unicode string
 | Span\<T\> | A view into a `List` or `Array`.  It has a constant `len`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `List` is mutable)
 | Map<K,V> | Unordered mutable map.  `ro Map<K,V>` is the immutable counterpart. 
 | Maybe\<T\> | Identical to `?T`.  Always optimized for pointers and references
@@ -390,18 +390,12 @@ from thom the nearest `fun` scope.  Instead, `exit` is used.
 
 ## Interfaces
 
-Zurfur interfaces are similar to Golang interfaces, but there are some
-differences.
+Zurfur uses Golang style interfaces, but there are some differences.
 
-Duck typing is done at compile time based on all methods in the scope of
-where the interface is used.  Interface function tables are genarated
-statically at compile time.  This allows any type to be compatible with
-any interface as long as the functions are available in scope at compile
-time.
-
-An interface may be converted via type assertion to a concrete type or any
-compatible interface type, however it cannot be converted to an incompatible
-interface type.
+Interface function tables are generated statically at compile time based on
+the methods in the scope of where the interface is used.   An interface may
+be converted via type assertion to a concrete type or any compatible interface
+type, however it cannot beconverted to an incompatible interface type.
 
 ## Async
 

@@ -1509,7 +1509,7 @@ fun mut DlMalloc.tmalloc_small(nb U64) *Void
     return nil
 
 // Traversal
-fun DlMalloc.internal_inspect_all(handler fun(start *Void, next *Void, used Int))
+fun DlMalloc.internal_inspect_all(handler fun(start *Void, next *Void, used U64))
     if not my.is_initialized()
         return
 
@@ -1534,7 +1534,7 @@ fun DlMalloc.internal_inspect_all(handler fun(start *Void, next *Void, used Int)
                     start = castPointer<*Void>(castPointer<*Byte>(q) + sizeof(tchunk))
             if start < castPointer<*Void>(next)  // skip if all space is bookkeeping
                 handler(start, next, used)
-            if q == top2
+            if q == top2 
                 break
             q = next
         s = s.next
@@ -1781,7 +1781,7 @@ fun mut DlMalloc.init_user_mstate(tbase *Byte, tsize U64)
     my.CallUsageErrorAction(p)
 
 
-[pub] fun DlMalloc.inspectAll(handler fun(start *Void, next *Void, used U32))
+[pub] fun DlMalloc.inspectAll(handler fun(start *Void, next *Void, used U64))
     if my.ok_magic()
         my.internal_inspect_all(handler)
     else

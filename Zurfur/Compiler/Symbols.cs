@@ -654,7 +654,6 @@ namespace Gosub.Zurfur.Compiler
                     return returnTypeList[0];
                 return returnTuple;
             }
-
         }
 
         /// <summary>

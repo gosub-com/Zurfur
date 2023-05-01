@@ -1309,17 +1309,28 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 }
 
+                // Function or Lambda - return the return type
+                // TBD: Refactor this into IsCallCompatible so tha
                 var func = matchingFuns[0];
-                if (!func.IsFun)
+                if (func.IsFun)
                 {
-                    Reject(call.Token, $"Expecting a function, but a {matchingFuns[0].Kind} was supplied");
-                    return null;
+                    // Return the function return type
+                    if (addSymbolInfo)
+                        call.Token.AddInfo(func);
+                    return func.FunReturnTupleOrType;
+                }
+                else
+                {
+                    // Return the lambda return type
+                    // TBD: Refactor this into IsCallCompatible
+                    var lambdaType = func.Type.TypeArgs[0].TypeArgs[1];
+                    if (lambdaType.TypeArgs.Length == 1)
+                        lambdaType = lambdaType.TypeArgs[0]; // TBD: Refactor to consolidate with FunReturnTupleOrType
+                    if (addSymbolInfo)
+                        call.Token.AddInfo(func.Type);
+                    return lambdaType;
                 }
 
-                if (addSymbolInfo)
-                    call.Token.AddInfo(func);
-
-                return func.FunReturnTupleOrType;
             }
 
             // Checks if the function call is compatible, return the possibly
@@ -1327,7 +1338,7 @@ namespace Gosub.Zurfur.Compiler
             (Symbol, CallCompatible) IsCallCompatible(Symbol func, Rval call, List<Rval> args)
             {
                 if (!func.IsFun)
-                    return (null, CallCompatible.NotAFunction);
+                    return IsLambdaCompatible(func, call, args);
 
                 if (func.IsMethod)
                 {
@@ -1369,6 +1380,31 @@ namespace Gosub.Zurfur.Compiler
                 if (func.IsMethod && func.IsStatic)
                     funParams = funParams.Slice(1);
 
+                return AreParamsCompatible(func, args, funParams);
+
+            }
+
+            (Symbol, CallCompatible) IsLambdaCompatible(Symbol variable, Rval call, List<Rval> args)
+            {
+                if (!variable.IsFunParam && !variable.IsLocal && !variable.IsField)
+                    return (null, CallCompatible.NotAFunction);
+                
+                var lambda = variable.Type;
+                if (lambda == null 
+                    || !lambda.FullName.StartsWith(".lambda")
+                    || lambda.TypeArgs.Length != 1)
+                return (null, CallCompatible.NotAFunction);
+                
+                // Get lambda parameters
+                var funParams = lambda.TypeArgs[0];
+                if (funParams.TypeArgs.Length != 2)
+                    return (null, CallCompatible.NotAFunction);
+
+                return AreParamsCompatible(variable, args, new Span<Symbol>(funParams.TypeArgs[0].TypeArgs));
+            }
+
+            (Symbol, CallCompatible) AreParamsCompatible(Symbol func, List<Rval> args, Span<Symbol> funParams)
+            {
                 // Match up the arguments (TBD: default parameters)
                 if (args.Count != funParams.Length)
                     return (null, CallCompatible.WrongNumberOfParameters);
@@ -1396,6 +1432,7 @@ namespace Gosub.Zurfur.Compiler
                 }
                 return (func, CallCompatible.Compatible);
             }
+
 
 
             // Infer the type arguments if not given.

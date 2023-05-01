@@ -24,7 +24,7 @@ fun Iterator.alphaLengthWise<Item, L>(lengthProvider fun(t Item) L) Iterator<Ite
 fun Iterator.orderBy<T>() Iterator<T>
     extern
 
-fun mut Iterator.find<T>(f fun(item Item) Bool) mut ?ref T
+fun mut Iterator.find<T>(f fun(item T) Bool) mut ?ref T
     while my.next()@item
         if f(item)
             return ref item

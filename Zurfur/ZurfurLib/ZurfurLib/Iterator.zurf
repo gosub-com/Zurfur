@@ -16,10 +16,10 @@ type Iterator<T> interface
 
 // TBD: Still working on these
 fun Iterator.map<Source, Result>(f fun(input Source) Result) MapIterator<Source, Result>
-    return MapIterator<Source, Result>(my)
+    return MapIterator<Source, Result>(f, my)
 
 fun Iterable.map<Source, Result>(f fun(input Source) Result) MapIterator<Source, Result>
-    return MapIterator<Source, Result>(my.iterator)
+    return MapIterator<Source, Result>(f, my.iterator)
 
 // TBD: Still working on this
 type MapIterator<Source, Result> ref // TBD: Ownership rules for these will be tough

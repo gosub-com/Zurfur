@@ -230,23 +230,15 @@ namespace Gosub.Zurfur.Compiler
                     table.Reject(typeExpr.Token, "Syntax error");
                     return null;
                 }
-                return null;
                 var paramTuple = ResolveTupleType(typeExpr[0]);
                 var returnTuple = ResolveTupleType(typeExpr[1]);
-                return null;
+                if (paramTuple == null || returnTuple == null)
+                    return null;
 
-                // Create an anonymous type to hold the function type.
-                // NOTE: This is not finished, just temporary for now.
-                var funParams = new Symbol(SymKind.Type, table.FunHolder, null, "");
-                ResolveFunParams(typeExpr[0], table, funParams, searchScope, useSymbols, false);
-                ResolveFunParams(typeExpr[1], table, funParams, searchScope, useSymbols, true);
-                CreateFunTypeAndName(table, funParams);
-                table.CreateSpecializedType(table.FunHolder, new Symbol[] { funParams.Type });
+                var funType = table.CreateTuple(new Symbol[] { paramTuple, returnTuple});
+                var lambda = table.CreateSpecializedType(table.LambdaHolder, new Symbol[] { funType });
 
-                //funParams.SetLookupName(GetFunctionName("$fun", funParams));
-                //return table.FindOrAddAnonymousType(funParams);
-                //funParams.FinalizeFullName();
-                return funParams;
+                return lambda;
             }
         }
 

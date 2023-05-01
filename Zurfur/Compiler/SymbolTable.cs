@@ -36,6 +36,8 @@ namespace Gosub.Zurfur.Compiler
         Symbol mGenericArgumentHolder; // Holder so they have `Order` set properly
         List<Symbol> mGenericTuples = new();
         Symbol mGenericTupleHolder;
+        Symbol mLambdaHolder;
+
 
         public Symbol Root => mRoot;
         public Symbol EmptyTuple => GetTupleBaseType(0);
@@ -81,8 +83,6 @@ namespace Gosub.Zurfur.Compiler
             if (mLookup.TryGetValue(name, out var sym))
                 return sym;
             if (mSpecializedTypes.TryGetValue(name, out sym))
-                return sym;
-            if (mTupleTypes.TryGetValue(name, out sym))
                 return sym;
             return null;
         }
@@ -175,10 +175,9 @@ namespace Gosub.Zurfur.Compiler
 
             symSpec.FinalizeFullName();
 
-            // Store one copy of specialized symbol (ignoring tuple names)
-            var symDict = symSpec.IsTuple ? mTupleTypes : mSpecializedTypes;
-            if (!symDict.ContainsKey(symSpec.FullName))
-                symDict[symSpec.FullName] = symSpec;
+            // Store one copy of specialized symbol or tuple
+            if (!mSpecializedTypes.ContainsKey(symSpec.FullName))
+                mSpecializedTypes[symSpec.FullName] = symSpec;
             return symSpec;
         }
 
@@ -211,6 +210,9 @@ namespace Gosub.Zurfur.Compiler
             {
                 var name = i == 0 ? "()" :  $"()`{i}";
                 var arg = new Symbol(SymKind.Type, mGenericTupleHolder, null, name);
+                if (i == 0)
+                    mSpecializedTypes[name] = arg;
+
                 for (int j = 0;  j < i; j++)
                 {
                     var tp = new Symbol(SymKind.TypeParam, arg, null, $"T{j}");
@@ -222,16 +224,18 @@ namespace Gosub.Zurfur.Compiler
             return mGenericTuples[numGenerics];
         }
 
-        Symbol mFunHolder = null;
-        public Symbol FunHolder
+        /// <summary>
+        /// Holder for labda types
+        /// </summary>
+        public Symbol LambdaHolder
         {
             get 
             {
-                if (mFunHolder != null)
-                    return mFunHolder;
-                mFunHolder = new Symbol(SymKind.Type, mGenericTupleHolder, null, "fun`1");
-                AddOrReject(new Symbol(SymKind.TypeParam, mFunHolder, null, $"T"));
-                return mFunHolder; 
+                if (mLambdaHolder != null)
+                    return mLambdaHolder;
+                mLambdaHolder = new Symbol(SymKind.Type, mGenericTupleHolder, null, "lambda");
+                AddOrReject(new Symbol(SymKind.TypeParam, mLambdaHolder, null, $"T"));
+                return mLambdaHolder; 
             }
         }
 
