@@ -177,8 +177,9 @@ namespace Gosub.Zurfur.Ide
                         continue;
 
                     // Highlight symbols with the same name, and also
+                    // NOTE: Local symbols have the same name, so compare symbol objects, not FullName
                     // specialized symbols with tokens matching location of definition
-                    if (screenSymbol.FullName == hoverSymbol.FullName
+                    if ( (object)screenSymbol == (object)hoverSymbol
                             || hoverSymbol.HasToken && hoverSymbol.Token.Location == screenToken.Location)
                         overrides.Add(new TokenColorOverride(screenToken, sBoldConnectorOutlineColor, sBoldConnectorBackColor));
                 }

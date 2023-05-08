@@ -16,12 +16,12 @@ fun test_Main(args Array<Str>)
 
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-// PREVIOUSLY: [pub] fun GetIterator<T>.AlphaLengthWise<T,L>(lengthProvider fun(t T) L) GetIterator<T>
 fun Iterator.alphaLengthWise<Item, L>(lengthProvider fun(t Item) L) Iterator<Item>
-    return my.orderBy(@a => lengthProvider(a))
-             .thenBy(@a => a)
-
-fun Iterator.orderBy<T>() Iterator<T>
+    return my.orderBy<Item, L>(@a => lengthProvider(a))
+             .thenBy<Item, L>(@a => a)
+fun Iterator.orderBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
+    extern
+fun Iterator.thenBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
     extern
 
 fun mut Iterator.find<T>(f fun(item T) Bool) mut ?ref T
@@ -33,7 +33,7 @@ fun mut Iterator.find<T>(f fun(item T) Bool) mut ?ref T
 fun test_Convert()
     @a = List<F64>()
     @b = List<Int>()
-    @c = a.convert(@i => i.intMask)
+    @c = a.convert<F64,Int>(@i => i.toIntMask)
 
 fun Span.sort<T>(lessThan fun(a T,b T)Bool)
     // Simple selection sort
@@ -57,21 +57,21 @@ type MyForm
     message1 Label
     message2 Label
 
-fun MakeGui()
-    @form = MyForm(
-        message1: Label(
-            text: "Message 1",
-            location: Point(4, 4),
-            size: Size(100, 24)),
-        message2: Label(
-            text: "Message 1",
-            location: Point(4, 4),
-            size: Size(100, 24))   
-        )
-                   
-    @x VariantMap = ["Hello":"a",
-                  "World":"b",
-                  "List":[1,2,3]]
+//fun MakeGui()
+//    @form = MyForm(
+//        message1: Label(
+//            text: "Message 1",
+//            location: Point(4, 4),
+//            size: Size(100, 24)),
+//        message2: Label(
+//            text: "Message 1",
+//            location: Point(4, 4),
+//            size: Size(100, 24))   
+//        )
+//                   
+//    @x VariantMap = ["Hello":"a",
+//                  "World":"b",
+//                  "List":[1,2,3]]
 
 // TBD: Still working out how to do this:
 //

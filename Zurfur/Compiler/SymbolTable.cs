@@ -11,7 +11,7 @@ namespace Gosub.Zurfur.Compiler
     /// </summary>
     class SymbolTable
     {
-        Symbol mRoot;
+        public readonly Symbol Root;
 
         // TBD: Move to compiler options class, including pragmas and command line, etc.
         public bool NoCompilerChecks;
@@ -26,29 +26,29 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         Dictionary<string, Symbol> mSpecializedTypes = new();
 
-        /// <summary>
-        /// Lookup table for tuples
-        /// </summary>
-        Dictionary<string, Symbol> mTupleTypes = new();
-
-        // Internal types: Generic arguments, Tuples, wild card
+        // Internal types: Generic arguments, Tuples
         List<Symbol> mGenericArguments = new();
         Symbol mGenericArgumentHolder; // Holder so they have `Order` set properly
         List<Symbol> mGenericTuples = new();
         Symbol mGenericTupleHolder;
-        Symbol mLambdaHolder;
 
+        /// <summary>
+        /// The generic lambda type: $lambda<T> where T is the function tuple.
+        /// e.g. $lambda<((params),(returns))> is fun(params)(returns)
+        /// </summary>
+        public readonly Symbol LambdaType;
 
-        public Symbol Root => mRoot;
         public Symbol EmptyTuple => GetTupleBaseType(0);
 
 
         public SymbolTable()
         {
             var preRoot = new Symbol(SymKind.Module, null, null, "");
-            mRoot = new Symbol(SymKind.Module, preRoot, null, "");
-            mGenericArgumentHolder = new Symbol(SymKind.Type, mRoot, null, "");
-            mGenericTupleHolder = new Symbol(SymKind.Module, mRoot, null, "");
+            Root = new Symbol(SymKind.Module, preRoot, null, "");
+            mGenericArgumentHolder = new Symbol(SymKind.Type, Root, null, "");
+            mGenericTupleHolder = new Symbol(SymKind.Module, Root, null, "");
+            LambdaType = new Symbol(SymKind.Type, mGenericTupleHolder, null, "$lambda");
+            AddOrReject(new Symbol(SymKind.TypeParam, LambdaType, null, $"T"));
         }
 
 
@@ -59,7 +59,7 @@ namespace Gosub.Zurfur.Compiler
         public void GenerateLookup()
         {
             mLookup.Clear();
-            foreach (var s in mRoot.ChildrenRecurse())
+            foreach (var s in Root.ChildrenRecurse())
             {
                 if (s.IsTypeParam || s.IsFunParam || s.IsLocal)
                     continue;
@@ -97,6 +97,7 @@ namespace Gosub.Zurfur.Compiler
         public Dictionary<string, Symbol>.ValueCollection SpecializedSymbols
             => mSpecializedTypes.Values;
 
+
         /// <summary>
         /// Check to make sure the given symbol belongs to this symbol table
         /// </summary>
@@ -104,7 +105,7 @@ namespace Gosub.Zurfur.Compiler
         {
             while (symbol != null)
             {
-                if (symbol == mRoot)
+                if (symbol == Root)
                     return true;
                 symbol = symbol.Parent;
             }
@@ -155,11 +156,10 @@ namespace Gosub.Zurfur.Compiler
             Symbol returnType = null)
         {
             Debug.Assert(concreteType.IsType || concreteType.IsFun || concreteType.IsField);
-            if (!NoCompilerChecks)
-                Debug.Assert(concreteType.GenericParamCount() == typeArgs.Length);
-
             Debug.Assert(!concreteType.IsSpecialized);
             Debug.Assert(tupleNames == null || tupleNames.Length == 0 || tupleNames.Length == typeArgs.Length);
+            if (!NoCompilerChecks)
+                Debug.Assert(concreteType.GenericParamCount() == typeArgs.Length);
 
             if (typeArgs.Length == 0)
                 return concreteType;
@@ -188,6 +188,7 @@ namespace Gosub.Zurfur.Compiler
         {
             if (argNum < mGenericArguments.Count)
                 return mGenericArguments[argNum];
+
             for (int i = mGenericArguments.Count; i <= argNum; i++)
             {
                 var name = $"#{i}";
@@ -202,10 +203,11 @@ namespace Gosub.Zurfur.Compiler
         /// <summary>
         /// Get or create a generic tuple type.  Tuple #0 is concrete.
         /// </summary>
-        public Symbol GetTupleBaseType(int numGenerics)
+        Symbol GetTupleBaseType(int numGenerics)
         {
             if (numGenerics < mGenericTuples.Count)
                 return mGenericTuples[numGenerics];
+
             for (int i = mGenericTuples.Count; i <= numGenerics; i++)
             {
                 var name = i == 0 ? "()" :  $"()`{i}";
@@ -224,20 +226,6 @@ namespace Gosub.Zurfur.Compiler
             return mGenericTuples[numGenerics];
         }
 
-        /// <summary>
-        /// Holder for labda types
-        /// </summary>
-        public Symbol LambdaHolder
-        {
-            get 
-            {
-                if (mLambdaHolder != null)
-                    return mLambdaHolder;
-                mLambdaHolder = new Symbol(SymKind.Type, mGenericTupleHolder, null, "lambda");
-                AddOrReject(new Symbol(SymKind.TypeParam, mLambdaHolder, null, $"T"));
-                return mLambdaHolder; 
-            }
-        }
 
 
         /// <summary>
@@ -246,7 +234,7 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public Symbol FindTypeInPathOrReject(Token[] path)
         {
-            var symbol = (Symbol)mRoot;
+            var symbol = Root;
             foreach (var name in path)
             {
                 if (!symbol.TryGetPrimary(name, out var child))

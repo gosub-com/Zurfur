@@ -133,6 +133,7 @@ namespace Gosub.Zurfur.Compiler
         public readonly string SimpleName;
 
         /// <summary>
+        /// TBD: Refactor so function and lambda are same format
         /// Field, parameter, or function type.
         /// A function's return type is a tuple containing two 
         /// tuples: ((ParameterTypes),(ReturnTypes)).
@@ -212,9 +213,8 @@ namespace Gosub.Zurfur.Compiler
 
         public bool IsGenericArg => FullName.Length != 0 && FullName[0] == '#';
         public bool HasGenericArg => FullName.Contains('#');
-
         public bool IsTuple => Parent != null && Parent.FullName.StartsWith("()");
-
+        public bool IsLambda => Concrete.SimpleName == "$lambda";
         public bool IsInterface
             => IsType && Concrete.Qualifiers.HasFlag(SymQualifiers.Interface);
         public bool IsEnum
@@ -224,14 +224,11 @@ namespace Gosub.Zurfur.Compiler
         public bool IsType => Kind == SymKind.Type;
         public bool IsAnyTypeOrModule => IsModule || IsType || IsTypeParam;
         public bool IsAnyType => IsType || IsTypeParam;
-
         public bool IsField => Kind == SymKind.Field;
         public bool IsFun => Kind == SymKind.Fun;
         public bool IsTypeParam => Kind == SymKind.TypeParam;
         public bool IsFunParam => Kind == SymKind.FunParam;
         public bool IsLocal => Kind == SymKind.Local;
-
-
         public bool IsMethod => Qualifiers.HasFlag(SymQualifiers.Method);
         public bool IsConst => Qualifiers.HasFlag(SymQualifiers.Const);
         public bool IsStatic => Qualifiers.HasFlag(SymQualifiers.Static);
@@ -283,16 +280,23 @@ namespace Gosub.Zurfur.Compiler
 
             // Generic args <type1,type2...>
             Debug.Assert(TupleNames.Length == 0);
-            var post = "";
+            var typeArgs = "";
             if (TypeArgs.Length != 0)
-                post = "<" + string.Join<Symbol>(",", TypeArgs) + ">";
+                typeArgs = "<" + string.Join<Symbol>(",", TypeArgs) + ">";
+
+            if (IsLambda)
+            {
+                FullName = Parent.SimpleName + typeArgs;
+                return;
+            }
 
             var funParams = "";
             if (IsFun && Type != null)
                 funParams = FunParamTuple.FullName + FunReturnTuple.FullName;
 
+            // Postfix types and functions (not lambda) with generic argument count
             var genericArgsCount = "";
-            if (IsType || IsFun)
+            if ((IsType || IsFun) && !IsLambda)
             {
                 var genericsCount =  GenericParamCount();
                 genericArgsCount = genericsCount == 0 ? "" : $"`{genericsCount}";
@@ -300,7 +304,7 @@ namespace Gosub.Zurfur.Compiler
 
             // Specialized functions get the parents functions parant
             var parentFullName = Concrete.Parent.FullName;
-            LookupName = SimpleName + genericArgsCount + post + funParams;
+            LookupName = SimpleName + genericArgsCount + typeArgs + funParams;
             FullName = parentFullName + "." + LookupName;
         }
 

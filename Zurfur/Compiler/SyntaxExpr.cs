@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 using Gosub.Zurfur.Lex;
@@ -76,6 +77,7 @@ namespace Gosub.Zurfur.Compiler
         {
             get
             {
+                Debug.Assert(false);
                 throw new IndexOutOfRangeException();
             }
         }
@@ -107,6 +109,7 @@ namespace Gosub.Zurfur.Compiler
             {
                 if (index == 0)
                     return mParam0;
+                Debug.Assert(false);
                 throw new IndexOutOfRangeException();
             }
         }
@@ -136,6 +139,7 @@ namespace Gosub.Zurfur.Compiler
                     return mParam0;
                 if (index == 1)
                     return mParam1;
+                Debug.Assert(false);
                 throw new IndexOutOfRangeException();
             }
         }

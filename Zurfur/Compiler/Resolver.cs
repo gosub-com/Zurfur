@@ -200,6 +200,8 @@ namespace Gosub.Zurfur.Compiler
                 var anyNames = false;
                 foreach (var typeExprParam in typeExpr)
                 {
+                    if (typeExprParam.Count == 0)
+                        return null;  // Syntax error is already rejected
                     var sym = Resolve(typeExprParam[0], table, false, searchScope, useSymbols);
                     if (sym == null)
                         resolved = false;
@@ -222,6 +224,7 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Resolve "fun" or "afun" types.
+            // Returns a specialized generic type, e.g fun(params)(returns) is $lambda<((params),(returns))>
             // On error, the token is rejected and null is returned.
             Symbol ResolveLambdaFun()
             {
@@ -236,7 +239,7 @@ namespace Gosub.Zurfur.Compiler
                     return null;
 
                 var funType = table.CreateTuple(new Symbol[] { paramTuple, returnTuple});
-                var lambda = table.CreateSpecializedType(table.LambdaHolder, new Symbol[] { funType });
+                var lambda = table.CreateSpecializedType(table.LambdaType, new Symbol[] { funType });
 
                 return lambda;
             }

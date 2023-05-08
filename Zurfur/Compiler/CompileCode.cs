@@ -79,11 +79,16 @@ namespace Gosub.Zurfur.Compiler
             public Symbol Type;
             public Symbol[] TypeArgs = Array.Empty<Symbol>();
             public Symbol InType;
-            public bool IsUntypedConst; // NOTE: 3int is a typed const
+            public bool IsUntypedConst; // NOTE: `3 Int` is a typed const
             public bool IsSetter;
             public bool IsLocal;
             public bool IsExplicitRef;
             public bool IsStatic;
+
+            /// <summary>
+            /// When `Type` is $lambda, store the expression for later compilation
+            /// </summary>
+            public SyntaxExpr LambdaSyntax;
 
             public Rval(Token token)
             {
@@ -481,6 +486,8 @@ namespace Gosub.Zurfur.Compiler
                     GenStatements(ex);
                 else if ((char.IsLetter(name[0]) || name[0] == '_') && !ParseZurf.ReservedWords.Contains(name))
                     return GenIdentifier(ex);
+                else if (name == "=>")
+                    return GenLambda(ex);
                 else
                 {
                     if (name == "else" || name == "elif" || name == "dowhile")
@@ -524,7 +531,6 @@ namespace Gosub.Zurfur.Compiler
 
                 return rval;
             }
-
 
             Rval GenIdentifier(SyntaxExpr ex)
             {
@@ -735,6 +741,30 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 }
                 return new Rval(newSymbols[0].Token) { Candidates = newSymbols };
+            }
+
+            // TBD: Refactor to consolidate with or use GenNewVarsUnary
+            List<Symbol> NewVarsForLambda(SyntaxExpr ex)
+            {
+                var newSymbols = new List<Symbol>();
+                if (ex.Count == 0)
+                    return newSymbols;
+                foreach (var e in ex[0])
+                {
+                    if (e.Count == 0 || e.Token == "")
+                        continue; // Syntax error
+
+                    var local = CreateLocal(e.Token);
+                    if (local == null)
+                        continue;
+
+                    newSymbols.Add(local);
+
+                    // Resolve type (if given)
+                    if (e.Count >= 1 && e[0].Token != "")
+                        local.Type = Resolver.Resolve(e[0], table, false, currentFunction, fileUses);
+                }
+                return newSymbols;
             }
 
             Rval GenRefOrAddressOf(SyntaxExpr ex)
@@ -1102,6 +1132,49 @@ namespace Gosub.Zurfur.Compiler
                 return new Rval(ex.Token) { Type = condIf.Type };
             }
 
+            // Returns the concretete lambda type which will match all lambda
+            // types during function resolution.  The lambda expression is
+            // compiled after its type can be inferred.
+            // TBD: If type parameters are supplied, use a specialized lambda,
+            //      which could allow eliminating ambiguous lambda matches
+            //      during function resolution.
+            Rval GenLambda(SyntaxExpr ex)
+            {
+                return new Rval(ex.Token) { Type = table.LambdaType, LambdaSyntax = ex };
+            }
+
+
+            // Called after function resolution, when the lambda
+            // parameter types have been determined.
+            void PostGenLambda(SyntaxExpr ex, Symbol []lambdaParams)
+            {
+                if (ex.Count != 2)
+                    return;  // Syntax error
+
+                BeginLocalScope();
+                var lambdaLocals = NewVarsForLambda(ex[0]);
+
+                // TBD: It would be better to try to compile
+                //      so we can give the user some feadback.
+                //      Or, just gray out the whole lambda expression.
+                if (lambdaLocals.Count != lambdaParams.Length)
+                {
+                    EndLocalScope();
+                    Reject(ex.Token, "Incorrect number of parameters");
+                    return;
+                }
+                // Assign local variable types
+                for (int i = 0;  i < lambdaParams.Length;  i++)
+                {
+                    if (lambdaLocals[i].Type != null)
+                        Reject(lambdaLocals[i].Token, "TBD: Lambda's can't have explicit types yet");
+                    lambdaLocals[i].Type = lambdaParams[i];
+                    lambdaLocals[i].Token.AddInfo(lambdaLocals[i]);
+                }
+                GenCallParams(ex, 1);
+                EndLocalScope();
+            }
+
             // Set return type of symbol, or null if symbol is not found,
             // is unresolved, or ambiguous.
             // `assignmentTarget` allows the symbol to be an unresolved local
@@ -1309,9 +1382,21 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 }
 
-                // Function or Lambda - return the return type
-                // TBD: Refactor this into IsCallCompatible so tha
+                // Compile lambdas now that we can infer the type
                 var func = matchingFuns[0];
+                for (int i = 0; i < args.Count; i++)
+                    if (args[i].LambdaSyntax != null)
+                    {
+                        Debug.Assert(func.FunParamTypes[i].IsLambda);
+                        var lambda = func.FunParamTypes[i];
+
+                        // Lambda parameters are a tuple ((params),(returns))
+                        /// TBD: Refactor so function and lambda are same format
+                        var lambdaParams = lambda.TypeArgs[0].TypeArgs[0].TypeArgs;
+                        PostGenLambda(args[i].LambdaSyntax, lambdaParams);
+                    }
+
+                // Function or Lambda - return the return type
                 if (func.IsFun)
                 {
                     // Return the function return type
@@ -1391,7 +1476,7 @@ namespace Gosub.Zurfur.Compiler
                 
                 var lambda = variable.Type;
                 if (lambda == null 
-                    || !lambda.FullName.StartsWith(".lambda")
+                    || !lambda.IsLambda
                     || lambda.TypeArgs.Length != 1)
                 return (null, CallCompatible.NotAFunction);
                 
@@ -1416,6 +1501,11 @@ namespace Gosub.Zurfur.Compiler
 
                     // Receiver for generic interface always matches
                     if (i == 0 && func.Concrete.Parent.IsInterface && argType.IsGenericArg)
+                        continue;
+
+                    // The generic lambda type matches all lambdas because
+                    // the lambda type is set later when it is compiled.
+                    if (param.IsLambda && argType.IsLambda)
                         continue;
 
                     // Implicit conversion from nil to *T or from *T to *void
