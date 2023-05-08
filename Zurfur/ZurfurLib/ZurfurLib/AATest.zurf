@@ -12,6 +12,9 @@ use Zurfur.Draw2d[Size, Point]
 
 pragma ShowParse
 
+type AA<T1,T2,T3>
+    a T1
+
 type MyPoint<T1,T2,T3>
     a T1
     b T2
