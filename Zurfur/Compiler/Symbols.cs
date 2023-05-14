@@ -133,9 +133,8 @@ namespace Gosub.Zurfur.Compiler
         public readonly string SimpleName;
 
         /// <summary>
-        /// TBD: Refactor so function and lambda are same format
-        /// Field, parameter, or function type.
-        /// A function's return type is a tuple containing two 
+        /// Field, local, parameter, lambda, or function type.
+        /// A function or lambda's return type is a tuple containing two 
         /// tuples: ((ParameterTypes),(ReturnTypes)).
         /// </summary>
         public Symbol Type;
@@ -160,18 +159,27 @@ namespace Gosub.Zurfur.Compiler
         public string[] TupleNames { get; init; } = Array.Empty<string>();
 
         /// <summary>
-        /// Names of generic type parameters.  Set by FinalizeFullName
+        /// Names of generic type parameters.
         /// </summary>
         public string[] GenericParamNames = Array.Empty<string>();
 
         /// <summary>
-        /// Get the generic parameter count.
+        /// Get the number of expected generic parameters from the concrete type.
         /// </summary>
         public int GenericParamCount()
         {
-            return GenericParamNames.Length;
+            if (IsTypeParam)
+                return 0;
+           
+            var sym = Concrete;
+            int count = 0;
+            while (!sym.IsModule)
+            {
+                count += sym.GenericParamNames.Length;
+                sym = sym.Parent;
+            }
+            return count;
         }
-
 
         /// <summary>
         /// Applicable to Types and Functions
@@ -213,7 +221,7 @@ namespace Gosub.Zurfur.Compiler
 
         public bool IsGenericArg => FullName.Length != 0 && FullName[0] == '#';
         public bool HasGenericArg => FullName.Contains('#');
-        public bool IsTuple => Parent != null && Parent.FullName.StartsWith("()");
+        public bool IsTuple => SimpleName.Length != 0 && SimpleName[0] == '(';
         public bool IsLambda => Concrete.SimpleName == "$lambda";
         public bool IsInterface
             => IsType && Concrete.Qualifiers.HasFlag(SymQualifiers.Interface);
@@ -253,16 +261,13 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public void FinalizeFullName()
         {
-            // Set generic parameter names
-            if (IsType || IsFun)
-            {
-                if (IsSpecialized || IsFun && Parent.IsInterface)
-                    GenericParamNames = Parent.GenericParamNames;
-                else
-                    GenericParamNames = ChildrenFilter(SymKind.TypeParam).OrderBy(s => Order).Select(s => s.SimpleName).ToArray();
-            }
-            if (IsField)
-                GenericParamNames = Parent.GenericParamNames;
+            // TBD: This is still ugly.  Would be nice to not need to call
+            // this function from external code (i.e. don't create the
+            // symbol until all stuff for naming is known) but that would
+            // require more refacotring.
+
+            // Either we have generic parameters or generic args, but not both
+            Debug.Assert(GenericParamNames.Length == 0 || TypeArgs.Length == 0);
 
             if (IsLocal || IsFunParam || IsTypeParam || Parent == null || Parent.FullName == "")
             {
@@ -296,11 +301,8 @@ namespace Gosub.Zurfur.Compiler
 
             // Postfix types and functions (not lambda) with generic argument count
             var genericArgsCount = "";
-            if ((IsType || IsFun) && !IsLambda)
-            {
-                var genericsCount =  GenericParamCount();
-                genericArgsCount = genericsCount == 0 ? "" : $"`{genericsCount}";
-            }
+            if ((IsType || IsFun) && !IsLambda && GenericParamNames.Length != 0)
+                genericArgsCount = $"`{GenericParamNames.Length}";
 
             // Specialized functions get the parents functions parant
             var parentFullName = Concrete.Parent.FullName;
@@ -377,13 +379,9 @@ namespace Gosub.Zurfur.Compiler
             Debug.Assert(TupleNames.Length == 0);
             var genericArgs = "";
             if (TypeArgs.Length != 0)
-            {
                 genericArgs = "<" + string.Join(",", TypeArgs.Select(s => s.FriendlyNameInternal(false))) + ">";
-            }
-            else if (GenericParamCount() != 0)
-            {
-                genericArgs = "<" + string.Join(",", GenericParamNames) + ">";
-            }
+            if (GenericParamNames.Length != 0)
+                genericArgs += "<" + string.Join(",", GenericParamNames) + ">";
 
             // Function parameters and `my` type
             var myParam = "";
@@ -625,7 +623,6 @@ namespace Gosub.Zurfur.Compiler
                     throw new Exception("Compiler error: Primary symbol added after function");
             }
 
-            FinalizeFullName();
             return true;
         }
 
@@ -668,7 +665,7 @@ namespace Gosub.Zurfur.Compiler
         {
             get
             {
-                Debug.Assert(IsFun && Type != null && Type.TypeArgs.Length == 2);
+                Debug.Assert((IsFun || IsLambda) && Type != null && Type.TypeArgs.Length == 2);
                 return Type.TypeArgs[1];
             }
         }
@@ -681,7 +678,7 @@ namespace Gosub.Zurfur.Compiler
         {
             get
             {
-                Debug.Assert(IsFun && Type != null && Type.TypeArgs.Length == 2);
+                Debug.Assert((IsFun || IsLambda) && Type != null && Type.TypeArgs.Length == 2);
                 return Type.TypeArgs[0];
             }
         }

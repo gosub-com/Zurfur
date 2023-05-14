@@ -1389,33 +1389,17 @@ namespace Gosub.Zurfur.Compiler
                     {
                         Debug.Assert(func.FunParamTypes[i].IsLambda);
                         var lambda = func.FunParamTypes[i];
-
-                        // Lambda parameters are a tuple ((params),(returns))
-                        /// TBD: Refactor so function and lambda are same format
-                        var lambdaParams = lambda.TypeArgs[0].TypeArgs[0].TypeArgs;
-                        PostGenLambda(args[i].LambdaSyntax, lambdaParams);
+                        PostGenLambda(args[i].LambdaSyntax, lambda.FunParamTypes);
                     }
 
-                // Function or Lambda - return the return type
-                if (func.IsFun)
-                {
-                    // Return the function return type
-                    if (addSymbolInfo)
-                        call.Token.AddInfo(func);
-                    return func.FunReturnTupleOrType;
-                }
-                else
-                {
-                    // Return the lambda return type
-                    // TBD: Refactor this into IsCallCompatible
-                    var lambdaType = func.Type.TypeArgs[0].TypeArgs[1];
-                    if (lambdaType.TypeArgs.Length == 1)
-                        lambdaType = lambdaType.TypeArgs[0]; // TBD: Refactor to consolidate with FunReturnTupleOrType
-                    if (addSymbolInfo)
-                        call.Token.AddInfo(func.Type);
-                    return lambdaType;
-                }
-
+                // This is either a function or lambda.  The function has the
+                // type directly, but the lambda is a specialization of $lambda<T>.
+                // TBD: Make function a specialization of $fun<T> so lambda and
+                //      function have the same layout.
+                var lambdaOrFunType = func.IsFun ? func : func.Type;
+                if (addSymbolInfo)
+                    call.Token.AddInfo(lambdaOrFunType);
+                return lambdaOrFunType.FunReturnTupleOrType;
             }
 
             // Checks if the function call is compatible, return the possibly
@@ -1594,7 +1578,7 @@ namespace Gosub.Zurfur.Compiler
             // return the result, but don't change the original.
             Symbol ReplaceGenericTypeParams(Symbol type, Symbol[] args)
             {
-                if (args.Length == 0)
+                if (type == null || args.Length == 0)
                     return type;
 
                 if (type.IsGenericArg)
@@ -1606,14 +1590,15 @@ namespace Gosub.Zurfur.Compiler
 
                 if (type.IsSpecialized)
                     return table.CreateSpecializedType(type.Parent,
-                        NewGenericTypeParams(type.TypeArgs, args), type.TupleNames);
+                        ReplaceGenericTypeParamsArray(type.TypeArgs, args), type.TupleNames,
+                        ReplaceGenericTypeParams(type.Type, args));
 
                 return type;
             }
 
             // Replace the generic type argument with the given argument,
             // return the result, but don't change the original.
-            Symbol[] NewGenericTypeParams(Symbol[] types, Symbol[] args)
+            Symbol[] ReplaceGenericTypeParamsArray(Symbol[] types, Symbol[] args)
             {
                 if (types == null || types.Length == 0)
                     return types;
@@ -1672,7 +1657,6 @@ namespace Gosub.Zurfur.Compiler
                     var i = symbols.Count;
                     AddSymbolsNamedInType(name, constraint, symbols);
 
-                    // TBD: Working on this
                     // Replace generic type args with the given type arguments
                     while (i < symbols.Count)
                     {
