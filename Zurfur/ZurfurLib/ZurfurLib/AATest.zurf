@@ -12,6 +12,49 @@ use Zurfur.Draw2d[Size, Point]
 
 pragma ShowParse
 
+fun test_listMap()
+    @a = List<F64>()
+    @c = a.map<F64,Int>(@i => i.toIntMask)
+
+
+fun test_forEach(args Array<Str>)
+    @sum = 0
+    @list List<Int>
+    list.forEach(@item => { sum += item })
+
+
+// https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
+fun Iterator.alphaLengthWise<Item, L>(lengthProvider fun(t Item) L) Iterator<Item>
+    return my.orderBy<Item, L>(@a => lengthProvider(a))
+             .thenBy<Item, L>(@a => a)
+fun Iterator.orderBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
+    extern
+fun Iterator.thenBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
+    extern
+
+fun mut Iterator.find<T>(f fun(item T) Bool) mut ?ref T
+    while my.next()@item
+        if f(item)
+            return ref item
+    return nil
+
+
+// Simple selection sort
+fun Span.test_selectionSort<T>(lessThan fun(a T,b T)Bool)
+    for @i in my.len-1
+        @lowElem = my[i]
+        @lowIndex = i
+        for @j in i+1..my.len
+            if lessThan(my[j], lowElem)
+                lowElem = my[j]
+                lowIndex = j
+        if lowIndex != i
+            my[lowIndex] = my[i]
+            my[i] = lowElem
+
+type AA<T1,T2,T3>
+    a T1
+
 type MyPoint<T1,T2,T3>
     a T1
     b T2

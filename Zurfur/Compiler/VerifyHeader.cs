@@ -149,7 +149,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     var genericParams = s.GenericParamCount();
                     var genericArgsCount = s.IsSpecialized ? s.TypeArgs.Length : 0;
-                    if (genericParams != genericArgsCount)
+                    if (genericParams != genericArgsCount && !s.IsTuple)
                         Reject(token, $"The type '{typeName}' requires {genericParams} generic "
                             + $"type parameters, but {genericArgsCount} were supplied");
                     if (s.IsSpecialized)

@@ -29,7 +29,6 @@ namespace Gosub.Zurfur.Compiler
         // Internal types: Generic arguments, Tuples
         List<Symbol> mGenericArguments = new();
         Symbol mGenericArgumentHolder; // Holder so they have `Order` set properly
-        List<Symbol> mGenericTuples = new();
         Symbol mGenericTupleHolder;
 
         /// <summary>
@@ -38,7 +37,12 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public readonly Symbol LambdaType;
 
-        public Symbol EmptyTuple => GetTupleBaseType(0);
+        /// <summary>
+        /// The concrete generic type from which all tuple types are
+        /// specialized.  The name is `()`, and is the only type that
+        /// supports a variable number of type arguments.
+        /// </summary>
+        public Symbol EmptyTuple { get; private set; }
 
 
         public SymbolTable()
@@ -48,7 +52,9 @@ namespace Gosub.Zurfur.Compiler
             mGenericArgumentHolder = new Symbol(SymKind.Type, Root, null, "");
             mGenericTupleHolder = new Symbol(SymKind.Module, Root, null, "");
             LambdaType = new Symbol(SymKind.Type, mGenericTupleHolder, null, "$lambda");
-            AddOrReject(new Symbol(SymKind.TypeParam, LambdaType, null, $"T"));
+            LambdaType.GenericParamNames = new string[] { "T" };
+            EmptyTuple = new Symbol(SymKind.Type, mGenericTupleHolder, null, "()");
+            mSpecializedTypes["()"] = EmptyTuple;
         }
 
 
@@ -143,8 +149,22 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public Symbol CreateTuple(Symbol[] typeArgs, string[] tupleNames = null)
         {
-            return CreateSpecializedType(GetTupleBaseType(typeArgs.Length), typeArgs, tupleNames)
-;        }
+            return CreateSpecializedType(EmptyTuple, typeArgs, tupleNames);
+        }
+
+        /// <summary>
+        /// Create a lambda from parameter and return tuple.  A lambda is a
+        /// specialization of `$lambda` so type args are the parameter/return
+        /// tuple.  It's return type is also the parameter/return tuple,
+        /// same as a function.
+        /// </summary>
+        public Symbol CreateLambda(Symbol paramTuple, Symbol returnTuple)
+        {
+            var funType = CreateTuple(new Symbol[] { paramTuple, returnTuple });
+            var lambda = CreateSpecializedType(LambdaType, new Symbol[] { funType });
+            lambda.Type = funType;
+            return lambda;
+        }
 
         /// <summary>
         /// Create a specialized type.
@@ -158,7 +178,7 @@ namespace Gosub.Zurfur.Compiler
             Debug.Assert(concreteType.IsType || concreteType.IsFun || concreteType.IsField);
             Debug.Assert(!concreteType.IsSpecialized);
             Debug.Assert(tupleNames == null || tupleNames.Length == 0 || tupleNames.Length == typeArgs.Length);
-            if (!NoCompilerChecks)
+            if (!NoCompilerChecks && concreteType.SimpleName != "()")
                 Debug.Assert(concreteType.GenericParamCount() == typeArgs.Length);
 
             if (typeArgs.Length == 0)
@@ -199,34 +219,6 @@ namespace Gosub.Zurfur.Compiler
             }
             return mGenericArguments[argNum];
         }
-
-        /// <summary>
-        /// Get or create a generic tuple type.  Tuple #0 is concrete.
-        /// </summary>
-        Symbol GetTupleBaseType(int numGenerics)
-        {
-            if (numGenerics < mGenericTuples.Count)
-                return mGenericTuples[numGenerics];
-
-            for (int i = mGenericTuples.Count; i <= numGenerics; i++)
-            {
-                var name = i == 0 ? "()" :  $"()`{i}";
-                var arg = new Symbol(SymKind.Type, mGenericTupleHolder, null, name);
-                if (i == 0)
-                    mSpecializedTypes[name] = arg;
-
-                for (int j = 0;  j < i; j++)
-                {
-                    var tp = new Symbol(SymKind.TypeParam, arg, null, $"T{j}");
-                    AddOrReject(tp);
-                }
-                mGenericTuples.Add(arg);
-                AddOrReject(arg);
-            }
-            return mGenericTuples[numGenerics];
-        }
-
-
 
         /// <summary>
         /// Returns the symbol at the given path in the package.

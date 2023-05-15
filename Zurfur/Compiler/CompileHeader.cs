@@ -201,12 +201,22 @@ namespace Gosub.Zurfur.Compiler
                         newType.Comments = type.Comments;
                         newType.SetQualifiers(type.Qualifiers);
                         newType.Token.AddInfo(newType);
-                        if (table.AddOrReject(newType))
-                            AddTypeParams(newType, type.TypeArgs);
+                        AddTypeParams(newType, type.TypeArgs);
+                        SetGenericParamNames(newType);
+                        table.AddOrReject(newType);
+                        newType.FinalizeFullName();
+                            
                         Debug.Assert(!syntaxToSymbol.ContainsKey(type));
                         syntaxToSymbol[type] = newType;
                     }
                 }
+            }
+            
+            void SetGenericParamNames(Symbol s)
+            {
+                // Set generic parameter names
+                s.GenericParamNames = s.ChildrenFilter(SymKind.TypeParam)
+                    .OrderBy(s => s.Order).Select(s => s.SimpleName).ToArray();
             }
 
             // Add a default constructor for each type, if it doesm't already exist
@@ -228,6 +238,7 @@ namespace Gosub.Zurfur.Compiler
                     myParam.Type = Resolver.GetTypeWithGenericParameters(table, newType);
                     foreach (var genericParam in myParam.Type.TypeArgs)
                         table.AddOrReject(new Symbol(SymKind.TypeParam, constructor, newType.Token, genericParam.SimpleName));
+                    SetGenericParamNames(constructor);
                     table.AddOrReject(myParam);
                     var returnParam = new Symbol(SymKind.FunParam, constructor, newType.Token, "");
                     returnParam.Qualifiers |= SymQualifiers.ParamOut;
@@ -388,6 +399,7 @@ namespace Gosub.Zurfur.Compiler
                 function.SetQualifiers(synFunc.Qualifiers);
                 function.Comments = synFunc.Comments;
                 AddTypeParams(function, synFunc.TypeArgs);
+                SetGenericParamNames(function);
                 var myParam = ResolveMyParam(function, synFunc);
                 if (myParam != null)
                     table.AddOrReject(myParam);
@@ -404,15 +416,8 @@ namespace Gosub.Zurfur.Compiler
                     Warning(synFunc.Token, $"Function not processed because '{synFunc.Parent.Name}' has an error");
                     return;
                 }
-
                 table.AddOrReject(function);
-
-                // Rename generic args from #0, #1... to proper names
-                if (myParam != null && myParam.Type != null)
-                    for (int i = 0;  i < function.GenericParamNames.Length
-                                        && i < myParam.Type.GenericParamNames.Length; i++)
-                        if (function.GenericParamNames[i].StartsWith("#"))
-                            function.GenericParamNames[i] = myParam.Type.GenericParamNames[i];
+                function.FinalizeFullName();
 
                 ResolveConstraints(function, synFunc.Constraints);
 

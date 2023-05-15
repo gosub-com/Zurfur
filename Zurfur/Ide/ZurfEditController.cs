@@ -330,28 +330,34 @@ namespace Gosub.Zurfur.Ide
                 return "";
 
             // When a token has multiple symbols or an error, display a summary.
-            if (symbols.Length > 1
-                || symbols.Length == 1 && mHoverToken.Error)
+            if (symbols.Length > 1 || symbols.Length == 1 && mHoverToken.Error)
             {
-                message += "SYMBOLS:\r\n";
+                message += "POSSIBLE SYMBOLS:\r\n";
                 message += string.Join("\r\n", symbols.Select(sym =>
-                    $"    [{getQualifiers(sym)}]  ► {sym.FriendlyName()}\r\n    {sym}\r\n"));
+                    $"    [{getQualifiers(sym)}] {sym.FriendlyName()}"));
                 return message + "\r\n\r\n";
             }
 
+            // Friendly names
             var symbol = symbols[0];
-            message +=$"[{getQualifiers(symbol)}] ► {symbol.FriendlyName()}\r\n{symbol}\r\n\r\n";
+            message +=$"[{getQualifiers(symbol)}] {symbol.FriendlyName()}\r\n";
+            if (symbol.Type != null && !symbol.IsFun && !symbol.IsLambda)
+                message += $"Type: {symbol.Type.FriendlyName()}\r\n";
 
-            if (symbol.TypeName != null && symbol.TypeName != "")
-                message += $"TYPE ► {symbol.Type.FriendlyName()}\r\n    {symbol.TypeName}\r\n\r\n";
+            if (symbol.Concrete.Comments.Trim() != "")
+                message += $"// {symbol.Concrete.Comments}\r\n";
 
-            if (symbol.Comments.Trim() != "")
-                message += $"COMMENTS:\r\n{symbol.Comments}\r\n\r\n";
+            // Raw symbol info
+            message += $"\r\nFull Name: {symbol.FullName}\r\n";
+            if (symbol.IsSpecialized)
+                message += $"Non-specialized: {symbol.Concrete.FullName}\r\n"; 
+            if (symbol.Type != null && !symbol.IsFun && !symbol.IsLambda)
+                message += $"Type Name: {symbol.Type.FullName}\r\n";
 
             if (symbol.IsFun)
             {
-                message += "PARAMS: \r\n";
-                foreach (var child in symbol.Children)
+                message += "\r\nPARAMS: \r\n";
+                foreach (var child in symbol.Concrete.Children)
                 {
                     if (child.IsFunParam)
                         message += $"    {child.SimpleName}: [{getQualifiers(child)}] {child.TypeName}\r\n";

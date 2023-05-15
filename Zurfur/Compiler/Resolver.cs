@@ -238,10 +238,7 @@ namespace Gosub.Zurfur.Compiler
                 if (paramTuple == null || returnTuple == null)
                     return null;
 
-                var funType = table.CreateTuple(new Symbol[] { paramTuple, returnTuple});
-                var lambda = table.CreateSpecializedType(table.LambdaType, new Symbol[] { funType });
-
-                return lambda;
+                return table.CreateLambda(paramTuple, returnTuple);
             }
         }
 

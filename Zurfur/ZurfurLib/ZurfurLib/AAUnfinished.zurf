@@ -8,46 +8,6 @@ use Zurfur.Draw2d[Point, Size]
 type VariantMap
     notDone Int
 
-fun test_Main(args Array<Str>)
-        
-    @sum = 0
-    @list List<Int>
-    list.forEach(@item => { sum += item })
-
-
-// https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-fun Iterator.alphaLengthWise<Item, L>(lengthProvider fun(t Item) L) Iterator<Item>
-    return my.orderBy<Item, L>(@a => lengthProvider(a))
-             .thenBy<Item, L>(@a => a)
-fun Iterator.orderBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
-    extern
-fun Iterator.thenBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
-    extern
-
-fun mut Iterator.find<T>(f fun(item T) Bool) mut ?ref T
-    while my.next()@item
-        if f(item)
-            return ref item
-    return nil
-
-fun test_Convert()
-    @a = List<F64>()
-    @b = List<Int>()
-    @c = a.convert<F64,Int>(@i => i.toIntMask)
-
-fun Span.sort<T>(lessThan fun(a T,b T)Bool)
-    // Simple selection sort
-    for @i in my.len-1
-        @lowElem = my[i]
-        @lowIndex = i
-        for @j in i+1..my.len
-            if lessThan(my[j], lowElem)
-                lowElem = my[j]
-                lowIndex = j
-        if lowIndex != i
-            my[lowIndex] = my[i]
-            my[i] = lowElem
-
 type Label
     text Str
     location Point<Int>
