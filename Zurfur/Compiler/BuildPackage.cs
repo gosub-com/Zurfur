@@ -57,7 +57,7 @@ namespace Gosub.Zurfur.Compiler
         public string OutputDir => Path.Combine(mBaseDir, OUTPUT_DIR);
         public string OutputFileReport => Path.Combine(mBaseDir, OUTPUT_DIR, "BuildReport.txt");
         public string OutputFileHeader => Path.Combine(mBaseDir, OUTPUT_DIR, "Header.json");
-        public string OutputFileHeaderCode => Path.Combine(mBaseDir, OUTPUT_DIR, "Code.json");
+        public string OutputFileHeaderCode => Path.Combine(mBaseDir, OUTPUT_DIR, "Code.txt");
 
         /// <summary>
         /// For status, Message: Build step (Loading, Parsing, Linking, etc.)
@@ -376,7 +376,7 @@ namespace Gosub.Zurfur.Compiler
 
             // TBD: This should also move to a background thread.
             var dtStartGenCode = DateTime.Now;
-            CompileCode.GenerateCode(zurfFiles, zilHeader.Table, zilHeader.SyntaxToSymbol, zilHeader.Uses);
+            var asFuns = CompileCode.GenerateCode(zurfFiles, zilHeader.Table, zilHeader.SyntaxToSymbol, zilHeader.Uses);
             var dtEndGenCode = DateTime.Now;
 
 
@@ -387,14 +387,14 @@ namespace Gosub.Zurfur.Compiler
                 // Header
                 var package = new PackageJson();
                 package.BuildDate = DateTime.Now.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
-                package.Symbols = zilHeader.Table.Save(true);
+                package.Symbols = zilHeader.Table.Save(false);
                 mHeaderJson = JsonConvert.SerializeObject(package, Formatting.None,
                     new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore });
 
                 // Code
-                package.Symbols = zilHeader.Table.Save(false);
-                mCodeJson = JsonConvert.SerializeObject(package, Formatting.None,
-                    new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore });
+                var sb = new StringBuilder();
+                asFuns.Print(sb);
+                mCodeJson = sb.ToString();
             });
             var dtEndGenPackage = DateTime.Now;
 
