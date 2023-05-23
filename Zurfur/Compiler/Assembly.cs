@@ -79,6 +79,11 @@ namespace Gosub.Zurfur.Compiler
             OpList.Add(new AsOp(Op.Break, token, targetLlevel));
         }
 
+        public void Comment(Token token, string comment)
+        {
+            OpList.Add(new AsOp(Op.Comment, token, comment));
+        }
+
         public AsScope Scope(Token token)
         {
             var scope = new AsScope(this, Fun);
@@ -91,6 +96,7 @@ namespace Gosub.Zurfur.Compiler
     enum Op
     {
         Nop,    // Operand is null
+        Comment,// Operand is string
         NoImp,  // Invalid code (not implemented yet)
         Local,  // Operand is null
         Ldlr,   // Load local ref, operand is int (local number)
@@ -114,6 +120,7 @@ namespace Gosub.Zurfur.Compiler
             _operand = operand;
             Debug.Assert(
                 op == Op.Nop && operand == null
+                || op == Op.Comment && operand is string
                 || op == Op.NoImp && operand is string
                 || op == Op.Local && operand is int
                 || op == Op.Ldlr && operand is int
@@ -128,6 +135,15 @@ namespace Gosub.Zurfur.Compiler
             {
                 Debug.Assert(_operand is int);
                 return (int)_operand; 
+            }
+        }
+
+        public string OperString
+        {
+            get
+            {
+                Debug.Assert(_operand is string);
+                return (string)_operand;
             }
         }
 

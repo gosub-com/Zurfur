@@ -131,22 +131,22 @@ namespace Gosub.Zurfur.Compiler
 
 
         static public AsFuns GenerateCode(
-            Dictionary<string, SyntaxFile> syntaxFiles,
+            Dictionary<string, SyntaxFile> synFiles,
             SymbolTable table,
             Dictionary<SyntaxScope, Symbol> syntaxToSymbol,
             UseSymbols allFileUses)
         {
             var asFuns = new AsFuns();
-            foreach (var syntaxFile in syntaxFiles)
+            foreach (var synFile in synFiles)
             {
-                var fileUses = allFileUses.Files[syntaxFile.Key];
-                foreach (var synFunc in syntaxFile.Value.Functions)
+                var fileUses = allFileUses.Files[synFile.Key];
+                foreach (var synFunc in synFile.Value.Functions)
                 {
                     // Get current function
                     if (!syntaxToSymbol.TryGetValue(synFunc, out var currentFunction))
                         continue; // Syntax error
                     Debug.Assert(currentFunction.IsFun);
-                    var asFun = GenFunction(synFunc, table, fileUses, currentFunction);
+                    var asFun = GenFunction(synFile.Value, synFunc, table, fileUses, currentFunction);
                     asFuns.Functions[asFun.Name] = asFun;
                 }
             }
@@ -154,6 +154,7 @@ namespace Gosub.Zurfur.Compiler
         }
 
         static AsFun GenFunction(
+            SyntaxFile synFile,
             SyntaxFunc synFunc,
             SymbolTable table,
             UseSymbolsFile fileUses,
@@ -183,10 +184,20 @@ namespace Gosub.Zurfur.Compiler
                 && typeF32 != null);
 
             Debug.Assert(function.IsFun);
+            var commentLines = new Dictionary<int, bool>();
             var asFun = new AsFun(function.FullName, function.Token);
             var asScope = asFun.Scope;
             var locals = new Dictionary<string, LocalSymbol>();
             var scopeNum = 0;
+
+            // Function prototype comment
+            var y1 = synFunc.Keyword.Y;
+            var y2 = Math.Max(y1, synFunc.Statements == null ? 0 : synFunc.Statements.Token.Y);
+            for (var y = y1;  y <= y2; y++)
+            {
+                commentLines[y] = true;
+                asScope.Comment(synFunc.Keyword, synFile.Lexer.GetLine(y));
+            }
 
             // Add input parameters as locals
             foreach (var p in function.ChildrenFilter(SymKind.FunParam).Where(p => !p.ParamOut).OrderBy(p => p.Order))
@@ -430,6 +441,8 @@ namespace Gosub.Zurfur.Compiler
                 {
                     Reject(ex.Token, $"Incorrect return type, expecting '{functionType}', got '{rval.Type}'");
                 }
+                asScope.Return(ex.Token);
+
                 return rval;
             }
 
@@ -444,6 +457,13 @@ namespace Gosub.Zurfur.Compiler
                 {
                     Reject(token, "Compiler error: GenExpr, not compiled");
                     return null;  // Syntax error should already be marked
+                }
+
+                // Add source code comments
+                if (!commentLines.ContainsKey(token.Y))
+                {
+                    commentLines[token.Y] = true;
+                    asScope.Comment(token, synFile.Lexer.GetLine(token.Y));
                 }
 
                 // Terminals: Number, string, identifier

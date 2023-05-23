@@ -37,6 +37,15 @@ namespace Gosub.Zurfur.Compiler
                     op.OperScope.Print(sb, level + 1);
                     continue;
                 }
+                if (op.Op == Op.Comment)
+                {
+                    var comment = op.OperString;
+                    if (comment == "")
+                        sb.Append("\r\n");
+                    else
+                        sb.Append($"// {comment}\r\n");
+                    continue;
+                }
                 sb.Append(' ', (level + 1) * 2);
                 if (op.Op == Op.Local || op.Op == Op.Ldlr)
                 {
