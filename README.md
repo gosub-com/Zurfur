@@ -12,6 +12,12 @@ about ownership, immutability, nullability, and functional programming.
 
 ![](Doc/IDE.png)
 
+**Status Update**
+
+I am working on assembly language generation. Hit F4 then click the `Code.txt`
+tab to see it.  The syntax is still being developed, nothing is set in stone.
+Feel free to send me comments letting me know what you think should be changed.
+
 ## Design Goals
 
 Zurfur takes its main inspiration from C#, but borrows syntax and design
@@ -34,13 +40,6 @@ Here are some key features:
     * Functions pass parameters by reference, but will pass a copy when it is more efficient
     * Explicit `clone` required when copying an object that requires dynamic allocation
     * Most objects are deleted without needing GC.  Heap objects are reference counted.
-
-**Status Update**
-
-Header file generation is working, and I am working on code generation.
-Hit F4 to see the header file in JSON format.  The syntax is still being
-developed, nothing is set in stone.  Feel free to send me comments letting
-me know what you think should be changed.
 
 ## Variables
 
@@ -214,7 +213,7 @@ The ones we all know and love:
 | Str, Str16 | An `Array<Byte>` or `Array<u16>` with support for UTF-8 and UTF-16.  `Array` (an alias for `ro List`) is immutable, therefore `Str` is also immutable.  `Str16` is a JavaScript or C# style Unicode string
 | Span\<T\> | A view into a `List` or `Array`.  It has a constant `len`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `List` is mutable)
 | Map<K,V> | Unordered mutable map.  `ro Map<K,V>` is the immutable counterpart. 
-| Maybe\<T\> | Identical to `?T`.  Always optimized for pointers and references
+| Maybe\<T\> | Identical to `?T`.  Always optimized for pointers and references.  **TBD:** Put  back to `Nilable`?
 | Result\<T\> | Same as `!T`. An optional containing either a return value or an `Error` interface.
 | Error | An interface containing a `message` string and an integer `code`
 | Any | Reserved for a JavaScript-like object, used to bridge the gap between static and dynamic type systems.  There will also be `any` types that use TypeScipt-like structural duck typing. If you want a JavaScript or TypeScript type system, these types are reserved for you.

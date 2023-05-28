@@ -130,34 +130,35 @@ namespace Gosub.Zurfur.Compiler
         }
 
 
-        static public AsFuns GenerateCode(
-            Dictionary<string, SyntaxFile> syntaxFiles,
+        static public Assembly GenerateCode(
+            Dictionary<string, SyntaxFile> synFiles,
             SymbolTable table,
             Dictionary<SyntaxScope, Symbol> syntaxToSymbol,
             UseSymbols allFileUses)
         {
-            var asFuns = new AsFuns();
-            foreach (var syntaxFile in syntaxFiles)
+            var assembly = new Assembly();
+            foreach (var synFile in synFiles)
             {
-                var fileUses = allFileUses.Files[syntaxFile.Key];
-                foreach (var synFunc in syntaxFile.Value.Functions)
+                var fileUses = allFileUses.Files[synFile.Key];
+                foreach (var synFunc in synFile.Value.Functions)
                 {
                     // Get current function
                     if (!syntaxToSymbol.TryGetValue(synFunc, out var currentFunction))
                         continue; // Syntax error
                     Debug.Assert(currentFunction.IsFun);
-                    var asFun = GenFunction(synFunc, table, fileUses, currentFunction);
-                    asFuns.Functions[asFun.Name] = asFun;
+                    GenFunction(synFile.Value, synFunc, table, fileUses, currentFunction, assembly);
                 }
             }
-            return asFuns;
+            return assembly;
         }
 
-        static AsFun GenFunction(
+        static void GenFunction(
+            SyntaxFile synFile,
             SyntaxFunc synFunc,
             SymbolTable table,
             UseSymbolsFile fileUses,
-            Symbol function)
+            Symbol function,
+            Assembly assembly)
         {
             var typeVoid = table.Lookup(SymTypes.Void);
             var typeNil = table.Lookup(SymTypes.Nil);
@@ -183,21 +184,43 @@ namespace Gosub.Zurfur.Compiler
                 && typeF32 != null);
 
             Debug.Assert(function.IsFun);
-            var asFun = new AsFun(function.FullName, function.Token);
-            var asScope = asFun.Scope;
+            var commentLines = new Dictionary<int, bool>();
+            var asFun = new AsFun(assembly, function.FullName, function.Token);
             var locals = new Dictionary<string, LocalSymbol>();
+            var scopeToken = new Dictionary<int, Token>();
             var scopeNum = 0;
+
+            // Function prototype comment
+            var y1 = synFunc.Keyword.Y;
+            var y2 = Math.Max(y1, synFunc.Statements == null ? 0 : synFunc.Statements.Token.Y);
+            for (var y = y1;  y <= y2; y++)
+            {
+                commentLines[y] = true;
+                asFun.AddComment(synFunc.Keyword, synFile.Lexer.GetLine(y));
+            }
 
             // Add input parameters as locals
             foreach (var p in function.ChildrenFilter(SymKind.FunParam).Where(p => !p.ParamOut).OrderBy(p => p.Order))
-                asScope.NewLocal(p.Token, p);
+                asFun.UseLocal(p.Token, p);
 
+            // Compile the function
             BeginLocalScope(function.Token);
             if (synFunc.Statements != null)
                 GenStatements(synFunc.Statements);
             EndLocalScope();
 
-            return asFun;
+            // Replace local symbols with their type.  This is done because
+            // the type wasn't known when it was created.
+            for (int i = 0; i < asFun.LocalTypes.Count; i++)
+            {
+                // NOTE: Unresolved symbols don't have a type.
+                //       This is an error, but we don't want null here.
+                if (asFun.LocalTypes[i].Type != null)
+                    asFun.LocalTypes[i] = asFun.LocalTypes[i].Type;
+            }
+
+            assembly.Functions[asFun.Name] = asFun;
+            return;
 
 
             void GenStatements(SyntaxExpr ex)
@@ -430,6 +453,8 @@ namespace Gosub.Zurfur.Compiler
                 {
                     Reject(ex.Token, $"Incorrect return type, expecting '{functionType}', got '{rval.Type}'");
                 }
+                asFun.Add(Op.Return, ex.Token, 0);
+
                 return rval;
             }
 
@@ -446,11 +471,18 @@ namespace Gosub.Zurfur.Compiler
                     return null;  // Syntax error should already be marked
                 }
 
+                // Add source code comments
+                if (!commentLines.ContainsKey(token.Y))
+                {
+                    commentLines[token.Y] = true;
+                    asFun.AddComment(token, synFile.Lexer.GetLine(token.Y));
+                }
+
                 // Terminals: Number, string, identifier
                 if (char.IsDigit(name[0]))
                     return GenConstNumber(ex);
                 else if (name == "\"" || name == "\"\"\"")
-                    return new Rval(token) { Type = typeStr };
+                    return GenStr(ex);
                 else if (name == "nil")
                     return new Rval(token) { Type = typeNil };
                 else if (name == "my")
@@ -509,10 +541,26 @@ namespace Gosub.Zurfur.Compiler
             {
                 // Get type (int, f64, or custom)
                 var numberType = ex.Token.Name.Contains(".") ? typeF64 : typeInt;
+
+                // For now, only int and float are supported
+                // TBD: Parse decimal and check for errors
+                if (ex.Token.Name.Contains("."))
+                {
+                    // Store double as IEEE 754 long
+                    double.TryParse(ex.Token, out var number);
+                    asFun.Add(Op.Float, ex.Token, BitConverter.DoubleToInt64Bits(number));
+                }
+                else
+                {
+                    long.TryParse(ex.Token, out var number);
+                    asFun.Add(Op.Int, ex.Token, number);
+                }
+
                 var untypedConst = true;
                 if (ex.Count == 1)
                 {
                     // TBD: Allow user defined custom types
+                    // TBD: Call conversion to type
                     untypedConst = false;
                     ex[0].Token.Type = eTokenType.TypeName;
                     var customType = ex[0].Token;
@@ -537,6 +585,15 @@ namespace Gosub.Zurfur.Compiler
 
                 return rval;
             }
+
+            Rval GenStr(SyntaxExpr ex)
+            {
+                asFun.AddStr(ex.Token, ex[0].Token);
+                foreach (var interp in ex[0])
+                    asFun.AddNoImp(ex.Token, "Interpolate: " + interp.ToString());
+                return new Rval(ex.Token) { Type = typeStr };
+            }
+
 
             Rval GenIdentifier(SyntaxExpr ex)
             {
@@ -681,14 +738,8 @@ namespace Gosub.Zurfur.Compiler
                     return null;
 
                 // Assign type to local variable
-                var locals = FindCandidates(variables);
-                if (locals.Count != 1)
-                {
-                    Reject(variables.Token, "Multiple variables not supported yet");
-                    return null;
-                }
-                var local = locals[0];
-                Debug.Assert(local.IsLocal);
+                var local = FindLocal(variables.Token).sym;
+                Debug.Assert(local != null && local.IsLocal);
                 local.Token.AddInfo(local);
                 if (local.Type != null)
                 {
@@ -887,7 +938,7 @@ namespace Gosub.Zurfur.Compiler
                     // Debug, TBD: Remove or get better compiler feedback system
                     ex.Token.AddInfo($"setter({args[1].FullName}) = ({rightType.FullName})");
 
-                    asScope.NoImp(ex.Token, $"assignment");
+                    asFun.AddNoImp(ex.Token, $"setter assignment");
 
                     // TBD: Need to make this into a function call
                     return null;
@@ -907,6 +958,9 @@ namespace Gosub.Zurfur.Compiler
                 }
                 // Debug, TBD: Remove or get better compiler feedback system
                 ex.Token.AddInfo($"({leftType.FullName}) = ({rightType.FullName})");
+
+                asFun.Add(Op.Setr, ex.Token, 0);
+
                 return null;
             }
 
@@ -1027,10 +1081,6 @@ namespace Gosub.Zurfur.Compiler
                 if (funType == null)
                     return null;
 
-                // TBD: Mark error when getter is called with parenthesis
-                //if (symbols[0].IsGetter)
-                //    Reject(ex.Token, "Getter cannot be called with parenthesis");
-
                 return new Rval(call.Token) { Type = funType};
             }
 
@@ -1137,7 +1187,6 @@ namespace Gosub.Zurfur.Compiler
                 return new Rval(ex.Token) { Type = table.LambdaType, LambdaSyntax = ex };
             }
 
-
             // Called after function resolution, when the lambda
             // parameter types have been determined.
             void PostGenLambda(SyntaxExpr ex, Symbol []lambdaParams)
@@ -1187,9 +1236,41 @@ namespace Gosub.Zurfur.Compiler
                 if (rval.Type != null)
                     return null;
 
-                // Find in tuple
+                // Check for local first
                 var inType = rval.InType;
                 var token = rval.Token;
+                if (inType == null)
+                {
+                    var local = FindLocal(rval.Token);
+                    if (local.sym != null)
+                    {
+                        if (local.sym.IsLocal)
+                        {
+                            token.AddInfo(local.sym);
+                            if (local.sym.Type == null && !assignmentTarget)
+                            {
+                                Reject(token, $"'{token}' has an unresolved type");
+                                Reject(local.sym.Token, $"'{token}' has an unresolved type");
+                            }
+                            rval.Type = local.sym.Type;
+                            rval.IsLocal = true;
+                            asFun.Ldlr(local.sym.Token, local.index);
+                            return local.sym;
+                        }
+                        if (local.sym.IsFunParam)
+                        {
+                            token.AddInfo(local.sym);
+                            if (local.sym.Type == null)
+                                Reject(token, $"'{token}' has an unresolved type");
+                            rval.Type = local.sym.Type;
+                            rval.IsLocal = true;
+                            asFun.Ldlr(local.sym.Token, local.index);
+                            return local.sym;
+                        }
+                    }
+                }
+
+                // Find in tuple
                 if (inType != null && inType.IsTuple && inType.IsSpecialized)
                 {
                     if (inType.TupleNames.Length == 0)
@@ -1204,9 +1285,10 @@ namespace Gosub.Zurfur.Compiler
                         return null;
                     }
                     rval.Type = inType.TypeArgs[i];
-                    asScope.NoImp(token, $"tuple {token}");
+                    asFun.AddNoImp(token, $"tuple {token}");
                     return null;
                 }
+
 
                 var candidates = FindCandidates(rval);
 
@@ -1242,6 +1324,8 @@ namespace Gosub.Zurfur.Compiler
 
                 // Generic parameter subsitution
                 var sym = candidates[0];
+                Debug.Assert(!sym.IsLocal && !sym.IsFunParam);
+
                 if ((sym.IsFun || sym.IsField)
                     && sym.Type != null && inType != null && inType.TypeArgs.Length != 0)
                 {
@@ -1272,29 +1356,6 @@ namespace Gosub.Zurfur.Compiler
                     }
                 }
 
-                if (sym.IsLocal)
-                {
-                    if (sym.Type == null && !assignmentTarget)
-                    {
-                        Reject(token, $"'{token}' has an unresolved type");
-                        Reject(sym.Token, $"'{token}' has an unresolved type");
-                    }
-                    rval.Type = sym.Type;
-                    rval.IsLocal = true;
-                    asScope.Ldlr(sym.Token, 0);
-                    return sym;
-                }
-
-                if (sym.IsFunParam)
-                {
-                    if (sym.Type == null)
-                        Reject(token, $"'{token}' has an unresolved type");
-                    rval.Type = sym.Type;
-                    rval.IsLocal = true;
-                    asScope.Ldlr(sym.Token, 0);
-                    return sym;
-                }
-
                 if (sym.IsField)
                 {
                     if (sym.Type == null)
@@ -1307,14 +1368,14 @@ namespace Gosub.Zurfur.Compiler
 
                     // A field is the same thing as a getter returning a mutable ref
                     MakeIntoRef(rval);
-                    asScope.NoImp(sym.Token, $"field {sym.FullName}");
+                    asFun.AddNoImp(sym.Token, $"field {sym.FullName}");
                     return sym;
                 }
 
                 if (sym.IsFun)
                 {
                     rval.Type = sym.FunReturnType;
-                    asScope.Call(sym.Token, sym);
+                    asFun.AddCall(sym.Token, sym);
                     return sym;
                 }
                 Reject(token, $"'{token}' compiler failure: '{sym}' is {sym.KindName}");
@@ -1429,7 +1490,7 @@ namespace Gosub.Zurfur.Compiler
                 var lambdaOrFunType = func.IsFun ? func : func.Type;
                 if (addSymbolInfo)
                     call.Token.AddInfo(lambdaOrFunType);
-                asScope.Call(call.Token, lambdaOrFunType);
+                asFun.AddCall(call.Token, lambdaOrFunType);
                 return lambdaOrFunType.FunReturnType;
             }
 
@@ -1754,8 +1815,10 @@ namespace Gosub.Zurfur.Compiler
                 }
             }
 
-            // Create a new variable in the local scope, return null if it already exists.
-            // Don't allow shadowing.
+            // Create a new variable in the local scope, return null if it
+            // already exists.  Don't allow shadowing.
+            // NOTE: The symbol is stored, then later, replaced by its type.
+            //       This is done because the type is not always known here.
             Symbol CreateLocal(Token token)
             {
                 if (function.TryGetPrimary(token, out var primary))
@@ -1778,7 +1841,7 @@ namespace Gosub.Zurfur.Compiler
                     }
                 }
                 var local = new Symbol(SymKind.Local, null, token);
-                locals[token] = new LocalSymbol(local, scopeNum, asScope.NewLocal(token, local));
+                locals[token] = new LocalSymbol(local, scopeNum, asFun.UseLocal(token, local));
                 return local;
             }
 
@@ -1792,7 +1855,7 @@ namespace Gosub.Zurfur.Compiler
             List<Symbol> FindGlobal(Token token)
             {
                 // Find local
-                var local = FindLocal(token);
+                var (local, _) = FindLocal(token);
                 if (local != null)
                     return new List<Symbol> { local };
 
@@ -1826,21 +1889,19 @@ namespace Gosub.Zurfur.Compiler
             }
 
             // Finds a local or parameter.  Returns null if not found.
-            Symbol FindLocal(Token token)
+            (Symbol sym, int index) FindLocal(Token token)
             {
                 // Find parameter
                 var name = token.Name;
                 if (function.TryGetPrimary(name, out var localParam))
                 {
                     if (localParam.IsTypeParam)
-                        return localParam;
+                        return (localParam, 0);
 
                     var i = Array.IndexOf(function.FunParamTuple.TupleNames, token.Name);
-                    if (i >= 0)
-                        asScope.Ldlr(token, i);
-                    else
+                    if (i < 0)
                         Reject(token, "Invalid use of return parameter");
-                    return localParam;
+                    return (localParam, i);
                 }
 
                 // Find local
@@ -1848,16 +1909,17 @@ namespace Gosub.Zurfur.Compiler
                 {
                     if (local.Symbol == null)
                         Reject(token, $"'{token}' is an out of scope local variable");
-                    asScope.Ldlr(token, local.LocalNum);
-                    return local.Symbol;
+                    return (local.Symbol, local.LocalNum);
                 }
-                return null;
+                return (null, 0);
             }
+
 
             void BeginLocalScope(Token token)
             {
                 scopeNum++;
-                asScope = asScope.Scope(token);
+                asFun.Add(Op.Begin, token, 0);
+                scopeToken[scopeNum] = token;
             }
 
             void EndLocalScope()
@@ -1869,9 +1931,8 @@ namespace Gosub.Zurfur.Compiler
                     else if (local.ScopeNum > scopeNum)
                         local.ScopeNum = scopeNum;
                 }
+                asFun.Add(Op.End, scopeToken[scopeNum], 0);
                 scopeNum--;
-                asScope = asScope.Parent;
-                Debug.Assert(asScope != null);
             }
 
             void RemoveLastDuplicates(List<Symbol> symbols)

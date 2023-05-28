@@ -12,6 +12,25 @@ use Zurfur.Draw2d[Size, Point]
 
 pragma ShowParse
 
+fun aaa_arith(a Int, b Int) Int
+    Log.info("Hello world: 2+2 is " + (2 + 2).toStr)
+    @x = a+b
+    @y = a*b
+    Log.info("X is " + x.toStr + ", Y is " + y.toStr)
+    @hold
+    if x < y
+        @q = 4+2
+        Log.info("if x < y" + q.toStr)
+        hold = q
+    else
+        @q = 23
+        Log.info("else x >= y")
+        hold = q
+    Log.info("Answer" + hold.toStr)
+    
+    return y
+
+
 fun test_listMap()
     @a = List<F64>()
     @c = a.map<F64,Int>(@i => i.toIntMask)
@@ -281,10 +300,6 @@ type bbpoint
 [pub] fun aapoint.y() {}
 [pub] fun bbpoint.yy() {}
 
-fun aaa_arith(a Int, b Int) Int
-    @x = a+b
-    @y = a+x*b
-    return y
   
 [pub] type AAFun    
     aaf4 fun(a Int, b Int) Int
