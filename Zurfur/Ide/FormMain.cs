@@ -29,7 +29,7 @@ namespace Gosub.Zurfur
         Point mMouseDownPos;
         Point mMouseDownForm;
 
-        static readonly WordSet sTextEditorExtensions = new WordSet(".txt .json .md .htm .html .css .zurf");
+        static readonly WordSet sTextEditorExtensions = new WordSet(".txt .json .md .htm .html .css .zurf .zil");
         static readonly WordSet sImageEditorExtensions = new WordSet(".jpg .jpeg .png .bmp");
 
         static readonly string ZURFUR_PROJ_EXT = ".zurfproj";

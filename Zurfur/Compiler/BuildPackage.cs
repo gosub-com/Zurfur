@@ -57,7 +57,7 @@ namespace Gosub.Zurfur.Compiler
         public string OutputDir => Path.Combine(mBaseDir, OUTPUT_DIR);
         public string OutputFileReport => Path.Combine(mBaseDir, OUTPUT_DIR, "BuildReport.txt");
         public string OutputFileHeader => Path.Combine(mBaseDir, OUTPUT_DIR, "Header.json");
-        public string OutputFileHeaderCode => Path.Combine(mBaseDir, OUTPUT_DIR, "Code.txt");
+        public string OutputFileHeaderCode => Path.Combine(mBaseDir, OUTPUT_DIR, "Code.zil");
 
         /// <summary>
         /// For status, Message: Build step (Loading, Parsing, Linking, etc.)
@@ -243,7 +243,7 @@ namespace Gosub.Zurfur.Compiler
             if (fi.Lexer != null && !FULL_RECOMPILE)
                 return; // File already loaded
 
-            // Choose lexer (for now, the project doesn't include anything but .zurf and .json
+            // Choose lexer
             StatusUpdate?.Invoke(this, new UpdatedEventArgs("Loading " + fi.Name));
             await Task.Delay(SLOW_DOWN_MS);
             Lexer lexer;
@@ -251,6 +251,8 @@ namespace Gosub.Zurfur.Compiler
                 lexer = new Lexer(sScanZurf);
             else if (fi.Extension == ".json")
                 lexer = new Lexer(sScanJson);
+            else if (fi.Extension == ".zil")
+                lexer = new Lexer();
             else
                 return; // Unrecognized file extension
                 
@@ -278,8 +280,6 @@ namespace Gosub.Zurfur.Compiler
                 return;
             var fi = mPackageFiles[mParseQueue[0]];
             mParseQueue.RemoveAll( match => match == fi.Path);
-            if (fi.Extension != ".zurf" && fi.Extension != ".json")
-                return;
 
             await Task.Delay(SLOW_DOWN_MS/2);
             StatusUpdate?.Invoke(this, new UpdatedEventArgs("Parsing " + fi.Name));
@@ -302,6 +302,10 @@ namespace Gosub.Zurfur.Compiler
                         var jsonParse = new ParseJson(lexer);
                         jsonParse.Parse();
                         fi.ParseErrors = jsonParse.ParseErrors;
+                        break;
+                    case ".zil":
+                        var zilParse = new ParseZil(lexer);
+                        zilParse.Parse();
                         break;
                 }
             });

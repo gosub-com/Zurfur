@@ -12,23 +12,43 @@ use Zurfur.Draw2d[Size, Point]
 
 pragma ShowParse
 
-fun aaa_arith(a Int, b Int) Int
+fun aaa_arith(a Int, b Int, c aaa_arith_test) Int
     Log.info("Hello world: 2+2 is " + (2 + 2).toStr)
     @x = a+b
     @y = a*b
     Log.info("X is " + x.toStr + ", Y is " + y.toStr)
     @hold
     if x < y
-        @q = 4+2
+        @q = -1
         Log.info("if x < y" + q.toStr)
         hold = q
-    else
-        @q = 23
-        Log.info("else x >= y")
+    elif x > y
+        @q = 1
+        Log.info("elif x > y")
         hold = q
-    Log.info("Answer" + hold.toStr)
+    else
+        @q = 0
+        Log.info("else x == y")
+        hold = q
+    Log.info("Answer: " + hold.toStr)
+
+    @q2 = c.bref.e
     
-    return y
+    return y + c.b.e
+
+type aaa_arith_test
+    a Int
+    b aaa_arith_test2
+    c Int
+
+fun get aaa_arith_test.bref() mut ref aaa_arith_test2
+    return my.b
+
+type aaa_arith_test2
+    d Int
+    e Int
+    f Int
+ 
 
 
 fun test_listMap()

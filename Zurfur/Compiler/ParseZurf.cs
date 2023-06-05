@@ -37,6 +37,7 @@ namespace Gosub.Zurfur.Compiler
         Token               mToken = new Token(";");
         Token               mPrevToken = new Token(";");
         StringBuilder       mComments = new StringBuilder();
+        bool                mInIff;
         bool                mShowMeta;
         bool                mAllowUnderscoreDefinitions;
         bool                mRequireBraces;
@@ -63,7 +64,7 @@ namespace Gosub.Zurfur.Compiler
 
         static WordSet sReservedWords = new WordSet("as has break case catch const "
             + "continue do then else elif extern nil true false defer use "
-            + "finally for goto go if in is mod app include "
+            + "finally for goto go if iff in is mod app include "
             + "new out pub public private priv readonly ro ref aref mut imut "
             + "return ret sizeof struct switch throw try "
             + "typeof type unsafe static while dowhile scope loop "
@@ -1473,23 +1474,6 @@ namespace Gosub.Zurfur.Compiler
                     statements.Add(new SyntaxToken(Accept()));
                     break;
 
-                case "finally":
-                    Accept();
-                    AcceptMatchOrReject(":");
-                    statements.Add(new SyntaxToken(keyword));
-                    break;
-
-                case "catch":
-                    Accept();
-                    var caseExpressions = NewExprList();
-                    if (mTokenName != ":")
-                        caseExpressions.Add(ParseConditionalOr());
-                    while (AcceptMatch(","))
-                        caseExpressions.Add(ParseConditionalOr());
-                    statements.Add(new SyntaxMulti(keyword, FreeExprList(caseExpressions)));
-                    AcceptMatchOrReject(":", "Expecting ':' or ','");
-                    break;
-
                 case "fun":
                 case "afun":
                     // TBD: Process local functions
@@ -1764,9 +1748,14 @@ namespace Gosub.Zurfur.Compiler
         SyntaxExpr ParsePrimary()
         {
 
-            if (mTokenName == "if")
-            { 
-                return new SyntaxUnary(Accept(), ParseParen("(", null));
+            if (mTokenName == "iff")
+            {
+                if (mInIff)
+                    RejectToken(mToken, "Can't use 'iff' inside an 'iff'");
+                mInIff = true;
+                var iff = new SyntaxUnary(Accept(), ParseParen("(", null));
+                mInIff = false;
+                return iff;
             }
 
             var result = ParseAtom();

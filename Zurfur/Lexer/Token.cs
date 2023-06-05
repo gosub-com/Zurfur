@@ -40,13 +40,14 @@ namespace Gosub.Zurfur.Lex
     {
         Eoln = 1, // Read only (set only once by lexer)
         Boln = 2, // Read only (set only once by lexer)
-        Grayed = 4,
-        Meta = 8,
-        Underline = 16,
         ReadOnlyMask = Eoln | Boln,
-        Shrink = 32,
-        Continuation = 64,
-        VerticalLine = 128
+        Grayed = 4,
+        Underline = 8,
+        Bold = 16,
+        Meta = 32,
+        Shrink = 64,
+        Continuation = 128,
+        VerticalLine = 256,
     }
 
     /// <summary>
@@ -163,15 +164,21 @@ namespace Gosub.Zurfur.Lex
             get => (mBits & eTokenBits.Grayed) != 0;
             set { mBits = mBits & ~eTokenBits.Grayed | (value ? eTokenBits.Grayed : 0); }
         }
-        public bool Meta
-        {
-            get => (mBits & eTokenBits.Meta) != 0;
-            set { mBits = mBits & ~eTokenBits.Meta | (value ? eTokenBits.Meta : 0); }
-        }
         public bool Underline
         {
             get => (mBits & eTokenBits.Underline) != 0;
             set { mBits = mBits & ~eTokenBits.Underline | (value ? eTokenBits.Underline : 0); }
+        }
+        public bool Bold
+        {
+            get => (mBits & eTokenBits.Bold) != 0;
+            set { mBits = mBits & ~eTokenBits.Bold | (value ? eTokenBits.Bold : 0); }
+        }
+
+        public bool Meta
+        {
+            get => (mBits & eTokenBits.Meta) != 0;
+            set { mBits = mBits & ~eTokenBits.Meta | (value ? eTokenBits.Meta : 0); }
         }
 
         public bool Eoln

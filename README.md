@@ -534,9 +534,9 @@ Operator `==` does not default to object comparison, and only works when it
 is defined for the given type.  Use `===` and `!==` for object comparison. 
 Comparisons are not associative, so `a == b == c` is illegal.
 
-There is no ternary operator, but an `if` expression can be
-used with the same effect (e.g. `@a = if(a>b, "pass":"fail")`).
-The syntax is still TBD.
+There is no ternary operator, but an `iff` (if function) can be
+used with the same effect (e.g. `@a = iff(a>b, "pass", "fail")`).
+An `iff` may not contain an `iff`.
 
 The pair operator `:` makes a key/value pair which can be used
 in a list to initialize a map.

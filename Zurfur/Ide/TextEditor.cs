@@ -68,6 +68,7 @@ namespace Gosub.Zurfur
 
         // Fonts, colors, and misc.
         Dictionary<eTokenType, FontInfo> mTokenFonts = new Dictionary<eTokenType, FontInfo>();
+        Dictionary<eTokenType, FontInfo> mTokenFontsBold = new Dictionary<eTokenType, FontInfo>();
         Dictionary<eTokenType, FontInfo> mTokenFontsGrayed = new Dictionary<eTokenType, FontInfo>();
         Dictionary<eTokenType, FontInfo> mTokenFontsUnderlined = new Dictionary<eTokenType, FontInfo>();
         Font mShrunkFont;
@@ -569,20 +570,22 @@ namespace Gosub.Zurfur
                     { eTokenType.BoldSymbol, new FontInfo(boldFont, Color.Black) },
                 };
 
+                // Setup bold, underlined, and grayed fonts
                 foreach (var font in mTokenFonts)
                 {
+                    mTokenFontsBold[font.Key] = new FontInfo(new Font(
+                        font.Value.Font, FontStyle.Bold | font.Value.Font.Style), font.Value.Color);
                     mTokenFontsUnderlined[font.Key] = new FontInfo(new Font(
                         font.Value.Font, FontStyle.Underline | font.Value.Font.Style), font.Value.Color);
-                }
-                foreach (var font in mTokenFonts)
-                {
                     mTokenFontsGrayed[font.Key] = new FontInfo(font.Value.Font,
                                                     Lerp(font.Value.Color, Color.LightGray, 0.5f));
                 }
             }
-            // Font info, normal, grayed, or shrunk
+            // Font info: normal, bold, or grayed (only one can be selected for now)
             Dictionary<eTokenType, FontInfo> colorTable;
-            if (token.Grayed)
+            if (token.Bold)
+                colorTable = mTokenFontsBold;
+            else if (token.Grayed)
                 colorTable = mTokenFontsGrayed;
             else if (token.Underline)
                 colorTable = mTokenFontsUnderlined;

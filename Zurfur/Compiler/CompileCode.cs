@@ -199,14 +199,15 @@ namespace Gosub.Zurfur.Compiler
                 asFun.AddComment(synFunc.Keyword, synFile.Lexer.GetLine(y));
             }
 
+            BeginLocalScope(function.Token);
+
             // Add input parameters as locals
             foreach (var p in function.ChildrenFilter(SymKind.FunParam).Where(p => !p.ParamOut).OrderBy(p => p.Order))
                 asFun.UseLocal(p.Token, p);
 
-            // Compile the function
-            BeginLocalScope(function.Token);
             if (synFunc.Statements != null)
                 GenStatements(synFunc.Statements);
+
             EndLocalScope();
 
             // Replace local symbols with their type.  This is done because
@@ -222,6 +223,13 @@ namespace Gosub.Zurfur.Compiler
             assembly.Functions[asFun.Name] = asFun;
             return;
 
+
+            void GenStatementsWithScope(SyntaxExpr ex, Token token)
+            {
+                BeginLocalScope(token);
+                GenStatements(ex);
+                EndLocalScope();
+            }
 
             void GenStatements(SyntaxExpr ex)
             {
@@ -279,17 +287,13 @@ namespace Gosub.Zurfur.Compiler
             {
                 var cond = GenExpr(ex[0]);
                 EvalType(cond);
-                CheckBool(ex[0].Token, cond?.Type, "if");
-                BeginLocalScope(ex.Token);
-                GenStatements(ex[1]);
-                EndLocalScope();
+                CheckBool(ex[0].Token, cond?.Type, "while");
+                GenStatementsWithScope(ex[1], ex.Token);
             }
 
             void GenScopeStatement(SyntaxExpr ex)
             {
-                BeginLocalScope(ex.Token);
-                GenStatements(ex[0]);
-                EndLocalScope();
+                GenStatementsWithScope(ex[0], ex.Token);
             }
 
             int GenDoStatement(SyntaxExpr s, int i)
@@ -314,35 +318,50 @@ namespace Gosub.Zurfur.Compiler
 
             int GenIfStatement(SyntaxExpr s, int i)
             {
+                // If...elif...else
+                BeginLocalScope(s[i].Token);
+
                 // If...
-                GenIfCondStatement(s[i]);
+                BeginLocalScope(s[i].Token);
+                
+                //
+                // TBD: Variables declared in the condition should be
+                //      moved to scope above If...elif...else
+                GenIfCondition(s[i]);
+
+                asFun.Add(Op.Brnif, s[i].Token, 1);
+                GenStatements(s[i][1]);
+                asFun.Add(Op.Br, s[i].Token, 2);
+                EndLocalScope();
+
 
                 // ...elif...
                 while (i+1 < s.Count && s[i+1].Token == "elif")
                 {
                     i += 1;
-                    GenIfCondStatement(s[i]);
+                    BeginLocalScope(s[i].Token);
+                    GenIfCondition(s[i]);
+                    asFun.Add(Op.Brnif, s[i].Token, 1);
+                    GenStatements(s[i][1]);
+                    asFun.Add(Op.Br, s[i].Token, 2);
+                    EndLocalScope();
                 }
 
                 // ...else
                 if (i + 1 < s.Count && s[i+1].Token == "else")
                 {
                     i += 1;
-                    BeginLocalScope(s[i].Token);
-                    GenStatements(s[i][0]);
-                    EndLocalScope();
+                    GenStatementsWithScope(s[i][0], s[i].Token);
                 }
+                EndLocalScope();
                 return i;
             }
 
-            void GenIfCondStatement(SyntaxExpr ex)
+            void GenIfCondition(SyntaxExpr ex)
             {
                 var cond = GenExpr(ex[0]);
                 EvalType(cond);
                 CheckBool(ex[0].Token, cond?.Type, "if");
-                BeginLocalScope(ex.Token);
-                GenStatements(ex[1]);
-                EndLocalScope();
             }
 
             bool CheckBool(Token token, Symbol conditionType, string name)
@@ -453,7 +472,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     Reject(ex.Token, $"Incorrect return type, expecting '{functionType}', got '{rval.Type}'");
                 }
-                asFun.Add(Op.Return, ex.Token, 0);
+                asFun.Add(Op.Ret, ex.Token, 0);
 
                 return rval;
             }
@@ -506,8 +525,8 @@ namespace Gosub.Zurfur.Compiler
                     return GenAssign(ex);
                 else if (sOperators.Contains(name))
                     return GenOperator(ex);
-                else if (name == "if")
-                    return GenIfExpr(ex);
+                else if (name == "iff")
+                    return GenIffExpr(ex);
                 else if (name == "ref")
                     return GenRefOrAddressOf(ex);
                 else if (name == "sizeof")
@@ -548,12 +567,12 @@ namespace Gosub.Zurfur.Compiler
                 {
                     // Store double as IEEE 754 long
                     double.TryParse(ex.Token, out var number);
-                    asFun.Add(Op.Float, ex.Token, BitConverter.DoubleToInt64Bits(number));
+                    asFun.Add(Op.F64, ex.Token, BitConverter.DoubleToInt64Bits(number));
                 }
                 else
                 {
                     long.TryParse(ex.Token, out var number);
-                    asFun.Add(Op.Int, ex.Token, number);
+                    asFun.Add(Op.I64, ex.Token, number);
                 }
 
                 var untypedConst = true;
@@ -997,7 +1016,8 @@ namespace Gosub.Zurfur.Compiler
 
             Rval GenOperator(SyntaxExpr ex)
             {
-                if (ex.Count == 1 && ex.Token == "&")
+                var token = ex.Token;
+                if (ex.Count == 1 && token == "&")
                     return GenRefOrAddressOf(ex);
 
                 var args = GenCallParams(ex, 0);
@@ -1007,7 +1027,7 @@ namespace Gosub.Zurfur.Compiler
                 // Implicit conversion of untyped constant to integer types
                 // TBD: Calculate constant during compilation and do range checks.
                 //      Also, this probably belongs in FindCompatibleFunction so it applies to functions
-                if (args.Count == 2 && ex.Token != "<<" && ex.Token != ">>" && ex.Token != "]")
+                if (args.Count == 2 && token != "<<" && token != ">>" && token != "]")
                 {
                     // Most operators want both sides to be of same type
                     var left = args[0];
@@ -1020,17 +1040,17 @@ namespace Gosub.Zurfur.Compiler
                         left.Type = right.Type;
                 }
 
-                var operatorName = sBinOpNames[ex.Token];
+                var operatorName = sBinOpNames[token];
                 if (args.Count == 1)
                 {
-                    if (ex.Token == "-")
+                    if (token == "-")
                         operatorName = "_opNeg";
-                    else if (ex.Token == "~")
+                    else if (token == "~")
                         operatorName = "_opBitNot";
                 }
 
                 // Find static operators from either argument
-                var call = new Rval(ex.Token, operatorName) { IsStatic = true };
+                var call = new Rval(token, operatorName) { IsStatic = true };
                 var candidates = FindInType(operatorName, DerefRef(args[0].Type));
                 if (args.Count >= 2)
                     candidates.AddRange(FindInType(operatorName, DerefRef(args[1].Type)));
@@ -1038,23 +1058,32 @@ namespace Gosub.Zurfur.Compiler
 
                 if (candidates.Count == 0)
                 {
-                    Reject(ex.Token, $"No function '{operatorName}' (operator '{ex.Token}') " 
+                    Reject(token, $"No function '{operatorName}' (operator '{token}') " 
                         + $"taking '{Rval.ParamTypes(args, call.TypeArgs)}' is in scope.");
                     return null;
                 }
                 var funType = FindCompatibleFunction(call, candidates, args,
-                                $" '{operatorName}' (operator '{ex.Token}')");
+                                $" '{operatorName}' (operator '{token}')");
                 if (funType == null)
                     return null;
 
-                if (sCmpOperators.Contains(ex.Token))
+                if (sCmpOperators.Contains(token))
                 {
-                    var returnType = ex.Token == "==" || ex.Token == "!=" ? typeBool : typeI32;
+                    var returnType = token == "==" || token == "!=" ? typeBool : typeI32;
                     if (funType != returnType)
                     {
-                        Reject(ex.Token, $"Expecting operator to return '{returnType}'");
+                        Reject(token, $"Expecting operator to return '{returnType}'");
                         return null;
                     }
+                    if (token == "<")
+                        asFun.Add(Op.Lt, token, 0);
+                    else if (token == "<=")
+                        asFun.Add(Op.Le, token, 0);
+                    else if (token == ">")
+                        asFun.Add(Op.Gt, token, 0);
+                    else if (token == ">=")
+                        asFun.Add(Op.Ge, token, 0);
+
                     funType = typeBool;
                 }
 
@@ -1128,24 +1157,24 @@ namespace Gosub.Zurfur.Compiler
                 return paramHasError ? null : funArgs;
             }
 
-            Rval GenIfExpr(SyntaxExpr ex)
+            Rval GenIffExpr(SyntaxExpr ex)
             {
                 if (HasError(ex))
                     return null;
-                if (ex.Count != 1 || ex[0].Count != 2)
-                    throw new Exception("Compiler error: GenIfExpr, incorrect number of parameters");
 
                 var parameters = ex[0];
                 if (HasError(parameters))
                     return null;
-                if (parameters[1].Token != ":")
+
+                if (parameters.Count != 3)
                 {
-                    Reject(ex.Token, "Expecting second parameter to use ':' for the 'else' part");
+                    Reject(ex.Token, "Expecting 3 parameters");
                     return null;
                 }
+
                 var cond = GenExpr(parameters[0]);
-                var condIf = GenExpr(parameters[1][0]);
-                var condElse = GenExpr(parameters[1][1]);
+                var condIf = GenExpr(parameters[1]);
+                var condElse = GenExpr(parameters[2]);
                 EvalType(cond);
                 EvalType(condIf);
                 EvalType(condElse);
@@ -1156,7 +1185,7 @@ namespace Gosub.Zurfur.Compiler
                     return null;
                 if (condElse == null || condElse.Type == null)
                     return null;
-                if (!CheckBool(ex.Token, cond.Type, "if"))
+                if (!CheckBool(ex.Token, cond.Type, "iff"))
                     return null;
 
                 condIf.Type = DerefRef(condIf.Type);
@@ -1170,7 +1199,7 @@ namespace Gosub.Zurfur.Compiler
 
                 if (condIf.Type.FullName != condElse.Type.FullName)
                 {
-                    Reject(parameters[1].Token, $"Left and right sides must evaluate to same type, but they evaluate to '{condIf.Type}' and '{condElse.Type}'");
+                    Reject(ex.Token, $"'if' and 'else' parts must evaluate to same type, but they evaluate to '{condIf.Type}' and '{condElse.Type}'");
                     return null;
                 }
                 return new Rval(ex.Token) { Type = condIf.Type };
