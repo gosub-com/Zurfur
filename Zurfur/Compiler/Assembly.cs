@@ -100,12 +100,22 @@ namespace Gosub.Zurfur.Compiler
         }
 
         // New local variable within current scope, returns local index
-        public int UseLocal(Token token, Symbol type)
+        public int UseLocal(Token token, Symbol type, int useIndex = -1)
         {
             var localNum = LocalTypes.Count;
-            Code.Add(new AsOp(Op.Use, localNum));
-            CodeTokens.Add(token);
+            var asOp = new AsOp(Op.Use, localNum);
+            if (useIndex < 0)
+            {
+                Code.Add(asOp);
+                CodeTokens.Add(token);
+            }
+            else
+            {
+                Code.Insert(useIndex, asOp);
+                CodeTokens.Insert(useIndex, token);
+            }
             LocalTypes.Add(type);
+
             return localNum;
         }
 
@@ -207,7 +217,7 @@ namespace Gosub.Zurfur.Compiler
                 return opIndex;
 
             var level = op.OperInt;
-            if (opIndex < 0)
+            if (level < 0)
             {
                 // Search level up
                 while (--opIndex >= 0)
@@ -293,6 +303,11 @@ namespace Gosub.Zurfur.Compiler
             {
                 return (int)Oper; 
             }
+        }
+
+        public override string ToString()
+        {
+            return $"({Op},{Oper})";
         }
     }
 

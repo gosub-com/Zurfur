@@ -189,6 +189,8 @@ namespace Gosub.Zurfur.Compiler
             var locals = new Dictionary<string, LocalSymbol>();
             var scopeToken = new Dictionary<int, Token>();
             var scopeNum = 0;
+            var newVarScope = -1;       // Put the new var in scope above (if and while)
+            var newVarUseIndex = -1;    // Put the use variable at this assembly index
 
             // Function prototype comment
             var y1 = synFunc.Keyword.Y;
@@ -256,7 +258,7 @@ namespace Gosub.Zurfur.Compiler
                 if (name == "while")
                     GenWhileStatement(s);
                 else if (name == "scope")
-                    GenScopeStatement(s);
+                    GenStatementsWithScope(s, s.Token);
                 else if (name == "do")
                     index = GenDoStatement(ex, index);
                 else if (name == "if")
@@ -285,15 +287,20 @@ namespace Gosub.Zurfur.Compiler
 
             void GenWhileStatement(SyntaxExpr ex)
             {
-                var cond = GenExpr(ex[0]);
-                EvalType(cond);
-                CheckBool(ex[0].Token, cond?.Type, "while");
-                GenStatementsWithScope(ex[1], ex.Token);
-            }
+                // Condition
+                newVarScope = scopeNum;     // Locals in condition go in outer scope
+                newVarUseIndex = asFun.Code.Count;
+                BeginLocalScope(ex.Token);
+                GenBoolCondition(ex, "while");
+                asFun.Add(Op.Brnif, ex.Token, 1);
+                newVarScope = -1;           // End special locals condition scope
+                newVarUseIndex = -1;
 
-            void GenScopeStatement(SyntaxExpr ex)
-            {
-                GenStatementsWithScope(ex[0], ex.Token);
+                // Statements
+                GenStatementsWithScope(ex[1], ex.Token);
+                asFun.Add(Op.Br, ex.Token, -1);
+
+                EndLocalScope();
             }
 
             int GenDoStatement(SyntaxExpr s, int i)
@@ -318,18 +325,17 @@ namespace Gosub.Zurfur.Compiler
 
             int GenIfStatement(SyntaxExpr s, int i)
             {
-                // If...elif...else
-                BeginLocalScope(s[i].Token);
-
-                // If...
-                BeginLocalScope(s[i].Token);
-                
-                //
-                // TBD: Variables declared in the condition should be
-                //      moved to scope above If...elif...else
-                GenIfCondition(s[i]);
-
+                // If condition
+                newVarScope = scopeNum;         // Locals in condition go in outer scope
+                newVarUseIndex = asFun.Code.Count;
+                BeginLocalScope(s[i].Token);    // If...elif...else scope
+                BeginLocalScope(s[i].Token);    // If... scope
+                GenBoolCondition(s[i], "if");
                 asFun.Add(Op.Brnif, s[i].Token, 1);
+                newVarScope = -1;               // End special locals condition scope
+                newVarUseIndex = -1;
+
+                // If statements
                 GenStatements(s[i][1]);
                 asFun.Add(Op.Br, s[i].Token, 2);
                 EndLocalScope();
@@ -340,7 +346,7 @@ namespace Gosub.Zurfur.Compiler
                 {
                     i += 1;
                     BeginLocalScope(s[i].Token);
-                    GenIfCondition(s[i]);
+                    GenBoolCondition(s[i], "if");
                     asFun.Add(Op.Brnif, s[i].Token, 1);
                     GenStatements(s[i][1]);
                     asFun.Add(Op.Br, s[i].Token, 2);
@@ -357,11 +363,11 @@ namespace Gosub.Zurfur.Compiler
                 return i;
             }
 
-            void GenIfCondition(SyntaxExpr ex)
+            void GenBoolCondition(SyntaxExpr ex, string keyword)
             {
                 var cond = GenExpr(ex[0]);
                 EvalType(cond);
-                CheckBool(ex[0].Token, cond?.Type, "if");
+                CheckBool(ex[0].Token, cond?.Type, keyword);
             }
 
             bool CheckBool(Token token, Symbol conditionType, string name)
@@ -816,7 +822,7 @@ namespace Gosub.Zurfur.Compiler
                     if (e.Count == 0 || e.Token == "")
                         continue; // Syntax error
 
-                    var local = CreateLocal(e.Token);
+                    var local = CreateLocal(e.Token, true);
                     if (local == null)
                         continue;
 
@@ -1661,6 +1667,7 @@ namespace Gosub.Zurfur.Compiler
             bool InferTypeArg(Symbol argType, Symbol funParamType, Symbol[] inferredTypeArgs)
             {
                 argType = DerefRef(argType);
+                funParamType = DerefRef(funParamType);
 
                 // If it's a generic arg, use the given parameter type
                 if (funParamType.IsGenericArg)
@@ -1848,7 +1855,7 @@ namespace Gosub.Zurfur.Compiler
             // already exists.  Don't allow shadowing.
             // NOTE: The symbol is stored, then later, replaced by its type.
             //       This is done because the type is not always known here.
-            Symbol CreateLocal(Token token)
+            Symbol CreateLocal(Token token, bool forLambda = false)
             {
                 if (function.TryGetPrimary(token, out var primary))
                 {
@@ -1870,7 +1877,8 @@ namespace Gosub.Zurfur.Compiler
                     }
                 }
                 var local = new Symbol(SymKind.Local, null, token);
-                locals[token] = new LocalSymbol(local, scopeNum, asFun.UseLocal(token, local));
+                var localScope = newVarScope >= 0 && !forLambda ? newVarScope : scopeNum;
+                locals[token] = new LocalSymbol(local, localScope, asFun.UseLocal(token, local, newVarUseIndex));
                 return local;
             }
 

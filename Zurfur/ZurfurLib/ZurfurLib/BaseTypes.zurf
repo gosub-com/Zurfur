@@ -20,11 +20,11 @@ pragma AllowUnderscoreDefinitions
 
 // Return type of functions that don't return anything
 [pub]
-type Void { }
+type Void passcopy { }
 
 // Empty value for pointers and optionals
 [pub]
-type Nil { }
+type Nil passcopy { }
 
 // Maybe<T> is the same as ?T.  Pointer and reference types are always
 // optimized so that `?ref T`, `*T`, and `^T` are just one pointer.
@@ -71,7 +71,7 @@ type Object interface { }
 // This must always be 32 bits, even on 64 bit machines, so as not to change
 // the `GcHeapObject` footprint.
 [pub]
-type Type ro copy
+type Type ro passcopy
     id U32
 
 
@@ -81,7 +81,7 @@ type Type ro copy
 
 // Bool (true or false)
 [pub]
-type Bool ro copy
+type Bool ro passcopy
     const __size Int = 1
 
 [pub static] fun Bool.getHash(a Bool) Int extern
@@ -94,7 +94,7 @@ type Bool ro copy
 
 // I8 (-128..127)
 [pub]
-type I8 ro copy
+type I8 ro passcopy
     const __size Int = 1
     const __align Int = 1
     const Zero I8 = 0
@@ -119,7 +119,7 @@ type I8 ro copy
 
 
 // Byte (0..255)
-[pub] type Byte ro copy
+[pub] type Byte ro passcopy
     const __size Int = 1
     const __align Int = 1    
     const Zero Byte = 0
@@ -147,7 +147,7 @@ type I8 ro copy
 
 
 // I16 (-32768..32768)
-[pub] type I16 ro copy
+[pub] type I16 ro passcopy
     const __size Int = 2
     const __align Int = 2    
     const Zero I16 = 0
@@ -176,7 +176,7 @@ type I8 ro copy
 
 
 // U16 (0..65535)
-[pub] type U16 ro copy
+[pub] type U16 ro passcopy
     const __size Int = 2
     const __align Int = 2    
     const Zero U16 = 0
@@ -206,7 +206,7 @@ type I8 ro copy
 [pub static] fun U16._opCmp(a U16, b U16) I32 extern
 
 // A 32 bit integer
-[pub] type I32 ro copy
+[pub] type I32 ro passcopy
     const __size Int = 4
     const __align Int = 4    
     const Zero I32 = 0
@@ -255,7 +255,7 @@ type I8 ro copy
 
 
 // 32 bit unsigned integer
-[pub] type U32 ro copy
+[pub] type U32 ro passcopy
     const __size Int = 4
     const __align Int = 4    
     const Zero U32 = 0
@@ -305,7 +305,7 @@ type I8 ro copy
 
 
 // A 64 bit integer (same as Int)
-[pub] type Int ro copy
+[pub] type Int ro passcopy
     const __size Int = 8
     const __align Int = 8    
     const Zero Int = 0
@@ -357,7 +357,7 @@ type I8 ro copy
     return RangeIterator<Int>(0, my)
 
 // 64 bit unsigned integer
-[pub] type U64 ro copy
+[pub] type U64 ro passcopy
     const __size Int = 8
     const __align Int = 8    
     const Zero U64 = 0
@@ -410,16 +410,16 @@ type I8 ro copy
 [pub] fun get U64.iterator() RangeIterator<U64>
     return RangeIterator<U64>(0 U64, my)
 
-[pub] type I128 ro copy
+[pub] type I128 ro passcopy
     const __size Int = 16
     const __align Int = 16
 
-[pub] type U128 ro copy
+[pub] type U128 ro passcopy
     const __size Int = 16
     const __align Int = 16
 
 
-[pub] type F32 ro copy
+[pub] type F32 ro passcopy
     const __size Int = 4
     const __align Int = 4    
     const Zero F32 = 0
@@ -467,7 +467,7 @@ type I8 ro copy
 [pub static] fun F32._opRem(a F32, b F32) F32 extern
 
 
-[pub] type F64 ro copy
+[pub] type F64 ro passcopy
     const __size Int = 8
     const __align Int = 8    
     const Zero F64 = 0
@@ -517,7 +517,7 @@ type I8 ro copy
 
 // 128 bit decimal integer.  This will support nan, infinity, and
 // exponents covering the entire range of F64 with more precision.
-[pub] type Decimal ro copy
+[pub] type Decimal ro passcopy
     const __size Int = 16
     const __align Int = 16
     const Zero Decimal = 0

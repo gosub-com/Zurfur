@@ -14,7 +14,7 @@ about ownership, immutability, nullability, and functional programming.
 
 **Status Update**
 
-I am working on assembly language generation. Hit F4 then click the `Code.txt`
+I am working on assembly language generation. Hit F4 then click the `Code.zil`
 tab to see it.  The syntax is still being developed, nothing is set in stone.
 Feel free to send me comments letting me know what you think should be changed.
 
@@ -209,11 +209,12 @@ The ones we all know and love:
 | Type | Description
 | :--- | :---
 | List\<T\> | Re-sizable mutable list of mutable elements.  This is the one and only dynamically sized object in Zurfur.
+| Buffer\<T\> | A list with a constant length and capacity.  Even though it is a `List`, the compiler can optimize it to be faster.
 | Array\<T\>| An alias for `ro List<T>`.  An immutable list of immutable elements. Even if the array contains mutable elements, they become immutable when copied into the list.  Array's can be copied very quickly, just by copying a reference.
-| Str, Str16 | An `Array<Byte>` or `Array<u16>` with support for UTF-8 and UTF-16.  `Array` (an alias for `ro List`) is immutable, therefore `Str` is also immutable.  `Str16` is a JavaScript or C# style Unicode string
+| Str, Str16 | An `Array<Byte>` or `Array<U16>` with support for UTF-8 and UTF-16.  `Array` (an alias for `ro List`) is immutable, therefore `Str` is also immutable.  `Str16` is a JavaScript or C# style Unicode string
 | Span\<T\> | A view into a `List` or `Array`.  It has a constant `len`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `List` is mutable)
 | Map<K,V> | Unordered mutable map.  `ro Map<K,V>` is the immutable counterpart. 
-| Maybe\<T\> | Identical to `?T`.  Always optimized for pointers and references.  **TBD:** Put  back to `Nilable`?
+| Maybe\<T\> | Identical to `?T`.  Always optimized for pointers and references.  **TBD:** Put back to `Nilable`?
 | Result\<T\> | Same as `!T`. An optional containing either a return value or an `Error` interface.
 | Error | An interface containing a `message` string and an integer `code`
 | Any | Reserved for a JavaScript-like object, used to bridge the gap between static and dynamic type systems.  There will also be `any` types that use TypeScipt-like structural duck typing. If you want a JavaScript or TypeScript type system, these types are reserved for you.
@@ -674,12 +675,16 @@ are needed and it's very fast.  A real-time embedded system could be written
 in Zurfur, and all that needs to be done is verify that no object graph
 cycles are created during program execution.
 
-Even if we need a tracing collector because cycles are created, it can skip
-all data structures that can't cycle.  For instance, a 100Mb `Map<Str,Str>`
-doesn't need to be traced since it can't have a cycle.
+Furthermore, Zurfur's ownership model means that cycles can be collected
+without tracing the entire heap because it can skip all data structures that
+don't cycle.  For instance, a 100Mb `Map<Str,Str>` doesn't need to be traced
+since it can't have a cycle.
 
 Calling an async function doesn't create garbage because each task has its
 own stack.  No dynamic allocations are needed for async calls.
+
+P.S.  There will be no weak references.  To keep things fun and easy, cycles
+will be collected automatically.
 
 ## Raw Pointers
 

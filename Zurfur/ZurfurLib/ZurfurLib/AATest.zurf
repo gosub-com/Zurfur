@@ -17,6 +17,9 @@ fun aaa_arith(a Int, b Int, c aaa_arith_test) Int
     @x = a+b
     @y = a*b
     Log.info("X is " + x.toStr + ", Y is " + y.toStr)
+    @tuples = List<(Int, Str)>()
+    tuples.push((1, "Hello"))
+    @tupleElement = tuples[0]    
     @hold
     if x < y
         @q = -1

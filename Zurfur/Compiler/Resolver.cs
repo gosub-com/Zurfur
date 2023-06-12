@@ -305,8 +305,8 @@ namespace Gosub.Zurfur.Compiler
                 return;
 
             // TBD: Since we are using named tuples as function parameters,
-            //      there is no longer a need to store them redundantly in
-            //      the function symbol type.
+            //      there is no longer a need to store the names redundantly
+            //      in the function symbol type.
             foreach (var expr in parameters)
             {
                 if (expr is SyntaxError)
@@ -315,21 +315,35 @@ namespace Gosub.Zurfur.Compiler
 
                 // This makes a single return parameter unnamed, "".
                 // All other parameters become named tuples.
-                var funParam = new Symbol(SymKind.FunParam, function, expr.Token, expr.Token.Name);
-                funParam.ParamOut = isReturn;
-                funParam.Type = Resolve(expr[0], table, false, searchScope, useSymbols);
-                if (funParam.Type == null)
+                var paramType = Resolve(expr[0], table, false, searchScope, useSymbols);
+                if (paramType == null)
                     continue; // Unresolved symbol
 
-                if (!(funParam.Type.IsAnyType || table.NoCompilerChecks))
+                if (!(paramType.IsAnyType || table.NoCompilerChecks))
                     RejectTypeArgLeftDotRight(expr[0], table,
-                        $"The symbol is not a type, it is a {funParam.Type.KindName}");
-                expr.Token.AddInfo(funParam);
+                        $"The symbol is not a type, it is a {paramType.KindName}");
 
-                // Add qualifiers
+                // Create function parameter symbol
+                var funParam = new Symbol(SymKind.FunParam, function, expr.Token, expr.Token.Name);
+                expr.Token.AddInfo(funParam);
                 foreach (var qualifier in expr[2])
                     funParam.SetQualifier(qualifier.Token);
 
+                // Calling convention is usually by ref
+                if (!isReturn
+                    && !paramType.Qualifiers.HasFlag(SymQualifiers.PassCopy)
+                    && !funParam.Qualifiers.HasFlag(SymQualifiers.Own)
+                    && !paramType.IsLambda
+                    && !paramType.IsGenericArg
+                    && paramType.Parent.FullName != SymTypes.Ref)
+                {
+                    var refType = table.CreateSpecializedType(
+                        table.Lookup(SymTypes.Ref), new Symbol[] { paramType });
+                    paramType = refType;
+                }
+
+                funParam.ParamOut = isReturn;
+                funParam.Type = paramType;
                 table.AddOrReject(funParam);
             }
         }

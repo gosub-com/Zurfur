@@ -283,6 +283,15 @@ namespace Gosub.Zurfur.Compiler
                 return;
             }
 
+            // Friendly name for common types
+            if (TypeArgs.Length == 1 
+                && SymTypes.FriendlyNames.TryGetValue(Parent.FullName, out var name))
+            {
+                LookupName = name + string.Join<Symbol>(",", TypeArgs);
+                FullName = LookupName;
+                return;
+            }
+
             // Generic args <type1,type2...>
             Debug.Assert(TupleNames.Length == 0);
             var typeArgs = "";
