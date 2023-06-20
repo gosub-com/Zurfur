@@ -163,6 +163,12 @@ namespace Gosub.Zurfur.Compiler
         /// </summary>
         public string[] GenericParamNames = Array.Empty<string>();
 
+
+        /// <summary>
+        /// Type of receiver parameter (null if not present)
+        /// </summary>
+        public Symbol ReceiverType;
+
         /// <summary>
         /// Get the number of expected generic parameters from the concrete type.
         /// </summary>
@@ -193,7 +199,6 @@ namespace Gosub.Zurfur.Compiler
         /// type or function.
         /// </summary>
         public bool IsSpecialized => Qualifiers.HasFlag(SymQualifiers.Specialized);
-
 
         /// <summary>
         /// Create a symbol that is unique in the soruce code (e.g. SymFun,
@@ -304,6 +309,10 @@ namespace Gosub.Zurfur.Compiler
                 return;
             }
 
+            var receiverType = "";
+            if (ReceiverType != null)
+                receiverType = $"[{ReceiverType}]";
+
             var funParams = "";
             if (IsFun && Type != null)
                 funParams = FunParamTuple.FullName + FunReturnTuple.FullName;
@@ -315,7 +324,7 @@ namespace Gosub.Zurfur.Compiler
 
             // Specialized functions get the parents functions parant
             var parentFullName = Concrete.Parent.FullName;
-            LookupName = SimpleName + genericArgsCount + typeArgs + funParams;
+            LookupName = SimpleName + genericArgsCount + typeArgs + receiverType + funParams;
             FullName = parentFullName + "." + LookupName;
         }
 

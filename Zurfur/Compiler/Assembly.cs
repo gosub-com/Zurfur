@@ -13,7 +13,8 @@ namespace Gosub.Zurfur.Compiler
     class Assembly
     {
         public readonly List<string> Comments = new();
-        public readonly ConsolidatedList<Symbol> Symbols = new();
+        public readonly ConsolidatedList<Symbol> Calls = new();
+        public readonly ConsolidatedList<Symbol> Types = new();
         public readonly ConsolidatedList<string> Strings = new();
         public readonly ConsolidatedList<string> Translated = new();
         public readonly Dictionary<string, AsFun> Functions = new();
@@ -31,11 +32,17 @@ namespace Gosub.Zurfur.Compiler
             foreach (var fun in Functions.Values.OrderBy(i => i.Name))
                 fun.Print(sb);
 
-            // Print symbols
-            sb.Append("\r\nsymbols:\r\n");
+            // Print calls
+            sb.Append("\r\ncalls:\r\n");
             var index = 0;
-            foreach (var symbol in Symbols)
-                sb.Append($"    {index++} {symbol}\r\n");
+            foreach (var call in Calls)
+                sb.Append($"    {index++} {call}\r\n");
+
+            // Print types
+            sb.Append("\r\ntypes:\r\n");
+            index = 0;
+            foreach (var type in Types)
+                sb.Append($"    {index++} {type}\r\n");
 
             // Print strings
             sb.Append("\r\nstrings:\r\n");
@@ -45,8 +52,6 @@ namespace Gosub.Zurfur.Compiler
 
             sb.Append("\r\ntranslate:\r\n");
             sb.Append("    tbd...\r\n\r\n");
-
-
         }
     }
 
@@ -55,7 +60,6 @@ namespace Gosub.Zurfur.Compiler
         public readonly Assembly Assembly;
         public readonly string Name;
         public readonly Token Token;
-        public readonly List<Symbol> LocalTypes = new List<Symbol>();
         public readonly List<AsOp> Code = new();
 
         /// <summary>
@@ -96,33 +100,28 @@ namespace Gosub.Zurfur.Compiler
         public void AddCall(Token token, Symbol fun)
         {
             Debug.Assert(fun.IsFun || fun.IsLambda);
-            Add(Op.Call, token, Assembly.Symbols.AddOrFind(fun));
+            Add(Op.Call, token, Assembly.Calls.AddOrFind(fun));
         }
 
         // New local variable within current scope, returns local index
-        public int UseLocal(Token token, Symbol type, int useIndex = -1)
+        public void UseLocal(Token token, int localIndex, int codeIndex = -1)
         {
-            var localNum = LocalTypes.Count;
-            var asOp = new AsOp(Op.Use, localNum);
-            if (useIndex < 0)
+            var asOp = new AsOp(Op.Local, localIndex);
+            if (codeIndex < 0)
             {
                 Code.Add(asOp);
                 CodeTokens.Add(token);
             }
             else
             {
-                Code.Insert(useIndex, asOp);
-                CodeTokens.Insert(useIndex, token);
+                Code.Insert(codeIndex, asOp);
+                CodeTokens.Insert(codeIndex, token);
             }
-            LocalTypes.Add(type);
-
-            return localNum;
         }
 
         // Load local reference
         public void Ldlr(Token token, int localIndex)
         {
-            Debug.Assert(localIndex >= 0 && localIndex < LocalTypes.Count);
             Code.Add(new AsOp(Op.Ldlr, localIndex));
             CodeTokens.Add(token);
         }
@@ -131,12 +130,10 @@ namespace Gosub.Zurfur.Compiler
         {
             sb.Append("\r\n\r\n");
             sb.Append($"fun {Name}\r\n");
-            var i = 0;
-            foreach (var type in LocalTypes)
-                sb.Append($"    {i++} {type}\r\n");
 
             int level = 0;
             int opIndex = -1;
+            var useTypes = new List<Symbol>();
             foreach (var op in Code)
             {
                 opIndex++;
@@ -184,16 +181,21 @@ namespace Gosub.Zurfur.Compiler
                 if (op.Op == Op.String)
                     sb.Append($" # \"{JsonEncodedText.Encode(Assembly.Strings[op.OperInt])}\"");
                 else if (op.Op == Op.Call)
-                    sb.Append($" # {Assembly.Symbols[op.OperInt].FullName}");
+                    sb.Append($" # {Assembly.Calls[op.OperInt].FullName}");
                 else if (op.Op == Op.F64)
                     sb.Append($" # {BitConverter.Int64BitsToDouble(op.Oper)}");
-                else if (op.Op == Op.Use || op.Op == Op.Ldlr)
-                    sb.Append($" # {tokenName} {LocalTypes[op.OperInt].Type}");
+                else if (op.Op == Op.Ldlr)
+                    sb.Append($" # {tokenName} {useTypes[op.OperInt]}");
+                else if (op.Op == Op.Local)
+                    sb.Append($" # [{useTypes.Count}] {tokenName} {Assembly.Types[op.OperInt]}");
                 else if (op.Op == Op.NoImp)
                     sb.Append($" # {Assembly.Comments[op.OperInt]}");
                 else if (op.Op == Op.Br || op.Op == Op.Brif || op.Op == Op.Brnif)
                     sb.Append($" # {FindBranchTarget(opIndex)}");
                 sb.Append($"\r\n");
+
+                if (op.Op == Op.Local)
+                    useTypes.Add(Assembly.Types[op.OperInt]);
             }
         }
 
@@ -279,7 +281,7 @@ namespace Gosub.Zurfur.Compiler
         String, // Operand is index into string table
 
         // Code
-        Use,    // Use a local in this scope, operand is an index into locals
+        Local,  // Create a local in this scope, operand is an index into types
         Call,   // Operand is index into symbols
         Ldlr,   // Load local ref, operand is an index into locals
         Setr,   // Store into reference (value, ref)

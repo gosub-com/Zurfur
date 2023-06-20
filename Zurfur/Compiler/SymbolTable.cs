@@ -51,10 +51,13 @@ namespace Gosub.Zurfur.Compiler
             Root = new Symbol(SymKind.Module, preRoot, null, "");
             mGenericArgumentHolder = new Symbol(SymKind.Type, Root, null, "");
             mGenericTupleHolder = new Symbol(SymKind.Module, Root, null, "");
-            LambdaType = new Symbol(SymKind.Type, mGenericTupleHolder, null, "$lambda");
-            LambdaType.GenericParamNames = new string[] { "T" };
             EmptyTuple = new Symbol(SymKind.Type, mGenericTupleHolder, null, "()");
             mSpecializedTypes["()"] = EmptyTuple;
+
+            // The lambda<T> has a type of T, which is a function tuple
+            LambdaType = new Symbol(SymKind.Type, mGenericTupleHolder, null, "$lambda");
+            LambdaType.Type = GetGenericParam(0);
+            LambdaType.GenericParamNames = new string[] { "T" };
         }
 
 
@@ -172,8 +175,7 @@ namespace Gosub.Zurfur.Compiler
         public Symbol CreateSpecializedType(
             Symbol concreteType, 
             Symbol[] typeArgs,
-            string[] tupleNames = null,
-            Symbol returnType = null)
+            string[] tupleNames = null)
         {
             Debug.Assert(concreteType.IsType || concreteType.IsFun || concreteType.IsField);
             Debug.Assert(!concreteType.IsSpecialized);
@@ -190,7 +192,9 @@ namespace Gosub.Zurfur.Compiler
                 TupleNames = tupleNames == null ? Array.Empty<string>() : tupleNames,
                 TypeArgs = typeArgs
             };
-            symSpec.Type = returnType == null ?  concreteType.Type : returnType;
+            symSpec.Type = ReplaceGenericTypeParams(concreteType.Type, typeArgs);
+            symSpec.ReceiverType = ReplaceGenericTypeParams(concreteType.ReceiverType, typeArgs);
+
             symSpec.Qualifiers = concreteType.Qualifiers | SymQualifiers.Specialized;
 
             symSpec.FinalizeFullName();
@@ -200,6 +204,40 @@ namespace Gosub.Zurfur.Compiler
                 mSpecializedTypes[symSpec.FullName] = symSpec;
             return symSpec;
         }
+
+        // Replace the generic type argument with the given argument,
+        // return the result, but don't change the original.
+        Symbol ReplaceGenericTypeParams(Symbol type, Symbol[] args)
+        {
+            if (type == null || args.Length == 0)
+                return type;
+
+            if (type.IsGenericArg)
+            {
+                if (type.Order >= 0 && type.Order < args.Length)
+                    return args[type.Order];
+                throw new Exception("Compiler error: ReplaceGenericTypeParams, index out of range");
+            }
+
+            if (type.IsSpecialized)
+                return CreateSpecializedType(type.Parent,
+                    ReplaceGenericTypeParamsArray(type.TypeArgs, args), type.TupleNames);
+
+            return type;
+        }
+
+        // Replace the generic type argument with the given argument,
+        // return the result, but don't change the original.
+        Symbol[] ReplaceGenericTypeParamsArray(Symbol[] types, Symbol[] args)
+        {
+            if (types == null || types.Length == 0)
+                return types;
+            var newTypes = new Symbol[types.Length];
+            for (int i = 0; i < types.Length; i++)
+                newTypes[i] = ReplaceGenericTypeParams(types[i], args);
+            return newTypes;
+        }
+
 
         /// <summary>
         /// Get or create a generic parameter: #0, #1, #2...

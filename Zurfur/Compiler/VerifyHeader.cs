@@ -27,7 +27,7 @@ namespace Gosub.Zurfur.Compiler
     // the symbol it has access to, such as the field or parameter, whereas
     // the compiler can show an error directly at the type name token that
     // failed).
-    class VerifyHeader
+    static class VerifyHeader
     {
 
         /// <summary>

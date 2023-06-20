@@ -186,11 +186,12 @@ namespace Gosub.Zurfur.Compiler
             Debug.Assert(function.IsFun);
             var commentLines = new Dictionary<int, bool>();
             var asFun = new AsFun(assembly, function.FullName, function.Token);
-            var locals = new Dictionary<string, LocalSymbol>();
+            var localsByName = new Dictionary<string, LocalSymbol>();
+            var localsByIndex = new List<Symbol>();
             var scopeToken = new Dictionary<int, Token>();
             var scopeNum = 0;
             var newVarScope = -1;       // Put the new var in scope above (if and while)
-            var newVarUseIndex = -1;    // Put the use variable at this assembly index
+            var newVarCodeIndex = -1;    // Put the use variable at this assembly index
 
             // Function prototype comment
             var y1 = synFunc.Keyword.Y;
@@ -205,21 +206,29 @@ namespace Gosub.Zurfur.Compiler
 
             // Add input parameters as locals
             foreach (var p in function.ChildrenFilter(SymKind.FunParam).Where(p => !p.ParamOut).OrderBy(p => p.Order))
-                asFun.UseLocal(p.Token, p);
+            {
+                asFun.UseLocal(p.Token, localsByIndex.Count);
+                localsByIndex.Add(p);
+            }
 
             if (synFunc.Statements != null)
                 GenStatements(synFunc.Statements);
 
             EndLocalScope();
 
-            // Replace local symbols with their type.  This is done because
+
+            // Replace local symbol index with the type.  This is done because
             // the type wasn't known when it was created.
-            for (int i = 0; i < asFun.LocalTypes.Count; i++)
+            for (var i = 0; i < asFun.Code.Count; i++)
             {
-                // NOTE: Unresolved symbols don't have a type.
-                //       This is an error, but we don't want null here.
-                if (asFun.LocalTypes[i].Type != null)
-                    asFun.LocalTypes[i] = asFun.LocalTypes[i].Type;
+                var op = asFun.Code[i];
+                if (op.Op == Op.Local)
+                {
+                    var symType = localsByIndex[(int)op.Oper].Type;
+                    if (symType == null)
+                        symType = typeVoid;
+                    asFun.Code[i] = new AsOp(Op.Local, assembly.Types.AddOrFind(symType));
+                }
             }
 
             assembly.Functions[asFun.Name] = asFun;
@@ -289,12 +298,12 @@ namespace Gosub.Zurfur.Compiler
             {
                 // Condition
                 newVarScope = scopeNum;     // Locals in condition go in outer scope
-                newVarUseIndex = asFun.Code.Count;
+                newVarCodeIndex = asFun.Code.Count;
                 BeginLocalScope(ex.Token);
                 GenBoolCondition(ex, "while");
                 asFun.Add(Op.Brnif, ex.Token, 1);
                 newVarScope = -1;           // End special locals condition scope
-                newVarUseIndex = -1;
+                newVarCodeIndex = -1;
 
                 // Statements
                 GenStatementsWithScope(ex[1], ex.Token);
@@ -327,13 +336,13 @@ namespace Gosub.Zurfur.Compiler
             {
                 // If condition
                 newVarScope = scopeNum;         // Locals in condition go in outer scope
-                newVarUseIndex = asFun.Code.Count;
+                newVarCodeIndex = asFun.Code.Count;
                 BeginLocalScope(s[i].Token);    // If...elif...else scope
                 BeginLocalScope(s[i].Token);    // If... scope
                 GenBoolCondition(s[i], "if");
                 asFun.Add(Op.Brnif, s[i].Token, 1);
                 newVarScope = -1;               // End special locals condition scope
-                newVarUseIndex = -1;
+                newVarCodeIndex = -1;
 
                 // If statements
                 GenStatements(s[i][1]);
@@ -513,6 +522,11 @@ namespace Gosub.Zurfur.Compiler
                 else if (name == "my")
                 {
                     ex.Token.Type = eTokenType.ReservedVar;
+                    if (function.SimpleName == "new" && function.ReceiverType != null)
+                    {
+                        ex.Token.AddInfo(function.ReceiverType);
+                        return new Rval(function.Token) { Type = function.ReceiverType };
+                    }
                     return GenIdentifier(ex);
                 }
                 else if (name == ParseZurf.VT_TYPE_ARG)
@@ -1364,8 +1378,7 @@ namespace Gosub.Zurfur.Compiler
                 if ((sym.IsFun || sym.IsField)
                     && sym.Type != null && inType != null && inType.TypeArgs.Length != 0)
                 {
-                    sym = table.CreateSpecializedType(sym, inType.TypeArgs, null,
-                        ReplaceGenericTypeParams(sym.Type, inType.TypeArgs));
+                    sym = table.CreateSpecializedType(sym, inType.TypeArgs, null);
                 }
 
                 token.AddInfo(sym);
@@ -1568,15 +1581,9 @@ namespace Gosub.Zurfur.Compiler
 
                 // Convert generic type args to specialized
                 if (!func.IsSpecialized && typeArgs.Length != 0)
-                    func = table.CreateSpecializedType(
-                        func, typeArgs, null, ReplaceGenericTypeParams(func.Type, typeArgs));
+                    func = table.CreateSpecializedType(func, typeArgs, null);
 
-                // Don't consider first parameter of static method
-                var funParams = new Span<Symbol>(func.FunParamTypes);
-                if (func.IsMethod && func.IsStatic)
-                    funParams = funParams.Slice(1);
-
-                return AreParamsCompatible(func, args, funParams);
+                return AreParamsCompatible(func, args, func.FunParamTypes);
 
             }
 
@@ -1596,10 +1603,10 @@ namespace Gosub.Zurfur.Compiler
                 if (funParams.TypeArgs.Length != 2)
                     return (null, CallCompatible.NotAFunction);
 
-                return AreParamsCompatible(variable, args, new Span<Symbol>(funParams.TypeArgs[0].TypeArgs));
+                return AreParamsCompatible(variable, args, funParams.TypeArgs[0].TypeArgs);
             }
 
-            (Symbol, CallCompatible) AreParamsCompatible(Symbol func, List<Rval> args, Span<Symbol> funParams)
+            (Symbol, CallCompatible) AreParamsCompatible(Symbol func, List<Rval> args, Symbol []funParams)
             {
                 // Match up the arguments (TBD: default parameters)
                 if (args.Count != funParams.Length)
@@ -1702,39 +1709,6 @@ namespace Gosub.Zurfur.Compiler
                 return true;
             }
 
-            // Replace the generic type argument with the given argument,
-            // return the result, but don't change the original.
-            Symbol ReplaceGenericTypeParams(Symbol type, Symbol[] args)
-            {
-                if (type == null || args.Length == 0)
-                    return type;
-
-                if (type.IsGenericArg)
-                {
-                    if (type.Order >= 0 && type.Order < args.Length)
-                        return args[type.Order];
-                    throw new Exception("Compiler error: ReplaceGenericTypeParams, index out of range");
-                }
-
-                if (type.IsSpecialized)
-                    return table.CreateSpecializedType(type.Parent,
-                        ReplaceGenericTypeParamsArray(type.TypeArgs, args), type.TupleNames,
-                        ReplaceGenericTypeParams(type.Type, args));
-
-                return type;
-            }
-
-            // Replace the generic type argument with the given argument,
-            // return the result, but don't change the original.
-            Symbol[] ReplaceGenericTypeParamsArray(Symbol[] types, Symbol[] args)
-            {
-                if (types == null || types.Length == 0)
-                    return types;
-                var newTypes = new Symbol[types.Length];
-                for (int i = 0; i < types.Length; i++)
-                    newTypes[i] = ReplaceGenericTypeParams(types[i], args);
-                return newTypes;
-            }
 
             /// <summary>
             /// Find symbols in the type, including functions defined in
@@ -1752,12 +1726,8 @@ namespace Gosub.Zurfur.Compiler
                 if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
                 {
                     foreach (var sym2 in useSymbols)
-                        if (sym2.IsMethod && sym2.IsFun)
-                        {
-                            var funParams = sym2.FunParamTypes;
-                            if (funParams.Length != 0 && funParams[0].FullName == inType.FullName)
-                                symbols.Add(sym2);
-                        }
+                        if (sym2.ReceiverType != null && sym2.ReceiverType.FullName == inType.FullName)
+                            symbols.Add(sym2);
                 }
 
                 AddGenericConstraints(name, inType, symbols);
@@ -1791,8 +1761,7 @@ namespace Gosub.Zurfur.Compiler
                         var s = symbols[i];
                         if (s.GenericParamCount() == constraint.TypeArgs.Length)
                         {
-                            symbols[i] = table.CreateSpecializedType(s, constraint.TypeArgs, null,
-                                ReplaceGenericTypeParams(s.Type, constraint.TypeArgs));
+                            symbols[i] = table.CreateSpecializedType(s, constraint.TypeArgs, null);
                         }
                         i++;
                     }
@@ -1832,22 +1801,11 @@ namespace Gosub.Zurfur.Compiler
 
                 foreach (var child in inModule.Children)
                 {
-                    if (!child.IsFun || !child.IsMethod || child.SimpleName != name)
-                        continue;
-                    var parameters = child.FunParamTypes;
-                    if (parameters.Length == 0)
-                        continue;
-
-                    // Compare the non-specialized type
+                    // Compare the non-specialized receiver type
                     //      e.g: List<#1> matches List<byte> so we get all functions
-                    var paramType = parameters[0];
-                    if (paramType.IsSpecialized)
-                        paramType = paramType.Parent;
-                   
-                    if (paramType.FullName != inType.FullName)
-                        continue;
-
-                    symbols.Add(child);
+                    if (child.ReceiverType != null && child.SimpleName == name
+                            && child.ReceiverType.Concrete.FullName == inType.FullName)
+                        symbols.Add(child);
                 }
             }
 
@@ -1862,7 +1820,7 @@ namespace Gosub.Zurfur.Compiler
                     Reject(token, $"'{token}' is already defined as a local parameter.");
                     return null;
                 }
-                if (locals.TryGetValue(token, out var localSymbol))
+                if (localsByName.TryGetValue(token, out var localSymbol))
                 {
                     if (localSymbol.Symbol != null)
                     {
@@ -1878,7 +1836,9 @@ namespace Gosub.Zurfur.Compiler
                 }
                 var local = new Symbol(SymKind.Local, null, token);
                 var localScope = newVarScope >= 0 && !forLambda ? newVarScope : scopeNum;
-                locals[token] = new LocalSymbol(local, localScope, asFun.UseLocal(token, local, newVarUseIndex));
+                localsByName[token] = new LocalSymbol(local, localScope, localsByIndex.Count);
+                asFun.UseLocal(token, localsByIndex.Count, newVarCodeIndex);
+                localsByIndex.Add(local);
                 return local;
             }
 
@@ -1942,7 +1902,7 @@ namespace Gosub.Zurfur.Compiler
                 }
 
                 // Find local
-                if (locals.TryGetValue(token, out var local))
+                if (localsByName.TryGetValue(token, out var local))
                 {
                     if (local.Symbol == null)
                         Reject(token, $"'{token}' is an out of scope local variable");
@@ -1961,7 +1921,7 @@ namespace Gosub.Zurfur.Compiler
 
             void EndLocalScope()
             {
-                foreach (var local in locals.Values)
+                foreach (var local in localsByName.Values)
                 {
                     if (local.ScopeNum == scopeNum)
                         local.Symbol = null;
