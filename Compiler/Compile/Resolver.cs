@@ -27,7 +27,7 @@ namespace Zurfur.Compiler
         /// Return symbol is always a module, type, or type parameter.
         /// On error, the token is rejected and null is returned.
         /// </summary>
-        public static Symbol Resolve(
+        public static Symbol? Resolve(
                 SyntaxExpr typeExpr,
                 SymbolTable table,
                 bool isDot,
@@ -82,7 +82,7 @@ namespace Zurfur.Compiler
             return symbol;
 
             // On error, the token is rejected and null is returned.
-            Symbol ResolveDot()
+            Symbol? ResolveDot()
             {
                 var leftSymbol = Resolve(typeExpr[0], table, isDot, searchScope, useSymbols);
                 if (leftSymbol == null)
@@ -101,7 +101,7 @@ namespace Zurfur.Compiler
                 }
 
                 // The right side of the "." is only a type name identifier, excluding generic parameters.
-                var leftScope = leftSymbol.IsSpecialized ? leftSymbol.Parent : leftSymbol;
+                var leftScope = leftSymbol.IsSpecialized ? leftSymbol.Parent! : leftSymbol;
                 var rightSymbol = Resolve(typeExpr[1], table, true, leftScope, useSymbols, hasGenericParams);
                 if (rightSymbol == null)
                     return null;
@@ -134,7 +134,7 @@ namespace Zurfur.Compiler
             // Resolve 'List<int>', 'Map<str,str>', *<int>, etc.
             // The token is VT_TYPE_ARG (i.e. '$') instead of '<'. 
             // On error, the token is rejected and null is returned.
-            Symbol ResolveGenericType()
+            Symbol? ResolveGenericType()
             {
                 // Resolve type parameters
                 var typeName = ResolveTypeName();
@@ -162,7 +162,7 @@ namespace Zurfur.Compiler
 
 
             // On error, the token is rejected and null is returned.
-            Symbol ResolveTypeName()
+            Symbol? ResolveTypeName()
             {
                 if (typeExpr.Count == 0)
                 {
@@ -170,7 +170,7 @@ namespace Zurfur.Compiler
                     return null;
                 }
 
-                Symbol typeParent = null;
+                Symbol? typeParent = null;
                 if (sUnaryTypeSymbols.TryGetValue(typeExpr[0].Token, out var unaryTypeName))
                 {
                     typeParent = table.Lookup(unaryTypeName);
@@ -194,7 +194,7 @@ namespace Zurfur.Compiler
             }
 
             // Resolve a tuple: '(int,List<str>,f32)', etc.
-            Symbol ResolveTupleType(SyntaxExpr typeExpr)
+            Symbol? ResolveTupleType(SyntaxExpr typeExpr)
             {
                 bool resolved = true;
                 List<Symbol> typeParams = new List<Symbol>();
@@ -227,7 +227,7 @@ namespace Zurfur.Compiler
             // Resolve "fun" or "afun" types.
             // Returns a specialized generic type, e.g fun(params)(returns) is $lambda<((params),(returns))>
             // On error, the token is rejected and null is returned.
-            Symbol ResolveLambdaFun()
+            Symbol? ResolveLambdaFun()
             {
                 if (typeExpr.Count < 3)
                 {
@@ -264,7 +264,7 @@ namespace Zurfur.Compiler
             var paramTypes = parameters.Select(p => p.Type).ToArray();
             var paramNames = parameters.Select(p => p.FullName).ToArray();
 
-            return table.CreateTuple(paramTypes, paramNames);
+            return table.CreateTuple(paramTypes!, paramNames);
         }
 
         /// <summary>
@@ -272,7 +272,7 @@ namespace Zurfur.Compiler
         /// e.g. `Map<int,str>` ignores `Map`, returns a list of [`int`,`str`].
         /// On error, returns NULL and rejects the token.
         /// </summary>
-        public static List<Symbol> ResolveTypeArgs(
+        public static List<Symbol>? ResolveTypeArgs(
             SyntaxExpr typeExpr, SymbolTable table, Symbol searchScope, UseSymbolsFile useSymbols)
         {
             bool resolved = true;
@@ -336,8 +336,9 @@ namespace Zurfur.Compiler
                     && !funParam.Qualifiers.HasFlag(SymQualifiers.Own)
                     && !paramType.IsLambda
                     && !paramType.IsGenericArg
-                    && paramType.Parent.FullName != SymTypes.Ref)
+                    && paramType.Parent!.FullName != SymTypes.Ref)
                 {
+                    // TBD: Fix crash if Zurfur.Ref doesn't exist
                     var refType = table.CreateSpecializedType(
                         table.Lookup(SymTypes.Ref), new Symbol[] { paramType });
                     paramType = refType;
@@ -407,14 +408,14 @@ namespace Zurfur.Compiler
         /// Find a type or module at the current scope.
         /// When not found, the token is rejected and null is returned.
         /// </summary>
-        static public Symbol FindLocalType(Token name, SymbolTable table, Symbol scope)
+        static public Symbol? FindLocalType(Token name, SymbolTable table, Symbol scope)
         {
             if (!scope.TryGetPrimary(name, out var symbol))
             {
                 table.Reject(name, $"'{name}' is not a member of '{scope}'");
                 return null;
             }
-            if (symbol.IsAnyTypeOrModule)
+            if (symbol!.IsAnyTypeOrModule)
                 return symbol;
             table.Reject(name, $"'{name}' is not a type, it is a '{symbol.KindName}'");
             return null;
@@ -429,7 +430,7 @@ namespace Zurfur.Compiler
         /// TBD: If symbol is unique in this package, but duplicated in an
         /// external package, is that an error?  Yes for now.
         /// </summary>
-        static public Symbol FindGlobalType(Token name, SymbolTable table, Symbol scope, UseSymbolsFile use)
+        static public Symbol? FindGlobalType(Token name, SymbolTable table, Symbol scope, UseSymbolsFile use)
         {
             var symbol = FindTypeInScopeWalk(name.Name, scope);
             if (symbol != null)
@@ -463,16 +464,16 @@ namespace Zurfur.Compiler
         /// Scope includes all parent types and just one parent module
         /// (e.g. `Zurfur.Io` does not include `Zurfur`)
         /// </summary>
-        static public Symbol FindTypeInScopeWalk(string name, Symbol scope)
+        static public Symbol? FindTypeInScopeWalk(string name, Symbol? scope)
         {
-            while (!scope.IsModule)
+            while (scope != null && !scope.IsModule)
             {
-                if (scope.TryGetPrimary(name, out var s1) && s1.IsAnyTypeOrModule)
+                if (scope.TryGetPrimary(name, out var s1) && s1!.IsAnyTypeOrModule)
                     return s1;
                 scope = scope.Parent;
             }
             // This is a module
-            if (scope.TryGetPrimary(name, out var s2) && s2.IsAnyTypeOrModule)
+            if (scope != null && scope.TryGetPrimary(name, out var s2) && s2!.IsAnyTypeOrModule)
                 return s2;
 
             return null;

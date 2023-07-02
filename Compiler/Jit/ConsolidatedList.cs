@@ -21,9 +21,9 @@ namespace Zurfur.Jit
         /// </summary>
         public int AddOrFind(T item)
         {
-            if (mMap.TryGetValue(item.ToString(), out var index))
+            if (mMap.TryGetValue(item!.ToString()!, out var index))
                 return index;
-            mMap[item.ToString()] = mList.Count;
+            mMap[item.ToString()!] = mList.Count;
             mList.Add(item);
             return mList.Count - 1;
         }

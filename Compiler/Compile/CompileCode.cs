@@ -63,7 +63,7 @@ namespace Zurfur.Compiler
 
         class LocalSymbol
         {
-            public Symbol Symbol;
+            public Symbol? Symbol;
             public int ScopeNum;
             public int LocalNum;
 
@@ -79,9 +79,9 @@ namespace Zurfur.Compiler
         {
             public Token Token;
             public string Name;
-            public Symbol Type;
+            public Symbol? Type;
             public Symbol[] TypeArgs = Array.Empty<Symbol>();
-            public Symbol InType;
+            public Symbol? InType;
             public bool IsUntypedConst; // NOTE: `3 Int` is a typed const
             public bool IsSetter;
             public bool IsLocal;
@@ -91,7 +91,7 @@ namespace Zurfur.Compiler
             /// <summary>
             /// When `Type` is $lambda, store the expression for later compilation
             /// </summary>
-            public SyntaxExpr LambdaSyntax;
+            public SyntaxExpr? LambdaSyntax;
 
             public Rval(Token token)
             {
@@ -126,7 +126,7 @@ namespace Zurfur.Compiler
                 var typeParams = "";
                 if (typeArgs.Length != 0)
                     typeParams = $"<{string.Join(",", typeArgs.Select(a => a.FullName))}>";
-                var paramStr = $"{typeParams}({string.Join(",", args.Select(a => a.Type.FullName))})";
+                var paramStr = $"{typeParams}({string.Join(",", args.Select(a => a.Type == null ? "(?)" : a.Type.FullName))})";
                 return paramStr;
             }
         }
@@ -187,6 +187,9 @@ namespace Zurfur.Compiler
                 && typeF32 != null);
 
             Debug.Assert(function.IsFun);
+
+            // TBD: Remove null forgiving operator below when the compiler
+            //      is improved:  https://github.com/dotnet/roslyn/issues/29892
             var commentLines = new Dictionary<int, bool>();
             var asFun = new AsFun(assembly, function.FullName, function.Token);
             var localsByName = new Dictionary<string, LocalSymbol>();
@@ -301,7 +304,7 @@ namespace Zurfur.Compiler
             {
                 // Condition
                 newVarScope = scopeNum;     // Locals in condition go in outer scope
-                newVarCodeIndex = asFun.Code.Count;
+                newVarCodeIndex = asFun!.Code.Count;
                 BeginLocalScope(ex.Token);
                 GenBoolCondition(ex, "while");
                 asFun.Add(Op.Brnif, ex.Token, 1);
@@ -339,7 +342,7 @@ namespace Zurfur.Compiler
             {
                 // If condition
                 newVarScope = scopeNum;         // Locals in condition go in outer scope
-                newVarCodeIndex = asFun.Code.Count;
+                newVarCodeIndex = asFun!.Code.Count;
                 BeginLocalScope(s[i].Token);    // If...elif...else scope
                 BeginLocalScope(s[i].Token);    // If... scope
                 GenBoolCondition(s[i], "if");
@@ -382,7 +385,7 @@ namespace Zurfur.Compiler
                 CheckBool(ex[0].Token, cond?.Type, keyword);
             }
 
-            bool CheckBool(Token token, Symbol conditionType, string name)
+            bool CheckBool(Token token, Symbol? conditionType, string name)
             {
                 if (conditionType == null)
                     return false;
@@ -433,7 +436,7 @@ namespace Zurfur.Compiler
             }
 
             // Get the for loop iterator type, e.g. T in object.iterator.next() -> Maybe<T>
-            Symbol GenForIterator(Token token, Symbol inType)
+            Symbol? GenForIterator(Token token, Symbol inType)
             {
                 var getIter = GenFindAndCall(token, DerefRef(inType), "iterator");
                 if (getIter == null)
@@ -443,7 +446,7 @@ namespace Zurfur.Compiler
                     return null;
                 if (!getNext.IsSpecialized
                     || getNext.TypeArgs.Length != 1
-                    || getNext.Parent.FullName != SymTypes.Maybe)
+                    || getNext.Parent!.FullName != SymTypes.Maybe)
                 {
                     Reject(token, $"Expecting the function '{getIter}.next()' to return a Maybe<T>, but it returns '{getNext}'");
                     return null;
@@ -452,7 +455,7 @@ namespace Zurfur.Compiler
             }
 
             // Find and call a function (or getter) taking no arguments
-            Symbol GenFindAndCall(Token token, Symbol inType, string name)
+            Symbol? GenFindAndCall(Token token, Symbol inType, string name)
             {
                 // This marks the local with symbol info, which we don't want here
                 var call = new Rval(token, name) { InType = inType };
@@ -460,7 +463,7 @@ namespace Zurfur.Compiler
                     $"'{name}' in the type '{inType}'", false);
             }
 
-            Rval GenReturnStatement(SyntaxExpr ex)
+            Rval? GenReturnStatement(SyntaxExpr ex)
             {
                 var returns = GenCallParams(ex, 0);
                 if (returns == null)
@@ -482,15 +485,15 @@ namespace Zurfur.Compiler
                 // TBD: This is to temporarily gloss over pointers, Maybe, and nil
                 //      Implicit conversion from nil to *T or Maybe<T>
                 if (rval.Type.FullName == SymTypes.Nil
-                    && (functionType.Parent.FullName == SymTypes.RawPointer)
-                        || functionType.Parent.FullName == SymTypes.Maybe)
+                    && (functionType.Parent!.FullName == SymTypes.RawPointer)
+                        || functionType.Parent!.FullName == SymTypes.Maybe)
                     return rval;
 
                 if (!TypesMatch(DerefRef(functionType), DerefRef(rval.Type)))
                 {
                     Reject(ex.Token, $"Incorrect return type, expecting '{functionType}', got '{rval.Type}'");
                 }
-                asFun.Add(Op.Ret, ex.Token, 0);
+                asFun!.Add(Op.Ret, ex.Token, 0);
 
                 return rval;
             }
@@ -498,7 +501,7 @@ namespace Zurfur.Compiler
 
 
             // Evaluate an expression.  When null is returned, the error is already marked.
-            Rval GenExpr(SyntaxExpr ex)
+            Rval? GenExpr(SyntaxExpr ex)
             {
                 var token = ex.Token;
                 var name = token.Name;
@@ -509,10 +512,10 @@ namespace Zurfur.Compiler
                 }
 
                 // Add source code comments
-                if (!commentLines.ContainsKey(token.Y))
+                if (!commentLines!.ContainsKey(token.Y))
                 {
                     commentLines[token.Y] = true;
-                    asFun.AddComment(token, synFile.Lexer.GetLine(token.Y));
+                    asFun!.AddComment(token, synFile.Lexer.GetLine(token.Y));
                 }
 
                 // Terminals: Number, string, identifier
@@ -579,7 +582,7 @@ namespace Zurfur.Compiler
                 return null;
             }
 
-            Rval GenConstNumber(SyntaxExpr ex)
+            Rval? GenConstNumber(SyntaxExpr ex)
             {
                 // Get type (int, f64, or custom)
                 var numberType = ex.Token.Name.Contains(".") ? typeF64 : typeInt;
@@ -590,12 +593,12 @@ namespace Zurfur.Compiler
                 {
                     // Store double as IEEE 754 long
                     double.TryParse(ex.Token, out var number);
-                    asFun.Add(Op.F64, ex.Token, BitConverter.DoubleToInt64Bits(number));
+                    asFun!.Add(Op.F64, ex.Token, BitConverter.DoubleToInt64Bits(number));
                 }
                 else
                 {
                     long.TryParse(ex.Token, out var number);
-                    asFun.Add(Op.I64, ex.Token, number);
+                    asFun!.Add(Op.I64, ex.Token, number);
                 }
 
                 var untypedConst = true;
@@ -630,7 +633,7 @@ namespace Zurfur.Compiler
 
             Rval GenStr(SyntaxExpr ex)
             {
-                asFun.AddStr(ex.Token, ex[0].Token);
+                asFun!.AddStr(ex.Token, ex[0].Token);
                 foreach (var interp in ex[0])
                     asFun.AddNoImp(ex.Token, "Interpolate: " + interp.ToString());
                 return new Rval(ex.Token) { Type = typeStr };
@@ -643,7 +646,7 @@ namespace Zurfur.Compiler
             }
 
             // Type or function call (e.g. List<int>(), f<int>(), etc)
-            Rval GenTypeArgs(SyntaxExpr ex)
+            Rval? GenTypeArgs(SyntaxExpr ex)
             {
                 var symbols = GenExpr(ex[0]);
                 var typeParams = Resolver.ResolveTypeArgs(ex, table, function, fileUses);
@@ -653,7 +656,7 @@ namespace Zurfur.Compiler
                 return symbols;
             }
 
-            Rval GenParen(SyntaxExpr ex)
+            Rval? GenParen(SyntaxExpr ex)
             {
                 if (HasError(ex))
                     return null;
@@ -671,8 +674,7 @@ namespace Zurfur.Compiler
                     return null;
 
                 var types = args.Select(t => t.Type).ToArray();
-
-                var  tuple = table.CreateTuple(types);
+                var  tuple = table.CreateTuple(types!);
                 return new Rval(ex.Token) { Type = tuple };
             }
 
@@ -689,7 +691,7 @@ namespace Zurfur.Compiler
             }
 
 
-            Rval GenDot(SyntaxExpr ex)
+            Rval? GenDot(SyntaxExpr ex)
             {
                 if (ex.Count != 2)
                     return null;  // Syntax error
@@ -719,13 +721,10 @@ namespace Zurfur.Compiler
             // Dereference the given type names
             Symbol Deref(Symbol type, WordSet typeNames)
             {
-                if (type == null)
-                    return null;
-
                 // Auto-dereference pointers and references
                 if (type.IsSpecialized
                     && type.TypeArgs.Length != 0
-                    && typeNames.Contains(type.Parent.FullName))
+                    && typeNames.Contains(type.Parent!.FullName))
                 {
                     // Move up to non-generic concrete type
                     // TBD: Preserve concrete type parameters
@@ -734,7 +733,7 @@ namespace Zurfur.Compiler
                 return type;
             }
 
-            Rval GenDotStar(SyntaxExpr ex)
+            Rval? GenDotStar(SyntaxExpr ex)
             {
                 if (ex.Count != 1)
                     return null; // Syntax error
@@ -744,7 +743,7 @@ namespace Zurfur.Compiler
                     return null;
 
                 left.Type = DerefRef(left.Type);
-                if (left.Type.Parent.FullName != SymTypes.RawPointer)
+                if (left.Type.Parent!.FullName != SymTypes.RawPointer)
                 {
                     Reject(ex.Token, $"Only pointers may be dereferenced, but the type is '${left.Type}'");
                     return null;
@@ -755,7 +754,7 @@ namespace Zurfur.Compiler
                 return new Rval(ex.Token) { Type = left.Type };
             }
 
-            Rval GenNewVarsOperator(SyntaxExpr ex)
+            Rval? GenNewVarsOperator(SyntaxExpr ex)
             {
                 ex.Token.Type = eTokenType.NewVarSymbol;
                 if (ex.Count == 0)
@@ -765,7 +764,7 @@ namespace Zurfur.Compiler
                 return GenNewVarsBinary(ex);
             }
 
-            Rval GenNewVarsBinary(SyntaxExpr ex)
+            Rval? GenNewVarsBinary(SyntaxExpr ex)
             {
                 // Binary operator, capture variabe
                 var value = GenExpr(ex[0]);
@@ -789,7 +788,7 @@ namespace Zurfur.Compiler
                     return null;
                 }
                 // Implicitly convert Maybe<T> to bool and T
-                if (valueType.Parent.FullName == SymTypes.Maybe && valueType.TypeArgs.Length == 1)
+                if (valueType.Parent!.FullName == SymTypes.Maybe && valueType.TypeArgs.Length == 1)
                 {
                     local.Type = valueType.TypeArgs[0];
                     return new Rval(value.Token) { Type = typeBool };
@@ -799,7 +798,7 @@ namespace Zurfur.Compiler
             }
 
             // Still doesn't resolve multiple symbols '@(v1, v2)', etc.
-            Rval GenNewVarsUnary(SyntaxExpr ex, Token rejectToken)
+            Rval? GenNewVarsUnary(SyntaxExpr ex, Token rejectToken)
             {
                 var newSymbols = new List<Symbol>();
                 foreach (var e in ex)
@@ -852,7 +851,7 @@ namespace Zurfur.Compiler
                 return newSymbols;
             }
 
-            Rval GenRefOrAddressOf(SyntaxExpr ex)
+            Rval? GenRefOrAddressOf(SyntaxExpr ex)
             {
                 if (ex.Count != 1)
                     return null; // Syntax error
@@ -866,7 +865,7 @@ namespace Zurfur.Compiler
                 if (rval.Type == null)
                     return null;
 
-                if (rval.Type.Parent.FullName != SymTypes.Ref && !rval.IsLocal)
+                if (rval.Type.Parent!.FullName != SymTypes.Ref && !rval.IsLocal)
                     Reject(ex.Token, $"The type '{rval.Type} is a value and cannot be converted to a reference'");
 
                 if (ex.Token == "ref")
@@ -893,7 +892,7 @@ namespace Zurfur.Compiler
                 if (type == null)
                     return; // Error already marked
 
-                if (type.IsSpecialized && type.Parent.FullName == SymTypes.Ref)
+                if (type.IsSpecialized && type.Parent!.FullName == SymTypes.Ref)
                 {
                     Reject(rval.Token, "Cannot take address of a reference");
                     return;
@@ -904,11 +903,11 @@ namespace Zurfur.Compiler
                 if (refType == null)
                     throw new Exception("Compiler error: MakeIntoRef, undefined type in base library");
 
-                rval.Type = table.CreateSpecializedType(refType, new Symbol[] { rval.Type });
+                rval.Type = table.CreateSpecializedType(refType, new Symbol[] { type });
             }
 
 
-            Rval GenAssign(SyntaxExpr ex)
+            Rval? GenAssign(SyntaxExpr ex)
             {
                 if (ex.Count != 2)
                     return null;  // Syntax error
@@ -922,10 +921,8 @@ namespace Zurfur.Compiler
                     return null;
 
                 // Assign type to local variable (if type not already assigned)
-                var isLocal = assignedSymbol != null 
-                    && (assignedSymbol.IsLocal || assignedSymbol.IsFunParam);
-
-                if (isLocal && assignedSymbol.Type == null)
+                if (assignedSymbol != null && assignedSymbol.Type == null
+                    && (assignedSymbol.IsLocal || assignedSymbol.IsFunParam))
                 {
                     // Assign untyped local (not a reference unless explicit 'ref')
                     left.Type = right.IsExplicitRef ? rightType : DerefRef(rightType);
@@ -948,7 +945,7 @@ namespace Zurfur.Compiler
 
                 // Implicit conversion from nil to *T
                 if (leftType.Parent != null 
-                    && DerefRef(leftType).Parent.FullName == SymTypes.RawPointer 
+                    && DerefRef(leftType).Parent!.FullName == SymTypes.RawPointer 
                     && rightType.FullName == SymTypes.Nil)
                 {
                     return null; // Pointer = nil
@@ -963,7 +960,7 @@ namespace Zurfur.Compiler
                         Reject(ex.Token, "Setter must not return a value");
                         return null;
                     }
-                    if (!assignedSymbol.IsFun)
+                    if (assignedSymbol == null || !assignedSymbol.IsFun)
                         throw new Exception("Compiler error: GenAssign, setter index out of range or not method");
 
                     var args = assignedSymbol.FunParamTypes;
@@ -980,13 +977,16 @@ namespace Zurfur.Compiler
                     // Debug, TBD: Remove or get better compiler feedback system
                     ex.Token.AddInfo($"setter({args[1].FullName}) = ({rightType.FullName})");
 
-                    asFun.AddNoImp(ex.Token, $"setter assignment");
+                    asFun!.AddNoImp(ex.Token, $"setter assignment");
 
                     // TBD: Need to make this into a function call
                     return null;
                 }
 
-                if (!isLocal && leftType.Parent.FullName != SymTypes.Ref)
+                // TBD: A local or parameter will produce a reference
+                var isLocal = assignedSymbol != null
+                    && (assignedSymbol.IsLocal || assignedSymbol.IsFunParam);
+                if (!isLocal && leftType.Parent!.FullName != SymTypes.Ref)
                 {
                     Reject(ex.Token, "A value cannot be assigned.  Left side must be a local variable or a 'mut' reference.  "
                         + $" ({leftType.FullName}) = ({rightType.FullName})");
@@ -1001,25 +1001,25 @@ namespace Zurfur.Compiler
                 // Debug, TBD: Remove or get better compiler feedback system
                 ex.Token.AddInfo($"({leftType.FullName}) = ({rightType.FullName})");
 
-                asFun.Add(Op.Setr, ex.Token, 0);
+                asFun!.Add(Op.Setr, ex.Token, 0);
 
                 return null;
             }
 
-            Rval GenAstart(SyntaxExpr ex)
+            Rval? GenAstart(SyntaxExpr ex)
             {
                 //Reject(ex.Token, "Not implemented yet");
                 GenCallParams(ex, 0);
                 return null;
             }
 
-            Rval GenDefaultOperator(SyntaxExpr ex)
+            Rval? GenDefaultOperator(SyntaxExpr ex)
             {
                 Reject(ex.Token, "Not compiled yet");
                 return null;
             }
 
-            Rval GenErrorOperator(SyntaxExpr ex)
+            Rval? GenErrorOperator(SyntaxExpr ex)
             {
                 if (HasError(ex))
                     return null;
@@ -1027,7 +1027,7 @@ namespace Zurfur.Compiler
                 EvalType(op);
                 if (op == null || op.Type == null)
                     return null;
-                if (op.Type.Parent.FullName != SymTypes.Result && op.Type.Parent.FullName != SymTypes.Maybe
+                if (op.Type.Parent!.FullName != SymTypes.Result && op.Type.Parent.FullName != SymTypes.Maybe
                         || op.Type.TypeArgs.Length != 1)
                 {
                     Reject(ex.Token, $"Expecting 'Result<T>' or 'Maybe<T>', but got '{op.Type}'");
@@ -1037,7 +1037,7 @@ namespace Zurfur.Compiler
             }
 
 
-            Rval GenOperator(SyntaxExpr ex)
+            Rval? GenOperator(SyntaxExpr ex)
             {
                 var token = ex.Token;
                 if (ex.Count == 1 && token == "&")
@@ -1056,10 +1056,10 @@ namespace Zurfur.Compiler
                     var left = args[0];
                     var right = args[1];
                     if (right.IsUntypedConst && !left.IsUntypedConst 
-                            && sIntTypeNames.Contains(DerefRef(left.Type).FullName) && sIntTypeNames.Contains(right.Type.FullName))
+                            && sIntTypeNames.Contains(DerefRef(left.Type!).FullName) && sIntTypeNames.Contains(right.Type!.FullName))
                         right.Type = left.Type;
                     if (!right.IsUntypedConst && left.IsUntypedConst 
-                            && sIntTypeNames.Contains(DerefRef(right.Type).FullName) && sIntTypeNames.Contains(left.Type.FullName))
+                            && sIntTypeNames.Contains(DerefRef(right.Type!).FullName) && sIntTypeNames.Contains(left.Type!.FullName))
                         left.Type = right.Type;
                 }
 
@@ -1074,9 +1074,9 @@ namespace Zurfur.Compiler
 
                 // Find static operators from either argument
                 var call = new Rval(token, operatorName) { IsStatic = true };
-                var candidates = FindInType(operatorName, DerefRef(args[0].Type));
+                var candidates = FindInType(operatorName, DerefRef(args[0].Type!));
                 if (args.Count >= 2)
-                    candidates.AddRange(FindInType(operatorName, DerefRef(args[1].Type)));
+                    candidates.AddRange(FindInType(operatorName, DerefRef(args[1].Type!)));
                 RemoveLastDuplicates(candidates);
 
                 if (candidates.Count == 0)
@@ -1099,13 +1099,13 @@ namespace Zurfur.Compiler
                         return null;
                     }
                     if (token == "<")
-                        asFun.Add(Op.Lt, token, 0);
+                        asFun!.Add(Op.Lt, token, 0);
                     else if (token == "<=")
-                        asFun.Add(Op.Le, token, 0);
+                        asFun!.Add(Op.Le, token, 0);
                     else if (token == ">")
-                        asFun.Add(Op.Gt, token, 0);
+                        asFun!.Add(Op.Gt, token, 0);
                     else if (token == ">=")
-                        asFun.Add(Op.Ge, token, 0);
+                        asFun!.Add(Op.Ge, token, 0);
 
                     funType = typeBool;
                 }
@@ -1113,7 +1113,7 @@ namespace Zurfur.Compiler
                 return new Rval(call.Token) { Type = funType };
             }
 
-            Rval GenCall(SyntaxExpr ex)
+            Rval? GenCall(SyntaxExpr ex)
             {
                 if (ex.Count == 0)
                     return null; // Syntax error
@@ -1125,7 +1125,7 @@ namespace Zurfur.Compiler
                     return null;  // Undefined symbol or error evaluating left side
 
                 var candidates = FindCandidates(call);
-                Symbol funType;
+                Symbol? funType;
                 if (candidates.Count == 1 && candidates[0].IsAnyType)
                     funType = FindCompatibleConstructor(call, candidates, args);
                 else
@@ -1136,7 +1136,7 @@ namespace Zurfur.Compiler
                 return new Rval(call.Token) { Type = funType};
             }
 
-            Symbol FindCompatibleConstructor(Rval call, List<Symbol> candidates, List<Rval> args)
+            Symbol? FindCompatibleConstructor(Rval call, List<Symbol> candidates, List<Rval> ?args)
             {
                 var newType = candidates[0];
                 call.Token.Type = eTokenType.TypeName;
@@ -1147,7 +1147,7 @@ namespace Zurfur.Compiler
                 {
                     if (call.TypeArgs.Length != 0)
                         Reject(call.Token, $"Expecting 0 type parameters, but got '{call.TypeArgs.Length}'");
-                    if (args.Count != 0)
+                    if (args != null && args.Count != 0)
                         Reject(call.Token, $"New generic type with arguments not supported yet");
                     return table.GetGenericParam(newType.Order);
                 }
@@ -1164,7 +1164,7 @@ namespace Zurfur.Compiler
             // Parameters are evaluated for the types. 
             // If any parameter can't be evaluated, NULL is returned.
             // A non-null value means that all Rval's have a valid Type.
-            List<Rval> GenCallParams(SyntaxExpr ex, int startParam)
+            List<Rval>? GenCallParams(SyntaxExpr ex, int startParam)
             {
                 var funArgs = new List<Rval>();
                 var paramHasError = false;
@@ -1180,7 +1180,7 @@ namespace Zurfur.Compiler
                 return paramHasError ? null : funArgs;
             }
 
-            Rval GenIffExpr(SyntaxExpr ex)
+            Rval? GenIffExpr(SyntaxExpr ex)
             {
                 if (HasError(ex))
                     return null;
@@ -1215,9 +1215,9 @@ namespace Zurfur.Compiler
                 condElse.Type = DerefRef(condElse.Type);
 
                 // Allow mixing of pointers and nil
-                if (condIf.Type.Parent.FullName == SymTypes.RawPointer && condElse.Type.FullName == SymTypes.Nil)
+                if (condIf.Type.Parent!.FullName == SymTypes.RawPointer && condElse.Type.FullName == SymTypes.Nil)
                     return new Rval(ex.Token) { Type = condIf.Type };
-                if (condIf.Type.FullName == SymTypes.Nil && condElse.Type.Parent.FullName == SymTypes.RawPointer)
+                if (condIf.Type.FullName == SymTypes.Nil && condElse.Type.Parent!.FullName == SymTypes.RawPointer)
                     return new Rval(ex.Token) { Type = condElse.Type };
 
                 if (condIf.Type.FullName != condElse.Type.FullName)
@@ -1277,7 +1277,7 @@ namespace Zurfur.Compiler
             // Mark an error when there is no match.
             // Returns the symbol that generated the type (or null if
             // there wasn't one)
-            Symbol EvalType(Rval rval,
+            Symbol? EvalType(Rval? rval,
                 bool assignmentTarget = false,
                 bool allowStaticType = false)
             {
@@ -1306,7 +1306,7 @@ namespace Zurfur.Compiler
                             }
                             rval.Type = local.sym.Type;
                             rval.IsLocal = true;
-                            asFun.Ldlr(local.sym.Token, local.index);
+                            asFun!.Ldlr(local.sym.Token, local.index);
                             return local.sym;
                         }
                         if (local.sym.IsFunParam)
@@ -1316,7 +1316,7 @@ namespace Zurfur.Compiler
                                 Reject(token, $"'{token}' has an unresolved type");
                             rval.Type = local.sym.Type;
                             rval.IsLocal = true;
-                            asFun.Ldlr(local.sym.Token, local.index);
+                            asFun!.Ldlr(local.sym.Token, local.index);
                             return local.sym;
                         }
                     }
@@ -1337,7 +1337,7 @@ namespace Zurfur.Compiler
                         return null;
                     }
                     rval.Type = inType.TypeArgs[i];
-                    asFun.AddNoImp(token, $"tuple {token}");
+                    asFun!.AddNoImp(token, $"tuple {token}");
                     return null;
                 }
 
@@ -1414,19 +1414,19 @@ namespace Zurfur.Compiler
                         Reject(token, $"'{token}' has an unresolved type");
                         return sym;
                     }
-                    Debug.Assert(sym.Type.Parent.FullName != SymTypes.Ref);
+                    Debug.Assert(sym.Type.Parent!.FullName != SymTypes.Ref);
                     rval.Type = sym.Type;
 
                     // A field is the same thing as a getter returning a mutable ref
                     MakeIntoRef(rval);
-                    asFun.AddNoImp(sym.Token, $"field {sym.FullName}");
+                    asFun!.AddNoImp(sym.Token, $"field {sym.FullName}");
                     return sym;
                 }
 
                 if (sym.IsFun)
                 {
                     rval.Type = sym.FunReturnType;
-                    asFun.AddCall(sym.Token, sym);
+                    asFun!.AddCall(sym.Token, sym);
                     return sym;
                 }
                 Reject(token, $"'{token}' compiler failure: '{sym}' is {sym.KindName}");
@@ -1444,10 +1444,12 @@ namespace Zurfur.Compiler
 
             // Given the call and its parameters, find the best matching function.
             // If there is an error, mark it and give feedback on possible matches.
-            Symbol FindCompatibleFunction(
+            // When args is null, it means the there was an error evaluating the
+            // parameter types, so just try to give good feedback.
+            Symbol? FindCompatibleFunction(
                 Rval call,
                 List<Symbol> candidates,
-                List<Rval> args,
+                List<Rval> ?args,
                 string rejectName,
                 bool addSymbolInfo = true)
             {
@@ -1527,12 +1529,15 @@ namespace Zurfur.Compiler
                 // Compile lambdas now that we can infer the type
                 var func = matchingFuns[0];
                 for (int i = 0; i < args.Count; i++)
-                    if (args[i].LambdaSyntax != null)
+                {
+                    var arg = args[i];
+                    if (arg.LambdaSyntax != null)
                     {
                         Debug.Assert(func.FunParamTypes[i].IsLambda);
                         var lambda = func.FunParamTypes[i];
-                        PostGenLambda(args[i].LambdaSyntax, lambda.FunParamTypes);
+                        PostGenLambda(arg.LambdaSyntax, lambda.FunParamTypes);
                     }
+                }
 
                 // This is either a function or lambda.  The function has the
                 // type directly, but the lambda is a specialization of $lambda<T>.
@@ -1541,13 +1546,13 @@ namespace Zurfur.Compiler
                 var lambdaOrFunType = func.IsFun ? func : func.Type;
                 if (addSymbolInfo)
                     call.Token.AddInfo(lambdaOrFunType);
-                asFun.AddCall(call.Token, lambdaOrFunType);
-                return lambdaOrFunType.FunReturnType;
+                asFun!.AddCall(call.Token, lambdaOrFunType!);
+                return lambdaOrFunType!.FunReturnType;
             }
 
             // Checks if the function call is compatible, return the possibly
             // specialized function.  Returns null if not compatible.
-            (Symbol, CallCompatible) IsCallCompatible(Symbol func, Rval call, List<Rval> args)
+            (Symbol?, CallCompatible) IsCallCompatible(Symbol func, Rval call, List<Rval> args)
             {
                 if (!func.IsFun)
                     return IsLambdaCompatible(func, call, args);
@@ -1590,7 +1595,7 @@ namespace Zurfur.Compiler
 
             }
 
-            (Symbol, CallCompatible) IsLambdaCompatible(Symbol variable, Rval call, List<Rval> args)
+            (Symbol?, CallCompatible) IsLambdaCompatible(Symbol variable, Rval call, List<Rval> args)
             {
                 if (!variable.IsFunParam && !variable.IsLocal && !variable.IsField)
                     return (null, CallCompatible.NotAFunction);
@@ -1609,7 +1614,7 @@ namespace Zurfur.Compiler
                 return AreParamsCompatible(variable, args, funParams.TypeArgs[0].TypeArgs);
             }
 
-            (Symbol, CallCompatible) AreParamsCompatible(Symbol func, List<Rval> args, Symbol []funParams)
+            (Symbol?, CallCompatible) AreParamsCompatible(Symbol func, List<Rval> args, Symbol []funParams)
             {
                 // Match up the arguments (TBD: default parameters)
                 if (args.Count != funParams.Length)
@@ -1617,11 +1622,11 @@ namespace Zurfur.Compiler
                 for (var i = 0; i < funParams.Length; i++)
                 {
                     // Auto-deref references
-                    var argType = DerefRef(args[i].Type);
+                    var argType = DerefRef(args[i].Type!);
                     var param = DerefRef(funParams[i]);
 
                     // Receiver for generic interface always matches
-                    if (i == 0 && func.Concrete.Parent.IsInterface && argType.IsGenericArg)
+                    if (i == 0 && func.Concrete.Parent!.IsInterface && argType.IsGenericArg)
                         continue;
 
                     // The generic lambda type matches all lambdas because
@@ -1630,11 +1635,11 @@ namespace Zurfur.Compiler
                         continue;
 
                     // Implicit conversion from nil to *T or from *T to *void
-                    if (param.Parent.FullName == SymTypes.RawPointer)
+                    if (param.Parent!.FullName == SymTypes.RawPointer)
                     {
                         if (argType.FullName == SymTypes.Nil)
                             continue;
-                        if (argType.Parent.FullName == SymTypes.RawPointer && DerefPointers(param) == typeVoid)
+                        if (argType.Parent!.FullName == SymTypes.RawPointer && DerefPointers(param) == typeVoid)
                             continue;
                     }
 
@@ -1662,7 +1667,7 @@ namespace Zurfur.Compiler
                 var inferredTypeArgs = new Symbol[typeArgsNeeded];
                 int numArgs = Math.Min(args.Count, funParamTypes.Length);
                 for (int paramIndex = 0;  paramIndex < numArgs;  paramIndex++)
-                    if (!InferTypeArg(args[paramIndex].Type, funParamTypes[paramIndex], inferredTypeArgs))
+                    if (!InferTypeArg(args[paramIndex].Type!, funParamTypes[paramIndex], inferredTypeArgs))
                         return typeArgs; // Fail
 
                 // Check if we got them all
@@ -1699,7 +1704,7 @@ namespace Zurfur.Compiler
                 // If they are both the same generic type, check type parameters
                 if (funParamType.IsSpecialized
                     && argType.IsSpecialized
-                    && funParamType.Parent.FullName == argType.Parent.FullName)
+                    && funParamType.Parent!.FullName == argType.Parent!.FullName)
                 {
                     Debug.Assert(funParamType.TypeArgs.Length == argType.TypeArgs.Length);
                     for (int i = 0;  i < funParamType.TypeArgs.Length;  i++)
@@ -1722,8 +1727,8 @@ namespace Zurfur.Compiler
             {
                 var symbols = new List<Symbol>();
                 AddSymbolsNamedInType(name, inType, symbols);
-                AddFunctionsNamedInModule(name, inType.Parent, inType, symbols);
-                AddFunctionsNamedInModule(name, function.Parent, inType, symbols);
+                AddFunctionsNamedInModule(name, inType.Parent!, inType, symbols);
+                AddFunctionsNamedInModule(name, function.Parent!, inType, symbols);
 
                 // Search 'use' symbol
                 if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
@@ -1776,14 +1781,14 @@ namespace Zurfur.Compiler
             {
                 AddSymbolsNamedConcrete(name, inType, symbols);
                 if (inType.IsSpecialized)
-                    AddSymbolsNamedConcrete(name, inType.Parent, symbols);
+                    AddSymbolsNamedConcrete(name, inType.Parent!, symbols);
             }
 
             // Add all children with the given name (primary or non-extension method)
             void AddSymbolsNamedConcrete(string name, Symbol inType, List<Symbol> symbols)
             {
-                if (inType.TryGetPrimary(name, out Symbol sym))
-                    symbols.Add(sym);
+                if (inType.TryGetPrimary(name, out Symbol? sym))
+                    symbols.Add(sym!);
                 if (inType.HasFunNamed(name))
                     foreach (var child in inType.Children)
                         if (child.IsFun && child.SimpleName == name)
@@ -1794,13 +1799,13 @@ namespace Zurfur.Compiler
             void AddFunctionsNamedInModule(string name, Symbol inModule, Symbol inType, List<Symbol> symbols)
             {
                 while (inModule != null && !inModule.IsModule)
-                    inModule = inModule.Parent;
+                    inModule = inModule.Parent!;
                 if (inModule == null || !inModule.HasFunNamed(name))
                     return;
 
                 // Ignore mut, etc., then just compare the non-specialized type.
                 if (inType.IsSpecialized)
-                    inType = inType.Parent;
+                    inType = inType.Parent!;
 
                 foreach (var child in inModule.Children)
                 {
@@ -1816,14 +1821,14 @@ namespace Zurfur.Compiler
             // already exists.  Don't allow shadowing.
             // NOTE: The symbol is stored, then later, replaced by its type.
             //       This is done because the type is not always known here.
-            Symbol CreateLocal(Token token, bool forLambda = false)
+            Symbol? CreateLocal(Token token, bool forLambda = false)
             {
                 if (function.TryGetPrimary(token, out var primary))
                 {
                     Reject(token, $"'{token}' is already defined as a local parameter.");
                     return null;
                 }
-                if (localsByName.TryGetValue(token, out var localSymbol))
+                if (localsByName!.TryGetValue(token, out var localSymbol))
                 {
                     if (localSymbol.Symbol != null)
                     {
@@ -1839,8 +1844,8 @@ namespace Zurfur.Compiler
                 }
                 var local = new Symbol(SymKind.Local, null, token);
                 var localScope = newVarScope >= 0 && !forLambda ? newVarScope : scopeNum;
-                localsByName[token] = new LocalSymbol(local, localScope, localsByIndex.Count);
-                asFun.UseLocal(token, localsByIndex.Count, newVarCodeIndex);
+                localsByName![token] = new LocalSymbol(local, localScope, localsByIndex!.Count);
+                asFun!.UseLocal(token, localsByIndex.Count, newVarCodeIndex);
                 localsByIndex.Add(local);
                 return local;
             }
@@ -1862,9 +1867,9 @@ namespace Zurfur.Compiler
                 // Find global symbols in this module
                 var symbols = new List<Symbol>();
                 var name = token.Name;
-                var module = function.Parent;
-                if (module.TryGetPrimary(name, out Symbol sym1))
-                    symbols.Add(sym1);
+                var module = function.Parent!;
+                if (module.TryGetPrimary(name, out Symbol? sym1))
+                    symbols.Add(sym1!);
                 if (module.HasFunNamed(name))
                     foreach (var child in module.Children)
                         if (child.IsFun && child.SimpleName == name && !child.IsMethod)
@@ -1889,13 +1894,13 @@ namespace Zurfur.Compiler
             }
 
             // Finds a local or parameter.  Returns null if not found.
-            (Symbol sym, int index) FindLocal(Token token)
+            (Symbol? sym, int index) FindLocal(Token token)
             {
                 // Find parameter
                 var name = token.Name;
                 if (function.TryGetPrimary(name, out var localParam))
                 {
-                    if (localParam.IsTypeParam)
+                    if (localParam!.IsTypeParam)
                         return (localParam, 0);
 
                     var i = Array.IndexOf(function.FunParamTuple.TupleNames, token.Name);
@@ -1905,7 +1910,7 @@ namespace Zurfur.Compiler
                 }
 
                 // Find local
-                if (localsByName.TryGetValue(token, out var local))
+                if (localsByName!.TryGetValue(token, out var local))
                 {
                     if (local.Symbol == null)
                         Reject(token, $"'{token}' is an out of scope local variable");
@@ -1918,20 +1923,20 @@ namespace Zurfur.Compiler
             void BeginLocalScope(Token token)
             {
                 scopeNum++;
-                asFun.Add(Op.Begin, token, 0);
-                scopeToken[scopeNum] = token;
+                asFun!.Add(Op.Begin, token, 0);
+                scopeToken![scopeNum] = token;
             }
 
             void EndLocalScope()
             {
-                foreach (var local in localsByName.Values)
+                foreach (var local in localsByName!.Values)
                 {
                     if (local.ScopeNum == scopeNum)
                         local.Symbol = null;
                     else if (local.ScopeNum > scopeNum)
                         local.ScopeNum = scopeNum;
                 }
-                asFun.Add(Op.End, scopeToken[scopeNum], 0);
+                asFun!.Add(Op.End, scopeToken![scopeNum], 0);
                 scopeNum--;
             }
 

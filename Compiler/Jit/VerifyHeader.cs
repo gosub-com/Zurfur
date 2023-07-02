@@ -73,7 +73,7 @@ namespace Zurfur.Jit
 
                 if (symbol.IsTypeParam)
                 {
-                    RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
+                    RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent!.Parent!); // Skip containing type or method
                 }
                 else if (symbol.IsFun)
                 {
@@ -88,13 +88,13 @@ namespace Zurfur.Jit
                     //       check here just in case (ignore module, since it's
                     //       already checked by `CheckFunction`)
                     CheckTypeName(symbol.Token, symbol.TypeName, true);
-                    if (symbol.SimpleName == symbol.Parent.Token.Name)
+                    if (symbol.SimpleName == symbol.Parent!.Token.Name)
                         Reject(symbol.Token, "Must not be same name as method");
-                    RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent); // Skip containing type or method
+                    RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent!.Parent!); // Skip containing type or method
                 }
                 else if (symbol.IsField)
                 {
-                    RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent.Parent);
+                    RejectDuplicateTypeParameterName(symbol.Token, symbol.Parent!.Parent!);
                     CheckTypeName(symbol.Token, symbol.TypeName, false);
                 }
             }
@@ -117,8 +117,8 @@ namespace Zurfur.Jit
                 foreach (var r in func.FunReturnTypes)
                     CheckTypeName(func.Token, r.FullName, false);
 
-                var funParent = func.Parent;
-                RejectDuplicateTypeParameterName(func.Token, funParent.Parent); // Skip containing type or method
+                var funParent = func.Parent!;
+                RejectDuplicateTypeParameterName(func.Token, funParent.Parent!); // Skip containing type or method
 
                 if (!funParent.IsInterface && !funParent.IsModule)
                     Reject(func.Token, "Method must be scoped at the at the module level");
@@ -168,10 +168,10 @@ namespace Zurfur.Jit
                 while (scope.FullName != "")
                 {
                     if (scope.TryGetPrimary(token.Name, out var s)
-                            && s.IsTypeParam)
+                            && s!.IsTypeParam)
                         if (!token.Error)
                             Reject(token, "Must not be same name as a type parameter in any enclosing scope");
-                    scope = scope.Parent;
+                    scope = scope.Parent!;
                 }
             }
 

@@ -414,6 +414,7 @@ namespace Zurfur.Build
             mReport.Add($"    Compile/verify code: {(dtEndGenCode - dtStartGenCode).TotalSeconds:F3}");
             mReport.Add($"    Generate package: {(dtEndGenPackage - dtStartGenPackage).TotalSeconds:F3}");
             mReport.Add($"    Total: {(dtEndGenPackage - dtStart).TotalSeconds + mLexAndParseTime.TotalSeconds:F3}");
+            mReport.Add($"    Memory: {(double)GC.GetTotalMemory(true)/1000000:F2} Mb");
             mReport.Add("");
 
             ZilReport.GenerateReport(mReport, zilHeader.Table,

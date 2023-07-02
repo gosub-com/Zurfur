@@ -259,7 +259,7 @@ namespace Zurfur.Lex
             RemoveInfo<T>();
             AddInfo(info);
         }
-        public T GetInfo<T>() => mInfo.GetInfo<T>();
+        public T? GetInfo<T>() => mInfo.GetInfo<T>();
         public T[] GetInfos<T>() => mInfo.GetInfos<T>();
 
         /// <summary>
@@ -383,10 +383,12 @@ namespace Zurfur.Lex
         /// </summary>
         struct ObjectBag
         {
-            object mInfo;
+            object? mInfo;
 
-            public void AddInfo(object info)
+            public void AddInfo(object ?info)
             {
+                if (info == null)
+                    return;
                 var obj = mInfo;
                 if (obj == null)
                 {
@@ -425,7 +427,7 @@ namespace Zurfur.Lex
                     mInfo = null;
                     return;
                 }
-                var list = obj as object[];
+                var list = obj as object?[];
                 if (list != null && list.GetType() == typeof(object[]))
                 {
                     for (int i = 0; i < list.Length; i++)
@@ -434,7 +436,7 @@ namespace Zurfur.Lex
                 }
             }
 
-            public T GetInfo<T>()
+            public T? GetInfo<T>()
             {
                 var obj = mInfo;
                 if (obj is T)
@@ -528,7 +530,7 @@ namespace Zurfur.Lex
         {
             return (Y << 12) + X;
         }
-        public override bool Equals(object obj)
+        public override bool Equals(object ?obj)
         {
             if (obj == null)
                 return false;

@@ -31,9 +31,9 @@ namespace Zurfur.Compiler
 
     class CompilerHeaderOutput
     {
-        public UseSymbols Uses;
-        public SymbolTable Table;
-        public Dictionary<SyntaxScope, Symbol> SyntaxToSymbol;
+        public UseSymbols Uses = new();
+        public SymbolTable Table = new();
+        public Dictionary<SyntaxScope, Symbol> SyntaxToSymbol = new();
     }
 
  
@@ -86,8 +86,8 @@ namespace Zurfur.Compiler
                     parent = AddModule(m.Parent);
                 if (parent.TryGetPrimary(m.Name, out var s2))
                 {
-                    syntaxToSymbol[m] = s2;
-                    return s2;
+                    syntaxToSymbol[m] = s2!;
+                    return s2!;
                 }
                 var newModule = new Symbol(SymKind.Module, parent, m.Name);
                 // TBD: Take qualifiers from module definition (generate error if inconsistent)
@@ -107,7 +107,7 @@ namespace Zurfur.Compiler
                     var fileUseSymbols = new UseSymbolsFile();
 
                     // Add prelude to all files
-                    if (table.Root.TryGetPrimary("Zurfur", out var zSym) && zSym.IsModule)
+                    if (table.Root.TryGetPrimary("Zurfur", out var zSym) && zSym!.IsModule)
                         foreach (var name in ZURFUR_PRELUDE.Split(' '))
                             AddUseSymbolsFromModule(zSym, name, null, fileUseSymbols);
 
@@ -141,7 +141,7 @@ namespace Zurfur.Compiler
                 return uses;
             }
 
-            void AddUseSymbolsFromModule(Symbol module, string name, Token token, UseSymbolsFile useSymbolsFile)
+            void AddUseSymbolsFromModule(Symbol module, string name, Token? token, UseSymbolsFile useSymbolsFile)
             {
                 var symbols = GetUseSymbolsFromModule(module, name);
                 if (symbols.Count == 0)
@@ -167,8 +167,8 @@ namespace Zurfur.Compiler
             List<Symbol> GetUseSymbolsFromModule(Symbol module, string name)
             {
                 var symbols = new List<Symbol>();
-                if (module.TryGetPrimary(name, out Symbol typeSym))
-                    symbols.Add(typeSym);
+                if (module.TryGetPrimary(name, out Symbol? typeSym))
+                    symbols.Add(typeSym!);
                 
                 if (module.HasFunNamed(name))
                     foreach (var child in module.Children)
@@ -186,7 +186,7 @@ namespace Zurfur.Compiler
                     foreach (var type in syntaxFile.Types)
                     {
                         // Add type
-                        if (!syntaxToSymbol.TryGetValue(type.Parent, out var parent))
+                        if (!syntaxToSymbol.TryGetValue(type.Parent!, out var parent))
                             continue; // Syntax errors
                         var newType = new Symbol(SymKind.Type, parent, type.Name);
                         newType.Comments = type.Comments;
@@ -238,7 +238,7 @@ namespace Zurfur.Compiler
                 }
             }
 
-            void AddTypeParams(Symbol scope, IEnumerable<SyntaxExpr> typeArgs)
+            void AddTypeParams(Symbol scope, IEnumerable<SyntaxExpr> ?typeArgs)
             {
                 if (typeArgs == null)
                     return;
@@ -281,7 +281,7 @@ namespace Zurfur.Compiler
                             Reject(field.Name, "Expecting symbol to have an explicitly named type");
                             continue;
                         }
-                        symField.Type = ResolveTypeNameOrReject(symField.Parent, field.TypeName);
+                        symField.Type = ResolveTypeNameOrReject(symField.Parent!, field.TypeName);
                         if (symField.TypeName == "" && !noCompilerChecks)
                             symField.Token.AddInfo(new VerifySuppressError());
                     }
@@ -296,7 +296,7 @@ namespace Zurfur.Compiler
                     {
                         if (!syntaxToSymbol.TryGetValue(type.Parent, out var module))
                             continue;  // Syntax error already marked
-                        if (module.TryGetPrimary(type.Name, out var symbol) && symbol.IsType)
+                        if (module.TryGetPrimary(type.Name, out var symbol) && symbol!.IsType)
                             ResolveConstraints(symbol, type.Constraints);
                     }
                 }
@@ -372,7 +372,7 @@ namespace Zurfur.Compiler
             void ResolveFunction(SyntaxFunc synFunc)
             {
                 // Get module containing function
-                if (!syntaxToSymbol.TryGetValue(synFunc.Parent, out var scope))
+                if (!syntaxToSymbol.TryGetValue(synFunc.Parent!, out var scope))
                     return; // Syntax errors
 
                 Debug.Assert(scope.IsModule || scope.IsType);
@@ -417,7 +417,7 @@ namespace Zurfur.Compiler
             {
                 var extType = func.ExtensionType;
                 
-                if (method.Parent.IsInterface)
+                if (method.Parent!.IsInterface)
                 {
                     // Interface method
                     method.Qualifiers |= SymQualifiers.Method;
@@ -500,7 +500,7 @@ namespace Zurfur.Compiler
                 method.ReceiverType = myParam.Type;
             }
 
-            Symbol ResolveTypeNameOrReject(Symbol scope, SyntaxExpr typeExpr)
+            Symbol? ResolveTypeNameOrReject(Symbol scope, SyntaxExpr typeExpr)
             {
                 // There will also be a syntax error
                 if (typeExpr == null || typeExpr.Token.Name == "")

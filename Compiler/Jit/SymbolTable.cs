@@ -95,7 +95,7 @@ namespace Zurfur.Jit
         /// Call `GenerateLookup` before calling this.
         /// Returns NULL if symbol doesn't exist.
         /// </summary>
-        public Symbol Lookup(string name)
+        public Symbol? Lookup(string name)
         {
             if (name == "")
                 return null;
@@ -120,7 +120,7 @@ namespace Zurfur.Jit
         /// <summary>
         /// Check to make sure the given symbol belongs to this symbol table
         /// </summary>
-        bool SymbolBelongs(Symbol symbol)
+        bool SymbolBelongs(Symbol? symbol)
         {
             while (symbol != null)
             {
@@ -138,10 +138,9 @@ namespace Zurfur.Jit
         public bool AddOrReject(Symbol newSymbol)
         {
             Debug.Assert(SymbolBelongs(newSymbol));
-            var parentSymbol = newSymbol.Parent;
-            if (parentSymbol.SetChildInternal(newSymbol, out var remoteSymbol))
+            if (newSymbol.Parent!.SetChildInternal(newSymbol, out var remoteSymbol))
                 return true;
-            Reject(newSymbol.Token, $"Duplicate symbol. There is already a {remoteSymbol.KindName} in this scope with the same name.");
+            Reject(newSymbol.Token, $"Duplicate symbol. There is already a {remoteSymbol!.KindName} in this scope with the same name.");
             Reject(remoteSymbol.Token, $"Duplicate symbol. There is already a {newSymbol.KindName} in this scope with the same name.");
             return false;
         }
@@ -153,14 +152,13 @@ namespace Zurfur.Jit
         public bool AddOrIgnore(Symbol newSymbol)
         {
             Debug.Assert(SymbolBelongs(newSymbol));
-            var parentSymbol = newSymbol.Parent;
-            return parentSymbol.SetChildInternal(newSymbol, out var remoteSymbol);
+            return newSymbol.Parent!.SetChildInternal(newSymbol, out var remoteSymbol);
         }
 
         /// <summary>
         /// Create a tuple with the given types (optionally with names)
         /// </summary>
-        public Symbol CreateTuple(Symbol[] typeArgs, string[] tupleNames = null)
+        public Symbol CreateTuple(Symbol[] typeArgs, string[]? tupleNames = null)
         {
             return CreateSpecializedType(EmptyTuple, typeArgs, tupleNames);
         }
@@ -185,7 +183,7 @@ namespace Zurfur.Jit
         public Symbol CreateSpecializedType(
             Symbol concreteType,
             Symbol[] typeArgs,
-            string[] tupleNames = null)
+            string[]? tupleNames = null)
         {
             Debug.Assert(concreteType.IsType || concreteType.IsFun || concreteType.IsField);
             Debug.Assert(!concreteType.IsSpecialized);
@@ -217,7 +215,7 @@ namespace Zurfur.Jit
 
         // Replace the generic type argument with the given argument,
         // return the result, but don't change the original.
-        Symbol ReplaceGenericTypeParams(Symbol type, Symbol[] args)
+        Symbol? ReplaceGenericTypeParams(Symbol? type, Symbol[] args)
         {
             if (type == null || args.Length == 0)
                 return type;
@@ -230,7 +228,7 @@ namespace Zurfur.Jit
             }
 
             if (type.IsSpecialized)
-                return CreateSpecializedType(type.Parent,
+                return CreateSpecializedType(type.Parent!,
                     ReplaceGenericTypeParamsArray(type.TypeArgs, args), type.TupleNames);
 
             return type;
@@ -240,11 +238,11 @@ namespace Zurfur.Jit
         // return the result, but don't change the original.
         Symbol[] ReplaceGenericTypeParamsArray(Symbol[] types, Symbol[] args)
         {
-            if (types == null || types.Length == 0)
+            if (types.Length == 0)
                 return types;
             var newTypes = new Symbol[types.Length];
             for (int i = 0; i < types.Length; i++)
-                newTypes[i] = ReplaceGenericTypeParams(types[i], args);
+                newTypes[i] = ReplaceGenericTypeParams(types[i], args)!;
             return newTypes;
         }
 
@@ -272,7 +270,7 @@ namespace Zurfur.Jit
         /// Returns the symbol at the given path in the package.
         /// Returns null and marks an error if not found.
         /// </summary>
-        public Symbol FindTypeInPathOrReject(Token[] path)
+        public Symbol? FindTypeInPathOrReject(Token[] path)
         {
             var symbol = Root;
             foreach (var name in path)
@@ -282,7 +280,7 @@ namespace Zurfur.Jit
                     Reject(name, "Module or type name not found");
                     return null;
                 }
-                symbol = child;
+                symbol = child!;
             }
             return symbol;
         }

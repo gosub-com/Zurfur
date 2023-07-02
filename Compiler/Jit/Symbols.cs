@@ -99,18 +99,18 @@ namespace Zurfur.Jit
         static Dictionary<string, Symbol> sEmptyDict = new Dictionary<string, Symbol>();
         static Dictionary<int, string> sTags = new Dictionary<int, string>();
 
-        public Symbol Parent { get; }
+        public Symbol? Parent { get; }
         public SymKind Kind { get; protected set; }
         public SymQualifiers Qualifiers;
-        Token mToken;
-        public string Comments = "";
+        Token? mToken; // TBD: Should make this non-nullable, require a token for all symbols
+        public string? Comments;
 
         // Definitive list of all children.  The key matches the symbol name.
-        Dictionary<string, Symbol> mChildren;
+        Dictionary<string, Symbol>? mChildren;
 
         // Quick lookup of token name
         // NOTE: This is an optimization (we could use only mChildren)
-        Dictionary<string, bool> mHasFunNamed;
+        Dictionary<string, bool>? mHasFunNamed;
 
         // Set by `SetChildInternal`.  Type parameters are always first.
         public int Order { get; private set; } = -1;
@@ -118,7 +118,7 @@ namespace Zurfur.Jit
         /// <summary>
         /// The symbol's full type name, excluding tuple names.
         /// </summary>
-        public string FullName { get; private set; }
+        public string FullName { get; private set; } = "";
 
         /// <summary>
         /// Name as it appears in the lookup table which is everything after
@@ -138,7 +138,7 @@ namespace Zurfur.Jit
         /// A function or lambda's return type is a tuple containing two 
         /// tuples: ((ParameterTypes),(ReturnTypes)).
         /// </summary>
-        public Symbol Type;
+        public Symbol? Type;
 
         /// <summary>
         /// Type arguments for a specialized type or function.  The parent is
@@ -168,7 +168,7 @@ namespace Zurfur.Jit
         /// <summary>
         /// Type of receiver parameter (null if not present)
         /// </summary>
-        public Symbol ReceiverType;
+        public Symbol? ReceiverType;
 
         /// <summary>
         /// Get the number of expected generic parameters from the concrete type.
@@ -180,7 +180,7 @@ namespace Zurfur.Jit
 
             var sym = Concrete;
             int count = 0;
-            while (!sym.IsModule)
+            while (sym != null && !sym.IsModule)
             {
                 count += sym.GenericParamNames.Length;
                 sym = sym.Parent;
@@ -191,7 +191,7 @@ namespace Zurfur.Jit
         /// <summary>
         /// Applicable to Types and Functions
         /// </summary>
-        public Dictionary<string, string[]> Constraints;
+        public Dictionary<string, string[]>? Constraints;
 
 
         /// <summary>
@@ -206,15 +206,21 @@ namespace Zurfur.Jit
         /// SymType, SymField, etc.) and can be marked with token information.
         /// </summary>
         public Symbol(SymKind kind,
-            Symbol parent,
-            Token token,
-            string name = null)
+            Symbol? parent,
+            Token ?token,
+            string? name = null)
         {
             Kind = kind;
             Parent = parent;
-            SimpleName = name == null ? token.Name : name;
+
+            if (name != null)
+                SimpleName = name;
+            else if (token != null)
+                SimpleName = token.Name;
+            else
+                throw new Exception("Symbol must have token or name");
+
             LookupName = SimpleName;
-            Debug.Assert(SimpleName != null);
             mToken = token;
             FinalizeFullName();
         }
@@ -329,7 +335,7 @@ namespace Zurfur.Jit
                 genericArgsCount = $"`{GenericParamNames.Length}";
 
             // Specialized functions get the parents functions parant
-            var parentFullName = Concrete.Parent.FullName;
+            var parentFullName = Concrete.Parent!.FullName;
             LookupName = SimpleName + genericArgsCount + typeArgs + receiverType + funParams;
             FullName = parentFullName + "." + LookupName;
         }
@@ -445,7 +451,7 @@ namespace Zurfur.Jit
 
         // Find module, type, field, or parameter.  Functions can be found,
         // but are complex names including the parentheses.
-        public bool TryGetPrimary(string key, out Symbol sym)
+        public bool TryGetPrimary(string key, out Symbol? sym)
         {
             if (mChildren != null)
                 return mChildren.TryGetValue(key, out sym);
@@ -468,7 +474,7 @@ namespace Zurfur.Jit
 
         public IEnumerable<Symbol> ChildrenFilter(SymKind filter)
         {
-            if (ChildrenCount == 0)
+            if (mChildren == null || mChildren.Count == 0)
                 yield break;
             foreach (var sym in mChildren.Values)
                 if (filter == SymKind.All || sym.Kind == filter)
@@ -496,7 +502,7 @@ namespace Zurfur.Jit
         /// Non generic types just return the type.
         /// </summary>
         /// <returns></returns>
-        public Symbol Concrete => IsSpecialized ? Parent : this;
+        public Symbol Concrete => IsSpecialized ? Parent! : this;
 
         public string QualifiersStr()
         {
@@ -547,15 +553,17 @@ namespace Zurfur.Jit
             }
         }
 
-        public void SetQualifiers(Token[] qualifiers)
+        public void SetQualifiers(Token[]? qualifiers)
         {
-            foreach (var q in qualifiers)
-                SetQualifier(q.Name);
+            if (qualifiers != null)
+                foreach (var q in qualifiers)
+                    SetQualifier(q.Name);
         }
-        public void SetQualifiers(string[] qualifiers)
+        public void SetQualifiers(string[]? qualifiers)
         {
-            foreach (var q in qualifiers)
-                SetQualifier(q);
+            if (qualifiers != null)
+                foreach (var q in qualifiers)
+                    SetQualifier(q);
         }
 
         public void SetQualifier(string name)
@@ -622,7 +630,7 @@ namespace Zurfur.Jit
         /// Returns TRUE if the symbol was inserted, false if it
         /// was a duplicate (then remoteSymbol contains the dup)
         /// </summary>
-        internal bool SetChildInternal(Symbol value, out Symbol remoteSymbol)
+        internal bool SetChildInternal(Symbol value, out Symbol? remoteSymbol)
         {
             if (mChildren == null)
                 mChildren = new Dictionary<string, Symbol>();
@@ -726,7 +734,7 @@ namespace Zurfur.Jit
                 return true;
             if (!a.IsSpecialized
                     || !b.IsSpecialized
-                    || a.Parent.FullName != b.Parent.FullName
+                    || a.Parent!.FullName != b.Parent!.FullName
                     || a.TypeArgs.Length != b.TypeArgs.Length)
                 return false;
             for (int i = 0; i < a.TypeArgs.Length; i++)

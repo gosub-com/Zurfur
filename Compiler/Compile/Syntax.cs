@@ -50,10 +50,10 @@ namespace Zurfur.Compiler
 
 
         public Token Keyword => Token; // class, struct, func, prop, blank for field, etc.
-        public SyntaxScope Parent;
-        public string Comments;
-        public Token[] Qualifiers;
-        public Token Name;
+        public SyntaxScope? Parent;
+        public string? Comments;
+        public Token[] Qualifiers = Token.EmptyArray;
+        public Token? Name;
 
         public string FullName
         {
@@ -68,7 +68,7 @@ namespace Zurfur.Compiler
 
     class SyntaxModule : SyntaxScope
     {
-        public SyntaxModule(Token keyword, Token name, SyntaxScope parent)
+        public SyntaxModule(Token keyword, Token name, SyntaxScope? parent)
             : base(keyword)
         {
             Parent = parent;
@@ -87,15 +87,15 @@ namespace Zurfur.Compiler
         }
 
         public bool Simple;
-        public SyntaxExpr Alias;
-        public SyntaxExpr TypeArgs;
-        public SyntaxConstraint []Constraints;
+        public SyntaxExpr? Alias;
+        public SyntaxExpr? TypeArgs;
+        public SyntaxConstraint[]? Constraints;
     }
 
     class SyntaxConstraint
     {
-        public Token TypeName;
-        public SyntaxExpr []TypeConstraints;
+        public Token? TypeName;
+        public SyntaxExpr[]? TypeConstraints;
     }
 
     class SyntaxField : SyntaxScope
@@ -107,8 +107,8 @@ namespace Zurfur.Compiler
         }
 
         public bool Simple;
-        public SyntaxExpr TypeName;
-        public SyntaxExpr Initializer;
+        public SyntaxExpr? TypeName;
+        public SyntaxExpr? Initializer;
     }
 
     class SyntaxFunc : SyntaxScope
@@ -117,25 +117,17 @@ namespace Zurfur.Compiler
             : base(keyword, 1)
         {
         }
-        public override SyntaxExpr this[int index]
-        {
-            get
-            {
-                if (index != 0)
-                    throw new IndexOutOfRangeException();
-                return Statements;
-            }
-        }
         public override IEnumerator<SyntaxExpr> GetEnumerator()
         {
-            yield return Statements;
+            if (Statements != null)
+                yield return Statements;
         }
 
-        public SyntaxExpr ExtensionType;
-        public SyntaxExpr TypeArgs;
-        public SyntaxExpr FunctionSignature;
-        public SyntaxConstraint[] Constraints;
-        public SyntaxExpr Statements;
+        public SyntaxExpr? ExtensionType;
+        public SyntaxExpr? TypeArgs;
+        public SyntaxExpr? FunctionSignature;
+        public SyntaxConstraint[]? Constraints;
+        public SyntaxExpr? Statements;
     }
 
 

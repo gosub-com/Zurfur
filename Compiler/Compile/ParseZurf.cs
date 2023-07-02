@@ -220,9 +220,9 @@ namespace Zurfur.Compiler
 
         void PreProcess()
         {
-            Token prevToken = null;
-            Token prevNonContinuationLineToken = null;
-            Token token;
+            Token? prevToken = null;
+            Token? prevNonContinuationLineToken = null;
+            Token? token;
 
             var e = mLexer.GetEnumerator();
             while (e.MoveNext(out token))
@@ -384,7 +384,7 @@ namespace Zurfur.Compiler
             string line;
             Token[] tokens;
             int lineIndex;
-            Token prev = null, token;
+            Token? prev = null, token;
 
             for (lineIndex = 0;  lineIndex < mLexer.LineCount;  lineIndex++)
             {
@@ -717,7 +717,7 @@ namespace Zurfur.Compiler
             }
         }
 
-        void AddField(SyntaxField field)
+        void AddField(SyntaxField? field)
         {
             if (field == null)
                 return; // Error already marked while parsing definition
@@ -954,7 +954,7 @@ namespace Zurfur.Compiler
         }
 
 
-        SyntaxExpr ParseTypeParameters()
+        SyntaxExpr? ParseTypeParameters()
         {
             if (!AcceptMatch("<"))
                 return null;
@@ -978,20 +978,22 @@ namespace Zurfur.Compiler
         }
 
 
-        private SyntaxConstraint[] ParseConstraints()
+        private SyntaxConstraint[]? ParseConstraints()
         {
             if (!AcceptMatchPastMetaSemicolon("where"))
                 return null;
-            List<SyntaxConstraint> constraints = new List<SyntaxConstraint>();
+            var constraints = new List<SyntaxConstraint?>();
             do
             {
-                constraints.Add(ParseConstraint());
+                var constraint = ParseConstraint();
+                if (constraint != null)
+                    constraints.Add(constraint);
             } while (AcceptMatchPastMetaSemicolon("where"));
 
-            return constraints.ToArray();
+            return constraints.ToArray()!;
         }
 
-        SyntaxConstraint ParseConstraint()
+        SyntaxConstraint? ParseConstraint()
         {
             var constraint = new SyntaxConstraint();
 
@@ -1014,7 +1016,7 @@ namespace Zurfur.Compiler
         }
 
 
-        SyntaxField ParseEnumField(List<Token> qualifiers)
+        SyntaxField? ParseEnumField(List<Token> qualifiers)
         {
             // Variable name
             if (!AcceptIdentifier("Expecting field name"))
@@ -1038,7 +1040,7 @@ namespace Zurfur.Compiler
             return field;
         }
 
-        SyntaxField ParseFieldSimple(List<Token> qualifiers)
+        SyntaxField? ParseFieldSimple(List<Token> qualifiers)
         {
             if (!AcceptIdentifier("Expecting field name"))
                 return null;
@@ -1089,7 +1091,7 @@ namespace Zurfur.Compiler
             }
 
             // Initializer
-            SyntaxExpr initializer = null;
+            SyntaxExpr? initializer = null;
             if (mTokenName == "=")
                 initializer = new SyntaxUnary(Accept(), ParseRightSideOfAssignment());
 
@@ -1151,9 +1153,9 @@ namespace Zurfur.Compiler
         /// Returns true if we are a valid method name
         /// </summary>
         bool ParseExtensionTypeAndMethodName(
-            out SyntaxExpr extensionType, 
+            out SyntaxExpr? extensionType, 
             out Token funcName, 
-            out SyntaxExpr genericTypeArgs, 
+            out SyntaxExpr? genericTypeArgs, 
             List<Token> qualifiers)
         {
 
@@ -1225,9 +1227,9 @@ namespace Zurfur.Compiler
         /// Returns true if we are a valid method name
         /// </summary>
         bool ParseExtensionTypeAndMethodNameGolangStyle(
-            out SyntaxExpr extensionType, 
+            out SyntaxExpr? extensionType, 
             out Token funcName, 
-            out SyntaxExpr genericTypeArgs, 
+            out SyntaxExpr? genericTypeArgs, 
             List<Token> qualifiers)
         {
             extensionType = null;
@@ -1901,7 +1903,7 @@ namespace Zurfur.Compiler
         /// Prefix may be null, or 'tr'.  Next token must be quote symbol.
         /// TBD: Store "tr" in the parse tree.
         /// </summary>
-        SyntaxExpr ParseStringLiteral(Token syntax)
+        SyntaxExpr ParseStringLiteral(Token? syntax)
         {
             const string STR_PARAM = "{?}";
             const string STR_TEMP_REPLACE = "\uF127"; // Anything unlikely to ever be seen in source code
@@ -2037,7 +2039,7 @@ namespace Zurfur.Compiler
         /// and the open '(' or '[' is used as the token.  When primary is null,
         /// it is a tuple or an array and the closing ')' or ']' is used.
         /// </summary>
-        SyntaxExpr ParseParen(string expecting, SyntaxExpr left)
+        SyntaxExpr ParseParen(string expecting, SyntaxExpr? left)
         {
             var parameters = NewExprList();
             if (left != null)
@@ -2247,7 +2249,7 @@ namespace Zurfur.Compiler
         /// <summary>
         /// Parse an identifier.  Error causes reject until errorStop unless errorStop is null.
         /// </summary>
-        Token ParseIdentifier(string errorMessage, WordSet extraStops = null, WordSet allowExtraReservedWords = null)
+        Token ParseIdentifier(string errorMessage, WordSet? extraStops = null, WordSet? allowExtraReservedWords = null)
         {
             AcceptIdentifier(errorMessage, extraStops, allowExtraReservedWords);
             return mPrevToken;
@@ -2257,7 +2259,7 @@ namespace Zurfur.Compiler
         /// Parse an identifier.  Error returns false and causes
         /// reject until end of statement or extraStops hit
         /// </summary>
-        bool AcceptIdentifier(string errorMessage, WordSet extraStops = null, WordSet allowExtraReservedWords = null)
+        bool AcceptIdentifier(string errorMessage, WordSet? extraStops = null, WordSet? allowExtraReservedWords = null)
         {
             if (allowExtraReservedWords != null && allowExtraReservedWords.Contains(mTokenName))
             {
@@ -2272,7 +2274,7 @@ namespace Zurfur.Compiler
             return false;
         }
 
-        bool CheckIdentifier(string errorMessage, WordSet extraStops = null)
+        bool CheckIdentifier(string errorMessage, WordSet? extraStops = null)
         {
             if (mToken.Type == eTokenType.Identifier)
                 return true;
@@ -2335,7 +2337,7 @@ namespace Zurfur.Compiler
         }
 
         // Accept match, otherwise reject until match token, then try one more time
-        bool AcceptMatchOrReject(string matchToken, string message = null, bool tryToRecover = true)
+        bool AcceptMatchOrReject(string matchToken, string? message = null, bool tryToRecover = true)
         {
             if (AcceptMatch(matchToken))
                 return true;
@@ -2512,7 +2514,7 @@ namespace Zurfur.Compiler
         // Reject the current token, then advance until the
         // end of line token or extraStops.
         // Returns TRUE if any token was accepted
-        bool Reject(string errorMessage, WordSet extraStops = null)
+        bool Reject(string errorMessage, WordSet? extraStops = null)
         {
             RejectToken(mToken, errorMessage);
             if (extraStops == null)
