@@ -81,17 +81,17 @@ argument, and the return type comes after the parameters:
 
     // This comment is public documentation.
     // Use `name` to refer to variables in the code. 
-    fun main(args Array<Str>)
+    fun main(args List<Str>)
         Log.info("Hello World, 2+2=${2+2}")
 
-Methods are declared outside of the type and must use the `my` keyword to
+Methods are declared outside of the type and use the `my` keyword to
 refer to fields or other methods in the type:
 
     // Declare a method for strings
     fun Str.rest() Str
         return if(my.len == 0, "" : my.subRange(1))  // `subRange` is defined by `List`
 
-Generic methods defined on generic types automatically pass their type
+Methods defined on generic types automatically pass their type
 parameters to the receiver type (e.g. use `Map.madd<K,V>`, not `Map<K,V>.madd<K,V>`):
 
     // Declare a method to multiply and add three keys on Map<K,V>.
@@ -132,7 +132,7 @@ copy because it is more efficient to do so.  Other qualifiers, `mut`, `ref`,
 and `own` can be used to change the passing behavior:
 
     fun test(
-        a               Int,  // Pass a copy because it is efficient (i.e. `type copy`)
+        a               Int,  // Pass a copy because it is efficient (i.e. `type passcopy`)
         b       mut ref Int,  // Pass by ref, allow assignment in function
         c         List<Int>,  // Pass by ref, read-only
         d     mut List<Int>,  // Pass by ref, allow mutation, but not assignment
@@ -209,10 +209,10 @@ The ones we all know and love:
 | Type | Description
 | :--- | :---
 | List\<T\> | Re-sizable mutable list of mutable elements.  This is the one and only dynamically sized object in Zurfur.
-| Buffer\<T\> | A list with a constant length and capacity.  Even though it is a `List`, the compiler can optimize it to be faster.
-| Array\<T\>| An alias for `ro List<T>`.  An immutable list of immutable elements. Even if the array contains mutable elements, they become immutable when copied into the list.  Array's can be copied very quickly, just by copying a reference.
-| Str, Str16 | An `Array<Byte>` or `Array<U16>` with support for UTF-8 and UTF-16.  `Array` (an alias for `ro List`) is immutable, therefore `Str` is also immutable.  `Str16` is a JavaScript or C# style Unicode string
-| Span\<T\> | A view into a `List` or `Array`.  It has a constant `len`.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `List` is mutable)
+| ro List\<T\>| An immutable list. All types have a `ro` counterpart, which is fast to copy since it's just copying a reference.
+| Buffer\<T\> | A list with a constant length and capacity.  The compiler can optimize it to be faster.
+| Str, Str16 | A `ro List<Byte>` or `ro List<U16>` with support for UTF-8 and UTF-16.  `ro List` is immutable, therefore `Str` is also immutable.  `Str16` is a JavaScript or C# style Unicode string
+| Span\<T\> | A view into a `List` (or `ro List` or `Str`, etc.).  It has a constant `len`.  Mutability of elements depends on usage (e.g Span from `ro List` is immutable, Span from `List` is mutable)
 | Map<K,V> | Unordered mutable map.  `ro Map<K,V>` is the immutable counterpart. 
 | Maybe\<T\> | Identical to `?T`.  Always optimized for pointers and references.  **TBD:** Put back to `Nilable`?
 | Result\<T\> | Same as `!T`. An optional containing either a return value or an `Error` interface.
@@ -221,7 +221,7 @@ The ones we all know and love:
 
 All types have a compiler generated `ro` counterpart which can be copied
 very quickly since cloning them is just a memory copy without dynamic
-allocation.  In the case of `ro List`, `Array`, `Str`, it's just one pointer.
+allocation.
 
 ### Declaring Types
 
@@ -247,9 +247,9 @@ a private variable is the file that it is declared in.
         text3 ro Str init = "Hello"     // Constructor can override
 
 
- Using the private variable requires the `_`, while the public version does
- not (e.g. both `my._list3=[]` and `@a=my._list3[0]` are okay within the file
- scope, but only `@a=my.list3[0]` may be used outside the file scope).
+Using the private variable requires the `_`, while the public version does
+not (e.g. both `my._list3=[]` and `@a=my._list3[0]` are okay within the file
+scope, but only `@a=my.list3[0]` may be used outside the file scope).
 Private fields can have public getters or setters. 
 
         
@@ -286,7 +286,7 @@ of the fields as named parameters.
 
 ### Strings
 
-Strings (i.e. `Str`) are immutable Byte arrays (i.e. `Array<Byte>`), generally
+Strings (i.e. `Str`) are immutable Byte lists (i.e. `ro List<Byte>`), generally
 assumed to hold UTF8 encoded characters.  However, there is no rule enforcing
 the UTF8 encoding so they may hold any binary data.
 
@@ -308,12 +308,12 @@ There is no `StringBuilder` type, use `List<Byte>` instead:
 
 ### Span
 
-Span is a view into a `Str`, `List`, or `Array`.  They are `type ref` and
+Span is a view into a `List`, `ro List`, or `Str`, etc..  They are `type ref` and
 may never be stored on the heap.  Unlike in C#, a span can be used to pass
 data to an async function.  
 
-The array declaration syntax `[]Type` translates directly to Span (not to
-`Array` like C#).  The following definitions are identical:
+The declaration syntax `[]Type` translates directly to Span.  The following
+definitions are identical:
 
     // The following definitions are identical:
     afun mut write(data Span<Byte>) !Int
@@ -332,7 +332,7 @@ the list is a change to the span and a change to the span is a change to the lis
     c[0] = "hello"              // now a = ["a","b","hello","d","e"], and b=["b","hello","d"]
 
 Mutating the `len` or `capacity` of a `List` (not the elements of it) while
-there is a `Span` or reference  pointing into it is a programming error, and
+there is a `Span` or reference pointing into it is a programming error, and
 fails the same as indexing outside of array bounds.
 
     @list = List<Byte>()
@@ -347,16 +347,17 @@ The `new` function is the type constructor.  It does not have access to
 `my` and may not call member functions except for another `new` function
 (e.g. `new(a Int)` may call `new()`).  
 
+Like Rust, an explicit `clone` is required to copy dynamically allocated mutable
+types.  `ro` types can be copied without dynamic allocation, so are always copied
+implicitly.  Types containing only other `ro` types  (e.g. `Int`, `Str`, `ro List`, etc.),
+can be implicitly cloned if they are marked `copy`.  Types containing `List`, `Map`, or
+any other dynamically allocated mutable data, must be explicitly cloned.  Some
+types, such as `FileStream` can't be cloned at all.
+
 `_opEq`, `getHash`, `clone`, and `deepClone` are generated automatically
 for types where all of the elements also implement these functions.  The 
 `_opEq` function compares values, not object references.  Types that don't
 implement an `_opEq` function may not be compared with `==` or `!=`.
-
-Like Rust, an explicit `clone` is required to copy any mutable type that
-requires dynamic allocation.  If the type contains only `Int`, `Str`, `Array`, or
-`ro List`, it will implicitly copy itself.  If the type contains `List`, `Map`,
-or any other dynamically allocated mutable data, it must be explicitly cloned.
-Some types, such as `FileStream` can't be cloned at all.
 
 `clone` clones the entire object, but does a shallow copy of pointers.
 For instance, `List<MyType>>` is cloned fully provided that `MyType`
@@ -677,14 +678,10 @@ cycles are created during program execution.
 
 Furthermore, Zurfur's ownership model means that cycles can be collected
 without tracing the entire heap because it can skip all data structures that
-don't cycle.  For instance, a 100Mb `Map<Str,Str>` doesn't need to be traced
-since it can't have a cycle.
+don't cycle.  
 
 Calling an async function doesn't create garbage because each task has its
 own stack.  No dynamic allocations are needed for async calls.
-
-P.S.  There will be no weak references.  To keep things fun and easy, cycles
-will be collected automatically.
 
 ## Raw Pointers
 
