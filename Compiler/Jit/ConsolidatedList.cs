@@ -36,4 +36,15 @@ namespace Zurfur.Jit
             set { mList[i] = value; }
         }
     }
+
+    public static class Util
+    {
+        public static T Pop<T>(this List<T> list)
+        { 
+            var item = list[list.Count - 1];
+            list.RemoveAt(list.Count - 1);
+            return item;
+        }
+
+    }
 }

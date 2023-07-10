@@ -10,11 +10,6 @@ using Zurfur.Jit;
 
 namespace Zurfur.Compiler
 {
-    public class ZilGenerateError : TokenError
-    {
-        public ZilGenerateError(string message) : base(message) { }
-    }
-
     /// <summary>
     /// Compile the code given the output of header file generation.
     /// </summary>
@@ -132,13 +127,13 @@ namespace Zurfur.Compiler
         }
 
 
-        static public Assembly GenerateCode(
+        static public AsPackage GenerateCode(
             Dictionary<string, SyntaxFile> synFiles,
             SymbolTable table,
             Dictionary<SyntaxScope, Symbol> syntaxToSymbol,
             UseSymbols allFileUses)
         {
-            var assembly = new Assembly();
+            var assembly = new AsPackage();
             assembly.Types.AddOrFind(table.EmptyTuple);
             foreach (var synFile in synFiles)
             {
@@ -161,7 +156,7 @@ namespace Zurfur.Compiler
             SymbolTable table,
             UseSymbolsFile fileUses,
             Symbol function,
-            Assembly assembly)
+            AsPackage assembly)
         {
             var typeVoid = table.Lookup(SymTypes.Void);
             var typeNil = table.Lookup(SymTypes.Nil);
@@ -191,7 +186,7 @@ namespace Zurfur.Compiler
             // TBD: Remove null forgiving operator below when the compiler
             //      is improved:  https://github.com/dotnet/roslyn/issues/29892
             var commentLines = new Dictionary<int, bool>();
-            var asFun = new AsFun(assembly, function.FullName, function.Token);
+            var asFun = new AsFun(assembly, function.FullName);
             var localsByName = new Dictionary<string, LocalSymbol>();
             var localsByIndex = new List<Symbol>();
             var scopeToken = new Dictionary<int, Token>();

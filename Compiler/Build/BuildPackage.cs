@@ -32,7 +32,6 @@ namespace Zurfur.Build
 
         string mBaseDir = "";
         bool mIsCompiling;
-        int mCompileCount;
         TimeSpan mLexAndParseTime;
 
         // Force full re-compile every time so we can see how long it takes
@@ -152,7 +151,7 @@ namespace Zurfur.Build
 
         // If in the process of building, the task completes when it is done.
         // Otherwise, trigger a new build.
-        public Task ReCompile()
+        Task ReCompile()
         {
             if (FULL_RECOMPILE)
                 foreach (var fileName in mPackageFiles.Keys)
@@ -384,7 +383,9 @@ namespace Zurfur.Build
 
             // TBD: This should also move to a background thread.
             var dtStartGenCode = DateTime.Now;
-            var asFuns = CompileCode.GenerateCode(zurfFiles, zilHeader.Table, zilHeader.SyntaxToSymbol, zilHeader.Uses);
+            var asPackage = CompileCode.GenerateCode(zurfFiles, zilHeader.Table, zilHeader.SyntaxToSymbol, zilHeader.Uses);
+            if (!noVerify)
+                VerifyCode.Verify(asPackage);
             var dtEndGenCode = DateTime.Now;
 
 
@@ -399,9 +400,9 @@ namespace Zurfur.Build
                 mHeaderJson = JsonSerializer.Serialize(package);
 
                 // Code
-                var sb = new StringBuilder();
-                asFuns.Print(sb);
-                mCodeJson = sb.ToString();
+                var sb = new List<string>();
+                asPackage.Print(sb);
+                mCodeJson = string.Join("\r\n", sb);
             });
             var dtEndGenPackage = DateTime.Now;
 

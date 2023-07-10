@@ -7,8 +7,10 @@ using System.Text.Json;
 
 namespace Zurfur.Jit
 {
-
-    public class Assembly
+    /// <summary>
+    /// Assembly package
+    /// </summary>
+    public class AsPackage
     {
         public readonly List<string> Comments = new();
         public readonly ConsolidatedList<Symbol> Calls = new();
@@ -17,39 +19,44 @@ namespace Zurfur.Jit
         public readonly ConsolidatedList<string> Translated = new();
         public readonly Dictionary<string, AsFun> Functions = new();
 
-        public Assembly() 
+        public AsPackage() 
         {
             Strings.AddOrFind("");
             Translated.AddOrFind("");
         }
 
-        public void Print(StringBuilder sb)
+        public void Print(List<string> sb)
         {
             // Print code
-            sb.Append("code:\r\n");
+            sb.Add("code:");
+            var tracer = new AsTracer();
             foreach (var fun in Functions.Values.OrderBy(i => i.Name))
-                fun.Print(sb);
+                fun.Print(sb, tracer);
 
             // Print calls
-            sb.Append("\r\ncalls:\r\n");
+            sb.Add("");
+            sb.Add("calls:");
             var index = 0;
             foreach (var call in Calls)
-                sb.Append($"    {index++} {call}\r\n");
+                sb.Add($"    {index++} {call}");
 
             // Print types
-            sb.Append("\r\ntypes:\r\n");
+            sb.Add("");
+            sb.Add("types:");
             index = 0;
             foreach (var type in Types)
-                sb.Append($"    {index++} {type}\r\n");
+                sb.Add($"    {index++} {type}");
 
             // Print strings
-            sb.Append("\r\nstrings:\r\n");
+            sb.Add("");
+            sb.Add("strings:");
             index = 0;
             foreach (var str in Strings)
-                sb.Append($"    {index++} \"{JsonEncodedText.Encode(str)}\"\r\n");
+                sb.Add($"    {index++} \"{JsonEncodedText.Encode(str)}\"");
 
-            sb.Append("\r\ntranslate:\r\n");
-            sb.Append("    tbd...\r\n\r\n");
+            sb.Add("");
+            sb.Add("translate:");
+            sb.Add("    tbd...");
         }
     }
 
