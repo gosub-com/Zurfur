@@ -177,6 +177,15 @@ namespace Zurfur.Jit
             return lambda;
         }
 
+        public Symbol CreateRef(Symbol type, bool rawPointer = false)
+        {
+            var refTypeName = rawPointer ? SymTypes.RawPointer : SymTypes.Ref;
+            var refType = Lookup(refTypeName);
+            if (refType == null)
+                throw new Exception($"Compiler error: '{refTypeName}' is undefined in the base library");
+            return CreateSpecializedType(refType, new Symbol[] { type });
+        }
+
         /// <summary>
         /// Create a specialized type.
         /// </summary>
@@ -264,25 +273,6 @@ namespace Zurfur.Jit
                 mSpecializedTypes[name] = arg;
             }
             return mGenericArguments[argNum];
-        }
-
-        /// <summary>
-        /// Returns the symbol at the given path in the package.
-        /// Returns null and marks an error if not found.
-        /// </summary>
-        public Symbol? FindTypeInPathOrReject(Token[] path)
-        {
-            var symbol = Root;
-            foreach (var name in path)
-            {
-                if (!symbol.TryGetPrimary(name, out var child))
-                {
-                    Reject(name, "Module or type name not found");
-                    return null;
-                }
-                symbol = child!;
-            }
-            return symbol;
         }
 
         // Does not reject if there is already an error there

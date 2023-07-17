@@ -14,8 +14,9 @@ namespace Zurfur.Jit
         NoImp,  // Not implemented, operand is index into comments
 
         // Flow control
-        Begin,  // Begin scope
-        End,    // End scope
+        BeginFun,
+        BeginScope,  // Begin scope
+        EndScope,    // End scope
         Br,     // Branch
         Brif,   // Branch if, operand is target level (negative is up)
         Brnif,  // Branch not if, operand is targer level (negative is up) 
@@ -30,7 +31,7 @@ namespace Zurfur.Jit
         // Constants
         I64,    // Operand is I64
         F64,    // Operand is IEEE 754 encoded as int64
-        String, // Operand is index into string table
+        Str,    // Operand is index into string table
 
         // Code
         Loc,    // Create a local in this scope, operand is an index into types
@@ -43,18 +44,18 @@ namespace Zurfur.Jit
     public struct AsOp
     {
         public readonly Op Op;
-        public long Oper { get; private set; }
+        public long Operand { get; private set; }
 
         public AsOp(Op op, long operand)
         {
             Op = op;
-            Oper = operand;
+            Operand = operand;
         }
 
-        public int OperInt
-            => (int)Oper;
+        public int OperandInt
+            => (int)Operand;
 
         public override string ToString()
-            => $"({Op},{Oper})";
+            => $"({Op},{Operand})";
     }
 }

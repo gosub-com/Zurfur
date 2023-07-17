@@ -346,7 +346,7 @@ namespace Zurfur.Ide
             if (symbol.Type != null && !symbol.IsFun && !symbol.IsLambda)
                 message += $"Type: {symbol.Type.FriendlyName()}\r\n";
 
-            if (symbol.Concrete.Comments.Trim() != "")
+            if ( (symbol.Concrete.Comments ?? "") .Trim() != "")
                 message += $"// {symbol.Concrete.Comments}\r\n";
 
             // Raw symbol info

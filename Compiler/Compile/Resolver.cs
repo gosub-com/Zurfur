@@ -338,10 +338,7 @@ namespace Zurfur.Compiler
                     && !paramType.IsGenericArg
                     && paramType.Parent!.FullName != SymTypes.Ref)
                 {
-                    // TBD: Fix crash if Zurfur.Ref doesn't exist
-                    var refType = table.CreateSpecializedType(
-                        table.Lookup(SymTypes.Ref), new Symbol[] { paramType });
-                    paramType = refType;
+                    paramType = table.CreateRef(paramType);
                 }
 
                 funParam.ParamOut = isReturn;

@@ -115,7 +115,7 @@ namespace Zurfur.Compiler
                     foreach (var use in syntaxFile.Value.Using)
                     {
                         // Find the module
-                        var module = table.FindTypeInPathOrReject(use.ModuleName);
+                        var module = FindTypeInPathOrReject(table, use.ModuleName);
                         if (module == null || use.ModuleName.Length == 0)
                             continue;  // Error marked by FindPathOrReject
                         var lastToken = use.ModuleName[use.ModuleName.Length - 1];
@@ -139,6 +139,25 @@ namespace Zurfur.Compiler
                     uses.Files[syntaxFile.Key] = fileUseSymbols;
                 }
                 return uses;
+            }
+
+            /// <summary>
+            /// Returns the symbol at the given path in the package.
+            /// Returns null and marks an error if not found.
+            /// </summary>
+            Symbol? FindTypeInPathOrReject(SymbolTable table, Token[] path)
+            {
+                var symbol = table.Root;
+                foreach (var name in path)
+                {
+                    if (!symbol.TryGetPrimary(name, out var child))
+                    {
+                        Reject(name, "Module or type name not found");
+                        return null;
+                    }
+                    symbol = child!;
+                }
+                return symbol;
             }
 
             void AddUseSymbolsFromModule(Symbol module, string name, Token? token, UseSymbolsFile useSymbolsFile)

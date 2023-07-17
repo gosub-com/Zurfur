@@ -127,13 +127,20 @@ namespace Zurfur.Compiler
         }
 
 
-        static public AsPackage GenerateCode(
+        static public Assembly GenerateCode(
             Dictionary<string, SyntaxFile> synFiles,
             SymbolTable table,
             Dictionary<SyntaxScope, Symbol> syntaxToSymbol,
             UseSymbols allFileUses)
         {
-            var assembly = new AsPackage();
+            var assembly = new Assembly();
+            assembly.Types.AddOrFind(table.EmptyTuple);
+            assembly.Types.AddOrFind(table.Lookup(SymTypes.Nil)!);
+            assembly.Types.AddOrFind(table.Lookup(SymTypes.Bool)!);
+            assembly.Types.AddOrFind(table.Lookup(SymTypes.Int)!);
+            assembly.Types.AddOrFind(table.Lookup(SymTypes.F64)!);
+            assembly.Types.AddOrFind(table.Lookup(SymTypes.Str)!);
+
             assembly.Types.AddOrFind(table.EmptyTuple);
             foreach (var synFile in synFiles)
             {
@@ -156,7 +163,7 @@ namespace Zurfur.Compiler
             SymbolTable table,
             UseSymbolsFile fileUses,
             Symbol function,
-            AsPackage assembly)
+            Assembly assembly)
         {
             var typeVoid = table.Lookup(SymTypes.Void);
             var typeNil = table.Lookup(SymTypes.Nil);
@@ -186,7 +193,6 @@ namespace Zurfur.Compiler
             // TBD: Remove null forgiving operator below when the compiler
             //      is improved:  https://github.com/dotnet/roslyn/issues/29892
             var commentLines = new Dictionary<int, bool>();
-            var asFun = new AsFun(assembly, function.FullName);
             var localsByName = new Dictionary<string, LocalSymbol>();
             var localsByIndex = new List<Symbol>();
             var scopeToken = new Dictionary<int, Token>();
@@ -200,39 +206,36 @@ namespace Zurfur.Compiler
             for (var y = y1;  y <= y2; y++)
             {
                 commentLines[y] = true;
-                asFun.AddComment(synFunc.Keyword, synFile.Lexer.GetLine(y));
+                assembly.AddOpComment(synFunc.Keyword, synFile.Lexer.GetLine(y));
             }
 
+            // Generate code for this function
+            var opStartIndex = assembly.Code.Count;
+            assembly.AddOpBeginFun(function);
             BeginLocalScope(function.Token);
 
             // Add input parameters as locals
             foreach (var p in function.ChildrenFilter(SymKind.FunParam).Where(p => !p.ParamOut).OrderBy(p => p.Order))
-            {
-                asFun.UseLocal(p.Token, localsByIndex.Count);
                 localsByIndex.Add(p);
-            }
 
             if (synFunc.Statements != null)
                 GenStatements(synFunc.Statements);
-
             EndLocalScope();
-
 
             // Replace local symbol index with the type.  This is done because
             // the type wasn't known when it was created.
-            for (var i = 0; i < asFun.Code.Count; i++)
+            for (var i = opStartIndex; i < assembly.Code.Count; i++)
             {
-                var op = asFun.Code[i];
+                var op = assembly.Code[i];
                 if (op.Op == Op.Loc)
                 {
-                    var symType = localsByIndex[(int)op.Oper].Type;
+                    var symType = localsByIndex[(int)op.Operand].Type;
                     if (symType == null)
                         symType = typeVoid;
-                    asFun.Code[i] = new AsOp(Op.Loc, assembly.Types.AddOrFind(symType));
+                    assembly.Code[i] = new AsOp(Op.Loc, assembly.Types.AddOrFind(symType));
                 }
             }
 
-            assembly.Functions[asFun.Name] = asFun;
             return;
 
 
@@ -299,16 +302,16 @@ namespace Zurfur.Compiler
             {
                 // Condition
                 newVarScope = scopeNum;     // Locals in condition go in outer scope
-                newVarCodeIndex = asFun!.Code.Count;
+                newVarCodeIndex = assembly.Code.Count;
                 BeginLocalScope(ex.Token);
                 GenBoolCondition(ex, "while");
-                asFun.Add(Op.Brnif, ex.Token, 1);
+                assembly.AddOp(Op.Brnif, ex.Token, 1);
                 newVarScope = -1;           // End special locals condition scope
                 newVarCodeIndex = -1;
 
                 // Statements
                 GenStatementsWithScope(ex[1], ex.Token);
-                asFun.Add(Op.Br, ex.Token, -1);
+                assembly.AddOp(Op.Br, ex.Token, -1);
 
                 EndLocalScope();
             }
@@ -337,17 +340,17 @@ namespace Zurfur.Compiler
             {
                 // If condition
                 newVarScope = scopeNum;         // Locals in condition go in outer scope
-                newVarCodeIndex = asFun!.Code.Count;
+                newVarCodeIndex = assembly.Code.Count;
                 BeginLocalScope(s[i].Token);    // If...elif...else scope
                 BeginLocalScope(s[i].Token);    // If... scope
                 GenBoolCondition(s[i], "if");
-                asFun.Add(Op.Brnif, s[i].Token, 1);
+                assembly.AddOp(Op.Brnif, s[i].Token, 1);
                 newVarScope = -1;               // End special locals condition scope
                 newVarCodeIndex = -1;
 
                 // If statements
                 GenStatements(s[i][1]);
-                asFun.Add(Op.Br, s[i].Token, 2);
+                assembly.AddOp(Op.Br, s[i].Token, 2);
                 EndLocalScope();
 
 
@@ -357,9 +360,9 @@ namespace Zurfur.Compiler
                     i += 1;
                     BeginLocalScope(s[i].Token);
                     GenBoolCondition(s[i], "if");
-                    asFun.Add(Op.Brnif, s[i].Token, 1);
+                    assembly.AddOp(Op.Brnif, s[i].Token, 1);
                     GenStatements(s[i][1]);
-                    asFun.Add(Op.Br, s[i].Token, 2);
+                    assembly.AddOp(Op.Br, s[i].Token, 2);
                     EndLocalScope();
                 }
 
@@ -488,7 +491,7 @@ namespace Zurfur.Compiler
                 {
                     Reject(ex.Token, $"Incorrect return type, expecting '{functionType}', got '{rval.Type}'");
                 }
-                asFun!.Add(Op.Ret, ex.Token, 0);
+                assembly.AddOp(Op.Ret, ex.Token, 0);
 
                 return rval;
             }
@@ -510,7 +513,7 @@ namespace Zurfur.Compiler
                 if (!commentLines!.ContainsKey(token.Y))
                 {
                     commentLines[token.Y] = true;
-                    asFun!.AddComment(token, synFile.Lexer.GetLine(token.Y));
+                    assembly.AddOpComment(token, synFile.Lexer.GetLine(token.Y));
                 }
 
                 // Terminals: Number, string, identifier
@@ -588,12 +591,12 @@ namespace Zurfur.Compiler
                 {
                     // Store double as IEEE 754 long
                     double.TryParse(ex.Token, out var number);
-                    asFun!.Add(Op.F64, ex.Token, BitConverter.DoubleToInt64Bits(number));
+                    assembly.AddOp(Op.F64, ex.Token, BitConverter.DoubleToInt64Bits(number));
                 }
                 else
                 {
                     long.TryParse(ex.Token, out var number);
-                    asFun!.Add(Op.I64, ex.Token, number);
+                    assembly.AddOp(Op.I64, ex.Token, number);
                 }
 
                 var untypedConst = true;
@@ -628,9 +631,9 @@ namespace Zurfur.Compiler
 
             Rval GenStr(SyntaxExpr ex)
             {
-                asFun!.AddStr(ex.Token, ex[0].Token);
+                assembly.AddOpStr(ex.Token, ex[0].Token);
                 foreach (var interp in ex[0])
-                    asFun.AddNoImp(ex.Token, "Interpolate: " + interp.ToString());
+                    assembly.AddOpNoImp(ex.Token, "Interpolate: " + interp.ToString());
                 return new Rval(ex.Token) { Type = typeStr };
             }
 
@@ -893,12 +896,7 @@ namespace Zurfur.Compiler
                     return;
                 }
 
-                // Ref or address off
-                var refType = table.Lookup(rawPointer ? SymTypes.RawPointer : SymTypes.Ref);
-                if (refType == null)
-                    throw new Exception("Compiler error: MakeIntoRef, undefined type in base library");
-
-                rval.Type = table.CreateSpecializedType(refType, new Symbol[] { type });
+                rval.Type = table.CreateRef(type, rawPointer);
             }
 
 
@@ -972,7 +970,7 @@ namespace Zurfur.Compiler
                     // Debug, TBD: Remove or get better compiler feedback system
                     ex.Token.AddInfo($"setter({args[1].FullName}) = ({rightType.FullName})");
 
-                    asFun!.AddNoImp(ex.Token, $"setter assignment");
+                    assembly.AddOpNoImp(ex.Token, $"setter assignment");
 
                     // TBD: Need to make this into a function call
                     return null;
@@ -996,7 +994,7 @@ namespace Zurfur.Compiler
                 // Debug, TBD: Remove or get better compiler feedback system
                 ex.Token.AddInfo($"({leftType.FullName}) = ({rightType.FullName})");
 
-                asFun!.Add(Op.Setr, ex.Token, 0);
+                assembly.AddOp(Op.Setr, ex.Token, 0);
 
                 return null;
             }
@@ -1087,20 +1085,20 @@ namespace Zurfur.Compiler
 
                 if (sCmpOperators.Contains(token))
                 {
-                    var returnType = token == "==" || token == "!=" ? typeBool : typeI32;
+                    var returnType = token == "==" || token == "!=" ? typeBool : typeInt;
                     if (funType != returnType)
                     {
                         Reject(token, $"Expecting operator to return '{returnType}'");
                         return null;
                     }
                     if (token == "<")
-                        asFun!.Add(Op.Lt, token, 0);
+                        assembly.AddOp(Op.Lt, token, 0);
                     else if (token == "<=")
-                        asFun!.Add(Op.Le, token, 0);
+                        assembly.AddOp(Op.Le, token, 0);
                     else if (token == ">")
-                        asFun!.Add(Op.Gt, token, 0);
+                        assembly.AddOp(Op.Gt, token, 0);
                     else if (token == ">=")
-                        asFun!.Add(Op.Ge, token, 0);
+                        assembly.AddOp(Op.Ge, token, 0);
 
                     funType = typeBool;
                 }
@@ -1301,7 +1299,7 @@ namespace Zurfur.Compiler
                             }
                             rval.Type = local.sym.Type;
                             rval.IsLocal = true;
-                            asFun!.Ldlr(local.sym.Token, local.index);
+                            assembly.AddOpLdlr(local.sym.Token, local.index);
                             return local.sym;
                         }
                         if (local.sym.IsFunParam)
@@ -1311,7 +1309,7 @@ namespace Zurfur.Compiler
                                 Reject(token, $"'{token}' has an unresolved type");
                             rval.Type = local.sym.Type;
                             rval.IsLocal = true;
-                            asFun!.Ldlr(local.sym.Token, local.index);
+                            assembly.AddOpLdlr(local.sym.Token, local.index);
                             return local.sym;
                         }
                     }
@@ -1332,7 +1330,7 @@ namespace Zurfur.Compiler
                         return null;
                     }
                     rval.Type = inType.TypeArgs[i];
-                    asFun!.AddNoImp(token, $"tuple {token}");
+                    assembly.AddOpNoImp(token, $"tuple {token}");
                     return null;
                 }
 
@@ -1414,14 +1412,14 @@ namespace Zurfur.Compiler
 
                     // A field is the same thing as a getter returning a mutable ref
                     MakeIntoRef(rval);
-                    asFun!.AddNoImp(sym.Token, $"field {sym.FullName}");
+                    assembly.AddOpNoImp(sym.Token, $"field {sym.FullName}");
                     return sym;
                 }
 
                 if (sym.IsFun)
                 {
                     rval.Type = sym.FunReturnType;
-                    asFun!.AddCall(sym.Token, sym);
+                    assembly.AddOpCall(sym.Token, sym);
                     return sym;
                 }
                 Reject(token, $"'{token}' compiler failure: '{sym}' is {sym.KindName}");
@@ -1541,7 +1539,7 @@ namespace Zurfur.Compiler
                 var lambdaOrFunType = func.IsFun ? func : func.Type;
                 if (addSymbolInfo)
                     call.Token.AddInfo(lambdaOrFunType);
-                asFun!.AddCall(call.Token, lambdaOrFunType!);
+                assembly.AddOpCall(call.Token, lambdaOrFunType!);
                 return lambdaOrFunType!.FunReturnType;
             }
 
@@ -1840,7 +1838,7 @@ namespace Zurfur.Compiler
                 var local = new Symbol(SymKind.Local, null, token);
                 var localScope = newVarScope >= 0 && !forLambda ? newVarScope : scopeNum;
                 localsByName![token] = new LocalSymbol(local, localScope, localsByIndex!.Count);
-                asFun!.UseLocal(token, localsByIndex.Count, newVarCodeIndex);
+                assembly.AddOpUseLocal(token, localsByIndex.Count, newVarCodeIndex);
                 localsByIndex.Add(local);
                 return local;
             }
@@ -1918,7 +1916,7 @@ namespace Zurfur.Compiler
             void BeginLocalScope(Token token)
             {
                 scopeNum++;
-                asFun!.Add(Op.Begin, token, 0);
+                assembly.AddOp(Op.BeginScope, token, 0);
                 scopeToken![scopeNum] = token;
             }
 
@@ -1931,7 +1929,7 @@ namespace Zurfur.Compiler
                     else if (local.ScopeNum > scopeNum)
                         local.ScopeNum = scopeNum;
                 }
-                asFun!.Add(Op.End, scopeToken![scopeNum], 0);
+                assembly.AddOp(Op.EndScope, scopeToken![scopeNum], 0);
                 scopeNum--;
             }
 

@@ -14,7 +14,7 @@
 
 // TBD: Remove after more of the generic type system is working
 [pub static] fun Str._opEq(a Str, b Str) Bool {}
-[pub static] fun Str._opCmp(a Str, b Str) I32 {}
+[pub static] fun Str._opCmp(a Str, b Str) Int {}
 
 [pub] fun Str.new(st Span<Byte>) extern
     

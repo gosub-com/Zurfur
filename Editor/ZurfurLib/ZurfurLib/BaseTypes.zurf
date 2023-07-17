@@ -115,7 +115,7 @@ type I8 ro passcopy
 
 [pub static] fun I8.getHash(a I8) Int extern
 [pub static] fun I8._opEq(a I8, b I8) Bool extern
-[pub static] fun I8._opCmp(a I8, b I8) I32 extern
+[pub static] fun I8._opCmp(a I8, b I8) Int extern
 
 
 // Byte (0..255)
@@ -143,7 +143,7 @@ type I8 ro passcopy
 
 [pub static] fun Byte.getHash(a Byte) Int extern
 [pub static] fun Byte._opEq(a Byte, b Byte) Bool extern
-[pub static] fun Byte._opCmp(a Byte, b Byte) I32 extern
+[pub static] fun Byte._opCmp(a Byte, b Byte) Int extern
 
 
 // I16 (-32768..32768)
@@ -171,7 +171,7 @@ type I8 ro passcopy
 
 [pub static] fun I16.getHash(a I16) Int extern
 [pub static] fun I16._opEq(a I16, b I16) Bool extern
-[pub static] fun I16._opCmp(a I16, b I16) I32 extern
+[pub static] fun I16._opCmp(a I16, b I16) Int extern
 
 
 
@@ -203,7 +203,7 @@ type I8 ro passcopy
 
 [pub static] fun U16.getHash(a U16) Int extern
 [pub static] fun U16._opEq(a U16, b U16) Bool extern
-[pub static] fun U16._opCmp(a U16, b U16) I32 extern
+[pub static] fun U16._opCmp(a U16, b U16) Int extern
 
 // A 32 bit integer
 [pub] type I32 ro passcopy
@@ -234,7 +234,7 @@ type I8 ro passcopy
 
 [pub static] fun I32.getHash(a I32) Int extern
 [pub static] fun I32._opEq(a I32, b I32) Bool extern
-[pub static] fun I32._opCmp(a I32, b I32) I32 extern
+[pub static] fun I32._opCmp(a I32, b I32) Int extern
 [pub static] fun I32._opIn(a I32, b Range<I32>) Bool extern
 [pub static] fun I32._opRange(a I32, b I32) Range<I32> extern // TBD: Generic function on range?
 [pub static] fun I32._opAdd(a I32, b I32) I32 extern
@@ -284,7 +284,7 @@ type I8 ro passcopy
 
 [pub static] fun U32.getHash(a U32) Int extern
 [pub static] fun U32._opEq(a U32, b U32) Bool extern
-[pub static] fun U32._opCmp(a U32, b U32) I32 extern
+[pub static] fun U32._opCmp(a U32, b U32) Int extern
 [pub static] fun U32._opIn(a U32, b Range<U32>) Bool extern
 [pub static] fun U32._opRange(a U32, b U32) Range<U32> extern // TBD: Generic function on range?
 [pub static] fun U32._opAdd(a U32, b U32) U32 extern
@@ -336,7 +336,7 @@ type I8 ro passcopy
 
 [pub static] fun Int.getHash(a Int) Int extern
 [pub static] fun Int._opEq(a Int, b Int) Bool extern
-[pub static] fun Int._opCmp(a Int, b Int) I32 extern
+[pub static] fun Int._opCmp(a Int, b Int) Int extern
 [pub static] fun Int._opIn(a Int, b Range<Int>) Bool extern
 [pub static] fun Int._opRange(a Int, b Int) Range<Int> extern // TBD: Generic function on range?
 [pub static] fun Int._opAdd(a Int, b Int) Int extern
@@ -387,7 +387,7 @@ type I8 ro passcopy
 
 [pub static] fun U64.getHash(a U64) Int extern
 [pub static] fun U64._opEq(a U64, b U64) Bool extern
-[pub static] fun U64._opCmp(a U64, b U64) I32 extern
+[pub static] fun U64._opCmp(a U64, b U64) Int extern
 [pub static] fun U64._opIn(a U64, b Range<U64>) Bool extern
 [pub static] fun U64._opRange(a U64, b U64) Range<U64> extern // TBD: Generic function on range?
 [pub static] fun U64._opAdd(a U64, b U64) U64 extern
@@ -451,7 +451,7 @@ type I8 ro passcopy
         
 [pub static] fun F32.getHash(a F32) Int extern
 [pub static] fun F32._opEq(a F32, b F32) Bool extern
-[pub static] fun F32._opCmp(a F32, b F32) I32 extern
+[pub static] fun F32._opCmp(a F32, b F32) Int extern
 [pub static] fun F32._opEqUnordered(a F32, b F32) Bool extern
 [pub static] fun F32._opGtUnordered(a F32, b F32) Bool extern
 [pub static] fun F32._opGeUnordered(a F32, b F32) Bool extern
@@ -499,7 +499,7 @@ type I8 ro passcopy
 
 [pub static] fun F64.getHash(a F64) Int extern
 [pub static] fun F64._opEq(a F64, b F64) Bool extern
-[pub static] fun F64._opCmp(a F64, b F64) I32 extern
+[pub static] fun F64._opCmp(a F64, b F64) Int extern
 [pub static] fun F64._opEqUnordered(a F64, b F64) Bool extern
 [pub static] fun F64._opGtUnordered(a F64, b F64) Bool extern
 [pub static] fun F64._opGeUnordered(a F64, b F64) Bool extern
@@ -547,7 +547,7 @@ type I8 ro passcopy
 
 [pub static] fun Decimal.getHash(a Decimal) Int extern
 [pub static] fun Decimal._opEq(a Decimal, b Decimal) Bool extern
-[pub static] fun Decimal._opCmp(a Decimal, b Decimal) I32 extern
+[pub static] fun Decimal._opCmp(a Decimal, b Decimal) Int extern
 [pub static] fun Decimal._opEqUnordered(a Decimal, b Decimal) Bool extern
 [pub static] fun Decimal._opGtUnordered(a Decimal, b Decimal) Bool extern
 [pub static] fun Decimal._opGeUnordered(a Decimal, b Decimal) Bool extern

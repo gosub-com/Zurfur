@@ -14,7 +14,7 @@ type RawPointer<T> passcopy
     value Xuint
 
 [static] fun RawPointer._opEq<T>(p1 RawPointer<T>, p2 RawPointer<T>) Bool extern
-[static] fun RawPointer._opCmp<T>(p1 RawPointer<T>, p2 RawPointer<T>) I32 extern
+[static] fun RawPointer._opCmp<T>(p1 RawPointer<T>, p2 RawPointer<T>) Int extern
 [static] fun RawPointer._opAdd<T>(p1 RawPointer<T>, i U64) RawPointer<T> extern
 [static] fun RawPointer._opAdd<T>(p1 U64, i RawPointer<T>) RawPointer<T> extern
 [static] fun RawPointer._opSub<T>(p1 RawPointer<T>, p2 RawPointer<T>) RawPointer<T> extern

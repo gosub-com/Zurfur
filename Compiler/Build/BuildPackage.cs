@@ -383,14 +383,15 @@ namespace Zurfur.Build
 
             // TBD: This should also move to a background thread.
             var dtStartGenCode = DateTime.Now;
-            var asPackage = CompileCode.GenerateCode(zurfFiles, zilHeader.Table, zilHeader.SyntaxToSymbol, zilHeader.Uses);
+            var assembly = CompileCode.GenerateCode(zurfFiles, zilHeader.Table, zilHeader.SyntaxToSymbol, zilHeader.Uses);
             if (!noVerify)
-                VerifyCode.Verify(asPackage);
+                VerifyCode.Verify(assembly, zilHeader.Table);
             var dtEndGenCode = DateTime.Now;
 
 
             // NOTE: Tokens in symbol table should be stable, so can run in a background thread.
             var dtStartGenPackage = DateTime.Now;
+            var lineNumbers = new List<int>();
             await Task.Run(() =>
             {
                 // Header
@@ -401,9 +402,31 @@ namespace Zurfur.Build
 
                 // Code
                 var sb = new List<string>();
-                asPackage.Print(sb);
+                var tracer = new AsTrace(assembly, zilHeader.Table);
+                assembly.Print(tracer, sb, lineNumbers);
                 mCodeJson = string.Join("\r\n", sb);
             });
+
+            // Show verification errors in zil code
+            var codeLexer = GetLexer(OutputFileHeaderCode);
+            if (codeLexer != null)
+            {
+                foreach (var error in assembly.Errors)
+                {
+                    if (error.OpIndex < lineNumbers.Count)
+                    {
+                        // TBD: The user can edit the .ZIL files,
+                        //      so errors can get out of sync
+                        if (error.OpIndex < codeLexer.LineCount)
+                        {
+                            var tokens = codeLexer.GetLineTokens(lineNumbers[error.OpIndex]);
+                            if (tokens.Length != 0)
+                                tokens[0].AddError(new VerifyError(error.ErrorMessage));
+                        }
+                    }
+                }
+            }
+
             var dtEndGenPackage = DateTime.Now;
 
             mReport.Clear();

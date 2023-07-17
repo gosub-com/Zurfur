@@ -19,13 +19,13 @@ type OpEq<T> interface
 type OpCmp<T> interface
     [static] fun getHash(value T) U32
     [static] fun _opEq(a T, b T) Bool
-    [static] fun _opCmp(a T, b T) I32
+    [static] fun _opCmp(a T, b T) Int
 
 // Common math operators
 type NumOps<T> interface
     [static] fun getHash(value T) U32
     [static] fun _opEq(a T, b T) Bool
-    [static] fun _opCmp(a T, b T) I32
+    [static] fun _opCmp(a T, b T) Int
     [static] fun _opAdd(a T, b T) T
     [static] fun _opSub(a T, b T) T
     [static] fun _opNeg(a T) T

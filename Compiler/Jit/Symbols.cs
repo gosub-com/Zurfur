@@ -35,6 +35,19 @@ namespace Zurfur.Jit
             { { RawPointer, "*" }, { Pointer, "^" }, { Maybe, "?" }, { Ref, "ref "}, { Span, "[]" } };
     }
 
+    /// <summary>
+    /// Fundamental types
+    /// </summary>
+    public enum SymTypeId
+    {
+        Empty = 0,
+        Nil = 1,
+        Bool = 2,
+        Int = 3,
+        F64 = 4,
+        Str = 5
+    }
+
     public enum SymKind
     {
         None = 0,
