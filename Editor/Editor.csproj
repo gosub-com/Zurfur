@@ -32,94 +32,9 @@
     <Compile Update="Ide\TextEditor.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <None Update="ZurfurLib\ZurfurLib\AATest.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\AAUnfinished.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\Array.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\Channel.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\ConvertBytes.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\DlMalloc.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\Interfaces.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\BaseTypes.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\Io.Zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\Iterator.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\List.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\Log.Zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\Map.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\Math.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\Queue.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\Range.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\Draw2d.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\Str.Zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\www\Test.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\TestCompiler.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\TestParser.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\TestVerifier.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\Pointers.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <None Update="License.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ZurfurLib\ZurfurLib.zurfproj">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\Example.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Update="ZurfurLib\ZurfurLib\Span.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ZurfurLib\ZurfurLib\Test.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
@@ -131,5 +46,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Compiler\Compiler.csproj" />
+    <ProjectReference Include="..\ZurfurLib\ZurfurLib.csproj" />
   </ItemGroup>
 </Project>

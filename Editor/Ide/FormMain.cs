@@ -757,15 +757,21 @@ namespace Zurfur.Ide
         {
             // TBD: Load and store tatget from ZurfProject file.
             // TBD: Need to copy all files into a \bin\debug folder
-            foreach (var file in projectTree)
+            try
             {
-                if (file.Path.Contains("www") && Path.GetFileName(file.Path).ToLower() == "index.html")
+                foreach (var file in projectTree)
                 {
-                    Process.Start(file.Path);
-                    return;
+                    if (file.Path.Contains("www") && Path.GetFileName(file.Path).ToLower() == "index.html")
+                    {
+                        Process.Start(file.Path);
+                        return;
+                    }
                 }
             }
-            MessageBox.Show(this, "'index.html' file not found in www directory", App.Name);
+            catch 
+            { 
+            }
+            MessageBox.Show(this, "'index.html' could not be opened", App.Name);
         }
 
         private async void menuDebugViewOutput_Click(object sender, EventArgs e)

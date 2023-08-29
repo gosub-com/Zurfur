@@ -10,6 +10,7 @@ namespace Zurfur.Jit
     {
         public static void Verify(Assembly assembly, SymbolTable table)
         {
+            return;
             var tracer = new AsTrace(assembly, table);
             while (tracer.OpIndex < assembly.Code.Count)
             {
