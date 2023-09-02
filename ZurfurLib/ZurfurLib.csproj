@@ -13,88 +13,88 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="ZurfurLib\www\index.html">
+    <None Update="www\index.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\www\Test.json">
+    <None Update="www\Test.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\www\Zurfur.jpg">
+    <None Update="www\Zurfur.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\AATest.zurf">
+    <None Update="ZurfurLib\AATest.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\AAUnfinished.zurf">
+    <None Update="ZurfurLib\AAUnfinished.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Array.zurf">
+    <None Update="ZurfurLib\Array.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\BaseTypes.zurf">
+    <None Update="ZurfurLib\BaseTypes.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Channel.zurf">
+    <None Update="ZurfurLib\Channel.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\ConvertBytes.zurf">
+    <None Update="ZurfurLib\ConvertBytes.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\DlMalloc.zurf">
+    <None Update="ZurfurLib\DlMalloc.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Draw2d.zurf">
+    <None Update="ZurfurLib\Draw2d.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Example.zurf">
+    <None Update="ZurfurLib\Example.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Interfaces.zurf">
+    <None Update="ZurfurLib\Interfaces.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Io.Zurf">
+    <None Update="ZurfurLib\Io.Zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Iterator.zurf">
+    <None Update="ZurfurLib\Iterator.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\List.zurf">
+    <None Update="ZurfurLib\List.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Log.Zurf">
+    <None Update="ZurfurLib\Log.Zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Map.zurf">
+    <None Update="ZurfurLib\Map.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Math.zurf">
+    <None Update="ZurfurLib\Math.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Pointers.zurf">
+    <None Update="ZurfurLib\Pointers.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Queue.zurf">
+    <None Update="ZurfurLib\Queue.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Range.zurf">
+    <None Update="ZurfurLib\Range.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Span.zurf">
+    <None Update="ZurfurLib\Span.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Str.Zurf">
+    <None Update="ZurfurLib\Str.Zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\Test.zurf">
+    <None Update="ZurfurLib\Test.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\TestCompiler.zurf">
+    <None Update="ZurfurLib\TestCompiler.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\TestParser.zurf">
+    <None Update="ZurfurLib\TestParser.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\ZurfurLib\TestVerifier.zurf">
+    <None Update="ZurfurLib\TestVerifier.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
