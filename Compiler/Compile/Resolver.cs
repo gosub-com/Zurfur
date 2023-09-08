@@ -332,7 +332,8 @@ namespace Zurfur.Compiler
 
                 // Calling convention is usually by ref
                 if (!isReturn
-                    && !paramType.Qualifiers.HasFlag(SymQualifiers.PassCopy)
+                    && !paramType.Qualifiers.HasFlag(SymQualifiers.Copy)
+                    && !paramType.Qualifiers.HasFlag(SymQualifiers.Ro)
                     && !funParam.Qualifiers.HasFlag(SymQualifiers.Own)
                     && !paramType.IsLambda
                     && !paramType.IsGenericArg

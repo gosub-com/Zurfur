@@ -4,13 +4,13 @@
 // Unsigned extended Int, U32 or U64 depending on machine pointer size.
 // This is the internal representation of a pointer.
 [pub]
-type Xuint passcopy
+type Xuint ro
     value U32 // or U64
 
 // A raw pointer.  The compiler translates *T to RawPointer<T>
 // and automatically dereferences when "." is used.
 [pub unsafe]
-type RawPointer<T> passcopy
+type RawPointer<T> ro
     value Xuint
 
 [static] fun RawPointer._opEq<T>(p1 RawPointer<T>, p2 RawPointer<T>) Bool extern
@@ -26,19 +26,19 @@ type RawPointer<T> passcopy
 // versions might not be.  The owner is nil when a non-heap (static global or
 // stack local) object is referenced.  These references are also called return
 // references because they get passed back up the stack.
-type Ref<T> ref passcopy
+type Ref<T> ref ro
     owner ?*GcHeapObject
     value *T
 
 // Forward references are an optimization the code synthesizer can use when
 // they are passed down the stack, e.g. f(value Ref<T>) can be replaced with
 // f(value FRef<T>) since the reference is "covered".
-type FRef<T> ref passcopy
+type FRef<T> ref ro
     value *T
 
 // A pointer to heap memory.  This implementation uses reference
 // counting, but future implementations might be compacting instead.
-type Pointer<T> passcopy
+type Pointer<T> ro
     value *GcHeapObject  // Can also point to GcHeapArray<T>
 
 // All heap objects start with this header.  It must be 64 bits wide to

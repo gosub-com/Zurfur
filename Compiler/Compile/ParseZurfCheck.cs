@@ -40,7 +40,7 @@ namespace Zurfur.Compiler
             { "ref", 10},
             { "ro", 11}, {"readonly", 11},  
             { "mut", 12 },
-            { "heap", 13 }, {"passcopy", 13}, {"class", 13},
+            { "heap", 13 }, {"class", 13},
             { "nocopy", 14},
             { "extern", 15 }, { "impl", 15 },
         };

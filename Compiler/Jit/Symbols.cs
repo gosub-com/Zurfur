@@ -82,7 +82,6 @@ namespace Zurfur.Jit
         Init = 0x8000,
         Impl = 0x10000,
         Extern = 0x20000,
-        PassCopy = 0x40000,
         ParamOut = 0x80000,
         Own = 0x200000,
         Copy = 0x400000,
@@ -548,7 +547,6 @@ namespace Zurfur.Jit
                 if (Qualifiers.HasFlag(SymQualifiers.Interface)) t += " interface";
                 if (Qualifiers.HasFlag(SymQualifiers.Mut)) t += " mut";
                 if (Qualifiers.HasFlag(SymQualifiers.ParamOut)) t += " out";
-                if (Qualifiers.HasFlag(SymQualifiers.PassCopy)) t += " passcopy";
                 if (Qualifiers.HasFlag(SymQualifiers.Protected)) t += " protected";
                 if (Qualifiers.HasFlag(SymQualifiers.Pub)) t += " pub";
                 if (Qualifiers.HasFlag(SymQualifiers.Ref)) t += " ref";
@@ -607,7 +605,6 @@ namespace Zurfur.Jit
                 case "enum": Qualifiers |= SymQualifiers.Enum; break;
                 case "class": break; // TBD: Implement classes in the future
                 case "init": Qualifiers |= SymQualifiers.Init; break;
-                case "passcopy": Qualifiers |= SymQualifiers.PassCopy; break;
                 case "own": Qualifiers |= SymQualifiers.Own; break;
                 case "copy": Qualifiers |= SymQualifiers.Copy; break;
                 case "union": Qualifiers |= SymQualifiers.Union; break;

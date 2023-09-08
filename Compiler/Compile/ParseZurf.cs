@@ -85,7 +85,7 @@ namespace Zurfur.Compiler
 
         static WordSet sScopeQualifiers = new WordSet("pub public private unsafe unsealed static protected");
         static WordSet sFieldQualifiers = new WordSet("ro mut static");
-        static WordSet sPostTypeQualifiers = new WordSet("ro ref copy nocopy passcopy unsafe enum union interface");
+        static WordSet sPostTypeQualifiers = new WordSet("ro ref copy nocopy unsafe enum union interface");
         static WordSet sPostFieldQualifiers = new WordSet("init mut ref");
         static WordSet sParamQualifiers = new WordSet("ro own mut");
 

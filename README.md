@@ -132,7 +132,7 @@ copy because it is more efficient to do so.  Other qualifiers, `mut`, `ref`,
 and `own` can be used to change the passing behavior:
 
     fun test(
-        a               Int,  // Pass a copy because it is efficient (i.e. `type passcopy`)
+        a               Int,  // Pass a copy because it is efficient (i.e. `type ro`)
         b       mut ref Int,  // Pass by ref, allow assignment in function
         c         List<Int>,  // Pass by ref, read-only
         d     mut List<Int>,  // Pass by ref, allow mutation, but not assignment
