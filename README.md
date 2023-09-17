@@ -50,8 +50,8 @@ Variables are declared and initialized with the `@` operator
     @b = "Hello World"              // b is a Str
     @c = myFunction()               // c is whatever type is returned by myFunction
     @d = [1,2,3]                    // d is List<Int>, initialized with [1,2,3]
-    @e = ["A":1.0, "B":2.0]         // e is Map<Str,F64>
-    @f = [[1.0,2.0],[3.0,4.0]]      // f is List<List<F64>>
+    @e = ["A":1.0, "B":2.0]         // e is Map<Str,Float>
+    @f = [[1.0,2.0],[3.0,4.0]]      // f is List<List<Float>>
 
 The above form `@variable = expression` creates a variable with the same type as
 the expression.  A second form `@variable type [=expression]` creates an explicitly
@@ -60,7 +60,7 @@ typed variable with optional assignment from an expression.
     @a Int = myIntFunc()   // Error if myIntFunc is F32, ok if Int has constructor to convert
     @b Str                              // b is a string, initialized to ""
     @c List<Int>                        // c is an empty List<Int>
-    @d List<F64> = [1, 2, 3]            // Create List<F64>, elements are converted
+    @d List<Float> = [1, 2, 3]            // Create List<Float>, elements are converted
     @e Map<Str,F32> = ["A":1, "B:1.2]   // Create Map<Str,F32>
     @f Json = ["A":1,"B":[1,2,3.5]]     // Create a Json
 
@@ -169,7 +169,7 @@ then never use the object again, or must explicitly `clone` the object.
 Functions can return multiple values:
 
     // Multiple returns
-    fun circle(a F64, r F64) (x F64, y F64)
+    fun circle(a Float, r Float) (x Float, y Float)
         return cos(a)*r, sin(a)*r
 
 The return parameters are named, and can be used by the calling function:
@@ -204,17 +204,17 @@ Return qualifiers:
 
 The ones we all know and love:
 
-    nil, Bool, I8, Byte, I16, U16, I32, U32, Int, U64, F32, F64
+    nil, Bool, I8, Byte, I16, U16, I32, U32, Int, U64, F32, Float
     
 | Type | Description
 | :--- | :---
-| List\<T\> | Re-sizable mutable list of mutable elements.  This is the one and only dynamically sized object in Zurfur.
-| ro List\<T\>| An immutable list. All types have a `ro` counterpart, which is fast to copy since it's just copying a reference.
-| Buffer\<T\> | A list with a constant length and capacity.  The compiler can optimize it to be faster.
-| Str, Str16 | A `ro List<Byte>` or `ro List<U16>` with support for UTF-8 and UTF-16.  `ro List` is immutable, therefore `Str` is also immutable.  `Str16` is a JavaScript or C# style Unicode string
-| Span\<T\> | A view into a `List` (or `ro List` or `Str`, etc.).  It has a constant `len`.  Mutability of elements depends on usage (e.g Span from `ro List` is immutable, Span from `List` is mutable)
+| Buffer\<T\> | Mutable array with a constant capacity and a length that can only grow until the capacity is reached.  This is the only variable sized type in Zurfur and is the basis for `Array`, `List`, and all other variable sized collections. 
+| Array\<T\> | An immutable array of immutable elements.  The this type is the `ro` counterpart of `Buffer`, ie. `Array<T> is ro Buffer<T>`.  Prefer `Array` for storing data.
+| List\<T\> | Re-sizable mutable list of mutable elements.
+| Str, Str16 | An `Array<Byte>` or `Array<U16>` with support for UTF-8 and UTF-16.  `Str16` is a JavaScript or C# style Unicode string
+| Span\<T\> | A view into a `List`, `Array`, or `Buffer`.  It has a constant length.  Mutability of elements depends on usage (e.g Span from `Array` is immutable, Span from `List` is mutable)
 | Map<K,V> | Unordered mutable map.  `ro Map<K,V>` is the immutable counterpart. 
-| Maybe\<T\> | Identical to `?T`.  Always optimized for pointers and references.  **TBD:** Put back to `Nilable`?
+| Maybe\<T\> | Identical to `?T`.  Always optimized for pointers and references.
 | Result\<T\> | Same as `!T`. An optional containing either a return value or an `Error` interface.
 | Error | An interface containing a `message` string and an integer `code`
 | Any | Reserved for a JavaScript-like object, used to bridge the gap between static and dynamic type systems.  There will also be `any` types that use TypeScipt-like structural duck typing. If you want a JavaScript or TypeScript type system, these types are reserved for you.
@@ -508,6 +508,7 @@ with C and gives an error where not compatible:
 |== != < <= > >= === !== `in` `not in`|Not associative, === and !== is only for pointers
 |`and`|Conditional, short circuit
 |`or`|Conditional, short circuit
+|`a ?? b : c`| Ternary operator.  Not associative, no nesting (see below for restrictions)
 |=>|Lambda
 |key:value|Key value pair (only inside `()`, `[]` or where expected)
 |,|Comma Separator (not an expression)
@@ -536,9 +537,13 @@ Operator `==` does not default to object comparison, and only works when it
 is defined for the given type.  Use `===` and `!==` for object comparison. 
 Comparisons are not associative, so `a == b == c` is illegal.
 
-There is no ternary operator, but an `iff` (if function) can be
-used with the same effect (e.g. `@a = iff(a>b, "pass", "fail")`).
-An `iff` may not contain an `iff`.
+**TBD:** The ternary operator is not associative and cannot be nested.  
+Examples of illegal expresions are `c1 ?? x : c2 ?? y : z` (not associative),
+`c1 ?? x : (c2 ?? y : z)` (no nesting).  The result expressions may not
+directly contain an operator with lower precedence than range.
+For example, `a==b ?? x==3 : y==4` is illegal.  Parentheses can be
+used to override that behavior, `a==b ?? (x==3) : (y==4)` and
+`a==b ?? (@p=> p==3) : (@p=> p==4)` are acceptable.
 
 The pair operator `:` makes a key/value pair which can be used
 in a list to initialize a map.

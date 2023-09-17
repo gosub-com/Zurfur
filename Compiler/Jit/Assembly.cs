@@ -20,7 +20,7 @@ namespace Zurfur.Jit
         ///     1: Nil
         ///     2: Bool
         ///     3: Int
-        ///     4: F64
+        ///     4: Float
         ///     5: Str
         /// </summary>
         public readonly ConsolidatedList<Symbol> Types = new();
@@ -210,7 +210,7 @@ namespace Zurfur.Jit
                     sb.Add($"{opCode} # \"{JsonEncodedText.Encode(Strings[op.OperandInt])}\"");
                 else if (op.Op == Op.Call)
                     sb.Add($"{opCode} # {Functions[op.OperandInt].FullName}");
-                else if (op.Op == Op.F64)
+                else if (op.Op == Op.Float)
                     sb.Add($"{opCode} # {BitConverter.Int64BitsToDouble(op.Operand)}");
                 else if (op.Op == Op.Ldlr)
                     sb.Add($"{opCode} # {tokenName} ref {tracer.Locals[op.OperandInt]}");

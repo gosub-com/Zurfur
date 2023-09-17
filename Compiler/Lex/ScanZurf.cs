@@ -10,7 +10,7 @@ namespace Zurfur.Lex
     public sealed class ScanZurf : Scanner
     {
         // NOTE: >=, >>, and >>= are omitted and handled at parser level.
-        public const string MULTI_CHAR_TOKENS = ".* << <= == != && || ?? !! "
+        public const string MULTI_CHAR_TOKENS = ".* &* << <= == != && || ?? !! "
             + "+= -= *= /= %= &= |= ~= <<= => -> !== === :: .. ..+ ... ++ -- // \"\"\"";
         Dictionary<long, bool> mSpecialSymbols = new Dictionary<long, bool>();
         bool mSpecialSymbolsHas3Chars;

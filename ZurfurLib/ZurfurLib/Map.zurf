@@ -45,7 +45,7 @@ fun get Map.len<K,V>() Int
 
 // TBD: Figure out map["Hello"] += 1
 [pub static]
-fun Map._opIndex<K,V>(map Map<K, V>, key K) mut ?ref V
+fun Map._opIndex<K,V>(map Map<K, V>, key K) mut ?&V
     extern
 
 // TBD: An indexer with 3 inputs???

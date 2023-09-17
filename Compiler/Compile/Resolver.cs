@@ -14,7 +14,7 @@ namespace Zurfur.Compiler
         {
             {"*", SymTypes.RawPointer },
             {"^", SymTypes.Pointer },
-            {"ref", SymTypes.Ref },
+            {"&", SymTypes.Ref },
             {"?", SymTypes.Maybe},
             {"[", SymTypes.Span },
             {"!", SymTypes.Result }

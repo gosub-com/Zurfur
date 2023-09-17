@@ -26,8 +26,8 @@ type Point<T> copy
     y T
 
 // Identical to a field
-fun get Point.x2<T>() mut ref T
-    return ref my.x
+fun get Point.x2<T>() mut &T
+    return &my.x // TBD: Require `&`, do not allow just `my.x`
 
 [pub]
 type Size<T> copy
@@ -45,17 +45,17 @@ type Rect<T> copy
 
 // Identical to fields (not necessary when we have 'use location Point<T>' syntax)
 [pub]
-fun get Rect.x<T>() mut ref T
-    return ref my.location.x
+fun get Rect.x<T>() mut &T
+    return &my.location.x // TBD: Require `&`
 [pub]
-fun get Rect.y<T>() mut ref T
-    return ref my.location.y
+fun get Rect.y<T>() mut &T
+    return &my.location.y // TBD: Require `&`
 [pub]
-fun get Rect.width<T>() mut ref T
-    return ref my.size.height
+fun get Rect.width<T>() mut &T
+    return &my.size.height // TBD: Require `&`
 [pub]
-fun get Rect.height<T>() mut ref T
-    return ref my.size.width
+fun get Rect.height<T>() mut &T
+    return &my.size.width // TBD: Require `&`
 
 
 [pub]

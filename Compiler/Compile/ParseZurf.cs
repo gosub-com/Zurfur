@@ -43,7 +43,7 @@ namespace Zurfur.Compiler
         Token               mToken = new Token(";");
         Token               mPrevToken = new Token(";");
         StringBuilder       mComments = new StringBuilder();
-        bool                mInIff;
+        bool                mInTernary;
         bool                mShowMeta;
         bool                mAllowUnderscoreDefinitions;
         bool                mRequireBraces;
@@ -69,8 +69,8 @@ namespace Zurfur.Compiler
                             + "= += -= *= /= %= |= &= ~= " + TOKEN_STR_LITERAL);
 
         static WordSet sReservedWords = new WordSet("as has break case catch const "
-            + "continue do then else elif extern nil true false defer use "
-            + "finally for goto go if iff in is mod app include "
+            + "continue do then else elif todo extern nil true false defer use "
+            + "finally for goto go if ife in is mod app include "
             + "new out pub public private priv readonly ro ref aref mut imut "
             + "return ret sizeof struct switch throw try "
             + "typeof type unsafe static while dowhile scope loop "
@@ -90,9 +90,9 @@ namespace Zurfur.Compiler
         static WordSet sParamQualifiers = new WordSet("ro own mut");
 
         static WordSet sReservedUserFuncNames = new WordSet("new clone drop");
-        static WordSet sReservedIdentifierVariables = new WordSet("nil true false new move my sizeof typeof");
+        static WordSet sReservedIdentifierVariables = new WordSet("nil true false new move my sizeof typeof require");
         static WordSet sReservedMemberNames = new WordSet("clone");
-        static WordSet sTypeUnaryOps = new WordSet("? ! * ^ [ ref ro");
+        static WordSet sTypeUnaryOps = new WordSet("? ! * ^ [ & ro");
 
         static WordSet sEmptyWordSet = new WordSet("");
 
@@ -102,7 +102,7 @@ namespace Zurfur.Compiler
         static WordSet sXorOps = new WordSet("~");
         static WordSet sMultiplyOps = new WordSet("* / % &");
         static WordSet sAssignOps = new WordSet("= += -= *= /= %= |= &= ~= <<= >>=");
-        static WordSet sUnaryOps = new WordSet("+ - & ~ use unsafe ref clone mut not astart");
+        static WordSet sUnaryOps = new WordSet("+ - & &* ~ use unsafe clone mut not astart");
 
         // For now, do not allow more than one level.  Maybe we want to allow it later,
         // but definitely do not allow them to include compounds with curly braces.
@@ -320,7 +320,7 @@ namespace Zurfur.Compiler
                 while (e.MoveNext(out token) && token != TOKEN_STR_LITERAL_MULTI && token != "")
                     token.Type = eTokenType.Quote;
                 if (token == "")
-                    RejectToken(token, "Expecting back tick '`' to end the multi-line string literal");
+                    RejectToken(token, "Expecting \"\"\" to end the multi-line string literal");
                 else
                     prevToken = token;
             }
@@ -1131,14 +1131,8 @@ namespace Zurfur.Compiler
             synFunc.FunctionSignature = ParseMethodSignature(keyword);
             synFunc.Constraints = ParseConstraints();
 
-            while (AcceptMatchPastMetaSemicolon("require"))
-            {
-                // TBD: Store in parse tree
-                ParseExpr();
-            }
-
             // Body
-            if (AcceptMatchPastMetaSemicolon("extern"))
+            if (AcceptMatchPastMetaSemicolon("extern") || AcceptMatchPastMetaSemicolon("todo"))
                 qualifiers.Add(mPrevToken);
             else if (body)
                 synFunc.Statements = ParseStatements(keyword);
@@ -1168,6 +1162,11 @@ namespace Zurfur.Compiler
             funcName = mToken;
 
             var mutToken = mToken == "mut" ? Accept() : null;
+
+
+            // TBD: Verifier to ensure this function not defined anywhere other than Zurfur module                
+            if (mToken == "require")
+                mToken.Type = eTokenType.Identifier;
 
             if (!CheckIdentifier("Expecting a function or property name", sRejectTypeName))
                 return false;
@@ -1459,6 +1458,10 @@ namespace Zurfur.Compiler
                     statements.Add(new SyntaxUnary(Accept(), ParseExpr()));
                     break;
 
+                case "todo":
+                    statements.Add(new SyntaxToken(Accept()));
+                    break;
+
                 case "throw":
                 case "return":
                     keyword.Type = eTokenType.ReservedControl;
@@ -1571,7 +1574,7 @@ namespace Zurfur.Compiler
 
         SyntaxExpr ParseLambda()
         {
-            var result = ParseConditionalOr();
+            var result = ParseTernary();
 
             if (mTokenName == "=>")
             {
@@ -1582,10 +1585,41 @@ namespace Zurfur.Compiler
                 if (IsMatchPastMetaSemicolon("{"))
                     result = new SyntaxBinary(lambdaToken, result, ParseStatements(lambdaToken));
                 else
-                    result = new SyntaxBinary(lambdaToken, result, ParseConditionalOr());
+                    result = new SyntaxBinary(lambdaToken, result, ParseTernary());
 
                 if (mTokenName == "=>")
                     Reject("Lambda operator '=>' is not associative, must use parentheses");
+            }
+            return result;
+        }
+
+        SyntaxExpr ParseTernary()
+        {
+            var result = ParseConditionalOr();
+            if (mTokenName == "??")
+            {
+                if (mInTernary)
+                    RejectToken(mToken, "Ternary expressions may not be nested");
+                mInTernary = true;
+                mToken.Type = eTokenType.BoldSymbol;
+                var operatorToken = Accept();
+                var firstConditional = ParseRange();
+                if (mTokenName != ":")
+                {
+                    mInTernary = false;
+                    Reject("Expecting a ':' to separate expression for the ternary '?' operator");
+                    return result;
+                }
+                mToken.Type = eTokenType.BoldSymbol;
+                Connect(mToken, operatorToken);
+                Accept();
+                result = new SyntaxMulti(operatorToken, result, firstConditional, ParseRange());
+                mInTernary = false;
+
+                if (mTokenName == "??")
+                    RejectToken(mToken, "Ternary operator is not associative");
+                else if (mTokenName == ":")
+                    RejectToken(mToken, "Ternary operator already has an else clause.");
             }
             return result;
         }
@@ -1755,17 +1789,6 @@ namespace Zurfur.Compiler
 
         SyntaxExpr ParsePrimary()
         {
-
-            if (mTokenName == "iff")
-            {
-                if (mInIff)
-                    RejectToken(mToken, "Can't use 'iff' inside an 'iff'");
-                mInIff = true;
-                var iff = new SyntaxUnary(Accept(), ParseParen("(", null));
-                mInIff = false;
-                return iff;
-            }
-
             var result = ParseAtom();
 
             if (result.Token == "sizeof" || result.Token == "typeof")
@@ -1899,7 +1922,8 @@ namespace Zurfur.Compiler
         }
 
         /// <summary>
-        /// Parse interpolated string: "string ${expr} continue ${\rn}"
+        /// Parse interpolated string: "string {expr} continue {\rn}"
+        /// Or multi line string: """string ${expr} continye ${\r\n}"
         /// Prefix may be null, or 'tr'.  Next token must be quote symbol.
         /// TBD: Store "tr" in the parse tree.
         /// </summary>
@@ -1942,6 +1966,7 @@ namespace Zurfur.Compiler
 
             void ParseQuote(string terminator)
             {
+                bool multiLine = terminator == TOKEN_STR_LITERAL_MULTI;
                 while (mToken == terminator)
                 {
                     // Read until end quote or end of line
@@ -1949,10 +1974,12 @@ namespace Zurfur.Compiler
                     literalTokens.Add(Accept());
                     while (mToken != terminator && mToken != "" && !(mToken.Meta && mToken == ";"))
                     {
-                        if (mToken == "$" && mEnum.PeekNoSpace() == "{")
+                        if (!multiLine && mToken == "{"
+                            || multiLine && mToken == "$" && mEnum.PeekNoSpace() == "{")
                         {
                             EndScoop(mToken);
-                            Accept().Type = eTokenType.Reserved;
+                            if (multiLine)
+                                Accept().Type = eTokenType.Reserved;
                             ParseInterpolatedExpression();
                         }
                         else

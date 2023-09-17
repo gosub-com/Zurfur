@@ -1,8 +1,6 @@
 ﻿
 mod Zurfur
 
-
-
 [pub]
 type Iterable<T> interface
     fun get iterator() Iterator<T>
@@ -13,6 +11,14 @@ type Iterable<T> interface
 type Iterator<T> interface
     fun mut next() ?T
 
+fun test_map()
+    @i = Iterator<Int>()
+    @x = i.map<Int,Str>(@q => 0.0)  // TBD: Infer types
+    @item = x.next<Int,Str>()       // TBD: Infer types
+
+    // TBD: Fix this error (iterate on Iterable or Iterator)
+    //for @s in x
+    //    Log.info("")
 
 // TBD: Still working on these
 fun Iterator.map<Source, Result>(f fun(input Source) Result) MapIterator<Source, Result>

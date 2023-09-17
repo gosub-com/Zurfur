@@ -55,7 +55,7 @@ namespace Zurfur.Jit
                 case Op.BeginScope: return BeginScope();
                 case Op.EndScope: return EndScope();
                 case Op.I64: return AddFundamentalType(SymTypeId.Int);
-                case Op.F64: return AddFundamentalType(SymTypeId.F64);
+                case Op.Float: return AddFundamentalType(SymTypeId.Float);
                 case Op.Str: return AddFundamentalType(SymTypeId.Str);
                 case Op.Loc: return OpLoc();
                 case Op.Call: return OpCall();

@@ -1,5 +1,5 @@
 // Define the simple types:
-//     I8, Byte, I16, U16, I32, U32, Int, U64, F32, F64, Decimal
+//     I8, Byte, I16, U16, I32, U32, Int, U64, F32, Float, Decimal
 //
 
 mod Zurfur
@@ -7,16 +7,13 @@ mod Zurfur
 pragma AllowUnderscoreDefinitions
 
 // Blank function
-[pub] fun get nop() extern
-[pub] fun get todo() require(false) extern
+[pub] fun get nop() {}
 
 // These implement throw and require reserved words
-[pub] fun __throw(code ErrorCode, message Str) extern
-[pub] fun __throw(condition Bool, code ErrorCode, message Str) extern
-[pub] fun __require(condition Bool) extern
-[pub] fun __require(condition Bool, message Str) extern
-[pub] fun assert(condition Bool) extern
-[pub] fun assert(condition Bool, message Str) extern
+[pub] fun assert(condition Bool) todo
+[pub] fun assert(condition Bool, message Str) todo
+[pub] fun require(condition Bool) todo
+[pub] fun require(condition Bool, message Str) todo
 
 // Return type of functions that don't return anything
 [pub]
@@ -76,8 +73,8 @@ type Type ro
 
 
 // Swap two items
-[pub] fun swap<T>(a mut ref T, b mut ref T)
-    extern
+[pub] fun swap<T>(a mut &T, b mut &T)
+    todo
 
 // Bool (true or false)
 [pub]
@@ -110,7 +107,7 @@ type I8 ro
 [pub] fun get I8.toI32() I32 extern
 [pub] fun get I8.toInt() Int extern
 [pub] fun get I8.toF32() F32 extern
-[pub] fun get I8.toF64() F64 extern
+[pub] fun get I8.toFloat() Float extern
 [pub] fun get I8.toDecimal() Decimal extern
 
 [pub static] fun I8.getHash(a I8) Int extern
@@ -138,7 +135,7 @@ type I8 ro
 [pub] fun get Byte.toInt() Int extern
 [pub] fun get Byte.toU64() U64 extern
 [pub] fun get Byte.toF32() F32 extern
-[pub] fun get Byte.toF64() F64 extern
+[pub] fun get Byte.toFloat() Float extern
 [pub] fun get Byte.toDecimal() Decimal extern
 
 [pub static] fun Byte.getHash(a Byte) Int extern
@@ -163,7 +160,7 @@ type I8 ro
 [pub] fun get I16.toI32() I32 extern
 [pub] fun get I16.toInt() Int extern
 [pub] fun get I16.toF32() F32 extern
-[pub] fun get I16.toF64() F64 extern
+[pub] fun get I16.toFloat() Float extern
 [pub] fun get I16.toDecimal() Decimal extern    
 [pub] fun get I16.toI8Mask() I8 extern
 [pub] fun get I16.toByteMask() Byte extern
@@ -195,7 +192,7 @@ type I8 ro
 [pub] fun get U16.toInt() Int extern
 [pub] fun get U16.toU64() U64 extern
 [pub] fun get U16.toF32() F32 extern
-[pub] fun get U16.toF64() F64 extern
+[pub] fun get U16.toFloat() Float extern
 [pub] fun get U16.toDecimal() Decimal extern
 [pub] fun get U16.toI8Mask() I8 extern
 [pub] fun get U16.toByteMask() Byte extern
@@ -224,7 +221,7 @@ type I8 ro
 [pub] fun get I32.toU32() ?U32 extern
 [pub] fun get I32.toInt() Int extern
 [pub] fun get I32.toF32() F32 extern
-[pub] fun get I32.toF64() F64 extern
+[pub] fun get I32.toFloat() Float extern
 [pub] fun get I32.toDecimal() Decimal extern    
 [pub] fun get I32.toI8Mask() I8 extern
 [pub] fun get I32.toByteMask() Byte extern
@@ -274,7 +271,7 @@ type I8 ro
 [pub] fun get U32.toInt() Int extern
 [pub] fun get U32.toU64() U64 extern
 [pub] fun get U32.toF32() F32 extern
-[pub] fun get U32.toF64() F64 extern
+[pub] fun get U32.toFloat() Float extern
 [pub] fun get U32.toDecimal() Decimal extern        
 [pub] fun get U32.toI8Mask() I8 extern
 [pub] fun get U32.toByteMask() Byte extern
@@ -323,7 +320,7 @@ type I8 ro
 [pub] fun get Int.toU32() ?U32 extern
 [pub] fun get Int.toU64() ?U64 extern    
 [pub] fun get Int.toF32() F32 extern
-[pub] fun get Int.toF64() F64 extern
+[pub] fun get Int.toFloat() Float extern
 [pub] fun get Int.toDecimal() Decimal extern
 [pub] fun get Int.toI8Mask() I8 extern
 [pub] fun get Int.toByteMask() Byte extern
@@ -375,7 +372,7 @@ type I8 ro
 [pub] fun get U64.toU32() ?U32 extern
 [pub] fun get U64.toInt() ?Int extern
 [pub] fun get U64.toF32() F32 extern
-[pub] fun get U64.toF64() F64 extern
+[pub] fun get U64.toFloat() Float extern
 [pub] fun get U64.toDecimal() Decimal extern
 [pub] fun get U64.toI8Mask() I8 extern
 [pub] fun get U64.toByteMask() Byte extern
@@ -443,7 +440,7 @@ type I8 ro
 [pub] fun get F32.toByte() ?Byte extern
 [pub] fun get F32.toInt() ?Int extern
 [pub] fun get F32.toU64() ?U64 extern
-[pub] fun get F32.toF64() F64 extern
+[pub] fun get F32.toFloat() Float extern
 [pub] fun get F32.toDecimal() Decimal extern    
 [pub] fun get F32.toByteMask() Byte extern
 [pub] fun get F32.toIntMask() Int extern
@@ -467,56 +464,56 @@ type I8 ro
 [pub static] fun F32._opRem(a F32, b F32) F32 extern
 
 
-[pub] type F64 ro
+[pub] type Float ro
     const __size Int = 8
     const __align Int = 8    
-    const Zero F64 = 0
-    const One F64 = 1
-    const MinValue F64 = -1.7976931348623157E+308
-    const MaxValue F64 = 1.7976931348623157E+308
-    const NanOrMin F64 = MinValue    
-    const epsilon F64 = 4.94065645841247E-324
-    const infinity F64 = 1.0/0.0
-    const negativeInfinity F64 = -1.0/0.0
-    const nan F64 = 0f64/0f64
-    const PI F64 = 3.141592653589793238
-    const E F64 = 2.718281828459045235
+    const Zero Float = 0
+    const One Float = 1
+    const MinValue Float = -1.7976931348623157E+308
+    const MaxValue Float = 1.7976931348623157E+308
+    const NanOrMin Float = MinValue    
+    const epsilon Float = 4.94065645841247E-324
+    const infinity Float = 1.0/0.0
+    const negativeInfinity Float = -1.0/0.0
+    const nan Float = 0Float/0Float
+    const PI Float = 3.141592653589793238
+    const E Float = 2.718281828459045235
 
-[pub] fun get F64.isInfinity() Bool extern
-[pub] fun get F64.isNan() Bool extern
-[pub] fun get F64.isNegInfinity() Bool extern
-[pub] fun get F64.isPosInfinity() Bool extern        
+[pub] fun get Float.isInfinity() Bool extern
+[pub] fun get Float.isNan() Bool extern
+[pub] fun get Float.isNegInfinity() Bool extern
+[pub] fun get Float.isPosInfinity() Bool extern        
 
-[pub] fun get F64.toStr() Str extern
-[pub] fun get F64.toByte() ?Byte extern
-[pub] fun get F64.toInt() ?Int extern
-[pub] fun get F64.toU64() ?U64 extern
-[pub] fun get F64.toDecimal() Decimal extern
-[pub] fun get F64.toByteMask() Byte extern
-[pub] fun get F64.toIntMask() Int extern
-[pub] fun get F64.toU64Mask() U64 extern
-[pub] fun get F64.toF32Clamp() F32 extern
+[pub] fun get Float.toStr() Str extern
+[pub] fun get Float.toByte() ?Byte extern
+[pub] fun get Float.toInt() ?Int extern
+[pub] fun get Float.toU64() ?U64 extern
+[pub] fun get Float.toDecimal() Decimal extern
+[pub] fun get Float.toByteMask() Byte extern
+[pub] fun get Float.toIntMask() Int extern
+[pub] fun get Float.toU64Mask() U64 extern
+[pub] fun get Float.toF32Clamp() F32 extern
 
-[pub static] fun F64.getHash(a F64) Int extern
-[pub static] fun F64._opEq(a F64, b F64) Bool extern
-[pub static] fun F64._opCmp(a F64, b F64) Int extern
-[pub static] fun F64._opEqUnordered(a F64, b F64) Bool extern
-[pub static] fun F64._opGtUnordered(a F64, b F64) Bool extern
-[pub static] fun F64._opGeUnordered(a F64, b F64) Bool extern
-[pub static] fun F64._opLtUnordered(a F64, b F64) Bool extern
-[pub static] fun F64._opLeUnordered(a F64, b F64) Bool extern
-[pub static] fun F64._opIn(a F64, b Range<F64>) Bool extern
-[pub static] fun F64._opRange(a F64, b F64) Range<F64> extern // TBD: Generic function on range?
-[pub static] fun F64._opAdd(a F64, b F64) F64 extern
-[pub static] fun F64._opSub(a F64, b F64) F64 extern
-[pub static] fun F64._opNeg(a F64) F64 extern
-[pub static] fun F64._opMul(a F64, b F64) F64 extern
-[pub static] fun F64._opDiv(a F64, b F64) F64 extern
-[pub static] fun F64._opRem(a F64, b F64) F64 extern
+[pub static] fun Float.getHash(a Float) Int extern
+[pub static] fun Float._opEq(a Float, b Float) Bool extern
+[pub static] fun Float._opCmp(a Float, b Float) Int extern
+[pub static] fun Float._opEqUnordered(a Float, b Float) Bool extern
+[pub static] fun Float._opGtUnordered(a Float, b Float) Bool extern
+[pub static] fun Float._opGeUnordered(a Float, b Float) Bool extern
+[pub static] fun Float._opLtUnordered(a Float, b Float) Bool extern
+[pub static] fun Float._opLeUnordered(a Float, b Float) Bool extern
+[pub static] fun Float._opIn(a Float, b Range<Float>) Bool extern
+[pub static] fun Float._opRange(a Float, b Float) Range<Float> extern // TBD: Generic function on range?
+[pub static] fun Float._opAdd(a Float, b Float) Float extern
+[pub static] fun Float._opSub(a Float, b Float) Float extern
+[pub static] fun Float._opNeg(a Float) Float extern
+[pub static] fun Float._opMul(a Float, b Float) Float extern
+[pub static] fun Float._opDiv(a Float, b Float) Float extern
+[pub static] fun Float._opRem(a Float, b Float) Float extern
 
 
 // 128 bit decimal integer.  This will support nan, infinity, and
-// exponents covering the entire range of F64 with more precision.
+// exponents covering the entire range of Float with more precision.
 [pub] type Decimal ro
     const __size Int = 16
     const __align Int = 16
@@ -543,7 +540,7 @@ type I8 ro
 [pub] fun get Decimal.toU64Mask() U64 extern
 [pub] fun get Decimal.toIntClamp() Int extern
 [pub] fun get Decimal.toF32Clamp() F32 extern
-[pub] fun get Decimal.toF64Clamp() F64 extern
+[pub] fun get Decimal.toFloatClamp() Float extern
 
 [pub static] fun Decimal.getHash(a Decimal) Int extern
 [pub static] fun Decimal._opEq(a Decimal, b Decimal) Bool extern

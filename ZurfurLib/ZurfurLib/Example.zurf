@@ -38,7 +38,7 @@ fun Map.madd<K,V>(mul1 K, mul2 K, add K) V
 fun MyType.countToTen()
     Log.info("Hello world.  Let's count to 10.")
     for @i in 1..+10
-        Log.info("Count=${i}, text=${my.text}")
+        Log.info("Count={i}, text={my.text}")
 
 // Setter for list, which is already public read-only
 [pub]
@@ -53,13 +53,13 @@ fun hello() {}
 fun test_HelloWorld()
     Log.info("Hello World.  Let's count from 1 to 10.")
     for @i in 1..11
-        Log.info("Count=${a}")
+        Log.info("Count={a}")
 
     @a = "Regular string literal"       // No interpolation
-    @b = "Column 1${\t}Column 2${\n}"   // Containing a tab, ending with \n
+    @b = "Column 1{\t}Column 2{\n}"     // Containing a tab, ending with \n
     @c = tr"Translated string"          // Translated at runtime
-    @d = "Hello world, a+b=${a+b}${\n}" // Interpolated with \n at the end
-    @e = tr"Hello world, X=${X}!${\n}"  // Translated, interpolated, \n at end
+    @d = "Hello world, a+b={a+b}{\n}"   // Interpolated with \n at the end
+    @e = tr"Hello world, X={X}!{\n}"    // Translated, interpolated, \n at end
     @g = """{"X":1,"Y":2}"""            // Containing quote
     @h = """{"X":${x},"Y":2}"""         // Containing quote and interpolated
 
@@ -69,7 +69,7 @@ fun test_HelloWorld()
 
             
 [pub]
-fun circle(a F64, r F64)(x F64, y F64)
+fun circle(a Float, r Float)(x Float, y Float)
     @q = circle(1.0,2.0)
     @p = q.x
     return (cos(a)*r, sin(a)*r)
@@ -102,7 +102,7 @@ fun circle2<T0, T1>(a T0, r T1)(x T0, y T1)
     h Zim<I32>
     i Zim<U32>
     j Zim<Int>
-    m Zim<F64>
+    m Zim<Float>
     n Zim<F32>
     o Zim<Str>
     p Zim<Decimal>
@@ -122,7 +122,7 @@ fun AcceptMatch(m Str) ?Token
 fun test_Main(args Array<Str>, stream Zurfur.Io.Reader)
 
     // This is a regular private comment
-    Log.info("Hello World, 2+2=${2+2}")
+    Log.info("Hello World, 2+2={2+2}")
 
     @v = ""
     //@myStrings = ["a", "b", "c"]
@@ -139,8 +139,8 @@ fun test_Main(args Array<Str>, stream Zurfur.Io.Reader)
     else
         v = "none"
     
-    @a = tr"Column 1${\t}Column 2${\rn}"
-    @data = "Name:${name}${\t}Occupation:${lastName}${\rn}"
+    @a = tr"Column 1{\t}Column 2{\rn}"
+    @data = "Name:{name}{\t}Occupation:{lastName}{\rn}"
     @buffer = Buffer<Byte>()
     
     while stream.read(buffer[0..4])!@size == 4
@@ -157,7 +157,3 @@ fun test_Main(args Array<Str>, stream Zurfur.Io.Reader)
     return
 
 
-
-
-
-        

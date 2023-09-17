@@ -44,7 +44,7 @@ type aaa_arith_test
     b aaa_arith_test2
     c Int
 
-fun get aaa_arith_test.bref() mut ref aaa_arith_test2
+fun get aaa_arith_test.bref() mut &aaa_arith_test2
     return my.b
 
 type aaa_arith_test2
@@ -55,8 +55,8 @@ type aaa_arith_test2
 
 
 fun test_listMap()
-    @a = List<F64>()
-    @c = a.map<F64,Int>(@i => i.toIntMask)
+    @a = List<Float>()
+    @c = a.map<Float,Int>(@i => i.toIntMask)
 
 
 fun test_forEach(args Array<Str>)
@@ -70,14 +70,14 @@ fun Iterator.alphaLengthWise<Item, L>(lengthProvider fun(t Item) L) Iterator<Ite
     return my.orderBy<Item, L>(@a => lengthProvider(a))
              .thenBy<Item, L>(@a => a)
 fun Iterator.orderBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
-    extern
+    todo
 fun Iterator.thenBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
-    extern
+    todo
 
-fun mut Iterator.find<T>(f fun(item T) Bool) mut ?ref T
+fun mut Iterator.find<T>(f fun(item T) Bool) mut ?&T
     while my.next()@item
         if f(item)
-            return ref item
+            return &item // TBD: Require `&` here
     return nil
 
 
@@ -129,9 +129,9 @@ type MyAdd<T> interface
 fun getMapFun<K,V>() Map<V,K>
     return Map<V,K>()
 
-fun myFun2Interf<T>(i T) T extern
+fun myFun2Interf<T>(i T) T todo
 
-fun takeFun(i fun(a Int)Int) extern
+fun takeFun(i fun(a Int)Int) todo
 
 type GetHash interface
     fun getHash() U32
@@ -147,8 +147,8 @@ fun test_tuples()
     @element = tuplesNamedElement.x
 
 
-fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<I32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<F64>, myGetter Getter)
-        where T has NumOps<T> + GetHash + Iterable<Int> + Iterable2<Int> + GetMap<F32,F64> + Iterator<Int>
+fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<I32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<Float>, myGetter Getter)
+        where T has NumOps<T> + GetHash + Iterable<Int> + Iterable2<Int> + GetMap<F32,Float> + Iterator<Int>
         where Q has NumOps<Q> + Getter + Getter2<Int> + MyAdd<Q>
 
     // Source code symbols should be non-generic
@@ -169,7 +169,7 @@ fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<I32>, intf2 GetHash, mgQ Getter2<Q>,
     @mgGet2a = mgQ.myGet2
     @mgGet2F = mgF.myGet2
     @mgFun2F = mgF.myFun2()
-    @myPoint = MyPoint<Int,F64,F32>().b
+    @myPoint = MyPoint<Int,Float,F32>().b
 
     @intf2b = intf2.getHash()
     @myAddNs = q.myAddNotStatic(Q(),Q())
@@ -224,23 +224,23 @@ fun Test<X0,X1,X2,X3>()
     @infer2 = MyFun1(0, List<Int>(), 0)
     @infer3 = MyFun1(0, List<X2>(), 0.0)
     @infer4 = inferMap(Map<Int,Str>(), List<Str>())
-    @f1 = MyFun2<Int, F64>(0)
-    @f2 = MyFun3<Int,F64>(1)
-    @f3 = MyFun3<F64,Int>(1)
-    @f4 = MyFun4<F64,Int,List<X3>,U32>(1)
-    @f5 = MyFun5<F64,Int,Str,U64>(1)
-    @a = MyPoint<Int,F64,Str>()
+    @f1 = MyFun2<Int, Float>(0)
+    @f2 = MyFun3<Int,Float>(1)
+    @f3 = MyFun3<Float,Int>(1)
+    @f4 = MyFun4<Float,Int,List<X3>,U32>(1)
+    @f5 = MyFun5<Float,Int,Str,U64>(1)
+    @a = MyPoint<Int,Float,Str>()
     @b = MyPoint<X2, List<X3>, Map<X1,X3>>()
     @c = MyFun1<Int, MyPoint<Int,Int,Int>, Str>(0, MyPoint<Int,Int,Int>(), "hello")
     @d = MyFun1<Int, MyPoint<Int,X3,Int>, Str>(0, MyPoint<Int,X3,Int>(), "hello")
     @e = MyFun2<X2,X3>(X2())
-    @g = MyFun2<Int,F64>(0)
-    @h = MyFun2<F64,Int>(0.0)
+    @g = MyFun2<Int,Float>(0)
+    @h = MyFun2<Float,Int>(0.0)
     @f4a = MyFun4<Int,Str,F32,U64>(0)
     @f5a = MyFun5<Int,Str,F32,U64>(0) 
     @i Size<Int> = Size<Int>(0,0)  
-    @k F64 = 0.0
-    @l F64 = 0F64
+    @k Float = 0.0
+    @l Float = 0Float
     @p1 = Xuint()
     @p2 = castPointer<RawPointer<Byte>>(p1)
     @p3 = castPointer<RawPointer<Int>>(p2)
@@ -263,10 +263,10 @@ fun get Point.toSizeTest<T>() Size<T>
 
 fun helloVoid() {}
 fun helloInt() Int {}
-fun cos2(a Int)(x F64, y Int) {}
+fun cos2(a Int)(x Float, y Int) {}
 fun nop() {}
  
-fun test(x F64)
+fun test(x Float)
     @a = 3
     @b = x
     @c = x == 3.0
@@ -336,8 +336,8 @@ type bbpoint
     af10 fun(v Int)Int
 
 fun AAFun.aaaa(a Int, b Int) Int { }
-fun AAFun.aaaa(a Int, b F64) Int { }
-fun AAFun.aaaa(x F64, y Int) Int { }
+fun AAFun.aaaa(a Int, b Float) Int { }
+fun AAFun.aaaa(x Float, y Int) Int { }
 fun AAFun.aaf1(a Int, b Int)Int { }
 fun AAFun.aaf2(v AAFunc<Int, Int>) { }
 fun AAFun.aaf3<T1,T2>(i T1)T2 { }

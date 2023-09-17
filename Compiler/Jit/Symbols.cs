@@ -27,12 +27,12 @@ namespace Zurfur.Jit
         public const string Str = "Zurfur.Str";
         public const string Bool = "Zurfur.Bool";
         public const string Byte = "Zurfur.Byte";
-        public const string F64 = "Zurfur.F64";
+        public const string Float = "Zurfur.Float";
         public const string F32 = "Zurfur.F32";
         public const string Span = "Zurfur.Span`1";
 
         public static readonly WordMap<string> FriendlyNames = new WordMap<string>
-            { { RawPointer, "*" }, { Pointer, "^" }, { Maybe, "?" }, { Ref, "ref "}, { Span, "[]" } };
+            { { RawPointer, "*" }, { Pointer, "^" }, { Maybe, "?" }, { Ref, "&"}, { Span, "[]" } };
     }
 
     /// <summary>
@@ -44,7 +44,7 @@ namespace Zurfur.Jit
         Nil = 1,
         Bool = 2,
         Int = 3,
-        F64 = 4,
+        Float = 4,
         Str = 5
     }
 
@@ -87,7 +87,8 @@ namespace Zurfur.Jit
         Copy = 0x400000,
         Union = 0x800000,
         NoCopy = 0x1000000,
-        Specialized = 0x2000000
+        Specialized = 0x2000000,
+        Todo = 0x4000000
     }
 
     /// <summary>
@@ -390,7 +391,7 @@ namespace Zurfur.Jit
             if (IsField)
                 return Parent.FriendlyNameInternal(false) + "." + SimpleName;
 
-            // Symbol types: *, ^, ?, [], ref
+            // Symbol types: *, ^, ?, [], &
             if (TypeArgs.Length == 1
                     && SymTypes.FriendlyNames.TryGetValue(Parent.FullName, out var friendlyName))
                 return friendlyName + TypeArgs[0].FriendlyNameInternal(false);
@@ -559,6 +560,7 @@ namespace Zurfur.Jit
                 if (Qualifiers.HasFlag(SymQualifiers.Union)) t += " union";
                 if (Qualifiers.HasFlag(SymQualifiers.NoCopy)) t += " nocopy";
                 if (Qualifiers.HasFlag(SymQualifiers.Specialized)) t += " specialized";
+                if (Qualifiers.HasFlag(SymQualifiers.Todo)) t += " todo";
                 sTags[key] = t;
                 return t;
             }
@@ -609,6 +611,7 @@ namespace Zurfur.Jit
                 case "copy": Qualifiers |= SymQualifiers.Copy; break;
                 case "union": Qualifiers |= SymQualifiers.Union; break;
                 case "nocopy": Qualifiers |= SymQualifiers.NoCopy; break;
+                case "todo": Qualifiers |= SymQualifiers.Todo; break;
                 case "specialized":
                     Debug.Assert(false); // Set when created
                     break;

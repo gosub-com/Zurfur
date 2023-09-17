@@ -7,54 +7,54 @@ use Zurfur[OpEq]
 // []T is converted to Span<T>
 [pub]
 type Span<T> ref copy
-    data ro mut ref T
+    data ro mut &T
     len ro Int
 
 
 [pub]
 type SpanIterator<T> ref copy
-    data ro mut ref T
+    data ro mut &T
     _len ro Int
     _count ro Int
     
 [pub static]
-fun Span._opIndex<T>(s Span<T>, i Int) mut ref T
-    require i in 0..my.len
-    extern // Implementation TBD
+fun Span._opIndex<T>(s Span<T>, i Int) mut &T
+    require(i in 0..s.len)
+    todo // Implementation TBD
 
 [pub static]
 fun Span._opIndex<T>(s Span<T>, range Range<Int>) mut Span<T>
-    require range.start in 0..my.len
-    require range.end in 0..my.len
-    require range.start <= range.end
-    extern // Implementation TBD
+    require(range.low in 0..s.len)
+    require(range.high in 0..s.len)
+    require(range.low <= range.high)
+    todo // Implementation TBD
 
 [pub]
 fun mut Span.sort<T>(compare fun(a T, b T)Bool)
-    extern
+    todo
 
 // Set the span to `item` (or default if not specified)
 [pub]
 fun mut Span.clear<T>(item T = default)
-    extern
+    todo
     
 // Find index of the sequence `seq`.
 // Returns -1 if not found, or 0 if `seq` is empty.
 [pub]
 fun Span.find<T>(seq Span<T>) Int
         where T has OpEq<T>
-    extern
+    todo
 
 // Find the index of the `item`.  Returns -1 if not found.
 [pub]
 fun Span.find<T>(item T) Int
         where T has OpEq<T>
-    extern
+    todo
     
 // Find the index of the `item` when `eq` returns true.
 // Returns -1 if not found.
 [pub]
 fun Span.find<T>(eq fun(item T) Bool) Int
-    extern
+    todo
 
         

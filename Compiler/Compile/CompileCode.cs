@@ -138,7 +138,7 @@ namespace Zurfur.Compiler
             assembly.Types.AddOrFind(table.Lookup(SymTypes.Nil)!);
             assembly.Types.AddOrFind(table.Lookup(SymTypes.Bool)!);
             assembly.Types.AddOrFind(table.Lookup(SymTypes.Int)!);
-            assembly.Types.AddOrFind(table.Lookup(SymTypes.F64)!);
+            assembly.Types.AddOrFind(table.Lookup(SymTypes.Float)!);
             assembly.Types.AddOrFind(table.Lookup(SymTypes.Str)!);
 
             assembly.Types.AddOrFind(table.EmptyTuple);
@@ -174,7 +174,7 @@ namespace Zurfur.Compiler
             var typeStr = table.Lookup(SymTypes.Str);
             var typeBool = table.Lookup(SymTypes.Bool);
             var typeByte = table.Lookup(SymTypes.Byte);
-            var typeF64 = table.Lookup(SymTypes.F64);
+            var typeFloat = table.Lookup(SymTypes.Float);
             var typeF32 = table.Lookup(SymTypes.F32);
 
             Debug.Assert(typeVoid != null 
@@ -185,7 +185,7 @@ namespace Zurfur.Compiler
                 && typeStr != null 
                 && typeBool != null
                 && typeByte != null
-                && typeF64 != null
+                && typeFloat != null
                 && typeF32 != null);
 
             Debug.Assert(function.IsFun);
@@ -533,6 +533,8 @@ namespace Zurfur.Compiler
                     }
                     return GenIdentifier(ex);
                 }
+                else if (name == "require")
+                    return GenIdentifier(ex);
                 else if (name == ParseZurf.VT_TYPE_ARG)
                     return GenTypeArgs(ex);
                 else if (name == "(")
@@ -549,9 +551,9 @@ namespace Zurfur.Compiler
                     return GenAssign(ex);
                 else if (sOperators.Contains(name))
                     return GenOperator(ex);
-                else if (name == "iff")
-                    return GenIffExpr(ex);
-                else if (name == "ref")
+                else if (name == "??")
+                    return GenTernary(ex);
+                else if (name == "&*")
                     return GenRefOrAddressOf(ex);
                 else if (name == "sizeof")
                     return new Rval(token) { Type = typeInt };
@@ -569,6 +571,8 @@ namespace Zurfur.Compiler
                     return GenIdentifier(ex);
                 else if (name == "=>")
                     return GenLambda(ex);
+                else if (name == "todo")
+                { } // TBD: Call require(false)
                 else
                 {
                     if (name == "else" || name == "elif" || name == "dowhile")
@@ -582,16 +586,16 @@ namespace Zurfur.Compiler
 
             Rval? GenConstNumber(SyntaxExpr ex)
             {
-                // Get type (int, f64, or custom)
-                var numberType = ex.Token.Name.Contains(".") ? typeF64 : typeInt;
+                // Get type (int, Float, or custom)
+                var numberType = ex.Token.Name.Contains(".") ? typeFloat : typeInt;
 
-                // For now, only int and float are supported
+                // For now, only int and Float are supported
                 // TBD: Parse decimal and check for errors
                 if (ex.Token.Name.Contains("."))
                 {
                     // Store double as IEEE 754 long
                     double.TryParse(ex.Token, out var number);
-                    assembly.AddOp(Op.F64, ex.Token, BitConverter.DoubleToInt64Bits(number));
+                    assembly.AddOp(Op.Float, ex.Token, BitConverter.DoubleToInt64Bits(number));
                 }
                 else
                 {
@@ -615,8 +619,8 @@ namespace Zurfur.Compiler
                         numberType = typeI32;
                     else if (customType == "U32")
                         numberType = typeU32;
-                    else if (customType == "F64")
-                        numberType = typeF64;
+                    else if (customType == "Float")
+                        numberType = typeFloat;
                     else if (customType == "F32")
                         numberType = typeF32;
                     else if (customType == "Byte")
@@ -853,7 +857,7 @@ namespace Zurfur.Compiler
             {
                 if (ex.Count != 1)
                     return null; // Syntax error
-                Debug.Assert(ex.Token == "ref" || ex.Token == "&");
+                Debug.Assert(ex.Token == "&" || ex.Token == "&*");
 
                 var rval = GenExpr(ex[0]);
                 if (rval == null)
@@ -866,7 +870,7 @@ namespace Zurfur.Compiler
                 if (rval.Type.Parent!.FullName != SymTypes.Ref && !rval.IsLocal)
                     Reject(ex.Token, $"The type '{rval.Type} is a value and cannot be converted to a reference'");
 
-                if (ex.Token == "ref")
+                if (ex.Token == "&")
                 {
                     // TBD: The thing should already be a reference, or fail same as addrss off
                     rval.IsExplicitRef = true;
@@ -1173,24 +1177,14 @@ namespace Zurfur.Compiler
                 return paramHasError ? null : funArgs;
             }
 
-            Rval? GenIffExpr(SyntaxExpr ex)
+            Rval? GenTernary(SyntaxExpr ex)
             {
                 if (HasError(ex))
                     return null;
 
-                var parameters = ex[0];
-                if (HasError(parameters))
-                    return null;
-
-                if (parameters.Count != 3)
-                {
-                    Reject(ex.Token, "Expecting 3 parameters");
-                    return null;
-                }
-
-                var cond = GenExpr(parameters[0]);
-                var condIf = GenExpr(parameters[1]);
-                var condElse = GenExpr(parameters[2]);
+                var cond = GenExpr(ex[0]);
+                var condIf = GenExpr(ex[1]);
+                var condElse = GenExpr(ex[2]);
                 EvalType(cond);
                 EvalType(condIf);
                 EvalType(condElse);
@@ -1201,7 +1195,7 @@ namespace Zurfur.Compiler
                     return null;
                 if (condElse == null || condElse.Type == null)
                     return null;
-                if (!CheckBool(ex.Token, cond.Type, "iff"))
+                if (!CheckBool(ex.Token, cond.Type, "??"))
                     return null;
 
                 condIf.Type = DerefRef(condIf.Type);
@@ -1857,8 +1851,14 @@ namespace Zurfur.Compiler
                 if (local != null)
                     return new List<Symbol> { local };
 
-                // Find global symbols in this module
                 var symbols = new List<Symbol>();
+                if (token == "my")
+                {
+                    Reject(token, $"'my' cannot be used in this context (static function, etc.)");
+                    return symbols;
+                }
+
+                // Find global symbols in this module
                 var name = token.Name;
                 var module = function.Parent!;
                 if (module.TryGetPrimary(name, out Symbol? sym1))

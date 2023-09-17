@@ -39,8 +39,8 @@ namespace Zurfur.Compiler
  
     static class CompileHeader
     {
-        const string ZURFUR_PRELUDE = "Void Bool I8 Byte I16 U16 I32 U32 Int U64 F32 F64 Str "
-            + "Nil Maybe List Map Array Buffer Span";
+        const string ZURFUR_PRELUDE = "Void Bool I8 Byte I16 U16 I32 U32 Int U64 F32 Float Str "
+            + "Nil Maybe List Map Array Buffer Span require assert";
 
         static public CompilerHeaderOutput GenerateHeader(
             Dictionary<string, SyntaxFile> syntaxFiles,

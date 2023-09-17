@@ -12,7 +12,7 @@ use Zurfur.Math[max]
 
 // Send to DlMalloc
 fun calloc(size Int) *Void
-    extern
+    todo
 
 
 // The one and only dynamically sized data structure.  Calling any function
@@ -26,14 +26,14 @@ type List<T>
 
 [pub]
 fun List.new<T>()
-    my.list = &empty
+    my.list = &*empty
         
 
 [pub]
 fun List.new<T>(capacity Int)
-    require capacity in 0..my.MaxItems
+    require(capacity in 0..my.MaxItems)
     if capacity == 0
-        my.list = &empty
+        my.list = &*empty
     else
         my.list = castPointer<*GcHeapArray>(calloc(sizeof(T)*capacity + sizeof(GcHeapArray)))
 
@@ -51,36 +51,36 @@ fun get List.locked<T>() Bool
 // reference to an element.
 [pub]
 fun List.drop<T>()
-    require not my.locked // Not possible because the compiler ensures
-    extern
+    require(not my.locked) // Not possible because the compiler ensures
+    todo
 
 
 // Clone items into the new list
 [pub]
 fun List.new<T>(items []T)
     where T has Clone<T>
-    extern
+    todo
 
 // Clone items into the new list
 [pub]
 fun List.new<T>(items mut Iterator<T>)
-    extern
+    todo
 
 [pub static]
-fun List._opIndex<T>(list List<T>, i Int) mut ref T
-    require i in 0..count
-    extern
+fun List._opIndex<T>(list List<T>, i Int) mut &T
+    require(i in 0..list.len)
+    todo
 
 [pub static]
 fun List._opIndex<T>(list List<T>, r Range<Int>) mut []T
-    require r.start in 0..count
-    require r.end in 0..count
-    require r.start <= range.end
-    extern
+    require(r.low in 0..list.len)
+    require(r.high in 0..list.len)
+    require(r.low <= r.high)
+    todo
 
 [pub]
 fun get List.iterator<T>() SpanIterator<T>
-    extern
+    todo
 
 
 [pub]
@@ -90,77 +90,77 @@ fun get List.capacity<T>() Int
 // Set the capacity, won't shrink below count.
 [pub]
 fun set List.capacity<T>(value Int)
-    require not my.locked and value < my.MaxItems
-    extern
+    require(not my.locked and value < my.MaxItems)
+    todo
 
 
-// Return a new array with all occurences of `seqSearch`
+// Return a new list with all occurences of `seqSearch`
 // replaced by `seqReplace`.
 [pub] fun mut List.replace<T>(seqSearch []T, seqReplace[]T)
-    require not my.locked
-    extern
+    require(not my.locked)
+    todo
 
 [pub] fun mut List.clear<T>()
-    require not my.locked
-    extern
+    require(not my.locked)
+    todo
 
 // Push the item onto the end of the list
 [pub] fun mut List.push<T>(item own T)
-    require not my.locked
-    extern
+    require(not my.locked)
+    todo
 
 // Push item clones onto the end of the list
 [pub] fun mut List.push<T>(items []T)
-    require not my.locked
-    extern
+    require(not my.locked)
+    todo
 
 // Push item clones onto the end of the list
 [pub] fun mut List.push<T>(items mut Iterator<T>)
-    require not my.locked
-    extern
+    require(not my.locked)
+    todo
 
 // Duplicate clones onto the end of the list
 [pub] fun mut List.pushDup<T>(item T, count Int)
-    require not my.locked
-    extern
+    require(not my.locked)
+    todo
 
 // Pop item from end of list
 [pub] fun mut List.pop<T>() ?T
-    require not my.locked
-    extern
+    require(not my.locked)
+    todo
 
 [pub] fun mut List.insert<T>(index Int, item own T)
-    require not my.locked
-    extern
+    require(not my.locked)
+    todo
 
 [pub] fun mut List.insert<T>(index Int, items []T)
-    require not my.locked
-    extern
+    require(not my.locked)
+    todo
 
 [pub] fun mut List.insert<T>(index Int, items mut Iterator<T>)
-    require not my.locked
-    extern
+    require(not my.locked)
+    todo
 
 [pub] fun mut List.remove<T>(index Int) T
-    require not my.locked
-    extern
+    require(not my.locked)
+    todo
 
 [pub] fun mut List.remove<T>(range Range<Int>)
-    require not my.locked
-    extern
+    require(not my.locked)
+    todo
 
 [pub] fun mut List.remove<T>(test fun(item T) Bool)
-    require not my.locked
-    extern
+    require(not my.locked)
+    todo
 
 // TBD: Iterator should be able to do this, but you need to call.toList after
 [pub] fun List.map<T, Tout>(f fun(item T) Tout) List<Tout>
     where T has Clone<T>
-    extern
+    todo
 
 [pub] fun List.toArray<T>() Array<T>
     where T has Clone<T>
-    extern
+    todo
 
 
 // Usage: myList.For @item => DoStuffWithItem()
