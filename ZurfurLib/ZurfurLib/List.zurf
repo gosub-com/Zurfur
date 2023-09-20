@@ -39,13 +39,13 @@ fun List.new<T>(capacity Int)
 
 
 fun get List.len<T>() Int
-    return my._len
+    ret my._len
 
 // Returns true if there is a reference to any element.  When locked, the
 // list length cannot be changed.  A GC implementation might not ever lock.
 [pub]
 fun get List.locked<T>() Bool
-    return my.list.refCount != 0
+    ret my.list.refCount != 0
 
 // The compiler ensures drop cannot be called when there is
 // reference to an element.
@@ -85,7 +85,7 @@ fun get List.iterator<T>() SpanIterator<T>
 
 [pub]
 fun get List.capacity<T>() Int
-    return my.list.capacity.toInt
+    ret my.list.capacity.toInt
 
 // Set the capacity, won't shrink below count.
 [pub]

@@ -74,15 +74,15 @@ type IsRawPointer interface
 
 // Mark these types as the only pointer types in the system
 fun Xuint.isRawPointer() RawPointerMarker
-    return RawPointerMarker()
+    ret RawPointerMarker()
 fun RawPointer.isRawPointer<T>() RawPointerMarker
-    return RawPointerMarker()
+    ret RawPointerMarker()
 fun Ref.isRawPointer<T>() RawPointerMarker
-    return RawPointerMarker()
+    ret RawPointerMarker()
 fun Pointer.isRawPointer<T>() RawPointerMarker
-    return RawPointerMarker()
+    ret RawPointerMarker()
 fun Xuint.getRawPointer() Xuint
-    return my
+    ret my
 
 // TBD: Compiler implemented
 fun Ref.getRawPointer<T>() Xuint

@@ -37,7 +37,7 @@ fun aaa_arith(a Int, b Int, c aaa_arith_test) Int
 
     @q2 = c.bref.e
     
-    return y + c.b.e
+    ret y + c.b.e
 
 type aaa_arith_test
     a Int
@@ -45,7 +45,7 @@ type aaa_arith_test
     c Int
 
 fun get aaa_arith_test.bref() mut &aaa_arith_test2
-    return my.b
+    ret my.b
 
 type aaa_arith_test2
     d Int
@@ -67,7 +67,7 @@ fun test_forEach(args Array<Str>)
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
 fun Iterator.alphaLengthWise<Item, L>(lengthProvider fun(t Item) L) Iterator<Item>
-    return my.orderBy<Item, L>(@a => lengthProvider(a))
+    ret my.orderBy<Item, L>(@a => lengthProvider(a))
              .thenBy<Item, L>(@a => a)
 fun Iterator.orderBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
     todo
@@ -77,8 +77,8 @@ fun Iterator.thenBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
 fun mut Iterator.find<T>(f fun(item T) Bool) mut ?&T
     while my.next()@item
         if f(item)
-            return &item // TBD: Require `&` here
-    return nil
+            ret &item // TBD: Require `&` here
+    ret nil
 
 
 // Simple selection sort
@@ -127,7 +127,7 @@ type MyAdd<T> interface
     [static] fun myAddStatic(a T, b T) T
 
 fun getMapFun<K,V>() Map<V,K>
-    return Map<V,K>()
+    ret Map<V,K>()
 
 fun myFun2Interf<T>(i T) T todo
 
@@ -202,22 +202,22 @@ fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<I32>, intf2 GetHash, mgQ Getter2<Q>,
 
 fun MyFun1<T1,T2,T3>(a T1, b T2, c T3)(x T2, y T3)
     @q = b
-    return (T2(), T3())
+    ret (T2(), T3())
 
 fun MyFun2<I,O>(i I) O
-    return O()
+    ret O()
 
 fun MyFun3<I,O>(i Int) O
-    return O()
+    ret O()
 
 fun MyFun4<T0,T1,T2,T3>(i Int) List<T2>
-    return List<T2>()
+    ret List<T2>()
 
 fun MyFun5<T0,T1,T2,T3>(i Int)(a List<T1>, b List<T3>)
-    return (List<T1>(), List<T3>())
+    ret (List<T1>(), List<T3>())
 
 fun inferMap<T1,T2>(a Map<T1,T2>, b List<T2>)(x T1, y T2)
-    return (T1(), T2())
+    ret (T1(), T2())
 
 fun Test<X0,X1,X2,X3>()
     @infer1 = MyFun1(0, "", 0.0)
@@ -255,7 +255,7 @@ fun get Point.toSizeTest<T>() Size<T>
     @b = Size<T>()
     @c = Size(my.x, my.y)
     @d = Size(0,0)
-    return c
+    ret c
 
 
 
@@ -264,7 +264,6 @@ fun get Point.toSizeTest<T>() Size<T>
 fun helloVoid() {}
 fun helloInt() Int {}
 fun cos2(a Int)(x Float, y Int) {}
-fun nop() {}
  
 fun test(x Float)
     @a = 3
@@ -279,7 +278,7 @@ fun test(x Float)
     @h = cos(2.0+3.0*23.0).toStr
 
 fun Span<Byte>.hello()
-    nop()
+    todo
 
 type AAAA<T>
     v Void
@@ -358,15 +357,15 @@ fun AGenericTest.af6<T,QQQ>(p fun(v Int)Bool) {}
 //fun AGenericTest<T, QQQ>.af8<T1,T2>(i T1)T2 { }
 //fun AGenericTest<T, QQQ>.Q<T1>() {}
 //[pub] fun AGenericTest<T, QQQ>.new()
-//    nop()
+//    todo
 //[pub] fun AGenericTest<T, QQQ>.new(a Int)
-//    nop()
+//    todo
 //[pub] fun AGenericTest<T, QQQ>.aaa(a Zurfur.Draw2d.Size<Int>) {}
-//[pub] fun AGenericTest<T, QQQ>.P1() { return 0 }
-//[pub] fun AGenericTest<T, QQQ>.P2()() { return 0}
-//[pub] fun P2<Quack>(a Quack, b QQQ) { return (a.ToStr() + b.ToStr()).Length; }
-//[pub] fun AGenericTest<T, QQQ>.P3<Z>() { return 0; }
-//[pub] fun AGenericTest<T, QQQ>.P4<Quack, Quack1>() { return 0; }
+//[pub] fun AGenericTest<T, QQQ>.P1() { ret 0 }
+//[pub] fun AGenericTest<T, QQQ>.P2()() { ret 0}
+//[pub] fun P2<Quack>(a Quack, b QQQ) { ret (a.ToStr() + b.ToStr()).Length; }
+//[pub] fun AGenericTest<T, QQQ>.P3<Z>() { ret 0; }
+//[pub] fun AGenericTest<T, QQQ>.P4<Quack, Quack1>() { ret 0; }
 //[pub] fun AGenericTest<T, QQQ>.fun9(a *?OneGeneric<List<Int>>) { }
 
 //[pub] fun AGenericTest<T, QQQ>.UseIt(x Zurfur.Int, y List<Inner1<Int,Int>>, z List<Str>)
@@ -382,7 +381,7 @@ fun AGenericTest.af6<T,QQQ>(p fun(v Int)Bool) {}
 //    @p = AGenericTest<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, Byte>()
 //    p.P5<short, QQQ, ushort>(3, QQQ(), 0)
 //[pub] fun (AGenericTest<T, QQQ>.Inner1<Ta, Qa>) P1(a T, b QQQ, c Ta, d Qa)
-//    return 0
+//    ret 0
 
 type ToStr interface
     fun get toStr() Str
@@ -390,7 +389,7 @@ type ToStr interface
 [pub] fun GenericTest<Q1,Q2>(a Q1, b Q2) Int
         where Q1 has ToStr
         where Q2 has ToStr
-    return a.toStr.len + b.toStr.len    
+    ret a.toStr.len + b.toStr.len    
 
 [pub] type AGenericTest<T, QQQ>
     where QQQ has OpEq<T>//: new() where T : new()

@@ -17,7 +17,7 @@ fun Range.new<T>(low T, high T)
     // TBD: (my.low, my.high) = (low, high)
 
 fun abs(i Int) Int
-    return 3
+    ret 3
 
 // TBD: Shortcut syntax
 type Abs<T> interface
@@ -30,11 +30,11 @@ fun get Range.length<T>() T
         where T has Abs<T> + NumOps<T> // TBD: Use constraints from `Range`, ALSO: fun abs(n T) T 
     // Alternatively:
     //      return if(my.low <= my.high, my.low : my.high) 
-    return T.abs(my.high-my.low)
+    ret T.abs(my.high-my.low)
 
 [pub]
 fun get Range.iterator<T>() RangeIterator<T>
-    return RangeIterator<T>(my.low, my.high)
+    ret RangeIterator<T>(my.low, my.high)
         
 [pub]
 type RangeIterator<T> where T has NumOps<T>
@@ -51,8 +51,8 @@ fun RangeIterator.new<T>(low T, high T)
 fun mut RangeIterator.next<T>() ?T
         where T has Abs<T> + NumOps<T>
     if my.current >= my.high
-        return nil
+        ret nil
     @r = my.current
     my.current += T.One
-    return Maybe<T>(my.current)
+    ret Maybe<T>(my.current)
         

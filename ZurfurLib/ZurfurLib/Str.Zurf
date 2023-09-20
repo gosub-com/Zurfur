@@ -8,7 +8,7 @@
 
 // TBD: Need to collect stuff from Array
 [pub] fun get Str.len() Int
-    return 0
+    ret 0
 
 [pub static] fun Str._opAdd(a Str, b Str) Str {}
 

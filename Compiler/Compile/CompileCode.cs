@@ -282,7 +282,7 @@ namespace Zurfur.Compiler
                     GenContinueStatement(s);
                 else if (name == "for")
                     GenForStatement(s);
-                else if (name == "return")
+                else if (name == "ret" || name == "yld")
                     GenReturnStatement(s);
                 else
                 {
@@ -573,6 +573,8 @@ namespace Zurfur.Compiler
                     return GenLambda(ex);
                 else if (name == "todo")
                 { } // TBD: Call require(false)
+                else if (name == "nop")
+                { } // TBD: Send to assembly for break point
                 else
                 {
                     if (name == "else" || name == "elif" || name == "dowhile")

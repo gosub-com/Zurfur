@@ -31,7 +31,7 @@ fun Test_ConvertExample()
 [pub]
 fun Span<Byte>.bytesToU32() U32
     require(my.len == 4)
-    return     my[0].toU32
+    ret     my[0].toU32
             + (my[1].toU32 << 8)
             + (my[2].toU32 << 16)
             + (my[3].toU32 << 24)
@@ -55,7 +55,7 @@ fun mut List<Byte>.pushBytesU32(v U32)
 [pub]
 fun Span<Byte>.bytesToI32() I32
     require(my.len == 4)
-    return my.bytesToU32().toI32Mask
+    ret my.bytesToU32().toI32Mask
     
 [pub]
 fun mut Span<Byte>.setBytesI32(v I32)

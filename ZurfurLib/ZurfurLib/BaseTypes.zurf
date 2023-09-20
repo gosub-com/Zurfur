@@ -6,9 +6,6 @@ mod Zurfur
 
 pragma AllowUnderscoreDefinitions
 
-// Blank function
-[pub] fun get nop() {}
-
 // These implement throw and require reserved words
 [pub] fun assert(condition Bool) todo
 [pub] fun assert(condition Bool, message Str) todo
@@ -24,17 +21,27 @@ type Void ro { }
 type Nil ro { }
 
 // Maybe<T> is the same as ?T.  Pointer and reference types are always
-// optimized so that `?ref T`, `*T`, and `^T` are just one pointer.
+// optimized so that `?&T`, `?*T`, `?^T`, and `?Box<T>` are just one pointer.
 [pub]
 type Maybe<T>
-    value T
+    // TBD: Assigning to `Maybe<T>` can change the type of `value` to nil.
+    //      If we allow returning a reference to `T`, it must be in a box.
+    //      For reference types, we can optimize to remove one box.
+    //      For non-reference types, the compiler can probably optimize.
+    //      Will have the same problem for sum types.
+    value Box<T>
     hasValue Bool
 
 [pub]
-fun Maybe.new<T>(value T)
-    my.value = value
+fun Maybe.new<T>(value own T)
+    my.value = Box<T>(value)
     my.hasValue = true
 
+type Box<T>
+    const __size Int = 1
+
+fun Box.new<T>(value own T)
+    nop
 
 [pub]
 type Error ro interface
@@ -73,7 +80,8 @@ type Type ro
 
 
 // Swap two items
-[pub] fun swap<T>(a mut &T, b mut &T)
+[pub]
+fun swap<T>(a mut &T, b mut &T)
     todo
 
 // Bool (true or false)
@@ -116,7 +124,8 @@ type I8 ro
 
 
 // Byte (0..255)
-[pub] type Byte ro
+[pub]
+type Byte ro
     const __size Int = 1
     const __align Int = 1    
     const Zero Byte = 0
@@ -144,7 +153,8 @@ type I8 ro
 
 
 // I16 (-32768..32768)
-[pub] type I16 ro
+[pub]
+type I16 ro
     const __size Int = 2
     const __align Int = 2    
     const Zero I16 = 0
@@ -173,7 +183,8 @@ type I8 ro
 
 
 // U16 (0..65535)
-[pub] type U16 ro
+[pub]
+type U16 ro
     const __size Int = 2
     const __align Int = 2    
     const Zero U16 = 0
@@ -203,7 +214,8 @@ type I8 ro
 [pub static] fun U16._opCmp(a U16, b U16) Int extern
 
 // A 32 bit integer
-[pub] type I32 ro
+[pub]
+type I32 ro
     const __size Int = 4
     const __align Int = 4    
     const Zero I32 = 0
@@ -247,12 +259,14 @@ type I8 ro
 [pub static] fun I32._opBitShl(a I32, b Int) I32 extern
 [pub static] fun I32._opBitShr(a I32, b Int) I32 extern
 
-[pub] fun get I32.iterator() RangeIterator<I32>
-    return RangeIterator<I32>(0 I32, my)
+[pub]
+fun get I32.iterator() RangeIterator<I32>
+    ret RangeIterator<I32>(0 I32, my)
 
 
 // 32 bit unsigned integer
-[pub] type U32 ro
+[pub]
+type U32 ro
     const __size Int = 4
     const __align Int = 4    
     const Zero U32 = 0
@@ -298,11 +312,12 @@ type I8 ro
 [pub static] fun U32._opBitShr(a U32, b Int) U32 extern
 
 [pub] fun get U32.iterator() RangeIterator<U32>
-    return RangeIterator<U32>(0 U32, my)
+    ret RangeIterator<U32>(0 U32, my)
 
 
 // A 64 bit integer (same as Int)
-[pub] type Int ro
+[pub]
+type Int ro
     const __size Int = 8
     const __align Int = 8    
     const Zero Int = 0
@@ -350,11 +365,13 @@ type I8 ro
 [pub static] fun Int._opBitShr(a Int, b Int) Int extern
 
 
-[pub] fun get Int.iterator() RangeIterator<Int>
-    return RangeIterator<Int>(0, my)
+[pub]
+fun get Int.iterator() RangeIterator<Int>
+    ret RangeIterator<Int>(0, my)
 
 // 64 bit unsigned integer
-[pub] type U64 ro
+[pub]
+type U64 ro
     const __size Int = 8
     const __align Int = 8    
     const Zero U64 = 0
@@ -404,19 +421,23 @@ type I8 ro
 
 
 
-[pub] fun get U64.iterator() RangeIterator<U64>
-    return RangeIterator<U64>(0 U64, my)
+[pub]
+fun get U64.iterator() RangeIterator<U64>
+    ret RangeIterator<U64>(0 U64, my)
 
-[pub] type I128 ro
+[pub]
+type I128 ro
     const __size Int = 16
     const __align Int = 16
 
-[pub] type U128 ro
+[pub]
+type U128 ro
     const __size Int = 16
     const __align Int = 16
 
 
-[pub] type F32 ro
+[pub]
+type F32 ro
     const __size Int = 4
     const __align Int = 4    
     const Zero F32 = 0
@@ -464,7 +485,8 @@ type I8 ro
 [pub static] fun F32._opRem(a F32, b F32) F32 extern
 
 
-[pub] type Float ro
+[pub]
+type Float ro
     const __size Int = 8
     const __align Int = 8    
     const Zero Float = 0
@@ -514,7 +536,8 @@ type I8 ro
 
 // 128 bit decimal integer.  This will support nan, infinity, and
 // exponents covering the entire range of Float with more precision.
-[pub] type Decimal ro
+[pub]
+type Decimal ro
     const __size Int = 16
     const __align Int = 16
     const Zero Decimal = 0

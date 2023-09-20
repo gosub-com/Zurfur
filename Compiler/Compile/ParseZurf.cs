@@ -63,7 +63,7 @@ namespace Zurfur.Compiler
         // Add semicolons to all lines, except for:
         static WordSet sContinuationEnd = new WordSet("[ ( ,");
         static WordSet sContinuationNoBegin = new WordSet("} namespace mod type use pragma pub fun afun " 
-            + "get set if while for return break continue else");
+            + "get set if while for return ret break continue else");
         static WordSet sContinuationBegin = new WordSet("] ) , . + - * / % | & || && and or "
                             + "== != : ? ?? > << <= < => -> .. :: !== ===  is in as has "
                             + "= += -= *= /= %= |= &= ~= " + TOKEN_STR_LITERAL);
@@ -72,11 +72,11 @@ namespace Zurfur.Compiler
             + "continue do then else elif todo extern nil true false defer use "
             + "finally for goto go if ife in is mod app include "
             + "new out pub public private priv readonly ro ref aref mut imut "
-            + "return ret sizeof struct switch throw try "
+            + "return ret sizeof struct switch throw try nop "
             + "typeof type unsafe static while dowhile scope loop "
             + "async await astart atask task get set var where when nameof "
             + "box init move copy clone drop own super self "
-            + "extends impl implements fun afun sfun def yield let "
+            + "extends impl implements fun afun sfun def yield yld let "
             + "any Any dyn Dyn dynamic Dynamic select match from to of on cofun "
             + "throws rethrow @ # and or not xor with exit pragma require ensure "
             + "of sync except exception loc local global my My");
@@ -1459,11 +1459,14 @@ namespace Zurfur.Compiler
                     break;
 
                 case "todo":
+                case "nop":
                     statements.Add(new SyntaxToken(Accept()));
                     break;
 
                 case "throw":
                 case "return":
+                case "ret":
+                case "yld":
                     keyword.Type = eTokenType.ReservedControl;
                     Accept();
                     if (sStatementEndings.Contains(mTokenName))

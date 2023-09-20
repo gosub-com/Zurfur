@@ -30,8 +30,8 @@ type MyType
 fun Map.madd<K,V>(mul1 K, mul2 K, add K) V
         where V has NumOps<V>
     if my[mul1]@mul1Val and my[mul2]@mul2Val and my[add]@addVal
-        return mul1Val * mul2Val + addVal
-    return V.NanOrMin        
+        ret mul1Val * mul2Val + addVal
+    ret V.NanOrMin        
 
 // Method
 [pub]
@@ -72,10 +72,10 @@ fun test_HelloWorld()
 fun circle(a Float, r Float)(x Float, y Float)
     @q = circle(1.0,2.0)
     @p = q.x
-    return (cos(a)*r, sin(a)*r)
+    ret (cos(a)*r, sin(a)*r)
 
 fun circle2<T0, T1>(a T0, r T1)(x T0, y T1)
-    return (T0(), T1())
+    ret (T0(), T1())
 
 [pub] type Example
     
@@ -114,7 +114,7 @@ type Zim<T>
 // Type test for test_main
 type Token(a Int)
 fun AcceptMatch(m Str) ?Token
-    return nil
+    ret nil
 
 // This is a public documentation comment.  Do not use XML.
 // Use `name` to refer to variables in the code.
@@ -154,6 +154,5 @@ fun test_Main(args Array<Str>, stream Zurfur.Io.Reader)
     }
 
 
-    return
-
+    ret
 

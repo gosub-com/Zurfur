@@ -22,10 +22,10 @@ fun test_map()
 
 // TBD: Still working on these
 fun Iterator.map<Source, Result>(f fun(input Source) Result) MapIterator<Source, Result>
-    return MapIterator<Source, Result>(f, my)
+    ret MapIterator<Source, Result>(f, my)
 
 fun Iterable.map<Source, Result>(f fun(input Source) Result) MapIterator<Source, Result>
-    return MapIterator<Source, Result>(f, my.iterator)
+    ret MapIterator<Source, Result>(f, my.iterator)
 
 // TBD: Still working on this
 type MapIterator<Source, Result> ref // TBD: Ownership rules for these will be tough
@@ -42,14 +42,14 @@ fun mut MapIterator.next<Source, Result>() ?Result
 
 [pub]
 fun mut Iterator.toArray<T>() Array<T>
-    return my.toList().toArray()
+    ret my.toList().toArray()
 
 [pub]
 fun mut Iterator.toList<T>() List<T>
     @list = List<T>()
     while my.next()@item
         list.push(item)
-    return list
+    ret list
     
     
     
