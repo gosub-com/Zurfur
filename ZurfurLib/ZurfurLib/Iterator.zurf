@@ -12,9 +12,9 @@ type Iterator<T> interface
     fun mut next() ?T
 
 fun test_map()
-    @i = Iterator<Int>()
-    @x = i.map<Int,Str>(@q => 0.0)  // TBD: Infer types
-    @item = x.next<Int,Str>()       // TBD: Infer types
+    @i = Iterator<int>()
+    @x = i.map<int,str>(@q => 0.0)  // TBD: Infer types
+    @item = x.next<int,str>()       // TBD: Infer types
 
     // TBD: Fix this error (iterate on Iterable or Iterator)
     //for @s in x

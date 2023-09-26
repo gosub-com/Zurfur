@@ -11,7 +11,7 @@ use Zurfur.Math[max]
 
 
 // Send to DlMalloc
-fun calloc(size Int) *Void
+fun calloc(size int) *void
     todo
 
 
@@ -20,9 +20,9 @@ fun calloc(size Int) *Void
 // exists is a runtime error.
 [pub]
 type List<T>
-    const MaxItems Int = U32.MaxValue/2
+    const MaxItems int = u32.MaxValue/2
     list *GcHeapArray
-    _len Int
+    _len int
 
 [pub]
 fun List.new<T>()
@@ -30,7 +30,7 @@ fun List.new<T>()
         
 
 [pub]
-fun List.new<T>(capacity Int)
+fun List.new<T>(capacity int)
     require(capacity in 0..my.MaxItems)
     if capacity == 0
         my.list = &*empty
@@ -38,13 +38,13 @@ fun List.new<T>(capacity Int)
         my.list = castPointer<*GcHeapArray>(calloc(sizeof(T)*capacity + sizeof(GcHeapArray)))
 
 
-fun get List.len<T>() Int
+fun get List.len<T>() int
     ret my._len
 
 // Returns true if there is a reference to any element.  When locked, the
 // list length cannot be changed.  A GC implementation might not ever lock.
 [pub]
-fun get List.locked<T>() Bool
+fun get List.locked<T>() bool
     ret my.list.refCount != 0
 
 // The compiler ensures drop cannot be called when there is
@@ -67,12 +67,12 @@ fun List.new<T>(items mut Iterator<T>)
     todo
 
 [pub static]
-fun List._opIndex<T>(list List<T>, i Int) mut &T
+fun List._opIndex<T>(list List<T>, i int) mut &T
     require(i in 0..list.len)
     todo
 
 [pub static]
-fun List._opIndex<T>(list List<T>, r Range<Int>) mut []T
+fun List._opIndex<T>(list List<T>, r Range<int>) mut []T
     require(r.low in 0..list.len)
     require(r.high in 0..list.len)
     require(r.low <= r.high)
@@ -84,12 +84,12 @@ fun get List.iterator<T>() SpanIterator<T>
 
 
 [pub]
-fun get List.capacity<T>() Int
+fun get List.capacity<T>() int
     ret my.list.capacity.toInt
 
 // Set the capacity, won't shrink below count.
 [pub]
-fun set List.capacity<T>(value Int)
+fun set List.capacity<T>(value int)
     require(not my.locked and value < my.MaxItems)
     todo
 
@@ -120,7 +120,7 @@ fun set List.capacity<T>(value Int)
     todo
 
 // Duplicate clones onto the end of the list
-[pub] fun mut List.pushDup<T>(item T, count Int)
+[pub] fun mut List.pushDup<T>(item T, count int)
     require(not my.locked)
     todo
 
@@ -129,27 +129,27 @@ fun set List.capacity<T>(value Int)
     require(not my.locked)
     todo
 
-[pub] fun mut List.insert<T>(index Int, item own T)
+[pub] fun mut List.insert<T>(index int, item own T)
     require(not my.locked)
     todo
 
-[pub] fun mut List.insert<T>(index Int, items []T)
+[pub] fun mut List.insert<T>(index int, items []T)
     require(not my.locked)
     todo
 
-[pub] fun mut List.insert<T>(index Int, items mut Iterator<T>)
+[pub] fun mut List.insert<T>(index int, items mut Iterator<T>)
     require(not my.locked)
     todo
 
-[pub] fun mut List.remove<T>(index Int) T
+[pub] fun mut List.remove<T>(index int) T
     require(not my.locked)
     todo
 
-[pub] fun mut List.remove<T>(range Range<Int>)
+[pub] fun mut List.remove<T>(range Range<int>)
     require(not my.locked)
     todo
 
-[pub] fun mut List.remove<T>(test fun(item T) Bool)
+[pub] fun mut List.remove<T>(test fun(item T) bool)
     require(not my.locked)
     todo
 

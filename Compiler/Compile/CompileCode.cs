@@ -17,7 +17,7 @@ namespace Zurfur.Compiler
     {
         static WordSet sOperators = new WordSet("+ - * / % & | ~ == != >= <= > < << >> and or not in |= &= += -= <<= >>= .. ..+ ]");
         static WordSet sCmpOperators = new WordSet("== != >= <= > <");
-        static WordSet sIntTypeNames = new WordSet("Zurfur.Int Zurfur.U64 Zurfur.I32 Zurfur.U32");
+        static WordSet sIntTypeNames = new WordSet("Zurfur.int Zurfur.u64 Zurfur.i32 Zurfur.u32");
         static WordSet sDerefRef = new WordSet("Zurfur.Ref`1");
         static WordSet sDerefPointers = new WordSet("Zurfur.RawPointer`1 Zurfur.Pointer`1");
         static WordMap<string> sBinOpNames = new WordMap<string> {
@@ -77,7 +77,7 @@ namespace Zurfur.Compiler
             public Symbol? Type;
             public Symbol[] TypeArgs = Array.Empty<Symbol>();
             public Symbol? InType;
-            public bool IsUntypedConst; // NOTE: `3 Int` is a typed const
+            public bool IsUntypedConst; // NOTE: `3 int` is a typed const
             public bool IsSetter;
             public bool IsLocal;
             public bool IsExplicitRef;
@@ -613,19 +613,19 @@ namespace Zurfur.Compiler
                     untypedConst = false;
                     ex[0].Token.Type = eTokenType.TypeName;
                     var customType = ex[0].Token;
-                    if (customType == "Int")
+                    if (customType == "int")
                         numberType = typeInt;
-                    else if (customType == "U64")
+                    else if (customType == "u64")
                         numberType = typeU64;
-                    else if (customType == "I32")
+                    else if (customType == "i32")
                         numberType = typeI32;
-                    else if (customType == "U32")
+                    else if (customType == "u32")
                         numberType = typeU32;
-                    else if (customType == "Float")
+                    else if (customType == "float")
                         numberType = typeFloat;
-                    else if (customType == "F32")
+                    else if (customType == "f32")
                         numberType = typeF32;
-                    else if (customType == "Byte")
+                    else if (customType == "byte")
                         numberType = typeByte;
                     else
                         Reject(ex[0].Token, $"'{ex[0].Token}' undefined number type");

@@ -1,11 +1,11 @@
 ﻿mod Zurfur
 
 
-// Unsigned extended Int, U32 or U64 depending on machine pointer size.
+// Unsigned extended int, u32 or u64 depending on machine pointer size.
 // This is the internal representation of a pointer.
 [pub]
 type Xuint ro
-    value U32 // or U64
+    value u32 // or u64
 
 // A raw pointer.  The compiler translates *T to RawPointer<T>
 // and automatically dereferences when "." is used.
@@ -13,12 +13,12 @@ type Xuint ro
 type RawPointer<T> ro
     value Xuint
 
-[static] fun RawPointer._opEq<T>(p1 RawPointer<T>, p2 RawPointer<T>) Bool extern
-[static] fun RawPointer._opCmp<T>(p1 RawPointer<T>, p2 RawPointer<T>) Int extern
-[static] fun RawPointer._opAdd<T>(p1 RawPointer<T>, i U64) RawPointer<T> extern
-[static] fun RawPointer._opAdd<T>(p1 U64, i RawPointer<T>) RawPointer<T> extern
+[static] fun RawPointer._opEq<T>(p1 RawPointer<T>, p2 RawPointer<T>) bool extern
+[static] fun RawPointer._opCmp<T>(p1 RawPointer<T>, p2 RawPointer<T>) int extern
+[static] fun RawPointer._opAdd<T>(p1 RawPointer<T>, i u64) RawPointer<T> extern
+[static] fun RawPointer._opAdd<T>(p1 u64, i RawPointer<T>) RawPointer<T> extern
 [static] fun RawPointer._opSub<T>(p1 RawPointer<T>, p2 RawPointer<T>) RawPointer<T> extern
-[static] fun RawPointer._opSub<T>(p1 RawPointer<T>, p2 U64) RawPointer<T> extern
+[static] fun RawPointer._opSub<T>(p1 RawPointer<T>, p2 u64) RawPointer<T> extern
 
 
 // Internal representation of `ref`, a compiler generated stack only pointer.
@@ -44,7 +44,7 @@ type Pointer<T> ro
 // All heap objects start with this header.  It must be 64 bits wide to
 // ensure proper alignment. 
 type GcHeapObject
-    refCount I32
+    refCount i32
     typeId Type     // Must be 32 bits even on 64 bit machines.
     // Object data is stored following this header
 
@@ -54,10 +54,10 @@ type GcHeapArray
     // TBD: use GcHeapObject
     //NOTE: Until we get 'use', the first two fields MUST be the same
     //      as GcHeapObject since we will cast pointers back and forth
-    refCount I32
+    refCount i32
     typeId Type
-    length U32
-    capacity U32
+    length u32
+    capacity u32
     // Array of object data is stored following this header
 
 // This is private, so only Xuint, RawPointer<T>, Ref<T>, and Pointer<T>
@@ -107,22 +107,22 @@ fun castPointer<Out>(i Xuint) Out
     where Out has IsRawPointer
     extern
 
-fun castPointer<Out>(i U64) Out
+fun castPointer<Out>(i u64) Out
     where Out has IsRawPointer
     extern
 
-fun castPointer<Out>(i Int) Out
+fun castPointer<Out>(i int) Out
     where Out has IsRawPointer
     extern
 
 // TBD: Remove this when castPointer<Out>(i IsRawPointer) works
-fun castPointer<Out>(i *Void) Out
+fun castPointer<Out>(i *void) Out
     extern // TBD: Remove
 
-[static] fun RawPointer._opAdd<T>(a *T, b Int) *T extern
-[static] fun Int._opAdd<T>(a Int, b *T) *T extern
+[static] fun RawPointer._opAdd<T>(a *T, b int) *T extern
+[static] fun int._opAdd<T>(a int, b *T) *T extern
 
 fun test_Add()
-    @a = RawPointer<Int>()
+    @a = RawPointer<int>()
     @b = a + 1
     

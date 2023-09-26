@@ -39,7 +39,7 @@ namespace Zurfur.Compiler
  
     static class CompileHeader
     {
-        const string ZURFUR_PRELUDE = "Void Bool I8 Byte I16 U16 I32 U32 Int U64 F32 Float Str "
+        const string ZURFUR_PRELUDE = "void bool i8 byte i16 u16 i32 u32 int u64 f32 float str "
             + "Box Nil Maybe List Map Array Buffer Span require assert";
 
         static public CompilerHeaderOutput GenerateHeader(

@@ -19,16 +19,16 @@ namespace Zurfur.Jit
         public const string Nil = "Zurfur.Nil";
         public const string Maybe = "Zurfur.Maybe`1";
         public const string Result = "Zurfur.Result`1";
-        public const string Void = "Zurfur.Void";
-        public const string Int = "Zurfur.Int";
-        public const string U64 = "Zurfur.U64";
-        public const string I32 = "Zurfur.I32";
-        public const string U32 = "Zurfur.U32";
-        public const string Str = "Zurfur.Str";
-        public const string Bool = "Zurfur.Bool";
-        public const string Byte = "Zurfur.Byte";
-        public const string Float = "Zurfur.Float";
-        public const string F32 = "Zurfur.F32";
+        public const string Void = "Zurfur.void";
+        public const string Int = "Zurfur.int";
+        public const string U64 = "Zurfur.u64";
+        public const string I32 = "Zurfur.i32";
+        public const string U32 = "Zurfur.u32";
+        public const string Str = "Zurfur.str";
+        public const string Bool = "Zurfur.bool";
+        public const string Byte = "Zurfur.byte";
+        public const string Float = "Zurfur.float";
+        public const string F32 = "Zurfur.f32";
         public const string Span = "Zurfur.Span`1";
 
         public static readonly WordMap<string> FriendlyNames = new WordMap<string>

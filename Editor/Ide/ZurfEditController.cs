@@ -113,6 +113,7 @@ namespace Zurfur.Ide
         void mTimer_Tick(object sender, EventArgs e)
         {
             DisplayHoverForm();
+            SetHoverFormLocation(false);
             if (mUpdateInfo)
             {
                 mUpdateInfo = false;
@@ -311,17 +312,31 @@ namespace Zurfur.Ide
                 message += s + "\r\n\r\n";
             foreach (var s in mHoverToken.GetInfos<string>())
                 message += s + "\r\n\r\n";
-            
+
             mHoverMessageForm.Message.Text = message.Trim();
 
             // Show form with proper size and location
             var size = mHoverMessageForm.Message.Size;
             mHoverMessageForm.ClientSize = new Size(size.Width + 8, size.Height + 8);
-            var location = mActiveEditor.PointToScreen(mActiveEditor.LocationToken(mHoverToken.Location));
-            location.Y += mActiveEditor.FontSize.Height + 8;
-            location.X = Form.MousePosition.X;
-            mHoverMessageForm.Location = location;
+            SetHoverFormLocation(true);
             mHoverMessageForm.Show(mActiveEditor.ParentForm);
+        }
+
+        private void SetHoverFormLocation(bool setX)
+        {
+            if (mActiveEditor == null || mHoverToken == null) 
+                return;
+
+            if (setX)
+                mHoverMessageForm.Left = Form.MousePosition.X;
+
+            var top = mActiveEditor.PointToScreen(mActiveEditor.LocationToken(mHoverToken.Location)).Y;
+            var fontSize = mActiveEditor.FontSize;
+            if (Form.MousePosition.Y > top + fontSize.Height / 2)
+                top += 2*fontSize.Height;
+            else
+                top -= mHoverMessageForm.Height + fontSize.Height;
+            mHoverMessageForm.Top = top;
         }
 
         private string GetSymbolInfo()

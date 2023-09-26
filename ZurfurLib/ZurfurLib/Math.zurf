@@ -7,121 +7,121 @@ mod Zurfur.Math
 use Zurfur[Decimal]
 
 // --------------------------
-// Math intrinsics for I32
+// Math intrinsics for i32
 // --------------------------
-[pub] fun abs(n I32) I32 extern
-[pub] fun I32.clamp(min I32, max I32) I32
+[pub] fun abs(n i32) i32 extern
+[pub] fun i32.clamp(min i32, max i32) i32
     require(min <= max)
     todo
     
-[pub] fun max(n1 I32, n2 I32) I32 extern
-[pub] fun min(n1 I32, n2 I32) I32 extern
-[pub] fun sign(n I32) I32 extern
-[pub] fun sq(n I32) I32 extern
+[pub] fun max(n1 i32, n2 i32) i32 extern
+[pub] fun min(n1 i32, n2 i32) i32 extern
+[pub] fun sign(n i32) i32 extern
+[pub] fun sq(n i32) i32 extern
 
 // --------------------------
-// Math intrinsics for U32
+// Math intrinsics for u32
 // --------------------------
-[pub] fun U32.clamp(min U32, max U32) U32
+[pub] fun u32.clamp(min u32, max u32) u32
     require(min <= max)
     todo
     
-[pub] fun max(n1 U32, n2 U32) U32 extern
-[pub] fun min(n1 U32, n2 U32) U32 extern
-[pub] fun sq(n U32) U32 extern
+[pub] fun max(n1 u32, n2 u32) u32 extern
+[pub] fun min(n1 u32, n2 u32) u32 extern
+[pub] fun sq(n u32) u32 extern
 
 // --------------------------
-// Math intrinsics for Int
+// Math intrinsics for int
 // --------------------------
-[pub] fun abs(n Int) Int extern
-[pub] fun Int.clamp(min Int, max Int) Int
+[pub] fun abs(n int) int extern
+[pub] fun int.clamp(min int, max int) int
     require(min <= max)
     todo
     
-[pub] fun max(n1 Int, n2 Int) Int extern
-[pub] fun min(n1 Int, n2 Int) Int extern
-[pub] fun sign(n Int) Int extern
-[pub] fun sq(n Int) Int extern
+[pub] fun max(n1 int, n2 int) int extern
+[pub] fun min(n1 int, n2 int) int extern
+[pub] fun sign(n int) int extern
+[pub] fun sq(n int) int extern
 
 // --------------------------
-// Math intrinsics for U64
+// Math intrinsics for u64
 // --------------------------
-[pub] fun U64.clamp(min U64, max U64) U64
+[pub] fun u64.clamp(min u64, max u64) u64
     require(min <= max)
     todo
     
-[pub] fun max(n1 U64, n2 U64) U64 extern
-[pub] fun min(n1 U64, n2 U64) U64 extern
-[pub] fun sq(n U64) U64 extern
+[pub] fun max(n1 u64, n2 u64) u64 extern
+[pub] fun min(n1 u64, n2 u64) u64 extern
+[pub] fun sq(n u64) u64 extern
 
 // --------------------------
-// Math intrinsics for F32
+// Math intrinsics for f32
 // --------------------------
-[pub] fun abs(n F32) F32 extern
-[pub] fun acos(n F32) F32 extern
-[pub] fun asin(n F32) F32 extern
-[pub] fun atan(n F32) F32 extern
-[pub] fun atan2(x F32, y F32) F32 extern
-[pub] fun ceil(n F32) F32 extern
-[pub] fun F32.clamp(min F32, max F32) F32
+[pub] fun abs(n f32) f32 extern
+[pub] fun acos(n f32) f32 extern
+[pub] fun asin(n f32) f32 extern
+[pub] fun atan(n f32) f32 extern
+[pub] fun atan2(x f32, y f32) f32 extern
+[pub] fun ceil(n f32) f32 extern
+[pub] fun f32.clamp(min f32, max f32) f32
     require(min<=max)
     todo
     
-[pub] fun cos(n F32) F32 extern
-[pub] fun cosh(n F32) F32 extern
-[pub] fun exp(n F32) F32 extern
-[pub] fun floor(n F32) F32 extern
-[pub] fun log(n F32) F32 extern
-[pub] fun log2(n F32) F32 extern
-[pub] fun log10(n F32) F32 extern
-[pub] fun log(n F32, base F32) F32 extern
-[pub] fun max(n1 F32, n2 F32) F32 extern
-[pub] fun min(n1 F32, n2 F32) F32 extern
-[pub] fun pow(x F32, y F32) F32 extern
-[pub] fun round(n F32, digits Int = 0) F32 extern
-[pub] fun sign(n F32) Int extern
-[pub] fun sin(n F32) F32 extern
-[pub] fun sinh(n F32) F32 extern
-[pub] fun sqrt(n F32) F32 extern
-[pub] fun sq(n F32) F32 extern
-[pub] fun tan(n F32) F32 extern
-[pub] fun tanh(n F32) F32 extern
-[pub] fun trunc(n F32) F32 extern
+[pub] fun cos(n f32) f32 extern
+[pub] fun cosh(n f32) f32 extern
+[pub] fun exp(n f32) f32 extern
+[pub] fun floor(n f32) f32 extern
+[pub] fun log(n f32) f32 extern
+[pub] fun log2(n f32) f32 extern
+[pub] fun log10(n f32) f32 extern
+[pub] fun log(n f32, base f32) f32 extern
+[pub] fun max(n1 f32, n2 f32) f32 extern
+[pub] fun min(n1 f32, n2 f32) f32 extern
+[pub] fun pow(x f32, y f32) f32 extern
+[pub] fun round(n f32, digits int = 0) f32 extern
+[pub] fun sign(n f32) int extern
+[pub] fun sin(n f32) f32 extern
+[pub] fun sinh(n f32) f32 extern
+[pub] fun sqrt(n f32) f32 extern
+[pub] fun sq(n f32) f32 extern
+[pub] fun tan(n f32) f32 extern
+[pub] fun tanh(n f32) f32 extern
+[pub] fun trunc(n f32) f32 extern
 
 
 // --------------------------
-// Math intrinsics for Float
+// Math intrinsics for float
 // --------------------------
-[pub] fun abs(n Float) Float extern
-[pub] fun acos(n Float) Float extern
-[pub] fun asin(n Float) Float extern
-[pub] fun atan(n Float) Float extern
-[pub] fun atan2(x Float, y Float) Float extern
-[pub] fun ceil(n Float) Float extern
-[pub] fun Float.clamp(min Float, max Float) Float
+[pub] fun abs(n float) float extern
+[pub] fun acos(n float) float extern
+[pub] fun asin(n float) float extern
+[pub] fun atan(n float) float extern
+[pub] fun atan2(x float, y float) float extern
+[pub] fun ceil(n float) float extern
+[pub] fun float.clamp(min float, max float) float
     require(min<=max)
     todo
     
-[pub] fun cos(n Float) Float extern
-[pub] fun cosh(n Float) Float extern
-[pub] fun exp(n Float) Float extern
-[pub] fun floor(n Float) Float extern
-[pub] fun log(n Float) Float extern
-[pub] fun log2(n Float) Float extern
-[pub] fun log10(n Float) Float extern
-[pub] fun log(n Float, base Float) Float extern
-[pub] fun max(n1 Float, n2 Float) Float extern
-[pub] fun min(n1 Float, n2 Float) Float extern
-[pub] fun pow(x Float, y Float) Float extern
-[pub] fun round(n Float, digits Int = 0) Float extern
-[pub] fun sign(n Float) Int extern
-[pub] fun sin(n Float) Float extern
-[pub] fun sinh(n Float) Float extern
-[pub] fun sqrt(n Float) Float extern
-[pub] fun sq(n Float) Float extern
-[pub] fun tan(n Float) Float extern
-[pub] fun tanh(n Float) Float extern
-[pub] fun trunc(n Float) Float extern
+[pub] fun cos(n float) float extern
+[pub] fun cosh(n float) float extern
+[pub] fun exp(n float) float extern
+[pub] fun floor(n float) float extern
+[pub] fun log(n float) float extern
+[pub] fun log2(n float) float extern
+[pub] fun log10(n float) float extern
+[pub] fun log(n float, base float) float extern
+[pub] fun max(n1 float, n2 float) float extern
+[pub] fun min(n1 float, n2 float) float extern
+[pub] fun pow(x float, y float) float extern
+[pub] fun round(n float, digits int = 0) float extern
+[pub] fun sign(n float) int extern
+[pub] fun sin(n float) float extern
+[pub] fun sinh(n float) float extern
+[pub] fun sqrt(n float) float extern
+[pub] fun sq(n float) float extern
+[pub] fun tan(n float) float extern
+[pub] fun tanh(n float) float extern
+[pub] fun trunc(n float) float extern
 
 
 // --------------------------
@@ -134,4 +134,4 @@ use Zurfur[Decimal]
     
 [pub] fun max(n1 Decimal, n2 Decimal) Decimal extern
 [pub] fun min(n1 Decimal, n2 Decimal) Decimal extern
-[pub] fun sign(n Decimal) Int extern
+[pub] fun sign(n Decimal) int extern

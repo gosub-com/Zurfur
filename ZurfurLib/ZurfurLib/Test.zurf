@@ -6,6 +6,6 @@ mod Zurfur.UnitTests
 
 use Zurfur[Log]
 
-fun main(args Array<Str>)
+fun main(args Array<str>)
     Log.info("Hello world")
 

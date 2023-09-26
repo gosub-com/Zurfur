@@ -12,12 +12,12 @@ use Zurfur.Draw2d[Size, Point]
 
 pragma ShowParse
 
-fun aaa_arith(a Int, b Int, c aaa_arith_test) Int
+fun aaa_arith(a int, b int, c aaa_arith_test) int
     Log.info("Hello world: 2+2 is " + (2 + 2).toStr)
     @x = a+b
     @y = a*b
     Log.info("X is " + x.toStr + ", Y is " + y.toStr)
-    @tuples = List<(Int, Str)>()
+    @tuples = List<(int, str)>()
     tuples.push((1, "Hello"))
     @tupleElement = tuples[0]    
     @hold
@@ -40,28 +40,28 @@ fun aaa_arith(a Int, b Int, c aaa_arith_test) Int
     ret y + c.b.e
 
 type aaa_arith_test
-    a Int
+    a int
     b aaa_arith_test2
-    c Int
+    c int
 
 fun get aaa_arith_test.bref() mut &aaa_arith_test2
     ret my.b
 
 type aaa_arith_test2
-    d Int
-    e Int
-    f Int
+    d int
+    e int
+    f int
  
 
 
 fun test_listMap()
-    @a = List<Float>()
-    @c = a.map<Float,Int>(@i => i.toIntMask)
+    @a = List<float>()
+    @c = a.map<float,int>(@i => i.toIntMask)
 
 
-fun test_forEach(args Array<Str>)
+fun test_forEach(args Array<str>)
     @sum = 0
-    @list List<Int>
+    @list List<int>
     list.forEach(@item => { sum += item })
 
 
@@ -74,7 +74,7 @@ fun Iterator.orderBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
 fun Iterator.thenBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
     todo
 
-fun mut Iterator.find<T>(f fun(item T) Bool) mut ?&T
+fun mut Iterator.find<T>(f fun(item T) bool) mut ?&T
     while my.next()@item
         if f(item)
             ret &item // TBD: Require `&` here
@@ -82,7 +82,7 @@ fun mut Iterator.find<T>(f fun(item T) Bool) mut ?&T
 
 
 // Simple selection sort
-fun Span.test_selectionSort<T>(lessThan fun(a T,b T)Bool)
+fun Span.test_selectionSort<T>(lessThan fun(a T,b T)bool)
     for @i in my.len-1
         @lowElem = my[i]
         @lowIndex = i
@@ -101,8 +101,8 @@ type MyPoint<T1,T2,T3>
     a T1
     b T2
     c T3
-    x (Int, T1, Int)
-    y (a Int, b T1, c Int, d (r Int, b Int))
+    x (int, T1, int)
+    y (a int, b T1, c int, d (r int, b int))
 
 type Iterable2<Item> interface
     fun iterator2() Iterator<Item>
@@ -113,8 +113,8 @@ type GetMap<Item1,Item2> interface
     fun getMapValues() Iterator<Item2>
 
 type Getter interface
-    fun get myGet() I32
-    fun myFun() I32
+    fun get myGet() i32
+    fun myFun() i32
 
 type Getter2<T> interface
     fun get myGet2() T
@@ -131,25 +131,25 @@ fun getMapFun<K,V>() Map<V,K>
 
 fun myFun2Interf<T>(i T) T todo
 
-fun takeFun(i fun(a Int)Int) todo
+fun takeFun(i fun(a int)int) todo
 
 type GetHash interface
-    fun getHash() U32
+    fun getHash() u32
 
 fun test_tuples()
-    @tuples = List<(Int, Str)>()
+    @tuples = List<(int, str)>()
     tuples.push((1, "Hello"))
     @tupleElement = tuples[0]
     
-    @tuplesNamed = List<(x Int,  y Str)>()
+    @tuplesNamed = List<(x int,  y str)>()
     tuplesNamed.push((1, "Hello"))
     @tuplesNamedElement = tuplesNamed[0]
     @element = tuplesNamedElement.x
 
 
-fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<I32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<Float>, myGetter Getter)
-        where T has NumOps<T> + GetHash + Iterable<Int> + Iterable2<Int> + GetMap<F32,Float> + Iterator<Int>
-        where Q has NumOps<Q> + Getter + Getter2<Int> + MyAdd<Q>
+fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<float>, myGetter Getter)
+        where T has NumOps<T> + GetHash + Iterable<int> + Iterable2<int> + GetMap<f32,float> + Iterator<int>
+        where Q has NumOps<Q> + Getter + Getter2<int> + MyAdd<Q>
 
     // Source code symbols should be non-generic
     @next3 = q.myGet2
@@ -169,7 +169,7 @@ fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<I32>, intf2 GetHash, mgQ Getter2<Q>,
     @mgGet2a = mgQ.myGet2
     @mgGet2F = mgF.myGet2
     @mgFun2F = mgF.myFun2()
-    @myPoint = MyPoint<Int,Float,F32>().b
+    @myPoint = MyPoint<int,float,f32>().b
 
     @intf2b = intf2.getHash()
     @myAddNs = q.myAddNotStatic(Q(),Q())
@@ -178,7 +178,7 @@ fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<I32>, intf2 GetHash, mgQ Getter2<Q>,
     @myFun2 = q.myFun2()
     @aa = t.getHash()
     @getMap = t.getMap()
-    @getMapFunc = getMapFun<I32,U32>()
+    @getMapFunc = getMapFun<i32,u32>()
     @getMapKeys = t.getMapKeys()
     @getMapValues = t.getMapValues()
     @iter1 = t.iterator
@@ -187,7 +187,7 @@ fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<I32>, intf2 GetHash, mgQ Getter2<Q>,
     @x = 1
     @y = 2
     @z1 = x + y
-    @z2 = Int._opAdd(x,y)
+    @z2 = int._opAdd(x,y)
     @a = T()
     @b = T()
     @z3 = a + b
@@ -207,13 +207,13 @@ fun MyFun1<T1,T2,T3>(a T1, b T2, c T3)(x T2, y T3)
 fun MyFun2<I,O>(i I) O
     ret O()
 
-fun MyFun3<I,O>(i Int) O
+fun MyFun3<I,O>(i int) O
     ret O()
 
-fun MyFun4<T0,T1,T2,T3>(i Int) List<T2>
+fun MyFun4<T0,T1,T2,T3>(i int) List<T2>
     ret List<T2>()
 
-fun MyFun5<T0,T1,T2,T3>(i Int)(a List<T1>, b List<T3>)
+fun MyFun5<T0,T1,T2,T3>(i int)(a List<T1>, b List<T3>)
     ret (List<T1>(), List<T3>())
 
 fun inferMap<T1,T2>(a Map<T1,T2>, b List<T2>)(x T1, y T2)
@@ -221,32 +221,32 @@ fun inferMap<T1,T2>(a Map<T1,T2>, b List<T2>)(x T1, y T2)
 
 fun Test<X0,X1,X2,X3>()
     @infer1 = MyFun1(0, "", 0.0)
-    @infer2 = MyFun1(0, List<Int>(), 0)
+    @infer2 = MyFun1(0, List<int>(), 0)
     @infer3 = MyFun1(0, List<X2>(), 0.0)
-    @infer4 = inferMap(Map<Int,Str>(), List<Str>())
-    @f1 = MyFun2<Int, Float>(0)
-    @f2 = MyFun3<Int,Float>(1)
-    @f3 = MyFun3<Float,Int>(1)
-    @f4 = MyFun4<Float,Int,List<X3>,U32>(1)
-    @f5 = MyFun5<Float,Int,Str,U64>(1)
-    @a = MyPoint<Int,Float,Str>()
+    @infer4 = inferMap(Map<int,str>(), List<str>())
+    @f1 = MyFun2<int, float>(0)
+    @f2 = MyFun3<int,float>(1)
+    @f3 = MyFun3<float,int>(1)
+    @f4 = MyFun4<float,int,List<X3>,u32>(1)
+    @f5 = MyFun5<float,int,str,u64>(1)
+    @a = MyPoint<int,float,str>()
     @b = MyPoint<X2, List<X3>, Map<X1,X3>>()
-    @c = MyFun1<Int, MyPoint<Int,Int,Int>, Str>(0, MyPoint<Int,Int,Int>(), "hello")
-    @d = MyFun1<Int, MyPoint<Int,X3,Int>, Str>(0, MyPoint<Int,X3,Int>(), "hello")
+    @c = MyFun1<int, MyPoint<int,int,int>, str>(0, MyPoint<int,int,int>(), "hello")
+    @d = MyFun1<int, MyPoint<int,X3,int>, str>(0, MyPoint<int,X3,int>(), "hello")
     @e = MyFun2<X2,X3>(X2())
-    @g = MyFun2<Int,Float>(0)
-    @h = MyFun2<Float,Int>(0.0)
-    @f4a = MyFun4<Int,Str,F32,U64>(0)
-    @f5a = MyFun5<Int,Str,F32,U64>(0) 
-    @i Size<Int> = Size<Int>(0,0)  
-    @k Float = 0.0
-    @l Float = 0Float
+    @g = MyFun2<int,float>(0)
+    @h = MyFun2<float,int>(0.0)
+    @f4a = MyFun4<int,str,f32,u64>(0)
+    @f5a = MyFun5<int,str,f32,u64>(0) 
+    @i Size<int> = Size<int>(0,0)  
+    @k float = 0.0
+    @l float = 0float
     @p1 = Xuint()
-    @p2 = castPointer<RawPointer<Byte>>(p1)
-    @p3 = castPointer<RawPointer<Int>>(p2)
+    @p2 = castPointer<RawPointer<byte>>(p1)
+    @p3 = castPointer<RawPointer<int>>(p2)
     @p4 = castPointer<Xuint>(p3)
     @t = (0,1,2)
-    @toSize = Point<F32>().toSizeTest
+    @toSize = Point<f32>().toSizeTest
 
 type OneGeneric<T> { } 
 
@@ -262,10 +262,10 @@ fun get Point.toSizeTest<T>() Size<T>
 
 
 fun helloVoid() {}
-fun helloInt() Int {}
-fun cos2(a Int)(x Float, y Int) {}
+fun helloInt() int {}
+fun cos2(a int)(x float, y int) {}
  
-fun test(x Float)
+fun test(x float)
     @a = 3
     @b = x
     @c = x == 3.0
@@ -277,21 +277,21 @@ fun test(x Float)
     Log.info("Hello world, 2+2={2+2}")
     @h = cos(2.0+3.0*23.0).toStr
 
-fun Span<Byte>.hello()
+fun Span<byte>.hello()
     todo
 
 type AAAA<T>
-    v Void
+    v void
 
 type BBBB
-    v Void
+    v void
         
 fun BBBB.BBBB_fm1() {}
 fun BBBB.BBBB_fm2(a BBBB) {}
     
 
 
-fun AAAA<Int>.AAAA_fm() {}
+fun AAAA<int>.AAAA_fm() {}
 fun AAAA.AAAA_fm<T>() {}
 fun BBBB.AAAA_fm() {}
 
@@ -305,15 +305,15 @@ fun aapoint.AAAA() {}
 fun aapoint.BBBB() {}
 fun aapoint.AAAB() {}
 fun List.X<T>() {}
-fun Int.X() {}
+fun int.X() {}
 fun BBBB.hello() {}
     
 
 type aapoint
-    v Void
+    v void
     
 type bbpoint
-    v Void
+    v void
 
 [pub] fun aapoint.x() {}
 
@@ -324,27 +324,27 @@ type bbpoint
 
   
 [pub] type AAFun    
-    aaf4 fun(a Int, b Int) Int
-    aaf5 AAFunc<Int, Int>
+    aaf4 fun(a int, b int) int
+    aaf5 AAFunc<int, int>
     aaf6 fun()()
     aaf7 fun()
-    aaf8 fun()Int
-    aaf9 fun(a Int)
-    aaf9a fun(a Int) Int
-    aaf9b fun(a Int)(x Int)
-    af10 fun(v Int)Int
+    aaf8 fun()int
+    aaf9 fun(a int)
+    aaf9a fun(a int) int
+    aaf9b fun(a int)(x int)
+    af10 fun(v int)int
 
-fun AAFun.aaaa(a Int, b Int) Int { }
-fun AAFun.aaaa(a Int, b Float) Int { }
-fun AAFun.aaaa(x Float, y Int) Int { }
-fun AAFun.aaf1(a Int, b Int)Int { }
-fun AAFun.aaf2(v AAFunc<Int, Int>) { }
+fun AAFun.aaaa(a int, b int) int { }
+fun AAFun.aaaa(a int, b float) int { }
+fun AAFun.aaaa(x float, y int) int { }
+fun AAFun.aaf1(a int, b int)int { }
+fun AAFun.aaf2(v AAFunc<int, int>) { }
 fun AAFun.aaf3<T1,T2>(i T1)T2 { }
-fun AAFun.aaf1s(a Int, b Int)Int { }
-fun AAFun.aaf2s(v AAFunc<Int, Int>) { }
+fun AAFun.aaf1s(a int, b int)int { }
+fun AAFun.aaf2s(v AAFunc<int, int>) { }
 fun AAFun.aaf3s<T1,T2>(i T1)T2 { }
-fun AAFun.af6(p fun(v Int)Bool) {}
-fun AAFun.af7<X>(p fun(v X)Bool) {}
+fun AAFun.af6(p fun(v int)bool) {}
+fun AAFun.af7<X>(p fun(v X)bool) {}
 
 
 [pub] type AAFunc<T1,T2>
@@ -352,41 +352,41 @@ fun AAFun.af7<X>(p fun(v X)Bool) {}
 
 
 // TBD: These are identical to the ones defined in the class
-fun AGenericTest.af6<T,QQQ>(p fun(v Int)Bool) {}
-//fun AGenericTest<T, QQQ>.af7<X>(p fun(v X)Bool) {}
+fun AGenericTest.af6<T,QQQ>(p fun(v int)bool) {}
+//fun AGenericTest<T, QQQ>.af7<X>(p fun(v X)bool) {}
 //fun AGenericTest<T, QQQ>.af8<T1,T2>(i T1)T2 { }
 //fun AGenericTest<T, QQQ>.Q<T1>() {}
 //[pub] fun AGenericTest<T, QQQ>.new()
 //    todo
-//[pub] fun AGenericTest<T, QQQ>.new(a Int)
+//[pub] fun AGenericTest<T, QQQ>.new(a int)
 //    todo
-//[pub] fun AGenericTest<T, QQQ>.aaa(a Zurfur.Draw2d.Size<Int>) {}
+//[pub] fun AGenericTest<T, QQQ>.aaa(a Zurfur.Draw2d.Size<int>) {}
 //[pub] fun AGenericTest<T, QQQ>.P1() { ret 0 }
 //[pub] fun AGenericTest<T, QQQ>.P2()() { ret 0}
 //[pub] fun P2<Quack>(a Quack, b QQQ) { ret (a.ToStr() + b.ToStr()).Length; }
 //[pub] fun AGenericTest<T, QQQ>.P3<Z>() { ret 0; }
 //[pub] fun AGenericTest<T, QQQ>.P4<Quack, Quack1>() { ret 0; }
-//[pub] fun AGenericTest<T, QQQ>.fun9(a *?OneGeneric<List<Int>>) { }
+//[pub] fun AGenericTest<T, QQQ>.fun9(a *?OneGeneric<List<int>>) { }
 
-//[pub] fun AGenericTest<T, QQQ>.UseIt(x Zurfur.Int, y List<Inner1<Int,Int>>, z List<Str>)
+//[pub] fun AGenericTest<T, QQQ>.UseIt(x Zurfur.int, y List<Inner1<int,int>>, z List<str>)
 //    XField0.ToStr()
-    // Xfield2<Str, T>.P3<T>(); - Xfield2 can't use type parameters
+    // Xfield2<str, T>.P3<T>(); - Xfield2 can't use type parameters
     // Xfield2.P3(); - Can't infer P3<type>
 //    Xfield2.P3<T>()
-//    @a = List<Str, Outer<Int, Int>>()
-//    Inner1<Str, Byte>.Inner2<short, ushort>.Hello = 1
-//    Outer<T, QQQ>.Inner1<Str, Byte>.Inner2<short, ushort>.Hello = 2
-//    Outer<QQQ, T>.Inner1<Str, Byte>.Inner2<short, ushort>.Hello = 3
-//    Outer<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, Byte>.Hello = 4
-//    @p = AGenericTest<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, Byte>()
+//    @a = List<str, Outer<int, int>>()
+//    Inner1<str, byte>.Inner2<short, ushort>.Hello = 1
+//    Outer<T, QQQ>.Inner1<str, byte>.Inner2<short, ushort>.Hello = 2
+//    Outer<QQQ, T>.Inner1<str, byte>.Inner2<short, ushort>.Hello = 3
+//    Outer<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, byte>.Hello = 4
+//    @p = AGenericTest<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, byte>()
 //    p.P5<short, QQQ, ushort>(3, QQQ(), 0)
 //[pub] fun (AGenericTest<T, QQQ>.Inner1<Ta, Qa>) P1(a T, b QQQ, c Ta, d Qa)
 //    ret 0
 
 type ToStr interface
-    fun get toStr() Str
+    fun get toStr() str
 
-[pub] fun GenericTest<Q1,Q2>(a Q1, b Q2) Int
+[pub] fun GenericTest<Q1,Q2>(a Q1, b Q2) int
         where Q1 has ToStr
         where Q2 has ToStr
     ret a.toStr.len + b.toStr.len    
@@ -395,12 +395,12 @@ type ToStr interface
     where QQQ has OpEq<T>//: new() where T : new()
     af0 fun()()
     af1 fun()
-    af2 fun()Int
-    af3 fun(a Int)
-    af4 fun(a Int) Int
-    af5 fun(a Int)(x Int)
+    af2 fun()int
+    af3 fun(a int)
+    af4 fun(a int) int
+    af5 fun(a int)(x int)
     
     field0 T = 0
-    Xfield6 Zurfur.Int
+    Xfield6 Zurfur.int
 
     

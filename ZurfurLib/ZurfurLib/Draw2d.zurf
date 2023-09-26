@@ -7,7 +7,7 @@ mod Zurfur.Draw2d
 use Zurfur[NumOps]
 
 fun test_Shape()
-    @rect = Rect<Int>(1,2,3,4) // TBD: Type inderence for constructors
+    @rect = Rect<int>(1,2,3,4) // TBD: Type inderence for constructors
     
     rect.location.y = 30
     @rl1 = rect.location
