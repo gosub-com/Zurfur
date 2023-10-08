@@ -215,7 +215,7 @@ namespace Zurfur.Compiler
             BeginLocalScope(function.Token);
 
             // Add input parameters as locals
-            foreach (var p in function.ChildrenFilter(SymKind.FunParam).Where(p => !p.ParamOut).OrderBy(p => p.Order))
+            foreach (var p in function.FunParamTuple.TupleSymbols)
                 localsByIndex.Add(p);
 
             if (synFunc.Statements != null)
@@ -526,11 +526,6 @@ namespace Zurfur.Compiler
                 else if (name == "my")
                 {
                     ex.Token.Type = eTokenType.ReservedVar;
-                    if (function.SimpleName == "new" && function.ReceiverType != null)
-                    {
-                        ex.Token.AddInfo(function.ReceiverType);
-                        return new Rval(function.Token) { Type = function.ReceiverType };
-                    }
                     return GenIdentifier(ex);
                 }
                 else if (name == "require")
@@ -678,7 +673,7 @@ namespace Zurfur.Compiler
                     return null;
 
                 var types = args.Select(t => t.Type).ToArray();
-                var  tuple = table.CreateTuple(types!);
+                var tuple = table.CreateTuple(types!);
                 return new Rval(ex.Token) { Type = tuple };
             }
 
@@ -1266,6 +1261,9 @@ namespace Zurfur.Compiler
             // Mark an error when there is no match.
             // Returns the symbol that generated the type (or null if
             // there wasn't one)
+            //
+            // TBD: This needs to be moved so lambda's can be called
+            //      properly
             Symbol? EvalType(Rval? rval,
                 bool assignmentTarget = false,
                 bool allowStaticType = false)
@@ -1314,18 +1312,20 @@ namespace Zurfur.Compiler
                 // Find in tuple
                 if (inType != null && inType.IsTuple && inType.IsSpecialized)
                 {
-                    if (inType.TupleNames.Length == 0)
+                    if (inType.TupleSymbols.Length == 0)
                     {
                         Reject(token, $"The type '{inType}' is an anonymous type without field names, so cannot be resolved with '.'");
                         return null;
                     }
-                    var i = Array.IndexOf(inType.TupleNames, token);
+                    var i = Array.FindIndex(inType.TupleSymbols, f => f.SimpleName == token.Name);
                     if (i < 0)
                     {
                         Reject(token, $"'{token}' is an undefined symbol in the named tuple '{inType}'");
                         return null;
                     }
                     rval.Type = inType.TypeArgs[i];
+                    if (i < inType.TupleSymbols.Length)
+                        token.AddInfo(inType.TupleSymbols[i]);
                     assembly.AddOpNoImp(token, $"tuple {token}");
                     return null;
                 }
@@ -1580,8 +1580,12 @@ namespace Zurfur.Compiler
                 if (!func.IsSpecialized && typeArgs.Length != 0)
                     func = table.CreateSpecializedType(func, typeArgs, null);
 
-                return AreParamsCompatible(func, args, func.FunParamTypes);
+                // Don't consider first parameter of static method
+                var funParams = new Span<Symbol>(func.FunParamTypes);
+                if (func.IsMethod && func.IsStatic)
+                    funParams = funParams.Slice(1);
 
+                return AreParamsCompatible(func, args, funParams);
             }
 
             (Symbol?, CallCompatible) IsLambdaCompatible(Symbol variable, Rval call, List<Rval> args)
@@ -1603,7 +1607,7 @@ namespace Zurfur.Compiler
                 return AreParamsCompatible(variable, args, funParams.TypeArgs[0].TypeArgs);
             }
 
-            (Symbol?, CallCompatible) AreParamsCompatible(Symbol func, List<Rval> args, Symbol []funParams)
+            (Symbol?, CallCompatible) AreParamsCompatible(Symbol func, List<Rval> args, Span<Symbol> funParams)
             {
                 // Match up the arguments (TBD: default parameters)
                 if (args.Count != funParams.Length)
@@ -1723,8 +1727,12 @@ namespace Zurfur.Compiler
                 if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
                 {
                     foreach (var sym2 in useSymbols)
-                        if (sym2.ReceiverType != null && sym2.ReceiverType.FullName == inType.FullName)
-                            symbols.Add(sym2);
+                        if (sym2.IsMethod && sym2.IsFun)
+                        {
+                            var funParams = sym2.FunParamTypes;
+                            if (funParams.Length != 0 && funParams[0].FullName == inType.FullName)
+                                symbols.Add(sym2);
+                        }
                 }
 
                 AddGenericConstraints(name, inType, symbols);
@@ -1778,10 +1786,9 @@ namespace Zurfur.Compiler
             {
                 if (inType.TryGetPrimary(name, out Symbol? sym))
                     symbols.Add(sym!);
-                if (inType.HasFunNamed(name))
-                    foreach (var child in inType.Children)
-                        if (child.IsFun && child.SimpleName == name)
-                            symbols.Add(child);
+                foreach (var child in inType.ChildrenNamed(name))
+                    if (child.IsFun && child.SimpleName == name)
+                        symbols.Add(child);
             }
 
             // Walk up `inModule` to find the module, then collect functions `inType`
@@ -1789,20 +1796,29 @@ namespace Zurfur.Compiler
             {
                 while (inModule != null && !inModule.IsModule)
                     inModule = inModule.Parent!;
-                if (inModule == null || !inModule.HasFunNamed(name))
-                    return;
 
                 // Ignore mut, etc., then just compare the non-specialized type.
                 if (inType.IsSpecialized)
                     inType = inType.Parent!;
 
-                foreach (var child in inModule.Children)
+                foreach (var child in inModule.ChildrenNamed(name))
                 {
-                    // Compare the non-specialized receiver type
+                    if (!child.IsFun || !child.IsMethod || child.SimpleName != name)
+                        continue;
+                    var parameters = child.FunParamTypes;
+                    if (parameters.Length == 0)
+                        continue;
+
+                    // Compare the non-specialized type
                     //      e.g: List<#1> matches List<byte> so we get all functions
-                    if (child.ReceiverType != null && child.SimpleName == name
-                            && child.ReceiverType.Concrete.FullName == inType.FullName)
-                        symbols.Add(child);
+                    var paramType = parameters[0];
+                    if (paramType.IsSpecialized)
+                        paramType = paramType.Parent;
+                   
+                    if (paramType.FullName != inType.FullName)
+                        continue;
+
+                    symbols.Add(child);
                 }
             }
 
@@ -1865,10 +1881,9 @@ namespace Zurfur.Compiler
                 var module = function.Parent!;
                 if (module.TryGetPrimary(name, out Symbol? sym1))
                     symbols.Add(sym1!);
-                if (module.HasFunNamed(name))
-                    foreach (var child in module.Children)
-                        if (child.IsFun && child.SimpleName == name && !child.IsMethod)
-                            symbols.Add(child);
+                foreach (var child in module.ChildrenNamed(name))
+                    if (child.IsFun && child.SimpleName == name && !child.IsMethod)
+                        symbols.Add(child);
 
                 // Search 'use' symbol
                 if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
@@ -1891,18 +1906,22 @@ namespace Zurfur.Compiler
             // Finds a local or parameter.  Returns null if not found.
             (Symbol? sym, int index) FindLocal(Token token)
             {
-                // Find parameter
+                // Find local parameters
                 var name = token.Name;
-                if (function.TryGetPrimary(name, out var localParam))
+                var pi = Array.FindIndex(function.FunParamTuple.TupleSymbols, f => f.SimpleName == name);
+                if (pi >= 0)
+                    return (function.FunParamTuple.TupleSymbols[pi], pi);
+                var ri = Array.FindIndex(function.FunReturnTuple.TupleSymbols, f => f.SimpleName == name);
+                if (ri >= 0)
                 {
+                    Reject(token, "Invalid use of return parameter");
+                    return (null, 0);
+                }
+
+                // Local type parameter
+                if (function.TryGetPrimary(name, out var localParam))
                     if (localParam!.IsTypeParam)
                         return (localParam, 0);
-
-                    var i = Array.IndexOf(function.FunParamTuple.TupleNames, token.Name);
-                    if (i < 0)
-                        Reject(token, "Invalid use of return parameter");
-                    return (localParam, i);
-                }
 
                 // Find local
                 if (localsByName!.TryGetValue(token, out var local))

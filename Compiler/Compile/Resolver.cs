@@ -10,16 +10,6 @@ namespace Zurfur.Compiler
 {
     static class Resolver
     {
-        static WordMap<string> sUnaryTypeSymbols = new WordMap<string>()
-        {
-            {"*", SymTypes.RawPointer },
-            {"^", SymTypes.Pointer },
-            {"&", SymTypes.Ref },
-            {"?", SymTypes.Maybe},
-            {"[", SymTypes.Span },
-            {"!", SymTypes.Result }
-        };
-
         /// <summary>
         /// Resolve a type.  Non-generic types are found in the symbol table
         /// and given a full name (e.g. 'int' -> 'Zufur.int').  Generic types
@@ -171,7 +161,7 @@ namespace Zurfur.Compiler
                 }
 
                 Symbol? typeParent = null;
-                if (sUnaryTypeSymbols.TryGetValue(typeExpr[0].Token, out var unaryTypeName))
+                if (SymTypes.UnaryTypeSymbols.TryGetValue(typeExpr[0].Token, out var unaryTypeName))
                 {
                     typeParent = table.Lookup(unaryTypeName);
                     if (typeParent == null)
@@ -194,34 +184,46 @@ namespace Zurfur.Compiler
             }
 
             // Resolve a tuple: '(int,List<str>,f32)', etc.
-            Symbol? ResolveTupleType(SyntaxExpr typeExpr)
+            Symbol? ResolveTupleType(SyntaxExpr tupleExprs)
             {
                 bool resolved = true;
-                List<Symbol> typeParams = new List<Symbol>();
-                var anyNames = false;
-                foreach (var typeExprParam in typeExpr)
+                var typeParams = new List<Symbol>();
+                var tupleSymbols = new List<Symbol>();
+                foreach (var tupleExpr in tupleExprs)
                 {
-                    if (typeExprParam.Count == 0)
+                    if (tupleExpr.Count == 0)
                         return null;  // Syntax error is already rejected
-                    var sym = Resolve(typeExprParam[0], table, false, searchScope, useSymbols);
-                    if (sym == null)
+                    var tupleType = Resolve(tupleExpr[0], table, false, searchScope, useSymbols);
+                    if (tupleType == null)
                         resolved = false;
-                    else if (sym.IsAnyType)
-                        typeParams.Add(sym);
+                    else if (tupleType.IsAnyType)
+                    {
+                        typeParams.Add(tupleType);
+
+                        // Create tuple parameter symbol
+                        if (tupleExpr.Token != "")
+                        {
+                            var funParam = new Symbol(SymKind.TupleParam, table.EmptyTuple, tupleExpr.Token);
+                            tupleExpr.Token.AddInfo(funParam);
+                            funParam.Type = tupleType;
+                            tupleSymbols.Add(funParam);
+                        }
+                    }
                     else
                     {
-                        table.Reject(typeExprParam.Token, $"Expecting a type, but got a {sym.KindName}");
+                        table.Reject(tupleExpr.Token, $"Expecting a type, but got a {tupleType.KindName}");
                         resolved = false;
                     }
-                    if (typeExprParam.Token != "")
-                        anyNames = true;
                 }
-                if (!resolved)
-                    return null;
-
-                // Create the tuple
-                return table.CreateTuple(typeParams.ToArray(),
-                    anyNames ? typeExpr.Select(e => e.Token.Name).ToArray() : null);
+                if (tupleSymbols.Count != 0 && tupleSymbols.Count != typeParams.Count)
+                {
+                    foreach (var name in tupleSymbols)
+                        table.Reject(name.Token, "Partially named tuple not allowed.  Name all of them, or none of them.");
+                    tupleSymbols.Clear();
+                }
+                if (resolved)
+                    return table.CreateTuple(typeParams.ToArray(),  tupleSymbols.ToArray());
+                return null;
             }
 
             // Resolve "fun" or "afun" types.
@@ -241,30 +243,6 @@ namespace Zurfur.Compiler
 
                 return table.CreateLambda(paramTuple, returnTuple);
             }
-        }
-
-        /// <summary>
-        /// Create function tuple type from parameters/returns and finalize function name 
-        /// </summary>
-        public static void CreateFunTypeAndName(SymbolTable table, Symbol function)
-        {
-            var parameters = GetFunParamsTuple(table, function, false);
-            var returns = GetFunParamsTuple(table, function, true);
-            function.Type = table.CreateTuple(new Symbol[] { parameters, returns });
-            function.FinalizeFullName();
-        }
-
-        // Get parameters or returns as a tuple.
-        static Symbol GetFunParamsTuple(SymbolTable table, Symbol symbol, bool returns)
-        {
-            var parameters = symbol.ChildrenFilter(SymKind.FunParam)
-                .Where(child => child.Type != null && returns == child.ParamOut).ToList();
-
-            parameters.Sort((a, b) => a.Order.CompareTo(b.Order));
-            var paramTypes = parameters.Select(p => p.Type).ToArray();
-            var paramNames = parameters.Select(p => p.FullName).ToArray();
-
-            return table.CreateTuple(paramTypes!, paramNames);
         }
 
         /// <summary>
@@ -293,61 +271,6 @@ namespace Zurfur.Compiler
 
             return resolved ? typeParams : null;
         }
-
-        public static void ResolveFunParams(
-            SyntaxExpr parameters,
-            SymbolTable table,
-            Symbol function,
-            Symbol searchScope,
-            UseSymbolsFile useSymbols,
-            bool isReturn)
-        {
-            if (parameters is SyntaxError)
-                return;
-
-            // TBD: Since we are using named tuples as function parameters,
-            //      there is no longer a need to store the names redundantly
-            //      in the function symbol type.
-            foreach (var expr in parameters)
-            {
-                if (expr is SyntaxError)
-                    continue;
-                Debug.Assert(expr.Count >= 3);
-
-                // This makes a single return parameter unnamed, "".
-                // All other parameters become named tuples.
-                var paramType = Resolve(expr[0], table, false, searchScope, useSymbols);
-                if (paramType == null)
-                    continue; // Unresolved symbol
-
-                if (!(paramType.IsAnyType || table.NoCompilerChecks))
-                    RejectTypeArgLeftDotRight(expr[0], table,
-                        $"The symbol is not a type, it is a {paramType.KindName}");
-
-                // Create function parameter symbol
-                var funParam = new Symbol(SymKind.FunParam, function, expr.Token, expr.Token.Name);
-                expr.Token.AddInfo(funParam);
-                foreach (var qualifier in expr[2])
-                    funParam.SetQualifier(qualifier.Token);
-
-                // Calling convention is usually by ref
-                if (!isReturn
-                    && !paramType.Qualifiers.HasFlag(SymQualifiers.Copy)
-                    && !paramType.Qualifiers.HasFlag(SymQualifiers.Ro)
-                    && !funParam.Qualifiers.HasFlag(SymQualifiers.Own)
-                    && !paramType.IsLambda
-                    && !paramType.IsGenericArg
-                    && paramType.Parent!.FullName != SymTypes.Ref)
-                {
-                    paramType = table.CreateRef(paramType);
-                }
-
-                funParam.ParamOut = isReturn;
-                funParam.Type = paramType;
-                table.AddOrReject(funParam);
-            }
-        }
-
 
         /// <summary>
         /// Reject the symbol that actually caused the problem.

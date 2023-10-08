@@ -248,11 +248,9 @@ namespace Zurfur.Lex
             if (typeof(T) == typeof(TokenVerticalLine) || typeof(T).IsSubclassOf(typeof(TokenVerticalLine)))
                 mBits &= ~eTokenBits.VerticalLine;
             if (typeof(T) == typeof(TokenError) || typeof(T).IsSubclassOf(typeof(TokenError)))
-                if (GetInfo<TokenError>() == null)
-                    Error = false;
+                Error = GetInfo<TokenError>() != null;
             if (typeof(T) == typeof(TokenWarn) || typeof(T).IsSubclassOf(typeof(TokenWarn)))
-                if (GetInfo<TokenWarn>() == null)
-                    Warn = false;
+                Warn = GetInfo<TokenWarn>() != null;
         }
         public void SetInfo<T>(T info)
         {

@@ -67,7 +67,7 @@ namespace Zurfur.Jit
             // The lambda<T> has a type of T, which is a function tuple
             LambdaType = new Symbol(SymKind.Type, mGenericTupleHolder, null, "$lambda");
             LambdaType.Type = GetGenericParam(0);
-            LambdaType.GenericParamNames = new string[] { "T" };
+            LambdaType.GenericParamSymbols = new[] { new Symbol(SymKind.TypeParam, LambdaType, null, "T") };
         }
 
 
@@ -146,21 +146,25 @@ namespace Zurfur.Jit
         }
 
         /// <summary>
-        /// Add a new symbol to its parent.  Returns true if it was added, or
-        /// false if it was ignored because the symbol already exists.
+        /// Create a tuple with the given types (optionally with symbols).
+        /// NOTE: A tuple is a specialization of EmptyTuple (i.e. `()`),
+        /// so the TypeArgs contains an array of the tuple types.
+        /// When supplied, TupleSymbols has the symbols.
+        /// TBD: Refactor to make tuples store the types as fields?
+        ///      The current method is a bit messy, but works.
         /// </summary>
-        public bool AddOrIgnore(Symbol newSymbol)
+        public Symbol CreateTuple(Symbol[] tupleTypes, Symbol[]? tupleSymbols = null)
         {
-            Debug.Assert(SymbolBelongs(newSymbol));
-            return newSymbol.Parent!.SetChildInternal(newSymbol, out var remoteSymbol);
-        }
+            // Verify no repeated tuple names
+            // TBD: Move this to verifier and also check for
+            //      duplicate function parameter/returns.
+            if (tupleSymbols != null)
+                for (var i = 1; i < tupleSymbols.Length; i++)
+                    for (var j = 0; j < i; j++)
+                        if (tupleSymbols[j].SimpleName == tupleSymbols[i].SimpleName)
+                            Reject(tupleSymbols[i].Token, "Duplicate tuple name");
 
-        /// <summary>
-        /// Create a tuple with the given types (optionally with names)
-        /// </summary>
-        public Symbol CreateTuple(Symbol[] typeArgs, string[]? tupleNames = null)
-        {
-            return CreateSpecializedType(EmptyTuple, typeArgs, tupleNames);
+            return CreateSpecializedType(EmptyTuple, tupleTypes, tupleSymbols);
         }
 
         /// <summary>
@@ -192,11 +196,12 @@ namespace Zurfur.Jit
         public Symbol CreateSpecializedType(
             Symbol concreteType,
             Symbol[] typeArgs,
-            string[]? tupleNames = null)
+            Symbol[]? tupleSymbols = null
+            )
         {
             Debug.Assert(concreteType.IsType || concreteType.IsFun || concreteType.IsField);
             Debug.Assert(!concreteType.IsSpecialized);
-            Debug.Assert(tupleNames == null || tupleNames.Length == 0 || tupleNames.Length == typeArgs.Length);
+            Debug.Assert(tupleSymbols == null || tupleSymbols.Length == 0 || tupleSymbols.Length == typeArgs.Length);
             if (!NoCompilerChecks && concreteType.SimpleName != "()")
                 Debug.Assert(concreteType.GenericParamCount() == typeArgs.Length);
 
@@ -206,17 +211,15 @@ namespace Zurfur.Jit
             var symSpec = new Symbol(concreteType.Kind, concreteType,
                 concreteType.HasToken ? concreteType.Token : null, concreteType.SimpleName)
             {
-                TupleNames = tupleNames == null ? Array.Empty<string>() : tupleNames,
-                TypeArgs = typeArgs
+                TypeArgs = typeArgs,
+                TupleSymbols = tupleSymbols == null ? Array.Empty<Symbol>() : tupleSymbols
             };
-            symSpec.Type = ReplaceGenericTypeParams(concreteType.Type, typeArgs);
-            symSpec.ReceiverType = ReplaceGenericTypeParams(concreteType.ReceiverType, typeArgs);
 
+            symSpec.Type = ReplaceGenericTypeParams(concreteType.Type, typeArgs);
             symSpec.Qualifiers = concreteType.Qualifiers | SymQualifiers.Specialized;
 
-            symSpec.FinalizeFullName();
-
             // Store one copy of specialized symbol or tuple
+            symSpec.FinalizeFullName();
             if (!mSpecializedTypes.ContainsKey(symSpec.FullName))
                 mSpecializedTypes[symSpec.FullName] = symSpec;
             return symSpec;
@@ -238,7 +241,7 @@ namespace Zurfur.Jit
 
             if (type.IsSpecialized)
                 return CreateSpecializedType(type.Parent!,
-                    ReplaceGenericTypeParamsArray(type.TypeArgs, args), type.TupleNames);
+                    ReplaceGenericTypeParamsArray(type.TypeArgs, args), type.TupleSymbols);
 
             return type;
         }

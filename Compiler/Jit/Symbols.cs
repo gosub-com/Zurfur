@@ -33,6 +33,17 @@ namespace Zurfur.Jit
 
         public static readonly WordMap<string> FriendlyNames = new WordMap<string>
             { { RawPointer, "*" }, { Pointer, "^" }, { Maybe, "?" }, { Ref, "&"}, { Span, "[]" } };
+
+        public static readonly WordMap<string> UnaryTypeSymbols = new WordMap<string>()
+        {
+            {"*", RawPointer },
+            {"^", Pointer },
+            {"&", Ref },
+            {"?", Maybe},
+            {"[", Span },
+            {"!", Result }
+        };
+
     }
 
     /// <summary>
@@ -57,7 +68,8 @@ namespace Zurfur.Jit
         Field = 5,
         Fun = 6,
         FunParam = 7,
-        Local = 8,
+        TupleParam = 8,
+        Local = 9,
         All = 100
     }
 
@@ -82,7 +94,6 @@ namespace Zurfur.Jit
         Init = 0x8000,
         Impl = 0x10000,
         Extern = 0x20000,
-        ParamOut = 0x80000,
         Own = 0x200000,
         Copy = 0x400000,
         Union = 0x800000,
@@ -118,12 +129,9 @@ namespace Zurfur.Jit
         Token? mToken; // TBD: Should make this non-nullable, require a token for all symbols
         public string? Comments;
 
-        // Definitive list of all children.  The key matches the symbol name.
-        Dictionary<string, Symbol>? mChildren;
-
-        // Quick lookup of token name
-        // NOTE: This is an optimization (we could use only mChildren)
-        Dictionary<string, bool>? mHasFunNamed;
+        // The symbols in this scope
+        Dictionary<string, List<Symbol>>? mChildrenNamed;
+        int mChildrenNamedCount;
 
         // Set by `SetChildInternal`.  Type parameters are always first.
         public int Order { get; private set; } = -1;
@@ -132,12 +140,6 @@ namespace Zurfur.Jit
         /// The symbol's full type name, excluding tuple names.
         /// </summary>
         public string FullName { get; private set; } = "";
-
-        /// <summary>
-        /// Name as it appears in the lookup table which is everything after
-        /// the separator.
-        /// </summary>        
-        string LookupName;
 
         /// <summary>
         /// The simple name is often the same as the source code symbol, but
@@ -170,18 +172,12 @@ namespace Zurfur.Jit
         /// type args don't, e.g. Map<int,str> has unnamed type args, but
         /// fun f(a int, b str) does.
         /// </summary>
-        public string[] TupleNames { get; init; } = Array.Empty<string>();
+        public Symbol[] TupleSymbols { get; init; } = Array.Empty<Symbol>();
 
         /// <summary>
-        /// Names of generic type parameters.
+        /// Generic type parameter symbols
         /// </summary>
-        public string[] GenericParamNames = Array.Empty<string>();
-
-
-        /// <summary>
-        /// Type of receiver parameter (null if not present)
-        /// </summary>
-        public Symbol? ReceiverType;
+        public Symbol[] GenericParamSymbols = Array.Empty<Symbol>();
 
         /// <summary>
         /// Get the number of expected generic parameters from the concrete type.
@@ -195,7 +191,7 @@ namespace Zurfur.Jit
             int count = 0;
             while (sym != null && !sym.IsModule)
             {
-                count += sym.GenericParamNames.Length;
+                count += sym.GenericParamSymbols.Length;
                 sym = sym.Parent;
             }
             return count;
@@ -233,12 +229,11 @@ namespace Zurfur.Jit
             else
                 throw new Exception("Symbol must have token or name");
 
-            LookupName = SimpleName;
             mToken = token;
-            FinalizeFullName();
+            FullName = SimpleName;
         }
 
-        public int ChildrenCount => mChildren == null ? 0 : mChildren.Count;
+        public int ChildrenCount => mChildrenNamedCount;
         public string KindName => sKindNames[Kind];
 
         public string TypeName => Type == null ? "" : Type.FullName;
@@ -268,18 +263,6 @@ namespace Zurfur.Jit
         public bool IsGetter => Qualifiers.HasFlag(SymQualifiers.Get);
         public bool IsSetter => Qualifiers.HasFlag(SymQualifiers.Set);
 
-        public bool ParamOut
-        {
-            get { return (Qualifiers & SymQualifiers.ParamOut) != SymQualifiers.None; }
-            set
-            {
-                if (value)
-                    Qualifiers |= SymQualifiers.ParamOut;
-                else
-                    Qualifiers &= ~SymQualifiers.ParamOut;
-            }
-        }
-
         /// <summary>
         /// Generate the symbol's full name and parameter type list. Must be
         /// called after updating any symbol property that could change the name.
@@ -289,10 +272,10 @@ namespace Zurfur.Jit
             // TBD: This is still ugly.  Would be nice to not need to call
             // this function from external code (i.e. don't create the
             // symbol until all stuff for naming is known) but that would
-            // require more refacotring.
+            // require more refactoring.
 
             // Either we have generic parameters or generic args, but not both
-            Debug.Assert(GenericParamNames.Length == 0 || TypeArgs.Length == 0);
+            Debug.Assert(GenericParamSymbols.Length == 0 || TypeArgs.Length == 0);
 
             if (IsLocal || IsFunParam || IsTypeParam || Parent == null || Parent.FullName == "")
             {
@@ -303,8 +286,12 @@ namespace Zurfur.Jit
             // Tuples: (name1 Type1, name2 Type2, ...) or (Type1, Type2, ...)
             if (IsTuple)
             {
-                FullName = "(" + string.Join(",", TypeArgs.Select(s => s.FullName)) + ")";
-                LookupName = FullName;
+                if (TupleSymbols.Length == 0
+                        || TupleSymbols.Length == 1 && TupleSymbols[0].SimpleName == "")
+                    FullName = "(" + string.Join(",", TypeArgs.Select(s => s.FullName)) + ")";
+                else
+                    FullName = "(" + string.Join(",",
+                        TupleSymbols.Zip(TypeArgs, (ts, ta) => ts.SimpleName + " " + ta.FullName)) + ")";
                 return;
             }
 
@@ -312,13 +299,12 @@ namespace Zurfur.Jit
             if (TypeArgs.Length == 1
                 && SymTypes.FriendlyNames.TryGetValue(Parent.FullName, out var name))
             {
-                LookupName = name + string.Join<Symbol>(",", TypeArgs);
-                FullName = LookupName;
+                FullName = name + string.Join<Symbol>(",", TypeArgs);
                 return;
             }
 
             // Generic args <type1,type2...>
-            Debug.Assert(TupleNames.Length == 0);
+            Debug.Assert(TupleSymbols.Length == 0);
             var typeArgs = "";
             if (TypeArgs.Length != 0)
                 typeArgs = "<" + string.Join<Symbol>(",", TypeArgs) + ">";
@@ -329,28 +315,18 @@ namespace Zurfur.Jit
                 return;
             }
 
-            var receiverType = "";
-            if (ReceiverType != null)
-            {
-                if (!IsStatic)
-                    receiverType = "[]";
-                else
-                    receiverType = $"[{ReceiverType}]";
-            }
-
             var funParams = "";
             if (IsFun && Type != null)
                 funParams = FunParamTuple.FullName + FunReturnTuple.FullName;
 
             // Postfix types and functions (not lambda) with generic argument count
             var genericArgsCount = "";
-            if ((IsType || IsFun) && !IsLambda && GenericParamNames.Length != 0)
-                genericArgsCount = $"`{GenericParamNames.Length}";
+            if ((IsType || IsFun) && !IsLambda && GenericParamSymbols.Length != 0)
+                genericArgsCount = $"`{GenericParamSymbols.Length}";
 
             // Specialized functions get the parents functions parant
             var parentFullName = Concrete.Parent!.FullName;
-            LookupName = SimpleName + genericArgsCount + typeArgs + receiverType + funParams;
-            FullName = parentFullName + "." + LookupName;
+            FullName = parentFullName + "." + SimpleName + genericArgsCount + typeArgs + funParams;
         }
 
         /// <summary>
@@ -361,8 +337,8 @@ namespace Zurfur.Jit
             var name = FriendlyNameInternal(false);
 
             // Replace generic arguments in function
-            for (int i = 0; i < GenericParamNames.Length; i++)
-                name = name.Replace($"#{i}", GenericParamNames[i]);
+            for (int i = 0; i < GenericParamSymbols.Length; i++)
+                name = name.Replace($"#{i}", GenericParamSymbols[i].SimpleName);
 
             if (IsFun)
                 return "fun " + name;
@@ -407,9 +383,9 @@ namespace Zurfur.Jit
                     if (!first)
                         name.Append(", ");
                     first = false;
-                    if (TupleNames.Length != 0 && TupleNames[i] != "")
+                    if (TupleSymbols.Length != 0 && TupleSymbols[i].SimpleName != "")
                     {
-                        name.Append(TupleNames[i]);
+                        name.Append(TupleSymbols[i].SimpleName);
                         name.Append(" ");
                     }
                     name.Append(TypeArgs[i].FriendlyNameInternal(false));
@@ -419,12 +395,12 @@ namespace Zurfur.Jit
             }
 
             // Generic args <type1,type2...>. 
-            Debug.Assert(TupleNames.Length == 0);
+            Debug.Assert(TupleSymbols.Length == 0);
             var genericArgs = "";
             if (TypeArgs.Length != 0)
                 genericArgs = "<" + string.Join(",", TypeArgs.Select(s => s.FriendlyNameInternal(false))) + ">";
-            if (GenericParamNames.Length != 0)
-                genericArgs += "<" + string.Join(",", GenericParamNames) + ">";
+            if (GenericParamSymbols.Length != 0)
+                genericArgs += "<" + string.Join(",", GenericParamSymbols.Select(s => s.SimpleName) ) + ">";
 
             // Function parameters and `my` type
             var myParam = "";
@@ -458,40 +434,55 @@ namespace Zurfur.Jit
             { SymKind.Field, "field" },
             { SymKind.Fun, "function" },
             { SymKind.FunParam, "function parameter" },
+            { SymKind.TupleParam, "tuple parameter" },
             { SymKind.Local, "local variable" },
             { SymKind.All, "(all)" },
         };
 
-        // Find module, type, field, or parameter.  Functions can be found,
-        // but are complex names including the parentheses.
+        // Find anything that is not a function.
+        // There can only be one primary symbol per simple name,
+        // and it is always at the beginning of the list.
         public bool TryGetPrimary(string key, out Symbol? sym)
         {
-            if (mChildren != null)
-                return mChildren.TryGetValue(key, out sym);
             sym = null;
+            if (mChildrenNamed == null)
+                return false;
+            if (!mChildrenNamed.TryGetValue(key, out var symList))
+                return false;
+            if (!symList[0].IsFun)
+            {
+                sym = symList[0];
+                return true;
+            }
+
             return false;
         }
 
-        // Check to see if there is a function (i.e. non-primary symbol)
-        public bool HasFunNamed(string name)
+        /// <summary>
+        /// Returns the list of children
+        /// </summary>
+        public IEnumerable<Symbol> Children
         {
-            if (mHasFunNamed == null)
-                return false;
-            return mHasFunNamed.ContainsKey(name);
+            get 
+            {
+                if (mChildrenNamed == null)
+                    yield break;
+                foreach (var symList in mChildrenNamed.Values)
+                    foreach (var sym in symList)
+                        yield return sym;
+            }
         }
 
-        public Dictionary<string, Symbol>.ValueCollection Children
+        /// <summary>
+        /// Returns a list of children with the given simple name
+        /// </summary>
+        public IEnumerable<Symbol> ChildrenNamed(string simpleName)
         {
-            get { return mChildren == null ? sEmptyDict.Values : mChildren.Values; }
-        }
-
-        public IEnumerable<Symbol> ChildrenFilter(SymKind filter)
-        {
-            if (mChildren == null || mChildren.Count == 0)
-                yield break;
-            foreach (var sym in mChildren.Values)
-                if (filter == SymKind.All || sym.Kind == filter)
-                    yield return sym;
+            if (mChildrenNamed == null)
+                return sEmptyDict.Values;
+            if (!mChildrenNamed.TryGetValue(simpleName, out var children))
+                return sEmptyDict.Values;
+            return children;
         }
 
         /// <summary>
@@ -499,14 +490,17 @@ namespace Zurfur.Jit
         /// </summary>
         public IEnumerable<Symbol> ChildrenRecurse()
         {
-            if (ChildrenCount == 0)
+            if (mChildrenNamed == null)
                 yield break;
 
-            foreach (var sym in Children)
+            foreach (var symList in mChildrenNamed.Values)
             {
-                yield return sym;
-                foreach (var child in sym.ChildrenRecurse())
-                    yield return child;
+                foreach (var sym in symList)
+                {
+                    yield return sym;
+                    foreach (var child in sym.ChildrenRecurse())
+                        yield return child;
+                }
             }
         }
 
@@ -530,6 +524,7 @@ namespace Zurfur.Jit
                     case SymKind.Field: t = "field"; break;
                     case SymKind.Fun: t = "fun"; break;
                     case SymKind.FunParam: t = "fun_param"; break;
+                    case SymKind.TupleParam: t = "tuple_param"; break;
                     case SymKind.TypeParam: t = "type_param"; break;
                     case SymKind.Module: t = "module"; break;
                     case SymKind.Type: t = "type"; break;
@@ -547,7 +542,6 @@ namespace Zurfur.Jit
                 if (Qualifiers.HasFlag(SymQualifiers.Init)) t += " init";
                 if (Qualifiers.HasFlag(SymQualifiers.Interface)) t += " interface";
                 if (Qualifiers.HasFlag(SymQualifiers.Mut)) t += " mut";
-                if (Qualifiers.HasFlag(SymQualifiers.ParamOut)) t += " out";
                 if (Qualifiers.HasFlag(SymQualifiers.Protected)) t += " protected";
                 if (Qualifiers.HasFlag(SymQualifiers.Pub)) t += " pub";
                 if (Qualifiers.HasFlag(SymQualifiers.Ref)) t += " ref";
@@ -587,6 +581,7 @@ namespace Zurfur.Jit
                 case "type": Debug.Assert(Kind == SymKind.Type); break;
                 case "type_param": Debug.Assert(Kind == SymKind.TypeParam); break;
                 case "fun_param": Debug.Assert(Kind == SymKind.FunParam); break;
+                case "tuple_param": Debug.Assert(Kind == SymKind.TupleParam); break;
                 case "field": Debug.Assert(Kind == SymKind.Field); break;
                 case "fun": Debug.Assert(Kind == SymKind.Fun); break;
                 case "set": Qualifiers |= SymQualifiers.Set; break;
@@ -643,31 +638,67 @@ namespace Zurfur.Jit
         /// Returns TRUE if the symbol was inserted, false if it
         /// was a duplicate (then remoteSymbol contains the dup)
         /// </summary>
-        internal bool SetChildInternal(Symbol value, out Symbol? remoteSymbol)
+        internal bool SetChildInternal(Symbol sym, out Symbol? remoteSymbol)
         {
-            if (mChildren == null)
-                mChildren = new Dictionary<string, Symbol>();
-            if (mChildren.TryGetValue(value.LookupName, out remoteSymbol))
-                return false;
-
-            value.Order = mChildren.Count;
-            mChildren[value.LookupName] = value;
-
-            if (value.IsFun)
+            sym.FinalizeFullName();
+            if (sym.IsFun)
             {
-                // Quick lookup of function name
-                if (mHasFunNamed == null)
-                    mHasFunNamed = new Dictionary<string, bool>();
-                mHasFunNamed[value.SimpleName] = true;
+                // Good enough for compiler
+                // NOTE: Doesn't catch overloaded functions with
+                //       same types but different parameter names
+                foreach (var s in ChildrenNamed(sym.SimpleName))
+                {
+                    if (sym.FullName == s.FullName)
+                    {
+                        remoteSymbol = s;
+                        return false;
+                    }
+                }
+
+                // Verify functions with same parameter types are rejected
+                // TBD: Move to verifier
+                foreach (var s in ChildrenNamed(sym.SimpleName)
+                    .Where(find => find.IsFun && find.FunParamTypes.Length == sym.FunParamTypes.Length))
+                {
+                    var match = true;
+                    for (int i = 0; match && i < s.FunParamTypes.Length; i++)
+                        if (s.FunParamTypes[i].FullName != sym.FunParamTypes[i].FullName)
+                            match = false;
+                    if (match)
+                    {
+                        remoteSymbol = s;
+                        return false;
+                    }
+                }
             }
             else
             {
-                // The non-functions must be added first, so the order is correct.
-                Debug.Assert(mHasFunNamed == null);
-                if (mHasFunNamed != null)
-                    throw new Exception("Compiler error: Primary symbol added after function");
+                if (TryGetPrimary(sym.SimpleName, out remoteSymbol))
+                    return false;
             }
 
+            if (mChildrenNamed == null)
+                mChildrenNamed = new();
+            if (!mChildrenNamed.TryGetValue(sym.SimpleName, out var symList))
+            {
+                symList = new();
+                mChildrenNamed[sym.SimpleName] = symList;
+            }
+
+            // Internal consistency check (see TryGetPrimary)
+            // There can only be one primary symbol per simple name,
+            // and it must be at the beginning of the list
+            if (!sym.IsFun && symList.Count != 0)
+            {
+                Debug.Assert(false);
+                remoteSymbol = symList[0];
+                return false;
+            }
+
+            symList.Add(sym);
+            sym.Order = mChildrenNamedCount++;
+
+            remoteSymbol = null;
             return true;
         }
 

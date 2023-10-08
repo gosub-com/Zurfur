@@ -351,7 +351,7 @@ namespace Zurfur.Ide
             {
                 message += "POSSIBLE SYMBOLS:\r\n";
                 message += string.Join("\r\n", symbols.Select(sym =>
-                    $"    [{getQualifiers(sym)}] {sym.FriendlyName()}"));
+                    $"    [{getQualifiers(sym)}] {sym.FullName}"));
                 return message + "\r\n\r\n";
             }
 
