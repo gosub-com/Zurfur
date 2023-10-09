@@ -1640,49 +1640,17 @@ namespace Zurfur.Ide
             mMouseDown = false;
             Invalidate();
             SetCursorByMouse(e);
-
-            // Empty line?
-            string line = GetLine(CursorLoc.Y);
-            int startIndex = Math.Min(CursorLoc.X, line.Length-1);
-            if (startIndex < 0)
-                return;
-
-            // Scan to beginning of token
-            if (char.IsWhiteSpace(line, startIndex))
-            {
-                while (startIndex > 0 && char.IsWhiteSpace(line, startIndex-1))
-                    startIndex--;
-            }
-            else if (IsLetterOrDigit(line[startIndex]))
-            {
-                while (startIndex > 0 && IsLetterOrDigit(line[startIndex-1]))
-                    startIndex--;
-            }
-
-            // Scan to end of token
-            int endIndex = startIndex;
-            if (char.IsWhiteSpace(line, endIndex))
-            {
-                while (endIndex < line.Length && char.IsWhiteSpace(line, endIndex))
-                    endIndex++;
-            }
-            else if (IsLetterOrDigit(line[endIndex]))
-            {
-                while (endIndex < line.Length && IsLetterOrDigit(line[endIndex]))
-                    endIndex++;
-            }
-
-            if (startIndex != endIndex)
+            
+            if (mMouseHoverToken != null)
             {
                 // Set selected text (and cursor)
                 mSelStart = mSelEnd = CursorLoc;
-                mSelStart.X = startIndex;
-                mSelEnd.X = endIndex;
-                CursorLoc = new TokenLoc(endIndex, CursorLoc.Y);
-                UpdateCursorBlinker();
+                mSelStart.X = mMouseHoverToken.X;
+                mSelEnd.X = mMouseHoverToken.X + mMouseHoverToken.Name.Length;
+                CursorLoc = new TokenLoc(mSelEnd.X, CursorLoc.Y);
             }
 
-
+            UpdateCursorBlinker();
             base.OnMouseDoubleClick(e);
         }
 

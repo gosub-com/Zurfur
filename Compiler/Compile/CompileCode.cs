@@ -1522,6 +1522,13 @@ namespace Zurfur.Compiler
                     var arg = args[i];
                     if (arg.LambdaSyntax != null)
                     {
+                        // Hm, there is a compiler error here, TBD, don't have time now
+                        if (func.FunParamTypes.Length <= i || !func.FunParamTypes[i].IsLambda)
+                        {
+                            Reject(args[i].Token, "Compiler error: Lambda resolution failure");
+                            return null;
+                        }
+
                         Debug.Assert(func.FunParamTypes[i].IsLambda);
                         var lambda = func.FunParamTypes[i];
                         PostGenLambda(arg.LambdaSyntax, lambda.FunParamTypes);
@@ -1828,6 +1835,15 @@ namespace Zurfur.Compiler
             //       This is done because the type is not always known here.
             Symbol? CreateLocal(Token token, bool forLambda = false)
             {
+
+                var pi = Array.FindIndex(function.FunParamTuple.TupleSymbols, f => f.SimpleName == token);
+                var ri = Array.FindIndex(function.FunReturnTuple.TupleSymbols, f => f.SimpleName == token);
+                if (pi >= 0 || ri >= 0)
+                {
+                    Reject(token, $"'{token}' is already defined as a local parameter");
+                    return null;
+                }
+
                 if (function.TryGetPrimary(token, out var primary))
                 {
                     Reject(token, $"'{token}' is already defined as a local parameter.");
@@ -1847,6 +1863,7 @@ namespace Zurfur.Compiler
                         return null;
                     }
                 }
+
                 var local = new Symbol(SymKind.Local, null, token);
                 var localScope = newVarScope >= 0 && !forLambda ? newVarScope : scopeNum;
                 localsByName![token] = new LocalSymbol(local, localScope, localsByIndex!.Count);
@@ -1910,7 +1927,7 @@ namespace Zurfur.Compiler
                 var name = token.Name;
                 var pi = Array.FindIndex(function.FunParamTuple.TupleSymbols, f => f.SimpleName == name);
                 if (pi >= 0)
-                    return (function.FunParamTuple.TupleSymbols[pi], pi);
+                    return (function.FunParamTuple.TupleSymbols[pi], 0);
                 var ri = Array.FindIndex(function.FunReturnTuple.TupleSymbols, f => f.SimpleName == name);
                 if (ri >= 0)
                 {

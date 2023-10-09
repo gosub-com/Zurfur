@@ -123,7 +123,6 @@ namespace Zurfur.Compiler
                 yield return Statements;
         }
 
-        public SyntaxExpr? ExtensionType;
         public SyntaxExpr? TypeArgs;
         public SyntaxExpr? FunctionSignature;
         public SyntaxConstraint[]? Constraints;

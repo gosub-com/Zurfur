@@ -5,6 +5,7 @@ mod Zurfur.Io
 use Zurfur.Io[FileStream]
 
 type Reader interface
+    // TBD: Handle `mut` fro interfaces
     afun mut read(data mut Span<byte>) !int
 
 type Writer interface
@@ -17,9 +18,9 @@ type SeekOrigin enum
 type Seeker interface
     fun mut seek(offset int, origin SeekOrigin) !int
     
-[pub] fun get Seeker.length() !int { }
-[pub] fun get Seeker.position() !int { }
-[pub] fun set Seeker.position(value int) !void { }
+[pub] fun get length(my s Seeker) !int { }
+[pub] fun get position(my s Seeker) !int { }
+[pub] fun set position(my s Seeker, value int) !void { }
 
 // Interface or concrete type?
 type FileStream interface { }

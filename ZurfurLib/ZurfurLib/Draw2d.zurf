@@ -26,8 +26,8 @@ type Point<T> copy
     y T
 
 // Identical to a field
-fun get Point.x2<T>() mut &T
-    ret &my.x // TBD: Require `&`, do not allow just `my.x`
+fun get x2<T>(my p Point<T>) mut &T
+    ret &p.x // TBD: Require `&`, do not allow just `my.x`
 
 [pub]
 type Size<T> copy
@@ -45,117 +45,117 @@ type Rect<T> copy
 
 // Identical to fields (not necessary when we have 'use location Point<T>' syntax)
 [pub]
-fun get Rect.x<T>() mut &T
-    ret &my.location.x // TBD: Require `&`
+fun get x<T>(my r Rect<T>) mut &T
+    ret &r.location.x // TBD: Require `&`
 [pub]
-fun get Rect.y<T>() mut &T
-    ret &my.location.y // TBD: Require `&`
+fun get y<T>(my r Rect<T>) mut &T
+    ret &r.location.y // TBD: Require `&`
 [pub]
-fun get Rect.width<T>() mut &T
-    ret &my.size.height // TBD: Require `&`
+fun get width<T>(my r Rect<T>) mut &T
+    ret &r.size.height // TBD: Require `&`
 [pub]
-fun get Rect.height<T>() mut &T
-    ret &my.size.width // TBD: Require `&`
+fun get height<T>(my r Rect<T>) mut &T
+    ret &r.size.width // TBD: Require `&`
 
 
 [pub]
-fun Point.new<T>(x T, y T)
+fun new<T>(p Point<T>, x T, y T)
     // TBD: (my.x, my.y) = (x, y)
-    my.x = x
-    my.y = y
+    p.x = x
+    p.y = y
 
 
 [pub]
-fun Point.toSize<T>() Size<T>
-    ret Size<T>(my.x, my.y)
+fun toSize<T>(my p Point<T>) Size<T>
+    ret Size<T>(p.x, p.y)
 
 // TBD: Remove
-fun Point.yf<T>() T
-    ret my.y
+fun yf<T>(my p Point<T>) T
+    ret p.y
 
 
-[pub static]
-fun Point._opAdd<T>(a Point<T>, b Point<T>) Point<T>
+[pub]
+fun _opAdd<T>(my a Point<T>, b Point<T>) Point<T>
         where T has NumOps<T> // TBD: Use constraints from `Point`
     ret Point(a.x+b.x, a.y+b.y)
 
-[pub static]
-fun Point._opNeg<T>(a Point<T>) Point<T>
+[pub]
+fun _opNeg<T>(my p Point<T>, a Point<T>) Point<T>
         where T has NumOps<T> // TBD: Use constraints from `Point`
     ret Point(-a.x, -a.y)
 
-[pub static]
-fun Point._opSub<T>(a Point<T>, b Point<T>) Point<T>
+[pub]
+fun _opSub<T>(my a Point<T>, b Point<T>) Point<T>
         where T has NumOps<T> // TBD: Use constraints from `Point`
     ret Point(a.x-b.x, a.y-b.y)
 
-[pub static]
-fun Point._opMul<T>(a T, b Point<T>) Point<T>
+[pub]
+fun _opMul<T>(a T, my b Point<T>) Point<T>
         where T has NumOps<T> // TBD: Use constraints from `Point`
     ret Point(a*b.x, a*b.y)
 
-[pub static]
-fun Point._opMul<T>(a Point<T>, b T) Point<T>
+[pub]
+fun _opMul<T>(my a Point<T>, b T) Point<T>
         where T has NumOps<T> // TBD: Use constraints from `Point`
     ret Point(a.x*b, a.y*b)
 
-[pub static]
-fun Point._opDiv<T>(a T, b Point<T>) Point<T>
+[pub]
+fun _opDiv<T>(a T, my b Point<T>) Point<T>
         where T has NumOps<T> // TBD: Use constraints from `Point`
     ret Point(a/b.x, a/b.y)
 
-[pub static]
-fun Point._opDiv<T>(a Point<T>, b T) Point<T>
+[pub]
+fun _opDiv<T>(my a Point<T>, b T) Point<T>
         where T has NumOps<T> // TBD: Use constraints from `Point`
     ret Point(a.x/b, a.y/b)
 
 [pub]
-fun Size.new<T>(width T, height T)
+fun new<T>(s Size<T>, width T, height T)
     // TBD: (my.width, my.height) = (width, height)
-    my.width = width
-    my.height = height
+    s.width = width
+    s.height = height
     
 [pub]
-fun Size.toPoint<T>() Point<T>
-    ret Point(my.width, my.height)
+fun toPoint<T>(my s Size<T>) Point<T>
+    ret Point(s.width, s.height)
 
 
 // TBD: Shortcut syntax for this:
 [pub]
-fun Rect.new<T>(x T, y T, width T, height T)
-    my.x = x
-    my.y = y
-    my.width = width
-    my.height = height
+fun new<T>(r Rect<T>, x T, y T, width T, height T)
+    r.x = x
+    r.y = y
+    r.width = width
+    r.height = height
     
 [pub]
-fun Rect.new<T>(location Point<T>, size Size<T>)
-    my.location = location
-    my.size = size
+fun new<T>(r Rect<T>, location Point<T>, size Size<T>)
+    r.location = location
+    r.size = size
 
 
 // TBD: Operators (add, multiply, divide, sizes, etc.)
 
 [pub]
-fun get Rect.left<T>() T
-    ret my.x
+fun get left<T>(my r Rect<T>) T
+    ret r.x
     
 [pub]
-fun get Rect.right<T>() T
+fun get right<T>(my r Rect<T>) T
         where T has NumOps<T> // TBD: Use constraints from `Point`
-    ret my.x + my.width
+    ret r.x + r.width
 
 [pub]
-fun get Rect.top<T>() T
-    ret my.y
+fun get top<T>(my r Rect<T>) T
+    ret r.y
     
 [pub]
-fun get Rect.bottom<T>() T
+fun get bottom<T>(my r Rect<T>) T
         where T has NumOps<T> // TBD: Use constraints from `Point`
-    ret my.y + my.height
+    ret r.y + r.height
     
 // TBD: Remove
 [pub]
-fun Rect.lf<T>() Point<T>
-    ret Point(my.x, my.y)
+fun lf<T>(my r Rect<T>) Point<T>
+    ret Point(r.x, r.y)
     

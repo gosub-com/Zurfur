@@ -503,7 +503,7 @@ namespace Zurfur.Compiler
                     Accept();
                     mSyntax.Using.Add(ParseUsingStatement());
                     if (mSyntax.Types.Count != 0 || mSyntax.Functions.Count != 0 || mSyntax.Fields.Count != 0)
-                        RejectToken(keyword, "'use' statement must come before any types, fields, or methods are defined");
+                        RejectToken(keyword, "'use' statement must come before any types, fields, or functions are defined");
                     qualifiers.Clear();
                     break;
 
@@ -527,7 +527,7 @@ namespace Zurfur.Compiler
                 case "afun":
                     mToken.Type = eTokenType.ReservedControl;
                     qualifiers.Add(Accept());
-                    ParseMethod(keyword, qualifiers, true);
+                    ParseFunction(keyword, qualifiers, true);
                     qualifiers.Clear();
                     break;
 
@@ -936,7 +936,7 @@ namespace Zurfur.Compiler
                         RejectToken(mToken, $"Only interfaces may not contain '{mTokenName}'");
                     mToken.Type = eTokenType.ReservedControl;
                     qualifiers.Add(Accept());
-                    ParseMethod(mToken, qualifiers, !isInterface);
+                    ParseFunction(mToken, qualifiers, !isInterface);
                     qualifiers.Clear();
                     break;
 
@@ -1108,7 +1108,7 @@ namespace Zurfur.Compiler
         /// <summary>
         /// Function or property
         /// </summary>
-        void ParseMethod(Token keyword, List<Token> qualifiers, bool body)
+        void ParseFunction(Token keyword, List<Token> qualifiers, bool body)
         {
             // Parse func keyword
             var synFunc = new SyntaxFunc(keyword);
@@ -1122,13 +1122,13 @@ namespace Zurfur.Compiler
                 qualifiers.Add(Accept());
             }
 
-            var validMethodName = ParseExtensionTypeAndMethodName(out synFunc.ExtensionType, out synFunc.Name, out synFunc.TypeArgs, qualifiers);
+            var validFunctionName = ParseFunctionName(out synFunc.Name, out synFunc.TypeArgs);
 
             // Don't process function while user is typing (this is for a better error message)
             if (!IsMatchPastMetaSemicolon("("))
-                validMethodName = false;
+                validFunctionName = false;
 
-            synFunc.FunctionSignature = ParseMethodSignature(keyword);
+            synFunc.FunctionSignature = ParseFunctionSignature(keyword);
             synFunc.Constraints = ParseConstraints();
 
             // Body
@@ -1139,134 +1139,39 @@ namespace Zurfur.Compiler
 
             synFunc.Qualifiers = qualifiers.ToArray();
 
-            if (validMethodName)
+            if (validFunctionName)
                 mSyntax.Functions.Add(synFunc);
         }
 
         /// <summary>
-        /// Returns true if we are a valid method name
+        /// Returns true if we are a valid function name
         /// </summary>
-        bool ParseExtensionTypeAndMethodName(
-            out SyntaxExpr? extensionType, 
+        bool ParseFunctionName(
             out Token funcName, 
-            out SyntaxExpr? genericTypeArgs, 
-            List<Token> qualifiers)
+            out SyntaxExpr? genericTypeArgs)
         {
-
-            // fun (type) name()
-            if (mToken == "(")
-                return ParseExtensionTypeAndMethodNameGolangStyle(out extensionType, out funcName, out genericTypeArgs, qualifiers);
-
-            extensionType = null;
             genericTypeArgs = null;
             funcName = mToken;
 
-            var mutToken = mToken == "mut" ? Accept() : null;
+            if (mToken == "mut")
+                Accept().AddWarning("Not stored in parse tree yet");
 
-
-            // TBD: Verifier to ensure this function not defined anywhere other than Zurfur module                
-            if (mToken == "require")
+            // TBD: Verifier to ensure 'require' only defined in Zurfur module
+            //      New, clone, and drop will become special functions
+            if (mToken  == "require" || mToken == "new" || mToken == "clone" || mToken == "drop")
                 mToken.Type = eTokenType.Identifier;
 
-            if (!CheckIdentifier("Expecting a function or property name", sRejectTypeName))
-                return false;
-
-            var nameExpr = ParseType();
-
-            // WITH SPACE:
-            //      fun type name()
-            if (mToken.Type == eTokenType.Identifier)
+            if (CheckIdentifier("Expecting a function or property name", sRejectTypeName))
             {
-                mToken.Type = eTokenType.DefineMethod;
-                extensionType = nameExpr;
+                RejectUnderscoreDefinition(mToken);
+
                 funcName = Accept();
                 if (mToken == "<")
                     genericTypeArgs = ParseTypeParameters();
                 return true;
             }
-
-            // WITH DOT:
-            //      fun type.name()
-            // Generic type args
-            if (nameExpr.Count >= 2 && nameExpr.Token == VT_TYPE_ARG)
-            {
-                genericTypeArgs = new SyntaxMulti(nameExpr.Token, nameExpr.Skip(1).ToArray());
-                nameExpr = nameExpr[0];
-            }
-
-            // Extension type
-            if (nameExpr.Token == "." && nameExpr.Count >= 2)
-            {
-                extensionType = nameExpr[0];
-                nameExpr = nameExpr[1];
-            }
-
-            // TBD: Record 'mut' token for static functions inside interfaces
-            if (mutToken != null && extensionType != null)
-                extensionType = new SyntaxUnary(mutToken, extensionType);
-
-            if (nameExpr.Count != 0)
-                RejectToken(nameExpr.Token, "Expecting a function name");
-            if (genericTypeArgs != null)
-                foreach (var arg in genericTypeArgs)
-                    if (arg.Count != 0)
-                    {
-                        genericTypeArgs = null;
-                        RejectToken(arg.Token, "Only type names are allowed in a generic argument list");
-                    }
-
-            funcName = nameExpr.Token;
-            funcName.Type = eTokenType.DefineMethod;
-
-            RejectUnderscoreDefinition(funcName);
-            return nameExpr.Count == 0;
+            return false;
         }
-
-        /// <summary>
-        /// Returns true if we are a valid method name
-        /// </summary>
-        bool ParseExtensionTypeAndMethodNameGolangStyle(
-            out SyntaxExpr? extensionType, 
-            out Token funcName, 
-            out SyntaxExpr? genericTypeArgs, 
-            List<Token> qualifiers)
-        {
-            extensionType = null;
-            genericTypeArgs = null;
-
-            // Parse extension method parameter
-            Debug.Assert(mToken == "(");
-            var open = Accept();
-            var mutToken = mToken == "mut" ? Accept() : null;
-            extensionType = ParseType();
-            
-            // This is an attribute, but store it as if it were a generic type (remove when compiling header)
-            if (mutToken != null)
-                extensionType = new SyntaxUnary(mutToken, extensionType);
-
-            if (AcceptMatchOrReject(")"))
-                Connect(open, mPrevToken);
-
-            if (sReservedUserFuncNames.Contains(mTokenName))
-            {
-                // Reserved function
-                funcName = Accept();
-                funcName.Type = eTokenType.Reserved;
-                return true;
-            }
-
-            // TBD: Experiment with putting `set` or `get` in front of function name
-            if ((mTokenName == "get" || mTokenName == "set") && mEnum.PeekOnLine() != "(")
-                qualifiers.Add(Accept());
-
-            funcName = mToken;
-            if (!AcceptIdentifier("Expecting a function or property name", sRejectTypeName))
-                return false;
-            funcName.Type = eTokenType.DefineMethod;
-            genericTypeArgs = ParseTypeParameters();
-            return true;
-        }
-
 
         /// <summary>
         /// returns SyntaxExpr:
@@ -1274,16 +1179,16 @@ namespace Zurfur.Compiler
         ///     [1] - Returns (name, type) possibly blank for each
         ///     [2] - error/exit token
         /// </summary>
-        private SyntaxExpr ParseMethodSignature(Token keyword)
+        private SyntaxExpr ParseFunctionSignature(Token keyword)
         {
             // Parameters
-            var funcParams = ParseMethodParams();
+            var funcParams = ParseFunctionParams();
 
             // Returns
             SyntaxExpr returnParams;
             if (mToken == ("("))
             {
-                returnParams = ParseMethodParams();
+                returnParams = ParseFunctionParams();
             }
             else
             {
@@ -1306,7 +1211,7 @@ namespace Zurfur.Compiler
         }
 
 
-        SyntaxExpr ParseMethodParams()
+        SyntaxExpr ParseFunctionParams()
         {
             // Read open token, '('
             if (!AcceptMatchPastMetaSemicolon("(")  && !AcceptMatchOrReject("("))
@@ -1316,11 +1221,11 @@ namespace Zurfur.Compiler
             var openToken = mPrevToken;
             var parameters = NewExprList();
             if (mTokenName != ")")
-                parameters.Add(ParseMethodParam());
+                parameters.Add(ParseFunctionParam());
             while (AcceptMatch(","))
             {
                 Connect(openToken, mPrevToken);
-                parameters.Add(ParseMethodParam());
+                parameters.Add(ParseFunctionParam());
             }
 
             if (AcceptMatchOrReject(")", "Expecting ')' or ','"))
@@ -1330,8 +1235,17 @@ namespace Zurfur.Compiler
         }
 
         // Syntax Tree: (name, type, initializer, qualifiers)
-        SyntaxExpr ParseMethodParam()
+        SyntaxExpr ParseFunctionParam()
         {
+            var qualifiers = NewExprList();
+
+            if (AcceptMatch("my"))
+            {
+                qualifiers.Add(new SyntaxToken(mPrevToken));
+                if (AcceptMatch("static"))
+                    qualifiers.Add(new SyntaxToken(mPrevToken));
+            }
+
             if (!AcceptIdentifier("Expecting a variable name", sRejectFuncParam))
                 return SyntaxError;
             var name = mPrevToken;
@@ -1339,7 +1253,6 @@ namespace Zurfur.Compiler
             RejectUnderscoreDefinition(name);
 
             // TBD: Param qualifiers probably need to be part of type
-            var qualifiers = NewExprList();
             while (sParamQualifiers.Contains(mToken))
                 qualifiers.Add(new SyntaxToken(Accept()));
 
@@ -1491,12 +1404,12 @@ namespace Zurfur.Compiler
                 case "fun":
                 case "afun":
                     // TBD: Process local functions
-                    //      Need to pass scope into ParseMethod
+                    //      Need to pass scope into ParseFunction
                     //      Require `local` keyword
                     var qualifiers = new List<Token>() { Accept() };
                     keyword.Type = eTokenType.ReservedControl;  // Fix keyword to make it control
                     keyword.AddWarning("Local function not working yet");
-                    ParseMethod(keyword, qualifiers, true);
+                    ParseFunction(keyword, qualifiers, true);
                     break;
 
                 default:
@@ -2162,7 +2075,7 @@ namespace Zurfur.Compiler
                 return ParseTypeTuple();
 
             if (mToken == "fun" || mToken == "afun")
-                return ParseMethodSignature(Accept());
+                return ParseFunctionSignature(Accept());
 
             if (mToken.Type != eTokenType.Identifier)
             {

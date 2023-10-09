@@ -10,21 +10,16 @@
     len int // TBD: Remove
 
 // TBD: Remove this since it will be implemented by List
-[pub static]
-fun Array._opIndex<T>(s Array<T>, i int) mut &T
+[pub]
+fun _opIndex<T>(my static a Array<T>, s Array<T>, i int) mut &T
     require(i in 0..s.len)
     todo // Implementation TBD
 
 
-// TBD: Remove this since it will be implemented by List
-[pub static]
-fun Buffer._opIndex<T>(s Buffer<T>, i int) mut &T
-    require(i in 0..s.len)
-    todo // Implementation TBD
 
 // TBD: Remove this since it will be implemented by List
-[pub static]
-fun Buffer._opIndex<T>(s Buffer<T>, range Range<int>) mut Span<T>
+[pub]
+fun _opIndex<T>(my static b Buffer<T>, s Buffer<T>, range Range<int>) mut Span<T>
     require(range.low in 0..s.len)
     require(range.high in 0..s.len)
     require(range.low <= range.high)

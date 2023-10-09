@@ -7,15 +7,14 @@
     //       and its implicit conversion to Span
 
 // TBD: Need to collect stuff from Array
-[pub] fun get str.len() int
+[pub] fun get len(my s str) int
     ret 0
 
-[pub static] fun str._opAdd(a str, b str) str {}
+[pub] fun _opAdd(my static st str, a str, b str) str {}
 
 // TBD: Remove after more of the generic type system is working
-[pub static] fun str._opEq(a str, b str) bool {}
-[pub static] fun str._opCmp(a str, b str) int {}
+[pub] fun _opEq(my static st str, a str, b str) bool {}
+[pub] fun _opCmp(my static st str, a str, b str) int {}
 
-[pub] fun str.new(st Span<byte>) extern
     
 // TBD: Implicit conversion to and from Span?

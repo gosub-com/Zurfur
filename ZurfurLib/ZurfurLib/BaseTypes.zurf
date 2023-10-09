@@ -33,14 +33,14 @@ type Maybe<T>
     hasValue bool
 
 [pub]
-fun Maybe.new<T>(value own T)
-    my.value = Box<T>(value)
-    my.hasValue = true
+fun new<T>(m Maybe<T>, value own T)
+    m.value = Box<T>(value)
+    m.hasValue = true
 
 type Box<T>
     const __size int = 1
 
-fun Box.new<T>(value own T)
+fun new<T>(b Box<T>, value own T)
     nop
 
 [pub]
@@ -89,13 +89,13 @@ fun swap<T>(a mut &T, b mut &T)
 type bool ro
     const __size int = 1
 
-[pub static] fun bool.getHash(a bool) int extern
-[pub static] fun bool._opEq(a bool, b bool) bool extern
+[pub] fun getHash(my static s bool, a bool) int extern
+[pub] fun _opEq(my static s bool, a bool, b bool) bool extern
 
 // TBD: These operators must be restricted to bool
-[pub static] fun bool._opLogicalAnd(a bool, b bool) bool extern
-[pub static] fun bool._opLogicalOr(a bool, b bool) bool extern
-[pub static] fun bool._opLogicalNot(a bool) bool extern
+[pub] fun _opLogicalAnd(my static s bool, a bool, b bool) bool extern
+[pub] fun _opLogicalOr(my static s bool, a bool, b bool) bool extern
+[pub] fun _opLogicalNot(my static s bool, a bool) bool extern
 
 // i8 (-128..127)
 [pub]
@@ -108,19 +108,19 @@ type i8 ro
     const MaxValue i8 = 127
     const NanOrMin i8 = MinValue
     
-[pub] fun get i8.toStr() str extern
-[pub] fun get i8.toByte() ?byte extern
-[pub] fun get i8.toByteMask() byte extern
-[pub] fun get i8.toI16() i16 extern
-[pub] fun get i8.toI32() i32 extern
-[pub] fun get i8.toInt() int extern
-[pub] fun get i8.toF32() f32 extern
-[pub] fun get i8.toFloat() float extern
-[pub] fun get i8.toDecimal() Decimal extern
+[pub] fun get toStr(my n i8) str extern
+[pub] fun get toByte(my n i8) ?byte extern
+[pub] fun get toByteMask(my n i8) byte extern
+[pub] fun get toI16(my n i8) i16 extern
+[pub] fun get toI32(my n i8) i32 extern
+[pub] fun get toInt(my n i8) int extern
+[pub] fun get toF32(my n i8) f32 extern
+[pub] fun get toFloat(my n i8) float extern
+[pub] fun get toDecimal(my n i8) Decimal extern
 
-[pub static] fun i8.getHash(a i8) int extern
-[pub static] fun i8._opEq(a i8, b i8) bool extern
-[pub static] fun i8._opCmp(a i8, b i8) int extern
+[pub] fun getHash(my static s i8, a i8) int extern
+[pub] fun _opEq(my static s i8, a i8, b i8) bool extern
+[pub] fun _opCmp(my static s i8, a i8, b i8) int extern
 
 
 // byte (0..255)
@@ -134,22 +134,22 @@ type byte ro
     const MaxValue byte = 255
     const NanOrMin byte = MinValue
     
-[pub] fun get byte.toStr() str extern
-[pub] fun get byte.toI8() ?i8 extern
-[pub] fun get byte.toI8Mask() i8 extern
-[pub] fun get byte.toI16() i16 extern
-[pub] fun get byte.toU16() u16 extern
-[pub] fun get byte.toI32() i32 extern
-[pub] fun get byte.toU32() u32 extern
-[pub] fun get byte.toInt() int extern
-[pub] fun get byte.toU64() u64 extern
-[pub] fun get byte.toF32() f32 extern
-[pub] fun get byte.toFloat() float extern
-[pub] fun get byte.toDecimal() Decimal extern
+[pub] fun get toStr(my b byte) str extern
+[pub] fun get toI8(my b byte) ?i8 extern
+[pub] fun get toI8Mask(my b byte) i8 extern
+[pub] fun get toI16(my b byte) i16 extern
+[pub] fun get toU16(my b byte) u16 extern
+[pub] fun get toI32(my b byte) i32 extern
+[pub] fun get toU32(my b byte) u32 extern
+[pub] fun get toInt(my b byte) int extern
+[pub] fun get toU64(my b byte) u64 extern
+[pub] fun get toF32(my b byte) f32 extern
+[pub] fun get toFloat(my b byte) float extern
+[pub] fun get toDecimal(my b byte) Decimal extern
 
-[pub static] fun byte.getHash(a byte) int extern
-[pub static] fun byte._opEq(a byte, b byte) bool extern
-[pub static] fun byte._opCmp(a byte, b byte) int extern
+[pub] fun getHash(my static s byte, a byte) int extern
+[pub] fun _opEq(my static s byte, a byte, b byte) bool extern
+[pub] fun _opCmp(my static s byte, a byte, b byte) int extern
 
 
 // i16 (-32768..32768)
@@ -163,22 +163,22 @@ type i16 ro
     const MaxValue i16 = 32767
     const NanOrMin i16 = MinValue
 
-[pub] fun get i16.toStr() str extern
-[pub] fun get i16.toI8() ?i8 extern
-[pub] fun get i16.toByte() ?byte extern
-[pub] fun get i16.toU16() ?u16 extern
-[pub] fun get i16.toI32() i32 extern
-[pub] fun get i16.toInt() int extern
-[pub] fun get i16.toF32() f32 extern
-[pub] fun get i16.toFloat() float extern
-[pub] fun get i16.toDecimal() Decimal extern    
-[pub] fun get i16.toI8Mask() i8 extern
-[pub] fun get i16.toByteMask() byte extern
-[pub] fun get i16.toU16Mask() u16 extern    
+[pub] fun get toStr(my n i16) str extern
+[pub] fun get toI8(my n i16) ?i8 extern
+[pub] fun get toByte(my n i16) ?byte extern
+[pub] fun get toU16(my n i16) ?u16 extern
+[pub] fun get toI32(my n i16) i32 extern
+[pub] fun get toInt(my n i16) int extern
+[pub] fun get toF32(my n i16) f32 extern
+[pub] fun get toFloat(my n i16) float extern
+[pub] fun get toDecimal(my n i16) Decimal extern    
+[pub] fun get toI8Mask(my n i16) i8 extern
+[pub] fun get toByteMask(my n i16) byte extern
+[pub] fun get toU16Mask(my n i16) u16 extern    
 
-[pub static] fun i16.getHash(a i16) int extern
-[pub static] fun i16._opEq(a i16, b i16) bool extern
-[pub static] fun i16._opCmp(a i16, b i16) int extern
+[pub] fun getHash(my static s i16, a i16) int extern
+[pub] fun _opEq(my static s i16, a i16, b i16) bool extern
+[pub] fun _opCmp(my static s i16, a i16, b i16) int extern
 
 
 
@@ -194,24 +194,24 @@ type u16 ro
     const NanOrMin u16 = MinValue
     
 
-[pub] fun get u16.toStr() str extern
-[pub] fun get u16.toI8() ?i8 extern
-[pub] fun get u16.toByte() ?byte extern
-[pub] fun get u16.toI16() ?i16 extern
-[pub] fun get u16.toI32() i32 extern
-[pub] fun get u16.toU32() u32 extern
-[pub] fun get u16.toInt() int extern
-[pub] fun get u16.toU64() u64 extern
-[pub] fun get u16.toF32() f32 extern
-[pub] fun get u16.toFloat() float extern
-[pub] fun get u16.toDecimal() Decimal extern
-[pub] fun get u16.toI8Mask() i8 extern
-[pub] fun get u16.toByteMask() byte extern
-[pub] fun get u16.toI16Mask() i16 extern
+[pub] fun get toStr(my n u16) str extern
+[pub] fun get toI8(my n u16) ?i8 extern
+[pub] fun get toByte(my n u16) ?byte extern
+[pub] fun get toI16(my n u16) ?i16 extern
+[pub] fun get toI32(my n u16) i32 extern
+[pub] fun get toU32(my n u16) u32 extern
+[pub] fun get toInt(my n u16) int extern
+[pub] fun get toU64(my n u16) u64 extern
+[pub] fun get toF32(my n u16) f32 extern
+[pub] fun get toFloat(my n u16) float extern
+[pub] fun get toDecimal(my n u16) Decimal extern
+[pub] fun get toI8Mask(my n u16) i8 extern
+[pub] fun get toByteMask(my n u16) byte extern
+[pub] fun get toI16Mask(my n u16) i16 extern
 
-[pub static] fun u16.getHash(a u16) int extern
-[pub static] fun u16._opEq(a u16, b u16) bool extern
-[pub static] fun u16._opCmp(a u16, b u16) int extern
+[pub] fun getHash(my static s u16, a u16) int extern
+[pub] fun _opEq(my static s u16, a u16, b u16) bool extern
+[pub] fun _opCmp(my static s u16, a u16, b u16) int extern
 
 // A 32 bit integer
 [pub]
@@ -225,43 +225,43 @@ type i32 ro
     const NanOrMin i32 = MinValue
     
 
-[pub] fun get i32.toStr() str extern
-[pub] fun get i32.toI8() ?i8 extern
-[pub] fun get i32.toByte() ?byte extern
-[pub] fun get i32.toI16() ?i16 extern
-[pub] fun get i32.toU16() ?u16 extern
-[pub] fun get i32.toU32() ?u32 extern
-[pub] fun get i32.toInt() int extern
-[pub] fun get i32.toF32() f32 extern
-[pub] fun get i32.toFloat() float extern
-[pub] fun get i32.toDecimal() Decimal extern    
-[pub] fun get i32.toI8Mask() i8 extern
-[pub] fun get i32.toByteMask() byte extern
-[pub] fun get i32.toI16Mask() i16 extern
-[pub] fun get i32.toU16Mask() u16 extern
-[pub] fun get i32.toU32Mask() u32 extern
+[pub] fun get toStr(my n i32) str extern
+[pub] fun get toI8(my n i32) ?i8 extern
+[pub] fun get toByte(my n i32) ?byte extern
+[pub] fun get toI16(my n i32) ?i16 extern
+[pub] fun get toU16(my n i32) ?u16 extern
+[pub] fun get toU32(my n i32) ?u32 extern
+[pub] fun get toInt(my n i32) int extern
+[pub] fun get toF32(my n i32) f32 extern
+[pub] fun get toFloat(my n i32) float extern
+[pub] fun get toDecimal(my n i32) Decimal extern    
+[pub] fun get toI8Mask(my n i32) i8 extern
+[pub] fun get toByteMask(my n i32) byte extern
+[pub] fun get toI16Mask(my n i32) i16 extern
+[pub] fun get toU16Mask(my n i32) u16 extern
+[pub] fun get toU32Mask(my n i32) u32 extern
 
-[pub static] fun i32.getHash(a i32) int extern
-[pub static] fun i32._opEq(a i32, b i32) bool extern
-[pub static] fun i32._opCmp(a i32, b i32) int extern
-[pub static] fun i32._opIn(a i32, b Range<i32>) bool extern
-[pub static] fun i32._opRange(a i32, b i32) Range<i32> extern // TBD: Generic function on range?
-[pub static] fun i32._opAdd(a i32, b i32) i32 extern
-[pub static] fun i32._opSub(a i32, b i32) i32 extern
-[pub static] fun i32._opNeg(a i32) i32 extern
-[pub static] fun i32._opMul(a i32, b i32) i32 extern
-[pub static] fun i32._opDiv(a i32, b i32) i32 extern
-[pub static] fun i32._opRem(a i32, b i32) i32 extern
-[pub static] fun i32._opBitNot(a i32) i32 extern
-[pub static] fun i32._opBitAnd(a i32, b i32) i32 extern
-[pub static] fun i32._opBitOr(a i32, b i32) i32 extern
-[pub static] fun i32._opBitXor(a i32, b i32) i32 extern
-[pub static] fun i32._opBitShl(a i32, b int) i32 extern
-[pub static] fun i32._opBitShr(a i32, b int) i32 extern
+[pub] fun getHash(my static s i32, a i32) int extern
+[pub] fun _opEq(my static s i32, a i32, b i32) bool extern
+[pub] fun _opCmp(my static s i32, a i32, b i32) int extern
+[pub] fun _opIn(my static s i32, a i32, b Range<i32>) bool extern
+[pub] fun _opRange(my static s i32, a i32, b i32) Range<i32> extern // TBD: Generic function on range?
+[pub] fun _opAdd(my static s i32, a i32, b i32) i32 extern
+[pub] fun _opSub(my static s i32, a i32, b i32) i32 extern
+[pub] fun _opNeg(my static s i32, a i32) i32 extern
+[pub] fun _opMul(my static s i32, a i32, b i32) i32 extern
+[pub] fun _opDiv(my static s i32, a i32, b i32) i32 extern
+[pub] fun _opRem(my static s i32, a i32, b i32) i32 extern
+[pub] fun _opBitNot(my static s i32, a i32) i32 extern
+[pub] fun _opBitAnd(my static s i32, a i32, b i32) i32 extern
+[pub] fun _opBitOr(my static s i32, a i32, b i32) i32 extern
+[pub] fun _opBitXor(my static s i32, a i32, b i32) i32 extern
+[pub] fun _opBitShl(my static s i32, a i32, b int) i32 extern
+[pub] fun _opBitShr(my static s i32, a i32, b int) i32 extern
 
 [pub]
-fun get i32.iterator() RangeIterator<i32>
-    ret RangeIterator<i32>(0 i32, my)
+fun get iterator(my n i32) RangeIterator<i32>
+    ret RangeIterator<i32>(0 i32, n)
 
 
 // 32 bit unsigned integer
@@ -276,43 +276,43 @@ type u32 ro
     const NanOrMin u32 = MinValue
     
 
-[pub] fun get u32.toStr() str extern
-[pub] fun get u32.toI8() ?i8 extern
-[pub] fun get u32.toByte() ?byte extern
-[pub] fun get u32.toI16() ?i16 extern
-[pub] fun get u32.toU16() ?u16 extern
-[pub] fun get u32.toI32() ?i32 extern        
-[pub] fun get u32.toInt() int extern
-[pub] fun get u32.toU64() u64 extern
-[pub] fun get u32.toF32() f32 extern
-[pub] fun get u32.toFloat() float extern
-[pub] fun get u32.toDecimal() Decimal extern        
-[pub] fun get u32.toI8Mask() i8 extern
-[pub] fun get u32.toByteMask() byte extern
-[pub] fun get u32.toI16Mask() i16 extern
-[pub] fun get u32.toU16Mask() u16 extern
-[pub] fun get u32.toI32Mask() i32 extern
+[pub] fun get toStr(my n u32) str extern
+[pub] fun get toI8(my n u32) ?i8 extern
+[pub] fun get toByte(my n u32) ?byte extern
+[pub] fun get toI16(my n u32) ?i16 extern
+[pub] fun get toU16(my n u32) ?u16 extern
+[pub] fun get toI32(my n u32) ?i32 extern        
+[pub] fun get toInt(my n u32) int extern
+[pub] fun get toU64(my n u32) u64 extern
+[pub] fun get toF32(my n u32) f32 extern
+[pub] fun get toFloat(my n u32) float extern
+[pub] fun get toDecimal(my n u32) Decimal extern        
+[pub] fun get toI8Mask(my n u32) i8 extern
+[pub] fun get toByteMask(my n u32) byte extern
+[pub] fun get toI16Mask(my n u32) i16 extern
+[pub] fun get toU16Mask(my n u32) u16 extern
+[pub] fun get toI32Mask(my n u32) i32 extern
 
-[pub static] fun u32.getHash(a u32) int extern
-[pub static] fun u32._opEq(a u32, b u32) bool extern
-[pub static] fun u32._opCmp(a u32, b u32) int extern
-[pub static] fun u32._opIn(a u32, b Range<u32>) bool extern
-[pub static] fun u32._opRange(a u32, b u32) Range<u32> extern // TBD: Generic function on range?
-[pub static] fun u32._opAdd(a u32, b u32) u32 extern
-[pub static] fun u32._opSub(a u32, b u32) u32 extern
-[pub static] fun u32._opNeg(a u32) u32 extern
-[pub static] fun u32._opMul(a u32, b u32) u32 extern
-[pub static] fun u32._opDiv(a u32, b u32) u32 extern
-[pub static] fun u32._opRem(a u32, b u32) u32 extern
-[pub static] fun u32._opBitNot(a u32) u32 extern
-[pub static] fun u32._opBitAnd(a u32, b u32) u32 extern
-[pub static] fun u32._opBitOr(a u32, b u32) u32 extern
-[pub static] fun u32._opBitXor(a u32, b u32) u32 extern
-[pub static] fun u32._opBitShl(a u32, b int) u32 extern
-[pub static] fun u32._opBitShr(a u32, b int) u32 extern
+[pub] fun getHash(my static s u32, a u32) int extern
+[pub] fun _opEq(my static s u32, a u32, b u32) bool extern
+[pub] fun _opCmp(my static s u32, a u32, b u32) int extern
+[pub] fun _opIn(my static s u32, a u32, b Range<u32>) bool extern
+[pub] fun _opRange(my static s u32, a u32, b u32) Range<u32> extern // TBD: Generic function on range?
+[pub] fun _opAdd(my static s u32, a u32, b u32) u32 extern
+[pub] fun _opSub(my static s u32, a u32, b u32) u32 extern
+[pub] fun _opNeg(my static s u32, a u32) u32 extern
+[pub] fun _opMul(my static s u32, a u32, b u32) u32 extern
+[pub] fun _opDiv(my static s u32, a u32, b u32) u32 extern
+[pub] fun _opRem(my static s u32, a u32, b u32) u32 extern
+[pub] fun _opBitNot(my static s u32, a u32) u32 extern
+[pub] fun _opBitAnd(my static s u32, a u32, b u32) u32 extern
+[pub] fun _opBitOr(my static s u32, a u32, b u32) u32 extern
+[pub] fun _opBitXor(my static s u32, a u32, b u32) u32 extern
+[pub] fun _opBitShl(my static s u32, a u32, b int) u32 extern
+[pub] fun _opBitShr(my static s u32, a u32, b int) u32 extern
 
-[pub] fun get u32.iterator() RangeIterator<u32>
-    ret RangeIterator<u32>(0 u32, my)
+[pub] fun get iterator(my n u32) RangeIterator<u32>
+    ret RangeIterator<u32>(0 u32, n)
 
 
 // A 64 bit integer (same as int)
@@ -326,48 +326,48 @@ type int ro
     const MaxValue int = 9223372036854775807
     const NanOrMin int = MinValue    
 
-[pub] fun get int.toStr() str extern
-[pub] fun get int.toI8() ?i8 extern
-[pub] fun get int.toByte() ?byte extern
-[pub] fun get int.toI16() ?i16 extern
-[pub] fun get int.toU16() ?u16 extern
-[pub] fun get int.toI32() ?i32 extern
-[pub] fun get int.toU32() ?u32 extern
-[pub] fun get int.toU64() ?u64 extern    
-[pub] fun get int.toF32() f32 extern
-[pub] fun get int.toFloat() float extern
-[pub] fun get int.toDecimal() Decimal extern
-[pub] fun get int.toI8Mask() i8 extern
-[pub] fun get int.toByteMask() byte extern
-[pub] fun get int.toI16Mask() i16 extern
-[pub] fun get int.toU16Mask() u16 extern
-[pub] fun get int.toI32Mask() i32 extern
-[pub] fun get int.toU32Mask() u32 extern
-[pub] fun get int.toU64Mask() u64 extern
+[pub] fun get toStr(my n int) str extern
+[pub] fun get toI8(my n int) ?i8 extern
+[pub] fun get toByte(my n int) ?byte extern
+[pub] fun get toI16(my n int) ?i16 extern
+[pub] fun get toU16(my n int) ?u16 extern
+[pub] fun get toI32(my n int) ?i32 extern
+[pub] fun get toU32(my n int) ?u32 extern
+[pub] fun get toU64(my n int) ?u64 extern    
+[pub] fun get toF32(my n int) f32 extern
+[pub] fun get toFloat(my n int) float extern
+[pub] fun get toDecimal(my n int) Decimal extern
+[pub] fun get toI8Mask(my n int) i8 extern
+[pub] fun get toByteMask(my n int) byte extern
+[pub] fun get toI16Mask(my n int) i16 extern
+[pub] fun get toU16Mask(my n int) u16 extern
+[pub] fun get toI32Mask(my n int) i32 extern
+[pub] fun get toU32Mask(my n int) u32 extern
+[pub] fun get toU64Mask(my n int) u64 extern
 
 
-[pub static] fun int.getHash(a int) int extern
-[pub static] fun int._opEq(a int, b int) bool extern
-[pub static] fun int._opCmp(a int, b int) int extern
-[pub static] fun int._opIn(a int, b Range<int>) bool extern
-[pub static] fun int._opRange(a int, b int) Range<int> extern // TBD: Generic function on range?
-[pub static] fun int._opAdd(a int, b int) int extern
-[pub static] fun int._opSub(a int, b int) int extern
-[pub static] fun int._opNeg(a int) int extern
-[pub static] fun int._opMul(a int, b int) int extern
-[pub static] fun int._opDiv(a int, b int) int extern
-[pub static] fun int._opRem(a int, b int) int extern
-[pub static] fun int._opBitNot(a int) int extern
-[pub static] fun int._opBitAnd(a int, b int) int extern
-[pub static] fun int._opBitOr(a int, b int) int extern
-[pub static] fun int._opBitXor(a int, b int) int extern
-[pub static] fun int._opBitShl(a int, b int) int extern
-[pub static] fun int._opBitShr(a int, b int) int extern
+[pub] fun getHash(my static s int, a int) int extern
+[pub] fun _opEq(my static s int, a int, b int) bool extern
+[pub] fun _opCmp(my static s int, a int, b int) int extern
+[pub] fun _opIn(my static s int, a int, b Range<int>) bool extern
+[pub] fun _opRange(my static s int, a int, b int) Range<int> extern // TBD: Generic function on range?
+[pub] fun _opAdd(my static s int, a int, b int) int extern
+[pub] fun _opSub(my static s int, a int, b int) int extern
+[pub] fun _opNeg(my static s int, a int) int extern
+[pub] fun _opMul(my static s int, a int, b int) int extern
+[pub] fun _opDiv(my static s int, a int, b int) int extern
+[pub] fun _opRem(my static s int, a int, b int) int extern
+[pub] fun _opBitNot(my static s int, a int) int extern
+[pub] fun _opBitAnd(my static s int, a int, b int) int extern
+[pub] fun _opBitOr(my static s int, a int, b int) int extern
+[pub] fun _opBitXor(my static s int, a int, b int) int extern
+[pub] fun _opBitShl(my static s int, a int, b int) int extern
+[pub] fun _opBitShr(my static s int, a int, b int) int extern
 
 
 [pub]
-fun get int.iterator() RangeIterator<int>
-    ret RangeIterator<int>(0, my)
+fun get iterator(my n int) RangeIterator<int>
+    ret RangeIterator<int>(0, n)
 
 // 64 bit unsigned integer
 [pub]
@@ -380,50 +380,50 @@ type u64 ro
     const MaxValue u64 = 18446744073709551615
     const NanOrMin u64 = MinValue
 
-[pub] fun get u64.toStr() str extern
-[pub] fun get u64.toI8() ?i8 extern
-[pub] fun get u64.toByte() ?byte extern
-[pub] fun get u64.toI16() ?i16 extern
-[pub] fun get u64.toU16() ?u16 extern
-[pub] fun get u64.toI32() ?i32 extern
-[pub] fun get u64.toU32() ?u32 extern
-[pub] fun get u64.toInt() ?int extern
-[pub] fun get u64.toF32() f32 extern
-[pub] fun get u64.toFloat() float extern
-[pub] fun get u64.toDecimal() Decimal extern
-[pub] fun get u64.toI8Mask() i8 extern
-[pub] fun get u64.toByteMask() byte extern
-[pub] fun get u64.toI16Mask() i16 extern
-[pub] fun get u64.toU16Mask() u16 extern
-[pub] fun get u64.toI32Mask() i32 extern
-[pub] fun get u64.toU32Mask() u32 extern
-[pub] fun get u64.toIntMask() int extern
+[pub] fun get toStr(my n u64) str extern
+[pub] fun get toI8(my n u64) ?i8 extern
+[pub] fun get toByte(my n u64) ?byte extern
+[pub] fun get toI16(my n u64) ?i16 extern
+[pub] fun get toU16(my n u64) ?u16 extern
+[pub] fun get toI32(my n u64) ?i32 extern
+[pub] fun get toU32(my n u64) ?u32 extern
+[pub] fun get toInt(my n u64) ?int extern
+[pub] fun get toF32(my n u64) f32 extern
+[pub] fun get toFloat(my n u64) float extern
+[pub] fun get toDecimal(my n u64) Decimal extern
+[pub] fun get toI8Mask(my n u64) i8 extern
+[pub] fun get toByteMask(my n u64) byte extern
+[pub] fun get toI16Mask(my n u64) i16 extern
+[pub] fun get toU16Mask(my n u64) u16 extern
+[pub] fun get toI32Mask(my n u64) i32 extern
+[pub] fun get toU32Mask(my n u64) u32 extern
+[pub] fun get toIntMask(my n u64) int extern
 
-[pub static] fun u64.getHash(a u64) int extern
-[pub static] fun u64._opEq(a u64, b u64) bool extern
-[pub static] fun u64._opCmp(a u64, b u64) int extern
-[pub static] fun u64._opIn(a u64, b Range<u64>) bool extern
-[pub static] fun u64._opRange(a u64, b u64) Range<u64> extern // TBD: Generic function on range?
-[pub static] fun u64._opAdd(a u64, b u64) u64 extern
-[pub static] fun u64._opSub(a u64, b u64) u64 extern
-[pub static] fun u64._opNeg(a u64) u64 extern
-[pub static] fun u64._opMul(a u64, b u64) u64 extern
-[pub static] fun u64._opDiv(a u64, b u64) u64 extern
-[pub static] fun u64._opRem(a u64, b u64) u64 extern
-[pub static] fun u64._opBitNot(a u64) u64 extern
-[pub static] fun u64._opBitAnd(a u64, b u64) u64 extern
-[pub static] fun u64._opBitOr(a u64, b u64) u64 extern
-[pub static] fun u64._opBitXor(a u64, b u64) u64 extern
-[pub static] fun u64._opBitShl(a u64, b int) u64 extern
-[pub static] fun u64._opBitShr(a u64, b int) u64 extern
-[pub static] fun u64._opBitShr(a u64, b u64) u64 extern
-[pub static] fun u64._opBitShl(a u64, b u64) u64 extern
+[pub] fun getHash(my static s u64, a u64) int extern
+[pub] fun _opEq(my static s u64, a u64, b u64) bool extern
+[pub] fun _opCmp(my static s u64, a u64, b u64) int extern
+[pub] fun _opIn(my static s u64, a u64, b Range<u64>) bool extern
+[pub] fun _opRange(my static s u64, a u64, b u64) Range<u64> extern // TBD: Generic function on range?
+[pub] fun _opAdd(my static s u64, a u64, b u64) u64 extern
+[pub] fun _opSub(my static s u64, a u64, b u64) u64 extern
+[pub] fun _opNeg(my static s u64, a u64) u64 extern
+[pub] fun _opMul(my static s u64, a u64, b u64) u64 extern
+[pub] fun _opDiv(my static s u64, a u64, b u64) u64 extern
+[pub] fun _opRem(my static s u64, a u64, b u64) u64 extern
+[pub] fun _opBitNot(my static s u64, a u64) u64 extern
+[pub] fun _opBitAnd(my static s u64, a u64, b u64) u64 extern
+[pub] fun _opBitOr(my static s u64, a u64, b u64) u64 extern
+[pub] fun _opBitXor(my static s u64, a u64, b u64) u64 extern
+[pub] fun _opBitShl(my static s u64, a u64, b int) u64 extern
+[pub] fun _opBitShr(my static s u64, a u64, b int) u64 extern
+[pub] fun _opBitShr(my static s u64, a u64, b u64) u64 extern
+[pub] fun _opBitShl(my static s u64, a u64, b u64) u64 extern
 
 
 
 [pub]
-fun get u64.iterator() RangeIterator<u64>
-    ret RangeIterator<u64>(0 u64, my)
+fun get iterator(my n u64) RangeIterator<u64>
+    ret RangeIterator<u64>(0 u64, n)
 
 [pub]
 type I128 ro
@@ -452,37 +452,37 @@ type f32 ro
     const PI f32 = 3.141592653589793238
     const E f32 = 2.718281828459045235
 
-[pub] fun get f32.isInfinity() bool extern
-[pub] fun get f32.isNan() bool extern
-[pub] fun get f32.isNegInfinity() bool extern
-[pub] fun get f32.isPosInfinity() bool extern        
+[pub] fun get isInfinity(my n f32) bool extern
+[pub] fun get isNan(my n f32) bool extern
+[pub] fun get isNegInfinity(my n f32) bool extern
+[pub] fun get isPosInfinity(my n f32) bool extern        
 
-[pub] fun get f32.toStr() str extern
-[pub] fun get f32.toByte() ?byte extern
-[pub] fun get f32.toInt() ?int extern
-[pub] fun get f32.toU64() ?u64 extern
-[pub] fun get f32.toFloat() float extern
-[pub] fun get f32.toDecimal() Decimal extern    
-[pub] fun get f32.toByteMask() byte extern
-[pub] fun get f32.toIntMask() int extern
-[pub] fun get f32.toU64Mask() u64 extern
+[pub] fun get toStr(my n f32) str extern
+[pub] fun get toByte(my n f32) ?byte extern
+[pub] fun get toInt(my n f32) ?int extern
+[pub] fun get toU64(my n f32) ?u64 extern
+[pub] fun get toFloat(my n f32) float extern
+[pub] fun get toDecimal(my n f32) Decimal extern    
+[pub] fun get toByteMask(my n f32) byte extern
+[pub] fun get toIntMask(my n f32) int extern
+[pub] fun get toU64Mask(my n f32) u64 extern
         
-[pub static] fun f32.getHash(a f32) int extern
-[pub static] fun f32._opEq(a f32, b f32) bool extern
-[pub static] fun f32._opCmp(a f32, b f32) int extern
-[pub static] fun f32._opEqUnordered(a f32, b f32) bool extern
-[pub static] fun f32._opGtUnordered(a f32, b f32) bool extern
-[pub static] fun f32._opGeUnordered(a f32, b f32) bool extern
-[pub static] fun f32._opLtUnordered(a f32, b f32) bool extern
-[pub static] fun f32._opLeUnordered(a f32, b f32) bool extern
-[pub static] fun f32._opIn(a f32, b Range<f32>) bool extern
-[pub static] fun f32._opRange(a f32, b f32) Range<i32> extern // TBD: Generic function on range?
-[pub static] fun f32._opAdd(a f32, b f32) f32 extern
-[pub static] fun f32._opSub(a f32, b f32) f32 extern
-[pub static] fun f32._opNeg(a f32) f32 extern
-[pub static] fun f32._opMul(a f32, b f32) f32 extern
-[pub static] fun f32._opDiv(a f32, b f32) f32 extern
-[pub static] fun f32._opRem(a f32, b f32) f32 extern
+[pub] fun getHash(my static s f32, a f32) int extern
+[pub] fun _opEq(my static s f32, a f32, b f32) bool extern
+[pub] fun _opCmp(my static s f32, a f32, b f32) int extern
+[pub] fun _opEqUnordered(my static s f32, a f32, b f32) bool extern
+[pub] fun _opGtUnordered(my static s f32, a f32, b f32) bool extern
+[pub] fun _opGeUnordered(my static s f32, a f32, b f32) bool extern
+[pub] fun _opLtUnordered(my static s f32, a f32, b f32) bool extern
+[pub] fun _opLeUnordered(my static s f32, a f32, b f32) bool extern
+[pub] fun _opIn(my static s f32, a f32, b Range<f32>) bool extern
+[pub] fun _opRange(my static s f32, a f32, b f32) Range<i32> extern // TBD: Generic function on range?
+[pub] fun _opAdd(my static s f32, a f32, b f32) f32 extern
+[pub] fun _opSub(my static s f32, a f32, b f32) f32 extern
+[pub] fun _opNeg(my static s f32, a f32) f32 extern
+[pub] fun _opMul(my static s f32, a f32, b f32) f32 extern
+[pub] fun _opDiv(my static s f32, a f32, b f32) f32 extern
+[pub] fun _opRem(my static s f32, a f32, b f32) f32 extern
 
 
 [pub]
@@ -501,37 +501,37 @@ type float ro
     const PI float = 3.141592653589793238
     const E float = 2.718281828459045235
 
-[pub] fun get float.isInfinity() bool extern
-[pub] fun get float.isNan() bool extern
-[pub] fun get float.isNegInfinity() bool extern
-[pub] fun get float.isPosInfinity() bool extern        
+[pub] fun get isInfinity(my n float) bool extern
+[pub] fun get isNan(my n float) bool extern
+[pub] fun get isNegInfinity(my n float) bool extern
+[pub] fun get isPosInfinity(my n float) bool extern        
 
-[pub] fun get float.toStr() str extern
-[pub] fun get float.toByte() ?byte extern
-[pub] fun get float.toInt() ?int extern
-[pub] fun get float.toU64() ?u64 extern
-[pub] fun get float.toDecimal() Decimal extern
-[pub] fun get float.toByteMask() byte extern
-[pub] fun get float.toIntMask() int extern
-[pub] fun get float.toU64Mask() u64 extern
-[pub] fun get float.toF32Clamp() f32 extern
+[pub] fun get toStr(my n float) str extern
+[pub] fun get toByte(my n float) ?byte extern
+[pub] fun get toInt(my n float) ?int extern
+[pub] fun get toU64(my n float) ?u64 extern
+[pub] fun get toDecimal(my n float) Decimal extern
+[pub] fun get toByteMask(my n float) byte extern
+[pub] fun get toIntMask(my n float) int extern
+[pub] fun get toU64Mask(my n float) u64 extern
+[pub] fun get toF32Clamp(my n float) f32 extern
 
-[pub static] fun float.getHash(a float) int extern
-[pub static] fun float._opEq(a float, b float) bool extern
-[pub static] fun float._opCmp(a float, b float) int extern
-[pub static] fun float._opEqUnordered(a float, b float) bool extern
-[pub static] fun float._opGtUnordered(a float, b float) bool extern
-[pub static] fun float._opGeUnordered(a float, b float) bool extern
-[pub static] fun float._opLtUnordered(a float, b float) bool extern
-[pub static] fun float._opLeUnordered(a float, b float) bool extern
-[pub static] fun float._opIn(a float, b Range<float>) bool extern
-[pub static] fun float._opRange(a float, b float) Range<float> extern // TBD: Generic function on range?
-[pub static] fun float._opAdd(a float, b float) float extern
-[pub static] fun float._opSub(a float, b float) float extern
-[pub static] fun float._opNeg(a float) float extern
-[pub static] fun float._opMul(a float, b float) float extern
-[pub static] fun float._opDiv(a float, b float) float extern
-[pub static] fun float._opRem(a float, b float) float extern
+[pub] fun getHash(my static s float, a float) int extern
+[pub] fun _opEq(my static s float, a float, b float) bool extern
+[pub] fun _opCmp(my static s float, a float, b float) int extern
+[pub] fun _opEqUnordered(my static s float, a float, b float) bool extern
+[pub] fun _opGtUnordered(my static s float, a float, b float) bool extern
+[pub] fun _opGeUnordered(my static s float, a float, b float) bool extern
+[pub] fun _opLtUnordered(my static s float, a float, b float) bool extern
+[pub] fun _opLeUnordered(my static s float, a float, b float) bool extern
+[pub] fun _opIn(my static s float, a float, b Range<float>) bool extern
+[pub] fun _opRange(my static s float, a float, b float) Range<float> extern // TBD: Generic function on range?
+[pub] fun _opAdd(my static s float, a float, b float) float extern
+[pub] fun _opSub(my static s float, a float, b float) float extern
+[pub] fun _opNeg(my static s float, a float) float extern
+[pub] fun _opMul(my static s float, a float, b float) float extern
+[pub] fun _opDiv(my static s float, a float, b float) float extern
+[pub] fun _opRem(my static s float, a float, b float) float extern
 
 
 // 128 bit decimal integer.  This will support nan, infinity, and
@@ -549,35 +549,35 @@ type Decimal ro
     const negativeInfinity Decimal = -1.0/0.0
     const nan Decimal = 0.0/0.0
     
-[pub] fun get Decimal.isInfinity() bool extern
-[pub] fun get Decimal.isNan() bool extern
-[pub] fun get Decimal.isNegInfinity() bool extern
-[pub] fun get Decimal.isPosInfinity() bool extern
+[pub] fun get isInfinity(my n Decimal) bool extern
+[pub] fun get isNan(my n Decimal) bool extern
+[pub] fun get isNegInfinity(my n Decimal) bool extern
+[pub] fun get isPosInfinity(my n Decimal) bool extern
 
-[pub] fun get Decimal.toStr() str extern
-[pub] fun get Decimal.toByte() ?byte extern
-[pub] fun get Decimal.toInt() ?int extern
-[pub] fun get Decimal.toU64() ?u64 extern
-[pub] fun get Decimal.toByteMask() byte extern
-[pub] fun get Decimal.toIntMask() int extern
-[pub] fun get Decimal.toU64Mask() u64 extern
-[pub] fun get Decimal.toIntClamp() int extern
-[pub] fun get Decimal.toF32Clamp() f32 extern
-[pub] fun get Decimal.toFloatClamp() float extern
+[pub] fun get toStr(my n Decimal) str extern
+[pub] fun get toByte(my n Decimal) ?byte extern
+[pub] fun get toInt(my n Decimal) ?int extern
+[pub] fun get toU64(my n Decimal) ?u64 extern
+[pub] fun get toByteMask(my n Decimal) byte extern
+[pub] fun get toIntMask(my n Decimal) int extern
+[pub] fun get toU64Mask(my n Decimal) u64 extern
+[pub] fun get toIntClamp(my n Decimal) int extern
+[pub] fun get toF32Clamp(my n Decimal) f32 extern
+[pub] fun get toFloatClamp(my n Decimal) float extern
 
-[pub static] fun Decimal.getHash(a Decimal) int extern
-[pub static] fun Decimal._opEq(a Decimal, b Decimal) bool extern
-[pub static] fun Decimal._opCmp(a Decimal, b Decimal) int extern
-[pub static] fun Decimal._opEqUnordered(a Decimal, b Decimal) bool extern
-[pub static] fun Decimal._opGtUnordered(a Decimal, b Decimal) bool extern
-[pub static] fun Decimal._opGeUnordered(a Decimal, b Decimal) bool extern
-[pub static] fun Decimal._opLtUnordered(a Decimal, b Decimal) bool extern
-[pub static] fun Decimal._opLeUnordered(a Decimal, b Decimal) bool extern
-[pub static] fun Decimal._opIn(a Decimal, b Range<Decimal>) bool extern
-[pub static] fun Decimal._opRange(a Decimal, b Decimal) Range<i32> extern // TBD: Generic function on range?
-[pub static] fun Decimal._opAdd(a Decimal, b Decimal) Decimal extern
-[pub static] fun Decimal._opSub(a Decimal, b Decimal) Decimal extern
-[pub static] fun Decimal._opNeg(a Decimal) Decimal extern
-[pub static] fun Decimal._opMul(a Decimal, b Decimal) Decimal extern
-[pub static] fun Decimal._opDiv(a Decimal, b Decimal) Decimal extern
-[pub static] fun Decimal._opRem(a Decimal, b Decimal) Decimal extern
+[pub] fun getHash(my static s Decimal, a Decimal) int extern
+[pub] fun _opEq(my static s Decimal, a Decimal, b Decimal) bool extern
+[pub] fun _opCmp(my static s Decimal, a Decimal, b Decimal) int extern
+[pub] fun _opEqUnordered(my static s Decimal, a Decimal, b Decimal) bool extern
+[pub] fun _opGtUnordered(my static s Decimal, a Decimal, b Decimal) bool extern
+[pub] fun _opGeUnordered(my static s Decimal, a Decimal, b Decimal) bool extern
+[pub] fun _opLtUnordered(my static s Decimal, a Decimal, b Decimal) bool extern
+[pub] fun _opLeUnordered(my static s Decimal, a Decimal, b Decimal) bool extern
+[pub] fun _opIn(my static s Decimal, a Decimal, b Range<Decimal>) bool extern
+[pub] fun _opRange(my static s Decimal, a Decimal, b Decimal) Range<i32> extern // TBD: Generic function on range?
+[pub] fun _opAdd(my static s Decimal, a Decimal, b Decimal) Decimal extern
+[pub] fun _opSub(my static s Decimal, a Decimal, b Decimal) Decimal extern
+[pub] fun _opNeg(my static s Decimal, a Decimal) Decimal extern
+[pub] fun _opMul(my static s Decimal, a Decimal, b Decimal) Decimal extern
+[pub] fun _opDiv(my static s Decimal, a Decimal, b Decimal) Decimal extern
+[pub] fun _opRem(my static s Decimal, a Decimal, b Decimal) Decimal extern
