@@ -146,58 +146,60 @@ fun test_tuples()
     @tuplesNamedElement = tuplesNamed[0]
     @element = tuplesNamedElement.x
 
-
 fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<float>, myGetter Getter)
         where T has NumOps<T> + GetHash + Iterable<int> + Iterable2<int> + GetMap<f32,float> + Iterator<int>
         where Q has NumOps<Q> + Getter + Getter2<int> + MyAdd<Q>
 
     // Source code symbols should be non-generic
-    @next3 = q.myGet2
-    @next4 = q.myFun2Ns()
-    @next5 = Q.myFun2Stat()
-    @next6 = q.myGet
-    @next7 = q.myFun()
+    @next3 = q.myGet2           // int
+    @next4 = q.myFun2Ns()       // int
+    @next5 = Q.myFun2Stat()     // int
+    @next6 = q.myGet            // i32
+    @next7 = q.myFun()          // i32
 
     
-    @next1 = t.next()
-    @gotq = myFun2Interf(q)
-    @gotInt = myFun2Interf(3) // myFun2Interf not linked to specialized
-    @next2 = intf1.next() // Next is linked to generic
-    @myGet = q.myGet
-    @myGetter2 = myGetter.myGet
-    @myGet2 = q.myGet2
-    @mgGet2a = mgQ.myGet2
-    @mgGet2F = mgF.myGet2
-    @mgFun2F = mgF.myFun2()
-    @myPoint = MyPoint<int,float,f32>().b
+    @next1 = t.next()           // ?int
+    @gotq = myFun2Interf(q)     // #2
+    @gotInt = myFun2Interf(3)   // int  - myFun2Interf not linked to specialized
+    @next2 = intf1.next()       // ?i32 - Next is linked to generic
+    @myGet = q.myGet            // i32
+    @myGetter2 = myGetter.myGet // i32
+    @myGet2 = q.myGet2          // int
+    @mgGet2a = mgQ.myGet2       // #2
+    @mgGet2F = mgF.myGet2       // float
+    @mgFun2F = mgF.myFun2()     // float
+    @myPoint = MyPoint<int,float,f32>().b   // float
 
-    @intf2b = intf2.getHash()
-    @myAddNs = q.myAddNotStatic(Q(),Q())
-    @myAdd = Q.myAddStatic(Q(),Q())
-    @myFun = q.myFun()
-    @myFun2 = q.myFun2()
-    @aa = t.getHash()
-    @getMap = t.getMap()
-    @getMapFunc = getMapFun<i32,u32>()
-    @getMapKeys = t.getMapKeys()
-    @getMapValues = t.getMapValues()
-    @iter1 = t.iterator
-    @iter2 = t.iterator2()
-    @first = iter1.next()
+    @intf2b = intf2.getHash()   // u32
+    @myAddNs = q.myAddNotStatic(Q(),Q())    // #2
+    @myAdd = Q.myAddStatic(Q(),Q())         // #2
+    @myFun = q.myFun()          // i32
+    @myFun2 = q.myFun2()        // int
+    @getMap = t.getMap()        // Map<f32,float>
+    @getMapFunc = getMapFun<i32,u32>()  // Map<u32,i32>
+    @getMapKeys = t.getMapKeys()        // Iterator<f32>
+    @getMapValues = t.getMapValues()    // Iterator<float>
+    @iter1 = t.iterator                 // Iterator<int>
+    @iter2 = t.iterator2()              // Iterator<int>
+    @first = iter1.next()               // ?int
     @x = 1
     @y = 2
     @z1 = x + y
-    @z2 = int._opAdd(x,y)
+    @z2 = x._opAdd(y)
     @a = T()
     @b = T()
-    @z3 = a + b
-    @z4 = T._opAdd(a,b)
-    @z6 = T().getHash()
+    @z3 = a + b                 // #1
+    @z4 = a._opAdd(b)
     @z5 = T.One
     @iter3 = t.iterator()
 
+    // TBD: Resolve multiple interface implementations, which is
+    //      allowed since they would be resolved when called
+    //@aa = t.getHash()           // u32
+    //@z6 = T().getHash()
+
     for @item in t
-        @itemt = item
+        @itemt = item           // int
 
 
 fun MyFun1<T1,T2,T3>(a T1, b T2, c T3)(x T2, y T3)

@@ -10,11 +10,11 @@
 [pub] fun get len(my s str) int
     ret 0
 
-[pub] fun _opAdd(my static st str, a str, b str) str {}
+[pub] fun _opAdd(my a str, b str) str {}
 
 // TBD: Remove after more of the generic type system is working
-[pub] fun _opEq(my static st str, a str, b str) bool {}
-[pub] fun _opCmp(my static st str, a str, b str) int {}
+[pub] fun _opEq(my a str, b str) bool {}
+[pub] fun _opCmp(my a str, b str) int {}
 
     
 // TBD: Implicit conversion to and from Span?

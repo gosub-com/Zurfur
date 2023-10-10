@@ -457,8 +457,7 @@ namespace Zurfur.Compiler
             {
                 // This marks the local with symbol info, which we don't want here
                 var call = new Rval(token, name) { InType = inType };
-                return FindCompatibleFunction(call, FindInType(name, inType), new List<Rval>(),
-                    $"'{name}' in the type '{inType}'", false);
+                return FindCompatibleFunction(call, new List<Rval>(), $"'{name}' in the type '{inType}'", false);
             }
 
             Rval? GenReturnStatement(SyntaxExpr ex)
@@ -698,7 +697,7 @@ namespace Zurfur.Compiler
                 var leftDot = GenExpr(ex[0]);
                 if (leftDot == null)
                     return null; // Error already marked
-                EvalType(leftDot, false, true);
+                EvalType(leftDot);
                 var leftType = leftDot.Type;
                 if (leftType == null)
                     return null;
@@ -1067,20 +1066,9 @@ namespace Zurfur.Compiler
                 }
 
                 // Find static operators from either argument
-                var call = new Rval(token, operatorName) { IsStatic = true };
-                var candidates = FindInType(operatorName, DerefRef(args[0].Type!));
-                if (args.Count >= 2)
-                    candidates.AddRange(FindInType(operatorName, DerefRef(args[1].Type!)));
-                RemoveLastDuplicates(candidates);
-
-                if (candidates.Count == 0)
-                {
-                    Reject(token, $"No function '{operatorName}' (operator '{token}') " 
-                        + $"taking '{Rval.ParamTypes(args, call.TypeArgs)}' is in scope.");
-                    return null;
-                }
-                var funType = FindCompatibleFunction(call, candidates, args,
-                                $" '{operatorName}' (operator '{token}')");
+                var call = new Rval(token, operatorName) { InType = DerefRef(args[0].Type!) };
+                var args2 = args.Skip(1).ToList(); // Rewrite op(a,b) to a.op(b) - TBD: Remove with uniform call syntax
+                var funType = FindCompatibleFunction(call, args2, $" '{operatorName}' (operator '{token}')");
                 if (funType == null)
                     return null;
 
@@ -1118,40 +1106,11 @@ namespace Zurfur.Compiler
                 if (call == null)
                     return null;  // Undefined symbol or error evaluating left side
 
-                var candidates = FindCandidates(call);
-                Symbol? funType;
-                if (candidates.Count == 1 && candidates[0].IsAnyType)
-                    funType = FindCompatibleConstructor(call, candidates, args);
-                else
-                    funType = FindCompatibleFunction(call, candidates, args, $"'{call.Token}'");
+                var funType = FindCompatibleFunction(call, args, $"'{call.Token}'");
                 if (funType == null)
                     return null;
 
                 return new Rval(call.Token) { Type = funType};
-            }
-
-            Symbol? FindCompatibleConstructor(Rval call, List<Symbol> candidates, List<Rval> ?args)
-            {
-                var newType = candidates[0];
-                call.Token.Type = eTokenType.TypeName;
-                if (newType.IsSpecialized)
-                    throw new Exception("Compiler error: FindCompatibleConstructor, unexpected specialized type");
-
-                if (newType.IsTypeParam)
-                {
-                    if (call.TypeArgs.Length != 0)
-                        Reject(call.Token, $"Expecting 0 type parameters, but got '{call.TypeArgs.Length}'");
-                    if (args != null && args.Count != 0)
-                        Reject(call.Token, $"New generic type with arguments not supported yet");
-                    return table.GetGenericParam(newType.Order);
-                }
-
-                // Search for `new` function
-                Debug.Assert(call.InType == null);
-                call.Name = "new";
-                call.IsStatic = true; // Constructor is static
-                return FindCompatibleFunction(call, FindInType(call.Name, newType), args,
-                            $"'new' (constructor for '{call.InType}')");
             }
 
 
@@ -1261,12 +1220,7 @@ namespace Zurfur.Compiler
             // Mark an error when there is no match.
             // Returns the symbol that generated the type (or null if
             // there wasn't one)
-            //
-            // TBD: This needs to be moved so lambda's can be called
-            //      properly
-            Symbol? EvalType(Rval? rval,
-                bool assignmentTarget = false,
-                bool allowStaticType = false)
+            Symbol? EvalType(Rval? rval, bool assignmentTarget = false)
             {
                 if (rval == null)
                     return null;
@@ -1377,8 +1331,11 @@ namespace Zurfur.Compiler
 
                 if (sym.IsAnyTypeOrModule)
                 {
+                    // TBD: This used to be passed in when parsed from "."
+                    const bool ALLOW_STATIC_TYPE = true;
+
                     token.Type = eTokenType.TypeName;
-                    if (allowStaticType || sym.FullName == SymTypes.Nil)
+                    if (ALLOW_STATIC_TYPE || sym.FullName == SymTypes.Nil)
                     {
                         // Substitute generic parameter
                         if (sym.IsTypeParam)
@@ -1428,7 +1385,7 @@ namespace Zurfur.Compiler
                 if (rval.InType == null)
                     return FindGlobal(rval.Token);
                 else
-                    return FindInType(rval.Token, rval.InType);
+                    return FindInType(rval.Name, rval.InType);
             }
 
             // Given the call and its parameters, find the best matching function.
@@ -1437,7 +1394,6 @@ namespace Zurfur.Compiler
             // parameter types, so just try to give good feedback.
             Symbol? FindCompatibleFunction(
                 Rval call,
-                List<Symbol> candidates,
                 List<Rval> ?args,
                 string rejectName,
                 bool addSymbolInfo = true)
@@ -1448,9 +1404,14 @@ namespace Zurfur.Compiler
                     return null;
                 }
 
+                var candidates = FindCandidates(call);
+
                 // Exactly 1 primary or multiple functions
                 if (RejectUndefinedOrAmbiguousPrimary(call, candidates))
                     return null;
+
+                if (candidates.Count == 1 && candidates[0].IsAnyType)
+                    return FindCompatibleConstructor(call, candidates, args);
 
                 // Unresolved arguments
                 if (args == null)
@@ -1540,10 +1501,15 @@ namespace Zurfur.Compiler
                 // TBD: Make function a specialization of $fun<T> so lambda and
                 //      function have the same layout.
                 var lambdaOrFunType = func.IsFun ? func : func.Type;
+                if (lambdaOrFunType == null)
+                {
+                    Reject(call.Token, "Compiler error, invalid lambda type");
+                    return null;
+                }
                 if (addSymbolInfo)
                     call.Token.AddInfo(lambdaOrFunType);
-                assembly.AddOpCall(call.Token, lambdaOrFunType!);
-                return lambdaOrFunType!.FunReturnType;
+                assembly.AddOpCall(call.Token, lambdaOrFunType);
+                return lambdaOrFunType.FunReturnType;
             }
 
             // Checks if the function call is compatible, return the possibly
@@ -1553,7 +1519,7 @@ namespace Zurfur.Compiler
                 if (!func.IsFun)
                     return IsLambdaCompatible(func, call, args);
 
-                if (func.IsMethod)
+                if (func.IsMy)
                 {
                     if (call.IsStatic && !func.IsStatic)
                         return (null, CallCompatible.StaticCallToNonStaticMethod);
@@ -1589,11 +1555,36 @@ namespace Zurfur.Compiler
 
                 // Don't consider first parameter of static method
                 var funParams = new Span<Symbol>(func.FunParamTypes);
-                if (func.IsMethod && func.IsStatic)
+                if (func.IsMy && func.IsStatic)
                     funParams = funParams.Slice(1);
 
                 return AreParamsCompatible(func, args, funParams);
             }
+
+            Symbol? FindCompatibleConstructor(Rval call, List<Symbol> candidates, List<Rval>? args)
+            {
+                var newType = candidates[0];
+                call.Token.Type = eTokenType.TypeName;
+                if (newType.IsSpecialized)
+                    throw new Exception("Compiler error: FindCompatibleConstructor, unexpected specialized type");
+
+                if (newType.IsTypeParam)
+                {
+                    if (call.TypeArgs.Length != 0)
+                        Reject(call.Token, $"Expecting 0 type parameters, but got '{call.TypeArgs.Length}'");
+                    if (args != null && args.Count != 0)
+                        Reject(call.Token, $"New generic type with arguments not supported yet");
+                    return table.GetGenericParam(newType.Order);
+                }
+
+                // Search for `new` function
+                Debug.Assert(call.InType == null);
+                call.Name = "new";
+                call.IsStatic = true; // Constructor is static
+                call.InType = newType;
+                return FindCompatibleFunction(call, args, $"'new' (constructor for '{newType}')");
+            }
+
 
             (Symbol?, CallCompatible) IsLambdaCompatible(Symbol variable, Rval call, List<Rval> args)
             {
@@ -1734,7 +1725,7 @@ namespace Zurfur.Compiler
                 if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
                 {
                     foreach (var sym2 in useSymbols)
-                        if (sym2.IsMethod && sym2.IsFun)
+                        if (sym2.IsMy && sym2.IsFun)
                         {
                             var funParams = sym2.FunParamTypes;
                             if (funParams.Length != 0 && funParams[0].FullName == inType.FullName)
@@ -1810,7 +1801,7 @@ namespace Zurfur.Compiler
 
                 foreach (var child in inModule.ChildrenNamed(name))
                 {
-                    if (!child.IsFun || !child.IsMethod || child.SimpleName != name)
+                    if (!child.IsFun || !child.IsMy || child.SimpleName != name)
                         continue;
                     var parameters = child.FunParamTypes;
                     if (parameters.Length == 0)
@@ -1899,14 +1890,14 @@ namespace Zurfur.Compiler
                 if (module.TryGetPrimary(name, out Symbol? sym1))
                     symbols.Add(sym1!);
                 foreach (var child in module.ChildrenNamed(name))
-                    if (child.IsFun && child.SimpleName == name && !child.IsMethod)
+                    if (child.IsFun && child.SimpleName == name && !child.IsMy)
                         symbols.Add(child);
 
                 // Search 'use' symbol
                 if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
                 {
                     foreach (var sym2 in useSymbols)
-                        if (!sym2.IsMethod)
+                        if (!sym2.IsMy)
                             symbols.Add(sym2);
                 }
 

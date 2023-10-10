@@ -239,9 +239,9 @@ namespace Zurfur.Compiler
                     //          "[static] fun Type.new() extern"
                     //      Plus, some of this code is repeated in other places
                     var constructor = new Symbol(SymKind.Fun, type.Parent, type.Token, "new");
-                    constructor.Qualifiers |= SymQualifiers.Static | SymQualifiers.Method | SymQualifiers.Extern;
-
+                    constructor.Qualifiers |= SymQualifiers.Static | SymQualifiers.My | SymQualifiers.Extern;
                     var constructorType = Resolver.GetTypeWithGenericParameters(table, type);
+                    //constructorType.Qualifiers |= SymQualifiers.My;
                     foreach (var genericParam in constructorType.TypeArgs)
                         table.AddOrReject(new Symbol(SymKind.TypeParam, constructor, type.Token, genericParam.SimpleName));
                     SetGenericParamSymbols(constructor);
@@ -449,19 +449,18 @@ namespace Zurfur.Compiler
             Symbol? ResolveParentParam(Symbol method, SyntaxFunc func)
             {
                 var methodParent = method.Parent!;
-                bool isStatic = method.IsStatic || !methodParent.IsInterface;
-                var myParam = new Symbol(SymKind.FunParam, method, func.Name, isStatic ? "My" : "my");
-
                 if (methodParent.IsInterface)
                 {
                     // Interface method
+                    bool isStatic = method.IsStatic || !methodParent.IsInterface;
+                    var myParam = new Symbol(SymKind.FunParam, method, func.Name, isStatic ? "My" : "my");
                     myParam.Type = Resolver.GetTypeWithGenericParameters(table, methodParent);
                     if (myParam.Type == null)
                         return null;
-                    method.Qualifiers |= SymQualifiers.Method;
+                    method.Qualifiers |= SymQualifiers.My;
+                    myParam.Qualifiers |= SymQualifiers.My;
                     if (func.TypeArgs != null && func.TypeArgs.Count >= 1)
                         Reject(func.TypeArgs[0].Token, "Interface methods cannot have type parameters");
-                    method.Qualifiers |= SymQualifiers.Method;
                     if (!noCompilerChecks)
                         myParam.Token.AddInfo(new VerifySuppressError());
                     return myParam;
@@ -486,8 +485,9 @@ namespace Zurfur.Compiler
                     return null;
                 }
                 var r = new Symbol(SymKind.FunParam, function, synFunc.Name, "");
+                r.Qualifiers |= SymQualifiers.My;
                 r.Type = parameters[0].Type;
-                function.Qualifiers |= SymQualifiers.Static | SymQualifiers.Method;
+                function.Qualifiers |= SymQualifiers.Static | SymQualifiers.My;
                 return r;
             }
 
@@ -527,8 +527,9 @@ namespace Zurfur.Compiler
                         // TBD: Move this to parameter, rather than parent
                         if (qualifier.Token == "my")
                         {
-                            function.Qualifiers |= SymQualifiers.Method;
+                            function.Qualifiers |= SymQualifiers.My;
                             function.Qualifiers &= ~SymQualifiers.Static; // TBD: Remove when my param gone
+                            funParam.Qualifiers |= SymQualifiers.My;
                         }
                         else if (qualifier.Token == "static")
                             function.Qualifiers |= SymQualifiers.Static;

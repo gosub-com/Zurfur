@@ -18,19 +18,19 @@ type SpanIterator<T> ref copy
     _count ro int
     
 [pub]
-fun _opIndex<T>(my static st Span<T>, s Span<T>, i int) mut &T
+fun _opIndex<T>(my s Span<T>, i int) mut &T
     require(i in 0..s.len)
     todo // Implementation TBD
 
 [pub]
-fun _opIndex<T>(my static st Span<T>, s Span<T>, range Range<int>) mut Span<T>
+fun _opIndex<T>(my s Span<T>, range Range<int>) mut Span<T>
     require(range.low in 0..s.len)
     require(range.high in 0..s.len)
     require(range.low <= range.high)
     todo // Implementation TBD
 
 [pub]
-fun sort<T>(my st mut Span<T>, compare fun(a T, b T)bool)
+fun sort<T>(my s mut Span<T>, compare fun(a T, b T)bool)
     todo
 
 // Set the span to `item` (or default if not specified)
