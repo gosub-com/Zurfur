@@ -82,12 +82,12 @@ fun new<T>(l List<T>, items mut Iterator<T>)
     todo
 
 [pub]
-fun _opIndex<T>(my static l List<T>, list List<T>, i int) mut &T
+fun _opIndex<T>(my list List<T>, i int) mut &T
     require(i in 0..list.len)
     todo
 
 [pub]
-fun _opIndex<T>(my static l List<T>, list List<T>, r Range<int>) mut []T
+fun _opIndex<T>(my list List<T>, r Range<int>) mut []T
     require(r.low in 0..list.len)
     require(r.high in 0..list.len)
     require(r.low <= r.high)

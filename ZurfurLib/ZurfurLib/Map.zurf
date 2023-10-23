@@ -45,12 +45,12 @@ fun get len<K,V>(my m Map<K,V>) int
 
 // TBD: Figure out map["Hello"] += 1
 [pub]
-fun _opIndex<K,V>(my static m Map<K,V>, map Map<K, V>, key K) mut ?&V
+fun _opIndex<K,V>(my map Map<K, V>, key K) mut ?&V
     extern
 
 // TBD: An indexer with 3 inputs???
 [pub]
-fun _opIndex<K,V>(my static m Map<K,V>, map Map<K, V>, key K, item V)
+fun _opIndex<K,V>(my map Map<K, V>, key K, item V)
     extern
 
 [pub]

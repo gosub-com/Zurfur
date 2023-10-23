@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-
 using Zurfur.Lex;
 
 namespace Zurfur.Jit
@@ -37,8 +36,10 @@ namespace Zurfur.Jit
         Dictionary<string, Symbol> mSpecializedTypes = new();
 
         // Internal types: Generic arguments, Tuples
+        List<Symbol> mGenericConstructors = new();
         List<Symbol> mGenericArguments = new();
         Symbol mGenericArgumentHolder; // Holder so they have `Order` set properly
+
         Symbol mGenericTupleHolder;
 
         /// <summary>
@@ -276,6 +277,27 @@ namespace Zurfur.Jit
                 mSpecializedTypes[name] = arg;
             }
             return mGenericArguments[argNum];
+        }
+
+        public Symbol GetGenericParamConstructor(int argNum)
+        {
+            if (argNum < mGenericConstructors.Count)
+                return mGenericConstructors[argNum];
+
+            for (int i = mGenericConstructors.Count;  i <= argNum; i++)
+            {
+                // Create a generic constructor for generic type
+                var type = GetGenericParam(i);
+                var constructor = new Symbol(SymKind.Fun, type, null, "new");
+                constructor.Qualifiers |= SymQualifiers.Static | SymQualifiers.My | SymQualifiers.Extern;
+                constructor.Type = CreateTuple(new[] {
+                        CreateTuple(new[] { type }),
+                        CreateTuple(new[] { type }) });
+                AddOrReject(constructor);
+                mGenericConstructors.Add(constructor);
+
+            }
+            return mGenericConstructors[argNum];
         }
 
         // Does not reject if there is already an error there

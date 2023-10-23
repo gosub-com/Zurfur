@@ -11,7 +11,7 @@
 
 // TBD: Remove this since it will be implemented by List
 [pub]
-fun _opIndex<T>(my static a Array<T>, s Array<T>, i int) mut &T
+fun _opIndex<T>(my s Array<T>, i int) mut &T
     require(i in 0..s.len)
     todo // Implementation TBD
 
@@ -19,7 +19,7 @@ fun _opIndex<T>(my static a Array<T>, s Array<T>, i int) mut &T
 
 // TBD: Remove this since it will be implemented by List
 [pub]
-fun _opIndex<T>(my static b Buffer<T>, s Buffer<T>, range Range<int>) mut Span<T>
+fun _opIndex<T>(my s Buffer<T>, range Range<int>) mut Span<T>
     require(range.low in 0..s.len)
     require(range.high in 0..s.len)
     require(range.low <= range.high)

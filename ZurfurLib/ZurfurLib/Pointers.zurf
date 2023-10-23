@@ -13,12 +13,12 @@ type Xuint ro
 type RawPointer<T> ro
     value Xuint
 
-fun _opEq<T>(my static p RawPointer<T>, p1 RawPointer<T>, p2 RawPointer<T>) bool extern
-fun _opCmp<T>(my static p RawPointer<T>, p1 RawPointer<T>, p2 RawPointer<T>) int extern
-fun _opAdd<T>(my static p RawPointer<T>, p1 RawPointer<T>, i u64) RawPointer<T> extern
-fun _opAdd<T>(my static p RawPointer<T>, p1 u64, i RawPointer<T>) RawPointer<T> extern
-fun _opSub<T>(my static p RawPointer<T>, p1 RawPointer<T>, p2 RawPointer<T>) RawPointer<T> extern
-fun _opSub<T>(my static p RawPointer<T>, p1 RawPointer<T>, p2 u64) RawPointer<T> extern
+fun _opEq<T>(my p1 RawPointer<T>, p2 RawPointer<T>) bool extern
+fun _opCmp<T>(my p1 RawPointer<T>, p2 RawPointer<T>) int extern
+fun _opAdd<T>(my p1 RawPointer<T>, i u64) RawPointer<T> extern
+fun _opAdd<T>(p1 u64, my i RawPointer<T>) RawPointer<T> extern
+fun _opSub<T>(my p1 RawPointer<T>, p2 RawPointer<T>) RawPointer<T> extern
+fun _opSub<T>(my p1 RawPointer<T>, p2 u64) RawPointer<T> extern
 
 
 // Internal representation of `ref`, a compiler generated stack only pointer.
@@ -119,8 +119,8 @@ fun castPointer<Out>(i int) Out
 fun castPointer<Out>(i *void) Out
     extern // TBD: Remove
 
-fun _opAdd<T>(my static p RawPointer<T>, a *T, b int) *T extern
-fun _opAdd<T>(my static i int, a int, b *T) *T extern
+fun _opAdd<T>(my a *T, b int) *T extern
+fun _opAdd<T>(a int, my b *T) *T extern
 
 fun test_Add()
     @a = RawPointer<int>()

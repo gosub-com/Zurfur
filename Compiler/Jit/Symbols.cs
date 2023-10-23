@@ -76,7 +76,7 @@ namespace Zurfur.Jit
     public enum SymQualifiers
     {
         None = 0,
-        Method = 0x1,
+        My = 0x1,
         Interface = 0x2,
         Const = 0x4,
         Static = 0x8,
@@ -257,7 +257,7 @@ namespace Zurfur.Jit
         public bool IsTypeParam => Kind == SymKind.TypeParam;
         public bool IsFunParam => Kind == SymKind.FunParam;
         public bool IsLocal => Kind == SymKind.Local;
-        public bool IsMethod => Qualifiers.HasFlag(SymQualifiers.Method);
+        public bool IsMy => Qualifiers.HasFlag(SymQualifiers.My);
         public bool IsConst => Qualifiers.HasFlag(SymQualifiers.Const);
         public bool IsStatic => Qualifiers.HasFlag(SymQualifiers.Static);
         public bool IsGetter => Qualifiers.HasFlag(SymQualifiers.Get);
@@ -407,7 +407,7 @@ namespace Zurfur.Jit
             var funParams = "";
             if (IsFun && Type != null)
             {
-                if (IsMethod && FunParamTuple.TypeArgs.Length != 0)
+                if (IsMy && FunParamTuple.TypeArgs.Length != 0)
                 {
                     // Methods use first parameter as receiver type
                     funParams = FunParamTuple.FriendlyNameInternal(true) + FunReturnTuple.FriendlyNameInternal(false);
@@ -536,7 +536,7 @@ namespace Zurfur.Jit
                 if (Qualifiers.HasFlag(SymQualifiers.Boxed)) t += " boxed";
                 if (Qualifiers.HasFlag(SymQualifiers.Const)) t += " const";
                 if (Qualifiers.HasFlag(SymQualifiers.Enum)) t += " enum";
-                if (Qualifiers.HasFlag(SymQualifiers.Method)) t += " method";
+                if (Qualifiers.HasFlag(SymQualifiers.My)) t += " my";
                 if (Qualifiers.HasFlag(SymQualifiers.Extern)) t += " extern";
                 if (Qualifiers.HasFlag(SymQualifiers.Get)) t += " get";
                 if (Qualifiers.HasFlag(SymQualifiers.Init)) t += " init";
@@ -587,7 +587,7 @@ namespace Zurfur.Jit
                 case "set": Qualifiers |= SymQualifiers.Set; break;
                 case "get": Qualifiers |= SymQualifiers.Get; break;
                 case "afun": Qualifiers |= SymQualifiers.Async; Debug.Assert(Kind == SymKind.Fun); break;
-                case "method": Qualifiers |= SymQualifiers.Method; break;
+                case "my": Qualifiers |= SymQualifiers.My; break;
                 case "interface": Qualifiers |= SymQualifiers.Interface; break;
                 case "extern": Qualifiers |= SymQualifiers.Extern; break;
                 case "const": Qualifiers |= SymQualifiers.Const; break;
