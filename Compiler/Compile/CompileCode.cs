@@ -212,7 +212,7 @@ namespace Zurfur.Compiler
 
             // Function prototype comment
             var y1 = synFunc.Keyword.Y;
-            var y2 = Math.Max(y1, synFunc.Statements == null ? 0 : synFunc.Statements.Token.Y);
+            var y2 = Math.Min(Math.Max(y1, synFunc.Statements?.Token.Y??0), synFile.Lexer.LineCount-1);
             for (var y = y1;  y <= y2; y++)
             {
                 commentLines[y] = true;
@@ -466,7 +466,7 @@ namespace Zurfur.Compiler
             Symbol? GenFindAndCall(Token token, Symbol inType, string name)
             {
                 var call = new Rval(token, name) { InType = inType };
-                return EvalCall(call, new List<Rval>(), EvalFlags.DontAddCallInfo,  $"'{name}' in the type '{inType}'")
+                return EvalCallExpectFun(call, new List<Rval>(), EvalFlags.DontAddCallInfo,  $"'{name}' in the type '{inType}'")
                     ?.FunReturnType;
             }
 
@@ -1071,7 +1071,7 @@ namespace Zurfur.Compiler
                 // Find static operators from either argument
                 var call = new Rval(token, operatorName) { InType = DerefRef(args[0].Type!) };
                 var args2 = args.Skip(1).ToList(); // Rewrite op(a,b) to a.op(b) - TBD: Remove with uniform call syntax
-                var funType = EvalCall(call, args2, EvalFlags.Invoked, $" '{operatorName}' (operator '{token}')")
+                var funType = EvalCallExpectFun(call, args2, EvalFlags.Invoked, $" '{operatorName}' (operator '{token}')")
                     ?.FunReturnType;
 
                 if (funType == null)
@@ -1111,7 +1111,7 @@ namespace Zurfur.Compiler
                 if (call == null)
                     return null;  // Undefined symbol or error evaluating left side
 
-                var funType = EvalCall(call, args,  EvalFlags.Invoked, $"'{call.Token}'")
+                var funType = EvalCallExpectFun(call, args,  EvalFlags.Invoked, $"'{call.Token}'")
                     ?.FunReturnType;
 
                 if (funType == null)
@@ -1220,6 +1220,23 @@ namespace Zurfur.Compiler
                 EndLocalScope();
             }
 
+            Symbol? EvalCallExpectFun(
+                Rval? call,
+                List<Rval>? args,
+                EvalFlags flags = EvalFlags.None,
+                string rejectName = "")
+            {
+                if (call == null)
+                    return null;
+
+                var s = EvalCall(call, args, flags, rejectName);
+                if (s == null || s.IsFun || s.IsLambda)
+                    return s;
+
+                Reject(call.Token, "Expecting function or lambda return type");
+                return null;
+            }
+
             // Set return type of symbol, or null if symbol is not found,
             // is unresolved, or ambiguous.
             // `EvalFlags.AssignmentTarget` allows the symbol to be an unresolved
@@ -1229,7 +1246,8 @@ namespace Zurfur.Compiler
             // Marks an error when there is no match.
             // Returns the symbol that generated the type (or null if
             // there wasn't one)
-            Symbol? EvalCall(Rval? call,
+            Symbol? EvalCall(
+                Rval? call,
                 List<Rval>? args,
                 EvalFlags flags = EvalFlags.None,
                 string rejectName = "")

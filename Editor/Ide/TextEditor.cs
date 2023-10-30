@@ -477,7 +477,7 @@ namespace Zurfur.Ide
                 if (i > MAX_TAB_COL)
                     return col + charIndex - i-1;
             }
-            return col;
+            return col + Math.Max(0, charIndex-line.Length);
         }
 
         /// <summary>
@@ -1327,6 +1327,13 @@ namespace Zurfur.Ide
             if (gr == null)
                 return;
 
+            // Shift meta tokens
+            if (token.Meta)
+            {
+                x += 2;
+                y -= 4;
+            }
+
             // Print the token
             var backRect = new Rectangle((int)(x - 1) + FILL_X_OFFSET, (int)y, (int)(xEnd - x + 1), (int)(yEnd - y));
             var overrides = FindColorOverride(token);
@@ -1363,14 +1370,8 @@ namespace Zurfur.Ide
             FontInfo fontInfo = GetFontInfo(token);
             var font = overrides != null && overrides.Font != null ? overrides.Font : fontInfo.Font;
             var brush = overrides != null && overrides.ForeColor != null ? overrides.ForeColor : fontInfo.Brush;
-
-            // Shift and color meta tokens
             if (token.Meta)
-            {
-                brush = Brushes.Red;
-                x += 2;
-                y -= 2;
-            }
+                brush = Brushes.DimGray;
 
             if (token.Y >= 0 && token.Y < mLineShrunk.Length && mLineShrunk[token.Y])
             {

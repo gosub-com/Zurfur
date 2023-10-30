@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Text;
 
 using Zurfur.Lex;
+using Zurfur.Jit;
 
 namespace Zurfur.Compiler
 {
@@ -30,8 +31,8 @@ namespace Zurfur.Compiler
         const int SCOPE_INDENT = 4;
 
         // TBD: Allow pragmas to be set externally
-        static WordSet sPragmas = new WordSet("ShowParse ShowMeta NoParse NoCompilerChecks "
-            + "NoVerify AllowUnderscoreDefinitions RequireBraces");
+        static WordSet sPragmas = new WordSet("ShowParse NoParse NoCompilerChecks "
+            + "NoVerify AllowUnderscoreDefinitions");
 
 
         ParseZurfCheck mZurfParseCheck;
@@ -40,22 +41,21 @@ namespace Zurfur.Compiler
         Lexer				mLexer;			// Lexer to be parsed
         Lexer.Enumerator    mEnum;          // Lexer enumerator
         string              mTokenName ="*"; // Skipped by first accept
-        Token               mToken = new Token(";");
-        Token               mPrevToken = new Token(";");
-        StringBuilder       mComments = new StringBuilder();
+        Token               mToken = new(";");
+        Token               mPrevToken = new(";");
+        StringBuilder       mComments = new();
+        int                 mCommentLineIndex;
         bool                mInTernary;
-        bool                mShowMeta;
         bool                mAllowUnderscoreDefinitions;
-        bool                mRequireBraces;
-        List<Token>         mEndLineSemicolons = new List<Token>();
-        int                 mEndLineSemicolonsIndex;
+        List<Token>         mInsertedTokens = new();
+        int                 mInsertedIndex;
 
         // Be kind to GC
-        Queue<List<SyntaxExpr>>   mExprCache = new Queue<List<SyntaxExpr>>();
+        Queue<List<SyntaxExpr>> mExprCache = new();
 
         string mModuleBaseStr = "";
         string[] mModuleBasePath = Array.Empty<string>();
-        List<SyntaxScope> mScopeStack = new List<SyntaxScope>();
+        List<SyntaxScope> mScopeStack = new();
         SyntaxFile mSyntax;
 
         public int ParseErrors => mParseErrors;
@@ -103,11 +103,6 @@ namespace Zurfur.Compiler
         static WordSet sMultiplyOps = new WordSet("* / % &");
         static WordSet sAssignOps = new WordSet("= += -= *= /= %= |= &= ~= <<= >>=");
         static WordSet sUnaryOps = new WordSet("+ - & &* ~ use unsafe clone mut not astart");
-
-        // For now, do not allow more than one level.  Maybe we want to allow it later,
-        // but definitely do not allow them to include compounds with curly braces.
-        static WordSet sNoSubCompoundStatement = new WordSet("type class catch " 
-                                + "get set pub private namespace mod static static");
 
         // C# uses "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"  to resolve type
         // argument ambiguities. The following symbols allow us to call functions,
@@ -195,8 +190,6 @@ namespace Zurfur.Compiler
             while (mTokenName != "")
                 Accept();
 
-            mLexer.ShowMetaTokens = mShowMeta;
-
             return mSyntax;
         }
         class NoCompilePragmaException : Exception { }
@@ -208,19 +201,27 @@ namespace Zurfur.Compiler
         {
             try
             {
-                PreProcess();
+                var tokens = mLexer.GetLineTokens(0);
+                if (tokens.Length >= 2 && tokens[0] == "pragma" && tokens[1] == "NoParse")
+                    return;
+                ScanScopeStructure();
+                ScanCheck();
                 Accept();
                 ParseTopScope();
-                PostProcess();
             }
             catch (NoCompilePragmaException)
             {
             }
         }
 
-        void PreProcess()
+        /// <summary>
+        /// Scan for continuation lines, comments, quotes, and add braces and semicolons.
+        /// </summary>
+        void ScanScopeStructure()
         {
-            Token? prevToken = null;
+            int scope = 0;
+            var braceStack = new List<(Token token, int y)>();
+            Token? prevNonCommentToken = null;
             Token? prevNonContinuationLineToken = null;
             Token? token;
 
@@ -229,33 +230,33 @@ namespace Zurfur.Compiler
             {
                 while (token == TOKEN_COMMENT)
                 {
-                    ParseComment(e.CurrentLineTokens, e.CurrentLineTokenIndex-1);
+                    ScanComment(e.CurrentLineTokens, e.CurrentLineTokenIndex-1);
                     e.SkipToEndOfLine();
                     e.MoveNext(out token);
                 }
 
                 if (token.Boln)
-                    ScanBeginningOfLine();
+                    AddBracesAndSemicolons();
 
                 if (token == TOKEN_STR_LITERAL)
                     ScanQuoteSingleLine();
                 else if (token == TOKEN_STR_LITERAL_MULTI)
                     ScanQuoteMultiLine();
                 else
-                    prevToken = token;
+                    prevNonCommentToken = token;
             }
             return;
 
-            // Detect continuation lines and add meta semicolons
-            void ScanBeginningOfLine()
+            // Detect continuation lines, add braces and semicolons.
+            void AddBracesAndSemicolons()
             {
                 token.Continuation = false;
                 if (token.VerticalLine)
                     token.RemoveInfo<TokenVerticalLine>();
-                if (prevToken == null)
+                if (prevNonCommentToken == null)
                     return;
 
-                bool isContinueEnd = sContinuationEnd.Contains(prevToken);
+                bool isContinueEnd = sContinuationEnd.Contains(prevNonCommentToken);
                 bool isContinueBegin = sContinuationBegin.Contains(token.Name);
                 bool isContinue = (isContinueEnd || isContinueBegin)
                                         && !sContinuationNoBegin.Contains(token.Name);
@@ -278,13 +279,48 @@ namespace Zurfur.Compiler
                 if (isContinue)
                 {
                     token.Continuation = true;
+                    return;
+                }
+
+                // Add scope/expression separators '{', '}', or ';'
+                var xIndex = mLexer.GetLine(prevNonCommentToken.Y).Length;
+                if (token.X > scope + SCOPE_INDENT - 1)
+                {
+                    // Add open braces '{'
+                    do {
+                        scope += SCOPE_INDENT;
+                        var openBrace = AddMetaToken(new Token("{", xIndex++, prevNonCommentToken.Y));
+                        braceStack.Add((openBrace, prevNonContinuationLineToken?.Y??0));
+                        mInsertedTokens.Add(openBrace);
+                    } while (token.X > scope + SCOPE_INDENT - 1);
+                }
+                else if (token.X < scope - (SCOPE_INDENT - 1))
+                {
+                    // Add close braces with semi-colons ';};'
+                    do {
+                        // End statement before brace
+                        mInsertedTokens.Add(AddMetaToken(new Token(";", xIndex++, prevNonCommentToken.Y)));
+                        scope -= SCOPE_INDENT;
+                        var openBrace = braceStack.Pop();
+                        var closeBrace = AddMetaToken(new Token("}", xIndex++, prevNonCommentToken.Y));
+                        mInsertedTokens.Add(closeBrace);
+                        mInsertedTokens.Add(AddMetaToken(new Token(";", xIndex++, prevNonCommentToken.Y)));
+
+                        Token.AddScopeLines(mLexer, openBrace.y, closeBrace.Y - openBrace.y, false);
+
+                        // TBD: This doesn't work because the tokens are cleared
+                        //      when accepting them (see that TBD to see why)
+                        //Connect(openBrace.token, closeBrace);
+
+                    } while (token.X < scope - (SCOPE_INDENT - 1));
                 }
                 else
                 {
-                    prevNonContinuationLineToken = token;
-                    mEndLineSemicolons.Add(AddMetaToken(new Token(";",
-                            prevToken.X + prevToken.Name.Length, prevToken.Y)));
+                    mInsertedTokens.Add(AddMetaToken(new Token(";",
+                            xIndex++, prevNonCommentToken.Y)));
                 }
+
+                prevNonContinuationLineToken = token;
             }
 
             void ScanQuoteSingleLine()
@@ -301,15 +337,15 @@ namespace Zurfur.Compiler
                     // ERROR: Expecting end quote.  Mark it and add meta semicolon.
                     // NOTE: Ideally we would add one meta semicolon and reject it,
                     //       but `Accept` clears the error.
-                    prevToken = null;
+                    prevNonCommentToken = null;
                     RejectToken(AddMetaToken(new Token(" ", token.X + token.Name.Length, token.Y)),
                         "Expecting end quote before end of line");
-                    mEndLineSemicolons.Add(AddMetaToken(new Token(";",
+                    mInsertedTokens.Add(AddMetaToken(new Token(";",
                             token.X + token.Name.Length, token.Y)));
                 }
                 else
                 {
-                    prevToken = token;
+                    prevNonCommentToken = token;
                 }
             }
 
@@ -322,11 +358,11 @@ namespace Zurfur.Compiler
                 if (token == "")
                     RejectToken(token, "Expecting \"\"\" to end the multi-line string literal");
                 else
-                    prevToken = token;
+                    prevNonCommentToken = token;
             }
 
             // Call with tokenIndex pointing to "//"
-            bool ParseComment(Token []tokens, int tokenIndex)
+            bool ScanComment(Token []tokens, int tokenIndex)
             {
                 if (tokenIndex >= tokens.Length || tokens[tokenIndex] != TOKEN_COMMENT)
                     return false;
@@ -379,50 +415,62 @@ namespace Zurfur.Compiler
         /// Check continuation line indentation
         /// and illegal tabs and semicolons.
         /// </summary>
-        void PostProcess()
+        void ScanCheck()
         {
-            string line;
-            Token[] tokens;
-            int lineIndex;
-            Token? prev = null, token;
+            for (int i = 0; i < mInsertedTokens.Count - 1; i++)
+                if (mInsertedTokens[i].Location > mInsertedTokens[i + 1].Location)
+                    throw new Exception("Additional meta-tokens must be sorted");
 
-            for (lineIndex = 0;  lineIndex < mLexer.LineCount;  lineIndex++)
+            Token? prevToken = null;
+            var prevTokenHasError = false;
+            for (var lineIndex = 0;  lineIndex < mLexer.LineCount;  lineIndex++)
             {
-                line = mLexer.GetLine(lineIndex);
-                tokens = mLexer.GetLineTokens(lineIndex);
-                CheckLine();
+                var line = mLexer.GetLine(lineIndex);
+                var tokens = mLexer.GetLineTokens(lineIndex);
+                CheckTabsAndSemicolons(tokens, lineIndex, line);
 
                 // Skip blank and comment lines
                 if (tokens.Length == 0)
                     continue;
-                token = tokens[0];
+                
+                var token = tokens[0];
                 if (token.Type == eTokenType.Comment)
                     continue;
 
-                CheckAlignment();
-                prev = token;
+                CheckAlignment(token);
             }
             return;
 
-            void CheckAlignment()
+            void CheckAlignment(Token token)
             {
-                if (prev == null)
-                    return;
-                if (token.Continuation && !prev.Continuation && token.X < prev.X + SCOPE_INDENT)
+                var hasError = false;
+                if (prevToken != null && token.Continuation && !prevToken.Continuation
+                    && token.X < prevToken.X + SCOPE_INDENT)
                 {
-                    RejectToken(NewMetaToken(token, " "),
-                        "Continuation line must be indented at least one scope level");
+                    RejectToken(AddMetaToken(new Token(" ", token.X - 1, token.Y)),
+                        "Continuation line must be indented one scope level past the line above it");
+                    hasError = true;
                 }
-                if (!token.Continuation && prev.Continuation && token.X + SCOPE_INDENT > prev.X)
+                else if (token.X % SCOPE_INDENT != 0)
                 {
-                    // TBD: Prevent duplicating this error with the one above
-                    RejectToken(NewMetaToken(prev, " "),
-                        "Continuation line must be indented at least one scope level past line below it");
+                    RejectToken(AddMetaToken(new Token(new string(' ', token.X % SCOPE_INDENT), 
+                        token.X/SCOPE_INDENT*SCOPE_INDENT, token.Y)),
+                        "First token be aligned on a scope level");
+                    hasError = true;
                 }
+                if (prevToken != null && !prevTokenHasError 
+                    && !token.Continuation && prevToken.Continuation 
+                    && token.X + SCOPE_INDENT > prevToken.X)
+                {
+                    RejectToken(AddMetaToken(new Token(" ", prevToken.X-1, prevToken.Y)),
+                        "Continuation line must be indented one scope level past the line below it");
+                }
+                prevTokenHasError = hasError;
+                prevToken = token;
             }
 
             // TBD: Allow tabs in multi-line quotes
-            void CheckLine()
+            void CheckTabsAndSemicolons(Token []tokens, int lineIndex, string line)
             {
                 // Illegal tabs
                 var i = line.IndexOf('\t');
@@ -467,11 +515,9 @@ namespace Zurfur.Compiler
 
             while (mTokenName != "")
             {
-                var visibleSemicolon = mPrevToken.Name == ";" && !mPrevToken.Meta;
-                if (mToken.X != 0 && !visibleSemicolon)
+                if (mToken.X != 0 && mToken != ";")
                     RejectToken(mToken, $"Incorrect indentation, module level statements must be in first column");
                 ParseModuleScopeStatement(qualifiers);
-                AcceptSemicolonOrReject();
             }
         }
 
@@ -484,13 +530,7 @@ namespace Zurfur.Compiler
             switch (mTokenName)
             {
                 case ";":
-                    break;
-
-                case "{":
-                case "=>":
                     Accept();
-                    RejectToken(keyword, "Unexpected '" + keyword + "'.  Expecting a keyword, such as 'type', 'fun', etc. before the start of a new scope.");
-                    qualifiers.Clear();
                     break;
 
                 case "pragma":
@@ -579,141 +619,6 @@ namespace Zurfur.Compiler
             {
                 mToken.Type = eTokenType.Reserved;
                 qualifiers.Add(Accept());
-            }
-        }
-
-        /// <summary>
-        /// Start a new scope and perform parseLine action on each line at this level.
-        /// </summary>
-        private void ParseScopeLevel(Token keyword, WordSet notAllowed, Action parseLine)
-        {
-            bool useBraces = IsMatchPastMetaSemicolon("{");
-            if (!useBraces && (mTokenName != ";" || !mToken.Meta))
-            {
-                Reject("Expecting end of line or '{'");
-                useBraces = IsMatchPastMetaSemicolon("{");
-            }
-            if (useBraces)
-                ParseScopeLevelWithBraces();
-            else
-                ParseScopeLevelWithoutBraces();
-            return;
-
-            void ParseScopeLevelWithoutBraces()
-            {
-                if (mRequireBraces)
-                    RejectToken(mToken, "Expecting '{' because pragma 'RequireBraces' is set");
-
-                // Expecting end of line, skip extra tokens
-                if (mTokenName != ";" || !mToken.Meta)
-                {
-                    RejectToken(mToken, "Expecting end of line");
-                    Accept();
-                    while (mTokenName != ";" || !mToken.Meta)
-                    {
-                        Accept().Grayed = true;
-                        if (mTokenName == "")
-                            return;
-                    }
-                }
-
-                // Next line must be indented
-                var keywordColumnToken = mLexer.GetLineTokens(keyword.Y)[0];
-                if (NextLineToken().X <= keywordColumnToken.X)
-                {
-                    // Immediate end of scope
-                    RejectToken(mToken, "Expecting '{' or next line to be indented four spaces");
-                    return;
-                }
-
-                Accept(); // End of line semi-colon
-                var scopeColumn = keywordColumnToken.X + SCOPE_INDENT;
-                while (true)
-                {
-                    if (mPrevToken.Meta && mToken.X != scopeColumn)
-                    {
-                        RejectToken(mToken, $"Incorrect indentation at this scope level, expecting {scopeColumn} spaces");
-                    }
-                    if (notAllowed.Contains(mTokenName))
-                        Reject($"Braceless statement '{keyword.Name}' may not embed '{mTokenName}' statement");
-
-                    parseLine();
-
-                    if (mTokenName != ";")
-                        Reject($"Expecting ';' or end of line");
-                    if (mTokenName == "}" || mTokenName == "")
-                        break;
-                    if (mToken.Meta && NextLineToken().X <= keywordColumnToken.X)
-                        break;
-
-                    Accept();
-                }
-
-                // Draw scope lines
-                // TBD: Make if...elif...else consistent, all or none.
-                int scopeLines = mPrevToken.Y - keywordColumnToken.Y;
-                if (scopeLines >= 2)
-                    Token.AddScopeLines(mLexer, keywordColumnToken.Y, scopeLines, false);
-            }
-
-            /// <summary>
-            /// Parse '{ statements }'
-            /// </summary>
-            void ParseScopeLevelWithBraces()
-            {
-                // Require '{'
-                if (mToken.Meta && mTokenName == ";")
-                    Accept();
-                if (!AcceptMatchPastMetaSemicolon("{"))
-                    return;
-                var openToken = mPrevToken;
-                mPrevToken.Type = eTokenType.ReservedControl;
-
-                var keywordColumnToken = mLexer.GetLineTokens(keyword.Y)[0];
-                if (openToken.Boln && openToken.X != keywordColumnToken.X)
-                {
-                    // Only braces at beginning of line get checked
-                    RejectToken(openToken, "Expecting open brace to line up under the previous line");
-                }
-
-                while (AcceptMatch(";"))
-                    ;
-
-                var scopeColumn = keywordColumnToken.X + SCOPE_INDENT;
-                if (mTokenName != "}" && mTokenName != "" && openToken.Eoln && mToken.X != scopeColumn)
-                {
-                    // Check first line spacing only when it's a new line
-                    RejectToken(mToken, $"Incorrect indentation at this scope level, expecting {scopeColumn} spaces");
-                }
-                var y = mToken.Y;
-                while (mTokenName != "}" && mTokenName != "")
-                {
-                    if (mToken.X != scopeColumn && mToken.Y != y)
-                        RejectToken(mToken, $"Incorrect indentation at this scope level, expecting {scopeColumn} spaces");
-                    y = mToken.Y;
-                    parseLine();
-                    AcceptSemicolonOrReject();
-                }
-
-                bool error = false;
-                if (AcceptMatchOrReject("}", $"Expecting '}}' while parsing {keyword}"))
-                {
-                    var closeToken = mPrevToken;
-                    closeToken.Type = eTokenType.ReservedControl;
-                    Connect(openToken, closeToken);
-                    if (closeToken.Boln && closeToken.Eoln && closeToken.X != keywordColumnToken.X)
-                    {
-                        // Only braces on thier own line get checked
-                        RejectToken(closeToken, "Expecting close brace to line up under the open brace keyword column", true);
-                    }
-                }
-                else
-                {
-                    error = true;
-                    RejectToken(openToken, mTokenName == "" ? "This scope has no closing brace"
-                                                            : "This scope has an error on its closing brace");
-                }
-                Token.AddScopeLines(mLexer, openToken.Y, mPrevToken.Y - openToken.Y - 1, error);
             }
         }
 
@@ -826,12 +731,8 @@ namespace Zurfur.Compiler
 
             if (mTokenName == "__fail")
                 throw new Exception("Parse fail test");
-            if (mTokenName == "ShowMeta")
-                mShowMeta = true;
             if (mTokenName == "AllowUnderscoreDefinitions")
                 mAllowUnderscoreDefinitions = true;
-            if (mTokenName == "RequireBraces")
-                mRequireBraces = true;
             if (mTokenName == "NoParse")
             {
                 while (Accept() != "")
@@ -897,16 +798,26 @@ namespace Zurfur.Compiler
                 return;
             }
 
-            synType.Constraints = ParseConstraints();
-
             var qualifiers2 = new List<Token>();
-            ParseScopeLevel(keyword, sEmptyWordSet, () =>
-            {
-                ParseTypeScopeStatement(synType, qualifiers2);
-            });
+            ParseTypeScopeStatements(synType, qualifiers2);
 
             // Restore old path
             mScopeStack = oldScopeStack;
+        }
+
+        private void ParseTypeScopeStatements(SyntaxType synType, List<Token> qualifiers2)
+        {
+            if (ExpectStartOfScope())
+            {
+                var openBrace = mPrevToken;
+                while (mToken != "" && mToken != "}")
+                {
+                    ParseTypeScopeStatement(synType, qualifiers2);
+                    ExpectEndOfStatement();
+                }
+                if (ExpectEndOfScope())
+                    Connect(mPrevToken, openBrace);
+            }
         }
 
         private void ParseTypeScopeStatement(SyntaxType parent, List<Token> qualifiers)
@@ -919,6 +830,23 @@ namespace Zurfur.Compiler
             switch (mTokenName)
             {
                 case ";":
+                    break;
+
+                case "{":
+                    RejectToken(mToken, "Unnecessary scope is not allowed");
+                    ParseTypeScopeStatements(parent, qualifiers);
+                    break;
+
+
+                case "where":
+                    // TBD: Restrict this to top of type (like in function)
+                    // RejectToken(mToken, "The 'where' statement must be at the top of the type");
+                    Accept();
+                    var constraint = ParseConstraint();
+                    if (constraint != null)
+                        parent.Constraints = parent.Constraints
+                            .EmptyIfNull().Append(constraint).ToArray();
+                    
                     break;
 
                 case "const":
@@ -975,22 +903,6 @@ namespace Zurfur.Compiler
                 Connect(openToken, mPrevToken);
             }
             return new SyntaxMulti(openToken, FreeExprList(typeParams));
-        }
-
-
-        private SyntaxConstraint[]? ParseConstraints()
-        {
-            if (!AcceptMatchPastMetaSemicolon("where"))
-                return null;
-            var constraints = new List<SyntaxConstraint?>();
-            do
-            {
-                var constraint = ParseConstraint();
-                if (constraint != null)
-                    constraints.Add(constraint);
-            } while (AcceptMatchPastMetaSemicolon("where"));
-
-            return constraints.ToArray()!;
         }
 
         SyntaxConstraint? ParseConstraint()
@@ -1106,7 +1018,7 @@ namespace Zurfur.Compiler
         }
 
         /// <summary>
-        /// Function or property
+        /// Function
         /// </summary>
         void ParseFunction(Token keyword, List<Token> qualifiers, bool body)
         {
@@ -1124,18 +1036,13 @@ namespace Zurfur.Compiler
 
             var validFunctionName = ParseFunctionName(out synFunc.Name, out synFunc.TypeArgs);
 
-            // Don't process function while user is typing (this is for a better error message)
-            if (!IsMatchPastMetaSemicolon("("))
-                validFunctionName = false;
-
             synFunc.FunctionSignature = ParseFunctionSignature(keyword);
-            synFunc.Constraints = ParseConstraints();
 
             // Body
-            if (AcceptMatchPastMetaSemicolon("extern") || AcceptMatchPastMetaSemicolon("todo"))
+            if (AcceptMatch("extern") || AcceptMatch("todo"))
                 qualifiers.Add(mPrevToken);
             else if (body)
-                synFunc.Statements = ParseStatements(keyword);
+                synFunc.Statements = ParseStatements(synFunc);
 
             synFunc.Qualifiers = qualifiers.ToArray();
 
@@ -1161,7 +1068,7 @@ namespace Zurfur.Compiler
             if (mToken  == "require" || mToken == "new" || mToken == "clone" || mToken == "drop")
                 mToken.Type = eTokenType.Identifier;
 
-            if (CheckIdentifier("Expecting a function or property name", sRejectTypeName))
+            if (CheckIdentifier("Expecting a function name", sRejectTypeName))
             {
                 RejectUnderscoreDefinition(mToken);
 
@@ -1214,7 +1121,7 @@ namespace Zurfur.Compiler
         SyntaxExpr ParseFunctionParams()
         {
             // Read open token, '('
-            if (!AcceptMatchPastMetaSemicolon("(")  && !AcceptMatchOrReject("("))
+            if (!AcceptMatchOrReject("("))
                 return SyntaxError;
 
             // Parse parameters
@@ -1240,11 +1147,7 @@ namespace Zurfur.Compiler
             var qualifiers = NewExprList();
 
             if (AcceptMatch("my"))
-            {
                 qualifiers.Add(new SyntaxToken(mPrevToken));
-                if (AcceptMatch("static"))
-                    qualifiers.Add(new SyntaxToken(mPrevToken));
-            }
 
             if (!AcceptIdentifier("Expecting a variable name", sRejectFuncParam))
                 return SyntaxError;
@@ -1264,21 +1167,59 @@ namespace Zurfur.Compiler
                 new SyntaxMulti(EmptyToken, FreeExprList(qualifiers)));
         }
 
-        SyntaxExpr ParseStatements(Token keyword)
+        SyntaxExpr ParseStatements(SyntaxFunc ?topLevelFunction = null)
         {
-            var semicolon = mToken;
+            if (!ExpectStartOfScope())
+                return new SyntaxError(EmptyToken);
+
+            var openBrace = mPrevToken;
             var statement = NewExprList();
-            ParseScopeLevel(keyword, sNoSubCompoundStatement, () => ParseStatement(statement));
-            return new SyntaxMulti(semicolon, FreeExprList(statement));
+            while (mToken != "" && mToken != "}")
+            {
+                ParseStatement(statement, topLevelFunction);
+                ExpectEndOfStatement();
+            }
+            if (ExpectEndOfScope())
+                Connect(mPrevToken, openBrace);
+
+            return new SyntaxMulti(openBrace, FreeExprList(statement));
         }
 
-        private void ParseStatement(List<SyntaxExpr> statements)
+        // Parse a statement.  `topLevelFunction` is null unless this is being
+        // parsed at the top most level functipn
+        private void ParseStatement(List<SyntaxExpr> statements, SyntaxFunc ?topLevelFunction)
         {
             var keyword = mToken;
             switch (mToken)
             {
-                case ";":
                 case "}":
+                    break;
+
+                case ";":
+                    break;
+
+                case "extern":
+                    if (topLevelFunction == null)
+                        RejectToken(mToken, "The 'extern' qualifier can only be used at the top level function scope");
+                    else if (statements.Count != 0)
+                        // TBD: Error for statements following this one
+                        RejectToken(mToken, "The 'extern' qualifier must be the only statement in the function");
+                    else
+                        topLevelFunction.Qualifiers = topLevelFunction.Qualifiers.Append(mToken).ToArray();
+                    Accept();
+                    break;
+
+                case "where":
+                    if (topLevelFunction == null)
+                        RejectToken(mToken, "The 'where' statement can only be used at the top level function scope");
+                    else if (statements.Count != 0)
+                        RejectToken(mToken, "The 'where' statement must be at the top of the functipon");
+                    Accept();
+                    var constraint = ParseConstraint();
+                    if (constraint != null && topLevelFunction != null)
+                        topLevelFunction.Constraints = topLevelFunction.Constraints
+                            .EmptyIfNull().Append(constraint).ToArray();
+
                     break;
 
                 case "=>":
@@ -1289,7 +1230,7 @@ namespace Zurfur.Compiler
 
                 case "{":
                     RejectToken(mToken, "Unnecessary scope is not allowed");
-                    statements.Add(ParseStatements(keyword));
+                    statements.Add(ParseStatements());
                     break;
                 
                 case "defer":
@@ -1300,20 +1241,19 @@ namespace Zurfur.Compiler
                 case "while":
                     // WHILE (condition) (body)
                     mToken.Type = eTokenType.ReservedControl;
-                    statements.Add(new SyntaxBinary(Accept(), ParseExpr(), 
-                                    ParseStatements(keyword)));
+                    statements.Add(new SyntaxBinary(Accept(), ParseExpr(), ParseStatements()));
                     break;
 
                 case "scope":
                     // SCOPE (body)
                     mToken.Type = eTokenType.ReservedControl;
-                    statements.Add(new SyntaxUnary(Accept(), ParseStatements(keyword)));
+                    statements.Add(new SyntaxUnary(Accept(), ParseStatements()));
                     break;
 
                 case "do":
                     // DO (body)
                     mToken.Type = eTokenType.ReservedControl;
-                    statements.Add(new SyntaxUnary(Accept(), ParseStatements(keyword)));
+                    statements.Add(new SyntaxUnary(Accept(), ParseStatements()));
                     break;
 
                 case "dowhile":
@@ -1324,8 +1264,7 @@ namespace Zurfur.Compiler
                 case "if":
                     mToken.Type = eTokenType.ReservedControl;
                     Accept();
-                    statements.Add(new SyntaxBinary(keyword, ParseExpr(),
-                                    ParseStatements(keyword)));
+                    statements.Add(new SyntaxBinary(keyword, ParseExpr(), ParseStatements()));
                     break;
 
                 case "elif":
@@ -1338,14 +1277,12 @@ namespace Zurfur.Compiler
                         if (mPrevToken.Name == "if")
                             RejectToken(mPrevToken, "Shorten to 'elif'");
                         mPrevToken.Type = eTokenType.ReservedControl;
-                        statements.Add(new SyntaxBinary(keyword, ParseExpr(),
-                                        ParseStatements(keyword)));
+                        statements.Add(new SyntaxBinary(keyword, ParseExpr(), ParseStatements()));
                     }
                     else
                     {
                         // `else`
-                        statements.Add(new SyntaxUnary(keyword,
-                                        ParseStatements(keyword)));
+                        statements.Add(new SyntaxUnary(keyword, ParseStatements()));
                     }
                     break;
 
@@ -1363,8 +1300,7 @@ namespace Zurfur.Compiler
                     RejectUnderscoreDefinition(forVariable.Token);
                     AcceptMatchOrReject("in");
                     var forCondition = ParseExpr();
-                    statements.Add(new SyntaxMulti(keyword, forVariable, forCondition, 
-                                    ParseStatements(keyword)));
+                    statements.Add(new SyntaxMulti(keyword, forVariable, forCondition, ParseStatements()));
                     break;
 
                 case "astart":
@@ -1498,8 +1434,8 @@ namespace Zurfur.Compiler
                     RejectToken(mToken, "Left side must be new variable expression, e.g. '@a' or '@(a,b)'");
 
                 var lambdaToken = Accept();
-                if (IsMatchPastMetaSemicolon("{"))
-                    result = new SyntaxBinary(lambdaToken, result, ParseStatements(lambdaToken));
+                if (mToken == "{")
+                    result = new SyntaxBinary(lambdaToken, result, ParseStatements());
                 else
                     result = new SyntaxBinary(lambdaToken, result, ParseTernary());
 
@@ -1747,10 +1683,7 @@ namespace Zurfur.Compiler
                 else if (mTokenName == "<")
                 {
                     // Possibly a type argument list.  Let's try it and find out.
-                    var typeArgIdentifier = mPrevToken;
                     var p = SaveParsePoint();
-                    var openTypeToken = mToken;
-
                     mParseErrors = 0;
                     var typeArgs = ParseTypeArguments(result);
                     if (mParseErrors == 0 && sTypeArgumentParameterSymbols.Contains(mTokenName))
@@ -2066,7 +1999,7 @@ namespace Zurfur.Compiler
                 var tArg = NewMetaToken(token, VT_TYPE_ARG);
                 var tName = new SyntaxToken(token);
                 if (token == "!" && !BeginsType())
-                    return new SyntaxBinary(tArg, tName, new SyntaxToken(NewMetaToken(token, "void")));
+                    return new SyntaxBinary(tArg, tName, new SyntaxToken(NewMetaToken(token, "()")));
                 return new SyntaxBinary(tArg, tName, ParseType());
             }
 
@@ -2242,19 +2175,6 @@ namespace Zurfur.Compiler
             return false;
         }
 
-        bool AcceptMatchPastMetaSemicolon(string match)
-        {
-            if (AcceptMatch(match))
-                return true;
-            if (IsMatchPastMetaSemicolon(match))
-            {
-                Accept();
-                Accept();
-                return true;
-            }
-            return false;
-        }
-
         bool IsMatchPastMetaSemicolon(string match)
         {
             if (mTokenName == match)
@@ -2279,6 +2199,23 @@ namespace Zurfur.Compiler
             return EmptyToken;
         }
 
+        bool ExpectStartOfScope()
+        {
+            return AcceptMatchOrReject("{", "Expecting statements, either '{' or next line must be indented");
+        }
+
+        bool ExpectEndOfScope()
+        {
+            return AcceptMatchOrReject("}", "Expecting end of statements, either '}' or next line must be outdented");
+        }
+
+        // Expect either ';' or '}', anything else is an error.  Don't eat '}'
+        void ExpectEndOfStatement()
+        {
+            if (mToken != "}")
+                AcceptMatchOrReject(";", "Expecting end of line or ';' after statement");
+        }
+
         // Accept match, otherwise reject until match token, then try one more time
         bool AcceptMatchOrReject(string matchToken, string? message = null, bool tryToRecover = true)
         {
@@ -2291,26 +2228,6 @@ namespace Zurfur.Compiler
             return false;
         }
 
-        /// <summary>
-        /// Expecting ';' or '}' to end statement.  Eat ';', but not '}'
-        /// </summary>
-        void AcceptSemicolonOrReject()
-        {
-            if (AcceptMatch(";"))
-                return;
-            if (sStatementEndings.Contains(mTokenName))
-                return;
-
-            RejectToken(mToken, "Expecting ';' or end of line");
-            while (mTokenName != "" && !sStatementEndings.Contains(mTokenName))
-            {
-                mToken.Grayed = true;
-                Accept();
-            }
-
-            AcceptMatch(";");
-        }
-
         struct ParsePoint
         {
             public Lexer.Enumerator Enum;
@@ -2319,7 +2236,7 @@ namespace Zurfur.Compiler
             public eTokenType TokenType;
             public int ParseErrors;
             public int MetaTokenCount;
-            public int EndLineSemicolonsIndex;
+            public int InsertedIndex;
         }
 
         ParsePoint SaveParsePoint()
@@ -2331,7 +2248,7 @@ namespace Zurfur.Compiler
             p.TokenType = mToken.Type;
             p.ParseErrors = mParseErrors;
             p.MetaTokenCount = mLexer.MetaTokens.Count;
-            p.EndLineSemicolonsIndex = mEndLineSemicolonsIndex;
+            p.InsertedIndex = mInsertedIndex;
             return p;
         }
 
@@ -2345,7 +2262,7 @@ namespace Zurfur.Compiler
             mParseErrors = p.ParseErrors;
             while (mLexer.MetaTokens.Count > p.MetaTokenCount)
                 mLexer.MetaTokensRemoveAt(mLexer.MetaTokens.Count-1);
-            mEndLineSemicolonsIndex = p.EndLineSemicolonsIndex;
+            mInsertedIndex = p.InsertedIndex;
         }
 
         Token Accept()
@@ -2353,13 +2270,20 @@ namespace Zurfur.Compiler
             mPrevToken = mToken;
 
             GetNextToken();
-            
-            // Clear all errors and formatting, but preserve meta and continuation bits
+            SkipComments();
+
+            // Clear all errors and formatting, but preserve meta and continuation bits.
+            // TBD: This would be better done in ScanScopeStructure, but since we currently
+            //      mark errors, then backtrack, we can't do this there.  Add flag to
             bool meta = mToken.Meta;
             bool continuation = mToken.Continuation;
+            TokenVerticalLine []? verticalLine = mToken.VerticalLine ? mToken.GetInfos<TokenVerticalLine>() : null;
             mToken.Clear();
             mToken.Meta = meta;
             mToken.Continuation = continuation;
+            if (verticalLine != null)
+                foreach (var info in verticalLine)
+                    mToken.AddInfo(info);
 
             // Set token type
             if (mTokenName.Length == 0)
@@ -2381,59 +2305,57 @@ namespace Zurfur.Compiler
             return mPrevToken;
         }
 
-        // Read past comments
+        private void SkipComments()
+        {
+            // Skip comments and record then in mComments
+            while (mToken.Type == eTokenType.Comment)
+            {
+                // Any non-comment line (including blank lines) clears the comment buffer
+                if (mToken.Y > mCommentLineIndex + 1)
+                    mComments.Clear();
+                mCommentLineIndex = mToken.Y;
+
+                // Retrieve comment.
+                var x = mToken.X + mToken.Name.Length;
+                var comment = mLexer.GetLine(mToken.Y).Substring(x);
+                var commentTr = comment.Trim();
+
+                // Simple markdown
+                if (commentTr == "")
+                    mComments.Append("\n\n"); // Blank is a paragraph
+                else if (comment.StartsWith("  ") || comment.StartsWith("\t"))
+                {
+                    mComments.Append("\n");   // Indented is a line
+                    mComments.Append(commentTr);
+                }
+                else
+                    mComments.Append(commentTr);
+
+                mComments.Append(" ");
+                mEnum.SkipToEndOfLine();
+                GetNextToken();
+            }
+        }
+
+
+        // Read past comments and insert meta tokens
         void GetNextToken()
         {
-            // Read past comments
-            while (true)
-            {
-                // Insert meta semicolon at end of line
-                if (mEnum.Current != null && mEnum.Current.Eoln
-                        && mEndLineSemicolonsIndex < mEndLineSemicolons.Count
-                        && mEndLineSemicolons[mEndLineSemicolonsIndex].Y <= mEnum.Current.Y)
-                {
-                    mToken = mEndLineSemicolons[mEndLineSemicolonsIndex++];
-                    mTokenName = mToken.Name;
-                    return;
-                }
-                var line = mEnum.CurrentLineIndex;
-                if (!mEnum.MoveNext(out mToken))
-                {
-                    mToken = EmptyToken;
-                    mTokenName = mToken.Name;
-                    return;
-                }
-
-                // Blank line clears the comment buffer
-                if (mToken.Y > line+1)
-                    mComments.Clear();
-
-                if (mToken.Type == eTokenType.Comment)
-                {
-                    // Retrieve comment.
-                    var x = mToken.X + mToken.Name.Length;
-                    var comment = mLexer.GetLine(mToken.Y).Substring(x);
-                    var commentTr = comment.Trim();
-
-                    // Simple markdown
-                    if (commentTr == "")
-                        mComments.Append("\n\n"); // Blank is a paragraph
-                    else if (comment.StartsWith("  ") || comment.StartsWith("\t"))
-                    {
-                        mComments.Append("\n");   // Indented is a line
-                        mComments.Append(commentTr);
-                    }
-                    else
-                        mComments.Append(commentTr);
-
-                    mComments.Append(" ");
-                    mEnum.SkipToEndOfLine();
-                    continue;
-                }
-                break;
-            }
+            // Read next token if previous one wasn't inserted
+            if (!mToken.Meta || (mTokenName != ";" && mTokenName != "{" && mTokenName != "}"))
+                mEnum.MoveNext();
+            mToken = mEnum.Current ?? EmptyToken;
             mTokenName = mToken.Name;
+
+            // Insert meta tokens if necessary
+            if (mInsertedIndex < mInsertedTokens.Count
+                    && mInsertedTokens[mInsertedIndex].Location <= mToken.Location)
+            {
+                mToken = mInsertedTokens[mInsertedIndex++];
+                mTokenName = mToken.Name;
+            }
         }
+
 
         // Reject definitions beginning or ending with '_'
         void RejectUnderscoreDefinition(Token token)

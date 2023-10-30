@@ -11,14 +11,16 @@ type MapEntry(index u32, hash u32)
 // Key value pair
 [pub]
 type KvPair<K,V>
-        where K has OpEq<K>
+    where K has OpEq<K>
+    
     key K pub ref
     value V pub mut
 
 // A map is a hash table
 [pub]
 type Map<K,V>
-        where K has OpEq<K>
+    where K has OpEq<K>
+    
     _items List<KvPair<K,V>>
     _buckets List<MapEntry>
 

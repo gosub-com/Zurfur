@@ -126,11 +126,15 @@ namespace Zurfur.Ide
         /// Setup to display the message for the hover token.
         /// Immediately show connected tokens.
         /// </summary>
-        private void editor_MouseTokenChanged(TextEditor editor, Token previousToken, Token newToken)
+        private void editor_MouseTokenChanged(TextEditor editor, Token prevToken, Token newToken)
         {
             // Setup to display the hover token
             mHoverToken = newToken;
             mHoverMessageForm.Visible = false;
+
+            // Show meta when hovering over control character
+            editor.Lexer.ShowMetaTokens = newToken != null
+                && newToken.Meta && (newToken == ";" || newToken == "{" || newToken == "}");
 
             // Update hover token colors
             editor.TokenColorOverrides = null;
@@ -138,7 +142,7 @@ namespace Zurfur.Ide
                 return;
 
             // Show active link when CTRL is pressed
-            List<TokenColorOverride> overrides = new List<TokenColorOverride>();
+            var overrides = new List<TokenColorOverride>();
             if ((Control.ModifierKeys & Keys.Control) == Keys.Control
                 && (newToken.Url != "" || newToken.GetInfo<Symbol>() != null))
             {

@@ -1,5 +1,4 @@
 //pragma ShowParse        // Show the parse tree (hover over a symbol)
-//pragma ShowMeta       // Show parser symbols
 //pragma NoParse
 //pragma RequireBraces
 
@@ -28,7 +27,8 @@ type MyType
 // Declare a method to multiply and add three keys on Map<K,V>.
 // Return Nan (or MinValue for integer types) if any key is missing.
 fun madd<K,V>(my m Map<K,V>, mul1 K, mul2 K, add K) V
-        where V has NumOps<V>
+    where V has NumOps<V>
+    
     if m[mul1]@mul1Val and m[mul2]@mul2Val and m[add]@addVal
         ret mul1Val * mul2Val + addVal
     ret V.NanOrMin        
@@ -148,9 +148,6 @@ fun test_Main(args Array<str>, stream Zurfur.Io.Reader)
     // AcceptMatch returns ?Token = (bool, Token)
     // @Token captures the token, leaving the bool
     if AcceptMatch("(")@Token
-    {
-        // We got a token
-    }
-
+        nop
 
     ret

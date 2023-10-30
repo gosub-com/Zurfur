@@ -68,7 +68,7 @@ fun test_forEach(args Array<str>)
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
 fun alphaLengthWise<Item, L>(my i Iterator<Item>, lengthProvider fun(t Item) L) Iterator<Item>
     ret i.orderBy<Item, L>(@a => lengthProvider(a))
-             .thenBy<Item, L>(@a => a)
+        .thenBy<Item, L>(@a => a)
 fun orderBy<Source,Key>(my i Iterator<Source>, keySelector fun(i Source)Key) Iterator<Source>
     todo
 fun thenBy<Source,Key>(my i Iterator<Source>, keySelector fun(i Source)Key) Iterator<Source>
@@ -147,8 +147,8 @@ fun test_tuples()
     @element = tuplesNamedElement.x
 
 fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<float>, myGetter Getter)
-        where T has NumOps<T> + GetHash + Iterable<int> + Iterable2<int> + GetMap<f32,float> + Iterator<int>
-        where Q has NumOps<Q> + Getter + Getter2<int> + MyAdd<Q>
+    where T has NumOps<T> + GetHash + Iterable<int> + Iterable2<int> + GetMap<f32,float> + Iterator<int>
+    where Q has NumOps<Q> + Getter + Getter2<int> + MyAdd<Q>
 
     // Source code symbols should be non-generic
     @next3 = q.myGet2           // int
@@ -386,12 +386,14 @@ type ToStr interface
     fun get toStr() str
 
 [pub] fun GenericTest<Q1,Q2>(a Q1, b Q2) int
-        where Q1 has ToStr
-        where Q2 has ToStr
+    where Q1 has ToStr
+    where Q2 has ToStr
+
     ret a.toStr.len + b.toStr.len    
 
 [pub] type AGenericTest<T, QQQ>
     where QQQ has OpEq<T>//: new() where T : new()
+    
     af0 fun()()
     af1 fun()
     af2 fun()int

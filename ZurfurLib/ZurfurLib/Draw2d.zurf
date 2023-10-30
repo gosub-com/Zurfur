@@ -21,7 +21,7 @@ fun test_Shape()
 
 [pub]
 type Point<T> copy
-        where T has NumOps<T>
+    where T has NumOps<T>
     x T
     y T
 
@@ -31,13 +31,15 @@ fun get x2<T>(my p Point<T>) mut &T
 
 [pub]
 type Size<T> copy
-        where T has NumOps<T>
+    where T has NumOps<T>
+    
     width T
     height T
 
 [pub]
 type Rect<T> copy
-        where T has NumOps<T>
+    where T has NumOps<T>
+    
     // TBD: use location Point<T>
     //      use size Size<T>
     location Point<T>
@@ -76,37 +78,37 @@ fun yf<T>(my p Point<T>) T
 
 [pub]
 fun _opAdd<T>(my a Point<T>, b Point<T>) Point<T>
-        where T has NumOps<T> // TBD: Use constraints from `Point`
+    where T has NumOps<T> // TBD: Use constraints from `Point`
     ret Point(a.x+b.x, a.y+b.y)
 
 [pub]
 fun _opNeg<T>(my p Point<T>, a Point<T>) Point<T>
-        where T has NumOps<T> // TBD: Use constraints from `Point`
+    where T has NumOps<T> // TBD: Use constraints from `Point`
     ret Point(-a.x, -a.y)
 
 [pub]
 fun _opSub<T>(my a Point<T>, b Point<T>) Point<T>
-        where T has NumOps<T> // TBD: Use constraints from `Point`
+    where T has NumOps<T> // TBD: Use constraints from `Point`
     ret Point(a.x-b.x, a.y-b.y)
 
 [pub]
 fun _opMul<T>(a T, my b Point<T>) Point<T>
-        where T has NumOps<T> // TBD: Use constraints from `Point`
+    where T has NumOps<T> // TBD: Use constraints from `Point`
     ret Point(a*b.x, a*b.y)
 
 [pub]
 fun _opMul<T>(my a Point<T>, b T) Point<T>
-        where T has NumOps<T> // TBD: Use constraints from `Point`
+    where T has NumOps<T> // TBD: Use constraints from `Point`
     ret Point(a.x*b, a.y*b)
 
 [pub]
 fun _opDiv<T>(a T, my b Point<T>) Point<T>
-        where T has NumOps<T> // TBD: Use constraints from `Point`
+    where T has NumOps<T> // TBD: Use constraints from `Point`
     ret Point(a/b.x, a/b.y)
 
 [pub]
 fun _opDiv<T>(my a Point<T>, b T) Point<T>
-        where T has NumOps<T> // TBD: Use constraints from `Point`
+    where T has NumOps<T> // TBD: Use constraints from `Point`
     ret Point(a.x/b, a.y/b)
 
 [pub]
@@ -142,7 +144,7 @@ fun get left<T>(my r Rect<T>) T
     
 [pub]
 fun get right<T>(my r Rect<T>) T
-        where T has NumOps<T> // TBD: Use constraints from `Point`
+    where T has NumOps<T> // TBD: Use constraints from `Point`
     ret r.x + r.width
 
 [pub]
@@ -151,7 +153,7 @@ fun get top<T>(my r Rect<T>) T
     
 [pub]
 fun get bottom<T>(my r Rect<T>) T
-        where T has NumOps<T> // TBD: Use constraints from `Point`
+    where T has NumOps<T> // TBD: Use constraints from `Point`
     ret r.y + r.height
     
 // TBD: Remove

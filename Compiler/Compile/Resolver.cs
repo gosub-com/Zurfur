@@ -36,6 +36,8 @@ namespace Zurfur.Compiler
             if (typeExpr.Token == ParseZurf.VT_TYPE_ARG)
                 return ResolveGenericType();
 
+            if (typeExpr.Token == "()")
+                return table.CreateTuple(Array.Empty<Symbol>());
             if (typeExpr.Token == "(")
                 return ResolveTupleType(typeExpr);
 

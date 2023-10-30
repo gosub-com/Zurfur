@@ -894,7 +894,7 @@ fun unlink_small_chunk(my m mut DlMalloc, p *mchunk, s u64)
         if B == F
             m.clear_smallmap(I)
         elif RTCHECK(B == m.smallbin_at(I)
-                 or (m.ok_address(B) and B.fd == p))
+                or (m.ok_address(B) and B.fd == p))
             F.bk = B
             B.fd = F
         else

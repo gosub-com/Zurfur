@@ -505,7 +505,6 @@ namespace Zurfur.Lex
                     mIndexToken = mCurrentLine.Length + 1;
                     return true;
                 }
-                mCurrent = null;
                 return false;
             }
 

@@ -1,4 +1,5 @@
-﻿
+﻿pragma NoParse // Comment out this line to see parse errors
+
 // This file is to test the parse, make sure error
 // messages look good and no crashes, etc.
 
@@ -7,9 +8,6 @@ mod TestSyntax
 
 use Zurfur
 
-// Comment out the next line to see parse errors
-pragma NoParse
-//pragma ShowMeta
 
 
 fun A() { } // Expecting a type name

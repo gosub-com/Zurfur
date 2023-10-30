@@ -46,5 +46,10 @@ namespace Zurfur.Jit
             return item;
         }
 
+        public static IEnumerable<T> EmptyIfNull<T>(this IEnumerable<T>? item)
+        {
+            return item ?? Enumerable.Empty<T>();
+        }
+
     }
 }
