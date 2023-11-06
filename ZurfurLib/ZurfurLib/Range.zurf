@@ -11,31 +11,19 @@ type Range<T> copy
     high T
 
 [pub]
-fun new<T>(r Range<T>, low T, high T)
-    r.low = low
-    r.high = high
+fun Range.new<T>(low T, high T)
+    my.low = low
+    my.high = high
     // TBD: (r.low, r.high) = (low, high)
 
-fun abs(i int) int
-    ret 3
-
-// TBD: Shortcut syntax
-type Abs<T> interface
-    [static] fun abs(n T) T
-
-// Absolute length of range: abs(high-low)
-// TBD: Allow individual functions in the where clause
 [pub]
-fun get length<T>(my r Range<T>) T
-    where T has Abs<T> + NumOps<T> // TBD: Use constraints from `Range`, ALSO: fun abs(n T) T 
-  
-    // Alternatively:
-    //      return if(r.low <= r.high, r.low : r.high) 
-    ret T.abs(r.high-r.low)
+fun get Range.length<T>() T
+    where T has NumOps<T> // TBD: Use constraints from `Range`, ALSO: fun abs(n T) T 
+    ret my.high-my.low
 
 [pub]
-fun get iterator<T>(my r Range<T>) RangeIterator<T>
-    ret RangeIterator<T>(r.low, r.high)
+fun get Range.iterator<T>() RangeIterator<T>
+    ret RangeIterator<T>(my.low, my.high)
         
 [pub]
 type RangeIterator<T>
@@ -45,18 +33,18 @@ type RangeIterator<T>
     high T pub init
 
 [pub]
-fun new<T>(r RangeIterator<T>, low T, high T)
+fun RangeIterator.new<T>(low T, high T)
     // TBD: (my.current, my.high) = (low, high)
-    r.current = low
-    r.high = high
+    my.current = low
+    my.high = high
 
 [pub]
-fun next<T>(my r mut RangeIterator<T>) ?T
-    where T has Abs<T> + NumOps<T>
+fun mut RangeIterator.next<T>() ?T
+    where T has NumOps<T>
     
-    if r.current >= r.high
+    if my.current >= my.high
         ret nil
-    @prev = r.current
-    r.current += T.One
+    @prev = my.current
+    my.current += T.One
     ret Maybe<T>(prev)
         

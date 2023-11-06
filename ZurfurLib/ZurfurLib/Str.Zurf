@@ -7,14 +7,14 @@
     //       and its implicit conversion to Span
 
 // TBD: Need to collect stuff from Array
-[pub] fun get len(my s str) int
+[pub] fun get str.len() int
     ret 0
 
-[pub] fun _opAdd(my a str, b str) str {}
+[pub] fun str._opAdd(b str) str {}
 
 // TBD: Remove after more of the generic type system is working
-[pub] fun _opEq(my a str, b str) bool {}
-[pub] fun _opCmp(my a str, b str) int {}
+[pub] fun str._opEq(b str) bool {}
+[pub] fun str._opCmp(b str) int {}
 
     
 // TBD: Implicit conversion to and from Span?

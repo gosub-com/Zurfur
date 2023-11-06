@@ -239,7 +239,7 @@ namespace Zurfur.Compiler
                     //          "[static] fun Type.new() extern"
                     //      Plus, some of this code is repeated in other places
                     var constructor = new Symbol(SymKind.Fun, type.Parent, type.Token, "new");
-                    constructor.Qualifiers |= SymQualifiers.Static | SymQualifiers.My | SymQualifiers.Extern;
+                    constructor.Qualifiers |= SymQualifiers.Static | SymQualifiers.My | SymQualifiers.Method | SymQualifiers.Extern;
                     var constructorType = Resolver.GetTypeWithGenericParameters(table, type);
                     //constructorType.Qualifiers |= SymQualifiers.My;
                     foreach (var genericParam in constructorType.TypeArgs)
@@ -415,13 +415,13 @@ namespace Zurfur.Compiler
                 function.SetQualifiers(synFunc.Qualifiers);
                 function.Comments = synFunc.Comments;
                 AddTypeParams(function, synFunc.TypeArgs);
-                var parentParam = ResolveParentParam(function, synFunc);
+                var myParam = ResolveMyParam(function, synFunc);
                 var parameters = ResolveFunParams(synFunc.FunctionSignature[0], table, function, function, useSymbolsFile, false);
                 var returns = ResolveFunParams(synFunc.FunctionSignature[1], table, function, function, useSymbolsFile, true);
-                var newReturn = ResolveNewReturn(function, synFunc, parameters);
+                var newReturn = ResolveNewReturn(function, myParam, synFunc);
 
-                if (parentParam != null)
-                    parameters.Insert(0, parentParam);
+                if (myParam != null)
+                    parameters.Insert(0, myParam);
                 if (newReturn != null)
                     returns.Add(newReturn);
 
@@ -446,49 +446,93 @@ namespace Zurfur.Compiler
 
             }
 
-            Symbol? ResolveParentParam(Symbol method, SyntaxFunc func)
+            Symbol? ResolveMyParam(Symbol method, SyntaxFunc func)
             {
                 var methodParent = method.Parent!;
+                var extType = func.ExtensionType;
                 if (methodParent.IsInterface)
                 {
+                    if (extType != null)
+                        Reject(extType.Token, "Interface methods may not have a receiver type");
+                    if (func.TypeArgs != null && func.TypeArgs.Count >= 1)
+                        Reject(func.TypeArgs[0].Token, "Interface methods may not have type parameters");
+
                     // Interface method
                     bool isStatic = method.IsStatic || !methodParent.IsInterface;
                     var myParam = new Symbol(SymKind.FunParam, method, func.Name, isStatic ? "My" : "my");
                     myParam.Type = Resolver.GetTypeWithGenericParameters(table, methodParent);
                     if (myParam.Type == null)
                         return null;
-                    method.Qualifiers |= SymQualifiers.My;
+                    method.Qualifiers |= SymQualifiers.My | SymQualifiers.Method;
                     myParam.Qualifiers |= SymQualifiers.My;
-                    if (func.TypeArgs != null && func.TypeArgs.Count >= 1)
-                        Reject(func.TypeArgs[0].Token, "Interface methods cannot have type parameters");
                     if (!noCompilerChecks)
                         myParam.Token.AddInfo(new VerifySuppressError());
                     return myParam;
                 }
+
+                if (extType != null)
+                {
+                    var myParam = new Symbol(SymKind.FunParam, method, func.Name, method.IsStatic ? "My" : "my");
+                    if (extType != null && extType.Token == "mut")
+                    {
+                        myParam.SetQualifier("mut");
+                        extType = extType[0];
+                    }
+
+                    if (extType.Token == ParseZurf.VT_TYPE_ARG)
+                    {
+                        // Generic parameters are supplied
+                        myParam.Type = ResolveTypeNameOrReject(myParam, extType);
+                        if (myParam.Type == null)
+                            return null;
+                    }
+                    else
+                    {
+                        var recieverType = Resolver.FindGlobalType(extType.Token, table, method,
+                                        useSymbols.Files[extType.Token.Path]);
+                        if (recieverType == null)
+                            return null;
+                        if (recieverType.IsModule)
+                        {
+                            Reject(extType.Token, "Receiver type cannot be module");
+                            return null;
+                        }
+
+                        myParam.Type = Resolver.GetTypeWithGenericParameters(table, recieverType);
+                        if (myParam.Type == null)
+                            return null;
+
+                        // If the type has generic parameters, the function must have at least as many
+                        if (myParam.Type.GenericParamCount() > method.GenericParamCount())
+                        {
+                            Reject(method.Token, $"'{method.Token}' must have at least {myParam.Type.GenericParamCount()} "
+                                + $"generic parameter(s) because '{extType.Token}' takes that many generic parameter(s)");
+                            return null;
+                        }
+                    }
+                    extType.Token.AddInfo(myParam.Type);
+                    method.Qualifiers |= SymQualifiers.Method | SymQualifiers.My;
+                    myParam.Qualifiers |= SymQualifiers.My;
+                    if (!noCompilerChecks)
+                        myParam.Token.AddInfo(new VerifySuppressError());
+                    return myParam;
+                }
+
                 return null;
             }
 
-            Symbol? ResolveNewReturn(Symbol function, SyntaxFunc synFunc, List<Symbol> parameters)
+            Symbol? ResolveNewReturn(Symbol function, Symbol? myParam, SyntaxFunc synFunc)
             {
-                if (function.SimpleName != "new")
+                if (myParam == null || synFunc.Name != "new")
                     return null;
 
-                // TBD: Move to verifier
                 foreach (var parameter in synFunc.FunctionSignature[1])
                     if (parameter[0].Token != "")
                         Reject(parameter[0].Token, "'new' function must not have return parameters");
-
-                // TBD: Move to verifier (and verify it is in the same module as the type parameter)
-                if (parameters.Count == 0)
-                {
-                    Reject(function.Token, "'new' function requires at least one parameter");
-                    return null;
-                }
-                var r = new Symbol(SymKind.FunParam, function, synFunc.Name, "");
-                r.Qualifiers |= SymQualifiers.My;
-                r.Type = parameters[0].Type;
-                function.Qualifiers |= SymQualifiers.Static | SymQualifiers.My;
-                return r;
+                var returnParam = new Symbol(SymKind.FunParam, function, synFunc.Name, "");
+                returnParam.Type = myParam.Type;
+                function.Qualifiers |= SymQualifiers.Static;
+                return returnParam;
             }
 
             static List<Symbol> ResolveFunParams(
@@ -523,19 +567,7 @@ namespace Zurfur.Compiler
                     var funParam = new Symbol(SymKind.FunParam, function, expr.Token, expr.Token.Name);
                     expr.Token.AddInfo(funParam);
                     foreach (var qualifier in expr[2])
-                    {
-                        // TBD: Move this to parameter, rather than parent
-                        if (qualifier.Token == "my")
-                        {
-                            function.Qualifiers |= SymQualifiers.My;
-                            function.Qualifiers &= ~SymQualifiers.Static; // TBD: Remove when my param gone
-                            funParam.Qualifiers |= SymQualifiers.My;
-                        }
-                        else if (qualifier.Token == "static")
-                            function.Qualifiers |= SymQualifiers.Static;
-                        else
-                            funParam.SetQualifier(qualifier.Token);
-                    }
+                        funParam.SetQualifier(qualifier.Token);
 
                     funParam.Type = paramType;
                     paramSyms.Add(funParam);

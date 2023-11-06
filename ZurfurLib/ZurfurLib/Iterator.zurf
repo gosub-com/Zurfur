@@ -21,33 +21,33 @@ fun test_map()
     //    Log.info("")
 
 // TBD: Still working on these
-fun map<Source, Result>(my i Iterator<Source>, f fun(input Source) Result) MapIterator<Source, Result>
-    ret MapIterator<Source, Result>(f, i)
+fun Iterator.map<Source, Result>(f fun(input Source) Result) MapIterator<Source, Result>
+    ret MapIterator<Source, Result>(f, my)
 
-fun map<Source, Result>(my i Iterable<Source>, f fun(input Source) Result) MapIterator<Source, Result>
-    ret MapIterator<Source, Result>(f, i.iterator)
+fun Iterable.map<Source, Result>(f fun(input Source) Result) MapIterator<Source, Result>
+    ret MapIterator<Source, Result>(f, my.iterator)
 
 // TBD: Still working on this
 type MapIterator<Source, Result> ref // TBD: Ownership rules for these will be tough
     _fun fun(input Source) Result
     _iter Iterator<Source>
 
-fun new<Source, Result>(m MapIterator<Source,Result>, func fun(input Source) Result, iter Iterator<Source>)
+fun MapIterator.new<Source, Result>(func fun(input Source) Result, iter Iterator<Source>)
     // TBD: my._fun = func
-    m._iter = iter
+    my._iter = iter
 
-fun next<Source, Result>(my m mut MapIterator<Source, Result>) ?Result
-    @a = m._iter.next()
+fun mut MapIterator.next<Source, Result>() ?Result
+    @a = my._iter.next()
     // TBD: return func(a)
 
 [pub]
-fun toArray<T>(my i mut Iterator<T>) Array<T>
-    ret i.toList().toArray()
+fun mut Iterator.toArray<T>() Array<T>
+    ret my.toList().toArray()
 
 [pub]
-fun toList<T>(my i mut Iterator<T>) List<T>
+fun mut Iterator.toList<T>() List<T>
     @list = List<T>()
-    while i.next()@item
+    while my.next()@item
         list.push(item)
     ret list
     

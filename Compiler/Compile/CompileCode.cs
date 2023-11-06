@@ -49,7 +49,8 @@ namespace Zurfur.Compiler
             None = 0,
             AssignmentTarget = 1,   // Allow setter
             Invoked = 2,            // Call has '()', so invoke the lambda
-            DontAddCallInfo
+            Dot = 4,                // Allow static
+            DontAddCallInfo = 8
         }
 
         enum CallCompatible
@@ -532,6 +533,8 @@ namespace Zurfur.Compiler
                     return GenStr(ex);
                 else if (name == "nil")
                     return new Rval(token) { Type = typeNil };
+                else if (name == "my")
+                    return GenIdentifier(ex);
                 else if (name == "require")
                     return GenIdentifier(ex);
                 else if (name == ParseZurf.VT_TYPE_ARG)
@@ -700,7 +703,7 @@ namespace Zurfur.Compiler
                 var leftDot = GenExpr(ex[0]);
                 if (leftDot == null)
                     return null; // Error already marked
-                EvalCall(leftDot, EmptyCallParams);
+                EvalCall(leftDot, EmptyCallParams, EvalFlags.Dot);
                 var leftType = leftDot.Type;
                 if (leftType == null)
                     return null;
@@ -1070,7 +1073,7 @@ namespace Zurfur.Compiler
 
                 // Find static operators from either argument
                 var call = new Rval(token, operatorName) { InType = DerefRef(args[0].Type!) };
-                var args2 = args.Skip(1).ToList(); // Rewrite op(a,b) to a.op(b) - TBD: Remove with uniform call syntax
+                var args2 = args.Skip(1).ToList(); // Rewrite op(a,b) to a.op(b)
                 var funType = EvalCallExpectFun(call, args2, EvalFlags.Invoked, $" '{operatorName}' (operator '{token}')")
                     ?.FunReturnType;
 
@@ -1313,25 +1316,71 @@ namespace Zurfur.Compiler
                 if (local != null)
                     candidates = new List<Symbol>() { local };
                 else if (inType == null)
-                    candidates = FindGlobal(call.Token);
+                    candidates = FindGlobal(call.Name);
                 else
                     candidates = FindInType(call.Name, inType);
-
-
-                var oldCalls = candidates.ToArray();
-                if (candidates.Count == 0)
-                {
-                    RejectSymbols(token, oldCalls,
-                        $"Can't find '{token}' variable, field, or function " + rejectName);
-                    return null;
-                }
 
                 // Exactly 1 primary or multiple functions
                 if (RejectUndefinedOrAmbiguousPrimary(call, candidates))
                     return null;
 
-                if (args != null && candidates.Count == 1 && candidates[0].IsAnyType)
-                    return FindCompatibleConstructor(call, candidates, args);
+                // Handle fields, types, modules, and setter
+                if (candidates.Count == 1
+                    && (candidates[0].IsField || candidates[0].IsAnyTypeOrModule))
+                {
+                    var candidate = candidates[0];
+                    if (call.IsStatic != candidate.IsStatic)
+                    {
+                        Reject(call.Token, "Static mismatch");
+                        return null;
+                    }
+
+                    if (candidate.IsAnyType && flags.HasFlag(EvalFlags.Invoked))
+                        return FindCompatibleConstructor(call, candidate, args);
+
+                    if (candidate.IsField && candidate.Type != null && inType != null && inType.TypeArgs.Length != 0)
+                        candidate = table.CreateSpecializedType(candidate, inType.TypeArgs, null);
+                    token.AddInfo(candidate);
+
+                    // Static type or module, e.g. int.MinValue, or Log.info,
+                    // but not int().MinValue
+                    if (candidate.IsAnyTypeOrModule)
+                    {
+                        token.Type = eTokenType.TypeName;
+                        if (flags.HasFlag(EvalFlags.Dot) || candidate.FullName == SymTypes.Nil)
+                        {
+                            // Substitute generic parameter
+                            if (candidate.IsTypeParam)
+                                call.Type = table.GetGenericParam(candidate.Order);
+                            else
+                                call.Type = candidate;
+
+                            call.IsStatic = true;
+                            return candidate;
+                        }
+                        else
+                        {
+                            Reject(token, $"'{token}' is a {candidate.KindName}, which is not valid when used like this");
+                            return candidate;
+                        }
+                    }
+                    // Field
+                    if (candidate.IsField)
+                    {
+                        if (candidate.Type == null)
+                        {
+                            Reject(token, $"'{token}' has an unresolved type");
+                            return candidate;
+                        }
+                        Debug.Assert(candidate.Type.Parent!.FullName != SymTypes.Ref);
+                        call.Type = candidate.Type;
+
+                        // A field is the same thing as a getter returning a mutable ref
+                        MakeIntoRef(call);
+                        assembly.AddOpNoImp(candidate.Token, $"field {candidate.FullName}");
+                        return candidate;
+                    }
+                }
 
                 // If there is a tie between a getter and setter, choose based `assignmentTarget`
                 if (candidates.Count == 2 && (candidates[0].IsSetter == candidates[1].IsGetter))
@@ -1343,67 +1392,11 @@ namespace Zurfur.Compiler
                             call.IsSetter = true;
                     }
                 }
-
-                // Handle fields, types, modules, and setter
-                if (candidates.Count == 1
-                    && (candidates[0].IsField 
-                        || candidates[0].IsAnyTypeOrModule
-                        || candidates[0].IsSetter && flags.HasFlag(EvalFlags.AssignmentTarget)))
+                // Setter, TBD: Not sure if this is correct
+                if (candidates.Count == 1 && candidates[0].IsSetter)
                 {
-                    var sym2 = candidates[0];
-                    if (sym2.IsField && sym2.Type != null && inType != null && inType.TypeArgs.Length != 0)
-                        sym2 = table.CreateSpecializedType(sym2, inType.TypeArgs, null);
-                    token.AddInfo(sym2);
-
-                    // Static type or module, e.g. int.MinValue, or Log.info,
-                    // but not int().MinValue
-                    if (sym2.IsAnyTypeOrModule)
-                    {
-                        // TBD: This used to be passed in when parsed from "."
-                        const bool ALLOW_STATIC_TYPE = true;
-
-                        token.Type = eTokenType.TypeName;
-                        if (ALLOW_STATIC_TYPE || sym2.FullName == SymTypes.Nil)
-                        {
-                            // Substitute generic parameter
-                            if (sym2.IsTypeParam)
-                                call.Type = table.GetGenericParam(sym2.Order);
-                            else
-                                call.Type = sym2;
-
-                            call.IsStatic = true;
-                            return sym2;
-                        }
-                        else
-                        {
-                            Reject(token, $"'{token}' is a {sym2.KindName}, which is not valid when used like this");
-                            return sym2;
-                        }
-                    }
-                    // Field
-                    if (sym2.IsField)
-                    {
-                        if (sym2.Type == null)
-                        {
-                            Reject(token, $"'{token}' has an unresolved type");
-                            return sym2;
-                        }
-                        Debug.Assert(sym2.Type.Parent!.FullName != SymTypes.Ref);
-                        call.Type = sym2.Type;
-
-                        // A field is the same thing as a getter returning a mutable ref
-                        MakeIntoRef(call);
-                        assembly.AddOpNoImp(sym2.Token, $"field {sym2.FullName}");
-                        return sym2;
-                    }
-                    // Setter
-                    // TBD: Not sure if this is correct
-                    if (sym2.IsSetter)
-                    {
-                        call.Type = sym2.FunReturnType;
-                        return sym2;
-                    }
-                    throw new Exception("Compiler error: Field, Type/Module, and setter should be covered above");
+                    call.Type = candidates[0].FunReturnType;
+                    return candidates[0];
                 }
 
                 // Generic parameter substitution                
@@ -1420,9 +1413,8 @@ namespace Zurfur.Compiler
             }
 
             // Find a compatible constructor function
-            Symbol? FindCompatibleConstructor(Rval call, List<Symbol> candidates, List<Rval>? args)
+            Symbol? FindCompatibleConstructor(Rval call, Symbol newType, List<Rval>? args)
             {
-                var newType = candidates[0];
                 call.Token.Type = eTokenType.TypeName;
                 if (newType.IsSpecialized)
                     throw new Exception("Compiler error: FindCompatibleConstructor, unexpected specialized type");
@@ -1434,7 +1426,8 @@ namespace Zurfur.Compiler
                         Reject(call.Token, $"Expecting 0 type parameters, but got '{call.TypeArgs.Length}'");
                     if (args != null && args.Count != 0)
                         Reject(call.Token, $"New generic type with arguments not supported yet");
-                    return table.GetGenericParamConstructor(newType.Order);
+                    call.Type = table.GetGenericParamConstructor(newType.Order);
+                    return call.Type;
                 }
 
                 // Search for `new` function
@@ -1462,10 +1455,6 @@ namespace Zurfur.Compiler
                     Reject(call.Token, "Function or type name expected");
                     return null;
                 }
-
-                // Exactly 1 primary or multiple functions
-                if (RejectUndefinedOrAmbiguousPrimary(call, candidates))
-                    return null;
 
                 // Unresolved arguments
                 if (args == null)
@@ -1573,7 +1562,7 @@ namespace Zurfur.Compiler
                 if (!func.IsFun)
                     return IsLambdaCompatible(func, call, args);
 
-                if (func.IsMy)
+                if (func.IsMethod && call.InType != null)
                 {
                     if (call.IsStatic && !func.IsStatic)
                         return (null, CallCompatible.StaticCallToNonStaticMethod);
@@ -1609,7 +1598,7 @@ namespace Zurfur.Compiler
 
                 // Don't consider first parameter of static method
                 var funParams = new Span<Symbol>(func.FunParamTypes);
-                if (func.IsMy && func.IsStatic)
+                if (func.IsMethod && func.IsStatic)
                     funParams = funParams.Slice(1);
 
                 return AreParamsCompatible(func, args, funParams);
@@ -1647,7 +1636,11 @@ namespace Zurfur.Compiler
                     var param = DerefRef(funParams[i]);
 
                     // Receiver for generic interface always matches
-                    if (i == 0 && func.Concrete.Parent!.IsInterface && argType.IsGenericArg)
+                    // since it came from the constaint
+                    if (i == 0 
+                            && func.Concrete.Parent!.IsInterface
+                            && !func.IsStatic 
+                            && argType.IsGenericArg)
                         continue;
 
                     // The generic lambda type matches all lambdas because
@@ -1738,6 +1731,78 @@ namespace Zurfur.Compiler
                 return true;
             }
 
+            // Finds a local or parameter.  Returns null if not found.
+            (Symbol? sym, int index) FindLocal(Token token)
+            {
+                // Find local parameters
+                var name = token.Name;
+                var pi = Array.FindIndex(function.FunParamTuple.TupleSymbols, f => f.SimpleName == name);
+                if (pi >= 0)
+                    return (function.FunParamTuple.TupleSymbols[pi], 0);
+                var ri = Array.FindIndex(function.FunReturnTuple.TupleSymbols, f => f.SimpleName == name);
+                if (ri >= 0)
+                {
+                    Reject(token, "Invalid use of return parameter");
+                    return (null, 0);
+                }
+
+                // Local type parameter
+                if (function.TryGetPrimary(name, out var localParam))
+                    if (localParam!.IsTypeParam)
+                        return (localParam, 0);
+
+                // Find local
+                if (localsByName!.TryGetValue(token, out var local))
+                {
+                    if (local.Symbol == null)
+                        Reject(token, $"'{token}' is an out of scope local variable");
+                    return (local.Symbol, local.LocalNum);
+                }
+                return (null, 0);
+            }
+
+            /// <summary>
+            /// Find symbols in the global scope that match this token.
+            /// Searches the current module or use symbols.
+            /// </summary>
+            List<Symbol> FindGlobal(string name)
+            {
+                // Find global symbols in this module
+                var symbols = new List<Symbol>();
+                var module = function.Parent!;
+                if (module.TryGetPrimary(name, out Symbol? sym1))
+                    symbols.Add(sym1!);
+                foreach (var child in module.ChildrenNamed(name))
+                    if (child.IsFun && child.SimpleName == name && !child.IsMethod)
+                        symbols.Add(child);
+
+                // Search 'use' symbol
+                if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
+                {
+                    foreach (var sym2 in useSymbols)
+                        if (!sym2.IsMethod)
+                            symbols.Add(sym2);
+                }
+
+                // Add global constaints
+                // TBD: Remove constraints without non-static parameters
+                //      since it dumps parameterless functions into the scope?
+                //      e.g. 'where T has NumOps<T>' adds `Zero` and `One`
+                if (function.Constraints != null)
+                {
+                    var cons = new List<Symbol>();
+                    foreach (var constraints in function.Constraints.Values)
+                        AddGenericConstraints(name, constraints, cons);
+
+                    // TBD: Would be better to just not get them in the first place,
+                    //      but just want to get this working now
+                    cons.RemoveAll(s => !s.IsStatic);
+                    symbols.AddRange(cons);
+                }
+
+                RemoveLastDuplicates(symbols);
+                return symbols;
+            }
 
             /// <summary>
             /// Find symbols in the type, including functions defined in
@@ -1755,7 +1820,7 @@ namespace Zurfur.Compiler
                 if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
                 {
                     foreach (var sym2 in useSymbols)
-                        if (sym2.IsMy && sym2.IsFun)
+                        if (sym2.IsMethod && sym2.IsFun)
                         {
                             var funParams = sym2.FunParamTypes;
                             if (funParams.Length != 0 && funParams[0].FullName == inType.FullName)
@@ -1763,20 +1828,22 @@ namespace Zurfur.Compiler
                         }
                 }
 
-                AddGenericConstraints(name, inType, symbols);
+                // Add constraints when the receiver is generic
+                if (function.Constraints != null 
+                        && inType.IsGenericArg
+                        && function.Constraints.TryGetValue(inType.ToString(), out var constraints))
+                    AddGenericConstraints(name, constraints, symbols);
+
                 RemoveLastDuplicates(symbols);
                 return symbols;
             }
 
+
             // Collect constraints on generic argument inType.  Generic
             // arguments of the function are replaced with the constraint
             // generic arguments.
-            void AddGenericConstraints(string name, Symbol inType, List<Symbol> symbols)
+            void AddGenericConstraints(string name, string []constraints, List<Symbol> symbols)
             {
-                if (function.Constraints == null || !inType.IsGenericArg)
-                    return;
-                if (!function.Constraints.TryGetValue(inType.ToString(), out var constraints))
-                    return;
                 foreach (var constraintStr in constraints)
                 {
                     var constraint = table.Lookup(constraintStr);
@@ -1831,7 +1898,7 @@ namespace Zurfur.Compiler
 
                 foreach (var child in inModule.ChildrenNamed(name))
                 {
-                    if (!child.IsFun || !child.IsMy || child.SimpleName != name)
+                    if (!child.IsFun || !child.IsMethod || child.SimpleName != name)
                         continue;
                     var parameters = child.FunParamTypes;
                     if (parameters.Length == 0)
@@ -1893,72 +1960,6 @@ namespace Zurfur.Compiler
                 return local;
             }
 
-            /// <summary>
-            /// Find symbols in the global scope that match this token.
-            /// Searches the current module or use symbols.
-            /// Returns NULL and rejects token on error.
-            /// </summary>
-            List<Symbol> FindGlobal(Token token)
-            {
-                // Find global symbols in this module
-                var symbols = new List<Symbol>();
-                var name = token.Name;
-                var module = function.Parent!;
-                if (module.TryGetPrimary(name, out Symbol? sym1))
-                    symbols.Add(sym1!);
-                foreach (var child in module.ChildrenNamed(name))
-                    if (child.IsFun && child.SimpleName == name && !child.IsMy)
-                        symbols.Add(child);
-
-                // Search 'use' symbol
-                if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
-                {
-                    foreach (var sym2 in useSymbols)
-                        if (!sym2.IsMy)
-                            symbols.Add(sym2);
-                }
-
-                if (symbols.Count == 0)
-                {
-                    Reject(token, $"'{name}' is an undefined symbol");
-                    return symbols;
-                }
-
-                RemoveLastDuplicates(symbols);
-                return symbols;
-            }
-
-            // Finds a local or parameter.  Returns null if not found.
-            (Symbol? sym, int index) FindLocal(Token token)
-            {
-                // Find local parameters
-                var name = token.Name;
-                var pi = Array.FindIndex(function.FunParamTuple.TupleSymbols, f => f.SimpleName == name);
-                if (pi >= 0)
-                    return (function.FunParamTuple.TupleSymbols[pi], 0);
-                var ri = Array.FindIndex(function.FunReturnTuple.TupleSymbols, f => f.SimpleName == name);
-                if (ri >= 0)
-                {
-                    Reject(token, "Invalid use of return parameter");
-                    return (null, 0);
-                }
-
-                // Local type parameter
-                if (function.TryGetPrimary(name, out var localParam))
-                    if (localParam!.IsTypeParam)
-                        return (localParam, 0);
-
-                // Find local
-                if (localsByName!.TryGetValue(token, out var local))
-                {
-                    if (local.Symbol == null)
-                        Reject(token, $"'{token}' is an out of scope local variable");
-                    return (local.Symbol, local.LocalNum);
-                }
-                return (null, 0);
-            }
-
-
             void BeginLocalScope(Token token)
             {
                 scopeNum++;
@@ -2001,9 +2002,9 @@ namespace Zurfur.Compiler
                 if (candidates == null || candidates.Count == 0)
                 {
                     if (call.InType == null)
-                        Reject(call.Token, $"'{call.Name} is an undefined symbol");
+                        Reject(call.Token, $"'{call.Name} is an undefined symbol in the local or global scope");
                     else
-                        Reject(call.Token, $"'{call.Name}' is an undefined symbol in the type '{call.InType}'");
+                        Reject(call.Token, $"'{call.Name}' is an undefined symbol in the {call.InType.Kind} '{call.InType}'");
                     return true;
                 }
 

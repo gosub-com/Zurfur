@@ -289,7 +289,7 @@ namespace Zurfur.Jit
                 // Create a generic constructor for generic type
                 var type = GetGenericParam(i);
                 var constructor = new Symbol(SymKind.Fun, type, null, "new");
-                constructor.Qualifiers |= SymQualifiers.Static | SymQualifiers.My | SymQualifiers.Extern;
+                constructor.Qualifiers |= SymQualifiers.Static | SymQualifiers.My | SymQualifiers.Method | SymQualifiers.Extern;
                 constructor.Type = CreateTuple(new[] {
                         CreateTuple(new[] { type }),
                         CreateTuple(new[] { type }) });

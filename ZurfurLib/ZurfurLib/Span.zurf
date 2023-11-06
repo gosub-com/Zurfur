@@ -18,43 +18,43 @@ type SpanIterator<T> ref copy
     _count ro int
     
 [pub]
-fun _opIndex<T>(my s Span<T>, i int) mut &T
-    require(i in 0..s.len)
+fun Span._opIndex<T>(i int) mut &T
+    require(i in 0..my.len)
     todo // Implementation TBD
 
 [pub]
-fun _opIndex<T>(my s Span<T>, range Range<int>) mut Span<T>
-    require(range.low in 0..s.len)
-    require(range.high in 0..s.len)
+fun Span._opIndex<T>(range Range<int>) mut Span<T>
+    require(range.low in 0..my.len)
+    require(range.high in 0..my.len)
     require(range.low <= range.high)
     todo // Implementation TBD
 
 [pub]
-fun sort<T>(my s mut Span<T>, compare fun(a T, b T)bool)
+fun mut Span.sort<T>(compare fun(a T, b T)bool)
     todo
 
 // Set the span to `item` (or default if not specified)
 [pub]
-fun clear<T>(my s mut Span<T>, item T = default)
+fun mut Span.clear<T>(item T = default)
     todo
     
 // Find index of the sequence `seq`.
 // Returns -1 if not found, or 0 if `seq` is empty.
 [pub]
-fun find<T>(my s Span<T>, seq Span<T>) int
+fun Span.find<T>(seq Span<T>) int
     where T has OpEq<T>
     todo
 
 // Find the index of the `item`.  Returns -1 if not found.
 [pub]
-fun find<T>(my s Span<T>, item T) int
+fun Span.find<T>(item T) int
     where T has OpEq<T>
     todo
     
 // Find the index of the `item` when `eq` returns true.
 // Returns -1 if not found.
 [pub]
-fun find<T>(my s Span<T>, eq fun(item T) bool) int
+fun Span.find<T>(eq fun(item T) bool) int
     todo
 
         

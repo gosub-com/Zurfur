@@ -1034,7 +1034,7 @@ namespace Zurfur.Compiler
                 qualifiers.Add(Accept());
             }
 
-            var validFunctionName = ParseFunctionName(out synFunc.Name, out synFunc.TypeArgs);
+            var validFunctionName = ParseExtensionTypeAndMethodName(out synFunc.ExtensionType, out synFunc.Name, out synFunc.TypeArgs);
 
             synFunc.FunctionSignature = ParseFunctionSignature(keyword);
 
@@ -1050,35 +1050,69 @@ namespace Zurfur.Compiler
                 mSyntax.Functions.Add(synFunc);
         }
 
+
         /// <summary>
-        /// Returns true if we are a valid function name
+        /// Returns true if we are a valid method name
         /// </summary>
-        bool ParseFunctionName(
-            out Token funcName, 
+        bool ParseExtensionTypeAndMethodName(
+            out SyntaxExpr? extensionType,
+            out Token funcName,
             out SyntaxExpr? genericTypeArgs)
         {
+            extensionType = null;
             genericTypeArgs = null;
             funcName = mToken;
 
-            if (mToken == "mut")
-                Accept().AddWarning("Not stored in parse tree yet");
+            var mutToken = mToken == "mut" ? Accept() : null;
 
-            // TBD: Verifier to ensure 'require' only defined in Zurfur module
-            //      New, clone, and drop will become special functions
-            if (mToken  == "require" || mToken == "new" || mToken == "clone" || mToken == "drop")
+            // TBD: Verifier to ensure this function not defined anywhere other than Zurfur module                
+            if (mToken == "require" || mToken == "new" ||  mToken == "drop")
                 mToken.Type = eTokenType.Identifier;
 
-            if (CheckIdentifier("Expecting a function name", sRejectTypeName))
-            {
-                RejectUnderscoreDefinition(mToken);
+            if (!CheckIdentifier("Expecting a function or property name", sRejectTypeName))
+                return false;
 
-                funcName = Accept();
-                if (mToken == "<")
-                    genericTypeArgs = ParseTypeParameters();
-                return true;
+            var nameExpr = ParseType();
+
+            // WITH DOT:
+            //      fun type.name()
+            // Generic type args
+            if (nameExpr.Count >= 2 && nameExpr.Token == VT_TYPE_ARG)
+            {
+                genericTypeArgs = new SyntaxMulti(nameExpr.Token, nameExpr.Skip(1).ToArray());
+                nameExpr = nameExpr[0];
             }
-            return false;
+
+            // Extension type
+            if (nameExpr.Token == "." && nameExpr.Count >= 2)
+            {
+                extensionType = nameExpr[0];
+                nameExpr = nameExpr[1];
+            }
+
+            // TBD: Record 'mut' token for static functions inside interfaces
+            if (mutToken != null && extensionType != null)
+                extensionType = new SyntaxUnary(mutToken, extensionType);
+            else if (mutToken != null)
+                mutToken.AddWarning("Not stored in parse tree yet");
+
+            if (nameExpr.Count != 0)
+                RejectToken(nameExpr.Token, "Expecting a function name");
+            if (genericTypeArgs != null)
+                foreach (var arg in genericTypeArgs)
+                    if (arg.Count != 0)
+                    {
+                        genericTypeArgs = null;
+                        RejectToken(arg.Token, "Only type names are allowed in a generic argument list");
+                    }
+
+            funcName = nameExpr.Token;
+            funcName.Type = eTokenType.DefineMethod;
+
+            RejectUnderscoreDefinition(funcName);
+            return nameExpr.Count == 0;
         }
+
 
         /// <summary>
         /// returns SyntaxExpr:
@@ -1146,14 +1180,14 @@ namespace Zurfur.Compiler
         {
             var qualifiers = NewExprList();
 
-            if (AcceptMatch("my"))
-                qualifiers.Add(new SyntaxToken(mPrevToken));
-
             if (!AcceptIdentifier("Expecting a variable name", sRejectFuncParam))
                 return SyntaxError;
             var name = mPrevToken;
             name.Type = eTokenType.DefineParam;
             RejectUnderscoreDefinition(name);
+
+            if (AcceptMatch("my"))
+                qualifiers.Add(new SyntaxToken(mPrevToken));
 
             // TBD: Param qualifiers probably need to be part of type
             while (sParamQualifiers.Contains(mToken))

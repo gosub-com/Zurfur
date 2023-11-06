@@ -26,27 +26,27 @@ type MyType
 
 // Declare a method to multiply and add three keys on Map<K,V>.
 // Return Nan (or MinValue for integer types) if any key is missing.
-fun madd<K,V>(my m Map<K,V>, mul1 K, mul2 K, add K) V
+fun Map.madd<K,V>(mul1 K, mul2 K, add K) V
     where V has NumOps<V>
     
-    if m[mul1]@mul1Val and m[mul2]@mul2Val and m[add]@addVal
+    if my[mul1]@mul1Val and my[mul2]@mul2Val and my[add]@addVal
         ret mul1Val * mul2Val + addVal
     ret V.NanOrMin        
 
 // Method
 [pub]
-fun countToTen(my m MyType)
+fun MyType.countToTen()
     Log.info("Hello world.  Let's count to 10.")
     for @i in 1..+10
         Log.info("Count={i}, text={m.text}")
 
 // Setter for list, which is already public read-only
 [pub]
-fun set list(my m MyType, v own List<int>)
-    m._list = v
-    m.mapChangedEvent()
+fun set MyType.list(v own List<int>)
+    my._list = v
+    my.mapChangedEvent()
 
-fun mapChangedEvent(my m MyType) {}
+fun MyType.mapChangedEvent() {}
 
 fun test_HelloWorld()
     Log.info("Hello World.  Let's count from 1 to 10.")

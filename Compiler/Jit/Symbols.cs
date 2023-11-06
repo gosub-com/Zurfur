@@ -77,29 +77,30 @@ namespace Zurfur.Jit
     {
         None = 0,
         My = 0x1,
-        Interface = 0x2,
-        Const = 0x4,
-        Static = 0x8,
-        Async = 0x10,
-        Get = 0x20,
-        Set = 0x40,
-        Pub = 0x80,
-        Protected = 0x100,
-        Ro = 0x200,
-        Mut = 0x400,
-        Ref = 0x800,
-        Boxed = 0x1000,
-        Unsafe = 0x2000,
-        Enum = 0x4000,
-        Init = 0x8000,
-        Impl = 0x10000,
-        Extern = 0x20000,
-        Own = 0x200000,
-        Copy = 0x400000,
-        Union = 0x800000,
-        NoCopy = 0x1000000,
-        Specialized = 0x2000000,
-        Todo = 0x4000000
+        Method = 0x2,
+        Interface = 0x4,
+        Const = 0x8,
+        Static = 0x10,
+        Async = 0x20,
+        Get = 0x40,
+        Set = 0x80,
+        Pub = 0x100,
+        Protected = 0x200,
+        Ro = 0x400,
+        Mut = 0x800,
+        Ref = 0x1000,
+        Boxed = 0x2000,
+        Unsafe = 0x4000,
+        Enum = 0x8000,
+        Init = 0x10000,
+        Impl = 0x20000,
+        Extern = 0x40000,
+        Own = 0x800000,
+        Copy = 0x1000000,
+        Union = 0x2000000,
+        NoCopy = 0x4000000,
+        Specialized = 0x8000000,
+        Todo = 0x10000000
     }
 
     /// <summary>
@@ -258,6 +259,7 @@ namespace Zurfur.Jit
         public bool IsFunParam => Kind == SymKind.FunParam;
         public bool IsLocal => Kind == SymKind.Local;
         public bool IsMy => Qualifiers.HasFlag(SymQualifiers.My);
+        public bool IsMethod => Qualifiers.HasFlag(SymQualifiers.Method);
         public bool IsConst => Qualifiers.HasFlag(SymQualifiers.Const);
         public bool IsStatic => Qualifiers.HasFlag(SymQualifiers.Static);
         public bool IsGetter => Qualifiers.HasFlag(SymQualifiers.Get);
@@ -407,7 +409,7 @@ namespace Zurfur.Jit
             var funParams = "";
             if (IsFun && Type != null)
             {
-                if (IsMy && FunParamTuple.TypeArgs.Length != 0)
+                if (IsMethod && FunParamTuple.TypeArgs.Length != 0)
                 {
                     // Methods use first parameter as receiver type
                     funParams = FunParamTuple.FriendlyNameInternal(true) + FunReturnTuple.FriendlyNameInternal(false);
@@ -537,6 +539,7 @@ namespace Zurfur.Jit
                 if (Qualifiers.HasFlag(SymQualifiers.Const)) t += " const";
                 if (Qualifiers.HasFlag(SymQualifiers.Enum)) t += " enum";
                 if (Qualifiers.HasFlag(SymQualifiers.My)) t += " my";
+                if (Qualifiers.HasFlag(SymQualifiers.Method)) t += " method";
                 if (Qualifiers.HasFlag(SymQualifiers.Extern)) t += " extern";
                 if (Qualifiers.HasFlag(SymQualifiers.Get)) t += " get";
                 if (Qualifiers.HasFlag(SymQualifiers.Init)) t += " init";
@@ -588,6 +591,7 @@ namespace Zurfur.Jit
                 case "get": Qualifiers |= SymQualifiers.Get; break;
                 case "afun": Qualifiers |= SymQualifiers.Async; Debug.Assert(Kind == SymKind.Fun); break;
                 case "my": Qualifiers |= SymQualifiers.My; break;
+                case "method": Qualifiers |= SymQualifiers.Method; break;
                 case "interface": Qualifiers |= SymQualifiers.Interface; break;
                 case "extern": Qualifiers |= SymQualifiers.Extern; break;
                 case "const": Qualifiers |= SymQualifiers.Const; break;
