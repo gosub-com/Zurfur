@@ -13,12 +13,12 @@ type Xuint ro
 type RawPointer<T> ro
     value Xuint
 
-fun RawPointer._opEq<T>(p2 RawPointer<T>) bool extern
-fun RawPointer._opCmp<T>(p2 RawPointer<T>) int extern
-fun RawPointer._opAdd<T>(i u64) RawPointer<T> extern
-fun _opAdd<T>(p1 u64, i RawPointer<T>) RawPointer<T> extern
-fun RawPointer._opSub<T>(p2 RawPointer<T>) RawPointer<T> extern
-fun RawPointer._opSub<T>(p2 u64) RawPointer<T> extern
+fun _opEq<T>(a RawPointer<T>, b RawPointer<T>) bool extern
+fun _opCmp<T>(a RawPointer<T>, b RawPointer<T>) int extern
+fun _opAdd<T>(a RawPointer<T>, b u64) RawPointer<T> extern
+fun _opAdd<T>(a u64, b RawPointer<T>) RawPointer<T> extern
+fun _opSub<T>(a RawPointer<T>, b RawPointer<T>) RawPointer<T> extern
+fun _opSub<T>(a RawPointer<T>, b u64) RawPointer<T> extern
 
 
 // Internal representation of `ref`, a compiler generated stack only pointer.
@@ -119,7 +119,7 @@ fun castPointer<Out>(i int) Out
 fun castPointer<Out>(i *void) Out
     extern // TBD: Remove
 
-fun RawPointer._opAdd<T>(b int) *T extern
+fun _opAdd<T>(a RawPointer<T>, b int) *T extern
 fun _opAdd<T>(a int,b *T) *T extern
 
 fun test_Add()

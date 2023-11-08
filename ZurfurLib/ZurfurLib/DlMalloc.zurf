@@ -31,7 +31,7 @@
 
 mod Zurfur.Internal.Memory
 
-use Zurfur[u64, castPointer]
+use Zurfur[castPointer, RawPointer]
 
 fun panicFatal(m str)
     todo

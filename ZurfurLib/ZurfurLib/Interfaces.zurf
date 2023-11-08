@@ -24,14 +24,14 @@ type OpCmp<T> interface
 // Common math operators
 type NumOps<T> interface
     fun getHash() u32
-    fun _opEq(b T) bool
-    fun _opCmp(b T) int
-    fun _opAdd(b T) T
-    fun _opSub(b T) T
-    fun _opNeg() T
-    fun _opMul(b T) T
-    fun _opDiv(b T) T
-    fun _opRem(b T) T
+    [static] fun _opEq(a T, b T) bool
+    [static] fun _opCmp(a T, b T) int
+    [static] fun _opAdd(a T, b T) T
+    [static] fun _opSub(a T, b T) T
+    [static] fun _opNeg(a T) T
+    [static] fun _opMul(a T, b T) T
+    [static] fun _opDiv(a T, b T) T
+    [static] fun _opRem(a T, b T) T
     [static] fun get Zero() T
     [static] fun get One() T
     [static] fun get MinValue() T

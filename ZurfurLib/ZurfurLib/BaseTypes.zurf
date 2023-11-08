@@ -90,12 +90,12 @@ type bool ro
     const __size int = 1
 
 [pub] fun bool.getHash() int extern
-[pub] fun bool._opEq(b bool) bool extern
+[pub] fun _opEq(a bool, b bool) bool extern
 
 // TBD: These operators must be restricted to bool
-[pub] fun bool._opLogicalAnd(b bool) bool extern
-[pub] fun bool._opLogicalOr(b bool) bool extern
-[pub] fun bool._opLogicalNot() bool extern
+[pub] fun _opLogicalAnd(a bool, b bool) bool extern
+[pub] fun _opLogicalOr(a bool, b bool) bool extern
+[pub] fun _opLogicalNot(a bool) bool extern
 
 // i8 (-128..127)
 [pub]
@@ -109,8 +109,8 @@ type i8 ro
     const NanOrMin i8 = MinValue
     
 [pub] fun i8.getHash() int extern
-[pub] fun i8._opEq(b i8) bool extern
-[pub] fun i8._opCmp(b i8) int extern
+[pub] fun _opEq(a i8, b i8) bool extern
+[pub] fun _opCmp(a i8, b i8) int extern
 
 [pub] fun i8.toStr() str extern
 [pub] fun i8.toByte() ?byte extern
@@ -136,8 +136,8 @@ type byte ro
     const NanOrMin byte = MinValue
     
 [pub] fun byte.getHash() int extern
-[pub] fun byte._opEq(b byte) bool extern
-[pub] fun byte._opCmp(b byte) int extern
+[pub] fun _opEq(a byte, b byte) bool extern
+[pub] fun _opCmp(a byte, b byte) int extern
 
 [pub] fun byte.toStr() str extern
 [pub] fun byte.toI8() ?i8 extern
@@ -164,8 +164,8 @@ type i16 ro
     const NanOrMin i16 = MinValue
 
 [pub] fun i16.getHash() int extern
-[pub] fun i16._opEq(b i16) bool extern
-[pub] fun i16._opCmp(b i16) int extern
+[pub] fun _opEq(a i16, b i16) bool extern
+[pub] fun _opCmp(a i16, b i16) int extern
 
 [pub] fun i16.toStr() str extern
 [pub] fun i16.toI8() ?i8 extern
@@ -192,8 +192,8 @@ type u16 ro
     const NanOrMin u16 = MinValue
     
 [pub] fun u16.getHash() int extern
-[pub] fun u16._opEq(b u16) bool extern
-[pub] fun u16._opCmp(b u16) int extern
+[pub] fun _opEq(a u16, b u16) bool extern
+[pub] fun _opCmp(a u16, b u16) int extern
 
 [pub] fun u16.toStr() str extern
 [pub] fun u16.toI8() ?i8 extern
@@ -222,22 +222,22 @@ type i32 ro
     const NanOrMin i32 = MinValue
     
 [pub] fun i32.getHash() int extern
-[pub] fun i32._opEq(b i32) bool extern
-[pub] fun i32._opCmp(b i32) int extern
-[pub] fun i32._opIn(b Range<i32>) bool extern
-[pub] fun i32._opRange(b i32) Range<i32> extern // TBD: Generic function on range?
-[pub] fun i32._opAdd(b i32) i32 extern
-[pub] fun i32._opSub(b i32) i32 extern
-[pub] fun i32._opNeg() i32 extern
-[pub] fun i32._opMul(b i32) i32 extern
-[pub] fun i32._opDiv(b i32) i32 extern
-[pub] fun i32._opRem(b i32) i32 extern
-[pub] fun i32._opBitNot() i32 extern
-[pub] fun i32._opBitAnd(b i32) i32 extern
-[pub] fun i32._opBitOr(b i32) i32 extern
-[pub] fun i32._opBitXor(b i32) i32 extern
-[pub] fun i32._opBitShl(b int) i32 extern
-[pub] fun i32._opBitShr(b int) i32 extern
+[pub] fun _opEq(a i32, b i32) bool extern
+[pub] fun _opCmp(a i32, b i32) int extern
+[pub] fun _opIn(a i32, b Range<i32>) bool extern
+[pub] fun _opRange(a i32, b i32) Range<i32> extern // TBD: Generic function on range?
+[pub] fun _opAdd(a i32, b i32) i32 extern
+[pub] fun _opSub(a i32, b i32) i32 extern
+[pub] fun _opNeg(a i32) i32 extern
+[pub] fun _opMul(a i32, b i32) i32 extern
+[pub] fun _opDiv(a i32, b i32) i32 extern
+[pub] fun _opRem(a i32, b i32) i32 extern
+[pub] fun _opBitNot(a i32) i32 extern
+[pub] fun _opBitAnd(a i32, b i32) i32 extern
+[pub] fun _opBitOr(a i32, b i32) i32 extern
+[pub] fun _opBitXor(a i32, b i32) i32 extern
+[pub] fun _opBitShl(a i32, b int) i32 extern
+[pub] fun _opBitShr(a i32, b int) i32 extern
 
 [pub] fun i32.toStr() str extern
 [pub] fun i32.toI8() ?i8 extern
@@ -272,22 +272,22 @@ type u32 ro
     const NanOrMin u32 = MinValue
     
 [pub] fun u32.getHash() int extern
-[pub] fun u32._opEq(b u32) bool extern
-[pub] fun u32._opCmp(b u32) int extern
-[pub] fun u32._opIn(b Range<u32>) bool extern
-[pub] fun u32._opRange(b u32) Range<u32> extern // TBD: Generic function on range?
-[pub] fun u32._opAdd(b u32) u32 extern
-[pub] fun u32._opSub(b u32) u32 extern
-[pub] fun u32._opNeg() u32 extern
-[pub] fun u32._opMul(b u32) u32 extern
-[pub] fun u32._opDiv(b u32) u32 extern
-[pub] fun u32._opRem(b u32) u32 extern
-[pub] fun u32._opBitNot() u32 extern
-[pub] fun u32._opBitAnd(b u32) u32 extern
-[pub] fun u32._opBitOr(b u32) u32 extern
-[pub] fun u32._opBitXor(b u32) u32 extern
-[pub] fun u32._opBitShl(b int) u32 extern
-[pub] fun u32._opBitShr(b int) u32 extern
+[pub] fun _opEq(a u32, b u32) bool extern
+[pub] fun _opCmp(a u32, b u32) int extern
+[pub] fun _opIn(a u32, b Range<u32>) bool extern
+[pub] fun _opRange(a u32, b u32) Range<u32> extern // TBD: Generic function on range?
+[pub] fun _opAdd(a u32, b u32) u32 extern
+[pub] fun _opSub(a u32, b u32) u32 extern
+[pub] fun _opNeg(a u32) u32 extern
+[pub] fun _opMul(a u32, b u32) u32 extern
+[pub] fun _opDiv(a u32, b u32) u32 extern
+[pub] fun _opRem(a u32, b u32) u32 extern
+[pub] fun _opBitNot(a u32) u32 extern
+[pub] fun _opBitAnd(a u32, b u32) u32 extern
+[pub] fun _opBitOr(a u32, b u32) u32 extern
+[pub] fun _opBitXor(a u32, b u32) u32 extern
+[pub] fun _opBitShl(a u32, b int) u32 extern
+[pub] fun _opBitShr(a u32, b int) u32 extern
 
 [pub] fun u32.toStr() str extern
 [pub] fun u32.toI8() ?i8 extern
@@ -322,22 +322,22 @@ type int ro
     const NanOrMin int = MinValue    
 
 [pub] fun int.getHash() int extern
-[pub] fun int._opEq(b int) bool extern
-[pub] fun int._opCmp(b int) int extern
-[pub] fun int._opIn(b Range<int>) bool extern
-[pub] fun int._opRange(b int) Range<int> extern // TBD: Generic function on range?
-[pub] fun int._opAdd(b int) int extern
-[pub] fun int._opSub(b int) int extern
-[pub] fun int._opNeg() int extern
-[pub] fun int._opMul(b int) int extern
-[pub] fun int._opDiv(b int) int extern
-[pub] fun int._opRem(b int) int extern
-[pub] fun int._opBitNot() int extern
-[pub] fun int._opBitAnd(b int) int extern
-[pub] fun int._opBitOr(b int) int extern
-[pub] fun int._opBitXor(b int) int extern
-[pub] fun int._opBitShl(b int) int extern
-[pub] fun int._opBitShr(b int) int extern
+[pub] fun _opEq(a int, b int) bool extern
+[pub] fun _opCmp(a int, b int) int extern
+[pub] fun _opIn(a int, b Range<int>) bool extern
+[pub] fun _opRange(a int, b int) Range<int> extern // TBD: Generic function on range?
+[pub] fun _opAdd(a int, b int) int extern
+[pub] fun _opSub(a int, b int) int extern
+[pub] fun _opNeg(a int) int extern
+[pub] fun _opMul(a int, b int) int extern
+[pub] fun _opDiv(a int, b int) int extern
+[pub] fun _opRem(a int, b int) int extern
+[pub] fun _opBitNot(a int) int extern
+[pub] fun _opBitAnd(a int, b int) int extern
+[pub] fun _opBitOr(a int, b int) int extern
+[pub] fun _opBitXor(a int, b int) int extern
+[pub] fun _opBitShl(a int, b int) int extern
+[pub] fun _opBitShr(a int, b int) int extern
 
 [pub] fun int.toStr() str extern
 [pub] fun int.toI8() ?i8 extern
@@ -374,24 +374,24 @@ type u64 ro
     const NanOrMin u64 = MinValue
 
 [pub] fun u64.getHash() int extern
-[pub] fun u64._opEq(b u64) bool extern
-[pub] fun u64._opCmp(b u64) int extern
-[pub] fun u64._opIn(b Range<u64>) bool extern
-[pub] fun u64._opRange(b u64) Range<u64> extern // TBD: Generic function on range?
-[pub] fun u64._opAdd(b u64) u64 extern
-[pub] fun u64._opSub(b u64) u64 extern
-[pub] fun u64._opNeg() u64 extern
-[pub] fun u64._opMul(b u64) u64 extern
-[pub] fun u64._opDiv(b u64) u64 extern
-[pub] fun u64._opRem(b u64) u64 extern
-[pub] fun u64._opBitNot() u64 extern
-[pub] fun u64._opBitAnd(b u64) u64 extern
-[pub] fun u64._opBitOr(b u64) u64 extern
-[pub] fun u64._opBitXor(b u64) u64 extern
-[pub] fun u64._opBitShl(b int) u64 extern
-[pub] fun u64._opBitShr(b int) u64 extern
-[pub] fun u64._opBitShr(b u64) u64 extern
-[pub] fun u64._opBitShl(b u64) u64 extern
+[pub] fun _opEq(a u64, b u64) bool extern
+[pub] fun _opCmp(a u64, b u64) int extern
+[pub] fun _opIn(a u64, b Range<u64>) bool extern
+[pub] fun _opRange(a u64, b u64) Range<u64> extern // TBD: Generic function on range?
+[pub] fun _opAdd(a u64, b u64) u64 extern
+[pub] fun _opSub(a u64, b u64) u64 extern
+[pub] fun _opNeg(a u64) u64 extern
+[pub] fun _opMul(a u64, b u64) u64 extern
+[pub] fun _opDiv(a u64, b u64) u64 extern
+[pub] fun _opRem(a u64, b u64) u64 extern
+[pub] fun _opBitNot(a u64) u64 extern
+[pub] fun _opBitAnd(a u64, b u64) u64 extern
+[pub] fun _opBitOr(a u64, b u64) u64 extern
+[pub] fun _opBitXor(a u64, b u64) u64 extern
+[pub] fun _opBitShl(a u64, b int) u64 extern
+[pub] fun _opBitShr(a u64, b int) u64 extern
+[pub] fun _opBitShr(a u64, b u64) u64 extern
+[pub] fun _opBitShl(a u64, b u64) u64 extern
 
 [pub] fun u64.toStr() str extern
 [pub] fun u64.toI8() ?i8 extern
@@ -444,21 +444,21 @@ type f32 ro
     const E f32 = 2.718281828459045235
 
 [pub] fun f32.getHash() int extern
-[pub] fun f32._opEq(b f32) bool extern
-[pub] fun f32._opCmp(b f32) int extern
-[pub] fun f32._opEqUnordered(b f32) bool extern
-[pub] fun f32._opGtUnordered(b f32) bool extern
-[pub] fun f32._opGeUnordered(b f32) bool extern
-[pub] fun f32._opLtUnordered(b f32) bool extern
-[pub] fun f32._opLeUnordered(b f32) bool extern
-[pub] fun f32._opIn(b Range<f32>) bool extern
-[pub] fun f32._opRange(b f32) Range<i32> extern // TBD: Generic function on range?
-[pub] fun f32._opAdd(b f32) f32 extern
-[pub] fun f32._opSub(b f32) f32 extern
-[pub] fun f32._opNeg() f32 extern
-[pub] fun f32._opMul(b f32) f32 extern
-[pub] fun f32._opDiv(b f32) f32 extern
-[pub] fun f32._opRem(b f32) f32 extern
+[pub] fun _opEq(a f32, b f32) bool extern
+[pub] fun _opCmp(a f32, b f32) int extern
+[pub] fun _opEqUnordered(a f32, b f32) bool extern
+[pub] fun _opGtUnordered(a f32, b f32) bool extern
+[pub] fun _opGeUnordered(a f32, b f32) bool extern
+[pub] fun _opLtUnordered(a f32, b f32) bool extern
+[pub] fun _opLeUnordered(a f32, b f32) bool extern
+[pub] fun _opIn(a f32, b Range<f32>) bool extern
+[pub] fun _opRange(a f32, b f32) Range<i32> extern // TBD: Generic function on range?
+[pub] fun _opAdd(a f32, b f32) f32 extern
+[pub] fun _opSub(a f32, b f32) f32 extern
+[pub] fun _opNeg(a f32) f32 extern
+[pub] fun _opMul(a f32, b f32) f32 extern
+[pub] fun _opDiv(a f32, b f32) f32 extern
+[pub] fun _opRem(a f32, b f32) f32 extern
 
 [pub] fun f32.isInfinity() bool extern
 [pub] fun f32.isNan() bool extern
@@ -492,21 +492,21 @@ type float ro
     const E float = 2.718281828459045235
 
 [pub] fun float.getHash() int extern
-[pub] fun float._opEq(b float) bool extern
-[pub] fun float._opCmp(b float) int extern
-[pub] fun float._opEqUnordered(b float) bool extern
-[pub] fun float._opGtUnordered(b float) bool extern
-[pub] fun float._opGeUnordered(b float) bool extern
-[pub] fun float._opLtUnordered(b float) bool extern
-[pub] fun float._opLeUnordered(b float) bool extern
-[pub] fun float._opIn(b Range<float>) bool extern
-[pub] fun float._opRange(b float) Range<float> extern // TBD: Generic function on range?
-[pub] fun float._opAdd(b float) float extern
-[pub] fun float._opSub(b float) float extern
-[pub] fun float._opNeg() float extern
-[pub] fun float._opMul(b float) float extern
-[pub] fun float._opDiv(b float) float extern
-[pub] fun float._opRem(b float) float extern
+[pub] fun _opEq(a float, b float) bool extern
+[pub] fun _opCmp(a float, b float) int extern
+[pub] fun _opEqUnordered(a float, b float) bool extern
+[pub] fun _opGtUnordered(a float, b float) bool extern
+[pub] fun _opGeUnordered(a float, b float) bool extern
+[pub] fun _opLtUnordered(a float, b float) bool extern
+[pub] fun _opLeUnordered(a float, b float) bool extern
+[pub] fun _opIn(a float, b Range<float>) bool extern
+[pub] fun _opRange(a float, b float) Range<float> extern // TBD: Generic function on range?
+[pub] fun _opAdd(a float, b float) float extern
+[pub] fun _opSub(a float, b float) float extern
+[pub] fun _opNeg(a float) float extern
+[pub] fun _opMul(a float, b float) float extern
+[pub] fun _opDiv(a float, b float) float extern
+[pub] fun _opRem(a float, b float) float extern
 
 [pub] fun float.isInfinity() bool extern
 [pub] fun float.isNan() bool extern
@@ -539,21 +539,21 @@ type Decimal ro
     const nan Decimal = 0.0/0.0
     
 [pub] fun Decimal.getHash() int extern
-[pub] fun Decimal._opEq(b Decimal) bool extern
-[pub] fun Decimal._opCmp(b Decimal) int extern
-[pub] fun Decimal._opEqUnordered(b Decimal) bool extern
-[pub] fun Decimal._opGtUnordered(b Decimal) bool extern
-[pub] fun Decimal._opGeUnordered(b Decimal) bool extern
-[pub] fun Decimal._opLtUnordered(b Decimal) bool extern
-[pub] fun Decimal._opLeUnordered(b Decimal) bool extern
-[pub] fun Decimal._opIn(b Range<Decimal>) bool extern
-[pub] fun Decimal._opRange(b Decimal) Range<i32> extern // TBD: Generic function on range?
-[pub] fun Decimal._opAdd(b Decimal) Decimal extern
-[pub] fun Decimal._opSub(b Decimal) Decimal extern
-[pub] fun Decimal._opNeg() Decimal extern
-[pub] fun Decimal._opMul(b Decimal) Decimal extern
-[pub] fun Decimal._opDiv(b Decimal) Decimal extern
-[pub] fun Decimal._opRem(b Decimal) Decimal extern
+[pub] fun _opEq(a Decimal, b Decimal) bool extern
+[pub] fun _opCmp(a Decimal, b Decimal) int extern
+[pub] fun _opEqUnordered(a Decimal, b Decimal) bool extern
+[pub] fun _opGtUnordered(a Decimal, b Decimal) bool extern
+[pub] fun _opGeUnordered(a Decimal, b Decimal) bool extern
+[pub] fun _opLtUnordered(a Decimal, b Decimal) bool extern
+[pub] fun _opLeUnordered(a Decimal, b Decimal) bool extern
+[pub] fun _opIn(a Decimal, b Range<Decimal>) bool extern
+[pub] fun _opRange(a Decimal, b Decimal) Range<i32> extern // TBD: Generic function on range?
+[pub] fun _opAdd(a Decimal, b Decimal) Decimal extern
+[pub] fun _opSub(a Decimal, b Decimal) Decimal extern
+[pub] fun _opNeg(a Decimal) Decimal extern
+[pub] fun _opMul(a Decimal, b Decimal) Decimal extern
+[pub] fun _opDiv(a Decimal, b Decimal) Decimal extern
+[pub] fun _opRem(a Decimal, b Decimal) Decimal extern
 
 [pub] fun Decimal.isInfinity() bool extern
 [pub] fun Decimal.isNan() bool extern
@@ -570,4 +570,3 @@ type Decimal ro
 [pub] fun Decimal.toIntClamp() int extern
 [pub] fun Decimal.toF32Clamp() f32 extern
 [pub] fun Decimal.toFloatClamp() float extern
-

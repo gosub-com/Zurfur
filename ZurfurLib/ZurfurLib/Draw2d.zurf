@@ -10,12 +10,12 @@ fun test_Shape()
     @rect = Rect<int>(1,2,3,4) // TBD: Type inderence for constructors
     
     rect.location.y = 30
-    @rl1 = rect.location
+    @p1 = rect.location
     @rly1 = rect.location.y
     @rly2 = rect.location.x2
-
-    @rl2a = rect.lf()
-    @rl2b = rect.lf().yf()
+    @p2 = p1 + Point(1,2)
+    @p3 = 2*p1
+    @p4 = p1*2
     
     
 
@@ -77,39 +77,39 @@ fun Point.yf<T>() T
 
 
 [pub]
-fun Point._opAdd<T>(b Point<T>) Point<T>
-    where T has NumOps<T> // TBD: Use constraints from `Point`
-    ret Point(my.x+b.x, my.y+b.y)
+fun _opAdd<T>(a Point<T>, b Point<T>) Point<T>
+    where T has NumOps<T>
+    ret Point(a.x+b.x, a.y+b.y)
 
 [pub]
-fun Point._opNeg<T>() Point<T>
-    where T has NumOps<T> // TBD: Use constraints from `Point`
-    ret Point(-my.x, -my.y)
+fun _opNeg<T>(a Point<T>) Point<T>
+    where T has NumOps<T>
+    ret Point(-a.x, -a.y)
 
 [pub]
-fun Point._opSub<T>(b Point<T>) Point<T>
-    where T has NumOps<T> // TBD: Use constraints from `Point`
-    ret Point(my.x-b.x, my.y-b.y)
+fun _opSub<T>(a Point<T>, b Point<T>) Point<T>
+    where T has NumOps<T>
+    ret Point(a.x-b.x, a.y-b.y)
 
 [pub]
 fun _opMul<T>(a T, b Point<T>) Point<T>
-    where T has NumOps<T> // TBD: Use constraints from `Point`
+    where T has NumOps<T>
     ret Point(a*b.x, a*b.y)
 
 [pub]
-fun Point._opMul<T>(b T) Point<T>
-    where T has NumOps<T> // TBD: Use constraints from `Point`
-    ret Point(my.x*b, my.y*b)
+fun _opMul<T>(a Point<T>, b T) Point<T>
+    where T has NumOps<T>
+    ret Point(a.x*b, a.y*b)
 
 [pub]
 fun _opDiv<T>(a T, b Point<T>) Point<T>
-    where T has NumOps<T> // TBD: Use constraints from `Point`
+    where T has NumOps<T>
     ret Point(a/b.x, a/b.y)
 
 [pub]
-fun Point._opDiv<T>(b T) Point<T>
-    where T has NumOps<T> // TBD: Use constraints from `Point`
-    ret Point(my.x/b, my.y/b)
+fun _opDiv<T>(a Point<T>, b T) Point<T>
+    where T has NumOps<T>
+    ret Point(a.x/b, a.y/b)
 
 [pub]
 fun Size.new<T>(width T, height T)
@@ -156,8 +156,4 @@ fun get Rect.bottom<T>() T
     where T has NumOps<T> // TBD: Use constraints from `Point`
     ret my.y + my.height
     
-// TBD: Remove
-[pub]
-fun Rect.lf<T>() Point<T>
-    ret Point(my.x, my.y)
     

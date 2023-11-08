@@ -41,7 +41,7 @@ namespace Zurfur.Compiler
     {
         const string ZURFUR_PRELUDE = "void bool i8 byte i16 u16 i32 u32 int u64 f32 float str "
             + "Box Nil Maybe List Map Array Buffer Span require assert";
-
+        
         static public CompilerHeaderOutput GenerateHeader(
             Dictionary<string, SyntaxFile> syntaxFiles,
             bool noCompilerChecks)
@@ -186,12 +186,24 @@ namespace Zurfur.Compiler
             List<Symbol> GetUseSymbolsFromModule(Symbol module, string name)
             {
                 var symbols = new List<Symbol>();
-                if (module.TryGetPrimary(name, out Symbol? typeSym))
-                    symbols.Add(typeSym!);
-                
-                foreach (var child in module.ChildrenNamed(name))
-                    if (child.IsFun && child.Token == name)
-                        symbols.Add(child);
+
+                // Add functions with the given name
+                symbols.AddRange(
+                    module.ChildrenNamed(name).Where(child => child.IsFun && child.Token == name));
+
+                // Add the type and its operators
+                if (module.TryGetPrimary(name, out Symbol? typeSym) && typeSym != null)
+                {
+                    symbols.Add(typeSym);
+
+                    // Add operators with a parameter of this type
+                    if (typeSym.IsType)
+                        foreach (var opName in CompileCode.OpNames.Values)
+                            foreach (var child in module.ChildrenNamed(opName))
+                                if (child.IsFun && child.FunParamTypes.Any(
+                                        paramType => paramType.Concrete.FullName == typeSym.Concrete.FullName))
+                                    symbols.Add(child);
+                }
 
                 return symbols;
             }
@@ -492,9 +504,9 @@ namespace Zurfur.Compiler
                                         useSymbols.Files[extType.Token.Path]);
                         if (recieverType == null)
                             return null;
-                        if (recieverType.IsModule)
+                        if (recieverType.IsModule || recieverType.IsTypeParam)
                         {
-                            Reject(extType.Token, "Receiver type cannot be module");
+                            Reject(extType.Token, $"Receiver type cannot be {recieverType.Kind}");
                             return null;
                         }
 

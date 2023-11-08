@@ -20,7 +20,7 @@ namespace Zurfur.Compiler
         static WordSet sIntTypeNames = new WordSet("Zurfur.int Zurfur.u64 Zurfur.i32 Zurfur.u32");
         static WordSet sDerefRef = new WordSet("Zurfur.Ref`1");
         static WordSet sDerefPointers = new WordSet("Zurfur.RawPointer`1 Zurfur.Pointer`1");
-        static WordMap<string> sBinOpNames = new WordMap<string> {
+        public static WordMap<string> OpNames = new WordMap<string> {
             {"+", "_opAdd"}, {"+=", "_opAdd"}, {"-", "_opSub"}, {"-=", "_opSub"},
             {"*", "_opMul"}, {"*=", "_opMul"}, {"/", "_opDiv"}, {"/=", "_opDiv"},
             {"%","_opRem" }, {"%=","_opRem" },
@@ -28,6 +28,9 @@ namespace Zurfur.Compiler
             {"==", "_opEq"}, {"!=", "_opEq" }, {"in", "_opIn" },
             {">", "_opCmp" }, {">=", "_opCmp" }, {"<", "_opCmp" }, {"<=", "_opCmp" },
             {"]", "_opIndex" },
+
+            // Include in the list of operator names
+            {"%%U1", "_opNeg" }, { "%%U2", "_opBitNot"},
 
             // TBD: Bit operators should be restricted to i32, u32, int, u64 types
             {"<<", "_opBitShl"}, {"<<=", "_opBitShl"}, {">>", "_opBitShr"}, {">>=", "_opBitShr"},
@@ -1062,7 +1065,7 @@ namespace Zurfur.Compiler
                         left.Type = right.Type;
                 }
 
-                var operatorName = sBinOpNames[token];
+                var operatorName = OpNames[token];
                 if (args.Count == 1)
                 {
                     if (token == "-")
@@ -1072,8 +1075,8 @@ namespace Zurfur.Compiler
                 }
 
                 // Find static operators from either argument
-                var call = new Rval(token, operatorName) { InType = DerefRef(args[0].Type!) };
-                var args2 = args.Skip(1).ToList(); // Rewrite op(a,b) to a.op(b)
+                var call = new Rval(token, operatorName);
+                var args2 = args.ToList(); // Rewrite op(a,b) to a.op(b)
                 var funType = EvalCallExpectFun(call, args2, EvalFlags.Invoked, $" '{operatorName}' (operator '{token}')")
                     ?.FunReturnType;
 
@@ -1776,28 +1779,17 @@ namespace Zurfur.Compiler
                     if (child.IsFun && child.SimpleName == name && !child.IsMethod)
                         symbols.Add(child);
 
-                // Search 'use' symbol
+                // Search 'use' symbol for non-methods
                 if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
-                {
-                    foreach (var sym2 in useSymbols)
-                        if (!sym2.IsMethod)
-                            symbols.Add(sym2);
-                }
+                    symbols.AddRange(useSymbols.Where(s => !s.IsMethod));
 
                 // Add global constaints
-                // TBD: Remove constraints without non-static parameters
-                //      since it dumps parameterless functions into the scope?
-                //      e.g. 'where T has NumOps<T>' adds `Zero` and `One`
                 if (function.Constraints != null)
                 {
                     var cons = new List<Symbol>();
                     foreach (var constraints in function.Constraints.Values)
                         AddGenericConstraints(name, constraints, cons);
-
-                    // TBD: Would be better to just not get them in the first place,
-                    //      but just want to get this working now
-                    cons.RemoveAll(s => !s.IsStatic);
-                    symbols.AddRange(cons);
+                    symbols.AddRange(cons.Where(s => s.IsStatic));
                 }
 
                 RemoveLastDuplicates(symbols);
@@ -1816,17 +1808,10 @@ namespace Zurfur.Compiler
                 AddFunctionsNamedInModule(name, inType.Parent!, inType, symbols);
                 AddFunctionsNamedInModule(name, function.Parent!, inType, symbols);
 
-                // Search 'use' symbol
+                // Search 'use' symbol for methods with first parameter that matches
                 if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
-                {
-                    foreach (var sym2 in useSymbols)
-                        if (sym2.IsMethod && sym2.IsFun)
-                        {
-                            var funParams = sym2.FunParamTypes;
-                            if (funParams.Length != 0 && funParams[0].FullName == inType.FullName)
-                                symbols.Add(sym2);
-                        }
-                }
+                    symbols.AddRange(useSymbols.Where(s => s.IsMethod 
+                        && s.FunParamTypes.Length != 0 && s.FunParamTypes[0].FullName == inType.FullName));
 
                 // Add constraints when the receiver is generic
                 if (function.Constraints != null 

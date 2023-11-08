@@ -82,14 +82,14 @@ fun List.new<T>(items mut Iterator<T>)
     todo
 
 [pub]
-fun List._opIndex<T>(i int) mut &T
-    require(i in 0..my.len)
+fun _opIndex<T>(l List<T>, i int) mut &T
+    require(i in 0..l.len)
     todo
 
 [pub]
-fun List._opIndex<T>(r Range<int>) mut []T
-    require(r.low in 0..my.len)
-    require(r.high in 0..my.len)
+fun _opIndex<T>(l List<T>, r Range<int>) mut []T
+    require(r.low in 0..l.len)
+    require(r.high in 0..l.len)
     require(r.low <= r.high)
     todo
 

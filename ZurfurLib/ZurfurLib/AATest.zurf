@@ -39,12 +39,19 @@ fun aaa_arith(a int, b int, c aaa_arith_test) int
     
     ret y + c.b.e
 
-fun MyGeneric<T>()
+fun MyGenericInt<T>()
     where T has NumOps<int>
     @a = T()
     @c = T.One
-    @d = T.Zero
-    @e = c + d
+    @d = One
+
+fun MyGeneric<T>()
+    where T has NumOps<T>
+    @a = T()
+    @c = T.One
+    @d = One
+    @x = T() + Zero
+
 
 type aaa_arith_test
     a int
@@ -192,11 +199,11 @@ fun AAAAA<X, T, Q>(t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>,
     @x = 1
     @y = 2
     @z1 = x + y
-    @z2 = x._opAdd(y)
+    @z2 = _opAdd(x, y)
     @a = T()
     @b = T()
     @z3 = a + b                 // #1
-    @z4 = a._opAdd(b)
+    @z4 = _opAdd(a, b)
     @z5 = T.One
     @iter3 = t.iterator()
 

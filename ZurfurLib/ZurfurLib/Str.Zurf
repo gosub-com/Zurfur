@@ -10,11 +10,11 @@
 [pub] fun get str.len() int
     ret 0
 
-[pub] fun str._opAdd(b str) str {}
+[pub] fun _opAdd(a str, b str) str {}
 
 // TBD: Remove after more of the generic type system is working
-[pub] fun str._opEq(b str) bool {}
-[pub] fun str._opCmp(b str) int {}
+[pub] fun _opEq(a str, b str) bool {}
+[pub] fun _opCmp(a str, b str) int {}
 
     
 // TBD: Implicit conversion to and from Span?
