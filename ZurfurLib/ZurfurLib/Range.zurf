@@ -1,47 +1,42 @@
 ﻿
 mod Zurfur
 
-use Zurfur[Copy, Iterator, NumOps]
+use Zurfur[Copy, Iterator, Number]
 use Zurfur.Math[abs]
 
+// TBD: Default constructor taking low and high
 [pub]
-type Range<T> copy
-    where T has NumOps<T>
+type struct Range[T Number<T>]
     low T
     high T
 
 [pub]
-fun Range.new<T>(low T, high T)
+fun Range.new[T](low T, high T)
+    // TBD: (r.low, r.high) = (low, high)
     my.low = low
     my.high = high
-    // TBD: (r.low, r.high) = (low, high)
 
 [pub]
-fun get Range.length<T>() T
-    where T has NumOps<T> // TBD: Use constraints from `Range`, ALSO: fun abs(n T) T 
+fun get Range.length[T Number<T>]() T // TBD: Use constraints from `Range`
     ret my.high-my.low
 
 [pub]
-fun get Range.iterator<T>() RangeIterator<T>
+fun get Range.iterator[T]() RangeIterator<T>
     ret RangeIterator<T>(my.low, my.high)
         
 [pub]
-type RangeIterator<T>
-    where T has NumOps<T>
-    
+type RangeIterator[T Number<T>]
     current T pub init
     high T pub init
 
 [pub]
-fun RangeIterator.new<T>(low T, high T)
+fun RangeIterator.new[T](low T, high T)
     // TBD: (my.current, my.high) = (low, high)
     my.current = low
     my.high = high
 
 [pub]
-fun mut RangeIterator.next<T>() ?T
-    where T has NumOps<T>
-    
+fun mut RangeIterator.next[T Number<T>]() ?T
     if my.current >= my.high
         ret nil
     @prev = my.current

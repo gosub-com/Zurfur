@@ -9,13 +9,13 @@
 mod TestExample
 
 use Zurfur
-use Zurfur[Decimal, Log, Iterator, NumOps]
+use Zurfur[Decimal, Log, Iterator, Number]
 use Zurfur.Math[cos,sin]
 use Zurfur.ConvertBytes[bytesToHex]
 
 // Simple types have public fields:
 [pub] type SimpleType(firstName str, lastName str)
-[pub] type SimpleImmutableType ro(firstName str, fastName str)
+[pub] type ro SimpleImmutableType(firstName str, fastName str)
 
 // Define a type
 [pub]
@@ -26,9 +26,7 @@ type MyType
 
 // Declare a method to multiply and add three keys on Map<K,V>.
 // Return Nan (or MinValue for integer types) if any key is missing.
-fun Map.madd<K,V>(mul1 K, mul2 K, add K) V
-    where V has NumOps<V>
-    
+fun Map.madd[K,V Number<V>](mul1 K, mul2 K, add K) V
     if my[mul1]@mul1Val and my[mul2]@mul2Val and my[add]@addVal
         ret mul1Val * mul2Val + addVal
     ret V.NanOrMin        
@@ -72,7 +70,7 @@ fun circle(a float, r float)(x float, y float)
     @p = q.x
     ret (cos(a)*r, sin(a)*r)
 
-fun circle2<T0, T1>(a T0, r T1)(x T0, y T1)
+fun circle2[T0, T1](a T0, r T1)(x T0, y T1)
     ret (T0(), T1())
 
 [pub]
@@ -107,7 +105,7 @@ type Example
     p Zim<Decimal>
 
 [pub]
-type Zim<T>
+type Zim[T]
     q T pub mut
 
 // Type test for test_main

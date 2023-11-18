@@ -2,13 +2,13 @@
 mod Zurfur
 
 [pub]
-type Iterable<T> interface
+type interface Iterable[T]
     fun get iterator() Iterator<T>
 
 
 // Implement this on all iterators
 [pub]
-type Iterator<T> interface
+type interface Iterator[T]
     fun mut next() ?T
 
 fun test_map()
@@ -21,31 +21,31 @@ fun test_map()
     //    Log.info("")
 
 // TBD: Still working on these
-fun Iterator.map<Source, Result>(f fun(input Source) Result) MapIterator<Source, Result>
+fun Iterator.map[Source, Result](f fun(input Source) Result) MapIterator<Source, Result>
     ret MapIterator<Source, Result>(f, my)
 
-fun Iterable.map<Source, Result>(f fun(input Source) Result) MapIterator<Source, Result>
+fun Iterable.map[Source, Result](f fun(input Source) Result) MapIterator<Source, Result>
     ret MapIterator<Source, Result>(f, my.iterator)
 
 // TBD: Still working on this
-type MapIterator<Source, Result> ref // TBD: Ownership rules for these will be tough
+type ref MapIterator[Source, Result] // TBD: Ownership rules for these will be tough
     _fun fun(input Source) Result
     _iter Iterator<Source>
 
-fun MapIterator.new<Source, Result>(func fun(input Source) Result, iter Iterator<Source>)
+fun MapIterator.new[Source, Result](func fun(input Source) Result, iter Iterator<Source>)
     // TBD: my._fun = func
     my._iter = iter
 
-fun mut MapIterator.next<Source, Result>() ?Result
+fun mut MapIterator.next[Source, Result]() ?Result
     @a = my._iter.next()
     // TBD: return func(a)
 
 [pub]
-fun mut Iterator.toArray<T>() Array<T>
+fun mut Iterator.toArray[T]() Array<T>
     ret my.toList().toArray()
 
 [pub]
-fun mut Iterator.toList<T>() List<T>
+fun mut Iterator.toList[T]() List<T>
     @list = List<T>()
     while my.next()@item
         list.push(item)

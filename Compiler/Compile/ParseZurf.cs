@@ -10,7 +10,6 @@ using Zurfur.Jit;
 
 namespace Zurfur.Compiler
 {
-
     public class ParseError : TokenError
     {
         public ParseError(string message) : base(message) { }
@@ -53,8 +52,6 @@ namespace Zurfur.Compiler
         // Be kind to GC
         Queue<List<SyntaxExpr>> mExprCache = new();
 
-        string mModuleBaseStr = "";
-        string[] mModuleBasePath = Array.Empty<string>();
         List<SyntaxScope> mScopeStack = new();
         SyntaxFile mSyntax;
 
@@ -74,7 +71,7 @@ namespace Zurfur.Compiler
             + "new out pub public private priv readonly ro ref aref mut imut "
             + "return ret sizeof struct switch throw try nop "
             + "typeof type unsafe static while dowhile scope loop "
-            + "async await astart atask task get set var where when nameof "
+            + "async await astart atask task get set var when nameof "
             + "box init move copy clone drop own super self "
             + "extends impl implements fun afun sfun def yield yld let "
             + "any Any dyn Dyn dynamic Dynamic select match from to of on cofun "
@@ -85,7 +82,7 @@ namespace Zurfur.Compiler
 
         static WordSet sScopeQualifiers = new WordSet("pub public private unsafe unsealed static protected");
         static WordSet sFieldQualifiers = new WordSet("ro mut static");
-        static WordSet sPostTypeQualifiers = new WordSet("ro ref copy nocopy unsafe enum union interface");
+        static WordSet sPreTypeQualifiers = new WordSet("ro ref struct noclone unsafe enum union interface");
         static WordSet sPostFieldQualifiers = new WordSet("init mut ref");
         static WordSet sParamQualifiers = new WordSet("ro own mut");
 
@@ -547,15 +544,6 @@ namespace Zurfur.Compiler
                     qualifiers.Clear();
                     break;
 
-                case "mod":
-                    mToken.Type = eTokenType.ReservedControl;
-                    if (mToken.X != 0)
-                        RejectToken(keyword, "'mod' statement must be in the first column");
-                    Accept();
-                    ParseModuleStatement(keyword);
-                    qualifiers.Clear();
-                    break;
-
                 case "type":
                     mToken.Type = eTokenType.ReservedControl;
                     qualifiers.Add(Accept());
@@ -677,38 +665,13 @@ namespace Zurfur.Compiler
             if (namePath.Count == 0)
                 return false; // Rejected above
 
-            bool scopeAdded = false;
+            // Each module goes on the scope stack
             for (int i = 0;  i <  namePath.Count;  i++)
-            {
-                // Match base path
-                if (i < mModuleBasePath.Length)
-                {
-                    if (namePath[i] != mModuleBasePath[i])
-                    {
-                        RejectToken(namePath[i], $"Expecting module name to start with '{mModuleBaseStr}'");
-                        return false;
-                    }
-                    continue;
-                }
-                scopeAdded = true;
-                if (i < mScopeStack.Count)
-                    mScopeStack.RemoveRange(i, mScopeStack.Count-i);
                 mScopeStack.Add(new SyntaxModule(keyword, namePath[i], i == 0 ? null : mScopeStack[i-1]));
-            }
-            if (!scopeAdded)
-            {
-                RejectToken(namePath[namePath.Count - 1], $"Expecting module name to have another identifier after '{mModuleBaseStr}.'");
-                return false;
-            }
 
             // Collect base module name
             var namePathStrArray = namePath.ConvertAll(token => token.Name).ToArray();
             var namePathStr = string.Join(".", namePathStrArray);
-            if (mModuleBasePath.Length == 0)
-            {
-                mModuleBasePath = namePathStrArray;
-                mModuleBaseStr = namePathStr;
-            }
             var module = (SyntaxModule)mScopeStack[mScopeStack.Count - 1];
             mSyntax.Modules[namePathStr] = module;
 
@@ -749,16 +712,15 @@ namespace Zurfur.Compiler
             synType.Comments = mComments.ToString();
             mComments.Clear();
 
+            ParseQualifiers(sPreTypeQualifiers, qualifiers);
+            synType.Qualifiers = qualifiers.ToArray();
+
             // Parse type name
             if (!CheckIdentifier("Expecting a type name"))
                 return;
             synType.Name = Accept();
             synType.Name.Type = eTokenType.TypeName;
-            if (mTokenName == "<")
-                synType.TypeArgs = ParseTypeParameters();
-
-            ParseQualifiers(sPostTypeQualifiers, qualifiers);
-            synType.Qualifiers = qualifiers.ToArray();
+            (synType.TypeArgs, synType.Constraints) = ParseTypeParameters();
 
             mSyntax.Types.Add(synType);
             RejectUnderscoreDefinition(synType.Name);
@@ -839,14 +801,7 @@ namespace Zurfur.Compiler
 
 
                 case "where":
-                    // TBD: Restrict this to top of type (like in function)
-                    // RejectToken(mToken, "The 'where' statement must be at the top of the type");
-                    Accept();
-                    var constraint = ParseConstraint();
-                    if (constraint != null)
-                        parent.Constraints = parent.Constraints
-                            .EmptyIfNull().Append(constraint).ToArray();
-                    
+                    RejectToken(Accept(), "'where' is reserved in this context");
                     break;
 
                 case "const":
@@ -882,51 +837,52 @@ namespace Zurfur.Compiler
         }
 
 
-        SyntaxExpr? ParseTypeParameters()
+        (SyntaxExpr? typeParams, SyntaxConstraint[]? constraints) ParseTypeParameters()
         {
-            if (!AcceptMatch("<"))
-                return null;
+            if (!AcceptMatch("["))
+                return (null, null);
             var openToken = mPrevToken;
             var typeParams = NewExprList();
-            typeParams.Add(new SyntaxToken(ParseIdentifier("Expecting a type name", sRejectTypeName)));
-            if (mPrevToken.Type == eTokenType.Identifier)
-                mPrevToken.Type = eTokenType.TypeName;
-            while (AcceptMatch(","))
+            var constraints = Array.Empty<SyntaxConstraint>();
+            while (mToken != "]"
+                && AcceptIdentifier("Expecting ']' or a type parameter", sRejectTypeName))
             {
-                Connect(openToken, mPrevToken);
-                typeParams.Add(new SyntaxToken(ParseIdentifier("Expecting a type name", sRejectTypeName)));
+                typeParams.Add(new SyntaxToken(mPrevToken));
                 if (mPrevToken.Type == eTokenType.Identifier)
                     mPrevToken.Type = eTokenType.TypeName;
+
+                if (mToken.Type == eTokenType.Identifier)
+                {
+                    var constraint = ParseConstraint(mPrevToken);
+                    if (constraint != null)
+                        constraints = constraints.Append(constraint).ToArray();
+                }
+
+                if (AcceptMatch(","))
+                    Connect(openToken, mPrevToken);
             }
-            if (AcceptMatchOrReject(">", "Expecting '>' to end the type argument list"))
-            {
+            if (AcceptMatch("]"))
                 Connect(openToken, mPrevToken);
-            }
-            return new SyntaxMulti(openToken, FreeExprList(typeParams));
+
+            return (new SyntaxMulti(openToken, FreeExprList(typeParams)), constraints);
         }
 
-        SyntaxConstraint? ParseConstraint()
+        SyntaxConstraint? ParseConstraint(Token typeToken)
         {
+            if (mToken.Type != eTokenType.Identifier)
+                return null;
+
             var constraint = new SyntaxConstraint();
-
-            if (!AcceptIdentifier("Expecting a type name"))
-                return null;
-
-            constraint.TypeName = mPrevToken;
-            mPrevToken.Type = eTokenType.TypeName;
-
-            if (!AcceptMatchOrReject("has", "Expecting 'has' while parsing constraint"))
-                return null;
-
+            constraint.TypeName = typeToken;
             var constraintTypeNames = NewExprList();
-            do
+            while (mToken.Type == eTokenType.Identifier)
             {
                 constraintTypeNames.Add(ParseType());
-            } while (AcceptMatch("+"));
+                AcceptMatch("+");
+            }
             constraint.TypeConstraints = FreeExprList(constraintTypeNames);
-            return constraint;                       
+            return constraint;
         }
-
 
         SyntaxField? ParseEnumField(List<Token> qualifiers)
         {
@@ -1034,8 +990,8 @@ namespace Zurfur.Compiler
                 qualifiers.Add(Accept());
             }
 
-            var validFunctionName = ParseExtensionTypeAndMethodName(out synFunc.ExtensionType, out synFunc.Name, out synFunc.TypeArgs);
-
+            var validFunctionName = ParseExtensionTypeAndMethodName(out synFunc.ExtensionType, out synFunc.Name);
+            (synFunc.TypeArgs, synFunc.Constraints) = ParseTypeParameters();
             synFunc.FunctionSignature = ParseFunctionSignature(keyword);
 
             // Body
@@ -1056,11 +1012,9 @@ namespace Zurfur.Compiler
         /// </summary>
         bool ParseExtensionTypeAndMethodName(
             out SyntaxExpr? extensionType,
-            out Token funcName,
-            out SyntaxExpr? genericTypeArgs)
+            out Token funcName)
         {
             extensionType = null;
-            genericTypeArgs = null;
             funcName = mToken;
 
             var mutToken = mToken == "mut" ? Accept() : null;
@@ -1074,12 +1028,11 @@ namespace Zurfur.Compiler
 
             var nameExpr = ParseType();
 
-            // WITH DOT:
-            //      fun type.name()
-            // Generic type args
+            // Old style generic type args (always an error now)
             if (nameExpr.Count >= 2 && nameExpr.Token == VT_TYPE_ARG)
             {
-                genericTypeArgs = new SyntaxMulti(nameExpr.Token, nameExpr.Skip(1).ToArray());
+                foreach (var t in nameExpr.Skip(1))
+                    RejectToken(t.Token, "Old type parameter syntax not accepted");
                 nameExpr = nameExpr[0];
             }
 
@@ -1098,13 +1051,6 @@ namespace Zurfur.Compiler
 
             if (nameExpr.Count != 0)
                 RejectToken(nameExpr.Token, "Expecting a function name");
-            if (genericTypeArgs != null)
-                foreach (var arg in genericTypeArgs)
-                    if (arg.Count != 0)
-                    {
-                        genericTypeArgs = null;
-                        RejectToken(arg.Token, "Only type names are allowed in a generic argument list");
-                    }
 
             funcName = nameExpr.Token;
             funcName.Type = eTokenType.DefineMethod;
@@ -1244,16 +1190,7 @@ namespace Zurfur.Compiler
                     break;
 
                 case "where":
-                    if (topLevelFunction == null)
-                        RejectToken(mToken, "The 'where' statement can only be used at the top level function scope");
-                    else if (statements.Count != 0)
-                        RejectToken(mToken, "The 'where' statement must be at the top of the functipon");
-                    Accept();
-                    var constraint = ParseConstraint();
-                    if (constraint != null && topLevelFunction != null)
-                        topLevelFunction.Constraints = topLevelFunction.Constraints
-                            .EmptyIfNull().Append(constraint).ToArray();
-
+                    RejectToken(Accept(), "'where' is reserved in this context");
                     break;
 
                 case "=>":

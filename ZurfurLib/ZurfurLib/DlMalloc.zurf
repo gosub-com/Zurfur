@@ -83,7 +83,7 @@ fun get MAX_SMALL_REQUEST() u64
     ret MAX_SMALL_SIZE - CHUNK_ALIGN_MASK - CHUNK_OVERHEAD
 
 
-[pub] type DlMalloc unsafe
+[pub] type unsafe DlMalloc
 
     //  Top
     //    The topmost chunk of the currently active segment. Its size is

@@ -2,59 +2,57 @@
 
 mod Zurfur
 
-use Zurfur[OpEq]
+use Zurfur[Equatable]
 
 // []T is converted to Span<T>
 [pub]
-type Span<T> ref copy
+type ref Span[T]
     data ro mut &T
     len ro int
 
 
 [pub]
-type SpanIterator<T> ref copy
+type ref SpanIterator[T]
     data ro mut &T
     _len ro int
     _count ro int
     
 [pub]
-fun _opIndex<T>(s Span<T>, i int) mut &T
+fun _opIndex[T](s Span<T>, i int) mut &T
     require(i in 0..s.len)
     todo // Implementation TBD
 
 [pub]
-fun _opIndex<T>(s Span<T>, range Range<int>) mut Span<T>
+fun _opIndex[T](s Span<T>, range Range<int>) mut Span<T>
     require(range.low in 0..s.len)
     require(range.high in 0..s.len)
     require(range.low <= range.high)
     todo // Implementation TBD
 
 [pub]
-fun mut Span.sort<T>(compare fun(a T, b T)bool)
+fun mut Span.sort[T](compare fun(a T, b T)bool)
     todo
 
 // Set the span to `item` (or default if not specified)
 [pub]
-fun mut Span.clear<T>(item T = default)
+fun mut Span.clear[T](item T = default)
     todo
     
 // Find index of the sequence `seq`.
 // Returns -1 if not found, or 0 if `seq` is empty.
 [pub]
-fun Span.find<T>(seq Span<T>) int
-    where T has OpEq<T>
+fun Span.find[T Equatable<T>](seq Span<T>) int
     todo
 
 // Find the index of the `item`.  Returns -1 if not found.
 [pub]
-fun Span.find<T>(item T) int
-    where T has OpEq<T>
+fun Span.find[T Equatable<T>](item T) int
     todo
     
 // Find the index of the `item` when `eq` returns true.
 // Returns -1 if not found.
 [pub]
-fun Span.find<T>(eq fun(item T) bool) int
+fun Span.find[T](eq fun(item T) bool) int
     todo
 
         

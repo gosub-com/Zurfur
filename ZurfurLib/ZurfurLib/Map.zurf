@@ -1,7 +1,7 @@
 ﻿
 mod Zurfur
 
-use Zurfur[Iterator, Iterable, OpEq]
+use Zurfur[Iterator, Iterable, Equatable]
 
 
 // Entries in the bucket list
@@ -10,17 +10,13 @@ type MapEntry(index u32, hash u32)
 
 // Key value pair
 [pub]
-type KvPair<K,V>
-    where K has OpEq<K>
-    
+type KvPair[K Equatable<K>,V]
     key K pub ref
     value V pub mut
 
 // A map is a hash table
 [pub]
-type Map<K,V>
-    where K has OpEq<K>
-    
+type Map[K Equatable<K>,V]
     _items List<KvPair<K,V>>
     _buckets List<MapEntry>
 
@@ -28,59 +24,59 @@ type Map<K,V>
 
 // TBD: Need this: fun (kv Map<K,V>.Pair) ...
 [pub]
-fun KvPair.new<K,V>(key own K, value own V)
+fun KvPair.new[K,V](key own K, value own V)
     my.key = key
     my.value = value
 
 
 [pub]
-fun Map.new<K,V>(capacity int)
+fun Map.new[K,V](capacity int)
     extern
     
 [pub]
-fun Map.new<K,V>(keyValues Iterator<KvPair<K, V>>)
+fun Map.new[K,V](keyValues Iterator<KvPair<K, V>>)
     extern
     
 [pub]
-fun get Map.len<K,V>() int
+fun get Map.len[K,V]() int
     extern
 
 // TBD: Figure out map["Hello"] += 1
 [pub]
-fun _opIndex<K,V>(m Map<K,V>, key K) mut ?&V
+fun _opIndex[K,V](m Map<K,V>, key K) mut ?&V
     extern
 
 [pub]
-fun Map.contains<K,V>(key K) bool
+fun Map.contains[K,V](key K) bool
     extern
 
 // TBD: Return Iterable<(K, V)>???
 [pub]
-fun get Map.iterator<K,V>() mut Iterator<KvPair<K, V>>
+fun get Map.iterator[K,V]() mut Iterator<KvPair<K, V>>
     extern
 
 [pub]
-fun get Map.keys<K,V>() Iterator<K>
+fun get Map.keys[K,V]() Iterator<K>
     extern
 
 [pub]
-fun get Map.values<K,V>() mut Iterator<V>
+fun get Map.values[K,V]() mut Iterator<V>
     extern
 
 [pub]
-fun mut Map.clear<K,V>()
+fun mut Map.clear[K,V]()
     extern
 
 [pub]
-fun mut Map.add<K,V>(item KvPair<K, V>)
+fun mut Map.add[K,V](item KvPair<K, V>)
     extern
 
 [pub]
-fun mut Map.add<K,V>(items Iterator<KvPair<K, V>>)
+fun mut Map.add[K,V](items Iterator<KvPair<K, V>>)
     extern
 
 [pub]
-fun mut Map.remove<K,V>(key K) ?V
+fun mut Map.remove[K,V](key K) ?V
     extern
 
     

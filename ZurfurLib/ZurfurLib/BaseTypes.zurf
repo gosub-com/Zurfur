@@ -14,16 +14,16 @@ pragma AllowUnderscoreDefinitions
 
 // Return type of functions that don't return anything
 [pub]
-type void ro { }
+type ro struct void { }
 
 // Empty value for pointers and optionals
 [pub]
-type Nil ro { }
+type ro struct Nil { }
 
 // Maybe<T> is the same as ?T.  Pointer and reference types are always
 // optimized so that `?&T`, `?*T`, `?^T`, and `?Box<T>` are just one pointer.
 [pub]
-type Maybe<T>
+type Maybe[T]
     // TBD: Assigning to `Maybe<T>` can change the type of `value` to nil.
     //      If we allow returning a reference to `T`, it must be in a box.
     //      For reference types, we can optimize to remove one box.
@@ -33,31 +33,31 @@ type Maybe<T>
     hasValue bool
 
 [pub]
-fun Maybe.new<T>(value own T)
+fun Maybe.new[T](value own T)
     my.value = Box<T>(value)
     my.hasValue = true
 
-type Box<T>
+type Box[T]
     const __size int = 1
 
-fun Box<T>.new<T>(value own T)
+fun Box.new[T](value own T)
     nop
 
 [pub]
-type Error ro interface
+type ro interface Error
     fun get code() ErrorCode
     fun get message() str
 
 
-// Result<T> - Same as !T
+// Result[T] - Same as !T
 [pub]
-type Result<T> union
+type union Result[T]
     ok T
     error ro Error
 
 // This will probably be a specially recognized error code type
 [pub]
-type ErrorCode enum
+type enum ErrorCode
     Success = 0 
 
     
@@ -68,25 +68,25 @@ type Rune = i32
 
 // Base interface for all types
 [pub]
-type Object interface { }
+type interface Object { }
 
 
 // All types have a unique `id`, but other non-essential metadata is opt-in.
 // This must always be 32 bits, even on 64 bit machines, so as not to change
 // the `GcHeapObject` footprint.
 [pub]
-type Type ro
+type ro struct Type
     id u32
 
 
 // Swap two items
 [pub]
-fun swap<T>(a mut &T, b mut &T)
+fun swap[T](a mut &T, b mut &T)
     todo
 
 // bool (true or false)
 [pub]
-type bool ro
+type ro struct bool
     const __size int = 1
 
 [pub] fun bool.getHash() int extern
@@ -99,7 +99,7 @@ type bool ro
 
 // i8 (-128..127)
 [pub]
-type i8 ro
+type ro struct i8
     const __size int = 1
     const __align int = 1
     const Zero i8 = 0
@@ -126,7 +126,7 @@ type i8 ro
 
 // byte (0..255)
 [pub]
-type byte ro
+type ro struct byte
     const __size int = 1
     const __align int = 1    
     const Zero byte = 0
@@ -154,7 +154,7 @@ type byte ro
 
 // i16 (-32768..32768)
 [pub]
-type i16 ro
+type ro struct i16
     const __size int = 2
     const __align int = 2    
     const Zero i16 = 0
@@ -182,7 +182,7 @@ type i16 ro
 
 // u16 (0..65535)
 [pub]
-type u16 ro
+type ro struct u16
     const __size int = 2
     const __align int = 2    
     const Zero u16 = 0
@@ -212,7 +212,7 @@ type u16 ro
 
 // A 32 bit integer
 [pub]
-type i32 ro
+type ro struct i32
     const __size int = 4
     const __align int = 4    
     const Zero i32 = 0
@@ -262,7 +262,7 @@ fun i32.iterator() RangeIterator<i32>
 
 // 32 bit unsigned integer
 [pub]
-type u32 ro
+type ro struct u32
     const __size int = 4
     const __align int = 4    
     const Zero u32 = 0
@@ -312,7 +312,7 @@ type u32 ro
 
 // A 64 bit integer (same as int)
 [pub]
-type int ro
+type ro struct int
     const __size int = 8
     const __align int = 8    
     const Zero int = 0
@@ -364,7 +364,7 @@ fun int.iterator() RangeIterator<int>
 
 // 64 bit unsigned integer
 [pub]
-type u64 ro
+type ro struct u64
     const __size int = 8
     const __align int = 8    
     const Zero u64 = 0
@@ -417,18 +417,18 @@ fun u64.iterator() RangeIterator<u64>
     ret RangeIterator<u64>(0 u64, my)
 
 [pub]
-type I128 ro
+type ro struct i128
     const __size int = 16
     const __align int = 16
 
 [pub]
-type U128 ro
+type ro struct u128
     const __size int = 16
     const __align int = 16
 
 
 [pub]
-type f32 ro
+type ro struct f32
     const __size int = 4
     const __align int = 4    
     const Zero f32 = 0
@@ -476,7 +476,7 @@ type f32 ro
 [pub] fun f32.toU64Mask() u64 extern
 
 [pub]
-type float ro
+type ro struct float
     const __size int = 8
     const __align int = 8    
     const Zero float = 0
@@ -526,7 +526,7 @@ type float ro
 // 128 bit decimal integer.  This will support nan, infinity, and
 // exponents covering the entire range of float with more precision.
 [pub]
-type Decimal ro
+type ro struct Decimal
     const __size int = 16
     const __align int = 16
     const Zero Decimal = 0
@@ -570,3 +570,10 @@ type Decimal ro
 [pub] fun Decimal.toIntClamp() int extern
 [pub] fun Decimal.toF32Clamp() f32 extern
 [pub] fun Decimal.toFloatClamp() float extern
+
+// This will represent a time/date in UTC with timezone, wall clock,
+// and monotonic clock, similar to Golang time https://pkg.go.dev/time
+[pub] type ro struct Time
+    _low u64
+    _high u32
+    _tz u32

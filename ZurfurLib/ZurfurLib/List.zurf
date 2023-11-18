@@ -19,18 +19,18 @@ fun calloc(size int) *void
 // that could modify `len` or `capacity` while a reference to an element
 // exists is a runtime error.
 [pub]
-type List<T>
+type List[T]
     const MaxItems int = u32.MaxValue/2
     list *GcHeapArray
     _len int
 
 [pub]
-fun List.new<T>()
+fun List.new[T]()
     my.list = &*empty
         
 
 [pub]
-fun List.new<T>(capacity int)
+fun List.new[T](capacity int)
     require(capacity in 0..my.MaxItems)
     if capacity == 0
         my.list = &*empty
@@ -38,113 +38,110 @@ fun List.new<T>(capacity int)
         my.list = castPointer<*GcHeapArray>(calloc(sizeof(T)*capacity + sizeof(GcHeapArray)))
 
 
-fun get List.len<T>() int
+fun get List.len[T]() int
     ret my._len
 
 // Returns true if there is a reference to any element.  When locked, the
 // list length cannot be changed.  A GC implementation might not ever lock.
 [pub]
-fun get List.locked<T>() bool
+fun get List.locked[T]() bool
     ret my.list.refCount != 0
 
 // TBD: Iterator should be able to do this, make more generic?
-[pub] fun List.map<T, Tout>(f fun(item T) Tout) List<Tout>
-    where T has Clone<T>
+[pub] fun List.map[T Clone<T>, Tout](f fun(item T) Tout) List<Tout>
     todo
 
-[pub] fun List.toArray<T>() Array<T>
-    where T has Clone<T>
+[pub] fun List.toArray[T Clone<T>]() Array<T>
     todo
 
 
 // TBD: Only generic
 // Usage: myList.For @item => DoStuffWithItem()
-[pub] fun List.forEach<T>(f fun(item mut T)) {}
+[pub] fun List.forEach[T](f fun(item mut T)) {}
 
 
 // The compiler ensures drop cannot be called when there is
 // reference to an element.
 [pub]
-fun List.drop<T>()
+fun List.drop[T]()
     require(not my.locked) // Not possible because the compiler ensures
     todo
 
 
 // Clone items into the new list
 [pub]
-fun List.new<T>(items []T)
-    where T has Clone<T>
+fun List.new[T Clone<T>](items []T)
     todo
 
 // Clone items into the new list
 [pub]
-fun List.new<T>(items mut Iterator<T>)
+fun List.new[T](items mut Iterator<T>)
     todo
 
 [pub]
-fun _opIndex<T>(l List<T>, i int) mut &T
+fun _opIndex[T](l List<T>, i int) mut &T
     require(i in 0..l.len)
     todo
 
 [pub]
-fun _opIndex<T>(l List<T>, r Range<int>) mut []T
+fun _opIndex[T](l List<T>, r Range<int>) mut []T
     require(r.low in 0..l.len)
     require(r.high in 0..l.len)
     require(r.low <= r.high)
     todo
 
 [pub]
-fun get List.iterator<T>() SpanIterator<T>
+fun get List.iterator[T]() SpanIterator<T>
     todo
 
 
 [pub]
-fun get List.capacity<T>() int
+fun get List.capacity[T]() int
     ret my.list.capacity.toInt
 
 // Set the capacity, won't shrink below count.
 [pub]
-fun set List.capacity<T>(value int)
+fun set List.capacity[T](value int)
     require(not my.locked and value < my.MaxItems)
     todo
 
 
 // Return a new list with all occurences of `seqSearch`
 // replaced by `seqReplace`.
-[pub] fun mut List.replaceIp<T>(seqSearch []T, seqReplace[]T)
+[pub] fun mut List.replaceIp[T](seqSearch []T, seqReplace[]T)
     require(not my.locked)
     todo
 
-[pub] fun mut List.clear<T>()
+[pub] fun mut List.clear[T]()
     require(not my.locked)
     todo
 
 // Push the item onto the end of the list
-[pub] fun mut List.push<T>(item own T)
+[pub] fun mut List.push[T](item own T)
     require(not my.locked)
     todo
 
 // Push item clones onto the end of the list
-[pub] fun mut List.push<T>(items []T)
+[pub] fun mut List.push[T](items []T)
     require(not my.locked)
     todo
 
 // Push item clones onto the end of the list
-[pub] fun mut List.push<T>(items mut Iterator<T>)
+[pub] fun mut List.push[T](items mut Iterator<T>)
     require(not my.locked)
     todo
 
 // Duplicate clones onto the end of the list
-[pub] fun mut List.pushClones<T>(item T, count int)
+[pub] fun mut List.pushClones[T](item T, count int)
     require(not my.locked)
     todo
 
 
-[pub] fun mut List.insertIp<T>(index int, item own T)
+[pub] fun mut List.insertIp[T](index int, item own T)
     require(not my.locked)
     todo
 
-[pub] fun mut List.removeIp<T>(index int) T
+[pub] fun mut List.removeIp[T](index int) T
     require(not my.locked)
     todo
 

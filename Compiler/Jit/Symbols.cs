@@ -5,6 +5,7 @@ using System.Linq;
 using System.Diagnostics;
 
 using Zurfur.Lex;
+using System.Reflection;
 
 namespace Zurfur.Jit
 {
@@ -43,7 +44,6 @@ namespace Zurfur.Jit
             {"[", Span },
             {"!", Result }
         };
-
     }
 
     /// <summary>
@@ -61,7 +61,6 @@ namespace Zurfur.Jit
 
     public enum SymKind
     {
-        None = 0,
         Module = 1,
         Type = 2,
         TypeParam = 3,
@@ -70,7 +69,6 @@ namespace Zurfur.Jit
         FunParam = 7,
         TupleParam = 8,
         Local = 9,
-        All = 100
     }
 
     public enum SymQualifiers
@@ -98,9 +96,11 @@ namespace Zurfur.Jit
         Own = 0x800000,
         Copy = 0x1000000,
         Union = 0x2000000,
-        NoCopy = 0x4000000,
+        NoClone = 0x4000000,
         Specialized = 0x8000000,
-        Todo = 0x10000000
+        Todo = 0x10000000,
+        Struct = 0x20000000,
+        Afun = 0x40000000
     }
 
     /// <summary>
@@ -123,6 +123,24 @@ namespace Zurfur.Jit
     {
         static Dictionary<string, Symbol> sEmptyDict = new Dictionary<string, Symbol>();
         static Dictionary<int, string> sTags = new Dictionary<int, string>();
+
+        // Qualifier names (lower case)
+        static readonly Dictionary<string, SymQualifiers> sQualifierNames = new(
+            ((SymQualifiers[])Enum.GetValues(typeof(SymQualifiers)))
+                .Where(s => s != SymQualifiers.None)
+                .Select(s => new KeyValuePair<string, SymQualifiers>(s.ToString().ToLower(), s)));
+
+        public static Dictionary<SymKind, string> sKindNames = new Dictionary<SymKind, string>()
+        {
+            { SymKind.Module, "module" },
+            { SymKind.Type, "type" },
+            { SymKind.TypeParam, "type parameter" },
+            { SymKind.Field, "field" },
+            { SymKind.Fun, "function" },
+            { SymKind.FunParam, "function parameter" },
+            { SymKind.TupleParam, "tuple parameter" },
+            { SymKind.Local, "local variable" },
+        };
 
         public Symbol? Parent { get; }
         public SymKind Kind { get; protected set; }
@@ -165,7 +183,6 @@ namespace Zurfur.Jit
         /// </summary>
         public Symbol[] TypeArgs { get; init; } = Array.Empty<Symbol>();
 
-
         /// <summary>
         /// When supplied, the length of this array always matches the length
         /// of TypeArgs.  Or this array is empty when type args are not named.
@@ -202,7 +219,6 @@ namespace Zurfur.Jit
         /// Applicable to Types and Functions
         /// </summary>
         public Dictionary<string, string[]>? Constraints;
-
 
         /// <summary>
         /// Set to true when a type or function has been specialized and
@@ -427,20 +443,6 @@ namespace Zurfur.Jit
         }
 
 
-        public static Dictionary<SymKind, string> sKindNames = new Dictionary<SymKind, string>()
-        {
-            { SymKind.None, "none" },
-            { SymKind.Module, "module" },
-            { SymKind.Type, "type" },
-            { SymKind.TypeParam, "type parameter" },
-            { SymKind.Field, "field" },
-            { SymKind.Fun, "function" },
-            { SymKind.FunParam, "function parameter" },
-            { SymKind.TupleParam, "tuple parameter" },
-            { SymKind.Local, "local variable" },
-            { SymKind.All, "(all)" },
-        };
-
         // Find anything that is not a function.
         // There can only be one primary symbol per simple name,
         // and it is always at the beginning of the list.
@@ -513,6 +515,7 @@ namespace Zurfur.Jit
         /// <returns></returns>
         public Symbol Concrete => IsSpecialized ? Parent! : this;
 
+
         public string QualifiersStr()
         {
             lock (sTags)
@@ -534,30 +537,11 @@ namespace Zurfur.Jit
                     default: t = ""; Debug.Assert(false); break;
                 }
 
-                if (Qualifiers.HasFlag(SymQualifiers.Async)) t += " async";
-                if (Qualifiers.HasFlag(SymQualifiers.Boxed)) t += " boxed";
-                if (Qualifiers.HasFlag(SymQualifiers.Const)) t += " const";
-                if (Qualifiers.HasFlag(SymQualifiers.Enum)) t += " enum";
-                if (Qualifiers.HasFlag(SymQualifiers.My)) t += " my";
-                if (Qualifiers.HasFlag(SymQualifiers.Method)) t += " method";
-                if (Qualifiers.HasFlag(SymQualifiers.Extern)) t += " extern";
-                if (Qualifiers.HasFlag(SymQualifiers.Get)) t += " get";
-                if (Qualifiers.HasFlag(SymQualifiers.Init)) t += " init";
-                if (Qualifiers.HasFlag(SymQualifiers.Interface)) t += " interface";
-                if (Qualifiers.HasFlag(SymQualifiers.Mut)) t += " mut";
-                if (Qualifiers.HasFlag(SymQualifiers.Protected)) t += " protected";
-                if (Qualifiers.HasFlag(SymQualifiers.Pub)) t += " pub";
-                if (Qualifiers.HasFlag(SymQualifiers.Ref)) t += " ref";
-                if (Qualifiers.HasFlag(SymQualifiers.Ro)) t += " ro";
-                if (Qualifiers.HasFlag(SymQualifiers.Set)) t += " set";
-                if (Qualifiers.HasFlag(SymQualifiers.Static)) t += " static";
-                if (Qualifiers.HasFlag(SymQualifiers.Unsafe)) t += " unsafe";
-                if (Qualifiers.HasFlag(SymQualifiers.Own)) t += " own";
-                if (Qualifiers.HasFlag(SymQualifiers.Copy)) t += " copy";
-                if (Qualifiers.HasFlag(SymQualifiers.Union)) t += " union";
-                if (Qualifiers.HasFlag(SymQualifiers.NoCopy)) t += " nocopy";
-                if (Qualifiers.HasFlag(SymQualifiers.Specialized)) t += " specialized";
-                if (Qualifiers.HasFlag(SymQualifiers.Todo)) t += " todo";
+                // Add qualifier names
+                foreach (var q in sQualifierNames)
+                    if (Qualifiers.HasFlag(q.Value))
+                        t += " " + q.Key;
+
                 sTags[key] = t;
                 return t;
             }
@@ -587,34 +571,15 @@ namespace Zurfur.Jit
                 case "tuple_param": Debug.Assert(Kind == SymKind.TupleParam); break;
                 case "field": Debug.Assert(Kind == SymKind.Field); break;
                 case "fun": Debug.Assert(Kind == SymKind.Fun); break;
-                case "set": Qualifiers |= SymQualifiers.Set; break;
-                case "get": Qualifiers |= SymQualifiers.Get; break;
-                case "afun": Qualifiers |= SymQualifiers.Async; Debug.Assert(Kind == SymKind.Fun); break;
-                case "my": Qualifiers |= SymQualifiers.My; break;
-                case "method": Qualifiers |= SymQualifiers.Method; break;
-                case "interface": Qualifiers |= SymQualifiers.Interface; break;
-                case "extern": Qualifiers |= SymQualifiers.Extern; break;
-                case "const": Qualifiers |= SymQualifiers.Const; break;
-                case "static": Qualifiers |= SymQualifiers.Static; break;
-                case "pub": Qualifiers |= SymQualifiers.Pub; break;
-                case "protected": Qualifiers |= SymQualifiers.Protected; break;
-                case "ro": Qualifiers |= SymQualifiers.Ro; break;
-                case "mut": Qualifiers |= SymQualifiers.Mut; break;
-                case "ref": Qualifiers |= SymQualifiers.Ref; break;
-                case "boxed": Qualifiers |= SymQualifiers.Boxed; break;
-                case "unsafe": Qualifiers |= SymQualifiers.Unsafe; break;
-                case "enum": Qualifiers |= SymQualifiers.Enum; break;
-                case "class": break; // TBD: Implement classes in the future
-                case "init": Qualifiers |= SymQualifiers.Init; break;
-                case "own": Qualifiers |= SymQualifiers.Own; break;
-                case "copy": Qualifiers |= SymQualifiers.Copy; break;
-                case "union": Qualifiers |= SymQualifiers.Union; break;
-                case "nocopy": Qualifiers |= SymQualifiers.NoCopy; break;
-                case "todo": Qualifiers |= SymQualifiers.Todo; break;
                 case "specialized":
                     Debug.Assert(false); // Set when created
                     break;
-                default: Debug.Assert(false); break;
+                default:
+                    if (sQualifierNames.TryGetValue(name, out var s))
+                        Qualifiers |= s;
+                    else
+                        Debug.Assert(false); 
+                    break;
             }
         }
 
