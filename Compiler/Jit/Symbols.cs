@@ -6,6 +6,7 @@ using System.Diagnostics;
 
 using Zurfur.Lex;
 using System.Reflection;
+using System.ComponentModel.DataAnnotations;
 
 namespace Zurfur.Jit
 {
@@ -14,9 +15,9 @@ namespace Zurfur.Jit
     /// </summary>
     public static class SymTypes
     {
-        public const string RawPointer = "Zurfur.RawPointer`1";
+        public const string RawPointer = "Zurfur.Unsafe.RawPointer`1";
+        public const string Ref = "Zurfur.Unsafe.Ref`1";
         public const string Pointer = "Zurfur.Pointer`1";
-        public const string Ref = "Zurfur.Ref`1";
         public const string Nil = "Zurfur.Nil";
         public const string Maybe = "Zurfur.Maybe`1";
         public const string Result = "Zurfur.Result`1";
@@ -153,6 +154,8 @@ namespace Zurfur.Jit
         int mChildrenNamedCount;
 
         // Set by `SetChildInternal`.  Type parameters are always first.
+        // Currently, this is only used for storing the generic parameter
+        // order.  TBD: Refactor to remove this.
         public int Order { get; private set; } = -1;
 
         /// <summary>
@@ -218,7 +221,7 @@ namespace Zurfur.Jit
         /// <summary>
         /// Applicable to Types and Functions
         /// </summary>
-        public Dictionary<string, string[]>? Constraints;
+        public Dictionary<string, Symbol[]>? Constraints;
 
         /// <summary>
         /// Set to true when a type or function has been specialized and

@@ -269,7 +269,7 @@ namespace Zurfur.Compiler
             void SetGenericParamSymbols(Symbol s)
             {
                 s.GenericParamSymbols = s.Children.Where(s => s.Kind == SymKind.TypeParam)
-                    .OrderBy(s => s.Order).ToArray();
+                    .OrderBy(s => s.GenericParamNum()).ToArray();
             }
 
             void AddTypeParams(Symbol type, SyntaxExpr ?typeArgs)
@@ -347,14 +347,14 @@ namespace Zurfur.Compiler
                     return;
 
                 // Map of type parameters to constraints
-                var symCon = new Dictionary<string, string[]>();
+                var symCon = new Dictionary<string, Symbol[]>();
                 foreach (var synConstraint in synConstraints)
                 {
                     if (synConstraint == null || synConstraint.TypeName == null || synConstraint.TypeConstraints == null)
                         continue; // Syntax errors
-                    var name = synConstraint.TypeName.Name;
 
                     // Find constraint type
+                    var name = synConstraint.TypeName.Name;
                     var constrainedType = Resolver.FindTypeInScopeWalk(name, scope);
                     if (constrainedType == null)
                     {
@@ -375,7 +375,7 @@ namespace Zurfur.Compiler
                         Reject(synConstraint.TypeName, $"Constraints for this type parameter were already defined.  Use '+' to add more");
                         continue;
                     }
-                    var constrainers = new List<string>();
+                    var constrainers = new List<Symbol>();
                     foreach (var c in synConstraint.TypeConstraints)
                     {
                         var sym = ResolveTypeNameOrReject(scope, c);
@@ -387,12 +387,12 @@ namespace Zurfur.Compiler
                             Resolver.RejectTypeArgLeftDotRight(c, table, $"Symbol is not an interface, it is a {sym.KindName}");
                             continue;
                         }
-                        if (constrainers.Contains(sym.FullName))
+                        if (constrainers.Contains(sym))
                         {
                             Reject(c.Token, $"Duplicate constraint:  '{sym.FullName}'");
                             continue;
                         }
-                        constrainers.Add(sym.FullName);
+                        constrainers.Add(sym);
                     }
                     if (constrainers.Count != 0)
                         symCon[argName] = constrainers.ToArray();

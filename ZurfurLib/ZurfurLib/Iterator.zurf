@@ -3,7 +3,7 @@ mod Zurfur
 
 [pub]
 type interface Iterable[T]
-    fun get iterator() Iterator<T>
+    fun iterator() Iterator<T>
 
 
 // Implement this on all iterators

@@ -4,15 +4,64 @@ mod AATest
 
 
 use Zurfur
-use Zurfur[Log, Xuint, RawPointer, castPointer,
-            Iterator, Iterable, Equatable, Number]
+use Zurfur[Log, Iterator, Iterable, Equatable, Number]
+use Zurfur.Unsafe[Xuint, RawPointer, castPointer,]
 use Zurfur.Math[cos]
 use Zurfur.Draw2d[Size, Point]
 
 
-pragma ShowParse
+//pragma ShowParse
 
-fun aaa_arith(a int, b int, c aaa_arith_test) int
+type interface Printable
+    fun toStr() str
+
+fun test_callInterfaces()
+    @ints = List<int>()
+    test_printable(1)
+    test_printable(1.0)
+    test_printable("hello")
+
+    // TBD: Need correct assembly
+    test_multiPrintableOverload(1,   1, 0 byte, "x")
+    test_multiPrintableOverload(1.0, 1, 0 byte, 2.3 f32)
+
+    // TBD: Still working on this
+    test_printInts(ints)
+    test_printPrintable(ints)
+
+    // TBD: Generic interfaces, etc
+    //test_printGeneric(ints)
+
+
+fun test_printable(x Printable)
+    @item = x.toStr
+    Log.info("Item={item}")
+
+fun test_multiPrintableOverload(a int, b int, c Printable, d Printable)
+    Log.info("Item={a},{b},{c},{d}")
+fun test_multiPrintableOverload(a float, b int, c Printable, d Printable)
+    Log.info("Item={a},{b},{c},{d}")
+
+fun test_printInts(x mut Iterable<int>)
+    @i = x.iterator
+    while i.next()@item
+        @s = item.toStr
+        Log.info("Item={s}")
+
+fun test_printPrintable(x mut Iterable<Printable>)
+    @i = x.iterator
+    while i.next()@item
+        @s = item.toStr
+        Log.info("Item={item}")
+
+
+fun test_printGeneric[T Printable](x mut Iterable<T>)
+    @i = x.iterator
+    while i.next()@item
+        @s = item.toStr()
+        Log.info("Item={s}")
+
+fun aaa_arith(a int, b int, c mut aaa_arith_test) int
     Log.info("Hello world: 2+2 is " + (2 + 2).toStr)
     @x = a+b
     @y = a*b
@@ -36,8 +85,10 @@ fun aaa_arith(a int, b int, c aaa_arith_test) int
     Log.info("Answer: " + hold.toStr)
 
     @q2 = c.bref.e
+
+    c.property = 10
     
-    ret y + c.b.e
+    ret y + c.b.e + c.property
 
 fun MyGenericInt[T Number<int>]()
     @a = T()
@@ -55,6 +106,12 @@ type aaa_arith_test
     a int
     b aaa_arith_test2
     c int
+    _property int
+    
+fun get aaa_arith_test.property() int
+    ret my._property
+fun set aaa_arith_test.property(d int)
+    my._property = d
 
 fun get aaa_arith_test.bref() mut &aaa_arith_test2
     ret my.b

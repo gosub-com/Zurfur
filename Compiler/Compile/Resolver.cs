@@ -108,13 +108,13 @@ namespace Zurfur.Compiler
                 // Generic argument
                 if (rightSymbol.IsGenericArg)
                 {
-                    var argNum = rightSymbol.Order;
-                    if (argNum >= leftSymbol.TypeArgs.Length)
+                    var paramNum = rightSymbol.GenericParamNum();
+                    if (paramNum >= leftSymbol.TypeArgs.Length)
                     {
                         table.Reject(typeExpr[1].Token, "Compiler Error: Generic type arg index out of range");
                         return null;
                     }
-                    return leftSymbol.TypeArgs[argNum];
+                    return leftSymbol.TypeArgs[paramNum];
                 }
 
                 if (leftSymbol.IsSpecialized)

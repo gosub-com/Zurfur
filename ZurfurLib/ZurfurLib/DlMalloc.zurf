@@ -31,7 +31,7 @@
 
 mod Zurfur.Internal.Memory
 
-use Zurfur[castPointer, RawPointer]
+use Zurfur.Unsafe[Xuint, castPointer, RawPointer]
 
 fun panicFatal(m str)
     todo
@@ -403,7 +403,7 @@ fun DlMalloc.should_trim(s u64) bool
 //  that may be needed to place segment records and fenceposts when new
 //  noncontiguous segments are added.
 fun get TOP_FOOT_SIZE() u64
-    ret align_offset(chunk2mem(castPointer<*mchunk>(0))) + pad_request(sizeof(msegment).toU64Mask) + MIN_CHUNK_SIZE
+    ret align_offset(chunk2mem(castPointer<*mchunk>(Xuint(0 u64)))) + pad_request(sizeof(msegment).toU64Mask) + MIN_CHUNK_SIZE
 
 // -------------------------- Debugging setup ----------------------------
 
@@ -828,7 +828,7 @@ fun DlMalloc.CheckHeap() HeapStats
         // Walk chunks
         while (my.segment_holds(s, q)
                 and q != my.top and q.head != FENCEPOST_HEAD)
-            @chunkSize = castPointer<u64>(chunksize(q))
+            @chunkSize = chunksize(q)
             heapSize += chunkSize
             if is_inuse(q)
                 usedBytes += chunkSize
@@ -1950,11 +1950,11 @@ type mchunk
 fun get mchunk.prev_foot() u64
     ret castPointer<u64>(my.prev_foot_ptr)
 fun set mchunk.prev_foot(value u64)
-    my.prev_foot_ptr = castPointer<*void>(value)
+    my.prev_foot_ptr = castPointer<*void>(Xuint(value))
 fun get mchunk.head() u64
     ret castPointer<u64>(my.head_ptr)
 fun set mchunk.head(value u64)
-    my.head_ptr = castPointer<*void>(value)
+    my.head_ptr = castPointer<*void>(Xuint(value))
 
 fun cinuse(p *mchunk) bool
     ret (p.head & CINUSE_BIT) != 0
@@ -2142,12 +2142,12 @@ type tchunk
 fun get tchunk.prev_foot() u64
     ret castPointer<u64>(my.prev_foot_ptr)
 fun set tchunk.prev_foot(value u64)
-    my.prev_foot_ptr = castPointer<*void>(value)
+    my.prev_foot_ptr = castPointer<*void>(Xuint(value))
 
 fun get tchunk.head() u64
     ret castPointer<u64>(my.head_ptr)
 fun set tchunk.head(value u64)
-    my.head_ptr = castPointer<*void>(value)
+    my.head_ptr = castPointer<*void>(Xuint(value))
 
 fun chunk_plus_offset(p *tchunk, s u64) *mchunk
     ret castPointer<*mchunk>(castPointer<*byte>(p) + s)

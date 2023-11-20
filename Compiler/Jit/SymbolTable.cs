@@ -15,6 +15,18 @@ namespace Zurfur.Jit
     }
 
     /// <summary>
+    /// Concrete functions used to implement the interface (pass=true),
+    /// or a list of failed interface functions (pass=false)
+    /// </summary>
+    public record InterfaceInfo(Symbol Concrete, Symbol Interface, List<Symbol> Functions, bool Pass)
+    {
+        public string Name { get; private set; } = GetName(Concrete, Interface);
+        public override string ToString() => Name;
+        public static string GetName(Symbol concrete, Symbol iface)
+            => concrete.FullName + " -> " + iface.FullName;
+    }
+
+    /// <summary>
     /// The master symbol table is a tree holding modules and types
     /// at the top level, and functions, and parameters at lower levels.
     /// </summary>
@@ -39,7 +51,6 @@ namespace Zurfur.Jit
         List<Symbol> mGenericConstructors = new();
         List<Symbol> mGenericArguments = new();
         Symbol mGenericArgumentHolder; // Holder so they have `Order` set properly
-
         Symbol mGenericTupleHolder;
 
         /// <summary>
@@ -54,6 +65,11 @@ namespace Zurfur.Jit
         /// supports a variable number of type arguments.
         /// </summary>
         public Symbol EmptyTuple { get; private set; }
+
+        /// <summary>
+        /// Map "{interface}->{concrete}" to the interface info
+        /// </summary>
+        public Dictionary<string, InterfaceInfo> InterfaceInfos = new();
 
 
         public SymbolTable()
@@ -235,8 +251,9 @@ namespace Zurfur.Jit
 
             if (type.IsGenericArg)
             {
-                if (type.Order >= 0 && type.Order < args.Length)
-                    return args[type.Order];
+                var paramNum = type.GenericParamNum();
+                if (paramNum >= 0 && paramNum < args.Length)
+                    return args[paramNum];
                 throw new Exception("Compiler error: ReplaceGenericTypeParams, index out of range");
             }
 
@@ -271,7 +288,7 @@ namespace Zurfur.Jit
             for (int i = mGenericArguments.Count; i <= argNum; i++)
             {
                 var name = $"#{i}";
-                var arg = new Symbol(SymKind.Type, mGenericArgumentHolder, null, name);
+                var arg = new Symbol(SymKind.TypeParam, mGenericArgumentHolder, null, name);
                 mGenericArguments.Add(arg);
                 AddOrReject(arg);
                 mSpecializedTypes[name] = arg;

@@ -815,8 +815,6 @@ namespace Zurfur.Compiler
 
                 case "fun":
                 case "afun":
-                    if (!isInterface)
-                        RejectToken(mToken, $"Only interfaces may not contain '{mTokenName}'");
                     mToken.Type = eTokenType.ReservedControl;
                     qualifiers.Add(Accept());
                     ParseFunction(mToken, qualifiers, !isInterface);
@@ -976,7 +974,7 @@ namespace Zurfur.Compiler
         /// <summary>
         /// Function
         /// </summary>
-        void ParseFunction(Token keyword, List<Token> qualifiers, bool body)
+        void ParseFunction(Token keyword, List<Token> qualifiers, bool allowBody)
         {
             // Parse func keyword
             var synFunc = new SyntaxFunc(keyword);
@@ -997,7 +995,7 @@ namespace Zurfur.Compiler
             // Body
             if (AcceptMatch("extern") || AcceptMatch("todo"))
                 qualifiers.Add(mPrevToken);
-            else if (body)
+            else if (allowBody)
                 synFunc.Statements = ParseStatements(synFunc);
 
             synFunc.Qualifiers = qualifiers.ToArray();

@@ -4,6 +4,7 @@ mod Zurfur
 
 use Zurfur[Iterator, Clone]
 use Zurfur.Math[max]
+use Zurfur.Unsafe[castPointer, GcHeapArray]
 
 
 // All empty lists point here
@@ -145,7 +146,3 @@ fun set List.capacity[T](value int)
     require(not my.locked)
     todo
 
-
-
-
- 

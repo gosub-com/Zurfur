@@ -1,34 +1,12 @@
 ﻿mod Zurfur
 
-
-// Unsigned extended int, u32 or u64 depending on machine pointer size.
-// This is the internal representation of a pointer.
-[pub]
-type ro Xuint
-    value u32 // or u64
-
-// A raw pointer.  The compiler translates *T to RawPointer<T>
-// and automatically dereferences when "." is used.
-[pub unsafe]
-type ro RawPointer[T]
+use Zurfur.Unsafe[Xuint, GcHeapObject]
+    
+// This is private, so only Xuint, RawPointer<T>, Ref<T>, and Pointer<T>
+// implement GetRawPointer.  When implemented, the compiler knows it is a
+// pointer (32 or 64 bits) and can allow `castPointer`.
+type RawPointerMarker
     value Xuint
-
-fun _opEq[T](a RawPointer<T>, b RawPointer<T>) bool extern
-fun _opCmp[T](a RawPointer<T>, b RawPointer<T>) int extern
-fun _opAdd[T](a RawPointer<T>, b u64) RawPointer<T> extern
-fun _opAdd[T](a u64, b RawPointer<T>) RawPointer<T> extern
-fun _opSub[T](a RawPointer<T>, b RawPointer<T>) RawPointer<T> extern
-fun _opSub[T](a RawPointer<T>, b u64) RawPointer<T> extern
-
-
-// Internal representation of `ref`, a compiler generated stack only pointer.
-// The first version is a reference counting implementation, but future
-// versions might not be.  The owner is nil when a non-heap (static global or
-// stack local) object is referenced.  These references are also called return
-// references because they get passed back up the stack.
-type ref ro Ref[T]
-    owner ?*GcHeapObject
-    value *T
 
 // Forward references are an optimization the code synthesizer can use when
 // they are passed down the stack, e.g. f(value Ref<T>) can be replaced with
@@ -41,84 +19,11 @@ type ref ro FRef[T]
 type ro Pointer[T]
     value *GcHeapObject  // Can also point to GcHeapArray<T>
 
-// All heap objects start with this header.  It must be 64 bits wide to
-// ensure proper alignment. 
-type GcHeapObject
-    refCount i32
-    typeId Type     // Must be 32 bits even on 64 bit machines.
-    // Object data is stored following this header
-
-// The one and only variable length heap object.  It must be 128 bits
-// wide to ensure proper alignment.
-type GcHeapArray
-    // TBD: use GcHeapObject
-    //NOTE: Until we get 'use', the first two fields MUST be the same
-    //      as GcHeapObject since we will cast pointers back and forth
-    refCount i32
-    typeId Type
-    length u32
-    capacity u32
-    // Array of object data is stored following this header
-
-// This is private, so only Xuint, RawPointer<T>, Ref<T>, and Pointer<T>
-// implement IsRawPointer.  When implemented, the compiler knows it is a
-// pointer (32 or 64 bits) and can allow `castPointer`.
-type RawPointerMarker{}
-
-// When implemented, the compiler knows it is a pointer (32 or 64 bits)
-// and can allow `castPointer`.  `RawPointerMarker` is private, so only
-// pointer types can implement this.
-type interface IsRawPointer
-    fun isRawPointer() RawPointerMarker
-    fun getRawPointer() Xuint
-
 // Mark these types as the only pointer types in the system
-fun Xuint.isRawPointer() RawPointerMarker
-    ret RawPointerMarker()
-fun RawPointer.isRawPointer[T]() RawPointerMarker
-    ret RawPointerMarker()
-fun Ref.isRawPointer[T]() RawPointerMarker
-    ret RawPointerMarker()
-fun Pointer.isRawPointer[T]() RawPointerMarker
-    ret RawPointerMarker()
-fun Xuint.getRawPointer() Xuint
-    ret my
-
-// TBD: Compiler implemented
-fun Ref.getRawPointer[T]() Xuint
-    extern
-fun RawPointer.getRawPointer[T]() Xuint
-    extern
-fun Pointer.getRawPointer[T]() Xuint
-    extern
-
+fun Pointer.getRawPointer[T]() RawPointerMarker extern
 
 fun free(memory *GcHeapObject)
     extern // Pass to DlMalloc.free
     
 
-// Cast from one pointer type to another pointer type.
-[pub unsafe]
-fun castPointer[Out IsRawPointer](i IsRawPointer) Out
-    extern
-
-fun castPointer[Out IsRawPointer](i Xuint) Out
-    extern
-
-fun castPointer[Out IsRawPointer](i u64) Out
-    extern
-
-fun castPointer[Out IsRawPointer](i int) Out
-    extern
-
-// TBD: Remove this when castPointer<Out>(i IsRawPointer) works
-fun castPointer[Out](i *void) Out
-    extern // TBD: Remove
-
-fun _opAdd[T](a RawPointer<T>, b int) *T extern
-fun _opAdd[T](a int,b *T) *T extern
-
-fun test_Add()
-    @a = RawPointer<int>()
-    @b = a + 1
     

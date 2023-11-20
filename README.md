@@ -1,5 +1,8 @@
 # Zurfur
 
+I will be moving doucmentation to
+[Confluence](https://zurfur.atlassian.net/wiki/external/ZjJlYjUwZmIzMzg0NGJkY2ExMmJlY2MwNDVlNTU4ODU)
+
 ![Logo](Zurfur.jpg)
 
 Zurfur is is a programming language I'm designing for fun and enlightenment.

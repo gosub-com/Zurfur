@@ -120,8 +120,11 @@ namespace Zurfur.Jit
                 var funParent = func.Parent!;
                 RejectDuplicateTypeParameterName(func.Token, funParent.Parent!); // Skip containing type or method
 
-                if (!funParent.IsInterface && !funParent.IsModule)
-                    Reject(func.Token, "Method must be scoped at the at the module level");
+                if (!funParent.IsInterface && !funParent.IsModule
+                    && !func.IsGetter && !func.IsSetter)
+                {
+                    Reject(func.Token, "Only getters or setters ('fun get' or 'fun set') are allowed inside a type");
+                }
             }
 
 

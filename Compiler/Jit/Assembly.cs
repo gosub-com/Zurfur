@@ -29,6 +29,7 @@ namespace Zurfur.Jit
         public readonly ConsolidatedList<Symbol> Functions = new();
         public readonly ConsolidatedList<string> Strings = new();
         public readonly ConsolidatedList<string> Translated = new();
+        public readonly ConsolidatedList<InterfaceInfo> Interfaces = new();
         public readonly List<AsOp> Code = new();
 
         public readonly List<ErrorInfo> Errors = new();
@@ -111,6 +112,11 @@ namespace Zurfur.Jit
             DebugTokens.Add(token);
         }
 
+        public void AddOpInterface(Token token, InterfaceInfo iface)
+        {
+            AddOp(Op.LdIface, token, Interfaces.AddOrFind(iface));
+        }
+
         /// <summary>
         /// Generate a printout of the assembly.  Optionally store a linue
         /// number for each opcode (i.e. lineNumbers.Count == Code.Count)
@@ -134,6 +140,19 @@ namespace Zurfur.Jit
             index = 0;
             foreach (var type in Types)
                 sb.Add($"    {index++} {type}");
+
+            // Print interfaces
+            index = 0;
+            sb.Add("");
+            sb.Add("interfaces:");
+            foreach (var iface in Interfaces)
+            {
+                sb.Add($"    {index++} {iface.Interface}");
+                sb.Add($"        {iface.Concrete}");
+                var j = 0;
+                foreach (var func in iface.Functions)
+                    sb.Add($"        {j++} {func}");
+            }
 
             // Print strings
             sb.Add("");
@@ -210,6 +229,8 @@ namespace Zurfur.Jit
                     sb.Add($"{opCode} # \"{JsonEncodedText.Encode(Strings[op.OperandInt])}\"");
                 else if (op.Op == Op.Call)
                     sb.Add($"{opCode} # {Functions[op.OperandInt].FullName}");
+                else if (op.Op == Op.LdIface)
+                    sb.Add($"{opCode} # {Interfaces[op.OperandInt]}");
                 else if (op.Op == Op.Float)
                     sb.Add($"{opCode} # {BitConverter.Int64BitsToDouble(op.Operand)}");
                 else if (op.Op == Op.Ldlr)

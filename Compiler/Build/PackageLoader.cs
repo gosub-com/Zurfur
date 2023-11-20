@@ -53,7 +53,7 @@ namespace Zurfur.Build
             var ps = new PackageSymbolJson();
             ps.Tags = symbol.QualifiersStr();
             ps.Type = symbol.TypeName == "" ? null : symbol.TypeName;
-            ps.Constraints = symbol.Constraints;
+            // ps.Constraints = symbol.Constraints; // TBD
             if (onlyPublic && symbol.Comments != "")
                 ps.Comments = symbol.Comments;
 
@@ -154,11 +154,11 @@ namespace Zurfur.Build
                     Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' type doesn't match");
                     Debug.Assert(false);
                 }
-                if (loadedSym.Order != savedSym.Order)
-                {
-                    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' order doesn't match");
-                    Debug.Assert(false);
-                }
+                //if (loadedSym.Order != savedSym.Order)
+                //{
+                //    Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' order doesn't match");
+                //    Debug.Assert(false);
+                //}
                 if (loadedSym.Qualifiers != savedSym.Qualifiers)
                 {
                     Console.WriteLine($"Internal consistency check: Saved '{savedSym.FullName}' tags don't match");

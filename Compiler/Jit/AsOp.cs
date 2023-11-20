@@ -30,15 +30,16 @@ namespace Zurfur.Jit
 
         // Constants
         I64,    // Operand is I64
-        Float,    // Operand is IEEE 754 encoded as int64
+        Float,  // Operand is IEEE 754 encoded as int64
         Str,    // Operand is index into string table
 
         // Code
         Loc,    // Create a local in this scope, operand is an index into types
         Call,   // Operand is index into symbols
         Ldlr,   // Load local ref, operand is an index into locals
-        Setr,    // Store into reference (value, ref)
+        Setr,   // Store into reference (value, ref)
         Getr,   // Get from reference
+        LdIface,// Load interface table, operand is index into Interfaces 
     }
 
     public struct AsOp
