@@ -21,7 +21,7 @@ fun get Range.length[T Number<T>]() T // TBD: Use constraints from `Range`
     ret my.high-my.low
 
 [pub]
-fun get Range.iterator[T]() RangeIterator<T>
+fun get Range.getIterator[T]() RangeIterator<T>
     ret RangeIterator<T>(my.low, my.high)
         
 [pub]

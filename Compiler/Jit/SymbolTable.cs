@@ -15,15 +15,36 @@ namespace Zurfur.Jit
     }
 
     /// <summary>
+    /// TBD: Replace 'Functions' with a specialized interface
+    ///      containing specialized functions.
+    /// 
     /// Concrete functions used to implement the interface (pass=true),
     /// or a list of failed interface functions (pass=false)
     /// </summary>
-    public record InterfaceInfo(Symbol Concrete, Symbol Interface, List<Symbol> Functions, bool Pass)
+    public record InterfaceInfo(Symbol Concrete, Symbol Interface, List<Symbol> Functions, CallCompatible Compat)
     {
         public string Name { get; private set; } = GetName(Concrete, Interface);
         public override string ToString() => Name;
         public static string GetName(Symbol concrete, Symbol iface)
             => concrete.FullName + " -> " + iface.FullName;
+        public bool Pass => Compat == CallCompatible.Compatible;
+    }
+
+    public enum CallCompatible
+    {
+        Compatible = 0,
+        NotAFunction = 1,
+        StaticCallToNonStaticMethod = 2,
+        NonStaticCallToStaticMethod = 4,
+        IncompatibleParameterTypes = 8,
+        ExpectingSomeTypeArgs = 16,
+        ExpectingNoTypeArgs = 32,
+        WrongNumberOfTypeArgs = 64,
+        WrongNumberOfParameters = 128,
+        TypeArgsSuppliedByConstraint = 256,
+        InterfaceToInterfaceConversionNotSupportedYet = 512,
+        InterfaceNotImplementedByType = 1024,
+        InterfaceGenerating = 4096,
     }
 
     /// <summary>

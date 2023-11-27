@@ -153,6 +153,18 @@ namespace Zurfur.Jit
         Dictionary<string, List<Symbol>>? mChildrenNamed;
         int mChildrenNamedCount;
 
+        public Symbol ParentModule 
+        {
+            get 
+            {
+                var inModule = this;
+                while (inModule != null && !inModule.IsModule)
+                    inModule = inModule.Parent;
+                ArgumentNullException.ThrowIfNull(inModule);
+                return inModule;
+            }
+        }
+
         // Set by `SetChildInternal`.  Type parameters are always first.
         // Currently, this is only used for storing the generic parameter
         // order.  TBD: Refactor to remove this.
@@ -741,23 +753,6 @@ namespace Zurfur.Jit
         /// </summary>
         public Symbol[] FunReturnTypes => FunReturnTuple.TypeArgs;
 
-        /// <summary>
-        /// Check to see if the symbol types match, ignoring tuple names
-        /// </summary>
-        static public bool TypesMatch(Symbol a, Symbol b)
-        {
-            if (a.FullName == b.FullName)
-                return true;
-            if (!a.IsSpecialized
-                    || !b.IsSpecialized
-                    || a.Parent!.FullName != b.Parent!.FullName
-                    || a.TypeArgs.Length != b.TypeArgs.Length)
-                return false;
-            for (int i = 0; i < a.TypeArgs.Length; i++)
-                if (!TypesMatch(a.TypeArgs[i], b.TypeArgs[i]))
-                    return false;
-            return true;
-        }
 
 
     }

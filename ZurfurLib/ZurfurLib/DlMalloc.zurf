@@ -1084,7 +1084,7 @@ fun mut DlMalloc.init_top(p *mchunk, psize u64)
 // Initialize bins for a new mstate that is otherwise zeroed out
 fun mut DlMalloc.init_bins()
     // Establish circular links for smallbins
-    for @i in NSMALLBINS
+    for @i in 0..NSMALLBINS
         @bin = my.smallbin_at(i)
         bin.bk = bin
         bin.fd = bin
@@ -1102,7 +1102,7 @@ fun mut DlMalloc.ResetOnError()
     my.seg.next = nil
     my.top = nil
     my.dv = nil
-    for @i in NTREEBINS
+    for @i in 0..NTREEBINS
         my.treebin_at(i).* = nil
     my.init_bins()
 

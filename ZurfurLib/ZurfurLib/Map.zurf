@@ -1,7 +1,7 @@
 ﻿
 mod Zurfur
 
-use Zurfur[Iterator, Iterable, Equatable]
+use Zurfur[Iterator, Equatable]
 
 
 // Entries in the bucket list
@@ -50,7 +50,7 @@ fun _opIndex[K,V](m Map<K,V>, key K) mut ?&V
 fun Map.contains[K,V](key K) bool
     extern
 
-// TBD: Return Iterable<(K, V)>???
+// TBD: Return GetIterator<(K, V)>???
 [pub]
 fun get Map.iterator[K,V]() mut Iterator<KvPair<K, V>>
     extern

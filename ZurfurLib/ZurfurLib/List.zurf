@@ -48,14 +48,6 @@ fun get List.len[T]() int
 fun get List.locked[T]() bool
     ret my.list.refCount != 0
 
-// TBD: Iterator should be able to do this, make more generic?
-[pub] fun List.map[T Clone<T>, Tout](f fun(item T) Tout) List<Tout>
-    todo
-
-[pub] fun List.toArray[T Clone<T>]() Array<T>
-    todo
-
-
 // TBD: Only generic
 // Usage: myList.For @item => DoStuffWithItem()
 [pub] fun List.forEach[T](f fun(item mut T)) {}
@@ -92,7 +84,7 @@ fun _opIndex[T](l List<T>, r Range<int>) mut []T
     todo
 
 [pub]
-fun get List.iterator[T]() SpanIterator<T>
+fun get List.getIterator[T]() SpanIterator<T>
     todo
 
 
@@ -145,4 +137,3 @@ fun set List.capacity[T](value int)
 [pub] fun mut List.removeIp[T](index int) T
     require(not my.locked)
     todo
-

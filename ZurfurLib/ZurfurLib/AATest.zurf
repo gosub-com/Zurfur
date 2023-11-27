@@ -4,18 +4,141 @@ mod AATest
 
 
 use Zurfur
-use Zurfur[Log, Iterator, Iterable, Equatable, Number]
+use Zurfur[Log, Iterator, GetIterator, Equatable, Number]
 use Zurfur.Unsafe[Xuint, RawPointer, castPointer,]
 use Zurfur.Math[cos]
 use Zurfur.Draw2d[Size, Point]
+use AATest2[MyCollection, MyCollectionNot, MyCollectionNotIter]
 
 
 //pragma ShowParse
 
-type interface Printable
-    fun toStr() str
 
-fun test_callInterfaces()
+// TBD: Global variables need to be compiled
+@a1 AParamable = A1Parameter()
+@b1 AParamable = int()
+
+
+type interface AParamable
+    fun takePointer(a *int) Span<int>
+    fun takeInt(a int) float
+
+type interface BParamable
+    fun fun1(x AParamable)
+    fun fun2(y BParamable)
+    fun fun3(a AParamable, b BParamable)
+
+type A1Parameter
+    a int
+fun A1Parameter.takePointer(a *int) Span<int>
+    ret Span<int>()
+fun A1Parameter.takeInt(a int) float
+    ret 0.0
+
+type A1ParameterNot1
+    a int
+fun A1ParameterNot1.takePointer(a *int) int // Causes it to not be AParamable
+    ret 0
+fun A1ParameterNot1.takeInt(a int) float
+    ret 0.0
+
+type A1ParameterNot2
+    a int
+fun A1ParameterNot2.takePointer(a *int) Span<int>
+    ret Span<int>()
+fun A1ParameterNot2.takeInt(a int) int // Causes it to not be AParamable
+    ret 0
+
+
+    
+type interface Printable
+    fun toStr() str    
+
+fun test_use()
+    @myCollection = MyCollection<int>()
+    @myCollectionIter = myCollection.getIterator
+    @myCollectionItem = myCollectionIter.next()
+    @myCollectionMapIter = myCollection.map<int,str>(@i => i.toStr)
+    // TBD: Fix asset hit for: @myCollectionMapList = myCollection.map<int,str>(@i => i.toStr).toList
+    @myCollectionMapList2 = myCollection.map<int,str>(@i => i.toStr).toList<str>
+
+    @myReduce = List<int>()
+        .reduce<int>(@(item1, item2) => item1 + item2)
+    
+    @myCollectionNot = MyCollectionNot<int>()
+    @myCollectionNotIter = myCollectionNot.getIterator
+    @myCollectionNotItem = myCollectionNotIter.next()
+    for @a in myCollectionNot
+        nop
+        
+    // Failed test cases
+    //@a = MyCollection()
+    //@myCollectionMapList3 = myCollection.map<int,str>(@i => i.toStr).toList<int>
+    //@myCollectionNotMapIter = myCollectionNot.map<int,str>(@i => i.toStr)
+    //@myCollectionNotMapList = myCollectionNot.map<int,str>(@i => i.toStr).toList<int>
+    //@myReduceFail = List<int>()
+    //    .reduce<float>(@(item1, item2) => item1 + item2)
+
+fun test_map()
+
+    for @ir in 0..2
+        Log.info("")
+
+    @i = List<int>().getIterator()
+    @m3 = i.map<int,str>(@q => 0.0)
+    @m3item = m3.next()
+    @m4 = i.map<int,str>(@q => 0.0).map<str,float>(@q => "hello")
+    @m4item = m4.next()
+    @m5 = List<int>().map<int,str>(@q => 0).map<str,float>(@q => 0)
+    @m5List = m5.toList<float>
+
+    @myFold = List<int>()
+        .fold<int, float>(0.0, @(acc, item) => acc + item.toFloat)
+    @myReduce = List<int>()
+        .reduce<int>(@(item1, item2) => item1 + item2)
+
+    @myStringList = List<int>()
+        .map<int, str>(@s => s.toStr)
+        .map<str,str>(@s => s + " ")
+        .fold<str,str>("", @(acc, item) => acc + item)
+
+    @testIter = (0..5).map<int,float>(@fl => (2*fl).toFloat + 0.5)
+
+    // TBD: This should work
+    for @a in m5
+        Log.info("")
+
+
+[pub] fun MyCollectionNot.getIterator[T]() MyCollectionNotIter<T>
+    nop
+[pub] fun MyCollectionNotIter.next[T]() ?T
+    nop
+    
+
+fun test_callInterfaces() AParamable
+    @a AParamable = A1Parameter()
+    @params = A1Parameter()
+    test_paramable(params)
+
+
+    // Passing test cases (TBD: Verifier to ensure no local variables returned by ref)
+    if false
+        ret a
+    if false
+        ret A1Parameter()
+
+    @a1 AParamable = A1Parameter()
+    test_paramable(A1Parameter())
+
+    // Failing test cases
+    //test_paramable(3)
+    //if false
+    //    ret 3
+    //@b1 AParamable = int()
+    //@c1 AParamable = A1ParameterNot1()
+    //@d1 AParamable = A1ParameterNot2()
+    
+
     @ints = List<int>()
     test_printable(1)
     test_printable(1.0)
@@ -27,11 +150,21 @@ fun test_callInterfaces()
 
     // TBD: Still working on this
     test_printInts(ints)
-    test_printPrintable(ints)
+    test_printPrintable(ints) // TBD: This should be allowed since int is Printable
+
+    @intSpan = Span<int>()
+    test_printInts(intSpan)
 
     // TBD: Generic interfaces, etc
     //test_printGeneric(ints)
 
+fun test_paramable(p AParamable)
+    @x = p.takePointer(nil)
+
+fun test_for()
+    @list = List<int>()
+    for @i in list
+        @istr = i.toStr
 
 fun test_printable(x Printable)
     @item = x.toStr
@@ -42,21 +175,21 @@ fun test_multiPrintableOverload(a int, b int, c Printable, d Printable)
 fun test_multiPrintableOverload(a float, b int, c Printable, d Printable)
     Log.info("Item={a},{b},{c},{d}")
 
-fun test_printInts(x mut Iterable<int>)
-    @i = x.iterator
+fun test_printInts(x GetIterator<int>)
+    @i = x.getIterator
     while i.next()@item
         @s = item.toStr
         Log.info("Item={s}")
 
-fun test_printPrintable(x mut Iterable<Printable>)
-    @i = x.iterator
+fun test_printPrintable(x mut GetIterator<Printable>)
+    @i = x.getIterator
     while i.next()@item
         @s = item.toStr
         Log.info("Item={item}")
 
 
-fun test_printGeneric[T Printable](x mut Iterable<T>)
-    @i = x.iterator
+fun test_printGeneric[T Printable](x mut GetIterator<T>)
+    @i = x.getIterator
     while i.next()@item
         @s = item.toStr()
         Log.info("Item={s}")
@@ -152,7 +285,7 @@ fun Iterator.find[T](f fun(item T) bool) mut ?&T
 
 // Simple selection sort
 fun Span.test_selectionSort[T](lessThan fun(a T,b T)bool)
-    for @i in my.len-1
+    for @i in 0..my.len-1
         @lowElem = my[i]
         @lowIndex = i
         for @j in i+1..my.len
@@ -173,7 +306,7 @@ type MyPoint[T1,T2,T3]
     x (int, T1, int)
     y (a int, b T1, c int, d (r int, b int))
 
-type interface Iterable2[Item]
+type interface GetIterator2[Item]
     fun iterator2() Iterator<Item>
 
 type interface GetMap[Item1,Item2]
@@ -216,7 +349,7 @@ fun test_tuples()
     @element = tuplesNamedElement.x
 
 fun AAAAA[X,
-        T Number<T> + GetHash + Iterable<int> + Iterable2<int> + GetMap<f32,float> + Iterator<int>,
+        T Number<T> + GetHash + GetIterator<int> + GetIterator2<int> + GetMap<f32,float> + Iterator<int>,
         Q Number<Q> + Getter + Getter2<int> + MyAdd<Q>
         ](t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<float>, myGetter Getter)
 
@@ -249,7 +382,7 @@ fun AAAAA[X,
     @getMapFunc = getMapFun<i32,u32>()  // Map<u32,i32>
     @getMapKeys = t.getMapKeys()        // Iterator<f32>
     @getMapValues = t.getMapValues()    // Iterator<float>
-    @iter1 = t.iterator                 // Iterator<int>
+    @iter1 = t.getIterator                 // Iterator<int>
     @iter2 = t.iterator2()              // Iterator<int>
     @first = iter1.next()               // ?int
     @x = 1
@@ -261,7 +394,7 @@ fun AAAAA[X,
     @z3 = a + b                 // #1
     @z4 = _opAdd(a, b)
     @z5 = T.One
-    @iter3 = t.iterator()
+    @iter3 = t.getIterator()
 
     // TBD: Resolve multiple interface implementations, which is
     //      allowed since they would be resolved when called

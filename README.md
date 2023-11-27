@@ -1,9 +1,9 @@
 # Zurfur
 
-I will be moving doucmentation to
-[Confluence](https://zurfur.atlassian.net/wiki/external/ZjJlYjUwZmIzMzg0NGJkY2ExMmJlY2MwNDVlNTU4ODU)
-
 ![Logo](Zurfur.jpg)
+
+I am moving doucmentation to
+[Confluence](https://zurfur.atlassian.net/wiki/external/ZjJlYjUwZmIzMzg0NGJkY2ExMmJlY2MwNDVlNTU4ODU)
 
 Zurfur is is a programming language I'm designing for fun and enlightenment.
 The language is named after our cat, Zurfur, who was named by my son.  It's
@@ -13,19 +13,21 @@ I love C#.  It's my favorite language to program in.  But, I'd like to have
 some features from other languages built in from the ground up.  I'm thinking
 about ownership, immutability, nullability, and functional programming.
 
+Download the repo, open the `.sln` file in Visual Studio, and run.
+Hit F4 then click the Code.zil tab to see the IR assembly language. 
+This is a work-in-progress.  The syntax is still being developed and
+nothing is set in stone.
+
 ![](Doc/IDE.png)
-
-**Status Update**
-
-I am working on assembly language generation. Hit F4 then click the `Code.zil`
-tab to see it.  The syntax is still being developed, nothing is set in stone.
-Feel free to send me comments letting me know what you think should be changed.
 
 ## Design Goals
 
 Zurfur takes its main inspiration from C#, but borrows syntax and design
-concepts from Golang, Rust, Zig, Python, JavaScript, and other languages.
-Here are some key features:
+concepts from 
+[Lobster](https://strlen.com/lobster/), 
+Zig(https://ziglang.org/), 
+Midori(https://joeduffyblog.com/2016/02/07/the-error-model/), 
+Golang, Rust, Python, JavaScript, and other languages.
 
 * **Prime directives:**
     * Fun and easy to use
@@ -393,104 +395,6 @@ from thom the nearest `fun` scope.  Instead, `exit` is used.
 
 **TBD:** Consider how to `break` out of the lambda.  Use a return type of `Breakable`?
 
-
-## Interfaces
-
-Zurfur uses Golang style interfaces, but there are some differences.
-
-Interface function tables are generated statically at compile time based on
-the methods in the scope of where the interface is used.   An interface may
-be converted via type assertion to a concrete type or any compatible interface
-type, however it cannot beconverted to an incompatible interface type.
-
-## Async
-
-Sync and async functions look and act identically, except that async functions
-use the keyword `afun` and can't be called from sync `fun` functions.  There
-is no `await` keyword at the call site.  Instead, it looks like a regular
-blocking function call.
-
-Calling an async function blocks by default, but the `astart` keyword can be
-used to start a new task.
-
-    @p = astart getHttpAsString("gosub.com")
-
-References to mutable dynamically allocated data cannot be passed into
-`astart`, but types owned by the function (locals, or passed with `own`)
-may be:
-
-    @myList = List<int>()
-    astart fillListFromHttp("gosub.com", myList)
-
-In this case, `myList` is moved into a closure.
-
-**TBD:** All functions are async.  The compiler optimizes to make them as sync
-as possible.  The main downside here is that calls through an interface might
-not be optimizable.
-
-## Threading
-
-The first version of Zurfur is targeted at replacing JavaScript and will
-support multi-threading only via web workers and async message passing.  Each
-web worker has its own address space, so everything is single threaded.
-
-A combination of async, web-workers, and message passing can mostly
-replace the need for true multi-threading, as demonstrated by Node.js.
-
-## Errors and Exceptions
-
-Joe Duffy has some great thoughts on error handling here [Midori](http://joeduffyblog.com/2016/02/07/the-error-model/).
-
-Errors are classified like this:
-
-|Type | Action | Examples
-| :--- | :--- | :---
-|Error | No stack trace, debugger not stopped | `throw` - File not found
-|Panic | Stack trace logged, debugger stopped | `require` - Array bounds check
-|Critical | End process, stack trace, maybe core dump | Memory corruption, type safety violation
-
-Panics always stop the debugger (if attached) and log a stack trace. They
-are recoverable (similar to Golang) in top level handlers, like `astart`,
-but recovery should be used sparingly.  In a GUI, recovery might print an
-error but allow the user to continue so they can save work.  In a server,
-recovery might log an error and report 500 internal server error, but then
-continue processing other requests.  A call to buggy deserializer library
-might need to convert a panic into a regular error.
-
-Normal error handling uses `Result<T>` which can be either the return type
-or an `Error` interface. The type `Result<T>` is abbreviated as `!T`, so a
-function that throws an error can be prototyped as:
-
-    afun open(fileName str) !FileStream
-
-`throw` or `throwIf` is used to send the error up to the caller.  The postfix
-`!` operator can be used to unwrap the error or send it up to the caller, but
-it can only be used in a function that returns `Result<T>`. The `!!` operator
-can be used to unwrap the error or panic and can be used in any function.
-
-    // Use `!` to get the result or send the error up to the caller
-    @user = File.readJson<UserType>("userDataForJeremy.json")!
-
-    // The application can't start without a configuration, so panic
-    @config = File.readJson<ConfigType>("config.json")!!
-
-An error can be detected when the function is called:
-
-    if File.open("config.json")@stream
-        // Do something with `stream`, which is a FileStream
-        // The file is closed at the end of the scope, even if it is a panic
-    else
-        // Do something with `stream`, which is an Error
-
-There are two ways to cleanup resources that work for both regular errors and
-also for panics.  The first is cleanup by the `drop` function, such as with
-a `FileStream` which closes the file.  Another method is to use `defer`:
-
-    // Use `defer` to cleanup at the end of the scope
-    @databaseHandle = c_function_to_open_a_database_handle("database")
-    defer c_function_to_close_a_database_handle(databaseHandle)
-    // The above function is called at the end of the scope, even if panic
-
 ## Operators
 
 Operator precedence is mostly from Golang, but more compatible
@@ -674,53 +578,6 @@ Both `switch` and `match` are reserved for future use.  For now, use `if`,
         DoMoreStuff()
     else myNum >= 3
         DoTheLastThing()
-
-
-
-## Garbage Collection
-
-Thanks to [Lobster](https://aardappel.github.io/lobster/memory_management.html)
-and the single threaded nature of JavaScript, I have decided that it is
-OK to use reference counting.  Since everything is single threaded, no locks
-are needed and it's very fast.  A real-time embedded system could be written
-in Zurfur, and all that needs to be done is verify that no object graph
-cycles are created during program execution.
-
-Furthermore, Zurfur's ownership model means that cycles can be collected
-without tracing the entire heap because it can skip all data structures that
-don't cycle.  
-
-Calling an async function doesn't create garbage because each task has its
-own stack.  No dynamic allocations are needed for async calls.
-
-## Raw Pointers
-
-The `*` type is a raw C style pointer.  The `.` operator is used to access
-fields or members of the referenced data.  The `.*` operator can dereference
-the data.
- 
-    fun strcpy(dest *byte, source *byte)
-        while source.* != 0
-            dest.* = source.*
-            dest += 1
-            source += 1
-        dest.* = 0
-
-
-Raw pointers are not safe.  They act exactly as they do in C.  You can corrupt
-memory and crash your application.  They can be null, and the compiler
-does not add run time null checks.  The data they point to is always
-mutable. 
-
-Perhaps, after Zurfur is running, I might add a few things from
-[Zig](https://ziglang.org/).  Among them is null safety (e.g. `?*int`),
-explicit array types (i.e. `*[]int`), and mutability attribute.
-That would be a major breaking change, which might be acceptable if
-done before version 1.0.  But, speed cannot be sacrificed.
-
-In an unsafe context, pointers can be cast from one pointer type to another:
-
-    @b = castPointer<*byte>(myFloatPtr)   // Cast myFloatPtr to *int
 
 ## Packages and Modules
 

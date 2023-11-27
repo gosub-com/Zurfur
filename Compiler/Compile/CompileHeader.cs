@@ -196,13 +196,30 @@ namespace Zurfur.Compiler
                 {
                     symbols.Add(typeSym);
 
-                    // Add operators with a parameter of this type
                     if (typeSym.IsType)
+                    {
+                        // Add operators with a parameter of this type
                         foreach (var opName in CompileCode.OpNames.Values)
                             foreach (var child in module.ChildrenNamed(opName))
                                 if (child.IsFun && child.FunParamTypes.Any(
                                         paramType => paramType.Concrete.FullName == typeSym.Concrete.FullName))
                                     symbols.Add(child);
+
+                        // Add interfaces for this type
+                        // NOTE: Don't need to add concrete methods here
+                        //       because it's done in CompileCode.FindInType.
+                        foreach (var child in module.Children)
+                        {
+                            // Add any method matching the interface
+                            if (child.IsFun && child.IsMethod && !child.IsStatic 
+                                    && child.FunParamTypes.Length != 0
+                                    && child.FunParamTypes[0].IsInterface
+                                    && child.FunParamTypes[0].Concrete.FullName == typeSym.FullName)
+                                symbols.Add(child);
+                        }
+
+                    }
+
                 }
 
                 return symbols;
@@ -236,7 +253,13 @@ namespace Zurfur.Compiler
             {
                 foreach (var type in table.LookupSymbols)
                 {
-                    if (type.Kind != SymKind.Type)
+                    if (type.Kind != SymKind.Type || type.IsInterface)
+                        continue;
+
+                    if (type.FullName == SymTypes.RawPointer
+                            || type.FullName == SymTypes.Ref
+                            || type.FullName == SymTypes.Pointer
+                            || type.FullName == SymTypes.Nil)
                         continue;
 
                     // Skip if user wrote a default new function
@@ -251,7 +274,7 @@ namespace Zurfur.Compiler
                     //          "[static] fun Type.new() extern"
                     //      Plus, some of this code is repeated in other places
                     var constructor = new Symbol(SymKind.Fun, type.Parent, type.Token, "new");
-                    constructor.Qualifiers |= SymQualifiers.Static | SymQualifiers.My | SymQualifiers.Method | SymQualifiers.Extern;
+                    constructor.Qualifiers |= SymQualifiers.My | SymQualifiers.Method | SymQualifiers.Extern;
                     var constructorType = Resolver.GetTypeWithGenericParameters(table, type);
                     //constructorType.Qualifiers |= SymQualifiers.My;
                     foreach (var genericParam in constructorType.TypeArgs)
@@ -543,7 +566,8 @@ namespace Zurfur.Compiler
                         Reject(parameter[0].Token, "'new' function must not have return parameters");
                 var returnParam = new Symbol(SymKind.FunParam, function, synFunc.Name, "");
                 returnParam.Type = myParam.Type;
-                function.Qualifiers |= SymQualifiers.Static;
+                function.Qualifiers &= ~SymQualifiers.Static;
+                function.Qualifiers |= SymQualifiers.Method | SymQualifiers.My;
                 return returnParam;
             }
 

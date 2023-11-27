@@ -3,6 +3,7 @@
 mod Zurfur
 
 use Zurfur[Equatable]
+use Zurfur.Unsafe[castPointer]
 
 // []T is converted to Span<T>
 [pub]
@@ -11,11 +12,22 @@ type ref Span[T]
     len ro int
 
 
+[pub] fun Span.getIterator[T]() SpanIterator<T>
+    todo
+
 [pub]
 type ref SpanIterator[T]
-    data ro mut &T
-    _len ro int
-    _count ro int
+    _data mut &T
+    _len int
+
+[pub] fun SpanIterator.next[T]() ?&T
+    if my._len <= 0
+        ret nil
+    // TBD: Fix this
+    // @r = &my._data
+    // my._data = castPointer<&T>(castPointer<*T>(r)+1)
+    //ret &r
+       
     
 [pub]
 fun _opIndex[T](s Span<T>, i int) mut &T
@@ -29,30 +41,4 @@ fun _opIndex[T](s Span<T>, range Range<int>) mut Span<T>
     require(range.low <= range.high)
     todo // Implementation TBD
 
-[pub]
-fun mut Span.sort[T](compare fun(a T, b T)bool)
-    todo
-
-// Set the span to `item` (or default if not specified)
-[pub]
-fun mut Span.clear[T](item T = default)
-    todo
-    
-// Find index of the sequence `seq`.
-// Returns -1 if not found, or 0 if `seq` is empty.
-[pub]
-fun Span.find[T Equatable<T>](seq Span<T>) int
-    todo
-
-// Find the index of the `item`.  Returns -1 if not found.
-[pub]
-fun Span.find[T Equatable<T>](item T) int
-    todo
-    
-// Find the index of the `item` when `eq` returns true.
-// Returns -1 if not found.
-[pub]
-fun Span.find[T](eq fun(item T) bool) int
-    todo
-
-        
+      

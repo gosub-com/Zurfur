@@ -2,50 +2,61 @@
 mod Zurfur
 
 [pub]
-type interface Iterable[T]
-    fun iterator() Iterator<T>
-
+type interface GetIterator[T]
+    fun getIterator() Iterator<T>
 
 // Implement this on all iterators
 [pub]
 type interface Iterator[T]
     fun mut next() ?T
 
-fun test_map()
-    @i = Iterator<int>()
-    @x = i.map<int,str>(@q => 0.0)  // TBD: Infer types
-    @item = x.next<int,str>()       // TBD: Infer types
 
-    // TBD: Fix this error (iterate on Iterable or Iterator)
-    //for @s in x
-    //    Log.info("")
+fun _for[S](s GetIterator<S>) Iterator<S>
+    ret s.getIterator
+fun _for[S](s Iterator<S>) Iterator<S>
+    ret s
 
-// TBD: Still working on these
-fun Iterator.map[Source, Result](f fun(input Source) Result) MapIterator<Source, Result>
-    ret MapIterator<Source, Result>(f, my)
 
-fun Iterable.map[Source, Result](f fun(input Source) Result) MapIterator<Source, Result>
-    ret MapIterator<Source, Result>(f, my.iterator)
+fun GetIterator.map[S,R](f fun(inoput S) R) MapIterator<S,R>
+    ret my.getIterator.map(f)
 
-// TBD: Still working on this
-type ref MapIterator[Source, Result] // TBD: Ownership rules for these will be tough
-    _fun fun(input Source) Result
-    _iter Iterator<Source>
+fun Iterator.map[S, R](f fun(input S) R) MapIterator<S, R>
+    ret MapIterator<S, R>(my, f)
+    
+type ref MapIterator[S, R]
+    _iter Iterator<S>
+    _f fun(input S) R
 
-fun MapIterator.new[Source, Result](func fun(input Source) Result, iter Iterator<Source>)
-    // TBD: my._fun = func
+fun MapIterator.new[S, R](iter Iterator<S>, f fun(input S) R)
     my._iter = iter
+    my._f = f
 
-fun mut MapIterator.next[Source, Result]() ?Result
+fun mut MapIterator.next[S, R]() ?R
     @a = my._iter.next()
-    // TBD: return func(a)
+    if (a @ item)
+        ret my._f(a)
+    ret nil
 
-[pub]
-fun mut Iterator.toArray[T]() Array<T>
-    ret my.toList().toArray()
+fun GetIterator.fold[S,R](acc R, f fun(acc R, value S) R) R
+    ret my.getIterator.fold<S,R>(acc, f)
 
+fun Iterator.fold[S,R](acc R, f fun(acc R, value S) R) R
+    while my.next() @ item
+        acc = f(acc, item)
+    ret acc
+
+fun GetIterator.reduce[S](f fun(item1 S, item2 S) S) ?S
+    ret my.getIterator.reduce<S>(f)
+
+fun Iterator.reduce[S](f fun(item1 S, item2 S) S) ?S
+    if not (my.next()@acc)
+        ret nil
+    while my.next() @ item
+        acc = f(acc, item)
+    ret acc
+    
 [pub]
-fun mut Iterator.toList[T]() List<T>
+fun mut Iterator.toList[T GetIterator<T>]() List<T>
     @list = List<T>()
     while my.next()@item
         list.push(item)
