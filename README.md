@@ -25,8 +25,8 @@ nothing is set in stone.
 Zurfur takes its main inspiration from C#, but borrows syntax and design
 concepts from 
 [Lobster](https://strlen.com/lobster/), 
-Zig(https://ziglang.org/), 
-Midori(https://joeduffyblog.com/2016/02/07/the-error-model/), 
+[Zig](https://ziglang.org/), 
+[Midori](https://joeduffyblog.com/2016/02/07/the-error-model/), 
 Golang, Rust, Python, JavaScript, and other languages.
 
 * **Prime directives:**
