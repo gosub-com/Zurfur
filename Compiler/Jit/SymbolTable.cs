@@ -15,19 +15,16 @@ namespace Zurfur.Jit
     }
 
     /// <summary>
-    /// TBD: Replace 'Functions' with a specialized interface
-    ///      containing specialized functions.
-    /// 
     /// Concrete functions used to implement the interface (pass=true),
     /// or a list of failed interface functions (pass=false)
     /// </summary>
-    public record InterfaceInfo(Symbol Concrete, Symbol Interface, List<Symbol> Functions, CallCompatible Compat)
+    public record InterfaceInfo(Symbol Concrete, Symbol Interface, List<Symbol> Functions, CallCompatible Compatibility)
     {
         public string Name { get; private set; } = GetName(Concrete, Interface);
         public override string ToString() => Name;
         public static string GetName(Symbol concrete, Symbol iface)
-            => concrete.FullName + " -> " + iface.FullName;
-        public bool Pass => Compat == CallCompatible.Compatible;
+            => concrete.FullName + " ---> " + iface.FullName;
+        public bool Pass => Compatibility == CallCompatible.Compatible;
     }
 
     public enum CallCompatible
@@ -256,10 +253,24 @@ namespace Zurfur.Jit
             symSpec.Type = ReplaceGenericTypeParams(concreteType.Type, typeArgs);
             symSpec.Qualifiers = concreteType.Qualifiers | SymQualifiers.Specialized;
 
-            // Store one copy of specialized symbol or tuple
+            // Store only one copy of specialized symbol unless
+            // it contains a tuple name which makes it unique
+            // in the source code and we have to keep it separate.
+            // Probably not a problem for most things like
+            // parameter lists, but things like MyBigInterface<(a int, b str)>.
+            // TBD: Separate the tuple symbol names from the type definition
             symSpec.FinalizeFullName();
-            if (!mSpecializedTypes.ContainsKey(symSpec.FullName))
+            if (mSpecializedTypes.TryGetValue(symSpec.FullName, out var dupSym))
+            {
+                // Use space to determine if symbol has a tuple name
+                if (!dupSym.FullName.Contains(" "))
+                    symSpec = dupSym;   // No space = no tuple = consolidate with previous
+            }
+            else
+            {
                 mSpecializedTypes[symSpec.FullName] = symSpec;
+            }
+
             return symSpec;
         }
 

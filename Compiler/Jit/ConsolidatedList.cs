@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +10,7 @@ namespace Zurfur.Jit
     /// <summary>
     /// Consolidate re-used objects into a list.  Items are found by name (i.e. item.ToString())
     /// </summary>
-    public class ConsolidatedList<T>
+    public class ConsolidatedList<T> : IEnumerable<T>
     {
         List<T> mList = new();
         Dictionary<string, int> mMap = new();
@@ -29,6 +30,12 @@ namespace Zurfur.Jit
         }
 
         public List<T>.Enumerator GetEnumerator() => mList.GetEnumerator();
+
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<T>)this).GetEnumerator();
+
+
         public int Count => mList.Count;
         public T this[int i]
         {

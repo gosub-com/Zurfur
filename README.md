@@ -2,7 +2,7 @@
 
 ![Logo](Zurfur.jpg)
 
-I am moving doucmentation to
+I am moving the documentation to
 [Confluence](https://zurfur.atlassian.net/wiki/external/ZjJlYjUwZmIzMzg0NGJkY2ExMmJlY2MwNDVlNTU4ODU)
 
 Zurfur is is a programming language I'm designing for fun and enlightenment.

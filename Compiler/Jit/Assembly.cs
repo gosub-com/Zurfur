@@ -145,10 +145,9 @@ namespace Zurfur.Jit
             index = 0;
             sb.Add("");
             sb.Add("interfaces:");
-            foreach (var iface in Interfaces)
+            foreach (var iface in Interfaces.OrderBy(s => s.Name))
             {
-                sb.Add($"    {index++} {iface.Interface}");
-                sb.Add($"        {iface.Concrete}");
+                sb.Add($"    {index++} {iface}");
                 var j = 0;
                 foreach (var func in iface.Functions)
                     sb.Add($"        {j++} {func}");

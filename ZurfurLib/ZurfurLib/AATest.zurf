@@ -137,6 +137,10 @@ fun test_callInterfaces() AParamable
     //@b1 AParamable = int()
     //@c1 AParamable = A1ParameterNot1()
     //@d1 AParamable = A1ParameterNot2()
+
+    // TBD: Should this be allowed since ints are Printable?
+    //      Compiler would need to write an adapter?
+    //test_printPrintable(ints) // TBD: Should this be allowed?
     
 
     @ints = List<int>()
@@ -150,7 +154,6 @@ fun test_callInterfaces() AParamable
 
     // TBD: Still working on this
     test_printInts(ints)
-    test_printPrintable(ints) // TBD: This should be allowed since int is Printable
 
     @intSpan = Span<int>()
     test_printInts(intSpan)
