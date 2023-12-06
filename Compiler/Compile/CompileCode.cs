@@ -60,22 +60,27 @@ namespace Zurfur.Compiler
             }
         }
 
+        enum EvalFlags
+        {
+            None = 0,
+            AssignmentTarget = 1,
+            AllowStatic = 2,
+            Invoked = 4,
+            DontAddCallInfo = 8
+        }
+
         class Rval
         {
             public Token Token;
             public string Name;
-            public Symbol? Type;
-            public Symbol? TypeSymbol;
+            public Symbol? Type;    // Type of expression (null if un-resolved)
+            public Symbol? Symbol;  // The symbol that generated the type (null if not present)
             public Symbol[] TypeArgs = Array.Empty<Symbol>();
             public Symbol? InType;
 
             public bool IsUntypedConst; // NOTE: `3 int` is a typed const
             public bool IsExplicitRef;
             public bool IsStatic;
-            public bool AssignmentTarget;
-            public bool DontAddCallInfo;
-            public bool Invoked;            // Call has '()', so invoke the lambda
-            public bool Dot;                // Allow static
 
             /// <summary>
             /// When `Type` is $lambda, store the expression for later compilation
@@ -280,14 +285,12 @@ namespace Zurfur.Compiler
                 {
                     // Generate top level expression, e.g. f(x), etc.
                     var rval = GenExpr(s);
-                    if (rval != null)
-                        rval.AssignmentTarget = true; // Allow top level anassigned variabel
-                    rval = EvalCall(rval, EmptyCallParams);
-                    if (rval != null && rval.TypeSymbol != null && rval.TypeSymbol.IsFun)
+                    EvalCall(rval, EmptyCallParams, EvalFlags.AssignmentTarget);
+                    if (rval != null && rval.Symbol != null && rval.Symbol.IsFun)
                     {
                         // TBD: Mark an error for non-mut function calls
-                        if (rval.TypeSymbol.IsGetter || rval.TypeSymbol.IsSetter)
-                            Reject(rval.TypeSymbol.Token, "Top level statement cannot be a getter or setter");
+                        if (rval.Symbol.IsGetter || rval.Symbol.IsSetter)
+                            Reject(rval.Symbol.Token, "Top level statement cannot be a getter or setter");
                     }
                 }
             }
@@ -409,7 +412,7 @@ namespace Zurfur.Compiler
 
                 var local = CreateLocal(ex[0].Token);
                 var rval = GenExpr(ex[1]);
-                rval = EvalCall(rval, EmptyCallParams);
+                EvalCall(rval, EmptyCallParams);
 
                 if (rval != null && rval.Type != null)
                 {
@@ -449,9 +452,8 @@ namespace Zurfur.Compiler
             Symbol? GenFindAndCall(Token token, Symbol inType, string name)
             {
                 var call = new Rval(token, name) { InType = inType };
-                call.DontAddCallInfo = true;
-                var rval = EvalCall(call, EmptyCallParams, $"'{name}' in the type '{inType}'");
-                return rval?.Type;
+                EvalCall(call, EmptyCallParams, EvalFlags.DontAddCallInfo, $"'{name}' in the type '{inType}'");
+                return call?.Type;
             }
 
             Rval? GenReturnStatement(SyntaxExpr ex)
@@ -680,12 +682,8 @@ namespace Zurfur.Compiler
                     return null;  // Syntax error
 
                 var left = GenExpr(ex[0]);
-                if (left == null)
-                    return null; // Error already marked
-                left.Dot = true;
+                EvalCall(left, EmptyCallParams, EvalFlags.AllowStatic);
 
-
-                left = EvalCall(left, EmptyCallParams);
                 var leftType = left?.Type;
                 if (left == null || leftType == null)
                     return null;
@@ -718,7 +716,7 @@ namespace Zurfur.Compiler
 
                 return new Rval(token) {
                     InType = leftType,
-                    IsStatic = left.IsStatic,
+                    IsStatic = left.Symbol?.IsAnyTypeOrModule ?? false,
                 };
             }
 
@@ -833,7 +831,7 @@ namespace Zurfur.Compiler
                 }
                 return new Rval(newSymbols[0].Token)
                 {
-                    TypeSymbol = newSymbols[0],
+                    Symbol = newSymbols[0],
                 };
             }
 
@@ -875,7 +873,7 @@ namespace Zurfur.Compiler
                 if (rval.Type == null)
                     return null;
 
-                var isLocal = rval.TypeSymbol != null && rval.TypeSymbol.IsLocal;
+                var isLocal = rval.Symbol != null && rval.Symbol.IsLocal;
                 if (rval.Type.Parent!.FullName != SymTypes.Ref && !isLocal)
                     Reject(ex.Token, $"The type '{rval.Type} is a value and cannot be converted to a reference'");
 
@@ -923,17 +921,14 @@ namespace Zurfur.Compiler
 
                 // TBD: This eval returns NULL, but has the type
                 //      See if remove EvalCall
-                right = EvalCall(right, EmptyCallParams);
-
-                if (left != null)
-                    left.AssignmentTarget = true;
-                left = EvalCall(left, EmptyCallParams);
+                EvalCall(right, EmptyCallParams);
+                EvalCall(left, EmptyCallParams, EvalFlags.AssignmentTarget);
                 var rightType = right?.Type;
-                if (left == null || right == null || rightType == null || left.TypeSymbol == null)
+                if (left == null || right == null || rightType == null || left.Symbol == null)
                     return null;
 
                 // Assign type to local variable (if type not already assigned)
-                var assignedSymbol = left.TypeSymbol;
+                var assignedSymbol = left.Symbol;
                 if (assignedSymbol != null && assignedSymbol.Type == null
                     && (assignedSymbol.IsLocal || assignedSymbol.IsFunParam))
                 {
@@ -1084,9 +1079,8 @@ namespace Zurfur.Compiler
 
                 // Find static operators from either argument
                 var call = new Rval(token, operatorName);
-                call.Invoked = true;
-                var rval = EvalCall(call, args, $" '{operatorName}' (operator '{token}')");
-                var funType = rval?.Type;
+                EvalCall(call, args, EvalFlags.Invoked,  $" '{operatorName}' (operator '{token}')");
+                var funType = call?.Type;
                 if (funType == null)
                     return null;
 
@@ -1124,12 +1118,11 @@ namespace Zurfur.Compiler
                 if (call == null)
                     return null;  // Undefined symbol or error evaluating left side
 
-                call.Invoked = true;
-                var rval = EvalCall(call, args, $"'{call.Token}'");
-                if (rval == null || rval.Type == null)
+                EvalCall(call, args, EvalFlags.Invoked,  $"'{call.Token}'");
+                if (call == null || call.Type == null)
                     return null;
 
-                return new Rval(call.Token) { Type = rval.Type };
+                return new Rval(call.Token) { Type = call.Type };
             }
 
             // Parameters are evaluated for the types. 
@@ -1231,8 +1224,9 @@ namespace Zurfur.Compiler
                 EndLocalScope();
             }
 
-            // Set return type of symbol, or null if symbol is not found,
-            // is unresolved, or ambiguous.
+            // Set call.Type to return type of symbol, or null if symbol is not
+            // found, is unresolved, or ambiguous.  Set call.SymbolType to the
+            // the symbol that generated the type.
             // `call.AssignmentTarget` allows the symbol to be an unresolved
             // local and is also used to resolve ambiguity between getter/setter.
             // `call.Invoked` is true when called as a function, and is used
@@ -1240,17 +1234,18 @@ namespace Zurfur.Compiler
             // Marks an error when there is no match.
             // Returns the symbol that generated the type (or null if
             // there wasn't one)
-            Rval? EvalCall(
+            void EvalCall(
                 Rval? call,
                 List<Rval>? args,
+                EvalFlags flags = EvalFlags.None,
                 string rejectName = "")
             {
                 if (call == null)
-                    return null;
+                    return;
 
                 // Done if we already have return type
                 if (call.Type != null)
-                    return call;
+                    return;
 
                 // Find symbol
                 var token = call.Token;
@@ -1262,13 +1257,13 @@ namespace Zurfur.Compiler
 
                 // Exactly 1 primary or multiple functions
                 if (RejectUndefinedOrAmbiguousPrimary(call, candidates))
-                    return null;
+                    return;
 
 
                 var local = candidates.Count == 1 ? candidates[0] : null;
                 if (local != null && (local.IsLocal || local.IsFunParam))
                 {
-                    if (local.IsLocal && local.Type == null && !call.AssignmentTarget)
+                    if (local.IsLocal && local.Type == null && !flags.HasFlag(EvalFlags.AssignmentTarget))
                     {
                         Reject(token, $"'{token}' has an unresolved type");
                         Reject(local.Token, $"'{token}' has an unresolved type");
@@ -1282,11 +1277,11 @@ namespace Zurfur.Compiler
                     // in FindCompatibleFunction below.
                     if (local.Type == null 
                         || !local.Type.IsFun && !local.Type.IsLambda
-                        || !call.Invoked)
+                        || !flags.HasFlag(EvalFlags.Invoked))
                     {
                         call.Type = local.Type;
-                        call.TypeSymbol = local;
-                        return call;
+                        call.Symbol = local;
+                        return;
                     }
                 }
 
@@ -1299,11 +1294,15 @@ namespace Zurfur.Compiler
                     if (call.IsStatic != candidate.IsStatic)
                     {
                         Reject(call.Token, "Static mismatch");
-                        return null;
+                        return;
                     }
 
-                    if (candidate.IsAnyType && call.Invoked)
-                        return FindCompatibleConstructor(call, candidate, args);
+                    if (candidate.IsAnyType && flags.HasFlag(EvalFlags.Invoked))
+                    {
+                        call.Symbol = FindCompatibleConstructor(call, candidate, args);
+                        call.Type = call.Symbol?.FunReturnType;
+                        return;
+                    }
 
                     var inType = call.InType;
                     if (candidate.IsField && candidate.Type != null && inType != null && inType.TypeArgs.Length != 0)
@@ -1315,7 +1314,7 @@ namespace Zurfur.Compiler
                     if (candidate.IsAnyTypeOrModule)
                     {
                         token.Type = eTokenType.TypeName;
-                        if (call.Dot || candidate.FullName == SymTypes.Nil)
+                        if (flags.HasFlag(EvalFlags.AllowStatic) || candidate.FullName == SymTypes.Nil)
                         {
                             // Substitute generic parameter
                             if (candidate.IsTypeParam)
@@ -1323,15 +1322,14 @@ namespace Zurfur.Compiler
                             else
                                 call.Type = candidate;
 
-                            call.IsStatic = true;
-                            call.TypeSymbol = candidate;
-                            return call;
+                            call.Symbol = candidate;
+                            return;
                         }
                         else
                         {
                             Reject(token, $"'{token}' is a {candidate.KindName}, which is not valid when used like this");
-                            call.TypeSymbol = candidate;
-                            return call;
+                            call.Symbol = candidate;
+                            return;
                         }
                     }
                     // Field
@@ -1340,8 +1338,8 @@ namespace Zurfur.Compiler
                         if (candidate.Type == null)
                         {
                             Reject(token, $"'{token}' has an unresolved type");
-                            call.TypeSymbol = candidate;
-                            return call;
+                            call.Symbol = candidate;
+                            return;
                         }
                         Debug.Assert(candidate.Type.Parent!.FullName != SymTypes.Ref);
                         call.Type = candidate.Type;
@@ -1349,28 +1347,26 @@ namespace Zurfur.Compiler
                         // A field is the same thing as a getter returning a mutable ref
                         MakeIntoRef(call);
                         assembly.AddOpNoImp(candidate.Token, $"field {candidate.FullName}");
-                        call.TypeSymbol = candidate;
-                        return call;
+                        call.Symbol = candidate;
+                        return;
                     }
                 }
 
                 // Find the function to call
-                var compatibleFun = FindCompatibleFunction(call, candidates, args, rejectName);
+                call.Symbol = FindCompatibleFunction(call, candidates,
+                    args, flags.HasFlag(EvalFlags.AssignmentTarget), rejectName);
+                call.Type = call.Symbol?.FunReturnType;
 
-                if (compatibleFun != null && compatibleFun.TypeSymbol != null)
+                if (call.Symbol != null)
                 {
-                    if (!call.DontAddCallInfo)
-                        call.Token.AddInfo(compatibleFun.TypeSymbol);
-                    assembly.AddOpCall(call.Token, compatibleFun.TypeSymbol);
-                    call.Type = compatibleFun.TypeSymbol.FunReturnType;
-                    call.TypeSymbol = compatibleFun.TypeSymbol;
-                    return call;
+                    if (!flags.HasFlag(EvalFlags.DontAddCallInfo))
+                        call.Token.AddInfo(call.Symbol);
+                    assembly.AddOpCall(call.Token, call.Symbol);
                 }
-                return null;
             }
 
-            // Find a compatible constructor function
-            Rval? FindCompatibleConstructor(Rval call, Symbol newType, List<Rval>? args)
+            // Find a compatible constructor function.
+            Symbol? FindCompatibleConstructor(Rval call, Symbol newType, List<Rval>? args)
             {
                 call.Token.Type = eTokenType.TypeName;
                 if (newType.IsSpecialized)
@@ -1390,30 +1386,27 @@ namespace Zurfur.Compiler
                         return null;
                     }
                     Debug.Assert(call.InType == null);
-                    call.Type = null;
-                    call.Name = "new";
-                    call.InType = null;
-                    var constructorFun = table.GetGenericParamConstructor(newType.GenericParamNum());                    
-                    return new Rval(call.Token) { Type = constructorFun.FunReturnType};
+                    return table.GetGenericParamConstructor(newType.GenericParamNum());
                 }
 
                 // Search for `new` function
                 Debug.Assert(call.InType == null);
+                call.InType = newType;
                 call.Type = null;
                 call.Name = "new";
-                call.InType = newType;
-                return EvalCall(call, args, $"'new' (constructor for '{newType}')");
+                EvalCall(call, args, EvalFlags.None, $"'new' (constructor for '{newType}')");
+                return call.Symbol;
             }
 
             // Given the call and its parameters, find the best matching function.
             // If there is an error, mark it and give feedback on possible matches.
             // When args is null, it means the there was an error evaluating the
             // parameter types, so just try to give good feedback.
-            // Returns the specialized function or NULL if no matches found.
-            Rval? FindCompatibleFunction(
+            Symbol? FindCompatibleFunction(
                 Rval call,
                 List<Symbol> candidates,
                 List<Rval> ?args,
+                bool assignmentTarget,
                 string rejectName)
             {
                 if (call.Type != null)
@@ -1480,7 +1473,7 @@ namespace Zurfur.Compiler
 
                 // In case of tie between getter/setter, remove based on AssignmentTarget
                 if (matchingFuns.Count == 2 && matchingFuns[0].IsGetter == matchingFuns[1].IsSetter)
-                    matchingFuns = matchingFuns.Where(s => call.AssignmentTarget == s.IsSetter).ToList();
+                    matchingFuns = matchingFuns.Where(s => assignmentTarget == s.IsSetter).ToList();
 
                 if (matchingFuns.Count != 1)
                 {
@@ -1519,8 +1512,7 @@ namespace Zurfur.Compiler
                     Reject(call.Token, "Compiler error, invalid lambda type");
                     return null;
                 }
-                call.TypeSymbol = lambdaOrFunType;
-                return call;
+                return lambdaOrFunType;
             }
 
             // Checks if the function call is compatible, return the possibly
