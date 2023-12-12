@@ -711,7 +711,9 @@ namespace Zurfur.Compiler
                     if (i < leftType.TupleSymbols.Length)
                         token.AddInfo(leftType.TupleSymbols[i]);
                     assembly.AddOpNoImp(token, $"tuple {token}");
-                    return new Rval(token) { Type = leftType.TypeArgs[i] };
+                    return new Rval(token) { 
+                        Type = leftType.TypeArgs[i], 
+                        Symbol = leftType.TupleSymbols[i] };
                 }
 
                 return new Rval(token) {
@@ -1114,9 +1116,21 @@ namespace Zurfur.Compiler
 
                 // Generate function call and then parameters
                 var call = GenExpr(ex[0]);
+
                 var args = GenCallParams(ex, 1);
                 if (call == null)
                     return null;  // Undefined symbol or error evaluating left side
+
+                if (call.Token == "reduce")
+                {
+
+                }
+                if (call.Token == "myAddNotStatic")
+                {
+
+                }
+
+
 
                 EvalCall(call, args, EvalFlags.Invoked,  $"'{call.Token}'");
                 if (call == null || call.Type == null)
@@ -1285,7 +1299,6 @@ namespace Zurfur.Compiler
                     }
                 }
 
-
                 // Handle fields, types, modules, and setter
                 if (candidates.Count == 1
                     && (candidates[0].IsField || candidates[0].IsAnyTypeOrModule))
@@ -1444,6 +1457,13 @@ namespace Zurfur.Compiler
                 for (int i = 0; i < candidates.Count; i++)
                 {
                     var compat = IsCallCompatible(call, candidates[i], args);
+
+                    var compat2 = IsCallCompatible2(call, candidates[i], args);
+
+                    Debug.Assert( (compat.Compatibility==CallCompatible.Compatible) 
+                        == (compat2.Compatibility==CallCompatible.Compatible));
+                    Debug.Assert($"{compat.SpecializedFun}" == $"{compat2.SpecializedFun}");
+
                     compatibleErrors |= compat.Compatibility;
                     if (compat.SpecializedFun != null)
                     {
@@ -1519,6 +1539,7 @@ namespace Zurfur.Compiler
             // specialized function.  Returns null if not compatible.
             CallMatch IsCallCompatible(Rval call, Symbol func, List<Rval> args)
             {
+                var f2 = func;
                 if (!func.IsFun)
                     return IsLambdaCompatible(call, func, args);
 
@@ -1555,16 +1576,6 @@ namespace Zurfur.Compiler
                 // Convert generic type args to specialized
                 if (!func.IsSpecialized && typeArgs.Length != 0)
                     func = table.CreateSpecializedType(func, typeArgs, null);
-
-                // Special case: "new" constructor was not specialized
-                // because it bypassed eval in FindCompatibleConstructor
-                if (call.Name == "new" && typeArgs.Length != 0
-                    && args.Count != 0 && !args[0].Type.IsSpecialized
-                    && args[0].Type.GenericParamCount() == typeArgs.Length)
-                {
-                    args[0].Type = table.CreateSpecializedType(args[0].Type, typeArgs);
-                }
-
 
                 // Don't consider first parameter of static method
                 var funParams = new Span<Symbol>(func.FunParamTypes);
@@ -1607,17 +1618,30 @@ namespace Zurfur.Compiler
                     if (i >= args.Count || i >= funParams.Length)
                         return new CallMatch(null, CallCompatible.WrongNumberOfParameters);
 
-                    // Receiver for generic interface always matches
-                    // since it came from the constraint
-                    if (i == 0
-                            && func.Concrete.Parent!.IsInterface
-                            && !func.IsStatic
-                            && args[i].Type!.IsGenericArg)
-                        continue;
-
-                    // Auto-deref references
                     var arg = args[i];
                     var param = funParams[i];
+
+                    // Special cases for first parameter
+                    if (i == 0)
+                    {
+                        // Receiver for generic interface always matches
+                        // since it came from the constraint
+                        if (func.Concrete.Parent!.IsInterface
+                                && !func.IsStatic
+                                && args[i].Type!.IsGenericArg)
+                            continue;
+
+                        // Special case: First parameter of the constructor is
+                        // the type, which was not specialized because it bypassed
+                        // eval in FindCompatibleConstructor
+                        // TBD: Consider making `new` a global function in 
+                        //      the form of `_new$Type` or just `Type()`
+                        if (call.Name == "new" && func.SimpleName == "new"
+                            && arg.Type!.Concrete.FullName == param.Concrete.FullName)
+                        {
+                            continue;
+                        }
+                    }
 
                     var compat = IsParamConvertable(arg.Type!, param, call.Token);
                     if (compat != CallCompatible.Compatible)
@@ -1634,7 +1658,6 @@ namespace Zurfur.Compiler
                 Reject(t, $"Cannot convert type '{argType}' to '{paramType}'. {PrintCompatibleError(compat)}");
                 return false;
             }
-
 
             // Can the given argument be converted to the parameter type?
             // NOTE: Match all lambda's since we haven't compiled them yet
@@ -1677,6 +1700,256 @@ namespace Zurfur.Compiler
                 return iface.Compatibility;
             }
 
+            // Checks if the function call is compatible, return the possibly
+            // specialized function.  Returns null if not compatible.
+            CallMatch IsCallCompatible2(Rval call, Symbol func, List<Rval> args)
+            {
+                var f2 = func;
+                if (!func.IsFun)
+                    return IsLambdaCompatible2(call, func, args);
+
+                if (func.IsMethod && call.InType != null)
+                {
+                    if (call.IsStatic && !func.IsStatic)
+                        return new CallMatch(null, CallCompatible.StaticCallToNonStaticMethod);
+                    if (!call.IsStatic && func.IsStatic)
+                        return new CallMatch(null, CallCompatible.NonStaticCallToStaticMethod);
+                }
+
+                var typeArgsExpectedCount = func.GenericParamCount();
+                Symbol[] newTypeArgs;
+                if (func.TypeArgs.Length != 0)
+                {
+                    // Type args from constraint
+                    newTypeArgs = func.TypeArgs;
+                    if (call.TypeArgs.Length != 0)
+                        return new CallMatch(null, CallCompatible.TypeArgsSuppliedByConstraint);
+                }
+                else if (call.TypeArgs.Length != 0)
+                {
+                    // Type args supplied by user
+                    newTypeArgs = call.TypeArgs;
+                }
+                else
+                {
+                    // Infer type args
+                    newTypeArgs = new Symbol[typeArgsExpectedCount];
+
+                    if (typeArgsExpectedCount != 0)
+                    {
+
+                    }
+                }
+
+                // Verify number of type arguments
+                if (newTypeArgs.Length != typeArgsExpectedCount)
+                {
+                    if (newTypeArgs.Length == 0 && typeArgsExpectedCount != 0)
+                        return new CallMatch(null, CallCompatible.ExpectingSomeTypeArgs);
+                    if (newTypeArgs.Length != 0 && typeArgsExpectedCount == 0)
+                        return new CallMatch(null, CallCompatible.ExpectingNoTypeArgs);
+                    return new CallMatch(null, CallCompatible.WrongNumberOfTypeArgs);
+                }
+
+                // Find type args supplied by the source code (explicitly or inferred)
+                var typeArgs = InferTypeArgs(func, call.TypeArgs, args, func.FunParamTypes);
+
+                if (typeArgs.Length != 0 && newTypeArgs.Length != 0 && newTypeArgs[0] == null)
+                {
+
+                }
+
+                // Use type args from function (or constraint) if supplied
+                if (func.TypeArgs.Length != 0)
+                {
+                    if (typeArgs.Length != 0)
+                        return new CallMatch(null, CallCompatible.TypeArgsSuppliedByConstraint);
+                    typeArgs = func.TypeArgs;
+                }
+
+                // Convert generic type args to specialized
+                if (!func.IsSpecialized && typeArgs.Length != 0)
+                    func = table.CreateSpecializedType(func, typeArgs, null);
+
+                // Don't consider first parameter of static method
+                var funParams = new Span<Symbol>(func.FunParamTypes);
+                if (func.IsMethod && func.IsStatic)
+                    funParams = funParams.Slice(1);
+
+                var pc = AreParamsCompatible(call, func, args, funParams);
+
+                // Don't consider first parameter of static method
+                f2 = f2.Concrete;
+                var funParams2 = new Span<Symbol>(f2.FunParamTypes);
+                if (f2.IsMethod && f2.IsStatic)
+                    funParams2 = funParams2.Slice(1);
+                var pc2 = AreParamsCompatible2(call, f2, args, funParams2, newTypeArgs);
+
+                //if (pc2.Compatibility != CallCompatible.Compatible)
+                //    return pc2;
+
+                if (newTypeArgs.Contains(null))
+                    return new CallMatch(null, CallCompatible.TypeArgsNotInferrable);
+                
+                if (pc2.Compatibility == CallCompatible.Compatible)
+                {
+                    return new CallMatch(table.CreateSpecializedType(f2, newTypeArgs), CallCompatible.Compatible);
+                }
+
+                // TBD: Interfaces not supported yet
+                if (pc2.Compatibility == CallCompatible.InterfaceNotImplementedByType)
+                {
+                    // TBD: Infer interface
+                    Debug.Assert(false);
+                    return pc;
+                }
+
+                return pc2;
+            }
+
+
+            CallMatch IsLambdaCompatible2(Rval call, Symbol variable, List<Rval> args)
+            {
+                if (!variable.IsFunParam && !variable.IsLocal && !variable.IsField)
+                    return new CallMatch(null, CallCompatible.NotAFunction);
+
+                var lambda = variable.Type;
+                if (lambda == null
+                        || !lambda.IsLambda
+                        || lambda.TypeArgs.Length != 1)
+                    return new CallMatch(null, CallCompatible.NotAFunction);
+
+                // Get lambda parameters
+                var funParams = lambda.TypeArgs[0];
+                if (funParams.TypeArgs.Length != 2)
+                    return new CallMatch(null, CallCompatible.NotAFunction);
+
+                return AreParamsCompatible(call, variable, args, funParams.TypeArgs[0].TypeArgs);
+            }
+
+            CallMatch AreParamsCompatible2(
+                Rval call, 
+                Symbol func, 
+                List<Rval> args, 
+                Span<Symbol> funParams, 
+                Symbol?[] ta)
+            {
+                // Match up the arguments
+                for (var i = 0; i < Math.Max(funParams.Length, args.Count); i++)
+                {
+                    // Ignore setter parameter
+                    if (i == 1 && (func.IsSetter || func.IsGetter))
+                        return new CallMatch(func, CallCompatible.Compatible);
+
+                    // TBD: Default parameters, etc.
+                    if (i >= args.Count || i >= funParams.Length)
+                        return new CallMatch(null, CallCompatible.WrongNumberOfParameters);
+
+                    var arg = args[i];
+                    var param = funParams[i];
+
+                    // Special cases for first parameter
+                    if (i == 0)
+                    {
+                        // Receiver for generic interface always matches
+                        // since it came from the constraint
+                        if (func.Concrete.Parent!.IsInterface
+                                && !func.IsStatic
+                                && args[i].Type!.IsGenericArg)
+                            continue;
+
+                        // Special case: First parameter of the constructor is
+                        // the type, which was not specialized because it bypassed
+                        // eval in FindCompatibleConstructor
+                        // TBD: Consider making `new` a global function in 
+                        //      the form of `_new$Type` or just `Type()`
+                        if (call.Name == "new" && func.SimpleName == "new"
+                            && arg.Type!.Concrete.FullName == param.Concrete.FullName)
+                        {
+                            continue;
+                        }
+                    }
+
+                    var compat = IsParamConvertable2(arg.Type!, param, ta, call.Token);
+                    if (compat != CallCompatible.Compatible)
+                        return new CallMatch(null, compat);
+                }
+                return new CallMatch(func, CallCompatible.Compatible);
+            }
+
+            bool IsParamConvertableReject2(Token t, Symbol argType, Symbol paramType, Symbol?[] ta)
+            {
+                var compat = IsParamConvertable2(argType, paramType, ta, t);
+                if (compat == CallCompatible.Compatible)
+                    return true;
+                Reject(t, $"Cannot convert type '{argType}' to '{paramType}'. {PrintCompatibleError(compat)}");
+                return false;
+            }
+
+            T[]Clone<T>(T[]a)
+                => (T[])a.Clone();
+            void CopyInto<T>(T[]from, T[]to)
+            {
+                for (int i = 0; i < from.Length; i++)
+                    to[i] = from[i];
+            }
+
+            // Can the given argument be converted to the parameter type?
+            // NOTE: Match all lambda's since we haven't compiled them yet
+            CallCompatible IsParamConvertable2(Symbol argType, Symbol paramType, Symbol?[] ta, Token? t = null)
+            {
+                argType = DerefRef(argType);
+                paramType = DerefRef(paramType);
+
+                // The generic concrete lambda type matches all lambdas
+                // because its type is set later when it is compiled.
+                if (argType.IsLambda && !argType.IsSpecialized && paramType.IsLambda)
+                    return CallCompatible.Compatible;
+
+                if (ta != null && ta.Length != 0 && paramType.HasGenericArg)
+                {
+                    var ta2 = Clone(ta);
+                    if (InferTypesMatch(argType, paramType, ta2))
+                    {
+                        CopyInto(ta2, ta);
+                        return CallCompatible.Compatible;
+                    }
+                }
+                else
+                {
+                    if (TypesMatch(argType, paramType))
+                        return CallCompatible.Compatible;
+                }
+
+
+                // An exact match on the parameters
+                if (TypesMatch(argType, paramType))
+                    return CallCompatible.Compatible;
+
+                // Implicit conversion from nil to *T or from *T to *void
+                if (paramType.Parent!.FullName == SymTypes.RawPointer)
+                {
+                    if (argType.FullName == SymTypes.Nil)
+                        return CallCompatible.Compatible;
+                    if (argType.Parent!.FullName == SymTypes.RawPointer && DerefPointers(paramType) == typeVoid)
+                        return CallCompatible.Compatible;
+                }
+
+                // Implicit conversion to interface type?
+                if (!paramType.IsInterface)
+                    return CallCompatible.IncompatibleParameterTypes;
+
+                var iface = ConvertToInterfaceInfo(argType, paramType);
+
+                // TBD: Remove
+                // TBD: Need to pass interface table up to generate call parameter.
+                //      Currently it just spits it out here (after parameters were
+                //      emitted, before we even know if this interface is taken
+                if (t != null && iface.Pass)
+                    assembly.AddOpInterface(t, iface);
+
+                return iface.Compatibility;
+            }
 
 
             // If possible, convert concrete type to an interface.
@@ -1701,7 +1974,7 @@ namespace Zurfur.Compiler
                     return ifaceIdentity;
                 }
 
-                // Fail itnerface-to-interface conversion
+                // Fail interface-to-interface conversion
                 if (concrete.IsInterface)
                 {
                     var ifaceFail = new InterfaceInfo(concrete, iface, new List<Symbol>(),
@@ -1709,6 +1982,12 @@ namespace Zurfur.Compiler
                     table.InterfaceInfos[conversionName] = ifaceFail;
                     return ifaceFail;
                 }
+
+                if (iface.FullName.Contains("#"))
+                {
+
+                }
+
 
                 // Default to fail if we recursively re-encounter this interface
                 table.InterfaceInfos[conversionName] = new InterfaceInfo(concrete, iface, 
@@ -1819,16 +2098,17 @@ namespace Zurfur.Compiler
                 return inferredTypeArgs;
             }
 
+            // Infer one type arg, return true if they match or can be converted.
             // Infer one type arg, return false if there is an error and it should bail
-            bool InferTypeArg(Symbol argType, Symbol funParamType, Symbol[] inferredTypeArgs)
+            bool InferTypeArg(Symbol argType, Symbol paramType, Symbol[] inferredTypeArgs)
             {
                 argType = DerefRef(argType);
-                funParamType = DerefRef(funParamType);
+                paramType = DerefRef(paramType);
 
                 // If it's a generic arg, use the given parameter type
-                if (funParamType.IsGenericArg)
+                if (paramType.IsGenericArg)
                 {
-                    var paramNum = funParamType.GenericParamNum();
+                    var paramNum = paramType.GenericParamNum();
                     if (paramNum >= inferredTypeArgs.Length)
                         throw new Exception("Compiler error: InferTypeArg, index out of range");
 
@@ -1844,24 +2124,24 @@ namespace Zurfur.Compiler
                 }
 
                 // TBD: Interface conversion
-                if (funParamType.IsInterface)
+                if (paramType.IsInterface)
                 {
                     // TBD: Can we infer type args when passing into an interface?
-                    var argType2 = ConvertToInterfaceInfo(argType, funParamType);
+                    //var argType2 = ConvertToInterfaceInfo(argType, paramType);
                     //return true;
                 }
 
                 // If they are both the same generic type, check type parameters
-                if (funParamType.IsSpecialized
+                if (paramType.IsSpecialized
                     && argType.IsSpecialized
-                    && (funParamType.Parent!.FullName == argType.Parent!.FullName
-                        || funParamType.IsInterface && !argType.IsInterface 
-                            && ConvertToInterfaceInfo(argType, funParamType).Pass))
+                    && (paramType.Parent!.FullName == argType.Parent!.FullName
+                        || paramType.IsInterface && !argType.IsInterface 
+                            && ConvertToInterfaceInfo(argType, paramType).Pass))
                 {
-                    Debug.Assert(funParamType.TypeArgs.Length == argType.TypeArgs.Length);
-                    for (int i = 0;  i < funParamType.TypeArgs.Length;  i++)
+                    Debug.Assert(paramType.TypeArgs.Length == argType.TypeArgs.Length);
+                    for (int i = 0;  i < paramType.TypeArgs.Length;  i++)
                     {
-                        if (!InferTypeArg(argType.TypeArgs[i], funParamType.TypeArgs[i], inferredTypeArgs))
+                        if (!InferTypeArg(argType.TypeArgs[i], paramType.TypeArgs[i], inferredTypeArgs))
                             return false;
                     }
                 }
@@ -1873,10 +2153,50 @@ namespace Zurfur.Compiler
             /// Check to see if the symbol types match, ignoring tuple names
             /// and references.
             /// </summary>
+            bool InferTypesMatch(Symbol argType, Symbol paramType, Symbol?[] inferredTypeArgs)
+            {
+                argType = DerefRef(argType);
+                paramType = DerefRef(paramType);
+
+                // If it's a generic arg, use the given parameter type
+                if (paramType.IsGenericArg)
+                {
+                    var paramNum = paramType.GenericParamNum();
+                    Debug.Assert(paramNum < inferredTypeArgs.Length);
+                    var inferredType = inferredTypeArgs[paramNum];                  
+                    if (inferredType != null)
+                    {
+                        // If types do not match, it's a contradiction, e.g. user calls f(0, "x") on f<T>(x T, y T).
+                        // TBD: Give better error message (this just fails with 'wrong number of type args')
+                        if (!TypesMatch(inferredType, argType))
+                            return false;  // User error
+                    }
+                    inferredTypeArgs[paramNum] = argType;
+                    return true;
+                }
+                if (paramType.Concrete.FullName != argType.Concrete.FullName)
+                    return false;
+
+                // If they are both the same generic type, check type parameters
+                Debug.Assert(paramType.TypeArgs.Length == argType.TypeArgs.Length);
+                for (int i = 0; i < paramType.TypeArgs.Length; i++)
+                {
+                    if (!InferTypesMatch(argType.TypeArgs[i], paramType.TypeArgs[i], inferredTypeArgs))
+                        return false;
+                }
+                return true;
+            }
+
+
+            /// <summary>
+            /// Check to see if the symbol types match, ignoring tuple names
+            /// and references.
+            /// </summary>
             bool TypesMatch(Symbol a, Symbol b)
             {
                 a = DerefRef(a);
                 b = DerefRef(b);
+
                 if (a.FullName == b.FullName)
                     return true;
                 if (!a.IsSpecialized
@@ -1889,7 +2209,6 @@ namespace Zurfur.Compiler
                         return false;
                 return true;
             }
-
 
             // Finds a local or parameter.  Returns null if not found.
             (Symbol? sym, int index) FindLocal(Token token)
@@ -2105,7 +2424,6 @@ namespace Zurfur.Compiler
                 localsByName![token] = new LocalSymbol(local, localScope, localsByIndex!.Count);
                 assembly.AddOpUseLocal(token, localsByIndex.Count, newVarCodeIndex);
                 localsByIndex.Add(local);
-                token.AddInfo(local);
                 return local;
             }
 

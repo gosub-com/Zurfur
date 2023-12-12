@@ -42,6 +42,7 @@ namespace Zurfur.Jit
         InterfaceToInterfaceConversionNotSupportedYet = 512,
         InterfaceNotImplementedByType = 1024,
         InterfaceGenerating = 4096,
+        TypeArgsNotInferrable = 8192,
     }
 
     /// <summary>
