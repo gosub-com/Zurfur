@@ -175,13 +175,13 @@ fun get MAX_SMALL_REQUEST() u64
     malloc_corruption_error_count int
     mparams malloc_params
 
-fun new(m mut DlMalloc, capacity u64)
-    m.ensure_initialization()
-    @rs = capacity == 0 ?? m.mparams.granularity : capacity + TOP_FOOT_SIZE
-    @tsize = m.granularity_align(rs)
-    @tbase = castPointer<*byte>(m.CallMoreCore(&tsize))
+fun DlMalloc.new(capacity u64)
+    my.ensure_initialization()
+    @rs = capacity == 0 ?? my.mparams.granularity : capacity + TOP_FOOT_SIZE
+    @tsize = my.granularity_align(rs)
+    @tbase = castPointer<*byte>(my.CallMoreCore(&tsize))
     if tbase != nil
-        m.init_user_mstate(tbase, tsize)
+        my.init_user_mstate(tbase, tsize)
     else
         panicFatal("Out of memory, cannot initialize malloc.")
 
@@ -487,17 +487,22 @@ fun idx2bit(i u64) u64
 fun mut DlMalloc.mark_smallmap(i u64) u64
     my.smallmap |= idx2bit(i)
     ret my.smallmap
+    
 fun mut DlMalloc.clear_smallmap(i u64) u64
     my.smallmap &= ~idx2bit(i)
     ret my.smallmap
+    
 fun DlMalloc.smallmap_is_marked(i u64) bool
     ret (my.smallmap & idx2bit(i)) != 0
+    
 fun mut DlMalloc.mark_treemap(i u64) u64
     my.treemap |= idx2bit(i)
     ret my.treemap
+    
 fun mut DlMalloc.clear_treemap(i u64) u64
     my.treemap &= ~idx2bit(i)
     ret my.treemap
+    
 fun DlMalloc.treemap_is_marked(i u64) bool
     ret (my.treemap & idx2bit(i)) != 0
 

@@ -42,6 +42,7 @@ namespace Zurfur.Jit
         InterfaceToInterfaceConversionNotSupportedYet = 512,
         InterfaceNotImplementedByType = 1024,
         InterfaceGenerating = 4096,
+        TypeArgsNotInferrable = 8192,
     }
 
     /// <summary>
@@ -226,7 +227,7 @@ namespace Zurfur.Jit
         }
 
         /// <summary>
-        /// Create a specialized type.
+        /// Create a specialized type from a concrete type.
         /// </summary>
         public Symbol CreateSpecializedType(
             Symbol concreteType,
@@ -234,8 +235,8 @@ namespace Zurfur.Jit
             Symbol[]? tupleSymbols = null
             )
         {
-            Debug.Assert(concreteType.IsType || concreteType.IsFun || concreteType.IsField);
             Debug.Assert(!concreteType.IsSpecialized);
+            Debug.Assert(concreteType.IsType || concreteType.IsFun || concreteType.IsField);
             Debug.Assert(tupleSymbols == null || tupleSymbols.Length == 0 || tupleSymbols.Length == typeArgs.Length);
             if (!NoCompilerChecks && concreteType.SimpleName != "()")
                 Debug.Assert(concreteType.GenericParamCount() == typeArgs.Length);
@@ -250,7 +251,8 @@ namespace Zurfur.Jit
                 TupleSymbols = tupleSymbols == null ? Array.Empty<Symbol>() : tupleSymbols
             };
 
-            symSpec.Type = ReplaceGenericTypeParams(concreteType.Type, typeArgs);
+            if (concreteType.Type != null)
+                symSpec.Type = ReplaceGenericTypeParams(concreteType.Type, typeArgs);
             symSpec.Qualifiers = concreteType.Qualifiers | SymQualifiers.Specialized;
 
             // Store only one copy of specialized symbol unless
@@ -276,10 +278,13 @@ namespace Zurfur.Jit
 
         // Replace the generic type argument with the given argument,
         // return the result, but don't change the original.
-        Symbol? ReplaceGenericTypeParams(Symbol? type, Symbol[] args)
+        public Symbol ReplaceGenericTypeParams(Symbol type, Symbol[] args)
         {
-            if (type == null || args.Length == 0)
+            if (args.Length == 0 || !type.HasGenericArg)
+            {
+                Debug.Assert(type.Type == null);
                 return type;
+            }
 
             if (type.IsGenericArg)
             {
@@ -288,12 +293,9 @@ namespace Zurfur.Jit
                     return args[paramNum];
                 throw new Exception("Compiler error: ReplaceGenericTypeParams, index out of range");
             }
-
-            if (type.IsSpecialized)
-                return CreateSpecializedType(type.Parent!,
-                    ReplaceGenericTypeParamsArray(type.TypeArgs, args), type.TupleSymbols);
-
-            return type;
+            Debug.Assert(type.IsSpecialized);
+            return CreateSpecializedType(type.Parent!,
+                ReplaceGenericTypeParamsArray(type.TypeArgs, args), type.TupleSymbols);
         }
 
         // Replace the generic type argument with the given argument,
@@ -304,7 +306,7 @@ namespace Zurfur.Jit
                 return types;
             var newTypes = new Symbol[types.Length];
             for (int i = 0; i < types.Length; i++)
-                newTypes[i] = ReplaceGenericTypeParams(types[i], args)!;
+                newTypes[i] = ReplaceGenericTypeParams(types[i], args);
             return newTypes;
         }
 
