@@ -271,6 +271,8 @@ namespace Zurfur.Jit
         public string TypeName => Type == null ? "" : Type.FullName;
         public bool HasToken => mToken != null;
 
+        public bool IsResolved => FullName != "??";
+        public bool IsUnresolved => FullName == "??";
         public bool IsGenericArg => FullName.Length != 0 && FullName[0] == '#';
         public bool HasGenericArg => FullName.Contains('#');
         public bool IsTuple => SimpleName.Length != 0 && SimpleName[0] == '(';

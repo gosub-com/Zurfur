@@ -360,7 +360,7 @@ namespace Zurfur.Lex
         /// </summary>
         public static void AddScopeLines(Lexer lexer, int y, int lines, bool error)
         {
-            if (lines <= 0)
+            if (lines <= 0 || lexer.GetLineTokens(y).Length == 0)
                 return;
             var leftToken = lexer.GetLineTokens(y)[0];
             leftToken.SetInfo(new TokenVerticalLine

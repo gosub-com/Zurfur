@@ -3,7 +3,7 @@
 mod Zurfur
 
 use Zurfur[Equatable]
-use Zurfur.Unsafe[castPointer]
+use Zurfur.Unsafe[castPointer, RawPointer]
 
 // []T is converted to Span<T>
 [pub]
@@ -17,16 +17,15 @@ type ref Span[T]
 
 [pub]
 type ref SpanIterator[T]
-    _data mut &T
-    _len int
+    _data *T
+    _end *T
 
 [pub] fun SpanIterator.next[T]() ?&T
-    if my._len <= 0
+    if my._data >= my._end
         ret nil
-    // TBD: Fix this
-    // @r = &my._data
-    // my._data = castPointer<&T>(castPointer<*T>(r)+1)
-    //ret &r
+    @r = my._data
+    my._data = my._data + 1
+    ret r
        
     
 [pub]

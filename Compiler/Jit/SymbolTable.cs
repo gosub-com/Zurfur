@@ -29,19 +29,21 @@ namespace Zurfur.Jit
 
     public enum CallCompatible
     {
-        Compatible = 0,
-        NotAFunction = 1,
-        StaticCallToNonStaticMethod = 2,
-        NonStaticCallToStaticMethod = 4,
-        IncompatibleParameterTypes = 8,
-        ExpectingSomeTypeArgs = 16,
-        ExpectingNoTypeArgs = 32,
-        WrongNumberOfTypeArgs = 64,
-        WrongNumberOfParameters = 128,
-        TypeArgsSuppliedByConstraint = 256,
-        InterfaceToInterfaceConversionNotSupportedYet = 512,
-        InterfaceNotImplementedByType = 1024,
-        InterfaceGenerating = 4096,
+        Compatible,
+        NotAFunction,
+        StaticCallToNonStaticMethod,
+        NonStaticCallToStaticMethod,
+        IncompatibleParameterTypes,
+        ExpectingSomeTypeArgs,
+        ExpectingNoTypeArgs,
+        WrongNumberOfTypeArgs,
+        WrongNumberOfParameters,
+        TypeArgsSuppliedByConstraint,
+        InterfaceGenerating,
+        InterfaceToInterfaceConversionNotSupportedYet,
+        InterfaceNotImplementedByType,
+        TypeArgsNotInferrableOnInterface,
+        TypeArgsNotInferrable,
     }
 
     /// <summary>
@@ -85,6 +87,17 @@ namespace Zurfur.Jit
         public Symbol EmptyTuple { get; private set; }
 
         /// <summary>
+        /// The unresolved type '?'
+        /// </summary>
+        public Symbol Unresolved { get; private set; }
+        public Symbol []CreateUnresolvedArray(int count)
+        {
+            var unresolved = new Symbol[count];
+            Array.Fill(unresolved, Unresolved);
+            return unresolved;
+        }
+
+        /// <summary>
         /// Map "{interface}->{concrete}" to the interface info
         /// </summary>
         public Dictionary<string, InterfaceInfo> InterfaceInfos = new();
@@ -94,6 +107,7 @@ namespace Zurfur.Jit
         {
             var preRoot = new Symbol(SymKind.Module, null, null, "");
             Root = new Symbol(SymKind.Module, preRoot, null, "");
+            Unresolved = new Symbol(SymKind.Module, Root, null, "??");
             mGenericArgumentHolder = new Symbol(SymKind.Type, Root, null, "");
             mGenericTupleHolder = new Symbol(SymKind.Module, Root, null, "");
             EmptyTuple = new Symbol(SymKind.Type, mGenericTupleHolder, null, "()");
@@ -102,7 +116,7 @@ namespace Zurfur.Jit
             // The lambda<T> has a type of T, which is a function tuple
             LambdaType = new Symbol(SymKind.Type, mGenericTupleHolder, null, "$lambda");
             LambdaType.Type = GetGenericParam(0);
-            LambdaType.GenericParamSymbols = new[] { new Symbol(SymKind.TypeParam, LambdaType, null, "T") };
+            LambdaType.GenericParamSymbols = [new Symbol(SymKind.TypeParam, LambdaType, null, "T")];
         }
 
 
@@ -210,8 +224,8 @@ namespace Zurfur.Jit
         /// </summary>
         public Symbol CreateLambda(Symbol paramTuple, Symbol returnTuple)
         {
-            var funType = CreateTuple(new Symbol[] { paramTuple, returnTuple });
-            var lambda = CreateSpecializedType(LambdaType, new Symbol[] { funType });
+            var funType = CreateTuple([paramTuple, returnTuple]);
+            var lambda = CreateSpecializedType(LambdaType, [funType]);
             lambda.Type = funType;
             return lambda;
         }
@@ -222,11 +236,11 @@ namespace Zurfur.Jit
             var refType = Lookup(refTypeName);
             if (refType == null)
                 throw new Exception($"Compiler error: '{refTypeName}' is undefined in the base library");
-            return CreateSpecializedType(refType, new Symbol[] { type });
+            return CreateSpecializedType(refType, [type]);
         }
 
         /// <summary>
-        /// Create a specialized type.
+        /// Create a specialized type from a concrete type.
         /// </summary>
         public Symbol CreateSpecializedType(
             Symbol concreteType,
@@ -234,8 +248,8 @@ namespace Zurfur.Jit
             Symbol[]? tupleSymbols = null
             )
         {
-            Debug.Assert(concreteType.IsType || concreteType.IsFun || concreteType.IsField);
             Debug.Assert(!concreteType.IsSpecialized);
+            Debug.Assert(concreteType.IsType || concreteType.IsFun || concreteType.IsField);
             Debug.Assert(tupleSymbols == null || tupleSymbols.Length == 0 || tupleSymbols.Length == typeArgs.Length);
             if (!NoCompilerChecks && concreteType.SimpleName != "()")
                 Debug.Assert(concreteType.GenericParamCount() == typeArgs.Length);
@@ -250,7 +264,8 @@ namespace Zurfur.Jit
                 TupleSymbols = tupleSymbols == null ? Array.Empty<Symbol>() : tupleSymbols
             };
 
-            symSpec.Type = ReplaceGenericTypeParams(concreteType.Type, typeArgs);
+            if (concreteType.Type != null)
+                symSpec.Type = ReplaceGenericTypeParams(concreteType.Type, typeArgs);
             symSpec.Qualifiers = concreteType.Qualifiers | SymQualifiers.Specialized;
 
             // Store only one copy of specialized symbol unless
@@ -276,10 +291,13 @@ namespace Zurfur.Jit
 
         // Replace the generic type argument with the given argument,
         // return the result, but don't change the original.
-        Symbol? ReplaceGenericTypeParams(Symbol? type, Symbol[] args)
+        public Symbol ReplaceGenericTypeParams(Symbol type, Symbol[] args)
         {
-            if (type == null || args.Length == 0)
+            if (args.Length == 0 || !type.HasGenericArg)
+            {
+                Debug.Assert(type.Type == null);
                 return type;
+            }
 
             if (type.IsGenericArg)
             {
@@ -288,12 +306,9 @@ namespace Zurfur.Jit
                     return args[paramNum];
                 throw new Exception("Compiler error: ReplaceGenericTypeParams, index out of range");
             }
-
-            if (type.IsSpecialized)
-                return CreateSpecializedType(type.Parent!,
-                    ReplaceGenericTypeParamsArray(type.TypeArgs, args), type.TupleSymbols);
-
-            return type;
+            Debug.Assert(type.IsSpecialized);
+            return CreateSpecializedType(type.Parent!,
+                ReplaceGenericTypeParamsArray(type.TypeArgs, args), type.TupleSymbols);
         }
 
         // Replace the generic type argument with the given argument,
@@ -304,7 +319,7 @@ namespace Zurfur.Jit
                 return types;
             var newTypes = new Symbol[types.Length];
             for (int i = 0; i < types.Length; i++)
-                newTypes[i] = ReplaceGenericTypeParams(types[i], args)!;
+                newTypes[i] = ReplaceGenericTypeParams(types[i], args);
             return newTypes;
         }
 
@@ -339,9 +354,9 @@ namespace Zurfur.Jit
                 var type = GetGenericParam(i);
                 var constructor = new Symbol(SymKind.Fun, type, null, "new");
                 constructor.Qualifiers |= SymQualifiers.Static | SymQualifiers.My | SymQualifiers.Method | SymQualifiers.Extern;
-                constructor.Type = CreateTuple(new[] {
-                        CreateTuple(new[] { type }),
-                        CreateTuple(new[] { type }) });
+                constructor.Type = CreateTuple([
+                        CreateTuple([type]),
+                        CreateTuple([type]) ]);
                 AddOrReject(constructor);
                 mGenericConstructors.Add(constructor);
 

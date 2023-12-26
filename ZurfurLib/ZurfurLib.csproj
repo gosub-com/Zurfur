@@ -25,7 +25,7 @@
     <None Update="ZurfurLib\AATest.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ZurfurLib\AATest2.zurf">
+    <None Update="ZurfurLib\AATestFails.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="ZurfurLib\AAUnfinished.zurf">

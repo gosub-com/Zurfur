@@ -8,10 +8,43 @@ use Zurfur[Log, Iterator, GetIterator, Equatable, Number]
 use Zurfur.Unsafe[Xuint, RawPointer, castPointer,]
 use Zurfur.Math[cos]
 use Zurfur.Draw2d[Size, Point]
-use AATest2[MyCollection, MyCollectionNot, MyCollectionNotIter]
 
-
+ 
 //pragma ShowParse
+ 
+
+
+fun test_reduce()
+    @myReduce1 = List<int>()
+        .reduce(@(item1, item2) => item1 + item2)
+    @myReduce2 = List<int>()
+        .reduce(@(item1, item2) => item1 + item2)
+    @myReduceInt = List<int>()
+        .reduceInt(@(item1, item2) => item1 + item2)
+    @myReduceTuple1 = List<(x int, y int)>()
+        .reduce(@(item1, item2) => item1)
+    @myReduceTuple2 = List<(a int, b int)>()
+        .reduce(@(item1, item2) => item2)
+
+fun GetIterator<int>.reduceInt(f fun(item1 int, item2 int) int) ?int
+    ret my.getIterator.reduce<int>(f) 
+
+fun testInfer()
+    @m = List<(x int, y float)>()
+    @m2 = inferFun(m)               // float
+
+    // Tuple
+    @ml = List<(x int, y f32)>()
+    @ml2 = List<(int, f32)>()
+    @mli2 = ml[0].y                 // float
+    takeListOfTuples(ml)
+
+fun inferFun[S,R](x List<(S,R)>) R
+    ret R()
+
+
+fun takeListOfTuples(x List<(a int, b f32)>) f32
+    ret x[0].b
 
 
 // TBD: Global variables need to be compiled
@@ -53,6 +86,54 @@ fun A1ParameterNot2.takeInt(a int) int // Causes it to not be AParamable
     
 type interface Printable
     fun toStr() str    
+type interface Printable2
+    fun toStr() str    
+
+fun test_printableFail[T Printable, Q](t T, q Q)
+    // Fail test case
+    //q.toStr
+    nop
+
+// TBD: This should be acceptable
+fun test_printableAmbiguous[T Printable + Printable2](t T)
+    t.toStr // TBD: Should not fail
+
+
+type interface TestGlobal
+    [static] fun testGlobal()
+fun test_Global[T TestGlobal]()
+    testGlobal()
+
+type interface TestGlobal2[T]
+    [static] fun testGlobal2(x T) T
+fun test_Global2[T TestGlobal2<int>](t T)
+    @x = testGlobal2(1)
+
+    // Fail test case
+    //testGlobal2(t)
+
+
+fun lambdaCall(a fun(b float)int) todo
+fun lambdaCall(a fun(b f32)i32) todo
+fun lambdaCall2(a fun(b float)int) todo
+
+
+fun test_lambdaCall()
+    lambdaCall(@(a float) => a + 32) // TBD: Should be OK
+    lambdaCall2(@a => 0)
+
+[pub] type MyCollection[T] {}
+[pub] type MyCollectionIter[T] {}
+
+[pub] type MyCollectionNot[T] {}
+[pub] type MyCollectionNotIter[T] {}
+
+
+[pub] fun MyCollection.getIterator[T]() MyCollectionIter<T>
+    nop
+[pub] fun MyCollectionIter.next[T]() ?T
+    nop
+
 
 fun test_use()
     @myCollection = MyCollection<int>()
@@ -71,16 +152,8 @@ fun test_use()
     for @a in myCollectionNot
         nop
         
-    // Failed test cases
-    //@a = MyCollection()
-    //@myCollectionMapList3 = myCollection.map<int,str>(@i => i.toStr).toList<int>
-    //@myCollectionNotMapIter = myCollectionNot.map<int,str>(@i => i.toStr)
-    //@myCollectionNotMapList = myCollectionNot.map<int,str>(@i => i.toStr).toList<int>
-    //@myReduceFail = List<int>()
-    //    .reduce<float>(@(item1, item2) => item1 + item2)
 
 fun test_map()
-
     for @ir in 0..2
         Log.info("")
 
@@ -362,6 +435,8 @@ fun AAAAA[X,
     @next5 = Q.myFun2Stat()     // int
     @next6 = q.myGet            // i32
     @next7 = q.myFun()          // i32
+    @addTestQ = q + q           // #2
+    @mulTestT = t * t           // #1
 
     
     @next1 = t.next()           // ?int

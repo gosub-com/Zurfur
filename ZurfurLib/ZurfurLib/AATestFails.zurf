@@ -1,0 +1,117 @@
+
+// Each test case separated by ### should generate exactly one error.
+// The first part is common to all test cases, and ### will be used to
+// split the file, compile each section, and verify exactly one error.
+
+//pragma NoParse
+
+mod AATestFails
+
+use Zurfur[Iterator, GetIterator]
+
+type interface Printable
+    fun toStr() str    
+type interface Printable2
+    fun toStr() str    
+
+type interface TestGlobal
+    [static] fun testGlobal()
+fun test_Global[T TestGlobal]()
+    testGlobal()
+type interface TestGlobal2[T]
+    [static] fun testGlobal2(x T) T
+
+
+[pub] type MyCollection[T] {}
+[pub] type MyCollectionIter[T] {}
+
+[pub] type MyCollectionNot[T] {}
+[pub] type MyCollectionNotIter[T] {}
+
+
+[pub] fun MyCollection.getIterator[T]() MyCollectionIter<T>
+    nop
+[pub] fun MyCollectionIter.next[T]() ?T
+    nop
+
+fun GetIterator<int>.reduceInt(f fun(item1 int, item2 int) int) ?int
+    ret my.getIterator.reduce<int>(f) 
+
+// ###
+fun test_takePrintable(a Printable)
+    @x = a.toStr
+    x = ""
+fun test_printable()
+    test_takePrintable(1)
+    test_takePrintable(1.0)
+    test_takePrintable("")
+    test_takePrintable(MyCollection<int>()) // Doesn't implement Printable
+    
+
+// ###
+fun test_printableFail1[T Printable, Q](t T, q Q)
+    q.toStr // toStr not defined in Q
+    t.toStr // ok
+
+// ###
+fun test_printableFail2[Q, T Printable](t T, q Q)
+    q.toStr // toStr not defined in Q
+    t.toStr // ok
+
+// ###
+fun test_Global2[T TestGlobal2<int>](t T)
+    testGlobal2(t)  // Incompatible parameter types (expecting int, not T)
+    testGlobal2(1)  // Ok
+
+// ###
+fun test_Global2a[T TestGlobal2<int>](t T)
+    testGlobal2(1.0)  // Incompatible parameter types (expecting int)
+
+
+// ###
+// NOTE: This is a failed test case until we check lambda returns
+fun lambdaCall(a fun(b float)int) todo
+fun test_lambdaCall2()
+    lambdaCall(@a => 0.0)  // TBD: Should fail, return is int
+
+// ###
+fun test_newInfer()
+    @a = MyCollection() // Can't infer type
+
+// ###
+fun test_newInfer2()
+    @a = MyCollection<int>()    // ok
+    @b = a.getIterator          // ok
+    @c = b.next()               // ok
+    @d ?int = c                 // ok
+    @e int = c                  // Can't assign type
+
+// ###
+fun test_noImplementInterface1()
+    @myCollection = MyCollection<int>()
+    @ok1 = myCollection.map<int,str>(@i => i.toStr).toList<str>     // Type arg given
+    @ok2 = myCollection.map<int,str>(@i => i.toStr).toList          // Infer toList
+    @fail = myCollection.map<int,str>(@i => i.toStr).toList<int>    // Error on toList
+
+// ###
+fun test_noImplementInterface2()
+    @myCollectionNot = MyCollectionNot<int>()
+    @myCollectionNotMapIter = myCollectionNot.map<int,str>(@i => i.toStr)
+
+// ###
+fun test_returnFail()
+    @ok1 = List<int>().reduce<int>(@(item1, item2) => item1 + item2)
+    @ok2 = List<int>().reduce(@(item1, item2) => item1 + item2)
+    @fail = List<int>().reduce<float>(@(item1, item2) => item1 + item2)
+    @ok3 = List<int>().reduce(@(item1, item2) => item1 + item2)
+
+// ###
+fun test_reduceConcrete()
+    @ok = List<int>().reduceInt(@(item1, item2) => item1 + item2)
+    @fail = List<float>().reduceInt(@(item1, item2) => item1 + item2)
+
+// ###
+fun test_reduceConcrete2()
+    @ok = List<int>().reduceInt(@(item1, item2) => item1 + item2)
+    @fail = List<int>().reduceInt<float>(@(item1, item2) => item1 + item2)
+    
