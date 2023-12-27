@@ -18,7 +18,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Doc", "Doc", "{3089177A-1B8
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Compiler", "Compiler\Compiler.csproj", "{FE91B666-494A-4BDB-AD07-C53D9FEE1C0F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZurfurLib", "ZurfurLib\ZurfurLib.csproj", "{F171F2B2-3715-4A6D-91BC-C84C3F2405E5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZurfurLib", "ZurfurLib\ZurfurLib.csproj", "{F171F2B2-3715-4A6D-91BC-C84C3F2405E5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZurfurTests", "ZurfurTests\ZurfurTests.csproj", "{C7238973-0C9F-4955-AB1C-4E29618185DB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,6 +40,10 @@ Global
 		{F171F2B2-3715-4A6D-91BC-C84C3F2405E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F171F2B2-3715-4A6D-91BC-C84C3F2405E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F171F2B2-3715-4A6D-91BC-C84C3F2405E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C7238973-0C9F-4955-AB1C-4E29618185DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7238973-0C9F-4955-AB1C-4E29618185DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7238973-0C9F-4955-AB1C-4E29618185DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7238973-0C9F-4955-AB1C-4E29618185DB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

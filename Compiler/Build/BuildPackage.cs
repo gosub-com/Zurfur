@@ -71,13 +71,13 @@ namespace Zurfur.Build
         /// <summary>
         /// Build status - Load, Parse, Errors, Done, etc.
         /// </summary>
-        public event UpdateEventHandler StatusUpdate;
+        public event UpdateEventHandler? StatusUpdate;
 
         /// <summary>
         /// Lexer has been updated by compiler to convey new token information.
         /// Message contains the file name, or "" for all files updated.
         /// </summary>
-        public event UpdateEventHandler FileUpdate;
+        public event UpdateEventHandler? FileUpdate;
 
         /// <summary>
         /// Starts loading the project into memory.  Only call once, ever.
@@ -96,7 +96,7 @@ namespace Zurfur.Build
                 mPackageFiles[file.Path] = file;
                 mLoadQueue.Add(file.Path);
             }
-            Compile();
+            TriggerCompile();
         }
 
         /// <summary>
@@ -129,7 +129,7 @@ namespace Zurfur.Build
             mLoadQueue.RemoveAll(match => match == fileName);
             mParseQueue.RemoveAll(match => match == fileName);
             mParseQueue.Insert(0, fileName);
-            Compile();
+            TriggerCompile();
         }
 
         /// <summary>
@@ -137,7 +137,7 @@ namespace Zurfur.Build
         /// </summary>
         public async Task GeneratePackage()
         {
-            await ReCompile();
+            await Compile();
             if (!Directory.Exists(OutputDir))
                 Directory.CreateDirectory(OutputDir);
             await Task.Run(() =>
@@ -151,7 +151,7 @@ namespace Zurfur.Build
 
         // If in the process of building, the task completes when it is done.
         // Otherwise, trigger a new build.
-        Task ReCompile()
+        public Task Compile()
         {
             if (FULL_RECOMPILE)
                 foreach (var fileName in mPackageFiles.Keys)
@@ -159,7 +159,7 @@ namespace Zurfur.Build
 
             var tcs = new TaskCompletionSource<bool>();
             mCompileDoneTasks.Add(tcs);
-            Compile();
+            TriggerCompile();
             return tcs.Task;
         }
 
@@ -168,7 +168,7 @@ namespace Zurfur.Build
         /// build if in the process of compiling, but the compiler will
         /// restart the build at the end if there are changes.
         /// </summary>
-        async void Compile()
+        async void TriggerCompile()
         {
             if (mIsCompiling)
                 return;
@@ -371,7 +371,7 @@ namespace Zurfur.Build
                 VerifyHeader.Verify(zilHeader.Table);
             var dtEndGenHeader = DateTime.Now;
 
-            FileUpdate(this, new UpdatedEventArgs(""));
+            FileUpdate?.Invoke(this, new UpdatedEventArgs(""));
 
             // Abandon code generation when the source code changes
             if (SourceCodeChanged)
@@ -444,7 +444,7 @@ namespace Zurfur.Build
             ZilReport.GenerateReport(mReport, zilHeader.Table,
                 mPackageFiles.Values.Select(a => a.Lexer).Where(a => a != null).ToArray());
 
-            FileUpdate(this, new UpdatedEventArgs(""));
+            FileUpdate?.Invoke(this, new UpdatedEventArgs(""));
             int errors = CountErrors();
             if (errors != 0)
             {

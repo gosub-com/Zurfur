@@ -1,9 +1,8 @@
 
-// Each test case separated by ### should generate exactly one error.
-// The first part is common to all test cases, and ### will be used to
-// split the file, compile each section, and verify exactly one error.
+// Each test case is separated by three pounds (#),
+// and should generate exactly one error
 
-//pragma NoParse
+pragma NoParse
 
 mod AATestFails
 
@@ -36,6 +35,11 @@ type interface TestGlobal2[T]
 
 fun GetIterator<int>.reduceInt(f fun(item1 int, item2 int) int) ?int
     ret my.getIterator.reduce<int>(f) 
+
+
+// Make first test case pass by adding a syntax error
+fun test_makeError()
+    makeError
 
 // ###
 fun test_takePrintable(a Printable)
@@ -73,6 +77,10 @@ fun test_Global2a[T TestGlobal2<int>](t T)
 fun lambdaCall(a fun(b float)int) todo
 fun test_lambdaCall2()
     lambdaCall(@a => 0.0)  // TBD: Should fail, return is int
+
+    // Make this test case pass (until we can fix the above error)
+    MakeTestCaseFail
+    
 
 // ###
 fun test_newInfer()
@@ -115,3 +123,6 @@ fun test_reduceConcrete2()
     @ok = List<int>().reduceInt(@(item1, item2) => item1 + item2)
     @fail = List<int>().reduceInt<float>(@(item1, item2) => item1 + item2)
     
+
+
+// ### END OF FILE
