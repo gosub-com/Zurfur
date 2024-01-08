@@ -30,7 +30,7 @@ namespace Zurfur.Compiler
         const int SCOPE_INDENT = 4;
 
         // TBD: Allow pragmas to be set externally
-        static WordSet sPragmas = new WordSet("ShowParse NoParse NoCompilerChecks "
+        static WordSet sPragmas = new("ShowParse NoParse NoCompilerChecks "
             + "NoVerify AllowUnderscoreDefinitions");
 
 
@@ -58,64 +58,64 @@ namespace Zurfur.Compiler
         public int ParseErrors => mParseErrors;
 
         // Add semicolons to all lines, except for:
-        static WordSet sContinuationEnd = new WordSet("[ ( ,");
-        static WordSet sContinuationNoBegin = new WordSet("} namespace mod type use pragma pub fun afun " 
+        static WordSet sContinuationEnd = new("[ ( ,");
+        static WordSet sContinuationNoBegin = new("} namespace mod type use pragma pub fun afun " 
             + "get set if while for return ret break continue else");
-        static WordSet sContinuationBegin = new WordSet("] ) , . + - * / % | & || && and or "
+        static WordSet sContinuationBegin = new("] ) , . + - * / % | & || && and or not "
                             + "== != : ? ?? > << <= < => -> .. :: !== ===  is in as has "
                             + "= += -= *= /= %= |= &= ~= " + TOKEN_STR_LITERAL);
 
-        static WordSet sReservedWords = new WordSet("as has break case catch const "
+        static WordSet sReservedWords = new("as has break case catch const "
             + "continue do then else elif todo extern nil true false defer use "
             + "finally for goto go if ife in is mod app include "
             + "new out pub public private priv readonly ro ref aref mut imut "
             + "return ret sizeof struct switch throw try nop "
             + "typeof type unsafe static while dowhile scope loop "
             + "async await astart atask task get set var when nameof "
-            + "box init move copy clone drop own super self "
+            + "box init move copy clone drop own super "
             + "extends impl implements fun afun sfun def yield yld let "
             + "any Any dyn Dyn dynamic Dynamic select match from to of on cofun "
             + "throws rethrow @ # and or not xor with exit pragma require ensure "
-            + "of sync except exception loc local global my My");
+            + "of sync except exception loc local global my My self Self this This");
 
         public static WordSet ReservedWords => sReservedWords;
 
-        static WordSet sScopeQualifiers = new WordSet("pub public private unsafe unsealed static protected");
-        static WordSet sFieldQualifiers = new WordSet("ro mut static");
-        static WordSet sPreTypeQualifiers = new WordSet("ro ref struct noclone unsafe enum union interface");
-        static WordSet sPostFieldQualifiers = new WordSet("init mut ref");
-        static WordSet sParamQualifiers = new WordSet("ro own mut");
+        static WordSet sScopeQualifiers = new("pub public private unsafe unsealed static protected");
+        static WordSet sFieldQualifiers = new("ro mut static");
+        static WordSet sPreTypeQualifiers = new("ro ref struct noclone unsafe enum union interface");
+        static WordSet sPostFieldQualifiers = new("init mut ref");
+        static WordSet sParamQualifiers = new("ro own mut");
 
-        static WordSet sReservedUserFuncNames = new WordSet("new clone drop");
-        static WordSet sReservedIdentifierVariables = new WordSet("nil true false new move my sizeof typeof require");
-        static WordSet sReservedMemberNames = new WordSet("clone");
-        static WordSet sTypeUnaryOps = new WordSet("? ! * ^ [ & ro");
+        static WordSet sAllowReservedFunNames = new("require new drop");
+        static WordSet sReservedIdentifierVariables = new("nil true false new move my sizeof typeof require");
+        static WordSet sReservedMemberNames = new("clone");
+        static WordSet sTypeUnaryOps = new("? ! * ^ [ & ro");
 
-        static WordSet sEmptyWordSet = new WordSet("");
+        static WordSet sEmptyWordSet = new("");
 
-        static WordSet sCompareOps = new WordSet("== != < <= > >= === !== in");
-        static WordSet sRangeOps = new WordSet(".. ..+");
-        static WordSet sAddOps = new WordSet("+ - |");
-        static WordSet sXorOps = new WordSet("~");
-        static WordSet sMultiplyOps = new WordSet("* / % &");
-        static WordSet sAssignOps = new WordSet("= += -= *= /= %= |= &= ~= <<= >>=");
-        static WordSet sUnaryOps = new WordSet("+ - & &* ~ use unsafe clone mut not astart");
+        static WordSet sCompareOps = new("== != < <= > >= === !== in");
+        static WordSet sRangeOps = new(".. ..+");
+        static WordSet sAddOps = new("+ - |");
+        static WordSet sXorOps = new("~");
+        static WordSet sMultiplyOps = new("* / % &");
+        static WordSet sAssignOps = new("= += -= *= /= %= |= &= ~= <<= >>=");
+        static WordSet sUnaryOps = new("+ - & &* ~ use unsafe clone mut not astart");
 
         // C# uses "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"  to resolve type
         // argument ambiguities. The following symbols allow us to call functions,
         // create types, and access static members. For example `F<T1>()` to
         // call a function or constructor and `F<T1>.Name` to access a static member.
-        static WordSet sTypeArgumentParameterSymbols = new WordSet("( ) . , ;");
+        static WordSet sTypeArgumentParameterSymbols = new("( ) . , ;");
 
-        Regex sFindUrl = new Regex(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
+        Regex sFindUrl = new(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
 
-        static WordSet sStatementEndings = new WordSet("; }");
-        static WordSet sRejectAnyStop = new WordSet("; { }", true);
-        static WordSet sRejectForCondition = new WordSet("in");
-        static WordSet sRejectFuncParam = new WordSet(", )");
-        static WordSet sRejectTypeName = new WordSet("( )");
+        static WordSet sStatementEndings = new("; }");
+        static WordSet sRejectAnyStop = new("; { }", true);
+        static WordSet sRejectForCondition = new("in");
+        static WordSet sRejectFuncParam = new(", )");
+        static WordSet sRejectTypeName = new("( )");
 
-        static WordMap<string> sStringLiterals = new WordMap<string>()
+        static WordMap<string> sStringLiterals = new()
             { { "n", "\n" }, { "r", "\r"}, {"rn", "\r\n"}, {"t", "\t"}, {"b", "\b" } };
 
         /// <summary>
@@ -737,6 +737,8 @@ namespace Zurfur.Compiler
                 var open = mPrevToken;
                 do
                 {
+                    if (mToken == ")")
+                        break;
                     var simpleField = ParseFieldSimple(new List<Token>());
                     if (simpleField != null)
                     {
@@ -837,17 +839,17 @@ namespace Zurfur.Compiler
 
         (SyntaxExpr? typeParams, SyntaxConstraint[]? constraints) ParseTypeParameters()
         {
-            if (!AcceptMatch("["))
+            if (!AcceptMatch("<"))
                 return (null, null);
             var openToken = mPrevToken;
             var typeParams = NewExprList();
             var constraints = Array.Empty<SyntaxConstraint>();
-            while (mToken != "]"
-                && AcceptIdentifier("Expecting ']' or a type parameter", sRejectTypeName))
+            while (mToken != ">"
+                && AcceptIdentifier("Expecting '>' or a type parameter", sRejectTypeName))
             {
                 typeParams.Add(new SyntaxToken(mPrevToken));
                 if (mPrevToken.Type == eTokenType.Identifier)
-                    mPrevToken.Type = eTokenType.TypeName;
+                    mPrevToken.Type = eTokenType.DefineTypeParam;
 
                 if (mToken.Type == eTokenType.Identifier)
                 {
@@ -859,7 +861,7 @@ namespace Zurfur.Compiler
                 if (AcceptMatch(","))
                     Connect(openToken, mPrevToken);
             }
-            if (AcceptMatch("]"))
+            if (AcceptMatch(">"))
                 Connect(openToken, mPrevToken);
 
             return (new SyntaxMulti(openToken, FreeExprList(typeParams)), constraints);
@@ -1015,31 +1017,38 @@ namespace Zurfur.Compiler
             extensionType = null;
             funcName = mToken;
 
-            var mutToken = mToken == "mut" ? Accept() : null;
+            // Golang style receiver
+            Token? mutToken; // TBD: Probably needs to be part of the type name
+            if (AcceptMatch("("))
+            {
+                var open = mPrevToken;
+                mutToken = mToken == "mut" ? Accept() : null;
+                extensionType = ParseType();
+                if (extensionType is SyntaxError)
+                    extensionType = null;
+                if (AcceptMatchOrReject(")"))
+                    Connect(open, mPrevToken);
+            }
+            else
+            {
+                mutToken = mToken == "mut" ? Accept() : null;
+            }
 
-            // TBD: Verifier to ensure this function not defined anywhere other than Zurfur module                
-            if (mToken == "require" || mToken == "new" ||  mToken == "drop")
-                mToken.Type = eTokenType.Identifier;
-
-            if (!CheckIdentifier("Expecting a function or property name", sRejectTypeName))
+            // Function name
+            if (!AcceptIdentifier("Expecting a function or type name", sRejectTypeName, sAllowReservedFunNames))
                 return false;
 
-            var nameExpr = ParseType();
-
-            // Old style generic type args (always an error now)
-            if (nameExpr.Count >= 2 && nameExpr.Token == VT_TYPE_ARG)
+            // Shortcut receiver style
+            funcName = mPrevToken;
+            if (extensionType == null && AcceptMatch("."))
             {
-                foreach (var t in nameExpr.Skip(1))
-                    RejectToken(t.Token, "Old type parameter syntax not accepted");
-                nameExpr = nameExpr[0];
+                if (!AcceptIdentifier("Expecting a function or type name", sRejectTypeName, sAllowReservedFunNames))
+                    return true;  // We some kind of valid function name
+                funcName.Type = eTokenType.TypeName;
+                extensionType = new SyntaxToken(funcName);
+                funcName = mPrevToken;
             }
-
-            // Extension type
-            if (nameExpr.Token == "." && nameExpr.Count >= 2)
-            {
-                extensionType = nameExpr[0];
-                nameExpr = nameExpr[1];
-            }
+            funcName.Type = sAllowReservedFunNames.Contains(funcName.Name) ? eTokenType.Reserved : eTokenType.DefineMethod;
 
             // TBD: Record 'mut' token for static functions inside interfaces
             if (mutToken != null && extensionType != null)
@@ -1047,14 +1056,8 @@ namespace Zurfur.Compiler
             else if (mutToken != null)
                 mutToken.AddWarning("Not stored in parse tree yet");
 
-            if (nameExpr.Count != 0)
-                RejectToken(nameExpr.Token, "Expecting a function name");
-
-            funcName = nameExpr.Token;
-            funcName.Type = eTokenType.DefineMethod;
-
             RejectUnderscoreDefinition(funcName);
-            return nameExpr.Count == 0;
+            return true;
         }
 
 
@@ -1127,7 +1130,7 @@ namespace Zurfur.Compiler
             if (!AcceptIdentifier("Expecting a variable name", sRejectFuncParam))
                 return SyntaxError;
             var name = mPrevToken;
-            name.Type = eTokenType.DefineParam;
+            name.Type = eTokenType.DefineFunParam;
             RejectUnderscoreDefinition(name);
 
             if (AcceptMatch("my"))
@@ -1996,9 +1999,6 @@ namespace Zurfur.Compiler
                 {
                     accepted = true;
                     var dot = Accept();
-
-                    if (!sReservedUserFuncNames.ContainsKey(mTokenName) && !CheckIdentifier("Expecting type name"))
-                        return SyntaxError;
                     mToken.Type = eTokenType.TypeName;
                     result = new SyntaxBinary(dot, result, new SyntaxToken(Accept()));
                 }

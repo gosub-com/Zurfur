@@ -22,21 +22,21 @@ fun test_Shape()
 // TBD: Infer constraint on functions below from Point<T>
 //      Default constructor taking both x and y
 [pub]
-type struct Point[T Number<T>]
+type struct Point<T Number<T>>
     x T
     y T
 
 // Identical to a field
-fun get Point.x2[T]() mut &T
+fun get Point.x2<T>() mut &T
     ret &my.x // TBD: Require `&`, do not allow just `my.x`
 
 [pub]
-type struct Size[T Number<T>]
+type struct Size<T Number<T>>
     width T
     height T
 
 [pub]
-type struct Rect[T Number<T>]
+type struct Rect<T Number<T>>
     // TBD: use location Point<T>
     //      use size Size<T>
     location Point<T>
@@ -44,85 +44,85 @@ type struct Rect[T Number<T>]
 
 // Identical to fields (not necessary when we have 'use location Point<T>' syntax)
 [pub]
-fun get Rect.x[T]() mut &T
+fun get Rect.x<T>() mut &T
     ret &my.location.x // TBD: Require `&`
 [pub]
-fun get Rect.y[T]() mut &T
+fun get Rect.y<T>() mut &T
     ret &my.location.y // TBD: Require `&`
 [pub]
-fun get Rect.width[T]() mut &T
+fun get Rect.width<T>() mut &T
     ret &my.size.height // TBD: Require `&`
 [pub]
-fun get Rect.height[T]() mut &T
+fun get Rect.height<T>() mut &T
     ret &my.size.width // TBD: Require `&`
 
 
 [pub]
-fun Point.new[T](x T, y T)
+fun Point.new<T>(x T, y T)
     // TBD: (my.x, my.y) = (x, y)
     my.x = x
     my.y = y
 
 
 [pub]
-fun Point.toSize[T]() Size<T>
+fun Point.toSize<T>() Size<T>
     ret Size<T>(my.x, my.y)
 
 // TBD: Remove
-fun Point.yf[T]() T
+fun Point.yf<T>() T
     ret my.y
 
 
 // TBD: Infer constraint from Point<T>
 [pub]
-fun _opAdd[T Number<T>](a Point<T>, b Point<T>) Point<T>
+fun _opAdd<T Number<T>>(a Point<T>, b Point<T>) Point<T>
     ret Point(a.x+b.x, a.y+b.y)
 
 [pub]
-fun _opNeg[T Number<T>](a Point<T>) Point<T>
+fun _opNeg<T Number<T>>(a Point<T>) Point<T>
     ret Point(-a.x, -a.y)
 
 [pub]
-fun _opSub[T Number<T>](a Point<T>, b Point<T>) Point<T>
+fun _opSub<T Number<T>>(a Point<T>, b Point<T>) Point<T>
     ret Point(a.x-b.x, a.y-b.y)
 
 [pub]
-fun _opMul[T Number<T>](a T, b Point<T>) Point<T>
+fun _opMul<T Number<T>>(a T, b Point<T>) Point<T>
     ret Point(a*b.x, a*b.y)
 
 [pub]
-fun _opMul[T Number<T>](a Point<T>, b T) Point<T>
+fun _opMul<T Number<T>>(a Point<T>, b T) Point<T>
     ret Point(a.x*b, a.y*b)
 
 [pub]
-fun _opDiv[T Number<T>](a T, b Point<T>) Point<T>
+fun _opDiv<T Number<T>>(a T, b Point<T>) Point<T>
     ret Point(a/b.x, a/b.y)
 
 [pub]
-fun _opDiv[T Number<T>](a Point<T>, b T) Point<T>
+fun _opDiv<T Number<T>>(a Point<T>, b T) Point<T>
     ret Point(a.x/b, a.y/b)
 
 [pub]
-fun Size.new[T](width T, height T)
+fun Size.new<T>(width T, height T)
     // TBD: (my.width, my.height) = (width, height)
     my.width = width
     my.height = height
     
 [pub]
-fun Size.toPoint[T]() Point<T>
+fun Size.toPoint<T>() Point<T>
     ret Point(my.width, my.height)
 
 
 // TBD: Shortcut syntax for this:
 [pub]
-fun Rect.new[T](x T, y T, width T, height T)
+fun Rect.new<T>(x T, y T, width T, height T)
     my.x = x
     my.y = y
     my.width = width
     my.height = height
     
 [pub]
-fun Rect.new[T](location Point<T>, size Size<T>)
+fun Rect.new<T>(location Point<T>, size Size<T>)
     my.location = location
     my.size = size
 
@@ -130,19 +130,19 @@ fun Rect.new[T](location Point<T>, size Size<T>)
 // TBD: Operators (add, multiply, divide, sizes, etc.)
 
 [pub]
-fun get Rect.left[T]() T
+fun get Rect.left<T>() T
     ret my.x
     
 [pub]
-fun get Rect.right[T Number<T>]() T // TBD: Use constraints from `Rect`
+fun get Rect.right<T Number<T>>() T // TBD: Use constraints from `Rect`
     ret my.x + my.width
 
 [pub]
-fun get Rect.top[T]() T
+fun get Rect.top<T>() T
     ret my.y
     
 [pub]
-fun get Rect.bottom[T Number<T>]() T // TBD: Use constraints from `Rect`
+fun get Rect.bottom<T Number<T>>() T // TBD: Use constraints from `Rect`
     ret my.y + my.height
     
     

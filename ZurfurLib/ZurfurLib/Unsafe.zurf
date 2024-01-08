@@ -6,12 +6,12 @@ use Zurfur[RawPointerMarker, Type]
 
 // Mark these types as pointers and allow castPointer
 fun Xuint.getRawPointer() RawPointerMarker extern
-fun Ref.getRawPointer[T]() RawPointerMarker extern
-fun RawPointer.getRawPointer[T]() RawPointerMarker extern
+fun Ref.getRawPointer<T>() RawPointerMarker extern
+fun RawPointer.getRawPointer<T>() RawPointerMarker extern
 
 // Cast from one pointer type to another pointer type.
 [pub]
-fun castPointer[T GetRawPointer](i GetRawPointer) T
+fun castPointer<T GetRawPointer>(i GetRawPointer) T
     extern
 
 // Unsigned extended int, u32 or u64 depending on machine pointer size.
@@ -29,7 +29,7 @@ fun Xuint.new(value u64)
 // versions might not be.  The owner is nil when a non-heap (static global or
 // stack local) object is referenced.  These references are also called return
 // references because they get passed back up the stack.
-type ref ro Ref[T]
+type ref ro Ref<T>
     owner ?*GcHeapObject
     value *T
 
@@ -43,17 +43,17 @@ type interface GetRawPointer
 // A raw pointer.  The compiler translates *T to RawPointer<T>
 // and automatically dereferences when "." is used.
 [pub]
-type ro RawPointer[T]
+type ro RawPointer<T>
     value Xuint
 
-fun _opEq[T](a RawPointer<T>, b RawPointer<T>) bool extern
-fun _opCmp[T](a RawPointer<T>, b RawPointer<T>) int extern
-fun _opAdd[T](a RawPointer<T>, b u64) RawPointer<T> extern
-fun _opAdd[T](a u64, b RawPointer<T>) RawPointer<T> extern
-fun _opSub[T](a RawPointer<T>, b RawPointer<T>) RawPointer<T> extern
-fun _opSub[T](a RawPointer<T>, b u64) RawPointer<T> extern
-fun _opAdd[T](a RawPointer<T>, b int) *T extern
-fun _opAdd[T](a int,b *T) *T extern
+fun _opEq<T>(a RawPointer<T>, b RawPointer<T>) bool extern
+fun _opCmp<T>(a RawPointer<T>, b RawPointer<T>) int extern
+fun _opAdd<T>(a RawPointer<T>, b u64) RawPointer<T> extern
+fun _opAdd<T>(a u64, b RawPointer<T>) RawPointer<T> extern
+fun _opSub<T>(a RawPointer<T>, b RawPointer<T>) RawPointer<T> extern
+fun _opSub<T>(a RawPointer<T>, b u64) RawPointer<T> extern
+fun _opAdd<T>(a RawPointer<T>, b int) *T extern
+fun _opAdd<T>(a int,b *T) *T extern
 
 
 // TBD: Move to a different modulem probably Zurfur.Internal

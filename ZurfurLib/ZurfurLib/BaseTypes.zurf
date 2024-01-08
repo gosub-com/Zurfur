@@ -14,16 +14,16 @@ pragma AllowUnderscoreDefinitions
 
 // Return type of functions that don't return anything
 [pub]
-type ro struct void { }
+type ro struct void()
 
 // Empty value for pointers and optionals
 [pub]
-type ro struct Nil { }
+type ro struct Nil()
 
 // Maybe<T> is the same as ?T.  Pointer and reference types are always
 // optimized so that `?&T`, `?*T`, `?^T`, and `?Box<T>` are just one pointer.
 [pub]
-type Maybe[T]
+type Maybe<T>
     // TBD: Assigning to `Maybe<T>` can change the type of `value` to nil.
     //      If we allow returning a reference to `T`, it must be in a box.
     //      For reference types, we can optimize to remove one box.
@@ -33,29 +33,29 @@ type Maybe[T]
     hasValue bool
 
 [pub]
-fun Maybe.new[T](value own T)
+fun Maybe.new<T>(value own T)
     my.value = Box<T>(value)
     my.hasValue = true
 
-type Box[T]
+type Box<T>
     const __size int = 1
 
-fun Box.new[T](value own T)
+fun Box.new<T>(value own T)
     nop
 
 [pub]
 type ro interface Error
-    fun get code() ErrorCode
-    fun get message() str
+    fun get code() ErrorCode    // Machine readable error code
+    fun get message() str       // Human readable error code
 
 
 // Result[T] - Same as !T
 [pub]
-type union Result[T]
+type union Result<T>
     ok T
     error ro Error
 
-// This will probably be a specially recognized error code type
+// Machine readable (Zig style?) error code, possibly a str or u32
 [pub]
 type enum ErrorCode
     Success = 0 
@@ -68,7 +68,7 @@ type Rune = i32
 
 // Base interface for all types
 [pub]
-type interface Object { }
+type interface Object()
 
 
 // All types have a unique `id`, but other non-essential metadata is opt-in.
@@ -81,7 +81,7 @@ type ro struct Type
 
 // Swap two items
 [pub]
-fun swap[T](a mut &T, b mut &T)
+fun swap<T>(a mut &T, b mut &T)
     todo
 
 // bool (true or false)

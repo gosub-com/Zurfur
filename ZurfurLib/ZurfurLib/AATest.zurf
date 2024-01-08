@@ -1,5 +1,8 @@
 ﻿
-// Misc compiler testing
+// Misc compiler testing which gets compiled first and makes it easy to set break points.
+// TBD: Move working test cases into AATestPass
+
+
 mod AATest
 
 
@@ -26,7 +29,7 @@ fun test_reduce()
     @myReduceTuple2 = List<(a int, b int)>()
         .reduce(@(item1, item2) => item2)
 
-fun GetIterator<int>.reduceInt(f fun(item1 int, item2 int) int) ?int
+fun (GetIterator<int>) reduceInt(f fun(item1 int, item2 int) int) ?int
     ret my.getIterator.reduce<int>(f) 
 
 fun testInfer()
@@ -39,7 +42,7 @@ fun testInfer()
     @mli2 = ml[0].y                 // float
     takeListOfTuples(ml)
 
-fun inferFun[S,R](x List<(S,R)>) R
+fun inferFun<S,R>(x List<(S,R)>) R
     ret R()
 
 
@@ -89,24 +92,24 @@ type interface Printable
 type interface Printable2
     fun toStr() str    
 
-fun test_printableFail[T Printable, Q](t T, q Q)
+fun test_printableFail<T Printable, Q>(t T, q Q)
     // Fail test case
     //q.toStr
     nop
 
 // TBD: This should be acceptable
-fun test_printableAmbiguous[T Printable + Printable2](t T)
+fun test_printableAmbiguous<T Printable + Printable2>(t T)
     t.toStr // TBD: Should not fail
 
 
 type interface TestGlobal
     [static] fun testGlobal()
-fun test_Global[T TestGlobal]()
+fun test_Global<T TestGlobal>()
     testGlobal()
 
-type interface TestGlobal2[T]
+type interface TestGlobal2<T>
     [static] fun testGlobal2(x T) T
-fun test_Global2[T TestGlobal2<int>](t T)
+fun test_Global2<T TestGlobal2<int>>(t T)
     @x = testGlobal2(1)
 
     // Fail test case
@@ -122,16 +125,16 @@ fun test_lambdaCall()
     lambdaCall(@(a float) => a + 32) // TBD: Should be OK
     lambdaCall2(@a => 0)
 
-[pub] type MyCollection[T] {}
-[pub] type MyCollectionIter[T] {}
+[pub] type MyCollection<T> {}
+[pub] type MyCollectionIter<T> {}
 
-[pub] type MyCollectionNot[T] {}
-[pub] type MyCollectionNotIter[T] {}
+[pub] type MyCollectionNot<T> {}
+[pub] type MyCollectionNotIter<T> {}
 
 
-[pub] fun MyCollection.getIterator[T]() MyCollectionIter<T>
+[pub] fun MyCollection.getIterator<T>() MyCollectionIter<T>
     nop
-[pub] fun MyCollectionIter.next[T]() ?T
+[pub] fun MyCollectionIter.next<T>() ?T
     nop
 
 
@@ -182,9 +185,9 @@ fun test_map()
         Log.info("")
 
 
-[pub] fun MyCollectionNot.getIterator[T]() MyCollectionNotIter<T>
+[pub] fun MyCollectionNot.getIterator<T>() MyCollectionNotIter<T>
     nop
-[pub] fun MyCollectionNotIter.next[T]() ?T
+[pub] fun MyCollectionNotIter.next<T>() ?T
     nop
     
 
@@ -264,7 +267,7 @@ fun test_printPrintable(x mut GetIterator<Printable>)
         Log.info("Item={item}")
 
 
-fun test_printGeneric[T Printable](x mut GetIterator<T>)
+fun test_printGeneric<T Printable>(x mut GetIterator<T>)
     @i = x.getIterator
     while i.next()@item
         @s = item.toStr()
@@ -299,12 +302,12 @@ fun aaa_arith(a int, b int, c mut aaa_arith_test) int
     
     ret y + c.b.e + c.property
 
-fun MyGenericInt[T Number<int>]()
+fun MyGenericInt<T Number<int>>()
     @a = T()
     @c = T.One
     @d = One
 
-fun MyGeneric[T Number<T>]()
+fun MyGeneric<T Number<T>>()
     @a = T()
     @c = T.One
     @d = One
@@ -344,15 +347,15 @@ fun test_forEach(args Array<str>)
 
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-fun Iterator.alphaLengthWise[Item, L](lengthProvider fun(t Item) L) Iterator<Item>
+fun Iterator.alphaLengthWise<Item, L>(lengthProvider fun(t Item) L) Iterator<Item>
     ret my.orderBy<Item, L>(@a => lengthProvider(a))
         .thenBy<Item, L>(@a => a)
-fun Iterator.orderBy[Source,Key](keySelector fun(i Source)Key) Iterator<Source>
+fun Iterator.orderBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
     todo
-fun Iterator.thenBy[Source,Key](keySelector fun(i Source)Key) Iterator<Source>
+fun Iterator.thenBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
     todo
 
-fun Iterator.find[T](f fun(item T) bool) mut ?&T
+fun Iterator.find<T>(f fun(item T) bool) mut ?&T
     while my.next()@item
         if f(item)
             ret &item // TBD: Require `&` here
@@ -360,7 +363,7 @@ fun Iterator.find[T](f fun(item T) bool) mut ?&T
 
 
 // Simple selection sort
-fun Span.test_selectionSort[T](lessThan fun(a T,b T)bool)
+fun Span.test_selectionSort<T>(lessThan fun(a T,b T)bool)
     for @i in 0..my.len-1
         @lowElem = my[i]
         @lowIndex = i
@@ -372,20 +375,20 @@ fun Span.test_selectionSort[T](lessThan fun(a T,b T)bool)
             my[lowIndex] = my[i]
             my[i] = lowElem
 
-type AA[T1,T2,T3]
+type AA<T1,T2,T3>
     a T1
 
-type MyPoint[T1,T2,T3]
+type MyPoint<T1,T2,T3>
     a T1
     b T2
     c T3
     x (int, T1, int)
     y (a int, b T1, c int, d (r int, b int))
 
-type interface GetIterator2[Item]
+type interface GetIterator2<Item>
     fun iterator2() Iterator<Item>
 
-type interface GetMap[Item1,Item2]
+type interface GetMap<Item1,Item2>
     fun getMap() Map<Item1, Item2>
     fun getMapKeys() Iterator<Item1>
     fun getMapValues() Iterator<Item2>
@@ -394,20 +397,20 @@ type interface Getter
     fun get myGet() i32
     fun myFun() i32
 
-type interface Getter2[T]
+type interface Getter2<T>
     fun get myGet2() T
     fun myFun2() T
     fun myFun2Ns() T
     [static] fun myFun2Stat() T
 
-type interface MyAdd[T]
+type interface MyAdd<T>
     fun myAddNotStatic(a T, b T) T
     [static] fun myAddStatic(a T, b T) T
 
-fun getMapFun[K,V]() Map<V,K>
+fun getMapFun<K,V>() Map<V,K>
     ret Map<V,K>()
 
-fun myFun2Interf[T](i T) T todo
+fun myFun2Interf<T>(i T) T todo
 
 fun takeFun(i fun(a int)int) todo
 
@@ -424,10 +427,10 @@ fun test_tuples()
     @tuplesNamedElement = tuplesNamed[0]
     @element = tuplesNamedElement.x
 
-fun AAAAA[X,
+fun AAAAA<X,
         T Number<T> + GetHash + GetIterator<int> + GetIterator2<int> + GetMap<f32,float> + Iterator<int>,
         Q Number<Q> + Getter + Getter2<int> + MyAdd<Q>
-        ](t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<float>, myGetter Getter)
+        >(t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<float>, myGetter Getter)
 
     // Source code symbols should be non-generic
     @next3 = q.myGet2           // int
@@ -483,26 +486,26 @@ fun AAAAA[X,
         @itemt = item           // int
 
 
-fun MyFun1[T1,T2,T3](a T1, b T2, c T3)(x T2, y T3)
+fun MyFun1<T1,T2,T3>(a T1, b T2, c T3)(x T2, y T3)
     @q = b
     ret (T2(), T3())
 
-fun MyFun2[I,O](i I) O
+fun MyFun2<I,O>(i I) O
     ret O()
 
-fun MyFun3[I,O](i int) O
+fun MyFun3<I,O>(i int) O
     ret O()
 
-fun MyFun4[T0,T1,T2,T3](i int) List<T2>
+fun MyFun4<T0,T1,T2,T3>(i int) List<T2>
     ret List<T2>()
 
-fun MyFun5[T0,T1,T2,T3](i int)(a List<T1>, b List<T3>)
+fun MyFun5<T0,T1,T2,T3>(i int)(a List<T1>, b List<T3>)
     ret (List<T1>(), List<T3>())
 
-fun inferMap[T1,T2](a Map<T1,T2>, b List<T2>)(x T1, y T2)
+fun inferMap<T1,T2>(a Map<T1,T2>, b List<T2>)(x T1, y T2)
     ret (T1(), T2())
 
-fun Test[X0,X1,X2,X3]()
+fun Test<X0,X1,X2,X3>()
     @infer1 = MyFun1(0, "", 0.0)
     @infer2 = MyFun1(0, List<int>(), 0)
     @infer3 = MyFun1(0, List<X2>(), 0.0)
@@ -531,9 +534,9 @@ fun Test[X0,X1,X2,X3]()
     @t = (0,1,2)
     @toSize = Point<f32>().toSizeTest
 
-type OneGeneric[T] { } 
+type OneGeneric<T> { } 
 
-fun get Point.toSizeTest[T]() Size<T>
+fun get Point.toSizeTest<T>() Size<T>
     @a = Size<T>(T(),T())
     @b = Size<T>()
     @c = Size(my.x, my.y)
@@ -561,7 +564,7 @@ fun test(x float)
     @h = cos(2.0+3.0*23.0).toStr
 
 
-type AAAA[T]
+type AAAA<T>
     v void
 
 type BBBB
@@ -572,8 +575,8 @@ fun BBBB.BBBB_fm2(a BBBB) {}
     
 
 
-fun AAAA<int>.AAAA_fm() {}
-fun AAAA.AAAA_fm[T]() {}
+fun (AAAA<int>) AAAA_fm() {}
+fun AAAA.AAAA_fm<T>() {}
 fun BBBB.AAAA_fm() {}
 
 fun AAAA_f() {}
@@ -585,7 +588,7 @@ fun BBBB.AAAA_fe2(a BBBB) {}
 fun aapoint.AAAA() {}
 fun aapoint.BBBB() {}
 fun aapoint.AAAB() {}
-fun List.X[T]() {}
+fun List.X<T>() {}
 fun int.X() {}
     
 
@@ -619,20 +622,20 @@ fun AAFun.aaaa(a int, b float) int { }
 fun AAFun.aaaa(x float, y int) int { }
 fun AAFun.aaf1(a int, b int)int { }
 fun AAFun.aaf2(v AAFunc<int, int>) { }
-fun AAFun.aaf3[T1,T2](i T1)T2 { }
+fun AAFun.aaf3<T1,T2>(i T1)T2 { }
 fun AAFun.aaf1s(a int, b int)int { }
 fun AAFun.aaf2s(v AAFunc<int, int>) { }
-fun AAFun.aaf3s[T1,T2](i T1)T2 { }
+fun AAFun.aaf3s<T1,T2>(i T1)T2 { }
 fun AAFun.af6(p fun(v int)bool) {}
-fun AAFun.af7[X](p fun(v X)bool) {}
+fun AAFun.af7<X>(p fun(v X)bool) {}
 
 
-[pub] type AAFunc[T1,T2]
+[pub] type AAFunc<T1,T2>
     Invoke fun (v T1) T2
 
 
 // TBD: These are identical to the ones defined in the class
-fun AGenericTest.af6[T,QQQ](p fun(v int)bool) {}
+fun AGenericTest.af6<T,QQQ>(p fun(v int)bool) {}
 //fun AGenericTest<T, QQQ>.af7<X>(p fun(v X)bool) {}
 //fun AGenericTest<T, QQQ>.af8<T1,T2>(i T1)T2 { }
 //fun AGenericTest<T, QQQ>.Q<T1>() {}
@@ -666,10 +669,10 @@ fun AGenericTest.af6[T,QQQ](p fun(v int)bool) {}
 type interface ToStr
     fun get toStr() str
 
-[pub] fun GenericTest[Q1 ToStr,Q2 ToStr](a Q1, b Q2) int
+[pub] fun GenericTest<Q1 ToStr,Q2 ToStr>(a Q1, b Q2) int
     ret a.toStr.len + b.toStr.len    
 
-[pub] type AGenericTest[T, QQQ Equatable<T>] // TBD: new() where T : new()
+[pub] type AGenericTest<T, QQQ Equatable<T>> // TBD: new() where T : new()
     
     af0 fun()()
     af1 fun()

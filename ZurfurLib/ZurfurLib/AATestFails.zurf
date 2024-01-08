@@ -8,40 +8,89 @@ mod AATestFails
 
 use Zurfur[Iterator, GetIterator]
 
-type interface Printable
-    fun toStr() str    
-type interface Printable2
-    fun toStr() str    
-
-type interface TestGlobal
-    [static] fun testGlobal()
-fun test_Global[T TestGlobal]()
-    testGlobal()
-type interface TestGlobal2[T]
-    [static] fun testGlobal2(x T) T
-
-
-[pub] type MyCollection[T] {}
-[pub] type MyCollectionIter[T] {}
-
-[pub] type MyCollectionNot[T] {}
-[pub] type MyCollectionNotIter[T] {}
-
-
-[pub] fun MyCollection.getIterator[T]() MyCollectionIter<T>
-    nop
-[pub] fun MyCollectionIter.next[T]() ?T
-    nop
-
-fun GetIterator<int>.reduceInt(f fun(item1 int, item2 int) int) ?int
-    ret my.getIterator.reduce<int>(f) 
-
-
 // Make first test case pass by adding a syntax error
 fun test_makeError()
     makeError
 
+
+// ### Interface conversions that fail
+type interface TakeConcrete
+    fun take(a int)
+type interface TakeConcrete2
+    fun take(a int)
+type interface TakeInterface
+    fun take(a TakeConcrete)
+    
+type ImpNone()
+
+type ImpTakeConcrete()
+fun ImpTakeConcrete.take(a int) todo
+
+type ImpTakeInterface()
+fun ImpTakeInterface.take(a TakeConcrete) todo
+
+fun takeInterfaceConcrete(x TakeConcrete) todo
+fun takeInterfaceInterface(x TakeInterface) todo
+
+fun test_noImp1()
+    @a TakeConcrete = ImpTakeConcrete()
+    takeInterfaceConcrete(ImpTakeConcrete())
+    @b TakeConcrete = ImpNone() // Type doesn't implement interface
+
 // ###
+
+fun test_noImp2()
+    takeInterfaceConcrete(ImpTakeConcrete())
+    takeInterfaceConcrete(ImpNone()) // Type doesn't implement interface
+
+// ###
+
+fun test_noImp5()
+    @t TakeInterface = ImpTakeConcrete() // Type doesn't implement the interface
+
+// ###
+
+fun test_noImp6()
+    takeInterfaceConcrete(ImpTakeConcrete())
+    takeInterfaceInterface(ImpTakeConcrete()) // Type doesn't implement the interface
+
+// ###
+
+fun test_noImp3()
+    @a TakeConcrete = ImpTakeConcrete()
+    @b TakeConcrete = a
+    @c TakeConcrete2 = a // Interface to interface conversion not supported yet
+
+// ###
+
+fun test_noImp4()
+    takeInterfaceConcrete(ImpTakeConcrete())
+    @b TakeConcrete2 = ImpTakeConcrete()
+    takeInterfaceConcrete(b) // Interface to interface conversion not supported yet
+    
+
+
+
+// ### Convert concrete types to interface
+type interface Printable
+    fun toStr() str    
+type interface Printable2
+    fun toStr() str    
+type MyCollection<T> {}
+type MyCollectionIter<T> {}
+
+type MyCollectionNot<T> {}
+type MyCollectionNotIter<T> {}
+
+
+fun MyCollection.getIterator<T>() MyCollectionIter<T>
+    nop
+fun MyCollectionIter.next<T>() ?T
+    nop
+
+fun (GetIterator<int>) reduceInt(f fun(item1 int, item2 int) int) ?int
+    ret my.getIterator.reduce(f) 
+
 fun test_takePrintable(a Printable)
     @x = a.toStr
     x = ""
@@ -52,28 +101,35 @@ fun test_printable()
     test_takePrintable(MyCollection<int>()) // Doesn't implement Printable
     
 
-// ###
-fun test_printableFail1[T Printable, Q](t T, q Q)
+// ### Constraint used properly
+fun test_printableFail1<T Printable, Q>(t T, q Q)
     q.toStr // toStr not defined in Q
     t.toStr // ok
 
-// ###
-fun test_printableFail2[Q, T Printable](t T, q Q)
+// ### Constraint used properly
+fun test_printableFail2<Q, T Printable>(t T, q Q)
     q.toStr // toStr not defined in Q
     t.toStr // ok
 
-// ###
-fun test_Global2[T TestGlobal2<int>](t T)
+// ### Incompatible parameter types (expecting int)
+type interface TestGlobal
+    [static] fun testGlobal()
+fun test_Global<T TestGlobal>()
+    testGlobal()
+type interface TestGlobal2<T>
+    [static] fun testGlobal2(x T) T
+
+fun test_Global2<T TestGlobal2<int>>(t T)
     testGlobal2(t)  // Incompatible parameter types (expecting int, not T)
     testGlobal2(1)  // Ok
 
-// ###
-fun test_Global2a[T TestGlobal2<int>](t T)
+// ### Incompatible parameter types (expecting int)
+fun test_Global2a<T TestGlobal2<int>>(t T)
     testGlobal2(1.0)  // Incompatible parameter types (expecting int)
 
 
-// ###
-// NOTE: This is a failed test case until we check lambda returns
+// ### Lambda return type is checked
+// TBD: *** FAILED TEST *** need to check lambda returns
 fun lambdaCall(a fun(b float)int) todo
 fun test_lambdaCall2()
     lambdaCall(@a => 0.0)  // TBD: Should fail, return is int
@@ -82,11 +138,11 @@ fun test_lambdaCall2()
     MakeTestCaseFail
     
 
-// ###
+// ### Can't infer type
 fun test_newInfer()
     @a = MyCollection() // Can't infer type
 
-// ###
+// ### Basic interface works
 fun test_newInfer2()
     @a = MyCollection<int>()    // ok
     @b = a.getIterator          // ok
@@ -94,35 +150,54 @@ fun test_newInfer2()
     @d ?int = c                 // ok
     @e int = c                  // Can't assign type
 
-// ###
+// ### Type doesn't implement the interface because
 fun test_noImplementInterface1()
     @myCollection = MyCollection<int>()
     @ok1 = myCollection.map<int,str>(@i => i.toStr).toList<str>     // Type arg given
     @ok2 = myCollection.map<int,str>(@i => i.toStr).toList          // Infer toList
     @fail = myCollection.map<int,str>(@i => i.toStr).toList<int>    // Error on toList
 
-// ###
+// ### Type doesn't implement the interface
 fun test_noImplementInterface2()
     @myCollectionNot = MyCollectionNot<int>()
     @myCollectionNotMapIter = myCollectionNot.map<int,str>(@i => i.toStr)
 
-// ###
+// ### Type doesn't implement the interface because of explicit type
 fun test_returnFail()
     @ok1 = List<int>().reduce<int>(@(item1, item2) => item1 + item2)
     @ok2 = List<int>().reduce(@(item1, item2) => item1 + item2)
     @fail = List<int>().reduce<float>(@(item1, item2) => item1 + item2)
     @ok3 = List<int>().reduce(@(item1, item2) => item1 + item2)
 
-// ###
+// ### Type doesn't implement interface because of reciever parameter
 fun test_reduceConcrete()
     @ok = List<int>().reduceInt(@(item1, item2) => item1 + item2)
     @fail = List<float>().reduceInt(@(item1, item2) => item1 + item2)
 
-// ###
+// ### Can't have type arguments
 fun test_reduceConcrete2()
     @ok = List<int>().reduceInt(@(item1, item2) => item1 + item2)
     @fail = List<int>().reduceInt<float>(@(item1, item2) => item1 + item2)
     
+// ### Ambiguous type inference
+// TBD: *** FAILED TEST *** need to verify not ambiguous
+type interface AmbiguousInterface<T>
+    fun f(a T)
+type AmbiguousTest()
+fun AmbiguousTest.f(a int) todo
+fun AmbiguousTest.f(b float) todo
 
+fun takeAmbiguous<T>(i AmbiguousInterface<T>) todo
+
+fun test_ambiguousInterface()
+    takeAmbiguous<int>(AmbiguousTest())     // Ok
+    takeAmbiguous<float>(AmbiguousTest())   // Ok
+    takeAmbiguous(AmbiguousTest())          // Type inference is ambiguous for this interface
+q // Force test to pass, TBD: REMOVE
+
+// ### Ambiguous function call
+fun u16.toStr() str todo     // TBD: Perhaps verifier prevents this
+fun test_ambiguousFunCall()
+    u16().toStr
 
 // ### END OF FILE

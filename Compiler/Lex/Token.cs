@@ -22,7 +22,8 @@ namespace Zurfur.Lex
         NewVarSymbol,
         DefineField,
         DefineMethod,
-        DefineParam,
+        DefineFunParam,
+        DefineTypeParam,
         DefineLocal,
         TypeName,
         BoldSymbol

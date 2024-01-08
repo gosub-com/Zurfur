@@ -11,16 +11,16 @@ type RawPointerMarker
 // Forward references are an optimization the code synthesizer can use when
 // they are passed down the stack, e.g. f(value Ref<T>) can be replaced with
 // f(value FRef<T>) since the reference is "covered".
-type ref ro FRef[T]
+type ref ro FRef<T>
     value *T
 
 // A pointer to heap memory.  This implementation uses reference
 // counting, but future implementations might be compacting instead.
-type ro Pointer[T]
+type ro Pointer<T>
     value *GcHeapObject  // Can also point to GcHeapArray<T>
 
 // Mark these types as the only pointer types in the system
-fun Pointer.getRawPointer[T]() RawPointerMarker extern
+fun Pointer.getRawPointer<T>() RawPointerMarker extern
 
 fun free(memory *GcHeapObject)
     extern // Pass to DlMalloc.free

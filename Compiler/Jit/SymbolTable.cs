@@ -18,7 +18,12 @@ namespace Zurfur.Jit
     /// Concrete functions used to implement the interface (pass=true),
     /// or a list of failed interface functions (pass=false)
     /// </summary>
-    public record InterfaceInfo(Symbol Concrete, Symbol Interface, List<Symbol> Functions, CallCompatible Compatibility)
+    public record InterfaceInfo(
+        Symbol Concrete, 
+        Symbol Interface, 
+        List<Symbol> Functions, 
+        CallCompatible Compatibility,
+        Symbol[]? TypeArgs = null)
     {
         public string Name { get; private set; } = GetName(Concrete, Interface);
         public override string ToString() => Name;
@@ -30,6 +35,7 @@ namespace Zurfur.Jit
     public enum CallCompatible
     {
         Compatible,
+        GeneratingNow,
         NotAFunction,
         StaticCallToNonStaticMethod,
         NonStaticCallToStaticMethod,
@@ -96,12 +102,6 @@ namespace Zurfur.Jit
             Array.Fill(unresolved, Unresolved);
             return unresolved;
         }
-
-        /// <summary>
-        /// Map "{interface}->{concrete}" to the interface info
-        /// </summary>
-        public Dictionary<string, InterfaceInfo> InterfaceInfos = new();
-
 
         public SymbolTable()
         {

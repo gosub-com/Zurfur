@@ -1,0 +1,44 @@
+
+// Passing test cases
+// TBD: Copy from AATest
+
+mod AATestPass
+
+use Zurfur[Iterator, SpanIterator]
+
+
+type ImpNone()
+
+type interface TakeConcrete
+    fun take(a int)
+type interface TakeConcrete2 // TBD: Interfce to interface for compatible interfaces
+    fun take(a int)
+type interface TakeInterface
+    fun take(a TakeConcrete)
+    
+type ImpTakeConcrete()
+fun ImpTakeConcrete.take(a int) todo
+
+type ImpTakeInterface()
+fun ImpTakeInterface.take(a TakeConcrete) todo
+
+
+fun takeInterfaceConcrete(x TakeConcrete) todo
+fun takeInterfaceInterface(x TakeInterface) todo
+
+fun test_interfaces()
+    takeInterfaceConcrete(ImpTakeConcrete())
+    @a TakeConcrete = ImpTakeConcrete()
+    takeInterfaceConcrete(a)
+    @x TakeConcrete = ImpTakeConcrete()
+    @y TakeConcrete = x
+    takeInterfaceConcrete(y)
+
+// Test type inference on an iterator
+fun inferIterator<A,I>(a A, i Iterator<I>) todo
+fun test_inferIterator()
+    inferIterator(1, SpanIterator<f32>())  // inferIterator<int,f32>
+    inferIterator(1, List<f32>().getIterator)  // inferIterator<int,f32>
+    
+
+    
