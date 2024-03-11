@@ -54,6 +54,9 @@ namespace Zurfur.Compiler
             Symbol? SpecializedFun = null, 
             Symbol[]?TypeArgs = null);
 
+
+        record struct IfaceFunInfo(Symbol IfaceFun, List<Symbol> Candidates);
+
         class LocalSymbol
         {
             public Symbol? Symbol;
@@ -1582,7 +1585,7 @@ namespace Zurfur.Compiler
                 if (func.IsMethod && func.IsStatic)
                     funParams = funParams.Slice(1);
                
-                var match = AreParamsCompatible(call, func, args, funParams, typeArgs);
+                var match = AreFunParamsCompatible(call.Name, func, args, funParams, typeArgs);
                 if (match.Compatibility != CallCompatible.Compatible)
                     return match with { TypeArgs = typeArgs };
 
@@ -1612,7 +1615,7 @@ namespace Zurfur.Compiler
                 if (funParams.TypeArgs.Length != 2)
                     return new CallMatch(CallCompatible.NotAFunction);
 
-                return AreParamsCompatible(call, variable, args, 
+                return AreFunParamsCompatible(call.Name, variable, args, 
                     funParams.TypeArgs[0].TypeArgs, Array.Empty<Symbol>());
             }
 
@@ -1622,8 +1625,10 @@ namespace Zurfur.Compiler
             // On success, some type args may still be un-resolved because
             // lambdas have not beeen compiled yet, and lambda return values
             // have not been accounted for.
-            CallMatch AreParamsCompatible(
-                Rval call, 
+            // TBD: typeArgs should be immutable (make CallMatch return inferred type args)
+            // TBD: Review similarity to AreInterfaceParamsCompatible
+            CallMatch AreFunParamsCompatible(
+                string callName, 
                 Symbol func, 
                 List<Rval> args, 
                 Span<Symbol> funParams, 
@@ -1632,8 +1637,8 @@ namespace Zurfur.Compiler
                 // Match up the arguments
                 for (var i = 0; i < Math.Max(funParams.Length, args.Count); i++)
                 {
-                    // Ignore setter parameter
-                    if (i == 1 && (func.IsSetter || func.IsGetter))
+                    // Ignore setter parameter type since it is checked by the assignment
+                    if (i == 1 && func.IsSetter && funParams.Length == 2)
                         return new CallMatch(CallCompatible.Compatible, func);
 
                     // TBD: Default parameters, etc.
@@ -1652,7 +1657,7 @@ namespace Zurfur.Compiler
                         //      can accept generic interface arguments
                         if (func.Concrete.Parent!.IsInterface
                                 && !func.IsStatic
-                                && args[i].Type!.IsGenericArg)
+                                && arg.Type!.IsGenericArg)
                             continue;
 
                         // First parameter of the constructor is the type,
@@ -1660,7 +1665,7 @@ namespace Zurfur.Compiler
                         // eval in FindCompatibleConstructor
                         // TBD: Consider making `new` a regular global function
                         //      in the form of `Type$new`
-                        if (call.Name == "new" && func.SimpleName == "new")
+                        if (callName == "new" && func.SimpleName == "new")
                         {
                             if (arg.Type!.Concrete.FullName == param.Concrete.FullName)
                                 continue;
@@ -1687,7 +1692,9 @@ namespace Zurfur.Compiler
             }
 
             // Can the given argument be converted to the parameter type?
+            // If so, update typeArgs to be inferred.
             // NOTE: Match all lambda's since we haven't compiled them yet
+            // TBD: typeArgs should be immutable (make ParamMatch return inferred type args)
             ParamMatch IsFunParamConvertable(Symbol argType, Symbol paramType, Symbol[] typeArgs)
             {
                 argType = DerefRef(argType);
@@ -1698,8 +1705,12 @@ namespace Zurfur.Compiler
                 if (argType.IsLambda && !argType.IsSpecialized && paramType.IsLambda)
                     return new(CallCompatible.Compatible);
 
-                if (InferTypesMatch(argType, paramType, typeArgs))
+                var (match, inferred) = InferTypesMatch(argType, paramType, typeArgs);
+                if (match)
+                {
+                    inferred.CopyTo(typeArgs, 0);
                     return new(CallCompatible.Compatible);
+                }
 
                 // Implicit conversion from nil to *T or from *T to *void
                 if (paramType.Parent!.FullName == SymTypes.RawPointer)
@@ -1714,7 +1725,7 @@ namespace Zurfur.Compiler
                 if (!paramType.IsInterface)
                     return new(CallCompatible.IncompatibleParameterTypes);
                 if (argType.IsInterface && paramType.IsInterface)
-                    return new(CallCompatible.InterfaceToInterfaceConversionNotSupportedYet);
+                    return new(CallCompatible.InterfaceToInterfaceConversionNotSupported);
 
                 Debug.Assert(paramType.GenericParamCount() == 0 || paramType.IsSpecialized);
                 var ifaceConversion = ConvertToInterfaceInfo(argType, paramType, typeArgs);
@@ -1745,6 +1756,7 @@ namespace Zurfur.Compiler
                 return info;
             }
 
+
             // If possible, convert concrete type to an interface.
             // If not possible, generate a list of what's missing.
             // Infer unresolved type args on success, or restore on failure.
@@ -1768,19 +1780,19 @@ namespace Zurfur.Compiler
                 if (concrete.IsInterface)
                 {
                     var ifaceFail = new InterfaceInfo(concrete, iface, 
-                        [], CallCompatible.InterfaceToInterfaceConversionNotSupportedYet);
+                        [], CallCompatible.InterfaceToInterfaceConversionNotSupported);
                     return ifaceFail;
                 }
 
+                // Save inferred type args, TBD: make typeArgs immutable
                 var hadUnresolvedTypeArgs = typeArgs.Length != 0 && typeArgs.Any(s => s.IsUnresolved);
                 var typeArgsInferred = typeArgs;
                 if (hadUnresolvedTypeArgs)
                     typeArgsInferred = (Symbol[])typeArgs.Clone();
 
-                // Find list of implemented/failed functions
-                var failedFuns = new List<Symbol>();        // From interface
-                var implementedFuns = new List<Symbol>();   // From concrete
-                foreach (var ifaceFun in iface.Concrete.Children)
+                // Get interface functions and implementing candidates
+                var ifaceFunCandidates = new List<IfaceFunInfo>();
+                foreach (var ifaceFun in iface.Concrete.Children.OrderBy(s => s.SimpleName))
                 {
                     if (!ifaceFun.IsFun)
                         continue; // Skip type parameters
@@ -1802,100 +1814,183 @@ namespace Zurfur.Compiler
                         for (var i = 0; i < concreteFuns.Count; i++)
                             concreteFuns[i] = table.CreateSpecializedType(concreteFuns[i], concrete.TypeArgs);
 
+                    ifaceFunCandidates.Add(new(ifaceFunSpecialized, concreteFuns));
+                }
+
+                // Concrete type doesn't implement function at all,
+                // give user concise info on which functions are missing.
+                if (ifaceFunCandidates.Any(f => f.Candidates.Count == 0))
+                {
+                    return new InterfaceInfo(concrete, table.ReplaceGenericTypeParams(iface, typeArgs), 
+                        ifaceFunCandidates.Select(s => s.IfaceFun).ToList(), CallCompatible.InterfaceNotImplementedByType);
+                }
+
+                // Find list of implemented/failed functions
+                var failedFuns = new List<Symbol>();        // From interface
+                var implementedFuns = new List<Symbol>();   // From concrete
+                List<Symbol>? typeArgsAmbiguous = null;
+                foreach (var ifaceFunInfo in ifaceFunCandidates)
+                {
+                    // Find functions in the concrete type or its module
+                    var concreteFuns = ifaceFunInfo.Candidates;
+                    Symbol ifaceFun = ifaceFunInfo.IfaceFun;
+
                     // Find interface with exact matching parametets
                     var noMatch = true;
-                    foreach (var f in concreteFuns)
+                    foreach (var concreteFun in concreteFuns)
                     {
-                        if (!f.IsFun)
+                        if (!concreteFun.IsFun)
                             continue;  // TBD: Match interface getter/setter with concrete type
 
-                        if (f.IsStatic)
+                        if (concreteFun.IsStatic)
                             continue; // TBD: Deal with static
 
-                        // Verify parameters
-                        // NOTE: Ignore the first parameter because it is the interface
-                        // NOTE: Verifier should prevent duplicate functions
-                        //       with exactly matching parameter types
-                        var ifaceParams = ifaceFunSpecialized.FunParamTypes;
-                        var funParams = f.FunParamTypes;
+                        // NOTE: First parameter is the interface
+                        var ifaceParams = ifaceFun.FunParamTypes;
+                        var funParams = concreteFun.FunParamTypes;
                         Debug.Assert(funParams.Length != 0);
                         Debug.Assert(funParams[0].Concrete.FullName == concrete.Concrete.FullName);
                         Debug.Assert(ifaceParams[0].Concrete.FullName == iface.Concrete.FullName);
-                        var match = funParams.Length == ifaceParams.Length;
 
-                        // TBD: Run param 0 through conversion to get proper
-                        //      type inferrence on the first parameter
-                        if (typeArgs.All(a => a.IsResolved))
-                        {
-                            //var compatP0 = IsInterfaceParamConvertable(funParams[0], ifaceParams[0], typeArgsInferred);
-                        }
-                        for (int i = 1; i < funParams.Length && match; i++)
-                        {
-                            var compat = IsInterfaceParamConvertable(funParams[i], ifaceParams[i], typeArgsInferred);
-                            if (compat != CallCompatible.Compatible)
-                                match = false;
-                        }
+                        var (match, inferred) = AreInterfaceParamsCompatible(ifaceFun, concreteFun, typeArgs);
 
-                        // Verify returns
-                        var ifaceReturns = ifaceFunSpecialized.FunReturnTypes;
-                        var funReturns = f.FunReturnTypes;
-                        if (ifaceReturns.Length != funReturns.Length)
-                            match = false;
-                        for (int i = 0; i < funReturns.Length && match; i++)
+                        // Resolve inferred types and detect first ambiguous
+                        for (int i = 0;  i < inferred.Length; i++)
                         {
-                            var compat = IsInterfaceParamConvertable(funReturns[i], ifaceReturns[i], typeArgsInferred);
-                            if (compat != CallCompatible.Compatible)
-                                match = false;
+                            if (typeArgsInferred[i].IsUnresolved)
+                            {
+                                typeArgsInferred[i] = inferred[i];
+                            }
+                            else if (inferred[i].IsResolved
+                                     && inferred[i].FullName != typeArgsInferred[i].FullName)
+                            {
+                                if (typeArgsAmbiguous == null)
+                                    typeArgsAmbiguous = [
+                                        table.ReplaceGenericTypeParams(iface, typeArgsInferred),
+                                        table.ReplaceGenericTypeParams(iface, inferred)];
+                            }
                         }
 
                         if (match)
                         {
-                            implementedFuns.Add(f);
+                            implementedFuns.Add(concreteFun);
                             noMatch = false;
-                            break;
                         }
                     }
                     if (noMatch)
-                        failedFuns.Add(ifaceFunSpecialized);
+                        failedFuns.Add(ifaceFun);
                 }
 
-                // Implemented and resolved?
-                if (failedFuns.Count == 0 && typeArgsInferred.All(s => s.IsResolved))
+                // Non-implemented functions
+                if (failedFuns.Count != 0)
                 {
-                    var ifacePassParameterized = table.ReplaceGenericTypeParams(iface, typeArgsInferred);
-
-                    // TBD: Return newTypeArgs rather than mutating typeArgs here
-                    typeArgsInferred.CopyTo(typeArgs.AsSpan());
-                    return new InterfaceInfo(concrete, ifacePassParameterized, implementedFuns, 
-                        CallCompatible.Compatible, hadUnresolvedTypeArgs ? typeArgsInferred : null);
+                    return new InterfaceInfo(concrete, table.ReplaceGenericTypeParams(iface, typeArgs), 
+                        failedFuns, CallCompatible.InterfaceNotImplementedByType);
                 }
 
-                // Failed
-                var ifaceFailedParameterized = table.ReplaceGenericTypeParams(iface, typeArgs);
-                return new InterfaceInfo(concrete, ifaceFailedParameterized, failedFuns, 
-                    failedFuns.Count != 0 
-                        ? CallCompatible.InterfaceNotImplementedByType
-                        : CallCompatible.TypeArgsNotInferrableOnInterface);
+                if (typeArgsAmbiguous != null)
+                {
+                    return new InterfaceInfo(concrete, table.ReplaceGenericTypeParams(iface, typeArgs),
+                        typeArgsAmbiguous, CallCompatible.TypeArgsAmbiguousFromInterfaceFun);
+                }
+
+                if (typeArgsInferred.Any(s => s.IsUnresolved))
+                {
+                    return new InterfaceInfo(concrete, table.ReplaceGenericTypeParams(iface, typeArgs),
+                        [table.ReplaceGenericTypeParams(iface, typeArgsInferred)], CallCompatible.TypeArgsNotInferrableFromInterfaceParameter);
+                }
+
+                // Implemented and resolved
+                var ifacePassParameterized = table.ReplaceGenericTypeParams(iface, typeArgsInferred);
+
+                // TBD: Return newTypeArgs rather than mutating typeArgs here
+                typeArgsInferred.CopyTo(typeArgs.AsSpan());
+                return new InterfaceInfo(concrete, ifacePassParameterized, implementedFuns, 
+                    CallCompatible.Compatible, hadUnresolvedTypeArgs ? typeArgsInferred : null);
             }
 
+
+            // Match parameters to arguments and infer unresolved type args.
+            // TBD: Review similarity to AreFunParamsCompatible
+            (bool match, Symbol[] inferred) AreInterfaceParamsCompatible(
+                Symbol ifaceFun, Symbol concreteFun, Symbol[] typeArgs)
+            {
+                var ifaceParams = ifaceFun.FunParamTypes;
+                var funParams = concreteFun.FunParamTypes;
+
+                // Keep typeArgs immutable
+                var typeArgsInferred = typeArgs;
+                if (typeArgs.Length != 0 && typeArgs.Any(s => s.IsUnresolved))
+                    typeArgsInferred = (Symbol[])typeArgsInferred.Clone();
+
+                // TBD: Run param 0 through conversion to get proper
+                //      type inferrence on the first parameter
+                if (typeArgs.All(a => a.IsResolved))
+                {
+                    //var compatP0 = IsInterfaceParamConvertable(funParams[0], ifaceParams[0], typeArgs, typeArgsInferred);
+                }
+
+                // Verify parameters
+                // NOTE: Ignore the first parameter because it is the interface
+                if (funParams.Length != ifaceParams.Length)
+                    return (false, typeArgs);
+                for (int i = 1; i < funParams.Length; i++)
+                {
+                    var compat = IsInterfaceParamConvertable(funParams[i], ifaceParams[i], typeArgs, typeArgsInferred);
+                    if (compat != CallCompatible.Compatible)
+                        return (false, typeArgs);
+                }
+
+                // Verify returns
+                var ifaceReturns = ifaceFun.FunReturnTypes;
+                var funReturns = concreteFun.FunReturnTypes;
+                if (ifaceReturns.Length != funReturns.Length)
+                    return (false, typeArgs);
+                for (int i = 0; i < funReturns.Length; i++)
+                {
+                    var compat = IsInterfaceParamConvertable(funReturns[i], ifaceReturns[i], typeArgs, typeArgsInferred);
+                    if (compat != CallCompatible.Compatible)
+                        return (false, typeArgs);
+                }
+
+                return (true, typeArgsInferred);
+            }
+
+
             // Can the given argument be converted to the interface parameter type?
-            CallCompatible IsInterfaceParamConvertable(Symbol argType, Symbol paramType, Symbol[] typeArgs)
+            CallCompatible IsInterfaceParamConvertable(Symbol argType, Symbol paramType, Symbol[] typeArgs, Symbol[] inferTypeArgs)
             {
                 // TBD: Figure out ref and mutability
                 //argType = DerefRef(argType);
                 //paramType = DerefRef(paramType);
-
-                if (InferTypesMatch(argType, paramType, typeArgs))
+                
+                var (match, inferred) = InferTypesMatch(argType, paramType, typeArgs);
+                if (match)
+                {
+                    // Infer interface type args
+                    for (int i = 0; i < typeArgs.Length; i++)
+                    {
+                        if (inferTypeArgs[i].IsUnresolved && inferred[i].IsResolved)
+                            inferTypeArgs[i] = inferred[i];
+                        else if (inferTypeArgs[i].FullName != inferred[i].FullName)
+                            return CallCompatible.TypeArgsAmbiguousFromInterfaceParameter;
+                    }
                     return CallCompatible.Compatible;
+                }
 
                 // Implicit conversion to interface type?
                 if (!paramType.IsInterface)
                     return CallCompatible.IncompatibleParameterTypes;
                 if (argType.IsInterface && paramType.IsInterface)
-                    return CallCompatible.InterfaceToInterfaceConversionNotSupportedYet;
+                    return CallCompatible.InterfaceToInterfaceConversionNotSupported;
 
                 Debug.Assert(paramType.GenericParamCount() == 0 || paramType.IsSpecialized);
                 var ifaceConversion = ConvertToInterfaceInfo(argType, paramType, typeArgs);
+
+                // Invalid interface conversion
+                if (ifaceConversion.Compatibility != CallCompatible.Compatible
+                        && ifaceConversion.Compatibility != CallCompatible.GeneratingNow)
+                    return ifaceConversion.Compatibility;
 
                 // Converting the current interface
                 if (ifaceConversion.Compatibility == CallCompatible.GeneratingNow)
@@ -1903,57 +1998,51 @@ namespace Zurfur.Compiler
                     // When all type params are resolved, we are good to go
                     // because the subsitution below should always succeed
                     if (typeArgs.All(ta => ta.IsResolved))
-                        return CallCompatible.Compatible;
+                    {
+                        // ***TBD***: Still working on this, all should be good
+                        //return CallCompatible.Compatible;
+                    }
+                    else
+                    {
 
-                    // ***TBD***: Still working on this
-                    // Infer unresolved type parameters.  Substitute
-                    // concrete for interface, and infer the type args.
-                    Debug.Assert(false);
-                    return CallCompatible.Compatible;
+                        // ***TBD***: Still working on this, this is not good yet
+                        // Infer unresolved type parameters.  Substitute
+                        // concrete for interface, and infer the type args.
+                        Debug.Assert(false);
+                        //return CallCompatible.Compatible;
+                    }
                 }
 
-                if (ifaceConversion.Compatibility != CallCompatible.Compatible)
-                    return ifaceConversion.Compatibility;
 
                 // Interface conversion successful
+                
+                // Infer interface type args, TBD: Merge with duplicate code above
+                for (int i = 0; i < typeArgs.Length; i++)
+                {
+                    if (inferTypeArgs[i].IsUnresolved && typeArgs[i].IsResolved)
+                        inferTypeArgs[i] = typeArgs[i];
+                    else if (inferTypeArgs[i].FullName != typeArgs[i].FullName)
+                        return CallCompatible.TypeArgsAmbiguousFromInterfaceParameter;
+                }
                 return CallCompatible.Compatible;
             }
 
-
             /// <summary>
             /// Check to see if the types match while inferring type args.
-            /// Infer unresolved type args on success, or restore on failure.
+            /// Infer newTypeArgs on success, otherwise return original typeArgs.
+            /// typeArgs in not modified.
             /// </summary>
-            bool InferTypesMatch(Symbol argType, Symbol paramType, Symbol[] typeArgs)
+            (bool match, Symbol[] newTypeArgs) InferTypesMatch(Symbol argType, Symbol paramType, Symbol[] typeArgs)
             {
                 // Fast path for no type args
                 if (typeArgs.Length == 0 || !paramType.HasGenericArg)
-                    return TypesMatch(argType, paramType);
-                
-                var typeArgsInferred = (Symbol[])typeArgs.Clone();
-                var match = InferTypesMatchNoRestore(argType, paramType, typeArgsInferred);
-                if (match)
-                    typeArgsInferred.CopyTo(typeArgs.AsSpan());
-                return match;
-            }
-
-            /// <summary>
-            /// Check to see if the types match while inferring type args.
-            /// Infer newTypeArgs only on success, otherwise return typeArgs.
-            /// typeArgs in not modified.
-            /// </summary>
-            (bool match, Symbol[] newTypeArgs) InferTypesMatch2(Symbol argType, Symbol paramType, Symbol[] typeArgs)
-            {
-                // Fast path for no un-resolved type args
-                if (typeArgs.Length == 0 || typeArgs.All(s => s.IsResolved))
                     return (TypesMatch(argType, paramType), typeArgs);
 
-                // Infer types on unresolved parameters
-                var typeArgsInferred = (Symbol[])typeArgs.Clone();
+                // Infer types on unresolved parameters (non-destructively)
+                var typeArgsInferred = typeArgs.All(s => s.IsResolved) ? typeArgs : (Symbol[])typeArgs.Clone();
                 var match = InferTypesMatchNoRestore(argType, paramType, typeArgsInferred);
-                return (match, typeArgsInferred);
+                return (match, match ? typeArgsInferred : typeArgs);
             }
-
 
             /// <summary>
             /// Check to see if the types match while inferring type args.
@@ -1969,12 +2058,11 @@ namespace Zurfur.Compiler
                 {
                     var paramNum = paramType.GenericParamNum();
                     Debug.Assert(paramNum < typeArgs.Length);
-                    var inferredType = typeArgs[paramNum];                  
-                    if (inferredType.IsResolved)
+                    if (typeArgs[paramNum].IsResolved)
                     {
                         // If types do not match, it's a contradiction, e.g. user calls f(0, "x") on f<T>(x T, y T).
                         // TBD: Give better error message (this just fails with 'wrong number of type args')
-                        return TypesMatch(inferredType, argType);
+                        return TypesMatch(typeArgs[paramNum], argType);
                     }
                     else
                     {
@@ -1995,7 +2083,6 @@ namespace Zurfur.Compiler
                 }
                 return true;
             }
-
 
             /// <summary>
             /// Check to see if the symbol types match, ignoring tuple names
@@ -2339,11 +2426,11 @@ namespace Zurfur.Compiler
                     CallCompatible.WrongNumberOfParameters => "Wrong number of parameters",
                     CallCompatible.IncompatibleParameterTypes => "Incompatible parameter types",
                     CallCompatible.TypeArgsSuppliedByConstraint => "Non-generic function cannot take type arguments",
-                    CallCompatible.InterfaceToInterfaceConversionNotSupportedYet => "Interface to interface conversion not supported yet",
+                    CallCompatible.InterfaceToInterfaceConversionNotSupported => "Interface to interface conversion not supported yet",
                     CallCompatible.InterfaceNotImplementedByType => "The type doesn't implement the interface",
                     CallCompatible.InterfaceGenerating => "The interface was used while being generated",
                     CallCompatible.TypeArgsNotInferrable => "Type arguments cannot be inferred",
-                    CallCompatible.TypeArgsNotInferrableOnInterface => "Type arguments on interface cannot be inferred",
+                    CallCompatible.TypeArgsNotInferrableFromInterfaceParameter => "Type arguments on interface cannot be inferred",
                     _ => c.ToString()
                 };
             }

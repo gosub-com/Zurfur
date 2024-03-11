@@ -30,28 +30,28 @@ fun test_map()
         Log.info("")
 
     @i = List<int>().getIterator()
-    @m3 = i.map<int,str>(@q => 0.0)
+    @m3 = i.map<int,str>(q => 0.0)
     @m3item = m3.next()
-    @m4 = i.map<int,str>(@q => 0.0).map<str,float>(@q => "hello")
+    @m4 = i.map<int,str>(q => 0.0).map<str,float>(q => "hello")
     @m4item = m4.next()
-    @m5 = List<int>().map<int,str>(@q => 0).map<str,float>(@q => 0)
+    @m5 = List<int>().map<int,str>(q => 0).map<str,float>(q => 0)
     @m5List = m5.toList<float>
 
 
     
 
     @myFold = List<int>()
-        .fold<int, float>(0.0, @(acc, item) => acc + item.toFloat)
+        .fold<int, float>(0.0, |acc, item| => acc + item.toFloat)
     @myReduce = List<int>()
-        .reduce<int>(@(item1, item2) => item1 + item2)
+        .reduce<int>(|item1, item2| => item1 + item2)
 
     @myStringList = List<int>()
-        .map<int, str>(@s => s.toStr)
-        .map<str,str>(@s => s + " ")
-        .fold<str,str>("", @(acc, item) => acc + item)
+        .map<int, str>(s => s.toStr)
+        .map<str,str>(s => s + " ")
+        .fold<str,str>("", |acc, item| => acc + item)
 
       
-    @testIter = (0..5).map<int,float>(@fl => (2*fl).toFloat + 0.5)
+    @testIter = (0..5).map<int,float>(fl => (2*fl).toFloat + 0.5)
 
 
 // Declare a method to multiply and add three keys on Map<K,V>.
@@ -82,7 +82,7 @@ fun set MyType.list(v own List<int>)
     my.mapChangedEvent()
     for @x in MyType()
         nop
-    MyType().map<int,str>(@s => "")
+    MyType().map<int,str>(s => "")
 
 fun MyType.mapChangedEvent() {}
 

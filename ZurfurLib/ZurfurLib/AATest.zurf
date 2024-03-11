@@ -19,15 +19,15 @@ use Zurfur.Draw2d[Size, Point]
 
 fun test_reduce()
     @myReduce1 = List<int>()
-        .reduce(@(item1, item2) => item1 + item2)
+        .reduce(|item1, item2| => item1 + item2)
     @myReduce2 = List<int>()
-        .reduce(@(item1, item2) => item1 + item2)
+        .reduce(|item1, item2| => item1 + item2)
     @myReduceInt = List<int>()
-        .reduceInt(@(item1, item2) => item1 + item2)
+        .reduceInt(|item1, item2| => item1 + item2)
     @myReduceTuple1 = List<(x int, y int)>()
-        .reduce(@(item1, item2) => item1)
+        .reduce(|item1, item2| => item1)
     @myReduceTuple2 = List<(a int, b int)>()
-        .reduce(@(item1, item2) => item2)
+        .reduce(|item1, item2| => item2)
 
 fun (GetIterator<int>) reduceInt(f fun(item1 int, item2 int) int) ?int
     ret my.getIterator.reduce<int>(f) 
@@ -122,8 +122,8 @@ fun lambdaCall2(a fun(b float)int) todo
 
 
 fun test_lambdaCall()
-    lambdaCall(@(a float) => a + 32) // TBD: Should be OK
-    lambdaCall2(@a => 0)
+    lambdaCall(|a float| => a + 32) // TBD: Should be OK
+    lambdaCall2(a => 0)
 
 [pub] type MyCollection<T> {}
 [pub] type MyCollectionIter<T> {}
@@ -142,12 +142,12 @@ fun test_use()
     @myCollection = MyCollection<int>()
     @myCollectionIter = myCollection.getIterator
     @myCollectionItem = myCollectionIter.next()
-    @myCollectionMapIter = myCollection.map<int,str>(@i => i.toStr)
+    @myCollectionMapIter = myCollection.map<int,str>(i => i.toStr)
     // TBD: Fix asset hit for: @myCollectionMapList = myCollection.map<int,str>(@i => i.toStr).toList
-    @myCollectionMapList2 = myCollection.map<int,str>(@i => i.toStr).toList<str>
+    @myCollectionMapList2 = myCollection.map<int,str>(i => i.toStr).toList<str>
 
     @myReduce = List<int>()
-        .reduce<int>(@(item1, item2) => item1 + item2)
+        .reduce<int>(|item1, item2| => item1 + item2)
     
     @myCollectionNot = MyCollectionNot<int>()
     @myCollectionNotIter = myCollectionNot.getIterator
@@ -161,24 +161,24 @@ fun test_map()
         Log.info("")
 
     @i = List<int>().getIterator()
-    @m3 = i.map<int,str>(@q => 0.0)
+    @m3 = i.map<int,str>(q => 0.0)
     @m3item = m3.next()
-    @m4 = i.map<int,str>(@q => 0.0).map<str,float>(@q => "hello")
+    @m4 = i.map<int,str>(q => 0.0).map<str,float>(q => "hello")
     @m4item = m4.next()
-    @m5 = List<int>().map<int,str>(@q => 0).map<str,float>(@q => 0)
+    @m5 = List<int>().map<int,str>(q => 0).map<str,float>(q => 0)
     @m5List = m5.toList<float>
 
     @myFold = List<int>()
-        .fold<int, float>(0.0, @(acc, item) => acc + item.toFloat)
+        .fold<int, float>(0.0, |acc, item| => acc + item.toFloat)
     @myReduce = List<int>()
-        .reduce<int>(@(item1, item2) => item1 + item2)
+        .reduce<int>(|item1, item2| => item1 + item2)
 
     @myStringList = List<int>()
-        .map<int, str>(@s => s.toStr)
-        .map<str,str>(@s => s + " ")
-        .fold<str,str>("", @(acc, item) => acc + item)
+        .map<int, str>(s => s.toStr)
+        .map<str,str>(s => s + " ")
+        .fold<str,str>("", |acc, item| => acc + item)
 
-    @testIter = (0..5).map<int,float>(@fl => (2*fl).toFloat + 0.5)
+    @testIter = (0..5).map<int,float>(fl => (2*fl).toFloat + 0.5)
 
     // TBD: This should work
     for @a in m5
@@ -337,19 +337,19 @@ type aaa_arith_test2
 
 fun test_listMap()
     @a = List<float>()
-    @c = a.map<float,int>(@i => i.toIntMask)
+    @c = a.map<float,int>(i => i.toIntMask)
 
 
 fun test_forEach(args Array<str>)
     @sum = 0
     @list List<int>
-    list.forEach(@item => { sum += item })
+    list.forEach(item => { sum += item })
 
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
 fun Iterator.alphaLengthWise<Item, L>(lengthProvider fun(t Item) L) Iterator<Item>
-    ret my.orderBy<Item, L>(@a => lengthProvider(a))
-        .thenBy<Item, L>(@a => a)
+    ret my.orderBy<Item, L>(a => lengthProvider(a))
+        .thenBy<Item, L>(a => a)
 fun Iterator.orderBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
     todo
 fun Iterator.thenBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>

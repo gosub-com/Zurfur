@@ -45,11 +45,13 @@ namespace Zurfur.Jit
         WrongNumberOfTypeArgs,
         WrongNumberOfParameters,
         TypeArgsSuppliedByConstraint,
-        InterfaceGenerating,
-        InterfaceToInterfaceConversionNotSupportedYet,
-        InterfaceNotImplementedByType,
-        TypeArgsNotInferrableOnInterface,
         TypeArgsNotInferrable,
+        TypeArgsNotInferrableFromInterfaceParameter,
+        TypeArgsAmbiguousFromInterfaceParameter,
+        TypeArgsAmbiguousFromInterfaceFun,
+        InterfaceGenerating,
+        InterfaceToInterfaceConversionNotSupported,
+        InterfaceNotImplementedByType,
     }
 
     /// <summary>

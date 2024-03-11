@@ -1194,12 +1194,6 @@ namespace Zurfur.Compiler
                     RejectToken(Accept(), "'where' is reserved in this context");
                     break;
 
-                case "=>":
-                    RejectToken(mToken, "Unexpected '=>'");
-                    Accept();
-                    break;
-
-
                 case "{":
                     RejectToken(mToken, "Unnecessary scope is not allowed");
                     statements.Add(ParseStatements());
@@ -1398,23 +1392,43 @@ namespace Zurfur.Compiler
 
         SyntaxExpr ParseLambda()
         {
+
+            // Lambda parameter list
+            if (mTokenName == "|")
+            {
+                var parameters = new SyntaxUnary(mPrevToken, ParseNewVars());
+                if (!AcceptMatchOrReject("=>"))
+                    return new SyntaxToken(mToken);
+                return ParseLambdaBody(mPrevToken, parameters);
+            }
+
             var result = ParseTernary();
 
+            // Lambda with single variable parameter
             if (mTokenName == "=>")
             {
-                if (result.Token.Name != "@")
-                    RejectToken(mToken, "Left side must be new variable expression, e.g. '@a' or '@(a,b)'");
-
-                var lambdaToken = Accept();
-                if (mToken == "{")
-                    result = new SyntaxBinary(lambdaToken, result, ParseStatements());
+                if (result.Count == 0 && result.Token.Type == eTokenType.Identifier)
+                {
+                    // Create AST for single variable lambda capture without explicit type
+                    result.Token.Type = eTokenType.DefineLocal;
+                    result = new SyntaxUnary(EmptyToken, new SyntaxUnary(EmptyToken, new SyntaxUnary(result.Token, EmptyExpr)));
+                }
                 else
-                    result = new SyntaxBinary(lambdaToken, result, ParseTernary());
+                {
+                    RejectToken(mToken, "Left side must be a variable or parameter list, e.g. '|a,b|', etc.");
+                }
+                return ParseLambdaBody(Accept(), result);
 
-                if (mTokenName == "=>")
-                    Reject("Lambda operator '=>' is not associative, must use parentheses");
             }
             return result;
+        }
+
+        private SyntaxExpr ParseLambdaBody(Token lambdaToken, SyntaxExpr parameters)
+        {
+            if (mToken == "{")
+                return new SyntaxBinary(lambdaToken, parameters, ParseStatements());
+            else
+                return new SyntaxBinary(lambdaToken, parameters, ParseTernary());
         }
 
         SyntaxExpr ParseTernary()
@@ -1579,14 +1593,14 @@ namespace Zurfur.Compiler
         private SyntaxExpr ParseNewVars()
         {
             var newVarList = NewExprList();
-            if (AcceptMatch("("))
+            if (AcceptMatch("|"))
             {
                 var open = mPrevToken;
                 do
                 {
                     ParseNewVar(newVarList);
                 } while (AcceptMatch(","));
-                if (AcceptMatchOrReject(")", "Expecting ')' or ','"))
+                if (AcceptMatchOrReject("|", $"Expecting '|' or ','"))
                     Connect(open, mPrevToken);
             }
             else
