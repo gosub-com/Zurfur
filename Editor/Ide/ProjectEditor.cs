@@ -9,37 +9,36 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
 
-namespace Zurfur.Ide
+namespace Zurfur.Ide;
+
+public partial class ProjectEditor : UserControl, IEditor
 {
-    public partial class ProjectEditor : UserControl, IEditor
+    public ProjectEditor()
     {
-        public ProjectEditor()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
+    }
 
-        bool mModified;
+    bool mModified;
 
-        public bool Modified => mModified;
-        public string FilePath { get; set; } = "";
-        public FileInfo FileInfo { get; set; }
+    public bool Modified => mModified;
+    public string FilePath { get; set; } = "";
+    public FileInfo FileInfo { get; set; }
 
-        public event EventHandler ModifiedChanged;
-        public event EventHandler FilePathChanged;
+    public event EventHandler ModifiedChanged;
+    public event EventHandler FilePathChanged;
 
-        public Control GetControl()
-        {
-            return this;
-        }
+    public Control GetControl()
+    {
+        return this;
+    }
 
-        public void LoadFile(string fileName)
-        {
-            FilePath = fileName;
-        }
+    public void LoadFile(string fileName)
+    {
+        FilePath = fileName;
+    }
 
-        public void SaveFile(string fileName)
-        {
-            FilePath = fileName;
-        }
+    public void SaveFile(string fileName)
+    {
+        FilePath = fileName;
     }
 }

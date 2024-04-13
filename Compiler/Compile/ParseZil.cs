@@ -6,46 +6,45 @@ using System.Threading.Tasks;
 
 using Zurfur.Lex;
 
-namespace Zurfur.Compiler
+namespace Zurfur.Compiler;
+
+class ParseZil
 {
-    class ParseZil
+    Lexer mLexer;
+
+    public ParseZil(Lexer lexer)
     {
-        Lexer mLexer;
+        mLexer = lexer;
+    }
 
-        public ParseZil(Lexer lexer)
+    public void Parse() 
+    {
+        for (var i = 0;  i < mLexer.LineCount;  i++)
         {
-            mLexer = lexer;
-        }
-
-        public void Parse() 
-        {
-            for (var i = 0;  i < mLexer.LineCount;  i++)
+            var tokens = mLexer.GetLineTokens(i);
+            if (tokens.Length == 0)
+                continue;
+            
+            // Show comments
+            bool isComment = false;
+            foreach (var token in tokens) 
             {
-                var tokens = mLexer.GetLineTokens(i);
-                if (tokens.Length == 0)
-                    continue;
-                
-                // Show comments
-                bool isComment = false;
-                foreach (var token in tokens) 
-                {
-                    if (token == "#")
-                        isComment = true;
-                    if (isComment)
-                        token.Type = eTokenType.Comment;
-                }
+                if (token == "#")
+                    isComment = true;
+                if (isComment)
+                    token.Type = eTokenType.Comment;
+            }
 
-                // Show bold lines
-                if (tokens[0] == "fun" || tokens[0].Name.EndsWith(":"))
-                {
-                    foreach (var token in tokens)
-                        if (token.Type != eTokenType.Comment)
-                            token.Bold = true;
-                }
-
+            // Show bold lines
+            if (tokens[0] == "fun" || tokens[0].Name.EndsWith(":"))
+            {
+                foreach (var token in tokens)
+                    if (token.Type != eTokenType.Comment)
+                        token.Bold = true;
             }
 
         }
 
     }
+
 }
