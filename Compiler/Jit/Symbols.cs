@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using System.Diagnostics;
-
-using Zurfur.Lex;
 using System.Reflection;
 using System.ComponentModel.DataAnnotations;
 
+using Gosub.Lex;
 namespace Zurfur.Jit;
 
 /// <summary>

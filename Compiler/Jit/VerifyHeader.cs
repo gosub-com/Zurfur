@@ -5,8 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 
-using Zurfur.Lex;
-
+using Gosub.Lex;
 namespace Zurfur.Jit;
 
 public class VerifyError : TokenError

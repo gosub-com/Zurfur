@@ -1,0 +1,79 @@
+
+
+mod Zurfur.Unsafe
+
+use Zurfur[RawPointerMarker, Type]
+
+// Mark these types as pointers and allow castPointer
+fun Xuint.getRawPointer() RawPointerMarker extern
+fun Ref.getRawPointer<T>() RawPointerMarker extern
+fun RawPointer.getRawPointer<T>() RawPointerMarker extern
+
+// Cast from one pointer type to another pointer type.
+[pub]
+fun castPointer<T GetRawPointer>(i GetRawPointer) T
+    extern
+
+// Unsigned extended int, u32 or u64 depending on machine pointer size.
+// This is the internal representation of a pointer.
+[pub]
+type ro Xuint
+    value u32 // or u64
+
+fun Xuint.new(value u64)
+    assert(value <= (0u32).MaxValue.toU64)
+    my.value = value.toU32Mask
+
+// Internal representation of `ref`, a compiler generated stack only pointer.
+// The first version is a reference counting implementation, but future
+// versions might not be.  The owner is nil when a non-heap (static global or
+// stack local) object is referenced.  These references are also called return
+// references because they get passed back up the stack.
+type ref ro Ref<T>
+    owner ?*GcHeapObject
+    value *T
+
+
+// When implemented, the compiler knows it is a pointer (32 or 64 bits)
+// and can allow `castPointer`.  `RawPointerMarker` is private, so only
+// pointer types can implement this.
+type interface GetRawPointer
+    fun getRawPointer() RawPointerMarker
+
+// A raw pointer.  The compiler translates *T to RawPointer<T>
+// and automatically dereferences when "." is used.
+[pub]
+type ro RawPointer<T>
+    value Xuint
+
+fun _opEq<T>(a RawPointer<T>, b RawPointer<T>) bool extern
+fun _opCmp<T>(a RawPointer<T>, b RawPointer<T>) int extern
+fun _opAdd<T>(a RawPointer<T>, b u64) RawPointer<T> extern
+fun _opAdd<T>(a u64, b RawPointer<T>) RawPointer<T> extern
+fun _opSub<T>(a RawPointer<T>, b RawPointer<T>) RawPointer<T> extern
+fun _opSub<T>(a RawPointer<T>, b u64) RawPointer<T> extern
+fun _opAdd<T>(a RawPointer<T>, b int) *T extern
+fun _opAdd<T>(a int,b *T) *T extern
+
+
+// TBD: Move to a different modulem probably Zurfur.Internal
+// All heap objects start with this header.  It must be 64 bits wide to
+// ensure proper alignment. 
+type GcHeapObject
+    refCount i32
+    typeId Type     // Must be 32 bits even on 64 bit machines.
+    // Object data is stored following this header
+
+// TBD: Move to a different modulem probably Zurfur.Internal
+// The one and only variable length heap object.  It must be 128 bits
+// wide to ensure proper alignment.
+type GcHeapArray
+    // TBD: use GcHeapObject
+    //NOTE: Until we get 'use', the first two fields MUST be the same
+    //      as GcHeapObject since we will cast pointers back and forth
+    refCount i32
+    typeId Type
+    length u32
+    capacity u32
+    // Array of object data is stored following this header
+    

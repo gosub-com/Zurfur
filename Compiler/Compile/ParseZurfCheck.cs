@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using Zurfur.Lex;
+using Gosub.Lex;
 
 namespace Zurfur.Compiler;
 

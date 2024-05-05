@@ -1,5 +1,4 @@
 using Zurfur;
-using Zurfur.Lex;
 using Zurfur.Build;
 using System.Diagnostics;
 using Xunit.Abstractions;
@@ -20,11 +19,11 @@ public class TestZurfur
     /// AATestFails.zurf has exactly one error
     /// </summary>
     [Fact]
-    public async void TestAATestFails()
+    public async Task TestAATestFails()
     {
         var exeDir = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule!.FileName)!;
         var testProjectDir = Path.Combine(exeDir, "ZurfurLib");
-        var builder = new BuildPackage();
+        var builder = new BuildSystem(new FileSystemOs());
         Debug.WriteLine("Starting...");
 
         // Load and compile first
@@ -44,7 +43,7 @@ public class TestZurfur
 
         // Recompile without pragmas
         timer = Stopwatch.StartNew();
-        builder.SetLexer(lexerName, lexer);
+        builder.SetLexer(lexer);
         await builder.Compile();
         Debug.WriteLine($"Load and Compile in {compileTime1} ms, recompile in {timer.ElapsedMilliseconds} ms");
 

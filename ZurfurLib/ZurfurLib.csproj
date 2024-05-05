@@ -7,9 +7,140 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resources\Test.txt" />
+    <None Remove="ZurfurLibForAvalonia\AATest.zurf" />
+    <None Remove="ZurfurLibForAvalonia\AATestFails.zurf" />
+    <None Remove="ZurfurLibForAvalonia\AATestPass.zurf" />
+    <None Remove="ZurfurLibForAvalonia\AAUnfinished.zurf" />
+    <None Remove="ZurfurLibForAvalonia\Array.zurf" />
+    <None Remove="ZurfurLibForAvalonia\BaseTypes.zurf" />
+    <None Remove="ZurfurLibForAvalonia\Channel.zurf" />
+    <None Remove="ZurfurLibForAvalonia\ConvertBytes.zurf" />
+    <None Remove="ZurfurLibForAvalonia\DlMalloc.zurf" />
+    <None Remove="ZurfurLibForAvalonia\Draw2d.zurf" />
+    <None Remove="ZurfurLibForAvalonia\Example.zurf" />
+    <None Remove="ZurfurLibForAvalonia\Interfaces.zurf" />
+    <None Remove="ZurfurLibForAvalonia\Io.File.zurf" />
+    <None Remove="ZurfurLibForAvalonia\Io.Zurf" />
+    <None Remove="ZurfurLibForAvalonia\Iterator.zurf" />
+    <None Remove="ZurfurLibForAvalonia\List.zurf" />
+    <None Remove="ZurfurLibForAvalonia\Log.Zurf" />
+    <None Remove="ZurfurLibForAvalonia\Map.zurf" />
+    <None Remove="ZurfurLibForAvalonia\Math.zurf" />
+    <None Remove="ZurfurLibForAvalonia\Pointers.zurf" />
+    <None Remove="ZurfurLibForAvalonia\Queue.zurf" />
+    <None Remove="ZurfurLibForAvalonia\Range.zurf" />
+    <None Remove="ZurfurLibForAvalonia\Span.zurf" />
+    <None Remove="ZurfurLibForAvalonia\Str.Zurf" />
+    <None Remove="ZurfurLibForAvalonia\Test.zurf" />
+    <None Remove="ZurfurLibForAvalonia\TestCompiler.zurf" />
+    <None Remove="ZurfurLibForAvalonia\TestParser.zurf" />
+    <None Remove="ZurfurLibForAvalonia\TestVerifier.zurf" />
+    <None Remove="ZurfurLibForAvalonia\Unsafe.zurf" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Resources\Test.txt" />
+    <AvaloniaResource Include="ZurfurLibForAvalonia\AATest.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\AATestFails.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\AATestPass.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\AAUnfinished.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Array.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\BaseTypes.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Channel.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\ConvertBytes.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\DlMalloc.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Draw2d.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Example.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Interfaces.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Io.File.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Io.Zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Iterator.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\List.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Log.Zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Map.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Math.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Pointers.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Queue.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Range.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Span.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Str.Zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Test.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\TestCompiler.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\TestParser.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\TestVerifier.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\Unsafe.zurf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="ZurfurLibForAvalonia\ZurfurLib.zurfproj">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </AvaloniaResource>
     <None Include="ZurfurLib\ZurfurLib.zurfproj">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.0.10" />
   </ItemGroup>
 
   <ItemGroup>

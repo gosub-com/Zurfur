@@ -7,4 +7,8 @@
     <RootNamespace>Zurfur</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Gosub.Lex\Gosub.Lex.csproj" />
+  </ItemGroup>
+
 </Project>

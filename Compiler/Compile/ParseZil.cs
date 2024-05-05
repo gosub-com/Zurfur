@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using Zurfur.Lex;
+using Gosub.Lex;
 
 namespace Zurfur.Compiler;
 

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Text;
 
-using Zurfur.Lex;
+using Gosub.Lex;
 using Zurfur.Jit;
 
 namespace Zurfur.Compiler;
@@ -20,6 +20,11 @@ public class ParseError : TokenError
 /// </summary>
 class ParseZurf
 {
+    // NOTE: >=, >>, and >>= are omitted and handled at parser level.
+    public const string MULTI_CHAR_TOKENS = ".* &* << <= == != && || ?? !! "
+        + "+= -= *= /= %= &= |= ~= <<= => -> !== === :: .. ..+ ... ++ -- // \"\"\"";
+
+
     public const string VT_TYPE_ARG = "$"; // Differentiate from '<' (must be 1 char long)
     public const string TOKEN_STR_LITERAL = "\"";
     public const string TOKEN_STR_LITERAL_MULTI = "\"\"\"";

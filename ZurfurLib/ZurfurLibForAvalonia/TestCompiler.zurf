@@ -1,0 +1,54 @@
+﻿
+
+mod TestCompiler
+
+use Zurfur
+
+// Comment out the next line to see compiler errors
+pragma NoParse
+
+// Disable the verifier so we can see only compiler errors
+pragma NoVerify
+
+type OneGeneric<T> { } // No error expected here
+
+type DupType
+    a int
+
+fun DupType.b() void {}
+
+// Should mark error on type name, no errors on fields
+type DupType
+    a int
+
+fun DupType.b() void {}
+
+type TestFails
+    field0 int      // Duplicate name
+    field0 int      // Duplicate name
+    field1 hello    //  Undefined
+    field2 Zurfur   // Symbol is a module
+    field3 field0   // Symbol is a field
+
+fun fun0() void {}
+
+fun TestFails.fun0() void {} // OK
+
+fun fun0() void { } // Duplicate name
+fun fun1(a List<List<x>>) void { } // Undefined generic symbol
+fun fun2(a List) void { } // Wrong number of generic parameters
+fun fun3(a List<int,int>) void { } // Wrong number of generic parameters
+fun fun4(a List<List>) void { } // Wrong number of generic parameters
+fun fun5(a List<List<int,int>>) void { } // Wrong number of generic parameters
+fun fun6(a Zurfur) void {} // Symbol is a module
+fun fun7(a field0) void {} // Symbol is a field
+fun fun8(a fun0) void {} // Symbol is a method
+fun fun9(a *?OneGeneric) void { } // Expecting 1 generic parameter, got 0
+
+fun F1(a List) void { }
+fun F3(a List<int,int>) void { }
+fun F3a(a List<List>) void { }
+fun F4(a List<int,hello>) void { }
+fun F5(a List<List<x>>) void { }
+
+

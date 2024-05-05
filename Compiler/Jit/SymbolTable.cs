@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using Zurfur.Lex;
 
+using Gosub.Lex;
 namespace Zurfur.Jit;
 
 public class ZilCompileError : TokenError

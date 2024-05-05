@@ -1,0 +1,27 @@
+﻿mod Zurfur
+
+// Immutable array (all inherited from List)
+[pub] type Array<T> // TBD: `is ro List<T>`
+    len int // TBD: Remove
+
+
+// TBD: A buffer is a list with a constant length and capacity
+[pub] type Buffer<T> // TBD: `is List<T>`
+    len int // TBD: Remove
+
+// TBD: Remove this since it will be implemented by List
+[pub]
+fun _opIndex<T>(a Array<T>, i int) mut &T
+    require(i in 0..a.len)
+    todo // Implementation TBD
+
+
+
+// TBD: Remove this since it will be implemented by List
+[pub]
+fun _opIndex<T>(b Buffer<T>, range Range<int>) mut Span<T>
+    require(range.low in 0..b.len)
+    require(range.high in 0..b.len)
+    require(range.low <= range.high)
+    todo // Implementation TBD
+    

@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:AvaloniaEdit.ViewModels"
+             xmlns:gosub="clr-namespace:Gosub.Avalonia.Controls;assembly=Gosub.Avalonia.Controls"			 
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="AvaloniaEdit.Views.MainView"
+             x:DataType="vm:MainViewModel">
+  <Design.DataContext>
+    <!-- This only sets the DataContext for the previewer in an IDE,
+         to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+    <vm:MainViewModel />
+  </Design.DataContext>
+
+	<DockPanel>
+		<Label Name="labelStatus" DockPanel.Dock="Bottom">Status bar</Label>
+		<Grid ColumnDefinitions="180, 4, *">
+			<TextBlock>Project Files Tree View</TextBlock>
+			<GridSplitter Grid.Column="1" Background="Silver" ResizeDirection="Columns"/>
+			<Grid Grid.Column="2" RowDefinitions="*, 4, 120">
+				<gosub:Editor Name="lexerEdit"></gosub:Editor>
+				<GridSplitter Grid.Row="1" Background="LightBlue" ResizeDirection="Rows"/>
+				<gosub:Editor Grid.Row="2" Name="textEdit"></gosub:Editor>
+			</Grid>
+		</Grid>
+	</DockPanel> 
+	
+</UserControl>

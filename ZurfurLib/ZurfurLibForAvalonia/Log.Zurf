@@ -1,0 +1,17 @@
+﻿mod Zurfur.Log
+
+[pub] type enum Level { Fatal; Error; Warn; Info; Debug }
+[pub] type struct Line { filePath str; line int }
+
+// TBD: Figure out how to get default file names and line numbers.
+//      Also figure out if this should be created per file
+
+[pub] fun get level() Level extern
+[pub] fun critical(message str, li Line = default) extern
+[pub] fun error(message str, li Line = default) extern
+[pub] fun warn(message str, li Line = default) extern
+[pub] fun info(message str, li Line = default) extern
+[pub] fun info(message str) extern // TBD: Remove when we figure out default line info
+[pub] fun debug(message str, li Line = default) extern
+[pub] fun timeBegin(name str, message str = "") extern
+[pub] fun timeEnd(name str, message str = "") extern

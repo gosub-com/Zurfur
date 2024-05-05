@@ -1,0 +1,23 @@
+﻿mod Zurfur
+
+// String is a wrapper for a read only array of bytes with support for UTF8
+[pub] type str is Array<byte>
+
+    // NOTE: Much of the implmentation is inherited from Array
+    //       and its implicit conversion to Span
+
+// TBD: Need to collect stuff from Array
+[pub] fun get str.len() int
+    ret 0
+
+[pub] fun str.toStr() str
+    ret my
+
+[pub] fun _opAdd(a str, b str) str {}
+
+// TBD: Remove after more of the generic type system is working
+[pub] fun _opEq(a str, b str) bool {}
+[pub] fun _opCmp(a str, b str) int {}
+
+    
+// TBD: Implicit conversion to and from Span?
