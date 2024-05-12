@@ -5,17 +5,15 @@
 I am moving the documentation to
 [Confluence](https://zurfur.atlassian.net/wiki/external/ZjJlYjUwZmIzMzg0NGJkY2ExMmJlY2MwNDVlNTU4ODU)
 
-Zurfur is is a programming language I'm designing for fun and enlightenment.
+Zurfur is a programming language I'm designing for fun and enlightenment.
 The language is named after our cat, Zurfur, who was named by my son.  It's
-spelled **_ZurFUR_** because our cat has fur.
+spelled **_ZurFUR_** because our cat has fur. The syntax is still
+being developed and nothing is set in stone.  If you want to try it, click 
+here https://gosub.com/zurfur
 
 I love C#.  It's my favorite language to program in.  But, I'd like to have
 some features from other languages built in from the ground up.  I'm thinking
 about ownership, immutability, nullability, and functional programming.
-
-Zurfur is just a toy language for fun and experimentation. The syntax is still
-being developed and nothing is set in stone.  If you want to try it, click here
-https://gosub.com/zurfur
 
 Status update: Still porting to https://avaloniaui.net so it runs in the browser.
 
@@ -48,12 +46,10 @@ Golang, Rust, Python, JavaScript, and other languages.
 
 ## Variables and Mutability
 
-Variables are declared and initialized with `let` for un-assignable
-references or `var` for assignable references.  In both cases, the 
-object they point to are immutable by default, but can be made mutable
-using the `mut` keyword.  In this example, `getList()` returns a list
-of objects which becomes owned by the calling function, and is therefore
-allowed to become mutable.
+Variables are declared and initialized with the `let` or `var` keyword. These keywords
+refer to the assignability of the variable. `let` for un-assignable, `var` for
+assignable. In both cases, the object they point to is immutable unless the `mut` keyword
+is used.  For example:
 
     let a = getList()        // a cannot be assigned, and the list is immutable
     let b mut = getList()    // b cannot be assigned, but the list is mutable
