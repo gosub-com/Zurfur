@@ -27,4 +27,8 @@
     <ProjectReference Include="..\ZurfurLib\ZurfurLib.csproj" />
     <ProjectReference Include="..\Gosub.Avalonia.Controls\Gosub.Avalonia.Controls.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="App\" />
+  </ItemGroup>
 </Project>

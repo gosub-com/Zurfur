@@ -301,7 +301,7 @@ type ro struct u32
 [pub] fun u32.toU16Mask() u16 extern
 [pub] fun u32.toI32Mask() i32 extern
 
-// A 64 bit integer (same as int)
+// 64 bit integer
 [pub]
 type ro struct int
     const __size int = 8
@@ -409,7 +409,7 @@ type ro struct u128
     const __size int = 16
     const __align int = 16
 
-
+// 32 bit floating point value
 [pub]
 type ro struct f32
     const __size int = 4
@@ -458,6 +458,7 @@ type ro struct f32
 [pub] fun f32.toIntMask() int extern
 [pub] fun f32.toU64Mask() u64 extern
 
+// 64 bit floating point value
 [pub]
 type ro struct float
     const __size int = 8

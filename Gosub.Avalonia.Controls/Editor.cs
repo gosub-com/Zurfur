@@ -21,6 +21,7 @@ namespace Gosub.Avalonia.Controls;
 /// </summary>
 public class Editor : UserControl
 {
+    const double DEFAULT_FONT_SIZE = 16;
     readonly float SHRUNK_EMPTY_LINE_SCALE = 0.99f;
     readonly float SHRUNK_TEXT_LINE_SCALE = 0.5f;
     readonly float SHRUNK_FONT_SCALE = 0.65f;
@@ -100,7 +101,7 @@ public class Editor : UserControl
     Pen _scopeLineErrorPen = new Pen(Colors.Red.ToUInt32(), 1, new DashStyle([4, 4], 0));
     static Token s_normalToken = new();
     TokenColorOverride[] _tokenColorOverrides = [];
-    DispatcherTimer _timer = new DispatcherTimer();
+    DispatcherTimer _timer = new DispatcherTimer() { Interval = TimeSpan.FromMilliseconds(20) };
 
 
     // TBD: Port to Avalonia
@@ -161,9 +162,8 @@ public class Editor : UserControl
     public Editor()
     {
         _cursorBaseTime = DateTime.Now;
-        _lexer.ReplaceText(["Hello world 1!", "Hello world 2!","","This is an editor"], new TokenLoc(), new TokenLoc());
-        _timer.Tick += mTimer_Tick;
-        _timer.Interval = TimeSpan.FromMilliseconds(20);
+        _timer.Tick += _timer_Tick;
+        FontSize = DEFAULT_FONT_SIZE;
     }
 
     /// <summary>
@@ -1212,9 +1212,11 @@ public class Editor : UserControl
     public override void Render(DrawingContext context)
     {
         var timer = Stopwatch.StartNew();
+        
+        // NOTE: Must draw over the entire control, otherwise mouse hit-tests don't work
         context.DrawRectangle(new SolidColorBrush(Colors.Transparent), 
-            new Pen(IsFocused ? Brushes.Blue : Brushes.LightGray, 2.5),
-            new(new(0,0),_clientSize), 5, 5);
+            null, new(new(0,0), _clientSize));
+
         OnPaint(context);
         base.Render(context);
         Debug.WriteLine($"Render time {timer.ElapsedMilliseconds} ms");  // TBD: Remove
@@ -2155,7 +2157,7 @@ public class Editor : UserControl
     /// <summary>
     /// Update the cursor and scroll while user is selecting text.
     /// </summary>
-    private void mTimer_Tick(object? sender, EventArgs e)
+    private void _timer_Tick(object? sender, EventArgs e)
     {
         // Update cursor visibility
         bool cursorVisible = IsCursorVisible();
@@ -2253,17 +2255,17 @@ public class TokenColorOverride
         Token = token;
     }
 
-    public TokenColorOverride(Token token, Pen outlineColor)
+    public TokenColorOverride(Token token, Pen? outlineColor)
     {
         Token = token;
         OutlineColor = outlineColor;
     }
-    public TokenColorOverride(Token token, Brush backColor)
+    public TokenColorOverride(Token token, Brush? backColor)
     {
         Token = token;
         BackColor = backColor;
     }
-    public TokenColorOverride(Token token, Pen outlineColor, Brush backColor)
+    public TokenColorOverride(Token token, Pen ?outlineColor, Brush ?backColor)
     {
         Token = token;
         OutlineColor = outlineColor;

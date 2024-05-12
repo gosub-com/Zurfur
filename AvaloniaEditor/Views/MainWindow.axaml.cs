@@ -2,7 +2,7 @@
 using Avalonia.Interactivity;
 using System.Diagnostics;
 
-namespace AvaloniaEdit.Views;
+namespace AvaloniaEditor.Views;
 
 public partial class MainWindow : Window
 {

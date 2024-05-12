@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Zurfur.Build;
 
-namespace AvaloniaEdit;
+namespace AvaloniaEditor;
 
 /// <summary>
 /// Retrieve files from Avalonia resoure

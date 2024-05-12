@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:gosub="clr-namespace:Gosub.Avalonia.Controls;assembly=Gosub.Avalonia.Controls"			 			 
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Gosub.Avalonia.Controls.MultiViewTabItem">
+		<TabItem.Header>
+			<StackPanel Orientation="Horizontal">
+				<TextBlock Name="tabText">MV Tab</TextBlock>
+				<Button Name="buttonClose" 
+						Padding="2" Margin="5,0,0,0" 
+						FontSize="16" 
+						Click="buttonClose_Click">X</Button>
+			</StackPanel>
+		</TabItem.Header>
+		<UserControl Name="tabContent" />
+	
+</UserControl>

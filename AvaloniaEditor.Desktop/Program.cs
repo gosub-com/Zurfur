@@ -2,7 +2,7 @@
 
 using Avalonia;
 
-namespace AvaloniaEdit.Desktop;
+namespace AvaloniaEditor.Desktop;
 
 class Program
 {

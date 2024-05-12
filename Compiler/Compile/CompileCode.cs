@@ -543,7 +543,7 @@ static class CompileCode
                 return GenDotStar(ex);
             else if (name == ")")
                 return GenCall(ex);
-            else if (name == "@")
+            else if (name == "@" || name == "let" || name == "var")
                 return GenNewVarsOperator(ex);
             else if (name == "=")
                 return GenAssign(ex);

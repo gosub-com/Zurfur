@@ -1,7 +1,7 @@
 ﻿using Avalonia.Interactivity;
 using System.Diagnostics;
 
-namespace AvaloniaEdit.ViewModels;
+namespace AvaloniaEditor.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {

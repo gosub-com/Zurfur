@@ -2,28 +2,40 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:AvaloniaEdit.ViewModels"
+             xmlns:vm="clr-namespace:AvaloniaEditor.ViewModels"
+			 xmlns:views="clr-namespace:AvaloniaEditor.Views"
              xmlns:gosub="clr-namespace:Gosub.Avalonia.Controls;assembly=Gosub.Avalonia.Controls"			 
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="AvaloniaEdit.Views.MainView"
+             x:Class="AvaloniaEditor.Views.MainView"
              x:DataType="vm:MainViewModel">
   <Design.DataContext>
     <!-- This only sets the DataContext for the previewer in an IDE,
          to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
     <vm:MainViewModel />
   </Design.DataContext>
-
-	<DockPanel>
-		<Label Name="labelStatus" DockPanel.Dock="Bottom">Status bar</Label>
-		<Grid ColumnDefinitions="180, 4, *">
-			<TextBlock>Project Files Tree View</TextBlock>
-			<GridSplitter Grid.Column="1" Background="Silver" ResizeDirection="Columns"/>
-			<Grid Grid.Column="2" RowDefinitions="*, 4, 120">
-				<gosub:Editor Name="lexerEdit"></gosub:Editor>
-				<GridSplitter Grid.Row="1" Background="LightBlue" ResizeDirection="Rows"/>
-				<gosub:Editor Grid.Row="2" Name="textEdit"></gosub:Editor>
+	<Panel>
+		<DockPanel>
+			<StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom">
+				<Button Click="buttonTest_Click">Test</Button>
+				<Label Name="labelStatus">Status bar</Label>
+			</StackPanel>
+			<Grid ColumnDefinitions="180, 4, *">
+				<TextBlock>Project Files Tree View</TextBlock>
+				<GridSplitter Grid.Column="1" Background="LightBlue" ResizeDirection="Columns"/>
+				<Grid Grid.Column="2" RowDefinitions="*, 4, 120">
+					<gosub:MultiViewEditor Name="mvCodeEditors" ></gosub:MultiViewEditor>
+					<GridSplitter Grid.Row="1" Background="LightBlue" ResizeDirection="Rows"/>
+					<gosub:MultiViewEditor Grid.Row="2" Name="mvInfoEditors"></gosub:MultiViewEditor>
+				</Grid>
 			</Grid>
-		</Grid>
-	</DockPanel> 
+		</DockPanel>
+		<views:HoverMessage 
+			Name="hoverMessage"
+			Width="600" 
+			Height="200"
+			VerticalAlignment="Top"
+			HorizontalAlignment="Right"
+			IsVisible="False"></views:HoverMessage>
+	</Panel>
 	
 </UserControl>

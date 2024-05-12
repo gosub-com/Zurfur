@@ -20,14 +20,15 @@ using System.Linq;
 using System.Threading;
 
 
-namespace AvaloniaEdit.Views;
+namespace AvaloniaEditor.Views;
 
 
 public partial class MainView : UserControl
 {
     const string ZURFUR_LIB_URL = "avares://ZurfurLib/ZurfurLibForAvalonia";
 
-    BuildSystem mBuildPackage = new BuildSystem(new FileSystemAvalonia());
+    BuildSystem mBuildPackage = new (new FileSystemAvalonia());
+    ZurfEditController mEditController = new();
 
     public MainView()
     {
@@ -39,12 +40,32 @@ public partial class MainView : UserControl
         labelStatus.Content = $"*{Assembly.GetExecutingAssembly().Location}*";
         mBuildPackage.StatusUpdate += mBuildPackage_StatusUpdate;
         mBuildPackage.FileUpdate += mBuildPackage_FileUpdate;
+        mEditController.OnNavigateToSymbol += mEditController_OnNavigateToSymbol;
+        mEditController.SetHoverMessageForm(hoverMessage);
+        mvCodeEditors.SelectionChanged += MvCodeEditors_SelectionChanged;
+
 
         var exeLocation = Assembly.GetExecutingAssembly().Location;
         var dirName = Path.GetDirectoryName(exeLocation) ?? "";
         LoadProject();
-        lexerEdit.TextChanged += TextEdit_TextChanged;
     }
+
+    private void MvCodeEditors_SelectionChanged(object? sender, Control e)
+    {
+        var editor = e as Editor;
+        if (editor == null)
+            return;
+
+        mEditController.ActiveViewChanged(editor);
+        //FormSearchInstance.SetEditor(textEditor);
+        //labelPos.Text = textEditor == null ? "" : $"{textEditor.CursorLoc.Y + 1}:{textEditor.CursorLoc.X + 1}";
+        //if (editor != null)
+        //    projectTree.Select(editor.FilePath);
+        //else
+        //    projectTree.OpenAndSelect(""); // NoSelection
+    }
+
+
 
     async void LoadProject()
     {
@@ -71,7 +92,47 @@ public partial class MainView : UserControl
             labelStatus.Content = $"ERROR: {ex.Message}";
         }
     }
-    private void TextEdit_TextChanged(object? sender, EventArgs e)
+
+    void mBuildPackage_StatusUpdate(object sender, BuildSystem.UpdatedEventArgs e)
+    {
+        labelStatus.Content = e.Message;
+    }
+
+    private void mBuildPackage_FileUpdate(object sender, BuildSystem.UpdatedEventArgs e)
+    {
+        if (e.Message.ToLower().Contains("example"))
+        {
+            var lexer = mBuildPackage.GetLexer(e.Message);
+            if (lexer != null)
+            {
+                if (mvCodeEditors.FindTab(e.Message) is Editor editor)
+                {
+                    // Update the editor
+                    editor.Lexer = lexer;
+                }
+                else
+                {
+                    // Add new editor
+                    var newEditor = new Editor() { Lexer = lexer };
+                    newEditor.TextChanged += editor_TextChanged;
+                    newEditor.MouseHoverTokenChanged += editor_MouseHoverTokenChanged;
+                    mvCodeEditors.SetTab(e.Message, newEditor, Path.GetFileName(e.Message));
+                    mEditController.AddEditor(newEditor);
+                }
+            }
+        }
+    }
+
+    private void editor_MouseHoverTokenChanged(object sender, Gosub.Lex.Token? previousToken, Gosub.Lex.Token? newToken)
+    {
+        //hoverMessage.IsVisible = newToken != null;
+        //if (newToken != null)
+        //{            
+        //    hoverMessage.Message = newToken.Name;
+        //}
+    }
+
+    private void editor_TextChanged(object? sender, EventArgs e)
     {
         // Notify build system
         var editor = sender as Editor;
@@ -83,22 +144,16 @@ public partial class MainView : UserControl
         if (lexer != null && lexer.Path == editor.Lexer.Path)
         {
             mBuildPackage.SetLexer(editor.Lexer);
-            //mRecompileForChangedLine = lexerEdit.CursorLoc.Y;
         }
     }
 
-    void mBuildPackage_StatusUpdate(object sender, BuildSystem.UpdatedEventArgs e)
+    private void mEditController_OnNavigateToSymbol(string path, int x, int y)
     {
-        labelStatus.Content = e.Message;
     }
-    private void mBuildPackage_FileUpdate(object sender, BuildSystem.UpdatedEventArgs e)
+
+
+    void buttonTest_Click(object? sender, RoutedEventArgs e)
     {
-        if (e.Message.ToLower().Contains("example"))
-        {
-            var lexer = mBuildPackage.GetLexer(e.Message);
-            if (lexer != null)
-                lexerEdit.Lexer = lexer;
-        }
     }
 
 }

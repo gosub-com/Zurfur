@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Browser;
 
-using AvaloniaEdit;
+using AvaloniaEditor;
 
 [assembly: SupportedOSPlatform("browser")]
 

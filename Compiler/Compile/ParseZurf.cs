@@ -565,6 +565,8 @@ class ParseZurf
                 break;
 
             case "@":
+            case "let":
+            case "var":
                 Accept();
                 ParseFieldFull(qualifiers);
                 qualifiers.Clear();
@@ -1261,10 +1263,8 @@ class ParseZurf
                 // FOR (variable) (condition) (statements)
                 mToken.Type = eTokenType.ReservedControl;
                 Accept();
-                if (AcceptMatch("@"))
+                if (AcceptMatch("@") || AcceptMatch("var"))
                     mPrevToken.Type = eTokenType.NewVarSymbol;
-                else
-                    RejectToken(mToken, "Expecting '@'");
 
                 var forVariable = new SyntaxToken(ParseIdentifier("Expecting a loop variable", sRejectForCondition));
                 forVariable.Token.Type = eTokenType.DefineLocal;
@@ -1322,7 +1322,7 @@ class ParseZurf
             default:
                 if ((sReservedWords.Contains(mTokenName) || mTokenName == "")
                     && !sReservedIdentifierVariables.Contains(mTokenName)
-                    && mTokenName != "@")
+                    && (mTokenName != "@" && mTokenName != "let" && mTokenName != "var"))
                 {
                     RejectToken(mToken, "Unexpected token or reserved word");
                     Accept();
@@ -1564,7 +1564,7 @@ class ParseZurf
 
     SyntaxExpr ParseUnary()
     {
-        if (mTokenName == "@")
+        if (mTokenName == "@" || mTokenName == "let" || mTokenName == "var")
             return new SyntaxUnary(Accept(), ParseNewVars());
 
         if (sUnaryOps.Contains(mTokenName))
@@ -1613,8 +1613,8 @@ class ParseZurf
             ParseNewVar(newVarList);
         }
 
-        if (mTokenName == "@")
-            Reject("New variable operator '@' is not associative");
+        if (mTokenName == "@" || mTokenName == "let" || mToken == "var")
+            Reject($"New variable operator '{mTokenName}' is not associative");
 
         return new SyntaxMulti(EmptyToken, FreeExprList(newVarList));
     }
