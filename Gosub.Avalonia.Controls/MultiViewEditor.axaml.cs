@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
@@ -8,9 +10,8 @@ namespace Gosub.Avalonia.Controls;
 public partial class MultiViewEditor : UserControl
 {
     TabControl _tabControl;
-    Dictionary<string, MultiViewTabItem> _tabs = new();
-
-    public event EventHandler<Control>? SelectionChanged;
+    public event EventHandler<string>? SelectionChanged;
+    public event EventHandler<string>? TabCloseRequest;
 
     public MultiViewEditor()
     {
@@ -23,44 +24,63 @@ public partial class MultiViewEditor : UserControl
 
     public void SetTab(string key, Control tabContent, string tabText)
     {
-        // Replace
-        if (_tabs.TryGetValue(key, out var rtab))
+        // Replace existing tab with new control
+        var tabItem = FindMvti(key);
+        if (tabItem != null)
         {
-            rtab.tabText.Text = tabText;
-            rtab.tabContent.Content = tabContent;
+            tabItem.tabText.Text = tabText;
+            tabItem.tabContent.Content = tabContent;
             return;
         }
 
-        // Add
-        var tabItem = new MultiViewTabItem();
+        // Add new tab
+        tabItem = new MultiViewTabItem(key);
         tabItem.tabText.Text = tabText;
         tabItem.tabContent.Content = tabContent;
-        _tabs[key] = tabItem;
+        tabItem.TabCloseRequest += TabItem_TabCloseRequest;
         _tabControl.Items.Add(tabItem);
     }
 
-    public Control? FindTab(string key)
+    private void TabItem_TabCloseRequest(object? sender, MultiViewTabItem e)
     {
-        return _tabs.GetValueOrDefault(key)?.tabContent?.Content as Control;
+        TabCloseRequest?.Invoke(this, e.Key);
+    }
+
+    /// <summary>
+    /// Find the tab content for the given key
+    /// </summary>
+    public Control? FindTabContent(string key)
+    {
+        return FindMvti(key)?.tabContent?.Content as Control;
+    }
+
+    /// <summary>
+    /// Find the MultiViewTabItem for the given key
+    /// </summary>
+    MultiViewTabItem? FindMvti(string key)
+        => _tabControl.Items.FirstOrDefault(i => (i as MultiViewTabItem)?.Key == key) as MultiViewTabItem;
+
+    public void ShowTab(string key)
+    {
+        var tabItem2 = FindMvti(key);
+        if (tabItem2 != null) 
+            tabItem2.IsSelected = true;
     }
 
     public void RemoveTab(string key) 
     {
-        if (_tabs.TryGetValue(key, out var tabItem))
-        {
-            _tabs.Remove(key);
-            _tabControl.Items.Remove(tabItem);
-        }
+        var tab = FindMvti(key);
+        if (tab != null)
+            _tabControl.Items.Remove(tab);
     }
 
-
-    void OnSelectionChanged(Object? sender, SelectionChangedEventArgs e)
+    void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (e.AddedItems.Count == 0)
             return;
-        var addedItem = (e.AddedItems[0] as MultiViewTabItem)?.tabContent.Content as Control;
+        var addedItem = e.AddedItems[0] as MultiViewTabItem;
         if (addedItem != null)
-            SelectionChanged?.Invoke(this, addedItem);
+            SelectionChanged?.Invoke(this, addedItem.Key);
     }
 
 

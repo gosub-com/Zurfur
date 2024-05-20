@@ -18,6 +18,8 @@ using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Platform;
 using System.Linq;
 using System.Threading;
+using Avalonia.VisualTree;
+using Gosub.Lex;
 
 
 namespace AvaloniaEditor.Views;
@@ -30,6 +32,15 @@ public partial class MainView : UserControl
     BuildSystem mBuildPackage = new (new FileSystemAvalonia());
     ZurfEditController mEditController = new();
 
+    // Helper class to show items in the tree view
+    record class NamedItem<T>(string Name, T Item)
+    {
+        public override string ToString()
+        {
+            return Name;
+        }
+    }
+
     public MainView()
     {
         InitializeComponent();
@@ -41,8 +52,10 @@ public partial class MainView : UserControl
         mBuildPackage.StatusUpdate += mBuildPackage_StatusUpdate;
         mBuildPackage.FileUpdate += mBuildPackage_FileUpdate;
         mEditController.OnNavigateToSymbol += mEditController_OnNavigateToSymbol;
-        mEditController.SetHoverMessageForm(hoverMessage);
-        mvCodeEditors.SelectionChanged += MvCodeEditors_SelectionChanged;
+        mEditController.SetHoverMessageParent(panelMain);
+        mvCodeEditors.SelectionChanged += mvCodeEditors_SelectionChanged;
+        mvCodeEditors.TabCloseRequest += mvCodeEditors_TabCloseRequest;
+        treeProject.SelectionChanged += treeProject_SelectionChanged;
 
 
         var exeLocation = Assembly.GetExecutingAssembly().Location;
@@ -50,28 +63,12 @@ public partial class MainView : UserControl
         LoadProject();
     }
 
-    private void MvCodeEditors_SelectionChanged(object? sender, Control e)
-    {
-        var editor = e as Editor;
-        if (editor == null)
-            return;
-
-        mEditController.ActiveViewChanged(editor);
-        //FormSearchInstance.SetEditor(textEditor);
-        //labelPos.Text = textEditor == null ? "" : $"{textEditor.CursorLoc.Y + 1}:{textEditor.CursorLoc.X + 1}";
-        //if (editor != null)
-        //    projectTree.Select(editor.FilePath);
-        //else
-        //    projectTree.OpenAndSelect(""); // NoSelection
-    }
-
-
-
     async void LoadProject()
     {
         await Task.Delay(1);
         try
         {
+            // Browser gets single threaded with await
             if (Assembly.GetExecutingAssembly().Location == "")
             {
                 mBuildPackage.DisableVerificationAndReports = true;
@@ -79,12 +76,13 @@ public partial class MainView : UserControl
             }
 
             var urls = AssetLoader.GetAssets(new Uri(ZURFUR_LIB_URL), null).ToList();
-            if (urls.Count < 0)
+            if (urls.Count <= 0)
                 throw new Exception("Zurfur library was not found");
             labelStatus.Content = $"{urls.Count} files found";
             foreach (var url in urls)
             {
                 mBuildPackage.LoadFile(url.AbsoluteUri);
+                treeProject.Items.Add(new NamedItem<Uri>(Path.GetFileName(url.AbsolutePath), url));
             }
         }
         catch (Exception ex)
@@ -102,35 +100,78 @@ public partial class MainView : UserControl
     {
         if (e.Message.ToLower().Contains("example"))
         {
-            var lexer = mBuildPackage.GetLexer(e.Message);
-            if (lexer != null)
-            {
-                if (mvCodeEditors.FindTab(e.Message) is Editor editor)
-                {
-                    // Update the editor
-                    editor.Lexer = lexer;
-                }
-                else
-                {
-                    // Add new editor
-                    var newEditor = new Editor() { Lexer = lexer };
-                    newEditor.TextChanged += editor_TextChanged;
-                    newEditor.MouseHoverTokenChanged += editor_MouseHoverTokenChanged;
-                    mvCodeEditors.SetTab(e.Message, newEditor, Path.GetFileName(e.Message));
-                    mEditController.AddEditor(newEditor);
-                }
-            }
+            // At boot, always show the example
+            LoadOrUpdateLexer(e.Message);
+        }
+        else
+        {
+            // Any other time, update when the editor window is open
+            var editor = mvCodeEditors.FindTabContent(e.Message) as Editor;
+            if (editor != null)
+                LoadOrUpdateLexer(e.Message);
         }
     }
 
-    private void editor_MouseHoverTokenChanged(object sender, Gosub.Lex.Token? previousToken, Gosub.Lex.Token? newToken)
+    private void LoadOrUpdateLexer(string path)
     {
-        //hoverMessage.IsVisible = newToken != null;
-        //if (newToken != null)
-        //{            
-        //    hoverMessage.Message = newToken.Name;
-        //}
+        var lexer = mBuildPackage.GetLexer(path);
+        Debug.Assert(lexer != null);
+        if (lexer == null)
+            return;
+
+        if (mvCodeEditors.FindTabContent(path) is Editor editor)
+        {
+            // Update the editor
+            editor.Lexer = lexer;
+        }
+        else
+        {
+            // Add new editor
+            var newEditor = new Editor() { Lexer = lexer };
+            newEditor.TextChanged += editor_TextChanged;
+            mvCodeEditors.SetTab(path, newEditor, Path.GetFileName(path));
+            mEditController.AddEditor(newEditor);
+        }
     }
+
+
+    private void mvCodeEditors_SelectionChanged(object? sender, string key)
+    {
+        var editor = mvCodeEditors.FindTabContent(key) as Editor;
+        Debug.Assert(editor != null); // Currently only editors added to mvCodeEditors
+        if (editor == null)
+            return;
+
+        mEditController.ActiveViewChanged(editor);
+
+        var item = treeProject.Items.FirstOrDefault(i => (i as NamedItem<Uri>)?.Item.AbsoluteUri == editor.Lexer.Path);
+        if (item != null)
+            treeProject.SelectedItem = item;
+
+        //FormSearchInstance.SetEditor(textEditor);
+        //labelPos.Text = textEditor == null ? "" : $"{textEditor.CursorLoc.Y + 1}:{textEditor.CursorLoc.X + 1}";
+        //if (editor != null)
+        //    projectTree.Select(editor.FilePath);
+        //else
+        //    projectTree.OpenAndSelect(""); // NoSelection
+    }
+
+    private void mvCodeEditors_TabCloseRequest(object? sender, string key)
+    {
+        mvCodeEditors.RemoveTab(key);
+    }
+
+    private void treeProject_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        var si = treeProject.SelectedItem as NamedItem<Uri>;
+        if (si != null)
+        {
+            var path = si.Item.AbsoluteUri;
+            LoadOrUpdateLexer(path);
+            mvCodeEditors.ShowTab(path);
+        }
+    }
+
 
     private void editor_TextChanged(object? sender, EventArgs e)
     {
@@ -148,11 +189,6 @@ public partial class MainView : UserControl
     }
 
     private void mEditController_OnNavigateToSymbol(string path, int x, int y)
-    {
-    }
-
-
-    void buttonTest_Click(object? sender, RoutedEventArgs e)
     {
     }
 

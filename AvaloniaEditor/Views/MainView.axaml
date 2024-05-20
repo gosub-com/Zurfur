@@ -13,14 +13,13 @@
          to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
     <vm:MainViewModel />
   </Design.DataContext>
-	<Panel>
+	<Panel Name="panelMain">
 		<DockPanel>
 			<StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom">
-				<Button Click="buttonTest_Click">Test</Button>
 				<Label Name="labelStatus">Status bar</Label>
 			</StackPanel>
 			<Grid ColumnDefinitions="180, 4, *">
-				<TextBlock>Project Files Tree View</TextBlock>
+				<TreeView Name="treeProject" />
 				<GridSplitter Grid.Column="1" Background="LightBlue" ResizeDirection="Columns"/>
 				<Grid Grid.Column="2" RowDefinitions="*, 4, 120">
 					<gosub:MultiViewEditor Name="mvCodeEditors" ></gosub:MultiViewEditor>
@@ -29,13 +28,6 @@
 				</Grid>
 			</Grid>
 		</DockPanel>
-		<views:HoverMessage 
-			Name="hoverMessage"
-			Width="600" 
-			Height="200"
-			VerticalAlignment="Top"
-			HorizontalAlignment="Right"
-			IsVisible="False"></views:HoverMessage>
 	</Panel>
 	
 </UserControl>

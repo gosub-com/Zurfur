@@ -20,6 +20,8 @@ using Zurfur.Compiler;
 using Zurfur.Jit;
 using AvaloniaEditor.Views;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Avalonia.Markup.Xaml.Templates;
 
 namespace AvaloniaEditor;
 
@@ -56,9 +58,14 @@ class ZurfEditController
         //    new ToolStripLabel("Format Json", null, true, new EventHandler(FormatJson)));
     }
 
-    public void SetHoverMessageForm(HoverMessage hoverMessageForm)
+    public void SetHoverMessageParent(Panel parent)
     {
-        mHoverMessageForm = hoverMessageForm;
+        mHoverMessageForm.IsVisible = false;
+        mHoverMessageForm.Width = 600;
+        mHoverMessageForm.Height = 200;
+        mHoverMessageForm.VerticalAlignment = VerticalAlignment.Top;
+        mHoverMessageForm.HorizontalAlignment = HorizontalAlignment.Right;
+        parent.Children.Add(mHoverMessageForm);
     }
 
     public void AddEditor(Editor editor)

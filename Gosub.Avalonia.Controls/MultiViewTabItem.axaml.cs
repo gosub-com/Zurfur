@@ -13,16 +13,20 @@ public partial class MultiViewTabItem : TabItem
 {
     protected override Type StyleKeyOverride => typeof(TabItem);
 
-    public MultiViewTabItem()
+    public string Key { get; }
+    public event EventHandler<MultiViewTabItem>? TabCloseRequest;
+
+
+    public MultiViewTabItem(string key)
     {
+        Key = key;
         InitializeComponent();
         buttonClose.Opacity = 0;
     }
 
     public void buttonClose_Click(object source, RoutedEventArgs args)
     {
-        tabText.FontWeight = tabText.FontWeight == FontWeight.Normal ?
-            FontWeight.Bold : FontWeight.Normal;
+        TabCloseRequest?.Invoke(this, this);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

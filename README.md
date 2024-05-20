@@ -46,18 +46,27 @@ Golang, Rust, Python, JavaScript, and other languages.
 
 ## Variables and Mutability
 
-Variables are declared and initialized with the `let` or `var` keyword. These keywords
-refer to the assignability of the variable. `let` for un-assignable, `var` for
-assignable. In both cases, the object they point to is immutable unless the `mut` keyword
-is used.  For example:
+***NOTE:*** I am still investigating different ways to introduce local variables:
 
-    let a = getList()        // a cannot be assigned, and the list is immutable
-    let b mut = getList()    // b cannot be assigned, but the list is mutable
-    var c = getList()        // c can be assigned, but the list is immutable
-    var d mut = getList()    // d can be assigned, and the list is mutable
+    @a = getList()      // a is assignable, the list is immutable
+    @b = mut getList()  // a is assignable, the list is mutable
 
-It is an error to use `var` when `let` is sufficient, or to use `mut` when it is not needed.
-  
+***TBD:*** `let` and `var` refer to assignablility:
+
+`let` for un-assignable, `var` for assignable. In both cases, the object they point to
+is immutable unless the `mut` keyword is used.  For example:
+
+    let a = getList()        // a is un-assignable, the list is immutable
+    let b = mut getList()    // b is un-assignable, the list is mutable
+    var c = getList()        // c is assignable, the list is immutable
+    var d = mut getList()    // d is assignable, the list is mutable
+
+Alternatively, `let` and `var` refer to assignability and mutability:
+
+    let a = getList()        // a is un-assignable, the list is immutable
+    var c = getList()        // c is assignable, the list is mutable
+
+
 ## Types
 
 The ones we all know and love:
@@ -113,9 +122,9 @@ an interpolation (e.g. `"{\t}"` is a tab).
 
 There is no `StringBuilder` type, use `List<byte>` instead:
 
-    @sb = List<byte>()
+    let sb = mut List<byte>()
     sb.push("Count from 1 to 10: ")
-    for @count in 1..+10
+    for count in 1..+10
         sb.push(" {count}")
     return sb.toStr()
 
