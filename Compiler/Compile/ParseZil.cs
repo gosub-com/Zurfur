@@ -10,18 +10,18 @@ namespace Zurfur.Compiler;
 
 class ParseZil
 {
-    Lexer mLexer;
+    Lexer _lexer;
 
     public ParseZil(Lexer lexer)
     {
-        mLexer = lexer;
+        _lexer = lexer;
     }
 
     public void Parse() 
     {
-        for (var i = 0;  i < mLexer.LineCount;  i++)
+        for (var i = 0;  i < _lexer.LineCount;  i++)
         {
-            var tokens = mLexer.GetLineTokens(i);
+            var tokens = _lexer.GetLineTokens(i);
             if (tokens.Length == 0)
                 continue;
             

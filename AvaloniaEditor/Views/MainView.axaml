@@ -15,13 +15,16 @@
   </Design.DataContext>
 	<Panel Name="panelMain">
 		<DockPanel>
+			<StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
+				<Button Tapped="buttonGenerateTapped" >Generate</Button>
+			</StackPanel>
 			<StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom">
 				<Label Name="labelStatus">Status bar</Label>
 			</StackPanel>
-			<Grid ColumnDefinitions="180, 4, *">
-				<TreeView Name="treeProject" />
+			<Grid ColumnDefinitions="180, 8, *">
+				<gosub:MyTreeView Name="treeProject" />
 				<GridSplitter Grid.Column="1" Background="LightBlue" ResizeDirection="Columns"/>
-				<Grid Grid.Column="2" RowDefinitions="*, 4, 120">
+				<Grid Grid.Column="2" RowDefinitions="*, 8, 120">
 					<gosub:MultiViewEditor Name="mvCodeEditors" ></gosub:MultiViewEditor>
 					<GridSplitter Grid.Row="1" Background="LightBlue" ResizeDirection="Rows"/>
 					<gosub:MultiViewEditor Grid.Row="2" Name="mvInfoEditors"></gosub:MultiViewEditor>

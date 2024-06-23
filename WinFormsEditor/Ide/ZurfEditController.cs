@@ -9,7 +9,7 @@ using System.Diagnostics;
 
 using Gosub.Lex;
 using Zurfur.Compiler;
-using Zurfur.Jit;
+using Zurfur.Vm;
 
 namespace Zurfur.Ide;
 

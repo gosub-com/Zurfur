@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Zurfur.Jit;
+namespace Zurfur.Vm;
 
 /// <summary>
 /// Trace a function, keeping track of the stack, locals, and branches.

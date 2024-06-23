@@ -17,7 +17,7 @@ using Gosub.Lex;
 using Gosub.Avalonia.Controls;
 using Zurfur;
 using Zurfur.Compiler;
-using Zurfur.Jit;
+using Zurfur.Vm;
 using AvaloniaEditor.Views;
 using Avalonia.Threading;
 using Avalonia.VisualTree;

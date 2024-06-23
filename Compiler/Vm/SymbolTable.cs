@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 
 using Gosub.Lex;
-namespace Zurfur.Jit;
+namespace Zurfur.Vm;
 
 public class ZilCompileError : TokenError
 {
@@ -68,18 +68,18 @@ public class SymbolTable
     /// <summary>
     /// Lookup table for concrete types
     /// </summary>
-    Dictionary<string, Symbol> mLookup = new();
+    Dictionary<string, Symbol> _lookup = new();
 
     /// <summary>
     /// Lookup table for specialized types, excluding tuples
     /// </summary>
-    Dictionary<string, Symbol> mSpecializedTypes = new();
+    Dictionary<string, Symbol> _specializedTypes = new();
 
     // Internal types: Generic arguments, Tuples
-    List<Symbol> mGenericConstructors = new();
-    List<Symbol> mGenericArguments = new();
-    Symbol mGenericArgumentHolder; // Holder so they have `Order` set properly
-    Symbol mGenericTupleHolder;
+    List<Symbol> _genericConstructors = new();
+    List<Symbol> _genericArguments = new();
+    Symbol _genericArgumentHolder; // Holder so they have `Order` set properly
+    Symbol _genericTupleHolder;
 
     /// <summary>
     /// The generic lambda type: $lambda<T> where T is the function tuple.
@@ -110,13 +110,13 @@ public class SymbolTable
         var preRoot = new Symbol(SymKind.Module, null, null, "");
         Root = new Symbol(SymKind.Module, preRoot, null, "");
         Unresolved = new Symbol(SymKind.Module, Root, null, "??");
-        mGenericArgumentHolder = new Symbol(SymKind.Type, Root, null, "");
-        mGenericTupleHolder = new Symbol(SymKind.Module, Root, null, "");
-        EmptyTuple = new Symbol(SymKind.Type, mGenericTupleHolder, null, "()");
-        mSpecializedTypes["()"] = EmptyTuple;
+        _genericArgumentHolder = new Symbol(SymKind.Type, Root, null, "");
+        _genericTupleHolder = new Symbol(SymKind.Module, Root, null, "");
+        EmptyTuple = new Symbol(SymKind.Type, _genericTupleHolder, null, "()");
+        _specializedTypes["()"] = EmptyTuple;
 
         // The lambda<T> has a type of T, which is a function tuple
-        LambdaType = new Symbol(SymKind.Type, mGenericTupleHolder, null, "$lambda");
+        LambdaType = new Symbol(SymKind.Type, _genericTupleHolder, null, "$lambda");
         LambdaType.Type = GetGenericParam(0);
         LambdaType.GenericParamSymbols = [new Symbol(SymKind.TypeParam, LambdaType, null, "T")];
     }
@@ -128,15 +128,15 @@ public class SymbolTable
     /// </summary>
     public void GenerateLookup()
     {
-        mLookup.Clear();
+        _lookup.Clear();
         foreach (var s in Root.ChildrenRecurse())
         {
             if (s.IsTypeParam || s.IsFunParam || s.IsLocal)
                 continue;
             Debug.Assert(!s.IsSpecialized);
             var fullName = s.FullName;
-            Debug.Assert(!mLookup.ContainsKey(fullName));
-            mLookup[fullName] = s;
+            Debug.Assert(!_lookup.ContainsKey(fullName));
+            _lookup[fullName] = s;
         }
     }
 
@@ -150,9 +150,9 @@ public class SymbolTable
     {
         if (name == "")
             return null;
-        if (mLookup.TryGetValue(name, out var sym))
+        if (_lookup.TryGetValue(name, out var sym))
             return sym;
-        if (mSpecializedTypes.TryGetValue(name, out sym))
+        if (_specializedTypes.TryGetValue(name, out sym))
             return sym;
         return null;
     }
@@ -162,10 +162,10 @@ public class SymbolTable
     /// Call `GenerateLookup` before using this.
     /// </summary>
     public Dictionary<string, Symbol>.ValueCollection LookupSymbols
-        => mLookup.Values;
+        => _lookup.Values;
 
     public Dictionary<string, Symbol>.ValueCollection SpecializedSymbols
-        => mSpecializedTypes.Values;
+        => _specializedTypes.Values;
 
 
     /// <summary>
@@ -277,7 +277,7 @@ public class SymbolTable
         // parameter lists, but things like MyBigInterface<(a int, b str)>.
         // TBD: Separate the tuple symbol names from the type definition
         symSpec.FinalizeFullName();
-        if (mSpecializedTypes.TryGetValue(symSpec.FullName, out var dupSym))
+        if (_specializedTypes.TryGetValue(symSpec.FullName, out var dupSym))
         {
             // Use space to determine if symbol has a tuple name
             if (!dupSym.FullName.Contains(" "))
@@ -285,7 +285,7 @@ public class SymbolTable
         }
         else
         {
-            mSpecializedTypes[symSpec.FullName] = symSpec;
+            _specializedTypes[symSpec.FullName] = symSpec;
         }
 
         return symSpec;
@@ -331,26 +331,26 @@ public class SymbolTable
     /// </summary>
     public Symbol GetGenericParam(int argNum)
     {
-        if (argNum < mGenericArguments.Count)
-            return mGenericArguments[argNum];
+        if (argNum < _genericArguments.Count)
+            return _genericArguments[argNum];
 
-        for (int i = mGenericArguments.Count; i <= argNum; i++)
+        for (int i = _genericArguments.Count; i <= argNum; i++)
         {
             var name = $"#{i}";
-            var arg = new Symbol(SymKind.TypeParam, mGenericArgumentHolder, null, name);
-            mGenericArguments.Add(arg);
+            var arg = new Symbol(SymKind.TypeParam, _genericArgumentHolder, null, name);
+            _genericArguments.Add(arg);
             AddOrReject(arg);
-            mSpecializedTypes[name] = arg;
+            _specializedTypes[name] = arg;
         }
-        return mGenericArguments[argNum];
+        return _genericArguments[argNum];
     }
 
     public Symbol GetGenericParamConstructor(int argNum)
     {
-        if (argNum < mGenericConstructors.Count)
-            return mGenericConstructors[argNum];
+        if (argNum < _genericConstructors.Count)
+            return _genericConstructors[argNum];
 
-        for (int i = mGenericConstructors.Count;  i <= argNum; i++)
+        for (int i = _genericConstructors.Count;  i <= argNum; i++)
         {
             // Create a generic constructor for generic type
             var type = GetGenericParam(i);
@@ -360,10 +360,10 @@ public class SymbolTable
                     CreateTuple([type]),
                     CreateTuple([type]) ]);
             AddOrReject(constructor);
-            mGenericConstructors.Add(constructor);
+            _genericConstructors.Add(constructor);
 
         }
-        return mGenericConstructors[argNum];
+        return _genericConstructors[argNum];
     }
 
     // Does not reject if there is already an error there

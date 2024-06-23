@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-using Zurfur.Jit;
+using Zurfur.Vm;
 using Gosub.Lex;
 
 namespace Zurfur.Compiler;

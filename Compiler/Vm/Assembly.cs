@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.Json;
 using Gosub.Lex;
 
-namespace Zurfur.Jit;
+namespace Zurfur.Vm;
 
 /// <summary>
 /// Assembly package

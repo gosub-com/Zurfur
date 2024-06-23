@@ -17,7 +17,7 @@ public class FileSystemAvalonia : FileSystemInterface
 {
     Dictionary<string, string[]> mLocalFiles = new();
 
-    async Task<string[]> FileSystemInterface.ReadAllLinesAsync(string path, CancellationToken cancellationToken)
+    public async Task<string[]> ReadAllLinesAsync(string path, CancellationToken cancellationToken = default)
     {
         if (mLocalFiles.TryGetValue(path, out var localFile))
             return localFile;
@@ -33,9 +33,16 @@ public class FileSystemAvalonia : FileSystemInterface
         return output.ToArray();
     }
 
-    async public Task WriteAllLinesAsync(string path, IEnumerable<string> contents, CancellationToken cancellationToken = default)
+    public async Task WriteAllLinesAsync(string path, IEnumerable<string> contents, CancellationToken cancellationToken = default)
     {
         mLocalFiles[path] = contents.ToArray();
     }
+
+    public async Task<string[]> EnumerateAllFiles(string path, CancellationToken cancellationToken = default)
+    {
+        return mLocalFiles.Keys.ToArray();
+    }
+
+    
 
 }

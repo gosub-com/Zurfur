@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Zurfur.Jit;
+namespace Zurfur.Vm;
 
 public static class VerifyCode
 {

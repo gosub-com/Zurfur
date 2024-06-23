@@ -7,42 +7,42 @@ namespace Zurfur.Compiler;
 
 class ParseJson
 {
-    Lexer mLexer;			// Lexer to be paresed
-    Lexer.Enumerator mLexerEnum;		// Enumerator for the Lexer
-    string mTokenName = "*"; // Skipped by first accept
-    Token mToken;
-    Token mPrevToken;
+    Lexer _lexer;			// Lexer to be paresed
+    Lexer.Enumerator _lexerEnum;		// Enumerator for the Lexer
+    string _tokenName = "*"; // Skipped by first accept
+    Token _token = new();
+    Token _prevToken = new();
     public int ParseErrors { get; private set; }
 
-    static WordSet sValueTokens = new WordSet("true false null");
-    static WordSet sEndArrayValue = new WordSet(", ]", true);
-    static WordSet sEndObjectKey = new WordSet(": }", true);
-    static WordSet sEndObjectValue = new WordSet(", }", true);
+    static WordSet s_valueTokens = new WordSet("true false null");
+    static WordSet s_endArrayValue = new WordSet(", ]", true);
+    static WordSet s_endObjectKey = new WordSet(": }", true);
+    static WordSet s_endObjectValue = new WordSet(", }", true);
 
     /// <summary>
     /// Parse the given lexer
     /// </summary>
     public ParseJson(Lexer tokens)
     {
-        mLexer = tokens;
-        mLexerEnum = new Lexer.Enumerator(mLexer);
+        _lexer = tokens;
+        _lexerEnum = new Lexer.Enumerator(_lexer);
         Accept();
     }
 
     public void Parse()
     {
-        if (mTokenName == "")
+        if (_tokenName == "")
             return;
 
         ParseValue();
 
-        if (mTokenName != "")
+        if (_tokenName != "")
         {
-            RejectToken(mToken, "Expecting end of file");
+            RejectToken(_token, "Expecting end of file");
             Accept();
-            while (mTokenName != "")
+            while (_tokenName != "")
             {
-                mToken.Grayed = true;
+                _token.Grayed = true;
                 Accept();
             }
         }
@@ -50,81 +50,81 @@ class ParseJson
 
     void ParseValue()
     {
-        if (mTokenName == "")
+        if (_tokenName == "")
         {
-            RejectToken(mToken, "Execting a value, not end of file");
+            RejectToken(_token, "Execting a value, not end of file");
             return;
         }
-        if (sValueTokens.Contains(mTokenName))
+        if (s_valueTokens.Contains(_tokenName))
             Accept();
-        else if (mTokenName == "\"")
+        else if (_tokenName == "\"")
             ParseString();
-        else if (mTokenName[0] >= '0' && mTokenName[0] <= '9' || mToken == "-" || mToken == "+")
+        else if (_tokenName[0] >= '0' && _tokenName[0] <= '9' || _token == "-" || _token == "+")
         {
             Accept();
-            while (mTokenName != "" && mTokenName[0] >= '0' && mTokenName[0] <= '9' || mToken == "-" || mToken == "+")
+            while (_tokenName != "" && _tokenName[0] >= '0' && _tokenName[0] <= '9' || _token == "-" || _token == "+")
                 Accept();
         }
-        else if (mTokenName == "{")
+        else if (_tokenName == "{")
             ParseObject();
-        else if (mTokenName == "[")
+        else if (_tokenName == "[")
             ParseArray();
         else
-            RejectToken(mToken, "Expecting a value, 'true', 'false', 'null', '{', '[', number, or string");
+            RejectToken(_token, "Expecting a value, 'true', 'false', 'null', '{', '[', number, or string");
     }
 
     void ParseString()
     {
-        if (mTokenName != "\"")
+        if (_tokenName != "\"")
         {
-            Reject("Expecting a quote to begin a string", sEndObjectKey);
+            Reject("Expecting a quote to begin a string", s_endObjectKey);
             return;
         }
         // TBD: Accept and build json style strings
         Accept().Type = eTokenType.Quote;
-        while (mTokenName != "" && mTokenName != "\"" && !mToken.Boln && !mToken.Meta)
+        while (_tokenName != "" && _tokenName != "\"" && !_token.Boln && !_token.Meta)
         {
-            if (mTokenName == "\\")
+            if (_tokenName == "\\")
             {
-                if (mLexerEnum.PeekNoSpace() == "\"")
+                if (_lexerEnum.PeekNoSpace() == "\"")
                     Accept().Type = eTokenType.Quote;
             }
             Accept().Type = eTokenType.Quote;
         }
-        if (!mToken.Boln && mTokenName == "\"")
+        if (!_token.Boln && _tokenName == "\"")
             Accept().Type = eTokenType.Quote;
     }
 
     void ParseArray()
     {
         var open = Accept();
-        if (mToken != "]")
+        if (_token != "]")
         {
             ParseValue();
-            if (!sEndArrayValue.Contains(mTokenName))
-                Reject("Expecting ',' or ']'", sEndArrayValue);
-            while (mTokenName == ",")
+            if (!s_endArrayValue.Contains(_tokenName))
+                Reject("Expecting ',' or ']'", s_endArrayValue);
+            while (_tokenName == ",")
             {
                 Accept();
                 ParseValue();
-                if (!sEndArrayValue.Contains(mTokenName))
-                    Reject("Expecting ',' or ']'", sEndArrayValue);
+                if (!s_endArrayValue.Contains(_tokenName))
+                    Reject("Expecting ',' or ']'", s_endArrayValue);
             }
         }
         if (AcceptMatch("]"))
         {
-            Token.AddScopeLines(mLexer, open.Y, mPrevToken.Y - open.Y - 1, false );
-            Connect(open, mPrevToken);
+            Token.AddScopeLines(_lexer, open.Y, _prevToken.Y - open.Y - 1, false );
+            Connect(open, _prevToken);
         }
     }
 
     void ParseObject()
     {
         var open = Accept();
-        if (mToken != "}")
+        if (_token != "}")
         {
             ParseObjectKv();
-            while (mTokenName == ",")
+            while (_tokenName == ",")
             {
                 Accept();
                 ParseObjectKv();
@@ -132,27 +132,27 @@ class ParseJson
         }
         if (AcceptMatch("}"))
         {
-            Token.AddScopeLines(mLexer, open.Y, mPrevToken.Y - open.Y - 1, false);
-            Connect(open, mPrevToken);
+            Token.AddScopeLines(_lexer, open.Y, _prevToken.Y - open.Y - 1, false);
+            Connect(open, _prevToken);
         }
         else
         {
-            RejectToken(mToken, "Expecting '}'");
+            RejectToken(_token, "Expecting '}'");
         }
     }
 
     void ParseObjectKv()
     {
         ParseString();
-        if (mTokenName != ":")
-            Reject("Expecting ':'", sEndObjectKey);
-        if (mTokenName == ":")
+        if (_tokenName != ":")
+            Reject("Expecting ':'", s_endObjectKey);
+        if (_tokenName == ":")
         {
             Accept();
             ParseValue();
         }
-        if (!sEndObjectValue.Contains(mTokenName))
-            Reject("Expecting ',' or '}'", sEndObjectValue);
+        if (!s_endObjectValue.Contains(_tokenName))
+            Reject("Expecting ',' or '}'", s_endObjectValue);
     }
 
     // Reject the given token
@@ -166,10 +166,10 @@ class ParseJson
     // Reject the current token, then advance until the first stopToken
     void Reject(string errorMessage, WordSet stopTokens)
     {
-        RejectToken(mToken, errorMessage);
-        while (!stopTokens.Contains(mToken))
+        RejectToken(_token, errorMessage);
+        while (!stopTokens.Contains(_token))
         {
-            mToken.Grayed = true;
+            _token.Grayed = true;
             Accept();
         }
     }
@@ -178,7 +178,7 @@ class ParseJson
     // Accept the token if it matches.  Returns true if it was accepted.
     bool AcceptMatch(string matchToken)
     {
-        if (mTokenName == matchToken)
+        if (_tokenName == matchToken)
         {
             Accept();
             return true;
@@ -192,33 +192,33 @@ class ParseJson
     Token Accept()
     {
         // Already at end of file?
-        mPrevToken = mToken;
-        if (mTokenName == "")
-            return mPrevToken;
+        _prevToken = _token;
+        if (_tokenName == "")
+            return _prevToken;
 
         // Read next token, and skip comments
         do
         {
             // Read next token (set EOF flag if no more tokens on line)
-            if (mLexerEnum.MoveNext())
-                mToken = mLexerEnum.Current;
-        } while (mToken.Type == eTokenType.Comment);
+            if (_lexerEnum.MoveNext())
+                _token = _lexerEnum.Current;
+        } while (_token.Type == eTokenType.Comment);
 
         // Reset token info
-        mTokenName = mToken.Name;
-        mToken.Clear();
-        if (mTokenName.Length == 0)
-            mToken.Type = eTokenType.Normal;
-        else if (mTokenName[0] == '\"')
-            mToken.Type = eTokenType.Quote;
-        else if (char.IsDigit(mTokenName[0]))
-            mToken.Type = eTokenType.Number;
-        else if (char.IsLetter(mTokenName[0]))
-            mToken.Type = eTokenType.Identifier;
+        _tokenName = _token.Name;
+        _token.Clear();
+        if (_tokenName.Length == 0)
+            _token.Type = eTokenType.Normal;
+        else if (_tokenName[0] == '\"')
+            _token.Type = eTokenType.Quote;
+        else if (char.IsDigit(_tokenName[0]))
+            _token.Type = eTokenType.Number;
+        else if (char.IsLetter(_tokenName[0]))
+            _token.Type = eTokenType.Identifier;
         else
-            mToken.Type = eTokenType.Normal;
+            _token.Type = eTokenType.Normal;
 
-        return mPrevToken;
+        return _prevToken;
     }
 
     /// <summary>

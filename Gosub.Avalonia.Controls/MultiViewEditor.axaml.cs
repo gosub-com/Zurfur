@@ -9,7 +9,7 @@ namespace Gosub.Avalonia.Controls;
 
 public partial class MultiViewEditor : UserControl
 {
-    TabControl _tabControl;
+    TabControl _tabControl; // All Items are MultiViewTabItem
     public event EventHandler<string>? SelectionChanged;
     public event EventHandler<string>? TabCloseRequest;
 
@@ -59,6 +59,12 @@ public partial class MultiViewEditor : UserControl
     /// </summary>
     MultiViewTabItem? FindMvti(string key)
         => _tabControl.Items.FirstOrDefault(i => (i as MultiViewTabItem)?.Key == key) as MultiViewTabItem;
+
+    /// <summary>
+    /// Retrieve tab names
+    /// </summary>
+    public string[] TabKeys
+        => _tabControl.Items.Select(i => (i as MultiViewTabItem)?.Key??"").ToArray(); // All Items are MultiViewTabItem
 
     public void ShowTab(string key)
     {

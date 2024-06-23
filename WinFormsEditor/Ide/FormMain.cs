@@ -83,7 +83,10 @@ public partial class FormMain:Form
         }
 
         // Load the example project, TBD: This will be removed
-        mBuildPackage.Load(EXAMPLE_PROJECT_DIR);
+        mBuildPackage.OutputBaseDir = EXAMPLE_PROJECT_DIR;
+        Directory.CreateDirectory(mBuildPackage.OutputDir);
+        foreach (var file in FileSystemOs.EnumerateAllFiles(EXAMPLE_PROJECT_DIR))
+            mBuildPackage.LoadFile(file);
     }
 
     private void buttonClose_Click(object sender, EventArgs e)
@@ -789,10 +792,6 @@ public partial class FormMain:Form
             projectTree.OpenAndSelect(name);
             LoadFile(name);
         }
-
-        foreach (var editor in mvEditors.Editors)
-            if (files.Contains(editor.FilePath))
-                editor.LoadFile(editor.FilePath);
     }
 
     private void pictureMenuIcon_Click(object sender, EventArgs e)

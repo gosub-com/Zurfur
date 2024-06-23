@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Text;
 
 using Gosub.Lex;
-using Zurfur.Jit;
+using Zurfur.Vm;
 
 namespace Zurfur.Compiler;
 
@@ -35,42 +35,42 @@ class ParseZurf
     const int SCOPE_INDENT = 4;
 
     // TBD: Allow pragmas to be set externally
-    static WordSet sPragmas = new("ShowParse NoParse NoCompilerChecks "
+    static WordSet s_pragmas = new("ShowParse NoParse NoCompilerChecks "
         + "NoVerify AllowUnderscoreDefinitions");
 
 
-    ParseZurfCheck mZurfParseCheck;
+    ParseZurfCheck _zurfParseCheck;
 
-    int                 mParseErrors;	// Number of errors
-    Lexer				mLexer;			// Lexer to be parsed
-    Lexer.Enumerator    mEnum;          // Lexer enumerator
-    string              mTokenName ="*"; // Skipped by first accept
-    Token               mToken = new(";");
-    Token               mPrevToken = new(";");
-    StringBuilder       mComments = new();
-    int                 mCommentLineIndex;
-    bool                mInTernary;
-    bool                mAllowUnderscoreDefinitions;
-    List<Token>         mInsertedTokens = new();
-    int                 mInsertedIndex;
+    int                 _parseErrors;	// Number of errors
+    Lexer				_lexer;			// Lexer to be parsed
+    Lexer.Enumerator    _enum;          // Lexer enumerator
+    string              _tokenName ="*"; // Skipped by first accept
+    Token               _token = new(";");
+    Token               _prevToken = new(";");
+    StringBuilder       _comments = new();
+    int                 _commentLineIndex;
+    bool                _inTernary;
+    bool                _allowUnderscoreDefinitions;
+    List<Token>         _insertedTokens = new();
+    int                 _insertedIndex;
 
     // Be kind to GC
-    Queue<List<SyntaxExpr>> mExprCache = new();
+    Queue<List<SyntaxExpr>> _exprCache = new();
 
-    List<SyntaxScope> mScopeStack = new();
-    SyntaxFile mSyntax;
+    List<SyntaxScope> _scopeStack = new();
+    SyntaxFile _syntax;
 
-    public int ParseErrors => mParseErrors;
+    public int ParseErrors => _parseErrors;
 
     // Add semicolons to all lines, except for:
-    static WordSet sContinuationEnd = new("[ ( ,");
-    static WordSet sContinuationNoBegin = new("} namespace mod type use pragma pub fun afun " 
+    static WordSet s_continuationEnd = new("[ ( ,");
+    static WordSet s_continuationNoBegin = new("} namespace mod type use pragma pub fun afun " 
         + "get set if while for return ret break continue else");
-    static WordSet sContinuationBegin = new("] ) , . + - * / % | & || && and or not "
+    static WordSet s_continuationBegin = new("] ) , . + - * / % | & || && and or not "
                         + "== != : ? ?? > << <= < => -> .. :: !== ===  is in as has "
                         + "= += -= *= /= %= |= &= ~= " + TOKEN_STR_LITERAL);
 
-    static WordSet sReservedWords = new("as has break case catch const "
+    static WordSet s_reservedWords = new("as has break case catch const "
         + "continue do then else elif todo extern nil true false defer use "
         + "finally for goto go if ife in is mod app include "
         + "new out pub public private priv readonly ro ref aref mut imut "
@@ -83,44 +83,44 @@ class ParseZurf
         + "throws rethrow @ # and or not xor with exit pragma require ensure "
         + "of sync except exception loc local global my My self Self this This");
 
-    public static WordSet ReservedWords => sReservedWords;
+    public static WordSet ReservedWords => s_reservedWords;
 
-    static WordSet sScopeQualifiers = new("pub public private unsafe unsealed static protected");
-    static WordSet sFieldQualifiers = new("ro mut static");
-    static WordSet sPreTypeQualifiers = new("ro ref struct noclone unsafe enum union interface");
-    static WordSet sPostFieldQualifiers = new("init mut ref");
-    static WordSet sParamQualifiers = new("ro own mut");
+    static WordSet s_scopeQualifiers = new("pub public private unsafe unsealed static protected");
+    static WordSet s_fieldQualifiers = new("ro mut static");
+    static WordSet s_preTypeQualifiers = new("ro ref struct noclone unsafe enum union interface");
+    static WordSet s_postFieldQualifiers = new("init mut ref");
+    static WordSet s_paramQualifiers = new("ro own mut");
 
-    static WordSet sAllowReservedFunNames = new("require new drop");
-    static WordSet sReservedIdentifierVariables = new("nil true false new move my sizeof typeof require");
-    static WordSet sReservedMemberNames = new("clone");
-    static WordSet sTypeUnaryOps = new("? ! * ^ [ & ro");
+    static WordSet s_allowReservedFunNames = new("require new drop");
+    static WordSet s_reservedIdentifierVariables = new("nil true false new move my sizeof typeof require");
+    static WordSet s_reservedMemberNames = new("clone");
+    static WordSet s_typeUnaryOps = new("? ! * ^ [ & ro");
 
-    static WordSet sEmptyWordSet = new("");
+    static WordSet s_emptyWordSet = new("");
 
-    static WordSet sCompareOps = new("== != < <= > >= === !== in");
-    static WordSet sRangeOps = new(".. ..+");
-    static WordSet sAddOps = new("+ - |");
-    static WordSet sXorOps = new("~");
-    static WordSet sMultiplyOps = new("* / % &");
-    static WordSet sAssignOps = new("= += -= *= /= %= |= &= ~= <<= >>=");
-    static WordSet sUnaryOps = new("+ - & &* ~ use unsafe clone mut not astart");
+    static WordSet s_compareOps = new("== != < <= > >= === !== in");
+    static WordSet s_rangeOps = new(".. ..+");
+    static WordSet s_addOps = new("+ - |");
+    static WordSet s_xorOps = new("~");
+    static WordSet s_multiplyOps = new("* / % &");
+    static WordSet s_assignOps = new("= += -= *= /= %= |= &= ~= <<= >>=");
+    static WordSet s_unaryOps = new("+ - & &* ~ use unsafe clone mut not astart");
 
     // C# uses "(  )  ]  }  :  ;  ,  .  ?  ==  !=  |  ^"  to resolve type
     // argument ambiguities. The following symbols allow us to call functions,
     // create types, and access static members. For example `F<T1>()` to
     // call a function or constructor and `F<T1>.Name` to access a static member.
-    static WordSet sTypeArgumentParameterSymbols = new("( ) . , ;");
+    static WordSet s_typeArgumentParameterSymbols = new("( ) . , ;");
 
-    Regex sFindUrl = new(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
+    Regex s_findUrl = new(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
 
-    static WordSet sStatementEndings = new("; }");
-    static WordSet sRejectAnyStop = new("; { }", true);
-    static WordSet sRejectForCondition = new("in");
-    static WordSet sRejectFuncParam = new(", )");
-    static WordSet sRejectTypeName = new("( )");
+    static WordSet s_statementEndings = new("; }");
+    static WordSet s_rejectAnyStop = new("; { }", true);
+    static WordSet s_rejectForCondition = new("in");
+    static WordSet s_rejectFuncParam = new(", )");
+    static WordSet s_rejectTypeName = new("( )");
 
-    static WordMap<string> sStringLiterals = new()
+    static WordMap<string> s_stringLiterals = new()
         { { "n", "\n" }, { "r", "\r"}, {"rn", "\r\n"}, {"t", "\t"}, {"b", "\b" } };
 
     /// <summary>
@@ -128,71 +128,71 @@ class ParseZurf
     /// </summary>
     public ParseZurf(Lexer lexer)
     {
-        mLexer = lexer;
-        mEnum = lexer.GetEnumerator();
-        mSyntax = new SyntaxFile();
-        mSyntax.Lexer = lexer;
-        mZurfParseCheck = new ParseZurfCheck(this);
+        _lexer = lexer;
+        _enum = lexer.GetEnumerator();
+        _syntax = new SyntaxFile();
+        _syntax.Lexer = lexer;
+        _zurfParseCheck = new ParseZurfCheck(this);
     }
 
-    Token EmptyToken => mLexer.EndToken;
+    Token EmptyToken => _lexer.EndToken;
     SyntaxToken EmptyExpr => new SyntaxToken(EmptyToken);
     SyntaxError SyntaxError => new SyntaxError(EmptyToken);
 
     // Be kind to GC
     List<SyntaxExpr> NewExprList()
     {
-        if (mExprCache.Count == 0)
+        if (_exprCache.Count == 0)
             return new List<SyntaxExpr>();
-        return mExprCache.Dequeue();
+        return _exprCache.Dequeue();
     }
 
     SyntaxExpr []FreeExprList(List<SyntaxExpr> expr)
     {
         var array = expr.ToArray();
         expr.Clear();
-        if (mExprCache.Count < 10)
-            mExprCache.Enqueue(expr);
+        if (_exprCache.Count < 10)
+            _exprCache.Enqueue(expr);
         return array;
     }
 
     public SyntaxFile Parse()
     {
-        mLexer.EndToken.Clear();
-        mLexer.MetaTokensClear();
+        _lexer.EndToken.Clear();
+        _lexer.MetaTokensClear();
 
         if (Debugger.IsAttached)
         {
             // Failure causes error in dubugger
             ParseCompilationUnit();
-            mZurfParseCheck.Check(mSyntax);
+            _zurfParseCheck.Check(_syntax);
         }
         else
         {
             try
             {
                 ParseCompilationUnit();
-                mZurfParseCheck.Check(mSyntax);
+                _zurfParseCheck.Check(_syntax);
             }
             catch (Exception ex1)
             {
                 var errorMessage = "Parse failure: " + ex1.Message + "\r\n\r\n" + ex1.StackTrace;
-                RejectToken(mToken, errorMessage);
-                if (mZurfParseCheck.LastToken != null)
-                    RejectToken(mZurfParseCheck.LastToken, errorMessage);
-                while (mTokenName != "")
+                RejectToken(_token, errorMessage);
+                if (_zurfParseCheck.LastToken != null)
+                    RejectToken(_zurfParseCheck.LastToken, errorMessage);
+                while (_tokenName != "")
                     Accept();
-                var lexEnum = new Lexer.Enumerator(mLexer);
+                var lexEnum = new Lexer.Enumerator(_lexer);
                 lexEnum.MoveNext();
                 RejectToken(lexEnum.Current, errorMessage);
             }
         }
-        if (mTokenName != "")
-            RejectToken(mToken, "Parse error: Expecting end of file");
-        while (mTokenName != "")
+        if (_tokenName != "")
+            RejectToken(_token, "Parse error: Expecting end of file");
+        while (_tokenName != "")
             Accept();
 
-        return mSyntax;
+        return _syntax;
     }
     class NoCompilePragmaException : Exception { }
 
@@ -203,7 +203,7 @@ class ParseZurf
     {
         try
         {
-            var tokens = mLexer.GetLineTokens(0);
+            var tokens = _lexer.GetLineTokens(0);
             if (tokens.Length >= 2 && tokens[0] == "pragma" && tokens[1] == "NoParse")
                 return;
             ScanScopeStructure();
@@ -227,7 +227,7 @@ class ParseZurf
         Token? prevNonContinuationLineToken = null;
         Token? token;
 
-        var e = mLexer.GetEnumerator();
+        var e = _lexer.GetEnumerator();
         while (e.MoveNext(out token))
         {
             while (token == TOKEN_COMMENT)
@@ -258,10 +258,10 @@ class ParseZurf
             if (prevNonCommentToken == null)
                 return;
 
-            bool isContinueEnd = sContinuationEnd.Contains(prevNonCommentToken);
-            bool isContinueBegin = sContinuationBegin.Contains(token.Name);
+            bool isContinueEnd = s_continuationEnd.Contains(prevNonCommentToken);
+            bool isContinueBegin = s_continuationBegin.Contains(token.Name);
             bool isContinue = (isContinueEnd || isContinueBegin)
-                                    && !sContinuationNoBegin.Contains(token.Name);
+                                    && !s_continuationNoBegin.Contains(token.Name);
 
             // In the case where the line is continued from the previous
             // line (e.g. `(`, `[`, `,`, etc.) and the next line is not
@@ -285,7 +285,7 @@ class ParseZurf
             }
 
             // Add scope/expression separators '{', '}', or ';'
-            var xIndex = mLexer.GetLine(prevNonCommentToken.Y).Length;
+            var xIndex = _lexer.GetLine(prevNonCommentToken.Y).Length;
             if (token.X > scope + SCOPE_INDENT - 1)
             {
                 // Add open braces '{'
@@ -293,7 +293,7 @@ class ParseZurf
                     scope += SCOPE_INDENT;
                     var openBrace = AddMetaToken(new Token("{", xIndex++, prevNonCommentToken.Y));
                     braceStack.Add((openBrace, prevNonContinuationLineToken?.Y??0));
-                    mInsertedTokens.Add(openBrace);
+                    _insertedTokens.Add(openBrace);
                 } while (token.X > scope + SCOPE_INDENT - 1);
             }
             else if (token.X < scope - (SCOPE_INDENT - 1))
@@ -301,14 +301,14 @@ class ParseZurf
                 // Add close braces with semi-colons ';};'
                 do {
                     // End statement before brace
-                    mInsertedTokens.Add(AddMetaToken(new Token(";", xIndex++, prevNonCommentToken.Y)));
+                    _insertedTokens.Add(AddMetaToken(new Token(";", xIndex++, prevNonCommentToken.Y)));
                     scope -= SCOPE_INDENT;
                     var openBrace = braceStack.Pop();
                     var closeBrace = AddMetaToken(new Token("}", xIndex++, prevNonCommentToken.Y));
-                    mInsertedTokens.Add(closeBrace);
-                    mInsertedTokens.Add(AddMetaToken(new Token(";", xIndex++, prevNonCommentToken.Y)));
+                    _insertedTokens.Add(closeBrace);
+                    _insertedTokens.Add(AddMetaToken(new Token(";", xIndex++, prevNonCommentToken.Y)));
 
-                    Token.AddScopeLines(mLexer, openBrace.y, closeBrace.Y - openBrace.y, false);
+                    Token.AddScopeLines(_lexer, openBrace.y, closeBrace.Y - openBrace.y, false);
 
                     // TBD: This doesn't work because the tokens are cleared
                     //      when accepting them (see that TBD to see why)
@@ -318,7 +318,7 @@ class ParseZurf
             }
             else
             {
-                mInsertedTokens.Add(AddMetaToken(new Token(";",
+                _insertedTokens.Add(AddMetaToken(new Token(";",
                         xIndex++, prevNonCommentToken.Y)));
             }
 
@@ -342,7 +342,7 @@ class ParseZurf
                 prevNonCommentToken = null;
                 RejectToken(AddMetaToken(new Token(" ", token.X + token.Name.Length, token.Y)),
                     "Expecting end quote before end of line");
-                mInsertedTokens.Add(AddMetaToken(new Token(";",
+                _insertedTokens.Add(AddMetaToken(new Token(";",
                         token.X + token.Name.Length, token.Y)));
             }
             else
@@ -394,8 +394,8 @@ class ParseZurf
             //      Either use one meta token link, or change editor to group these somehow.
             var commentToken = tokens[tokenIndex];
             var x = commentToken.X + commentToken.Name.Length;
-            var comment = mLexer.GetLine(commentToken.Y).Substring(x);
-            var m = sFindUrl.Matches(comment);
+            var comment = _lexer.GetLine(commentToken.Y).Substring(x);
+            var m = s_findUrl.Matches(comment);
             for (int i = 0; i < m.Count; i++)
             {
                 var url = m[i].Value.ToLower();
@@ -419,16 +419,16 @@ class ParseZurf
     /// </summary>
     void ScanCheck()
     {
-        for (int i = 0; i < mInsertedTokens.Count - 1; i++)
-            if (mInsertedTokens[i].Location > mInsertedTokens[i + 1].Location)
+        for (int i = 0; i < _insertedTokens.Count - 1; i++)
+            if (_insertedTokens[i].Location > _insertedTokens[i + 1].Location)
                 throw new Exception("Additional meta-tokens must be sorted");
 
         Token? prevToken = null;
         var prevTokenHasError = false;
-        for (var lineIndex = 0;  lineIndex < mLexer.LineCount;  lineIndex++)
+        for (var lineIndex = 0;  lineIndex < _lexer.LineCount;  lineIndex++)
         {
-            var line = mLexer.GetLine(lineIndex);
-            var tokens = mLexer.GetLineTokens(lineIndex);
+            var line = _lexer.GetLine(lineIndex);
+            var tokens = _lexer.GetLineTokens(lineIndex);
             CheckTabsAndSemicolons(tokens, lineIndex, line);
 
             // Skip blank and comment lines
@@ -496,29 +496,29 @@ class ParseZurf
         var qualifiers = new List<Token>();
 
         // Search for 'mod' keyword
-        while (mTokenName != "")
+        while (_tokenName != "")
         {
-            if (mTokenName == "pragma")
+            if (_tokenName == "pragma")
                 ParsePragma();
-            else if (mTokenName == "mod")
+            else if (_tokenName == "mod")
             {
                 if (ParseModuleStatement(Accept()))
                     break;
             }
             else if (!Reject("Expecting 'mod' or 'pragma' keyword"))
                 Accept();
-            if (mTokenName == ";")
+            if (_tokenName == ";")
                 Accept();
         }
-        if (mToken == ";" && mToken.Meta)
+        if (_token == ";" && _token.Meta)
             Accept();
-        if (mTokenName == "")
+        if (_tokenName == "")
             return;
 
-        while (mTokenName != "")
+        while (_tokenName != "")
         {
-            if (mToken.X != 0 && mToken != ";")
-                RejectToken(mToken, $"Incorrect indentation, module level statements must be in first column");
+            if (_token.X != 0 && _token != ";")
+                RejectToken(_token, $"Incorrect indentation, module level statements must be in first column");
             ParseModuleScopeStatement(qualifiers);
         }
     }
@@ -528,8 +528,8 @@ class ParseZurf
         // Read attributes and qualifiers
         ParseAttributes(qualifiers);
 
-        var keyword = mToken;
-        switch (mTokenName)
+        var keyword = _token;
+        switch (_tokenName)
         {
             case ";":
                 Accept();
@@ -541,16 +541,16 @@ class ParseZurf
                 break;
 
             case "use":
-                mToken.Type = eTokenType.ReservedControl;
+                _token.Type = eTokenType.ReservedControl;
                 Accept();
-                mSyntax.Using.Add(ParseUsingStatement());
-                if (mSyntax.Types.Count != 0 || mSyntax.Functions.Count != 0 || mSyntax.Fields.Count != 0)
+                _syntax.Using.Add(ParseUsingStatement());
+                if (_syntax.Types.Count != 0 || _syntax.Functions.Count != 0 || _syntax.Fields.Count != 0)
                     RejectToken(keyword, "'use' statement must come before any types, fields, or functions are defined");
                 qualifiers.Clear();
                 break;
 
             case "type":
-                mToken.Type = eTokenType.ReservedControl;
+                _token.Type = eTokenType.ReservedControl;
                 qualifiers.Add(Accept());
                 ParseTypeScope(keyword, qualifiers);
                 qualifiers.Clear();
@@ -558,7 +558,7 @@ class ParseZurf
 
             case "fun":
             case "afun":
-                mToken.Type = eTokenType.ReservedControl;
+                _token.Type = eTokenType.ReservedControl;
                 qualifiers.Add(Accept());
                 ParseFunction(keyword, qualifiers, true);
                 qualifiers.Clear();
@@ -592,17 +592,17 @@ class ParseZurf
         var attributes = NewExprList();
         while (AcceptMatch("["))
         {
-            var open = mPrevToken;
-            if (sScopeQualifiers.Contains(mToken))
+            var open = _prevToken;
+            if (s_scopeQualifiers.Contains(_token))
             {
-                while (sScopeQualifiers.Contains(mToken))
+                while (s_scopeQualifiers.Contains(_token))
                     qualifiers.Add(Accept());
             }
             else
                 attributes.Add(ParseExpr());
 
             if (AcceptMatchOrReject("]"))
-                Connect(mPrevToken, open);
+                Connect(_prevToken, open);
         }
 
         FreeExprList(attributes); // TBD: Store in expression tree
@@ -610,9 +610,9 @@ class ParseZurf
 
     private void ParseQualifiers(WordSet allowedQualifiers, List<Token> qualifiers)
     {
-        while (allowedQualifiers.Contains(mTokenName))
+        while (allowedQualifiers.Contains(_tokenName))
         {
-            mToken.Type = eTokenType.Reserved;
+            _token.Type = eTokenType.Reserved;
             qualifiers.Add(Accept());
         }
     }
@@ -621,7 +621,7 @@ class ParseZurf
     {
         if (field == null)
             return; // Error already marked while parsing definition
-        mSyntax.Fields.Add(field);
+        _syntax.Fields.Add(field);
     }
 
     SyntaxUsing ParseUsingStatement()
@@ -633,21 +633,21 @@ class ParseZurf
 
         if (AcceptMatch("["))
         {
-            var openToken = mPrevToken;
+            var openToken = _prevToken;
             tokens.Clear();
             do
             {
-                if (mTokenName == "]")
+                if (_tokenName == "]")
                     break;
                 if (!AcceptIdentifier("Expecting a symbol from the module"))
                     break;
-                if (tokens.FindIndex(m => m.Name == mPrevToken.Name) < 0)
-                    tokens.Add(mPrevToken);
+                if (tokens.FindIndex(m => m.Name == _prevToken.Name) < 0)
+                    tokens.Add(_prevToken);
                 else
-                    RejectToken(mPrevToken, "Duplicate symbol");
+                    RejectToken(_prevToken, "Duplicate symbol");
             } while (AcceptMatch(","));
             if (AcceptMatchOrReject("]"))
-                Connect(mPrevToken, openToken);
+                Connect(_prevToken, openToken);
             synUsing.Symbols = tokens.ToArray();
         }
 
@@ -657,7 +657,7 @@ class ParseZurf
     bool ParseModuleStatement(Token keyword)
     {
         if (keyword.X != 0)
-            RejectToken(mToken, "'mod' statement must be in the first column");
+            RejectToken(_token, "'mod' statement must be in the first column");
         keyword.Type = eTokenType.ReservedControl;
 
         var namePath = new List<Token>();
@@ -665,8 +665,8 @@ class ParseZurf
         {
             if (!AcceptIdentifier("Expecting a module name identifier"))
                 break;
-            namePath.Add(mPrevToken);
-            RejectUnderscoreDefinition(mPrevToken);
+            namePath.Add(_prevToken);
+            RejectUnderscoreDefinition(_prevToken);
         } while (AcceptMatch("."));
 
         if (namePath.Count == 0)
@@ -674,36 +674,36 @@ class ParseZurf
 
         // Each module goes on the scope stack
         for (int i = 0;  i <  namePath.Count;  i++)
-            mScopeStack.Add(new SyntaxModule(keyword, namePath[i], i == 0 ? null : mScopeStack[i-1]));
+            _scopeStack.Add(new SyntaxModule(keyword, namePath[i], i == 0 ? null : _scopeStack[i-1]));
 
         // Collect base module name
         var namePathStrArray = namePath.ConvertAll(token => token.Name).ToArray();
         var namePathStr = string.Join(".", namePathStrArray);
-        var module = (SyntaxModule)mScopeStack[mScopeStack.Count - 1];
-        mSyntax.Modules[namePathStr] = module;
+        var module = (SyntaxModule)_scopeStack[_scopeStack.Count - 1];
+        _syntax.Modules[namePathStr] = module;
 
         // Accumulate comments and keyword tokens for this module
-        module.Comments += " " + mComments;
-        mComments.Clear();
+        module.Comments += " " + _comments;
+        _comments.Clear();
         return true;
     }
 
     void ParsePragma()
     {
-        mToken.Type = eTokenType.ReservedControl;
+        _token.Type = eTokenType.ReservedControl;
         Accept();
-        mToken.Type = eTokenType.Reserved;
-        if (mSyntax.Pragmas.ContainsKey(mTokenName))
-            RejectToken(mToken, "Duplicate pragma");
-        if (!sPragmas.Contains(mTokenName))
-            mToken.AddError("Unkown pragma");
-        mSyntax.Pragmas[mTokenName] = new SyntaxPragma(mToken);
+        _token.Type = eTokenType.Reserved;
+        if (_syntax.Pragmas.ContainsKey(_tokenName))
+            RejectToken(_token, "Duplicate pragma");
+        if (!s_pragmas.Contains(_tokenName))
+            _token.AddError("Unkown pragma");
+        _syntax.Pragmas[_tokenName] = new SyntaxPragma(_token);
 
-        if (mTokenName == "__fail")
+        if (_tokenName == "__fail")
             throw new Exception("Parse fail test");
-        if (mTokenName == "AllowUnderscoreDefinitions")
-            mAllowUnderscoreDefinitions = true;
-        if (mTokenName == "NoParse")
+        if (_tokenName == "AllowUnderscoreDefinitions")
+            _allowUnderscoreDefinitions = true;
+        if (_tokenName == "NoParse")
         {
             while (Accept() != "")
             { }
@@ -715,11 +715,11 @@ class ParseZurf
     void ParseTypeScope(Token keyword, List<Token> qualifiers)
     {
         var synType = new SyntaxType(keyword);
-        synType.Parent = mScopeStack.Count == 0 ? null : mScopeStack.Last();
-        synType.Comments = mComments.ToString();
-        mComments.Clear();
+        synType.Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last();
+        synType.Comments = _comments.ToString();
+        _comments.Clear();
 
-        ParseQualifiers(sPreTypeQualifiers, qualifiers);
+        ParseQualifiers(s_preTypeQualifiers, qualifiers);
         synType.Qualifiers = qualifiers.ToArray();
 
         // Parse type name
@@ -729,22 +729,22 @@ class ParseZurf
         synType.Name.Type = eTokenType.TypeName;
         (synType.TypeArgs, synType.Constraints) = ParseTypeParameters();
 
-        mSyntax.Types.Add(synType);
+        _syntax.Types.Add(synType);
         RejectUnderscoreDefinition(synType.Name);
 
         // Push new path
-        var oldScopeStack = mScopeStack;
-        mScopeStack = new List<SyntaxScope>(oldScopeStack);
-        mScopeStack.Add(synType);
+        var oldScopeStack = _scopeStack;
+        _scopeStack = new List<SyntaxScope>(oldScopeStack);
+        _scopeStack.Add(synType);
 
         // Simple struct
         if (AcceptMatch("("))
         {
             synType.Simple = true;
-            var open = mPrevToken;
+            var open = _prevToken;
             do
             {
-                if (mToken == ")")
+                if (_token == ")")
                     break;
                 var simpleField = ParseFieldSimple(new List<Token>());
                 if (simpleField != null)
@@ -754,18 +754,18 @@ class ParseZurf
                 }
             } while (AcceptMatch(","));
             if (AcceptMatchOrReject(")"))
-                Connect(mPrevToken, open);
-            mScopeStack = oldScopeStack;
+                Connect(_prevToken, open);
+            _scopeStack = oldScopeStack;
             return;
         }
 
         // Alias or 'is' type
         if (AcceptMatch("=") || AcceptMatch("is"))
         {
-            var prev = mPrevToken.Name;
+            var prev = _prevToken.Name;
             synType.Simple = true;
             synType.Alias = ParseType();
-            mScopeStack = oldScopeStack;
+            _scopeStack = oldScopeStack;
             return;
         }
 
@@ -773,21 +773,21 @@ class ParseZurf
         ParseTypeScopeStatements(synType, qualifiers2);
 
         // Restore old path
-        mScopeStack = oldScopeStack;
+        _scopeStack = oldScopeStack;
     }
 
     private void ParseTypeScopeStatements(SyntaxType synType, List<Token> qualifiers2)
     {
         if (ExpectStartOfScope())
         {
-            var openBrace = mPrevToken;
-            while (mToken != "" && mToken != "}")
+            var openBrace = _prevToken;
+            while (_token != "" && _token != "}")
             {
                 ParseTypeScopeStatement(synType, qualifiers2);
                 ExpectEndOfStatement();
             }
             if (ExpectEndOfScope())
-                Connect(mPrevToken, openBrace);
+                Connect(_prevToken, openBrace);
         }
     }
 
@@ -798,13 +798,13 @@ class ParseZurf
         var isInterface = Array.Find(parent.Qualifiers, a => a == "interface") != null;
         var isEnum = Array.Find(parent.Qualifiers, a => a == "enum") != null;
 
-        switch (mTokenName)
+        switch (_tokenName)
         {
             case ";":
                 break;
 
             case "{":
-                RejectToken(mToken, "Unnecessary scope is not allowed");
+                RejectToken(_token, "Unnecessary scope is not allowed");
                 ParseTypeScopeStatements(parent, qualifiers);
                 break;
 
@@ -815,8 +815,8 @@ class ParseZurf
 
             case "const":
                 if (isInterface || isEnum)
-                    RejectToken(mToken, $"Interfaces and enumerations may not contain 'const'");
-                mToken.Type = eTokenType.ReservedControl;
+                    RejectToken(_token, $"Interfaces and enumerations may not contain 'const'");
+                _token.Type = eTokenType.ReservedControl;
                 qualifiers.Add(Accept());
                 AddField(ParseFieldSimple(qualifiers));
                 qualifiers.Clear();
@@ -824,9 +824,9 @@ class ParseZurf
 
             case "fun":
             case "afun":
-                mToken.Type = eTokenType.ReservedControl;
+                _token.Type = eTokenType.ReservedControl;
                 qualifiers.Add(Accept());
-                ParseFunction(mToken, qualifiers, !isInterface);
+                ParseFunction(_token, qualifiers, !isInterface);
                 qualifiers.Clear();
                 break;
 
@@ -834,7 +834,7 @@ class ParseZurf
                 if (isEnum)
                     AddField(ParseEnumField(qualifiers));
                 else if (isInterface)
-                    RejectToken(mToken, "Interface is expecting 'fun'");
+                    RejectToken(_token, "Interface is expecting 'fun'");
                 else
                     ParseFieldFull(qualifiers);
 
@@ -848,41 +848,41 @@ class ParseZurf
     {
         if (!AcceptMatch("<"))
             return (null, null);
-        var openToken = mPrevToken;
+        var openToken = _prevToken;
         var typeParams = NewExprList();
         var constraints = Array.Empty<SyntaxConstraint>();
-        while (mToken != ">"
-            && AcceptIdentifier("Expecting '>' or a type parameter", sRejectTypeName))
+        while (_token != ">"
+            && AcceptIdentifier("Expecting '>' or a type parameter", s_rejectTypeName))
         {
-            typeParams.Add(new SyntaxToken(mPrevToken));
-            if (mPrevToken.Type == eTokenType.Identifier)
-                mPrevToken.Type = eTokenType.DefineTypeParam;
+            typeParams.Add(new SyntaxToken(_prevToken));
+            if (_prevToken.Type == eTokenType.Identifier)
+                _prevToken.Type = eTokenType.DefineTypeParam;
 
-            if (mToken.Type == eTokenType.Identifier)
+            if (_token.Type == eTokenType.Identifier)
             {
-                var constraint = ParseConstraint(mPrevToken);
+                var constraint = ParseConstraint(_prevToken);
                 if (constraint != null)
                     constraints = constraints.Append(constraint).ToArray();
             }
 
             if (AcceptMatch(","))
-                Connect(openToken, mPrevToken);
+                Connect(openToken, _prevToken);
         }
         if (AcceptMatch(">"))
-            Connect(openToken, mPrevToken);
+            Connect(openToken, _prevToken);
 
         return (new SyntaxMulti(openToken, FreeExprList(typeParams)), constraints);
     }
 
     SyntaxConstraint? ParseConstraint(Token typeToken)
     {
-        if (mToken.Type != eTokenType.Identifier)
+        if (_token.Type != eTokenType.Identifier)
             return null;
 
         var constraint = new SyntaxConstraint();
         constraint.TypeName = typeToken;
         var constraintTypeNames = NewExprList();
-        while (mToken.Type == eTokenType.Identifier)
+        while (_token.Type == eTokenType.Identifier)
         {
             constraintTypeNames.Add(ParseType());
             AcceptMatch("+");
@@ -896,15 +896,15 @@ class ParseZurf
         // Variable name
         if (!AcceptIdentifier("Expecting field name"))
             return null;
-        var newVarName = mPrevToken;
+        var newVarName = _prevToken;
         newVarName.Type = eTokenType.DefineField;
         RejectUnderscoreDefinition(newVarName);
 
         var field = new SyntaxField(newVarName);
-        field.Parent = mScopeStack.Count == 0 ? null : mScopeStack.Last();
+        field.Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last();
         field.Qualifiers = qualifiers.ToArray();
-        field.Comments = mComments.ToString();
-        mComments.Clear();
+        field.Comments = _comments.ToString();
+        _comments.Clear();
 
         // Optionally initialize
         if (AcceptMatch("="))
@@ -919,20 +919,20 @@ class ParseZurf
     {
         if (!AcceptIdentifier("Expecting field name"))
             return null;
-        var newVarName = mPrevToken;
+        var newVarName = _prevToken;
         newVarName.Type = eTokenType.DefineField;
         RejectUnderscoreDefinition(newVarName);
 
         var field = new SyntaxField(newVarName);
-        field.Parent = mScopeStack.Count == 0 ? null : mScopeStack.Last();
+        field.Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last();
         field.Qualifiers = qualifiers.ToArray();
-        field.Comments = mComments.ToString();
-        mComments.Clear();
+        field.Comments = _comments.ToString();
+        _comments.Clear();
 
-        if (mTokenName != "=")
+        if (_tokenName != "=")
             field.TypeName = ParseType();
 
-        if (mTokenName == "=")
+        if (_tokenName == "=")
             field.Initializer = new SyntaxUnary(Accept(), ParseRightSideOfAssignment());
 
         return field;
@@ -943,38 +943,38 @@ class ParseZurf
         // Variable name
         if (!AcceptIdentifier("Expecting field name"))
             return;
-        var newVarName = mPrevToken;
+        var newVarName = _prevToken;
         newVarName.Type = eTokenType.DefineField;
         RejectUnderscoreDefinition(newVarName);
 
-        while (sFieldQualifiers.Contains(mToken))
+        while (s_fieldQualifiers.Contains(_token))
             qualifiers.Add(Accept()); ;
 
         // Type name
-        var errors = mParseErrors;
+        var errors = _parseErrors;
         var typeName = ParseType();
-        if (mParseErrors != errors)
+        if (_parseErrors != errors)
             return;
 
         // Post field qualifiers
-        if (mTokenName == "pub")
+        if (_tokenName == "pub")
         {
             // TBD: Distinguish "ro @a int" from "@a int pub ro", same for "pub"
             qualifiers.Insert(0, Accept());
-            while (sPostFieldQualifiers.Contains(mTokenName))
+            while (s_postFieldQualifiers.Contains(_tokenName))
                 qualifiers.Add(Accept());
         }
 
         // Initializer
         SyntaxExpr? initializer = null;
-        if (mTokenName == "=")
+        if (_tokenName == "=")
             initializer = new SyntaxUnary(Accept(), ParseRightSideOfAssignment());
 
         var field = new SyntaxField(newVarName);
-        field.Parent = mScopeStack.Count == 0 ? null : mScopeStack.Last();
+        field.Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last();
         field.Qualifiers = qualifiers.ToArray();
-        field.Comments = mComments.ToString();
-        mComments.Clear();
+        field.Comments = _comments.ToString();
+        _comments.Clear();
         field.TypeName = typeName;
         field.Initializer = initializer;
         AddField(field);
@@ -987,13 +987,13 @@ class ParseZurf
     {
         // Parse func keyword
         var synFunc = new SyntaxFunc(keyword);
-        synFunc.Parent = mScopeStack.Count == 0 ? null : mScopeStack.Last();
-        synFunc.Comments = mComments.ToString();
-        mComments.Clear();
+        synFunc.Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last();
+        synFunc.Comments = _comments.ToString();
+        _comments.Clear();
 
-        if (mTokenName == "get" || mTokenName == "set")
+        if (_tokenName == "get" || _tokenName == "set")
         {
-            mToken.Type = eTokenType.ReservedControl;
+            _token.Type = eTokenType.ReservedControl;
             qualifiers.Add(Accept());
         }
 
@@ -1003,14 +1003,14 @@ class ParseZurf
 
         // Body
         if (AcceptMatch("extern") || AcceptMatch("todo"))
-            qualifiers.Add(mPrevToken);
+            qualifiers.Add(_prevToken);
         else if (allowBody)
             synFunc.Statements = ParseStatements(synFunc);
 
         synFunc.Qualifiers = qualifiers.ToArray();
 
         if (validFunctionName)
-            mSyntax.Functions.Add(synFunc);
+            _syntax.Functions.Add(synFunc);
     }
 
 
@@ -1022,40 +1022,40 @@ class ParseZurf
         out Token funcName)
     {
         extensionType = null;
-        funcName = mToken;
+        funcName = _token;
 
         // Golang style receiver
         Token? mutToken; // TBD: Probably needs to be part of the type name
         if (AcceptMatch("("))
         {
-            var open = mPrevToken;
-            mutToken = mToken == "mut" ? Accept() : null;
+            var open = _prevToken;
+            mutToken = _token == "mut" ? Accept() : null;
             extensionType = ParseType();
             if (extensionType is SyntaxError)
                 extensionType = null;
             if (AcceptMatchOrReject(")"))
-                Connect(open, mPrevToken);
+                Connect(open, _prevToken);
         }
         else
         {
-            mutToken = mToken == "mut" ? Accept() : null;
+            mutToken = _token == "mut" ? Accept() : null;
         }
 
         // Function name
-        if (!AcceptIdentifier("Expecting a function or type name", sRejectTypeName, sAllowReservedFunNames))
+        if (!AcceptIdentifier("Expecting a function or type name", s_rejectTypeName, s_allowReservedFunNames))
             return false;
 
         // Shortcut receiver style
-        funcName = mPrevToken;
+        funcName = _prevToken;
         if (extensionType == null && AcceptMatch("."))
         {
-            if (!AcceptIdentifier("Expecting a function or type name", sRejectTypeName, sAllowReservedFunNames))
+            if (!AcceptIdentifier("Expecting a function or type name", s_rejectTypeName, s_allowReservedFunNames))
                 return true;  // We some kind of valid function name
             funcName.Type = eTokenType.TypeName;
             extensionType = new SyntaxToken(funcName);
-            funcName = mPrevToken;
+            funcName = _prevToken;
         }
-        funcName.Type = sAllowReservedFunNames.Contains(funcName.Name) ? eTokenType.Reserved : eTokenType.DefineMethod;
+        funcName.Type = s_allowReservedFunNames.Contains(funcName.Name) ? eTokenType.Reserved : eTokenType.DefineMethod;
 
         // TBD: Record 'mut' token for static functions inside interfaces
         if (mutToken != null && extensionType != null)
@@ -1081,7 +1081,7 @@ class ParseZurf
 
         // Returns
         SyntaxExpr returnParams;
-        if (mToken == ("("))
+        if (_token == ("("))
         {
             returnParams = ParseFunctionParams();
         }
@@ -1093,7 +1093,7 @@ class ParseZurf
             {
                 // TBD: Param qualifiers probably need to be part of type
                 var qualifiers = NewExprList();
-                while (sParamQualifiers.Contains(mToken))
+                while (s_paramQualifiers.Contains(_token))
                     qualifiers.Add(new SyntaxToken(Accept()));
 
                 returns.Add(new SyntaxMulti(EmptyToken, ParseType(), EmptyExpr,
@@ -1113,18 +1113,18 @@ class ParseZurf
             return SyntaxError;
 
         // Parse parameters
-        var openToken = mPrevToken;
+        var openToken = _prevToken;
         var parameters = NewExprList();
-        if (mTokenName != ")")
+        if (_tokenName != ")")
             parameters.Add(ParseFunctionParam());
         while (AcceptMatch(","))
         {
-            Connect(openToken, mPrevToken);
+            Connect(openToken, _prevToken);
             parameters.Add(ParseFunctionParam());
         }
 
         if (AcceptMatchOrReject(")", "Expecting ')' or ','"))
-            Connect(openToken, mPrevToken);
+            Connect(openToken, _prevToken);
 
         return new SyntaxMulti(EmptyToken, FreeExprList(parameters));
     }
@@ -1134,17 +1134,17 @@ class ParseZurf
     {
         var qualifiers = NewExprList();
 
-        if (!AcceptIdentifier("Expecting a variable name", sRejectFuncParam))
+        if (!AcceptIdentifier("Expecting a variable name", s_rejectFuncParam))
             return SyntaxError;
-        var name = mPrevToken;
+        var name = _prevToken;
         name.Type = eTokenType.DefineFunParam;
         RejectUnderscoreDefinition(name);
 
         if (AcceptMatch("my"))
-            qualifiers.Add(new SyntaxToken(mPrevToken));
+            qualifiers.Add(new SyntaxToken(_prevToken));
 
         // TBD: Param qualifiers probably need to be part of type
-        while (sParamQualifiers.Contains(mToken))
+        while (s_paramQualifiers.Contains(_token))
             qualifiers.Add(new SyntaxToken(Accept()));
 
         var type = ParseType();
@@ -1160,15 +1160,15 @@ class ParseZurf
         if (!ExpectStartOfScope())
             return new SyntaxError(EmptyToken);
 
-        var openBrace = mPrevToken;
+        var openBrace = _prevToken;
         var statement = NewExprList();
-        while (mToken != "" && mToken != "}")
+        while (_token != "" && _token != "}")
         {
             ParseStatement(statement, topLevelFunction);
             ExpectEndOfStatement();
         }
         if (ExpectEndOfScope())
-            Connect(mPrevToken, openBrace);
+            Connect(_prevToken, openBrace);
 
         return new SyntaxMulti(openBrace, FreeExprList(statement));
     }
@@ -1177,8 +1177,8 @@ class ParseZurf
     // parsed at the top most level functipn
     private void ParseStatement(List<SyntaxExpr> statements, SyntaxFunc ?topLevelFunction)
     {
-        var keyword = mToken;
-        switch (mToken)
+        var keyword = _token;
+        switch (_token)
         {
             case "}":
                 break;
@@ -1188,12 +1188,12 @@ class ParseZurf
 
             case "extern":
                 if (topLevelFunction == null)
-                    RejectToken(mToken, "The 'extern' qualifier can only be used at the top level function scope");
+                    RejectToken(_token, "The 'extern' qualifier can only be used at the top level function scope");
                 else if (statements.Count != 0)
                     // TBD: Error for statements following this one
-                    RejectToken(mToken, "The 'extern' qualifier must be the only statement in the function");
+                    RejectToken(_token, "The 'extern' qualifier must be the only statement in the function");
                 else
-                    topLevelFunction.Qualifiers = topLevelFunction.Qualifiers.Append(mToken).ToArray();
+                    topLevelFunction.Qualifiers = topLevelFunction.Qualifiers.Append(_token).ToArray();
                 Accept();
                 break;
 
@@ -1202,7 +1202,7 @@ class ParseZurf
                 break;
 
             case "{":
-                RejectToken(mToken, "Unnecessary scope is not allowed");
+                RejectToken(_token, "Unnecessary scope is not allowed");
                 statements.Add(ParseStatements());
                 break;
             
@@ -1213,43 +1213,43 @@ class ParseZurf
 
             case "while":
                 // WHILE (condition) (body)
-                mToken.Type = eTokenType.ReservedControl;
+                _token.Type = eTokenType.ReservedControl;
                 statements.Add(new SyntaxBinary(Accept(), ParseExpr(), ParseStatements()));
                 break;
 
             case "scope":
                 // SCOPE (body)
-                mToken.Type = eTokenType.ReservedControl;
+                _token.Type = eTokenType.ReservedControl;
                 statements.Add(new SyntaxUnary(Accept(), ParseStatements()));
                 break;
 
             case "do":
                 // DO (body)
-                mToken.Type = eTokenType.ReservedControl;
+                _token.Type = eTokenType.ReservedControl;
                 statements.Add(new SyntaxUnary(Accept(), ParseStatements()));
                 break;
 
             case "dowhile":
-                mToken.Type = eTokenType.ReservedControl;
+                _token.Type = eTokenType.ReservedControl;
                 statements.Add(new SyntaxUnary(Accept(), ParseExpr()));
                 break;                        
 
             case "if":
-                mToken.Type = eTokenType.ReservedControl;
+                _token.Type = eTokenType.ReservedControl;
                 Accept();
                 statements.Add(new SyntaxBinary(keyword, ParseExpr(), ParseStatements()));
                 break;
 
             case "elif":
             case "else":
-                mToken.Type = eTokenType.ReservedControl;
+                _token.Type = eTokenType.ReservedControl;
                 Accept();
-                if (mPrevToken == "elif" || AcceptMatch("if"))
+                if (_prevToken == "elif" || AcceptMatch("if"))
                 {
                     // `elif` or `else if`
-                    if (mPrevToken.Name == "if")
-                        RejectToken(mPrevToken, "Shorten to 'elif'");
-                    mPrevToken.Type = eTokenType.ReservedControl;
+                    if (_prevToken.Name == "if")
+                        RejectToken(_prevToken, "Shorten to 'elif'");
+                    _prevToken.Type = eTokenType.ReservedControl;
                     statements.Add(new SyntaxBinary(keyword, ParseExpr(), ParseStatements()));
                 }
                 else
@@ -1261,12 +1261,12 @@ class ParseZurf
 
             case "for":
                 // FOR (variable) (condition) (statements)
-                mToken.Type = eTokenType.ReservedControl;
+                _token.Type = eTokenType.ReservedControl;
                 Accept();
                 if (AcceptMatch("@") || AcceptMatch("var"))
-                    mPrevToken.Type = eTokenType.NewVarSymbol;
+                    _prevToken.Type = eTokenType.NewVarSymbol;
 
-                var forVariable = new SyntaxToken(ParseIdentifier("Expecting a loop variable", sRejectForCondition));
+                var forVariable = new SyntaxToken(ParseIdentifier("Expecting a loop variable", s_rejectForCondition));
                 forVariable.Token.Type = eTokenType.DefineLocal;
                 RejectUnderscoreDefinition(forVariable.Token);
                 AcceptMatchOrReject("in");
@@ -1289,7 +1289,7 @@ class ParseZurf
             case "yld":
                 keyword.Type = eTokenType.ReservedControl;
                 Accept();
-                if (sStatementEndings.Contains(mTokenName))
+                if (s_statementEndings.Contains(_tokenName))
                 {
                     statements.Add(new SyntaxToken(keyword));
                     break;
@@ -1320,18 +1320,18 @@ class ParseZurf
                 break;
 
             default:
-                if ((sReservedWords.Contains(mTokenName) || mTokenName == "")
-                    && !sReservedIdentifierVariables.Contains(mTokenName)
-                    && (mTokenName != "@" && mTokenName != "let" && mTokenName != "var"))
+                if ((s_reservedWords.Contains(_tokenName) || _tokenName == "")
+                    && !s_reservedIdentifierVariables.Contains(_tokenName)
+                    && (_tokenName != "@" && _tokenName != "let" && _tokenName != "var"))
                 {
-                    RejectToken(mToken, "Unexpected token or reserved word");
+                    RejectToken(_token, "Unexpected token or reserved word");
                     Accept();
                     break;
                 }
 
                 var result = ParseExpr();
                 InterceptAndReplaceGT();
-                if (sAssignOps.Contains(mToken))
+                if (s_assignOps.Contains(_token))
                     result = new SyntaxBinary(Accept(), result, ParseRightSideOfAssignment());
                 statements.Add(result);
                 break;
@@ -1343,17 +1343,17 @@ class ParseZurf
     /// </summary>
     void InterceptAndReplaceGT()
     {
-        if (mTokenName != ">")
+        if (_tokenName != ">")
             return;
-        var peek = mEnum.PeekNoSpace();
+        var peek = _enum.PeekNoSpace();
         if (peek != "=" && peek != ">")
             return;
-        var token = mToken;
+        var token = _token;
         Accept();
         var metaToken = token.Name + peek;
         if (metaToken == ">>")
         {
-            peek = mEnum.PeekNoSpace();
+            peek = _enum.PeekNoSpace();
             if (peek == "=")
             {
                 Accept();
@@ -1361,8 +1361,8 @@ class ParseZurf
             }
         }
         // Replace with a virtual token
-        mToken = NewMetaToken(token, metaToken);
-        mTokenName = mToken.Name;
+        _token = NewMetaToken(token, metaToken);
+        _tokenName = _token.Name;
     }
 
     /// <summary>
@@ -1371,7 +1371,7 @@ class ParseZurf
     SyntaxExpr ParseRightSideOfAssignment()
     {
         var result = ParseExpr();
-        if (sAssignOps.Contains(mTokenName))
+        if (s_assignOps.Contains(_tokenName))
             Reject("Assignment operator is not associative, must use separate statement)");
         return result;
     }
@@ -1379,10 +1379,10 @@ class ParseZurf
     SyntaxExpr ParsePair()
     {
         var result = ParseExpr();
-        if (mTokenName == ":")
+        if (_tokenName == ":")
         {
             result = new SyntaxBinary(Accept(), result, ParseExpr());
-            if (mTokenName == ":")
+            if (_tokenName == ":")
                 Reject("Pair operator ':' is not associative, must use parentheses");
         }
         return result;
@@ -1399,18 +1399,18 @@ class ParseZurf
     {
 
         // Lambda parameter list
-        if (mTokenName == "|")
+        if (_tokenName == "|")
         {
-            var parameters = new SyntaxUnary(mPrevToken, ParseNewVars());
+            var parameters = new SyntaxUnary(_prevToken, ParseNewVars());
             if (!AcceptMatchOrReject("=>"))
-                return new SyntaxToken(mToken);
-            return ParseLambdaBody(mPrevToken, parameters);
+                return new SyntaxToken(_token);
+            return ParseLambdaBody(_prevToken, parameters);
         }
 
         var result = ParseTernary();
 
         // Lambda with single variable parameter
-        if (mTokenName == "=>")
+        if (_tokenName == "=>")
         {
             if (result.Count == 0 && result.Token.Type == eTokenType.Identifier)
             {
@@ -1420,7 +1420,7 @@ class ParseZurf
             }
             else
             {
-                RejectToken(mToken, "Left side must be a variable or parameter list, e.g. '|a,b|', etc.");
+                RejectToken(_token, "Left side must be a variable or parameter list, e.g. '|a,b|', etc.");
             }
             return ParseLambdaBody(Accept(), result);
 
@@ -1430,7 +1430,7 @@ class ParseZurf
 
     private SyntaxExpr ParseLambdaBody(Token lambdaToken, SyntaxExpr parameters)
     {
-        if (mToken == "{")
+        if (_token == "{")
             return new SyntaxBinary(lambdaToken, parameters, ParseStatements());
         else
             return new SyntaxBinary(lambdaToken, parameters, ParseTernary());
@@ -1439,30 +1439,30 @@ class ParseZurf
     SyntaxExpr ParseTernary()
     {
         var result = ParseConditionalOr();
-        if (mTokenName == "??")
+        if (_tokenName == "??")
         {
-            if (mInTernary)
-                RejectToken(mToken, "Ternary expressions may not be nested");
-            mInTernary = true;
-            mToken.Type = eTokenType.BoldSymbol;
+            if (_inTernary)
+                RejectToken(_token, "Ternary expressions may not be nested");
+            _inTernary = true;
+            _token.Type = eTokenType.BoldSymbol;
             var operatorToken = Accept();
             var firstConditional = ParseRange();
-            if (mTokenName != ":")
+            if (_tokenName != ":")
             {
-                mInTernary = false;
+                _inTernary = false;
                 Reject("Expecting a ':' to separate expression for the ternary '?' operator");
                 return result;
             }
-            mToken.Type = eTokenType.BoldSymbol;
-            Connect(mToken, operatorToken);
+            _token.Type = eTokenType.BoldSymbol;
+            Connect(_token, operatorToken);
             Accept();
             result = new SyntaxMulti(operatorToken, result, firstConditional, ParseRange());
-            mInTernary = false;
+            _inTernary = false;
 
-            if (mTokenName == "??")
-                RejectToken(mToken, "Ternary operator is not associative");
-            else if (mTokenName == ":")
-                RejectToken(mToken, "Ternary operator already has an else clause.");
+            if (_tokenName == "??")
+                RejectToken(_token, "Ternary operator is not associative");
+            else if (_tokenName == ":")
+                RejectToken(_token, "Ternary operator already has an else clause.");
         }
         return result;
     }
@@ -1470,7 +1470,7 @@ class ParseZurf
     SyntaxExpr ParseConditionalOr()
     {
         var result = ParseConditionalAnd();
-        while (mTokenName == "or")
+        while (_tokenName == "or")
             result = new SyntaxBinary(Accept(), result, ParseConditionalAnd());
         return result;
     }
@@ -1478,7 +1478,7 @@ class ParseZurf
     SyntaxExpr ParseConditionalAnd()
     {
         var result = ParseComparison();
-        while (mTokenName == "and")
+        while (_tokenName == "and")
             result = new SyntaxBinary(Accept(), result, ParseComparison());
         return result;
     }
@@ -1487,11 +1487,11 @@ class ParseZurf
     {
         var result = ParseRange();
         InterceptAndReplaceGT();
-        if (sCompareOps.Contains(mTokenName))
+        if (s_compareOps.Contains(_tokenName))
         {
             result = new SyntaxBinary(Accept(), result, ParseRange());
             InterceptAndReplaceGT();
-            if (sCompareOps.Contains(mTokenName))
+            if (s_compareOps.Contains(_tokenName))
                 Reject("Compare operators are not associative, must use parentheses");
         }
         return result;
@@ -1500,12 +1500,12 @@ class ParseZurf
 
     SyntaxExpr ParseRange()
     {
-        var result = sRangeOps.Contains(mTokenName) ? EmptyExpr : ParseAdd();
-        if (sRangeOps.Contains(mTokenName))
+        var result = s_rangeOps.Contains(_tokenName) ? EmptyExpr : ParseAdd();
+        if (s_rangeOps.Contains(_tokenName))
         {
             result = new SyntaxBinary(Accept(), result, 
-                mTokenName == ")" || mTokenName == "]" ? EmptyExpr : ParseAdd());
-            if (sRangeOps.Contains(mTokenName))
+                _tokenName == ")" || _tokenName == "]" ? EmptyExpr : ParseAdd());
+            if (s_rangeOps.Contains(_tokenName))
                 Reject("Range operator is not associative, must use parentheses");
         }
         return result;
@@ -1514,7 +1514,7 @@ class ParseZurf
     SyntaxExpr ParseAdd()
     {
         var result = ParseXor();
-        while (sAddOps.Contains(mTokenName))
+        while (s_addOps.Contains(_tokenName))
             result = new SyntaxBinary(Accept(), result, ParseXor());
         return result;
     }
@@ -1522,7 +1522,7 @@ class ParseZurf
     SyntaxExpr ParseXor()
     {
         var result = ParseMultiply();
-        while (sXorOps.Contains(mTokenName))
+        while (s_xorOps.Contains(_tokenName))
             result = new SyntaxBinary(Accept(), result, ParseMultiply());
         return result;
     }
@@ -1530,7 +1530,7 @@ class ParseZurf
     SyntaxExpr ParseMultiply()
     {
         var result = ParseShift();
-        while (sMultiplyOps.Contains(mTokenName))
+        while (s_multiplyOps.Contains(_tokenName))
             result = new SyntaxBinary(Accept(), result, ParseShift());
         return result;
     }
@@ -1539,12 +1539,12 @@ class ParseZurf
     {
         var result = ParseIsAsCapture();
         InterceptAndReplaceGT();
-        while (mTokenName == "<<" || mTokenName == ">>")
+        while (_tokenName == "<<" || _tokenName == ">>")
         {
             result = new SyntaxBinary(Accept(), result, ParseIsAsCapture());
             InterceptAndReplaceGT();
-            if (mTokenName == "<<" || mTokenName == ">>")
-                RejectToken(mToken, "Shift operators are not associative, must use parentheses");
+            if (_tokenName == "<<" || _tokenName == ">>")
+                RejectToken(_token, "Shift operators are not associative, must use parentheses");
         }
         return result;
     }
@@ -1552,11 +1552,11 @@ class ParseZurf
     SyntaxExpr ParseIsAsCapture()
     {
         var result = ParseUnary();
-        if (mTokenName == "is" || mTokenName == "as")
+        if (_tokenName == "is" || _tokenName == "as")
             result = new SyntaxBinary(Accept(), result, ParseType());
-        else if (mTokenName == "@")
+        else if (_tokenName == "@")
             result = new SyntaxBinary(Accept(), result, ParseNewVars());
-        else if (mTokenName == "?")
+        else if (_tokenName == "?")
             result = new SyntaxBinary(Accept(), result, ParseUnary());
 
         return result;
@@ -1564,19 +1564,19 @@ class ParseZurf
 
     SyntaxExpr ParseUnary()
     {
-        if (mTokenName == "@" || mTokenName == "let" || mTokenName == "var")
+        if (_tokenName == "@" || _tokenName == "let" || _tokenName == "var")
             return new SyntaxUnary(Accept(), ParseNewVars());
 
-        if (sUnaryOps.Contains(mTokenName))
+        if (s_unaryOps.Contains(_tokenName))
         {
-            if (mTokenName == "+")
-                RejectToken(mToken, "Unary '+' operator is not allowed");
+            if (_tokenName == "+")
+                RejectToken(_token, "Unary '+' operator is not allowed");
             return new SyntaxUnary(Accept(), ParseUnary());
         }
 
         var result = ParsePrimary();
 
-        if (mTokenName == "!" || mTokenName == "!!")
+        if (_tokenName == "!" || _tokenName == "!!")
             result = new SyntaxUnary(Accept(), result);
         return result;
     }
@@ -1587,11 +1587,11 @@ class ParseZurf
     private SyntaxExpr ParseFunTakingType()
     {
         if (!AcceptMatchOrReject("("))
-            return new SyntaxError(mToken);
-        var funcOpenToken = mPrevToken;
+            return new SyntaxError(_token);
+        var funcOpenToken = _prevToken;
         var funType = ParseType();
         if (AcceptMatchOrReject(")"))
-            Connect(mPrevToken, funcOpenToken);
+            Connect(_prevToken, funcOpenToken);
         return funType;
     }
 
@@ -1600,21 +1600,21 @@ class ParseZurf
         var newVarList = NewExprList();
         if (AcceptMatch("|"))
         {
-            var open = mPrevToken;
+            var open = _prevToken;
             do
             {
                 ParseNewVar(newVarList);
             } while (AcceptMatch(","));
             if (AcceptMatchOrReject("|", $"Expecting '|' or ','"))
-                Connect(open, mPrevToken);
+                Connect(open, _prevToken);
         }
         else
         {
             ParseNewVar(newVarList);
         }
 
-        if (mTokenName == "@" || mTokenName == "let" || mToken == "var")
-            Reject($"New variable operator '{mTokenName}' is not associative");
+        if (_tokenName == "@" || _tokenName == "let" || _token == "var")
+            Reject($"New variable operator '{_tokenName}' is not associative");
 
         return new SyntaxMulti(EmptyToken, FreeExprList(newVarList));
     }
@@ -1623,7 +1623,7 @@ class ParseZurf
     {
         if (!AcceptIdentifier("Expecting variable name"))
             return;
-        var name = mPrevToken;
+        var name = _prevToken;
         name.Type = eTokenType.DefineLocal;
         RejectUnderscoreDefinition(name);
         var typeExpr = BeginsType() ? ParseType() : EmptyExpr;
@@ -1644,15 +1644,15 @@ class ParseZurf
         do
         {
             accepted = false;
-            if (mTokenName == "(" || mTokenName == "[")
+            if (_tokenName == "(" || _tokenName == "[")
             {
                 // Function call or array access
                 accepted = true;
-                result = ParseParen(mTokenName, result);
+                result = ParseParen(_tokenName, result);
             }
-            else if (mTokenName == ".")
+            else if (_tokenName == ".")
             {
-                if (mEnum.PeekNoSpace() == "(")
+                if (_enum.PeekNoSpace() == "(")
                 {
                     // Type assertion
                     result = new SyntaxBinary(NewMetaToken(Accept(), ".("), ParseFunTakingType(), result);
@@ -1661,26 +1661,26 @@ class ParseZurf
                 {
                     // Dot operator
                     result = new SyntaxBinary(Accept(), result,
-                        new SyntaxToken(ParseIdentifier("Expecting identifier", null, sReservedMemberNames)));
+                        new SyntaxToken(ParseIdentifier("Expecting identifier", null, s_reservedMemberNames)));
                 }
                 accepted = true;
             }
-            else if (mTokenName == ".*")
+            else if (_tokenName == ".*")
             {
                 // Dereference
                 accepted = true;
                 result = new SyntaxUnary(Accept(), result);
             }
-            else if (mTokenName == "<")
+            else if (_tokenName == "<")
             {
                 // Possibly a type argument list.  Let's try it and find out.
                 var p = SaveParsePoint();
-                mParseErrors = 0;
+                _parseErrors = 0;
                 var typeArgs = ParseTypeArguments(result);
-                if (mParseErrors == 0 && sTypeArgumentParameterSymbols.Contains(mTokenName))
+                if (_parseErrors == 0 && s_typeArgumentParameterSymbols.Contains(_tokenName))
                 {
                     // Yes, it is a type argument list.  Keep it
-                    mParseErrors = p.ParseErrors;
+                    _parseErrors = p.ParseErrors;
                     accepted = true;
                     result = typeArgs;
                 }
@@ -1701,48 +1701,48 @@ class ParseZurf
     /// </summary>
     SyntaxExpr ParseAtom()
     {
-        if (mTokenName == "")
+        if (_tokenName == "")
         {
             Reject("Unexpected end of file");
-            return new SyntaxToken(mToken);
+            return new SyntaxToken(_token);
         }
 
         // Parse parentheses: (expression) - not a function call.
         // Example: @a = [1,2,3]
-        if (mTokenName == "(" || mTokenName == "[")
+        if (_tokenName == "(" || _tokenName == "[")
         {
             // Use ")" or "]" to differentiate between function call and ordering
-            var close = mTokenName == "(" ? ")" : "]";
-            var result = ParseParen(mTokenName, null);
+            var close = _tokenName == "(" ? ")" : "]";
+            var result = ParseParen(_tokenName, null);
 
             // Disallow old style casts (and other)
-            if (close == ")" && (mTokenName == "(" || mToken.Type == eTokenType.Identifier))
+            if (close == ")" && (_tokenName == "(" || _token.Type == eTokenType.Identifier))
             {
                 var message = "Old style cast not allowed";
-                RejectToken(mPrevToken, message);
+                RejectToken(_prevToken, message);
                 Reject(message);
             }
             return result;
         }
 
         // Number, string, identifier
-        if (mToken.Type == eTokenType.Number)
+        if (_token.Type == eTokenType.Number)
         {
             var numberToken = Accept();
 
             // Optionally accept an identifier after the number (e.g. `0f32`, etc.)
-            if (mToken.Type == eTokenType.Identifier && !mToken.Name.StartsWith("_"))
+            if (_token.Type == eTokenType.Identifier && !_token.Name.StartsWith("_"))
                 return new SyntaxUnary(numberToken, new SyntaxToken(Accept()));
             return new SyntaxToken(numberToken);
         }
-        if (mTokenName == TOKEN_STR_LITERAL || mTokenName == TOKEN_STR_LITERAL_MULTI)
+        if (_tokenName == TOKEN_STR_LITERAL || _tokenName == TOKEN_STR_LITERAL_MULTI)
         {
             return ParseStringLiteral(null);
         }
-        if (mToken.Type == eTokenType.Identifier)
+        if (_token.Type == eTokenType.Identifier)
         {
             var identifier = Accept();
-            if (mTokenName == TOKEN_STR_LITERAL || mTokenName == TOKEN_STR_LITERAL_MULTI)
+            if (_tokenName == TOKEN_STR_LITERAL || _tokenName == TOKEN_STR_LITERAL_MULTI)
             {
                 identifier.Type = eTokenType.Reserved;
                 return ParseStringLiteral(identifier);
@@ -1750,13 +1750,13 @@ class ParseZurf
             return new SyntaxToken(identifier);
         }
         // Misc reserved words
-        if (sReservedIdentifierVariables.Contains(mTokenName))
+        if (s_reservedIdentifierVariables.Contains(_tokenName))
         {
-            mToken.Type = eTokenType.Reserved;
+            _token.Type = eTokenType.Reserved;
             return new SyntaxToken(Accept());
         }
 
-        var errorToken = mToken;
+        var errorToken = _token;
         Reject("Expecting an identifier, number, string literal, or parentheses");
         return new SyntaxToken(errorToken);
     }
@@ -1772,7 +1772,7 @@ class ParseZurf
         const string STR_PARAM = "{?}";
         const string STR_TEMP_REPLACE = "\uF127"; // Anything unlikely to ever be seen in source code
 
-        var quote = mToken;
+        var quote = _token;
         var literalTokens = new List<Token>();
         var literalSb = new StringBuilder();
         var literalExpr = NewExprList();
@@ -1807,17 +1807,17 @@ class ParseZurf
         void ParseQuote(string terminator)
         {
             bool multiLine = terminator == TOKEN_STR_LITERAL_MULTI;
-            while (mToken == terminator)
+            while (_token == terminator)
             {
                 // Read until end quote or end of line
-                BeginScoop(mToken);
+                BeginScoop(_token);
                 literalTokens.Add(Accept());
-                while (mToken != terminator && mToken != "" && !(mToken.Meta && mToken == ";"))
+                while (_token != terminator && _token != "" && !(_token.Meta && _token == ";"))
                 {
-                    if (!multiLine && mToken == "{"
-                        || multiLine && mToken == "$" && mEnum.PeekNoSpace() == "{")
+                    if (!multiLine && _token == "{"
+                        || multiLine && _token == "$" && _enum.PeekNoSpace() == "{")
                     {
-                        EndScoop(mToken);
+                        EndScoop(_token);
                         if (multiLine)
                             Accept().Type = eTokenType.Reserved;
                         ParseInterpolatedExpression();
@@ -1825,14 +1825,14 @@ class ParseZurf
                     else
                         literalTokens.Add(Accept());
                 }
-                EndScoop(mToken);
+                EndScoop(_token);
 
-                if (mToken == terminator)
+                if (_token == terminator)
                 {
-                    var prev = mToken;
+                    var prev = _token;
                     literalTokens.Add(Accept());
-                    if (mToken == terminator && prev.Y == mToken.Y)
-                        RejectToken(mToken, $"Double '{terminator}' not allowed in string");
+                    if (_token == terminator && prev.Y == _token.Y)
+                        RejectToken(_token, $"Double '{terminator}' not allowed in string");
                 }
             }
         }
@@ -1852,46 +1852,46 @@ class ParseZurf
                 return;
             var x = endToken.X;
             if (endToken.Y != scoopStartY)
-                x = mLexer.GetLine(scoopStartY).Length;
+                x = _lexer.GetLine(scoopStartY).Length;
             var len = Math.Max(0, x - scoopStartX);
             if (len > 0)
-                literalSb.Append(mLexer.GetLine(scoopStartY).Substring(scoopStartX, len));
+                literalSb.Append(_lexer.GetLine(scoopStartY).Substring(scoopStartX, len));
             scoopStartX = -1;
         }
 
         void ParseInterpolatedExpression()
         {
             Accept(); // "{"
-            mPrevToken.Type = eTokenType.ReservedControl;
+            _prevToken.Type = eTokenType.ReservedControl;
 
-            if (mTokenName == "\\")
+            if (_tokenName == "\\")
                 ParseEscapes();
-            else if (mTokenName != TOKEN_STR_LITERAL) // String not allowed in string (user is probably typing)
+            else if (_tokenName != TOKEN_STR_LITERAL) // String not allowed in string (user is probably typing)
             {
                 literalExpr.Add(ParseExpr());
                 literalSb.Append(STR_TEMP_REPLACE);
             }
             if (AcceptMatchOrReject("}", "Expecting '}' to end string interpolation"))
-                mPrevToken.Type = eTokenType.ReservedControl;
+                _prevToken.Type = eTokenType.ReservedControl;
 
-            BeginScoop(mPrevToken);
+            BeginScoop(_prevToken);
         }
 
         void ParseEscapes()
         {
             while (AcceptMatch("\\"))
             {
-                mPrevToken.Type = eTokenType.Reserved;
-                if (!sStringLiterals.Contains(mTokenName))
+                _prevToken.Type = eTokenType.Reserved;
+                if (!s_stringLiterals.Contains(_tokenName))
                 {
-                    RejectToken(mToken, "Expecting string literal constant, 'r', 'n', 'rn', 't', etc.");
-                    if (mToken.Type == eTokenType.Identifier)
+                    RejectToken(_token, "Expecting string literal constant, 'r', 'n', 'rn', 't', etc.");
+                    if (_token.Type == eTokenType.Identifier)
                         Accept();
                     continue;
                 }
 
-                mToken.Type = eTokenType.Reserved;
-                literalSb.Append(sStringLiterals[mToken.Name]);
+                _token.Type = eTokenType.Reserved;
+                literalSb.Append(s_stringLiterals[_token.Name]);
                 Accept();
             }
         }
@@ -1914,17 +1914,17 @@ class ParseZurf
 
         // Read open token, '(' or '['
         if (!AcceptMatchOrReject(expecting))
-            return new SyntaxError(mToken);
+            return new SyntaxError(_token);
 
         // Parse parameters
-        var openToken = mPrevToken;
+        var openToken = _prevToken;
         var expectedToken = openToken == "(" ? ")" : "]";
-        if (mTokenName != expectedToken)
+        if (_tokenName != expectedToken)
         {
             parameters.Add(ParsePair());
             while (AcceptMatch(","))
             {
-                Connect(openToken, mPrevToken);
+                Connect(openToken, _prevToken);
                 parameters.Add(ParsePair());
             }
         }
@@ -1932,9 +1932,9 @@ class ParseZurf
         var keyword = openToken;
         if (AcceptMatchOrReject(expectedToken, $"Expecting '{expectedToken}' or ','"))
         {
-            Connect(openToken, mPrevToken);
+            Connect(openToken, _prevToken);
             if (left != null)
-                keyword = mPrevToken;
+                keyword = _prevToken;
 
             // Make key value pairs bold
             if (expecting == "[")
@@ -1951,7 +1951,7 @@ class ParseZurf
                 if (isPairs)
                 {
                     openToken.Type = eTokenType.BoldSymbol;
-                    mPrevToken.Type = eTokenType.BoldSymbol;
+                    _prevToken.Type = eTokenType.BoldSymbol;
                     foreach (var e in parameters)
                         e.Token.Type = eTokenType.BoldSymbol;
                 }
@@ -1961,7 +1961,7 @@ class ParseZurf
         {
             // Put syntax error into expression so code generator
             // doesn't mark more errors
-            parameters.Add(new SyntaxError(mToken));
+            parameters.Add(new SyntaxError(_token));
         }
 
         return new SyntaxMulti(keyword, FreeExprList(parameters));
@@ -1969,23 +1969,23 @@ class ParseZurf
 
     bool BeginsType()
     {
-        return mToken.Type == eTokenType.Identifier
-            || sTypeUnaryOps.Contains(mTokenName)
-            || sParamQualifiers.Contains(mTokenName)
-            || mToken == "fun" || mToken == "afun"
-            || mToken == "(";
+        return _token.Type == eTokenType.Identifier
+            || s_typeUnaryOps.Contains(_tokenName)
+            || s_paramQualifiers.Contains(_tokenName)
+            || _token == "fun" || _token == "afun"
+            || _token == "(";
     }
 
     SyntaxExpr ParseType()
     {
-        if (sTypeUnaryOps.Contains(mTokenName))
+        if (s_typeUnaryOps.Contains(_tokenName))
         {
             var token = Accept();
             if (token.Type != eTokenType.Reserved)
                 token.Type = eTokenType.TypeName;
             if (token.Name == "[")
                 if (AcceptMatchOrReject("]"))
-                    mPrevToken.Type = eTokenType.TypeName;
+                    _prevToken.Type = eTokenType.TypeName;
 
             var tArg = NewMetaToken(token, VT_TYPE_ARG);
             var tName = new SyntaxToken(token);
@@ -1995,38 +1995,38 @@ class ParseZurf
         }
 
         // Tuple
-        if (mToken == "(")
+        if (_token == "(")
             return ParseTypeTuple();
 
-        if (mToken == "fun" || mToken == "afun")
+        if (_token == "fun" || _token == "afun")
             return ParseFunctionSignature(Accept());
 
-        if (mToken.Type != eTokenType.Identifier)
+        if (_token.Type != eTokenType.Identifier)
         {
-            AcceptIdentifier("Expecting a type name", sRejectTypeName);
+            AcceptIdentifier("Expecting a type name", s_rejectTypeName);
             return SyntaxError;
         }
 
         // Identifier
-        mToken.Type = eTokenType.TypeName;
+        _token.Type = eTokenType.TypeName;
         var result = (SyntaxExpr)new SyntaxToken(Accept());
         bool accepted;
         do
         {
             accepted = false;
-            if (mTokenName == ".")
+            if (_tokenName == ".")
             {
                 accepted = true;
                 var dot = Accept();
-                mToken.Type = eTokenType.TypeName;
+                _token.Type = eTokenType.TypeName;
                 result = new SyntaxBinary(dot, result, new SyntaxToken(Accept()));
             }
-            else if (mTokenName == "<")
+            else if (_tokenName == "<")
             {
                 accepted = true;
                 result = ParseTypeArguments(result);
-                if (mTokenName == "<")
-                    RejectToken(mToken, "Illegal type argument list after type argument list");
+                if (_tokenName == "<")
+                    RejectToken(_token, "Illegal type argument list after type argument list");
             }
         } while (accepted);
 
@@ -2038,42 +2038,42 @@ class ParseZurf
     /// </summary>
     SyntaxExpr ParseTypeArguments(SyntaxExpr left)
     {
-        Debug.Assert(mTokenName == "<");
+        Debug.Assert(_tokenName == "<");
         var openToken = Accept();
         var typeArgs = NewExprList();
         typeArgs.Add(left);
         typeArgs.Add(ParseType());
         while (AcceptMatch(","))
         {
-            Connect(openToken, mPrevToken);
+            Connect(openToken, _prevToken);
             typeArgs.Add(ParseType());
         }
 
         if (!AcceptMatch(">"))
         {
             FreeExprList(typeArgs);
-            Reject("Expecting '>' to end the type argument list", sRejectTypeName);
+            Reject("Expecting '>' to end the type argument list", s_rejectTypeName);
             return left; // Allow syntax error recovery
         }
-        Connect(openToken, mPrevToken);
+        Connect(openToken, _prevToken);
         return new SyntaxMulti(NewMetaToken(openToken, VT_TYPE_ARG), FreeExprList(typeArgs));
     }
 
     SyntaxExpr ParseTypeTuple()
     {
-        Debug.Assert(mTokenName == "(");
+        Debug.Assert(_tokenName == "(");
         var openToken = Accept();
         var tupleArgs = NewExprList();
-        if (mTokenName != ")")
+        if (_tokenName != ")")
             tupleArgs.Add(ParseTypeTupleElement());
         while (AcceptMatch(","))
         {
-            Connect(openToken, mPrevToken);
+            Connect(openToken, _prevToken);
             tupleArgs.Add(ParseTypeTupleElement());
         }
 
         if (AcceptMatchOrReject(")", "Expecting ')' to end tuple type argument list"))
-            Connect(openToken, mPrevToken);
+            Connect(openToken, _prevToken);
         return new SyntaxMulti(openToken, FreeExprList(tupleArgs));
     }
 
@@ -2100,13 +2100,13 @@ class ParseZurf
         // Parse first identifier
         if (!AcceptIdentifier(errorMessage))
             return;
-        tokens.Add(mPrevToken);
+        tokens.Add(_prevToken);
 
         // Parse the rest
         while (AcceptMatch(".")
                 &&  AcceptIdentifier(errorMessage))
         { 
-            tokens.Add(mPrevToken);
+            tokens.Add(_prevToken);
         }
     }
 
@@ -2116,7 +2116,7 @@ class ParseZurf
     Token ParseIdentifier(string errorMessage, WordSet? extraStops = null, WordSet? allowExtraReservedWords = null)
     {
         AcceptIdentifier(errorMessage, extraStops, allowExtraReservedWords);
-        return mPrevToken;
+        return _prevToken;
     }
 
     /// <summary>
@@ -2125,7 +2125,7 @@ class ParseZurf
     /// </summary>
     bool AcceptIdentifier(string errorMessage, WordSet? extraStops = null, WordSet? allowExtraReservedWords = null)
     {
-        if (allowExtraReservedWords != null && allowExtraReservedWords.Contains(mTokenName))
+        if (allowExtraReservedWords != null && allowExtraReservedWords.Contains(_tokenName))
         {
             Accept();
             return true;
@@ -2140,12 +2140,12 @@ class ParseZurf
 
     bool CheckIdentifier(string errorMessage, WordSet? extraStops = null)
     {
-        if (mToken.Type == eTokenType.Identifier)
+        if (_token.Type == eTokenType.Identifier)
             return true;
 
         if (extraStops == null)
-            extraStops = sEmptyWordSet;
-        if (mToken.Type == eTokenType.Reserved || mToken.Type == eTokenType.ReservedControl)
+            extraStops = s_emptyWordSet;
+        if (_token.Type == eTokenType.Reserved || _token.Type == eTokenType.ReservedControl)
             Reject(errorMessage + ", must not be a reserved word", extraStops);
         else
             Reject(errorMessage + ", must begin with a letter", extraStops);
@@ -2155,7 +2155,7 @@ class ParseZurf
     // Accept the token if it matches.  Returns true if it was accepted.
     bool AcceptMatch(string matchToken)
     {
-        if (mTokenName == matchToken)
+        if (_tokenName == matchToken)
         {
             Accept();
             return true;
@@ -2165,9 +2165,9 @@ class ParseZurf
 
     bool IsMatchPastMetaSemicolon(string match)
     {
-        if (mTokenName == match)
+        if (_tokenName == match)
             return true;
-        if (!mToken.Meta || mTokenName != ";")
+        if (!_token.Meta || _tokenName != ";")
             return false;
         return NextLineToken() == match;
     }
@@ -2175,10 +2175,10 @@ class ParseZurf
     // Return the token on the next line ignoring empty lines and comments
     Token NextLineToken()
     {
-        int y = mToken.Y + 1;
-        while (y < mLexer.LineCount)
+        int y = _token.Y + 1;
+        while (y < _lexer.LineCount)
         {
-            var lt = mLexer.GetLineTokens(y);
+            var lt = _lexer.GetLineTokens(y);
             y++;
             if (lt.Length == 0 || lt[0] == TOKEN_COMMENT)
                 continue;
@@ -2200,7 +2200,7 @@ class ParseZurf
     // Expect either ';' or '}', anything else is an error.  Don't eat '}'
     void ExpectEndOfStatement()
     {
-        if (mToken != "}")
+        if (_token != "}")
             AcceptMatchOrReject(";", "Expecting end of line or ';' after statement");
     }
 
@@ -2230,32 +2230,32 @@ class ParseZurf
     ParsePoint SaveParsePoint()
     {
         var p = new ParsePoint();
-        p.Enum = mEnum;
-        p.PrevToken = mPrevToken;
-        p.Token = mToken;
-        p.TokenType = mToken.Type;
-        p.ParseErrors = mParseErrors;
-        p.MetaTokenCount = mLexer.MetaTokens.Count;
-        p.InsertedIndex = mInsertedIndex;
+        p.Enum = _enum;
+        p.PrevToken = _prevToken;
+        p.Token = _token;
+        p.TokenType = _token.Type;
+        p.ParseErrors = _parseErrors;
+        p.MetaTokenCount = _lexer.MetaTokens.Count;
+        p.InsertedIndex = _insertedIndex;
         return p;
     }
 
     void RestoreParsePoint(ParsePoint p)
     {
-        mEnum = p.Enum;
-        mPrevToken = p.PrevToken;
-        mToken = p.Token;
-        mToken.Type = p.TokenType;
-        mTokenName = mToken.Name;
-        mParseErrors = p.ParseErrors;
-        while (mLexer.MetaTokens.Count > p.MetaTokenCount)
-            mLexer.MetaTokensRemoveAt(mLexer.MetaTokens.Count-1);
-        mInsertedIndex = p.InsertedIndex;
+        _enum = p.Enum;
+        _prevToken = p.PrevToken;
+        _token = p.Token;
+        _token.Type = p.TokenType;
+        _tokenName = _token.Name;
+        _parseErrors = p.ParseErrors;
+        while (_lexer.MetaTokens.Count > p.MetaTokenCount)
+            _lexer.MetaTokensRemoveAt(_lexer.MetaTokens.Count-1);
+        _insertedIndex = p.InsertedIndex;
     }
 
     Token Accept()
     {
-        mPrevToken = mToken;
+        _prevToken = _token;
 
         GetNextToken();
         SkipComments();
@@ -2263,64 +2263,64 @@ class ParseZurf
         // Clear all errors and formatting, but preserve meta and continuation bits.
         // TBD: This would be better done in ScanScopeStructure, but since we currently
         //      mark errors, then backtrack, we can't do this there.  Add flag to
-        bool meta = mToken.Meta;
-        bool continuation = mToken.Continuation;
-        TokenVerticalLine []? verticalLine = mToken.VerticalLine ? mToken.GetInfos<TokenVerticalLine>() : null;
-        mToken.Clear();
-        mToken.Meta = meta;
-        mToken.Continuation = continuation;
+        bool meta = _token.Meta;
+        bool continuation = _token.Continuation;
+        TokenVerticalLine []? verticalLine = _token.VerticalLine ? _token.GetInfos<TokenVerticalLine>() : null;
+        _token.Clear();
+        _token.Meta = meta;
+        _token.Continuation = continuation;
         if (verticalLine != null)
             foreach (var info in verticalLine)
-                mToken.AddInfo(info);
+                _token.AddInfo(info);
 
         // Set token type
-        if (mTokenName.Length == 0)
-            mToken.Type = eTokenType.Normal;
-        else if (mTokenName[0] == TOKEN_STR_LITERAL[0])
-            mToken.Type = eTokenType.Quote;
-        else if (mTokenName[0] >= '0' && mTokenName[0] <= '9')
-            mToken.Type = eTokenType.Number;
-        else if (sReservedWords.Contains(mTokenName))
-            mToken.Type = eTokenType.Reserved;
-        else if (char.IsLetter(mTokenName[0]) || mTokenName[0] == '_')
-            mToken.Type = eTokenType.Identifier;
+        if (_tokenName.Length == 0)
+            _token.Type = eTokenType.Normal;
+        else if (_tokenName[0] == TOKEN_STR_LITERAL[0])
+            _token.Type = eTokenType.Quote;
+        else if (_tokenName[0] >= '0' && _tokenName[0] <= '9')
+            _token.Type = eTokenType.Number;
+        else if (s_reservedWords.Contains(_tokenName))
+            _token.Type = eTokenType.Reserved;
+        else if (char.IsLetter(_tokenName[0]) || _tokenName[0] == '_')
+            _token.Type = eTokenType.Identifier;
         else
-            mToken.Type = eTokenType.Normal;
+            _token.Type = eTokenType.Normal;
 
-        if (mToken.OnlyTokenOnLine && (mTokenName == "{" || mTokenName == "}"))
-            mToken.Shrink = true;
+        if (_token.OnlyTokenOnLine && (_tokenName == "{" || _tokenName == "}"))
+            _token.Shrink = true;
 
-        return mPrevToken;
+        return _prevToken;
     }
 
     private void SkipComments()
     {
         // Skip comments and record then in mComments
-        while (mToken.Type == eTokenType.Comment)
+        while (_token.Type == eTokenType.Comment)
         {
             // Any non-comment line (including blank lines) clears the comment buffer
-            if (mToken.Y > mCommentLineIndex + 1)
-                mComments.Clear();
-            mCommentLineIndex = mToken.Y;
+            if (_token.Y > _commentLineIndex + 1)
+                _comments.Clear();
+            _commentLineIndex = _token.Y;
 
             // Retrieve comment.
-            var x = mToken.X + mToken.Name.Length;
-            var comment = mLexer.GetLine(mToken.Y).Substring(x);
+            var x = _token.X + _token.Name.Length;
+            var comment = _lexer.GetLine(_token.Y).Substring(x);
             var commentTr = comment.Trim();
 
             // Simple markdown
             if (commentTr == "")
-                mComments.Append("\n\n"); // Blank is a paragraph
+                _comments.Append("\n\n"); // Blank is a paragraph
             else if (comment.StartsWith("  ") || comment.StartsWith("\t"))
             {
-                mComments.Append("\n");   // Indented is a line
-                mComments.Append(commentTr);
+                _comments.Append("\n");   // Indented is a line
+                _comments.Append(commentTr);
             }
             else
-                mComments.Append(commentTr);
+                _comments.Append(commentTr);
 
-            mComments.Append(" ");
-            mEnum.SkipToEndOfLine();
+            _comments.Append(" ");
+            _enum.SkipToEndOfLine();
             GetNextToken();
         }
     }
@@ -2330,17 +2330,17 @@ class ParseZurf
     void GetNextToken()
     {
         // Read next token if previous one wasn't inserted
-        if (!mToken.Meta || (mTokenName != ";" && mTokenName != "{" && mTokenName != "}"))
-            mEnum.MoveNext();
-        mToken = mEnum.Current ?? EmptyToken;
-        mTokenName = mToken.Name;
+        if (!_token.Meta || (_tokenName != ";" && _tokenName != "{" && _tokenName != "}"))
+            _enum.MoveNext();
+        _token = _enum.Current ?? EmptyToken;
+        _tokenName = _token.Name;
 
         // Insert meta tokens if necessary
-        if (mInsertedIndex < mInsertedTokens.Count
-                && mInsertedTokens[mInsertedIndex].Location <= mToken.Location)
+        if (_insertedIndex < _insertedTokens.Count
+                && _insertedTokens[_insertedIndex].Location <= _token.Location)
         {
-            mToken = mInsertedTokens[mInsertedIndex++];
-            mTokenName = mToken.Name;
+            _token = _insertedTokens[_insertedIndex++];
+            _tokenName = _token.Name;
         }
     }
 
@@ -2348,7 +2348,7 @@ class ParseZurf
     // Reject definitions beginning or ending with '_'
     void RejectUnderscoreDefinition(Token token)
     {
-        if (mAllowUnderscoreDefinitions)
+        if (_allowUnderscoreDefinitions)
             return;
         var name = token.Name;
         if (name.Length >= 2 && name[0] == '_' && name[1] == '_')
@@ -2360,7 +2360,7 @@ class ParseZurf
     {
         if (token.Error && !logDuplicates)
             return; // The first error is the most pertinent
-        mParseErrors++;
+        _parseErrors++;
         token.AddError(new ParseError(errorMessage));
     }
 
@@ -2369,15 +2369,15 @@ class ParseZurf
     // Returns TRUE if any token was accepted
     bool Reject(string errorMessage, WordSet? extraStops = null)
     {
-        RejectToken(mToken, errorMessage);
+        RejectToken(_token, errorMessage);
         if (extraStops == null)
-            extraStops = sEmptyWordSet;
+            extraStops = s_emptyWordSet;
 
         bool accepted = false;
-        while (!sRejectAnyStop.Contains(mToken)
-                && !extraStops.Contains(mToken))
+        while (!s_rejectAnyStop.Contains(_token)
+                && !extraStops.Contains(_token))
         {
-            mToken.Grayed = true;
+            _token.Grayed = true;
             Accept();
             accepted = true;
         }
@@ -2404,7 +2404,7 @@ class ParseZurf
     /// </summary>
     Token AddMetaToken(Token token)
     {
-        mLexer.MetaTokensAdd(token);
+        _lexer.MetaTokensAdd(token);
         return token;
     }
 

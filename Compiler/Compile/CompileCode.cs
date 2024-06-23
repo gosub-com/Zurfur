@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 
 using Gosub.Lex;
-using Zurfur.Jit;
+using Zurfur.Vm;
 
 namespace Zurfur.Compiler;
 
@@ -15,11 +15,11 @@ namespace Zurfur.Compiler;
 /// </summary>
 static class CompileCode
 {
-    static WordSet sOperators = new WordSet("+ - * / % & | ~ == != >= <= > < << >> and or not in |= &= += -= <<= >>= .. ..+ ]");
-    static WordSet sCmpOperators = new WordSet("== != >= <= > <");
-    static WordSet sIntTypeNames = new WordSet("Zurfur.int Zurfur.u64 Zurfur.i32 Zurfur.u32");
-    static WordSet sDerefRef = new WordSet("Zurfur.Unsafe.Ref`1");
-    static WordSet sDerefPointers = new WordSet("Zurfur.Unsafe.RawPointer`1 Zurfur.Pointer`1");
+    static WordSet s_operators = new WordSet("+ - * / % & | ~ == != >= <= > < << >> and or not in |= &= += -= <<= >>= .. ..+ ]");
+    static WordSet s_cmpOperators = new WordSet("== != >= <= > <");
+    static WordSet s_intTypeNames = new WordSet("Zurfur.int Zurfur.u64 Zurfur.i32 Zurfur.u32");
+    static WordSet s_derefRef = new WordSet("Zurfur.Unsafe.Ref`1");
+    static WordSet s_derefPointers = new WordSet("Zurfur.Unsafe.RawPointer`1 Zurfur.Pointer`1");
     public static WordMap<string> OpNames = new WordMap<string> {
         {"+", "_opAdd"}, {"+=", "_opAdd"}, {"-", "_opSub"}, {"-=", "_opSub"},
         {"*", "_opMul"}, {"*=", "_opMul"}, {"/", "_opDiv"}, {"/=", "_opDiv"},
@@ -547,7 +547,7 @@ static class CompileCode
                 return GenNewVarsOperator(ex);
             else if (name == "=")
                 return GenAssign(ex);
-            else if (sOperators.Contains(name))
+            else if (s_operators.Contains(name))
                 return GenOperator(ex);
             else if (name == "??")
                 return GenTernary(ex);
@@ -738,8 +738,8 @@ static class CompileCode
             };
         }
 
-        Symbol DerefRef(Symbol type) => Deref(type, sDerefRef);
-        Symbol DerefPointers(Symbol type) => Deref(type, sDerefPointers);
+        Symbol DerefRef(Symbol type) => Deref(type, s_derefRef);
+        Symbol DerefPointers(Symbol type) => Deref(type, s_derefPointers);
 
         // Dereference the given type names
         Symbol Deref(Symbol type, WordSet typeNames)
@@ -964,9 +964,9 @@ static class CompileCode
 
             // TBD: Calculate const at run time
             // For now, pretend a constant int can be converted to any number type
-            if (sIntTypeNames.Contains(DerefRef(leftType).FullName)
+            if (s_intTypeNames.Contains(DerefRef(leftType).FullName)
                     && right.IsUntypedConst 
-                    && sIntTypeNames.Contains(DerefRef(rightType).FullName))
+                    && s_intTypeNames.Contains(DerefRef(rightType).FullName))
                 rightType = leftType; // Dummy
 
             // Implicit conversion from nil to *T
@@ -1079,10 +1079,10 @@ static class CompileCode
                 var left = args[0];
                 var right = args[1];
                 if (right.IsUntypedConst && !left.IsUntypedConst 
-                        && sIntTypeNames.Contains(DerefRef(left.Type!).FullName) && sIntTypeNames.Contains(right.Type!.FullName))
+                        && s_intTypeNames.Contains(DerefRef(left.Type!).FullName) && s_intTypeNames.Contains(right.Type!.FullName))
                     right.Type = left.Type;
                 if (!right.IsUntypedConst && left.IsUntypedConst 
-                        && sIntTypeNames.Contains(DerefRef(right.Type!).FullName) && sIntTypeNames.Contains(left.Type!.FullName))
+                        && s_intTypeNames.Contains(DerefRef(right.Type!).FullName) && s_intTypeNames.Contains(left.Type!.FullName))
                     left.Type = right.Type;
             }
 
@@ -1102,7 +1102,7 @@ static class CompileCode
             if (funType == null)
                 return null;
 
-            if (sCmpOperators.Contains(token))
+            if (s_cmpOperators.Contains(token))
             {
                 var returnType = token == "==" || token == "!=" ? typeBool : typeInt;
                 if (funType != returnType)

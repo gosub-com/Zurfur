@@ -5,21 +5,16 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Reflection;
 
-using Avalonia.LogicalTree;
-using Avalonia.Controls.Primitives;
-
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
 using Zurfur.Build;
 using Gosub.Avalonia.Controls;
-using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Platform;
 using System.Linq;
-using System.Threading;
-using Avalonia.VisualTree;
 using Gosub.Lex;
+using Avalonia.Input;
+using Zurfur;
 
 
 namespace AvaloniaEditor.Views;
@@ -28,8 +23,11 @@ namespace AvaloniaEditor.Views;
 public partial class MainView : UserControl
 {
     const string ZURFUR_LIB_URL = "avares://ZurfurLib/ZurfurLibForAvalonia";
+    static readonly WordSet sTextEditorExtensions = new WordSet(".txt .json .md .htm .html .css .zurf .zil");
+    static readonly WordSet sImageEditorExtensions = new WordSet(".jpg .jpeg .png .bmp");
 
-    BuildSystem mBuildPackage = new (new FileSystemAvalonia());
+    FileSystemAvalonia mFileSystem = new();
+    BuildSystem mBuildPackage;
     ZurfEditController mEditController = new();
 
     // Helper class to show items in the tree view
@@ -43,6 +41,7 @@ public partial class MainView : UserControl
 
     public MainView()
     {
+        mBuildPackage = new(mFileSystem);
         InitializeComponent();
     }
     protected override void OnLoaded(RoutedEventArgs e)
@@ -57,7 +56,6 @@ public partial class MainView : UserControl
         mvCodeEditors.TabCloseRequest += mvCodeEditors_TabCloseRequest;
         treeProject.SelectionChanged += treeProject_SelectionChanged;
 
-
         var exeLocation = Assembly.GetExecutingAssembly().Location;
         var dirName = Path.GetDirectoryName(exeLocation) ?? "";
         LoadProject();
@@ -71,7 +69,6 @@ public partial class MainView : UserControl
             // Browser gets single threaded with await
             if (Assembly.GetExecutingAssembly().Location == "")
             {
-                mBuildPackage.DisableVerificationAndReports = true;
                 mBuildPackage.Threading = BuildSystem.ThreadingModel.SingleAwait;
             }
 
@@ -101,39 +98,26 @@ public partial class MainView : UserControl
         if (e.Message.ToLower().Contains("example"))
         {
             // At boot, always show the example
-            LoadOrUpdateLexer(e.Message);
+            LoadOrUpdateEditorFromBuildSystem(e.Message);
+        }
+        else if (e.Message == "")
+        {
+            // Update all open editors
+            foreach (var tabKey in mvCodeEditors.TabKeys)
+            {
+                var editor = mvCodeEditors.FindTabContent(tabKey) as Editor;
+                if (editor != null)
+                    LoadOrUpdateEditorFromBuildSystem(tabKey);
+            }
         }
         else
         {
             // Any other time, update when the editor window is open
             var editor = mvCodeEditors.FindTabContent(e.Message) as Editor;
             if (editor != null)
-                LoadOrUpdateLexer(e.Message);
+                LoadOrUpdateEditorFromBuildSystem(e.Message);
         }
     }
-
-    private void LoadOrUpdateLexer(string path)
-    {
-        var lexer = mBuildPackage.GetLexer(path);
-        Debug.Assert(lexer != null);
-        if (lexer == null)
-            return;
-
-        if (mvCodeEditors.FindTabContent(path) is Editor editor)
-        {
-            // Update the editor
-            editor.Lexer = lexer;
-        }
-        else
-        {
-            // Add new editor
-            var newEditor = new Editor() { Lexer = lexer };
-            newEditor.TextChanged += editor_TextChanged;
-            mvCodeEditors.SetTab(path, newEditor, Path.GetFileName(path));
-            mEditController.AddEditor(newEditor);
-        }
-    }
-
 
     private void mvCodeEditors_SelectionChanged(object? sender, string key)
     {
@@ -167,11 +151,10 @@ public partial class MainView : UserControl
         if (si != null)
         {
             var path = si.Item.AbsoluteUri;
-            LoadOrUpdateLexer(path);
+            LoadOrUpdateEditorFromBuildSystem(path);
             mvCodeEditors.ShowTab(path);
         }
     }
-
 
     private void editor_TextChanged(object? sender, EventArgs e)
     {
@@ -190,6 +173,85 @@ public partial class MainView : UserControl
 
     private void mEditController_OnNavigateToSymbol(string path, int x, int y)
     {
+    }
+
+    public async void buttonGenerateTapped(object source, TappedEventArgs args)
+    {
+        await mBuildPackage.GeneratePackage();
+
+        // projectTree.RefreshFiles();
+        List<string> files =  [
+            mBuildPackage.OutputFileHeader,
+            mBuildPackage.OutputFileHeaderCode,
+            mBuildPackage.OutputFileReport,
+        ];
+        foreach (var name in files)
+            await LoadOrUpdateEditor(name);
+
+        mvCodeEditors.ShowTab(mBuildPackage.OutputFileReport);
+    }
+
+    // Load or update editor from build system (if possible) or file system (if not possible)
+    async Task LoadOrUpdateEditor(string path)
+    {
+        if (!LoadOrUpdateEditorFromBuildSystem(path))
+            await LoadOrUpdateEditorFromFileSystem(path);
+    }
+
+    // Returns TRUE if the file was found in the build system
+    private bool LoadOrUpdateEditorFromBuildSystem(string path)
+    {
+        // Attempt to open from build system
+        var lexer = mBuildPackage.GetLexer(path);
+        if (lexer == null)
+            return false;
+
+        if (mvCodeEditors.FindTabContent(path) is Editor editor)
+        {
+            // Update the editor
+            editor.Lexer = lexer;
+        }
+        else
+        {
+            // Add new editor
+            var newEditor = new Editor() { Lexer = lexer };
+            newEditor.TextChanged += editor_TextChanged;
+            mvCodeEditors.SetTab(path, newEditor, Path.GetFileName(path));
+            mEditController.AddEditor(newEditor);
+        }
+        return true;
+    }
+
+    async Task LoadOrUpdateEditorFromFileSystem(string path)
+    {
+        // Attempt to load from file system
+        try
+        {
+            var buildFile = Path.GetExtension(path).ToLower();
+            if (sTextEditorExtensions.Contains(buildFile))
+            {
+                // Text file
+                var l = new Lexer();
+                l.Scan(await mFileSystem.ReadAllLinesAsync(path));
+                var newEditor = new Editor() { Lexer = l };
+                newEditor.TextChanged += editor_TextChanged;
+                mvCodeEditors.SetTab(path, newEditor, Path.GetFileName(path));
+            }
+            else if (sImageEditorExtensions.Contains(buildFile))
+            {
+                // TBD: Open an image editor
+                throw new Exception("File type not supported");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Ignore file not found of there is no editor for this file type
+            // TBD: Display some kind of message
+            Debug.Assert(false, ex.Message);
+            var l = new Lexer();
+            l.Scan([$"ERROR: {ex.Message}", "", $"STACK: {ex.StackTrace}"]);
+            mvCodeEditors.SetTab("PopupError", new Editor() { Lexer = l }, "Error");
+        }
     }
 
 }

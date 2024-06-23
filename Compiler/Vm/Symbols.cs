@@ -7,7 +7,7 @@ using System.Reflection;
 using System.ComponentModel.DataAnnotations;
 
 using Gosub.Lex;
-namespace Zurfur.Jit;
+namespace Zurfur.Vm;
 
 /// <summary>
 /// Symbols in the source code known to the compiler.
@@ -121,16 +121,16 @@ public enum SymQualifiers
 /// </summary>
 public class Symbol
 {
-    static Dictionary<string, Symbol> sEmptyDict = new Dictionary<string, Symbol>();
-    static Dictionary<int, string> sTags = new Dictionary<int, string>();
+    static Dictionary<string, Symbol> s_emptyDict = new Dictionary<string, Symbol>();
+    static Dictionary<int, string> s_tags = new Dictionary<int, string>();
 
     // Qualifier names (lower case)
-    static readonly Dictionary<string, SymQualifiers> sQualifierNames = new(
+    static readonly Dictionary<string, SymQualifiers> s_qualifierNames = new(
         ((SymQualifiers[])Enum.GetValues(typeof(SymQualifiers)))
             .Where(s => s != SymQualifiers.None)
             .Select(s => new KeyValuePair<string, SymQualifiers>(s.ToString().ToLower(), s)));
 
-    public static Dictionary<SymKind, string> sKindNames = new Dictionary<SymKind, string>()
+    public static Dictionary<SymKind, string> s_kindNames = new Dictionary<SymKind, string>()
     {
         { SymKind.Module, "module" },
         { SymKind.Type, "type" },
@@ -145,7 +145,7 @@ public class Symbol
     public Symbol? Parent { get; }
     public SymKind Kind { get; protected set; }
     public SymQualifiers Qualifiers;
-    Token? mToken; // TBD: Should make this non-nullable, require a token for all symbols
+    Token? _token; // TBD: Should make this non-nullable, require a token for all symbols
     public string? Comments;
 
     // The symbols in this scope
@@ -260,15 +260,15 @@ public class Symbol
         else
             throw new Exception("Symbol must have token or name");
 
-        mToken = token;
+        _token = token;
         FullName = SimpleName;
     }
 
     public int ChildrenCount => mChildrenNamedCount;
-    public string KindName => sKindNames[Kind];
+    public string KindName => s_kindNames[Kind];
 
     public string TypeName => Type == null ? "" : Type.FullName;
-    public bool HasToken => mToken != null;
+    public bool HasToken => _token != null;
 
     public bool IsResolved => FullName != "??";
     public bool IsUnresolved => FullName == "??";
@@ -499,9 +499,9 @@ public class Symbol
     public IEnumerable<Symbol> ChildrenNamed(string simpleName)
     {
         if (mChildrenNamed == null)
-            return sEmptyDict.Values;
+            return s_emptyDict.Values;
         if (!mChildrenNamed.TryGetValue(simpleName, out var children))
-            return sEmptyDict.Values;
+            return s_emptyDict.Values;
         return children;
     }
 
@@ -534,10 +534,10 @@ public class Symbol
 
     public string QualifiersStr()
     {
-        lock (sTags)
+        lock (s_tags)
         {
             var key = (int)Kind + ((int)Qualifiers << 8);
-            if (sTags.TryGetValue(key, out var t))
+            if (s_tags.TryGetValue(key, out var t))
                 return t;
 
             switch (Kind)
@@ -554,11 +554,11 @@ public class Symbol
             }
 
             // Add qualifier names
-            foreach (var q in sQualifierNames)
+            foreach (var q in s_qualifierNames)
                 if (Qualifiers.HasFlag(q.Value))
                     t += " " + q.Key;
 
-            sTags[key] = t;
+            s_tags[key] = t;
             return t;
         }
     }
@@ -591,7 +591,7 @@ public class Symbol
                 Debug.Assert(false); // Set when created
                 break;
             default:
-                if (sQualifierNames.TryGetValue(name, out var s))
+                if (s_qualifierNames.TryGetValue(name, out var s))
                     Qualifiers |= s;
                 else
                     Debug.Assert(false); 
@@ -608,12 +608,12 @@ public class Symbol
     {
         get
         {
-            if (mToken == null)
+            if (_token == null)
             {
                 Debug.Assert(false);
                 throw new Exception($"Invalid symbol location for '{KindName}' named '{FullName}'");
             }
-            return mToken;
+            return _token;
         }
     }
 

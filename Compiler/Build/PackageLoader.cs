@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;
 
-using Zurfur.Jit;
+using Zurfur.Vm;
 
 namespace Zurfur.Build;
 

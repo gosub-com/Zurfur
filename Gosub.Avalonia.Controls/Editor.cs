@@ -56,13 +56,19 @@ public class Editor : UserControl
     bool _tabInsertsSpaces = true;
 
     // Mouse and drawing info
-    bool _mouseDown;
-    Point? _mousePosition;
+    bool _mouseDownSelect;
+    bool _mouseDownDrag;   // TBD: Use gesture and allow scroll after release
+    Point? _mouseCurrentPosition;   // Current mouse position or NULL when not on screen
+    Point _mouseDownPosition;
+    double _mouseDownVerticalScroll;
     Token? _mouseHoverToken;
     Point _topLeft;
     Point _testPoint;
     Token? _testToken;
     Size _fontSize = new(9, 19);
+
+    // NOTE: Invalidating can cause so much screen updating that the screen doesn't scroll
+    // via the timer.  TBD: This was true in winforms, not sure about Avalonia. 
     bool _delayedInvalidate;
 
     // There is an extra one for top of the next line after the last line
@@ -102,6 +108,8 @@ public class Editor : UserControl
     static Token s_normalToken = new();
     TokenColorOverride[] _tokenColorOverrides = [];
     DispatcherTimer _timer = new DispatcherTimer() { Interval = TimeSpan.FromMilliseconds(20) };
+    Cursor _beamCursor = new(StandardCursorType.Ibeam);
+    Cursor _handCursor = new(StandardCursorType.Arrow);
 
 
     // TBD: Port to Avalonia
@@ -699,14 +707,12 @@ public class Editor : UserControl
 
     protected override void OnGotFocus(GotFocusEventArgs e)
     {
-        Debug.WriteLine("Edit got focus"); // TBD: Remove
         base.OnGotFocus(e);
         UpdateCursorBlinker();
     }
 
     protected override void OnLostFocus(RoutedEventArgs e)
     {
-        Debug.WriteLine("Edit lost focus"); // TBD: Remove
         UpdateCursorBlinker();
         base.OnLostFocus(e);
         InvalidateVisual();
@@ -1219,7 +1225,6 @@ public class Editor : UserControl
 
         OnPaint(context);
         base.Render(context);
-        Debug.WriteLine($"Render time {timer.ElapsedMilliseconds} ms");  // TBD: Remove
     }
 
 
@@ -1278,7 +1283,7 @@ public class Editor : UserControl
     /// <summary>
     /// Draw tokens on the screen (either the foreground or background).
     /// When gr is NULL, a test is performed to see if the token is
-    /// under the cursor (mTestPoint) and the result is put in to mTestToken.
+    /// under the cursor (_testPoint) and the result is put in to _testToken.
     /// </summary>
     void DrawTokens(DrawingContext? context, bool background)
     {
@@ -1328,7 +1333,7 @@ public class Editor : UserControl
 
     /// <summary>
     /// Print a token (either the foreground or background)
-    /// Sets mTestToken if a token is under mTestPoint
+    /// Sets _testToken if a token is under _testPoint
     /// </summary>
     void DrawToken(DrawingContext? context, Token token, bool background)
     {
@@ -1345,7 +1350,7 @@ public class Editor : UserControl
         if (xEnd < 0 || yEnd < 0)
             return; // Off screen
 
-        // Check if mTestToken is under mTestPoint, keep first hit which is the meta token
+        // Check if _testToken is under _testPoint, keep first hit which is the meta token
         if (_testToken == null
             && _testPoint.X >= x && _testPoint.X < xEnd
             && _testPoint.Y >= y && _testPoint.Y < yEnd)
@@ -1628,17 +1633,18 @@ public class Editor : UserControl
     /// </summary>
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
-        Debug.WriteLine("OnPointerPressed"); // TBD: Remove
-
         var position = e.GetCurrentPoint(this).Position;
-        _mousePosition = position;
+        _mouseCurrentPosition = position;
+        _mouseDownPosition = position;
+        _mouseDownVerticalScroll = _vScrollBar.Value;
         if (e.ClickCount < 2)
         {
             // Single click
             // Set cursor location, remove selection
             SetCursorByMouse(position);
             _selStart = _selEnd = CursorLoc;
-            _mouseDown = true;
+            _mouseDownSelect = PointerOverText(position);
+            _mouseDownDrag = !_mouseDownSelect;
             UpdateCursorBlinker();
             UpdateMouseHoverToken();
         }
@@ -1646,7 +1652,8 @@ public class Editor : UserControl
         {
             // Double click
             // Select a single token when the user double clicks
-            _mouseDown = false;
+            _mouseDownSelect = false;
+            _mouseDownDrag = false;
             InvalidateVisual();
             SetCursorByMouse(position);
 
@@ -1658,12 +1665,67 @@ public class Editor : UserControl
                 _selEnd.X = _mouseHoverToken.X + _mouseHoverToken.Name.Length;
                 CursorLoc = new TokenLoc(_selEnd.X, CursorLoc.Y);
             }
-
             UpdateCursorBlinker();
         }
 
         base.OnPointerPressed(e);
         InvalidateVisual();
+    }
+
+    /// <summary>
+    /// Update the hover token or selected text when the mouse moves
+    /// </summary>
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        var position = e.GetCurrentPoint(this).Position;
+        _mouseCurrentPosition = position;
+        UpdateMouseHoverToken();
+
+        // If mouse button is down, move selection
+        if (_mouseDownSelect)
+        {
+            SetCursorByMouse(position);
+            _selEnd = CursorLoc;
+            _delayedInvalidate = true;
+        }
+
+        if (_mouseDownDrag)
+        {
+            // TBD: Use some built in gesture that can add velocity after release
+            var v = _mouseDownVerticalScroll + (_mouseDownPosition.Y - position.Y) / (_fontSize.Height/2);
+            _vScrollBar.Value = Math.Clamp(v, 0, _vScrollBar.Maximum);
+        }    
+
+        base.OnPointerMoved(e);
+    }
+
+    /// <summary>
+    /// Done selecting text
+    /// </summary>
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        var position = e.GetCurrentPoint(this).Position;
+        _mouseCurrentPosition = position;
+        _mouseDownSelect = false;
+        _mouseDownDrag = false;
+        TokenLoc.FixOrder(ref _selStart, ref _selEnd);
+        base.OnPointerReleased(e);
+    }
+
+    /// <summary>
+    /// Hover token is cleared when mouse leaves the window
+    /// </summary>
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        _mouseCurrentPosition = null;
+        if (_mouseHoverToken != null)
+        {
+            Token previousToken = _mouseHoverToken;
+            _mouseHoverToken = null;
+            MouseHoverTokenChanged?.Invoke(this, previousToken, _mouseHoverToken);
+            InvalidateVisual();
+        }
+        base.OnPointerExited(e);
     }
 
     /// <summary>
@@ -1686,41 +1748,19 @@ public class Editor : UserControl
         UpdateCursorBlinker();
     }
 
-    /// <summary>
-    /// Update the hover token or selected text when the mouse moves
-    /// </summary>
-    protected override void OnPointerMoved(PointerEventArgs e)
-    {
-        var position = e.GetCurrentPoint(this).Position;
-        _mousePosition = position;
-        UpdateMouseHoverToken();
-
-        // If mouse button is down, move selection
-        if (_mouseDown)
-        {
-            SetCursorByMouse(position);
-            _selEnd = CursorLoc;
-
-            // NOTE: Invalidating here can cause so much screen
-            // updating that the screen doesn't scroll via
-            // the timer.  Yet we need to invalidate if the
-            // selection changes.  This fixes that problem.
-            _delayedInvalidate = true;
-        }
-        base.OnPointerMoved(e);
-    }
-
     private void UpdateMouseHoverToken(bool forceEvent = false)
     {
         // TBD: Port to Avalonia (many places use null here)
-        if (_mousePosition == null)
+        if (_mouseCurrentPosition == null)
             return;
 
+        Cursor = PointerOverText(_mouseCurrentPosition.Value) ? _beamCursor : _handCursor;
+
         // Draw to NULL graphics to find the point
-        //mTestPoint = PointToClient(Form.MousePosition); // TBD: Port
-        _testPoint = _mousePosition.Value;
+        _testPoint = _mouseCurrentPosition.Value;
         _testToken = null;
         DrawTokens(null, true);
+
 
         // Set new mouse hover token
         if (forceEvent || _testToken != _mouseHoverToken)
@@ -1732,34 +1772,12 @@ public class Editor : UserControl
         }
     }
 
-
-    /// <summary>
-    /// Done selecting text
-    /// </summary>
-    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    // Returns true when hovering over text (false when over blank space)
+    bool PointerOverText(Point screenPoint)
     {
-        var position = e.GetCurrentPoint(this).Position;
-        _mousePosition = position;
-        EnsureCursorOnScreen();
-        _mouseDown = false;
-        TokenLoc.FixOrder(ref _selStart, ref _selEnd);
-        base.OnPointerReleased(e);
-    }
-
-    /// <summary>
-    /// Hover token is cleared when mouse leaves the window
-    /// </summary>
-    protected override void OnPointerExited(PointerEventArgs e)
-    {
-        _mousePosition = null;
-        if (_mouseHoverToken != null)
-        {
-            Token previousToken = _mouseHoverToken;
-            _mouseHoverToken = null;
-            MouseHoverTokenChanged?.Invoke(this, previousToken, _mouseHoverToken);
-            InvalidateVisual();
-        }
-        base.OnPointerExited(e);
+        var p = ScreenToText(screenPoint.X, screenPoint.Y);
+        return !(p.Y >= 0 && p.Y < _lexer.LineCount
+                && p.X > _lexer.GetLine((int)p.Y).Length + 4);
     }
 
     /// <summary>
@@ -1808,9 +1826,6 @@ public class Editor : UserControl
     /// </summary>
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        Debug.WriteLine("Edit keydown"); // TBD: Remove
-
-
         // Allow user event to intercept key strokes
         base.OnKeyDown(e);
         if (e.Handled)
@@ -2170,12 +2185,12 @@ public class Editor : UserControl
         }
 
         // While selecting text, scroll the screen
-        if (_mouseDown && _mousePosition != null)
+        if (_mouseDownSelect && _mouseCurrentPosition != null)
         {
             int linesInWindow = LinesInWindow();
             if (CursorLoc.Y - _vScrollBar.Value > linesInWindow
                     && _vScrollBar.Value < _vScrollBar.Maximum - linesInWindow
-                    && _mousePosition.Value.Y > _clientSize.Height - hScrollBarHeight)
+                    && _mouseCurrentPosition.Value.Y > _clientSize.Height - hScrollBarHeight)
                 _vScrollBar.Value++;
 
             if (CursorLoc.Y < _vScrollBar.Value

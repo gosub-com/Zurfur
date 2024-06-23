@@ -28,7 +28,8 @@ public class TestZurfur
 
         // Load and compile first
         var timer = Stopwatch.StartNew();
-        builder.Load(testProjectDir);            
+        foreach (var file in FileSystemOs.EnumerateAllFiles(testProjectDir))
+            builder.LoadFile(file);
         await builder.Compile();
         var compileTime1 = timer.ElapsedMilliseconds;
 
@@ -76,4 +77,5 @@ public class TestZurfur
         Assert.Equal(0, fails);
         Assert.True(testCases >= 10);
     }
+
 }

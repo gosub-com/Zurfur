@@ -6,7 +6,7 @@ using System.Text.Json;
 
 
 using Gosub.Lex;
-using Zurfur.Jit;
+using Zurfur.Vm;
 using Zurfur.Compiler;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -19,47 +19,49 @@ public class BuildSystem
     /// <summary>
     /// Hard code for now
     /// </summary>
-    const string OUTPUT_DIR = "Output\\Debug";
+    public const string OUTPUT_DIR = "Output\\Debug";
 
     public int SLOW_DOWN_MS = 0;
     public delegate void UpdateEventHandler(object sender, UpdatedEventArgs e);
-    static ScanSymbols sScanZurf = new(ParseZurf.MULTI_CHAR_TOKENS);
-    static ScanSymbols sScanJson = new(ParseZurf.MULTI_CHAR_TOKENS);
+    static ScanSymbols s_scanZurf = new(ParseZurf.MULTI_CHAR_TOKENS);
+    static ScanSymbols s_scanJson = new(ParseZurf.MULTI_CHAR_TOKENS);
 
-    string mBaseDir = "";
-    bool mIsCompiling;
-    TimeSpan mLexAndParseTime;
-    FileSystemInterface mFileSystem;
+    /// <summary>
+    /// Output base directory to write all files (files are written to "Output/Debug" directory)
+    /// </summary>
+    public string OutputBaseDir { get; set; } = "";
+
+    bool _isCompiling;
+    TimeSpan _lexAndParseTime;
+    FileSystemInterface _fileSystem;
 
     // Force full re-compile every time so we can see how long it takes
     bool FULL_RECOMPILE = false;
     
-    
     public ThreadingModel Threading = ThreadingModel.Multi;
 
-    public bool DisableVerificationAndReports = false;
-
-    Dictionary<string, FileInfo> mPackageFiles = new ();
+    Dictionary<string, FileInfo> _packageFiles = new ();
 
     // NOTE: Queue doesn't have RemoveAll and other List features.
     //       Make sure Zurfur Queue has all that.
-    List<string> mLoadQueue = new List<string>();
-    List<string> mParseQueue = new List<string>();
+    List<string> _loadQueue = new List<string>();
+    List<string> _parseQueue = new List<string>();
 
-    List<TaskCompletionSource<bool>> mCompileDoneTasks = new List<TaskCompletionSource<bool>>();
-    List<string> mReport = new List<string>();
-    string mHeaderJson = "";
-    List<string> mCodeJson = [];
+    List<TaskCompletionSource<bool>> _compileDoneTasks = new List<TaskCompletionSource<bool>>();
+    List<string> _report = new List<string>();
+    string _headerJson = "";
+    List<string> _codeJson = [];
 
-    public string OutputDir => Path.Combine(mBaseDir, OUTPUT_DIR);
-    public string OutputFileReport => Path.Combine(mBaseDir, OUTPUT_DIR, "BuildReport.txt");
-    public string OutputFileHeader => Path.Combine(mBaseDir, OUTPUT_DIR, "Header.json");
-    public string OutputFileHeaderCode => Path.Combine(mBaseDir, OUTPUT_DIR, "Code.zil");
+
+    public string OutputDir => Path.Combine(OutputBaseDir, OUTPUT_DIR);
+    public string OutputFileReport => Path.Combine(OutputBaseDir, OUTPUT_DIR, "BuildReport.txt");
+    public string OutputFileHeader => Path.Combine(OutputBaseDir, OUTPUT_DIR, "Header.json");
+    public string OutputFileHeaderCode => Path.Combine(OutputBaseDir, OUTPUT_DIR, "Code.zil");
 
 
     public BuildSystem(FileSystemInterface fileSystem)
     {
-        mFileSystem = fileSystem;
+        _fileSystem = fileSystem;
     }
 
     /// <summary>
@@ -112,30 +114,15 @@ public class BuildSystem
         }
     }
 
-
-    /// <summary>
-    /// Starts loading the project into memory.  Only call once, ever.
-    /// Sets the output base directory.
-    /// </summary>
-    public void Load(string dir)
-    {
-        if (mBaseDir != "")
-            throw new Exception("Not allowed to call 'Load' ever again");
-        mBaseDir = dir;
-
-        foreach (var file in FileSystemOs.EnumerateAllFiles(dir))
-            LoadFile(file);
-    }
-
     /// <summary>
     /// Starts loading the file.  Only call once per file, ever.
     /// </summary>
     public void LoadFile(string file)
     {
-        if (mPackageFiles.ContainsKey(file))
+        if (_packageFiles.ContainsKey(file))
             throw new Exception($"LoadFile was already called on '{file}'");
-        mPackageFiles[file] = new FileInfo(file);
-        mLoadQueue.Add(file);
+        _packageFiles[file] = new FileInfo(file);
+        _loadQueue.Add(file);
         TriggerCompile();
     }
 
@@ -146,7 +133,7 @@ public class BuildSystem
     /// </summary>
     public Lexer? GetLexer(string fileName)
     {
-        if (!mPackageFiles.TryGetValue(fileName, out var fi)
+        if (!_packageFiles.TryGetValue(fileName, out var fi)
             || fi.Lexer == null)
         {
             return null;
@@ -162,14 +149,14 @@ public class BuildSystem
     public void SetLexer(Lexer lexer)
     {
         var path = lexer.Path;
-        if (!mPackageFiles.TryGetValue(path, out var fileIno))
+        if (!_packageFiles.TryGetValue(path, out var fileIno))
             throw new Exception("Cannot set Lexer, file is not in the project: " + path);
         if (fileIno.Lexer == null)
             throw new Exception("Cannot set Lexer, file is not loaded: " + path);
         fileIno.Lexer = lexer;
-        mLoadQueue.RemoveAll(match => match == path);
-        mParseQueue.RemoveAll(match => match == path);
-        mParseQueue.Insert(0, path);
+        _loadQueue.RemoveAll(match => match == path);
+        _parseQueue.RemoveAll(match => match == path);
+        _parseQueue.Insert(0, path);
         TriggerCompile();
     }
 
@@ -179,11 +166,17 @@ public class BuildSystem
     public async Task GeneratePackage()
     {
         await Compile();
-        if (!Directory.Exists(OutputDir))
-            Directory.CreateDirectory(OutputDir);
-        await mFileSystem.WriteAllLinesAsync(OutputFileReport, mReport);
-        await mFileSystem.WriteAllLinesAsync(OutputFileHeader, [mHeaderJson]);
-        await mFileSystem.WriteAllLinesAsync(OutputFileHeaderCode, mCodeJson);
+        await _fileSystem.WriteAllLinesAsync(OutputFileReport, _report);
+        await _fileSystem.WriteAllLinesAsync(OutputFileHeader, [_headerJson]);
+        await _fileSystem.WriteAllLinesAsync(OutputFileHeaderCode, _codeJson);
+
+        // TBD: This is not so good
+        _packageFiles.Remove(OutputFileReport);
+        _packageFiles.Remove(OutputFileHeader);
+        _packageFiles.Remove(OutputFileHeaderCode);
+        LoadFile(OutputFileReport);
+        LoadFile(OutputFileHeader);
+        LoadFile(OutputFileHeaderCode);
     }
 
 
@@ -192,11 +185,11 @@ public class BuildSystem
     public Task Compile()
     {
         if (FULL_RECOMPILE)
-            foreach (var fileName in mPackageFiles.Keys)
-                mLoadQueue.Add(fileName);
+            foreach (var fileName in _packageFiles.Keys)
+                _loadQueue.Add(fileName);
 
         var tcs = new TaskCompletionSource<bool>();
-        mCompileDoneTasks.Add(tcs);
+        _compileDoneTasks.Add(tcs);
         TriggerCompile();
         return tcs.Task;
     }
@@ -208,20 +201,20 @@ public class BuildSystem
     /// </summary>
     async void TriggerCompile()
     {
-        if (mIsCompiling)
+        if (_isCompiling)
             return;
 
 
         // Let it crash when running under debugger
         if (Debugger.IsAttached)
         {
-            mIsCompiling = true;
+            _isCompiling = true;
             await TryCompile();
-            mIsCompiling = false;
+            _isCompiling = false;
             return;
         }
 
-        mIsCompiling = true;
+        _isCompiling = true;
         try
         {
             await TryCompile();
@@ -231,15 +224,16 @@ public class BuildSystem
             // TBD: Send another message for popup with stack trace.
             // NOTE: The stack trace is stored in the error message
             //       associated with the token that caused the failure.
+            Console.WriteLine($"Compiler failure: {ex.Message}");
             StatusUpdate?.Invoke(this, new UpdatedEventArgs("Compiler failure: " + ex.Message));
         }
         finally
         {
-            mIsCompiling = false;
+            _isCompiling = false;
         }
     }
 
-    bool SourceCodeChanged => mLoadQueue.Count != 0 || mParseQueue.Count != 0;
+    bool SourceCodeChanged => _loadQueue.Count != 0 || _parseQueue.Count != 0;
 
     private async Task TryCompile()
     {
@@ -257,21 +251,21 @@ public class BuildSystem
                 await loadTask;
                 await parseTask;
             }
-            mLexAndParseTime = DateTime.Now - lexStartTime;
+            _lexAndParseTime = DateTime.Now - lexStartTime;
             await Generate();
         }
 
-        foreach (var tcs in mCompileDoneTasks)
+        foreach (var tcs in _compileDoneTasks)
             tcs.SetResult(true);
-        mCompileDoneTasks.Clear();
+        _compileDoneTasks.Clear();
     }
 
     async Task LoadAndLex()
     {
-        if (mLoadQueue.Count == 0)
+        if (_loadQueue.Count == 0)
             return;
-        var fi = mPackageFiles[mLoadQueue[0]];
-        mLoadQueue.RemoveAll(match => match == fi.Path);
+        var fi = _packageFiles[_loadQueue[0]];
+        _loadQueue.RemoveAll(match => match == fi.Path);
         if (fi.Lexer != null && !FULL_RECOMPILE)
             return; // File already loaded
 
@@ -280,16 +274,16 @@ public class BuildSystem
         await Task.Delay(SLOW_DOWN_MS);
         Lexer lexer;
         if (fi.Extension == ".zurf")
-            lexer = new Lexer(sScanZurf);
+            lexer = new Lexer(s_scanZurf);
         else if (fi.Extension == ".json")
-            lexer = new Lexer(sScanJson);
-        else if (fi.Extension == ".zil")
+            lexer = new Lexer(s_scanJson);
+        else if (fi.Extension == ".zil" || fi.Extension == ".txt")
             lexer = new Lexer();
         else
             return; // Unrecognized file extension
 
         // Since there is also CPU work, do it in a background thread
-        var lines = await mFileSystem.ReadAllLinesAsync(fi.Path);
+        var lines = await _fileSystem.ReadAllLinesAsync(fi.Path);
         await DoCpuWork(() =>
         {
             lexer.Path = fi.Path;
@@ -301,7 +295,7 @@ public class BuildSystem
             return;
 
         fi.Lexer = lexer;
-        mParseQueue.Add(fi.Path);
+        _parseQueue.Add(fi.Path);
         FileUpdate?.Invoke(this, new UpdatedEventArgs(fi.Path));
         await ThreadingModelAwait();
         await Task.Delay(SLOW_DOWN_MS);
@@ -309,10 +303,10 @@ public class BuildSystem
 
     async Task Parse()
     {
-        if (mParseQueue.Count == 0)
+        if (_parseQueue.Count == 0)
             return;
-        var fi = mPackageFiles[mParseQueue[0]];
-        mParseQueue.RemoveAll(match => match == fi.Path);
+        var fi = _packageFiles[_parseQueue[0]];
+        _parseQueue.RemoveAll(match => match == fi.Path);
 
         await Task.Delay(SLOW_DOWN_MS / 2);
         StatusUpdate?.Invoke(this, new UpdatedEventArgs("Parsing " + fi.Name));
@@ -325,13 +319,13 @@ public class BuildSystem
             switch (fi.Extension)
             {
                 case ".zurf":
-                    lexer.Scanner = sScanZurf;
+                    lexer.Scanner = s_scanZurf;
                     var zurfParse = new ParseZurf(lexer);
                     fi.Syntax = zurfParse.Parse();
                     fi.ParseErrors = zurfParse.ParseErrors;
                     break;
                 case ".json":
-                    lexer.Scanner = sScanJson;
+                    lexer.Scanner = s_scanJson;
                     var jsonParse = new ParseJson(lexer);
                     jsonParse.Parse();
                     fi.ParseErrors = jsonParse.ParseErrors;
@@ -344,7 +338,7 @@ public class BuildSystem
         });
 
         // If requested to compile again, throw away the intermediate results
-        if (mParseQueue.Contains(fi.Path))
+        if (_parseQueue.Contains(fi.Path))
             return;
 
         fi.Lexer = lexer;
@@ -363,13 +357,17 @@ public class BuildSystem
         StatusUpdate?.Invoke(this, new UpdatedEventArgs("Compiling headers"));
         await ThreadingModelAwait();
 
-        var dtStart = DateTime.Now;
+        var timerTotal = Stopwatch.StartNew();
+        var timer = Stopwatch.StartNew();
 
         // Generate Header for each file (only ".zurf")
         var zurfFiles = new Dictionary<string, SyntaxFile>();
-        foreach (var fi in mPackageFiles)
+        foreach (var fi in _packageFiles)
             if (fi.Value.Extension == ".zurf")
                 zurfFiles[fi.Key] = fi.Value.Syntax;
+
+        var noVerify = zurfFiles.Values.Any(f => f.Pragmas.ContainsKey("NoVerify"));
+        var noCompilerChecks = zurfFiles.Values.Any(f => f.Pragmas.ContainsKey("NoCompilerChecks"));
 
         // NOTE: We should probably clone everything here, but that would have
         //       to include the lexer and the syntax tree generated by the parser.
@@ -377,8 +375,6 @@ public class BuildSystem
         //       lexer, thereby allowing us to keep the lexer and syntax tree
         //       immutable.  That would probably be the best thing to do.
         // INSTEAD: Clear all the metadata generated in this phase (yucky)
-        var noVerify = false;
-        var noCompilerChecks = false;
         foreach (var fi in zurfFiles)
         {
             foreach (var token in fi.Value.Lexer)
@@ -386,22 +382,17 @@ public class BuildSystem
             foreach (var token in fi.Value.Lexer.MetaTokens)
                 RemoveZilInfo(token);
             RemoveZilInfo(fi.Value.Lexer.EndToken);
-
-            if (fi.Value.Pragmas.ContainsKey("NoVerify"))
-                noVerify = true;
-            if (fi.Value.Pragmas.ContainsKey("NoCompilerChecks"))
-                noCompilerChecks = true;
         }
-        var dtEndClearTokens = DateTime.Now;
+        var timeClearTokens = timer.ElapsedMilliseconds;
+        timer.Restart();
 
 
         // TBD: This needs to move to a background thread, but it can't
         // until we clone everything (Lexer, parse tree, etc.)
-        var dtStartGenHeader = DateTime.Now;
         var zilHeader = CompileHeader.GenerateHeader(zurfFiles, noCompilerChecks);
         if (!noVerify)
             VerifyHeader.Verify(zilHeader.Table);
-        var dtEndGenHeader = DateTime.Now;
+        var timeGenHeader = timer.ElapsedMilliseconds;
 
         FileUpdate?.Invoke(this, new UpdatedEventArgs(""));
         await ThreadingModelAwait();
@@ -413,36 +404,38 @@ public class BuildSystem
         StatusUpdate?.Invoke(this, new UpdatedEventArgs("Generating code"));
         await ThreadingModelAwait();
 
-        var dtStartGenCode = DateTime.Now;
+        timer.Restart();
         var assembly = CompileCode.GenerateCode(zurfFiles, zilHeader.Table, zilHeader.SyntaxToSymbol, zilHeader.Uses);
-
-        if (DisableVerificationAndReports)
-        {
-            UpdateCompileStatus();
-            return;
-        }
 
         if (!noVerify)
             VerifyCode.Verify(assembly, zilHeader.Table);
-        var dtEndGenCode = DateTime.Now;
+        var timeGenCode = timer.ElapsedMilliseconds;
 
 
         // NOTE: Tokens in symbol table should be stable, so can run in a background thread.
-        var dtStartGenPackage = DateTime.Now;
+        timer.Restart();
         var lineNumbers = new List<int>();
         await DoCpuWork(() =>
         {
-            // Header
+            // Package Header
             var package = new PackageJson();
             package.BuildDate = DateTime.Now.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
             package.Symbols = zilHeader.Table.Save(false);
-            mHeaderJson = JsonSerializer.Serialize(package);
 
-            // Code
+            try
+            {
+                _headerJson = JsonSerializer.Serialize(package);
+            }
+            catch
+            {
+                _headerJson = "JSON serialization not supported in the browser";
+            }
+
+            // Package Code
             var codeLines = new List<string>();
             var tracer = new AsTrace(assembly, zilHeader.Table);
             assembly.Print(tracer, codeLines, lineNumbers);
-            mCodeJson = codeLines;
+            _codeJson = codeLines;
         });
 
         // Show verification errors in zil code
@@ -465,22 +458,22 @@ public class BuildSystem
             }
         }
 
-        var dtEndGenPackage = DateTime.Now;
+        var timeGenPackage = timer.ElapsedMilliseconds;
 
-        mReport.Clear();
-        mReport.Add("Compile Times:");
-        mReport.Add($"    DATE: {DateTime.Now.ToString("s").Replace("T", " ")}");
-        mReport.Add($"    Lex and parse changed files: {mLexAndParseTime.TotalSeconds:F3}");
-        mReport.Add($"    Clear tokens: {(dtEndClearTokens - dtStart).TotalSeconds:F3}");
-        mReport.Add($"    Compile/verify header: {(dtEndGenHeader - dtStartGenHeader).TotalSeconds:F3}");
-        mReport.Add($"    Compile/verify code: {(dtEndGenCode - dtStartGenCode).TotalSeconds:F3}");
-        mReport.Add($"    Generate package: {(dtEndGenPackage - dtStartGenPackage).TotalSeconds:F3}");
-        mReport.Add($"    Total: {(dtEndGenPackage - dtStart).TotalSeconds + mLexAndParseTime.TotalSeconds:F3}");
-        mReport.Add($"    Memory: {(double)GC.GetTotalMemory(true) / 1000000:F2} Mb");
-        mReport.Add("");
+        _report.Clear();
+        _report.Add("Compile Times:");
+        _report.Add($"    DATE: {DateTime.Now.ToString("s").Replace("T", " ")}");
+        _report.Add($"    Lex and parse changed files: {_lexAndParseTime.TotalSeconds:F3} s");
+        _report.Add($"    Clear tokens: {timeClearTokens} ms");
+        _report.Add($"    Compile/verify header: {timeGenHeader} ms");
+        _report.Add($"    Compile/verify code: {timeGenCode} ms");
+        _report.Add($"    Generate header & code: {timeGenPackage} ms");
+        _report.Add($"    Total: {timerTotal.Elapsed.TotalSeconds + _lexAndParseTime.TotalSeconds:F3} s");
+        _report.Add($"    Memory: {(double)GC.GetTotalMemory(true) / 1000000:F2} Mb");
+        _report.Add("");
 
-        ZilReport.GenerateReport(mReport, zilHeader.Table,
-            mPackageFiles.Values.Select(a => a.Lexer).Where(a => a != null).ToArray());
+        ZilReport.GenerateReport(_report, zilHeader.Table,
+            _packageFiles.Values.Select(a => a.Lexer).Where(a => a != null).ToArray());
 
         UpdateCompileStatus();
     }
@@ -520,7 +513,7 @@ public class BuildSystem
     int CountErrors()
     {
         int errors = 0;
-        foreach (var fi in mPackageFiles)
+        foreach (var fi in _packageFiles)
         {
             if (fi.Value.Lexer == null)
                 continue;
