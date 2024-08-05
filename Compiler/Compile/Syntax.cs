@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -7,42 +8,38 @@ using Gosub.Lex;
 
 namespace Zurfur.Compiler;
 
-class SyntaxFile
+record class SyntaxFile
 {
-    public Lexer Lexer = new Lexer();
-    public Dictionary<string, SyntaxPragma> Pragmas = new Dictionary<string, SyntaxPragma>();
-    public List<SyntaxUsing> Using = new List<SyntaxUsing>();
-    public Dictionary<string, SyntaxModule> Modules = new Dictionary<string, SyntaxModule>();
-    public List<SyntaxType> Types = new List<SyntaxType>();
-    public List<SyntaxFunc> Functions = new List<SyntaxFunc>();
-    public List<SyntaxField> Fields = new List<SyntaxField>();
+    public Lexer Lexer { get; init; } = new();
+    public Dictionary<string, SyntaxPragma> Pragmas { get; init; } = new();
+    public List<SyntaxUsing> Using { get; init; } = new();
+    public Dictionary<string, SyntaxModule> Modules { get; init; } = new();
+    public List<SyntaxType> Types { get; init; } = new();
+    public List<SyntaxFunc> Functions { get; init; }  = new();
+    public List<SyntaxField> Fields { get; init; } = new();
 }
 
-class SyntaxPragma
-{
-    public SyntaxPragma(Token token) { Name = token; }
-    public Token Name;
-}
+record class SyntaxPragma(Token Name);
 
-class SyntaxUsing
-{
-    public Token[] ModuleName = Token.EmptyArray;
-    public Token[] Symbols = Token.EmptyArray;
-}
+record class SyntaxUsing(Token[] ModuleName, Token[] Symbols);
 
-class SyntaxScope : SyntaxExpr
+record class SyntaxScope : SyntaxExpr
 {
-    public SyntaxScope(Token keyword)
+    public SyntaxScope(Token keyword, Token name)
         : base(keyword, 0)
     {
+        Name = name;
     }
-    public SyntaxScope(Token keyword, int count)
+
+    public SyntaxScope(Token keyword, Token name, int count)
         : base(keyword, count)
     {
+        Name = name;
     }
 
     public override SyntaxExpr this[int index]
         =>  throw new IndexOutOfRangeException();
+
     public override IEnumerator<SyntaxExpr> GetEnumerator()
     {
         yield break;
@@ -50,10 +47,10 @@ class SyntaxScope : SyntaxExpr
 
 
     public Token Keyword => Token; // class, struct, func, prop, blank for field, etc.
-    public SyntaxScope? Parent;
+    public SyntaxScope? Parent { get; init; }
     public string? Comments;
     public Token[] Qualifiers = Token.EmptyArray;
-    public Token? Name;
+    public Token Name {  get; init; }
 
     public string FullName
     {
@@ -66,55 +63,49 @@ class SyntaxScope : SyntaxExpr
 
 }
 
-class SyntaxModule : SyntaxScope
+record class SyntaxModule : SyntaxScope
 {
     public SyntaxModule(Token keyword, Token name, SyntaxScope? parent)
-        : base(keyword)
+        : base(keyword, name)
     {
         Parent = parent;
-        Name = name;
     }
 }
 
 /// <summary>
 /// Includes struct, enum, interface, impl
 /// </summary>
-class SyntaxType : SyntaxScope
+record class SyntaxType : SyntaxScope
 {
-    public SyntaxType(Token keyword)
-        : base(keyword)
+    public SyntaxType(Token keyword, Token name)
+        : base(keyword, name)
     {
     }
 
     public bool Simple;
     public SyntaxExpr? Alias;
-    public SyntaxExpr? TypeArgs;
-    public SyntaxConstraint[]? Constraints;
+    public SyntaxExpr? TypeArgs { get; init; }
+    public SyntaxConstraint[]? Constraints { get; init; }
 }
 
-class SyntaxConstraint
-{
-    public Token? TypeName;
-    public SyntaxExpr[]? TypeConstraints;
-}
+record class SyntaxConstraint(Token? TypeName, SyntaxExpr[]? TypeConstraints);
 
-class SyntaxField : SyntaxScope
+record class SyntaxField : SyntaxScope
 {
     public SyntaxField(Token name)
-        : base(name)
+        : base(name, name)
     {
-        Name = name;
     }
 
-    public bool Simple;
-    public SyntaxExpr? TypeName;
-    public SyntaxExpr? Initializer;
+    public bool Simple { get; init; }
+    public SyntaxExpr? TypeName { get; init; }
+    public SyntaxExpr? Initializer { get; init; }
 }
 
-class SyntaxFunc : SyntaxScope
+record class SyntaxFunc : SyntaxScope
 {
-    public SyntaxFunc(Token keyword)
-        : base(keyword, 1)
+    public SyntaxFunc(Token keyword, Token name)
+        : base(keyword, name, 1)
     {
     }
     public override IEnumerator<SyntaxExpr> GetEnumerator()
@@ -123,9 +114,9 @@ class SyntaxFunc : SyntaxScope
             yield return Statements;
     }
 
-    public SyntaxExpr? ExtensionType;
-    public SyntaxExpr? TypeArgs;
-    public SyntaxExpr? FunctionSignature;
-    public SyntaxConstraint[]? Constraints;
+    public SyntaxExpr? ExtensionType { get; init; }
+    public SyntaxExpr? TypeArgs { get; init; }
+    public SyntaxExpr? FunctionSignature { get; init; }
+    public SyntaxConstraint[]? Constraints { get; init; }
     public SyntaxExpr? Statements;
 }

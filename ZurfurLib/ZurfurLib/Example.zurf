@@ -36,19 +36,17 @@ fun test_map()
     let m4item = m4.next()
     let m5 = List<int>().map<int,str>(q => 0).map<str,float>(q => 0)
     let m5List = m5.toList<float>
-
-
     
 
     let myFold = List<int>()
-        .fold<int, float>(0.0, |acc, item| => acc + item.toFloat)
+        .reduce<int, float>(0.0, |acc, item| => acc + item.toFloat)
     let myReduce = List<int>()
         .reduce<int>(|item1, item2| => item1 + item2)
 
     let myStringList = List<int>()
         .map<int, str>(s => s.toStr)
         .map<str,str>(s => s + " ")
-        .fold<str,str>("", |acc, item| => acc + item)
+        .reduce<str,str>("", |acc, item| => acc + item)
 
       
     let testIter = (0..5).map<int,float>(fl => (2*fl).toFloat + 0.5)

@@ -169,14 +169,14 @@ fun test_map()
     @m5List = m5.toList<float>
 
     @myFold = List<int>()
-        .fold<int, float>(0.0, |acc, item| => acc + item.toFloat)
+        .reduce<int, float>(0.0, |acc, item| => acc + item.toFloat)
     @myReduce = List<int>()
         .reduce<int>(|item1, item2| => item1 + item2)
 
     @myStringList = List<int>()
         .map<int, str>(s => s.toStr)
         .map<str,str>(s => s + " ")
-        .fold<str,str>("", |acc, item| => acc + item)
+        .reduce<str,str>("", |acc, item| => acc + item)
 
     @testIter = (0..5).map<int,float>(fl => (2*fl).toFloat + 0.5)
 

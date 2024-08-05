@@ -5,6 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Zurfur</RootNamespace>
+	  <RunAOTCompilation>true</RunAOTCompilation>
+	  <PublishTrimmed>true</PublishTrimmed>
+
   </PropertyGroup>
 
   <ItemGroup>

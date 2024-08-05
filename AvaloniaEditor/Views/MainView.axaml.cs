@@ -22,7 +22,7 @@ namespace AvaloniaEditor.Views;
 
 public partial class MainView : UserControl
 {
-    const string ZURFUR_LIB_URL = "avares://ZurfurLib/ZurfurLibForAvalonia";
+    const string ZURFUR_LIB_URL = "avares://ZurfurLib/ZurfurLib";
     static readonly WordSet sTextEditorExtensions = new WordSet(".txt .json .md .htm .html .css .zurf .zil");
     static readonly WordSet sImageEditorExtensions = new WordSet(".jpg .jpeg .png .bmp");
 

@@ -33,15 +33,16 @@ Golang, Rust, Python, JavaScript, and other languages.
     * Faster than C# and unsafe code just as fast as C
     * Target WebAssembly in the browser with easy JavaScript interop
 * **Ownership, mutability, and nullabilty are part of the type system:**
-    * All objects are value types except for pointers (e.g. `^MyType`) and borrowed references (e.g. `&myValue`)
     * `ro` means read only *all the way down* (not like C#, where `readonly` only protects the top level)
+    * All types are values (i.e. *owned*) except for `ro` types (e.g. `str`), pointers (e.g. `^MyType`) and borrowed references (e.g. `&myValue`)
+    * All mutable types have a `ro` counterpart which can be copied quickly via single pointer assignment (e.g. `str` is `ro List<byte>`)
     * Function parameters must be explicitly marked `mut` if they mutate anything
     * References and pointers are non-nullable, but may use `?MyType` or `?^MyType` for nullable
     * Deterministic destructors (e.g. `FileStream` closes itself automatically)
 * **Fast and efficient:**
     * Return references and span used everywhere. `[]int` is `Span<int>`
     * Functions pass parameters by reference, but will pass a copy when it is more efficient
-    * Explicit `clone` required when copying an object that requires dynamic allocation
+    * Explicit `copy` required when copying an object that requires dynamic allocation
     * Most objects are deleted without needing GC.  Heap objects are reference counted.
 
 ## Variables and Mutability
@@ -53,18 +54,12 @@ Golang, Rust, Python, JavaScript, and other languages.
 
 ***TBD:*** `let` and `var` refer to assignablility:
 
-`let` for un-assignable, `var` for assignable. In both cases, the object they point to
-is immutable unless the `mut` keyword is used.  For example:
+`let` for un-assignable, `mut` for mutable, and `var` for assignable.  For example:
 
-    let a = getList()        // a is un-assignable, the list is immutable
-    let b = mut getList()    // b is un-assignable, the list is mutable
-    var c = getList()        // c is assignable, the list is immutable
-    var d = mut getList()    // d is assignable, the list is mutable
-
-Alternatively, `let` and `var` refer to assignability and mutability:
-
-    let a = getList()        // a is un-assignable, the list is immutable
-    var c = getList()        // c is assignable, the list is mutable
+    let a = getList()       // a is un-assignable, the list is immutable
+    mut b = getList()       // b is un-assignable, the list is mutable
+    var c = getList()       // c is assignable, the list is immutable
+    var mut d = getList()   // d is assignable, the list is mutable
 
 
 ## Types

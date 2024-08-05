@@ -11,7 +11,7 @@ namespace Zurfur.Compiler;
 /// <summary>
 /// Base class for an expression tree.
 /// </summary>
-abstract class SyntaxExpr : IEnumerable<SyntaxExpr>
+abstract record class SyntaxExpr : IEnumerable<SyntaxExpr>
 {
     public readonly Token Token;
     public readonly int Count;
@@ -66,7 +66,7 @@ abstract class SyntaxExpr : IEnumerable<SyntaxExpr>
     }
 }
 
-class SyntaxToken : SyntaxExpr
+record class SyntaxToken : SyntaxExpr
 {
     public SyntaxToken(Token token)
         : base(token, 0)
@@ -87,13 +87,13 @@ class SyntaxToken : SyntaxExpr
     }
 }
 
-class SyntaxError : SyntaxToken
+record class SyntaxError : SyntaxToken
 {
     public SyntaxError(Token token) : base(token) { }
 }
 
 
-class SyntaxUnary : SyntaxExpr
+record class SyntaxUnary : SyntaxExpr
 {
     SyntaxExpr mParam0;
 
@@ -119,7 +119,7 @@ class SyntaxUnary : SyntaxExpr
     }
 }
 
-class SyntaxBinary : SyntaxExpr
+record class SyntaxBinary : SyntaxExpr
 {
     SyntaxExpr mParam0;
     SyntaxExpr mParam1;
@@ -152,7 +152,7 @@ class SyntaxBinary : SyntaxExpr
 }
 
 // Multi-paramerter expression
-class SyntaxMulti : SyntaxExpr
+record class SyntaxMulti : SyntaxExpr
 {
     SyntaxExpr[] mParameters;
 
@@ -172,14 +172,14 @@ class SyntaxMulti : SyntaxExpr
     {
         if (p0 == null || p1 == null || p2 == null)
             throw new ArgumentNullException("p0, p1, and p2 must not be null");
-        mParameters = new SyntaxExpr[] { p0, p1, p2 };
+        mParameters = [p0, p1, p2];
     }
     public SyntaxMulti(Token token, SyntaxExpr p0, SyntaxExpr p1, SyntaxExpr p2, SyntaxExpr p3)
         : base(token, 4)
     {
         if (p0 == null || p1 == null || p2 == null || p3 == null)
             throw new ArgumentNullException("p0, p1, p2, and p3 must not be null");
-        mParameters = new SyntaxExpr[] { p0, p1, p2, p3 };
+        mParameters = [p0, p1, p2, p3];
     }
 
     public override SyntaxExpr this[int index]

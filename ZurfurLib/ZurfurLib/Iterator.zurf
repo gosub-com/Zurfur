@@ -17,30 +17,58 @@ fun _for<S>(s Iterator<S>) Iterator<S>
     ret s
 
 
-fun GetIterator.map<S,R>(f fun(inoput S) R) MapFunIterator<S,R>
+// *** MAP ***
+
+fun GetIterator.map<S,R>(f fun(inoput S) R) Iterator<R>
     ret my.getIterator.map(f)
 
-fun Iterator.map<S, R>(f fun(input S) R) MapFunIterator<S, R>
-    ret MapFunIterator<S, R>(my, f)
+fun Iterator.map<S, R>(f fun(input S) R) Iterator<R>
+    ret MapIterator<S, R>(my, f)
     
-type ref MapFunIterator<S, R>
+type ref MapIterator<S, R>
     _iter Iterator<S>
     _f fun(input S) R
 
-fun MapFunIterator.new<S, R>(iter Iterator<S>, f fun(input S) R)
+// TBD: Remove this when `init` is implemented
+fun MapIterator.new<S, R>(iter Iterator<S>, f fun(input S) R)
     my._iter = iter
     my._f = f
 
-fun mut MapFunIterator.next<S, R>() ?R
-    @a = my._iter.next()
-    if (a @ item)
+fun mut MapIterator.next<S, R>() ?R
+    let a = my._iter.next()
+    if a @ item
         ret my._f(a)
     ret nil
 
-fun GetIterator.fold<S,R>(acc R, f fun(acc R, value S) R) R
-    ret my.getIterator.fold<S,R>(acc, f)
+// *** FILTER ***
 
-fun Iterator.fold<S,R>(acc R, f fun(acc R, value S) R) R
+fun GetIterator.filter<S>(f fun(inoput S) bool) Iterator<S>
+    ret my.getIterator.filter(f)
+
+fun Iterator.filter<S>(f fun(input S) bool) Iterator<S>
+    ret FilterIterator<S>(my, f)
+    
+type ref FilterIterator<S>
+    _iter Iterator<S>
+    _f fun(input S) bool
+
+// TBD: Remove this when `init` is implemented
+fun FilterIterator.new<S>(iter Iterator<S>, f fun(input S) bool)
+    my._iter = iter
+    my._f = f
+
+fun mut FilterIterator.next<S>() ?S
+    while my._iter.next @ item
+        if my._f(item)
+            ret item
+    ret nil
+
+// *** OTHER ***
+
+fun GetIterator.reduce<S,R>(acc R, f fun(acc R, value S) R) R
+    ret my.getIterator.reduce<S,R>(acc, f)
+
+fun Iterator.reduce<S,R>(acc R, f fun(acc R, value S) R) R
     while my.next() @ item
         acc = f(acc, item)
     ret acc
@@ -54,7 +82,8 @@ fun Iterator.reduce<S>(f fun(item1 S, item2 S) S) ?S
     while my.next() @ item
         acc = f(acc, item)
     ret acc
-    
+
+
 [pub]
 fun mut Iterator.toList<T GetIterator<T>>() List<T>
     @list = List<T>()

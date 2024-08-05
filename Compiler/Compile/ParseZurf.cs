@@ -130,8 +130,7 @@ class ParseZurf
     {
         _lexer = lexer;
         _enum = lexer.GetEnumerator();
-        _syntax = new SyntaxFile();
-        _syntax.Lexer = lexer;
+        _syntax = new SyntaxFile() { Lexer = lexer };
         _zurfParseCheck = new ParseZurfCheck(this);
     }
 
@@ -626,32 +625,27 @@ class ParseZurf
 
     SyntaxUsing ParseUsingStatement()
     {
-        var synUsing = new SyntaxUsing();
-        var tokens = new List<Token>();
-        ParseQualifiedIdentifier(tokens, "Expecting a module name identifier");
-        synUsing.ModuleName = tokens.ToArray();
-
+        var moduleName = ParseQualifiedIdentifier("Expecting a module name identifier");
+        var symbols = new List<Token>();
         if (AcceptMatch("["))
         {
             var openToken = _prevToken;
-            tokens.Clear();
             do
             {
                 if (_tokenName == "]")
                     break;
                 if (!AcceptIdentifier("Expecting a symbol from the module"))
                     break;
-                if (tokens.FindIndex(m => m.Name == _prevToken.Name) < 0)
-                    tokens.Add(_prevToken);
+                if (symbols.FindIndex(m => m.Name == _prevToken.Name) < 0)
+                    symbols.Add(_prevToken);
                 else
                     RejectToken(_prevToken, "Duplicate symbol");
             } while (AcceptMatch(","));
             if (AcceptMatchOrReject("]"))
                 Connect(_prevToken, openToken);
-            synUsing.Symbols = tokens.ToArray();
         }
 
-        return synUsing;
+        return new SyntaxUsing(moduleName.ToArray(), symbols.ToArray());
     }
 
     bool ParseModuleStatement(Token keyword)
@@ -714,23 +708,32 @@ class ParseZurf
 
     void ParseTypeScope(Token keyword, List<Token> qualifiers)
     {
-        var synType = new SyntaxType(keyword);
-        synType.Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last();
-        synType.Comments = _comments.ToString();
+        var comments = _comments.ToString();
         _comments.Clear();
 
         ParseQualifiers(s_preTypeQualifiers, qualifiers);
-        synType.Qualifiers = qualifiers.ToArray();
 
         // Parse type name
         if (!CheckIdentifier("Expecting a type name"))
             return;
-        synType.Name = Accept();
-        synType.Name.Type = eTokenType.TypeName;
-        (synType.TypeArgs, synType.Constraints) = ParseTypeParameters();
+
+        var synTypeName = Accept();
+        synTypeName.Type = eTokenType.TypeName;
+        (var synTypeTypeArgs, var synTypeConstraints) = ParseTypeParameters();
+
+        var synType = new SyntaxType(keyword, synTypeName) 
+        {
+            Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last(),
+            Comments = comments,
+            Qualifiers = qualifiers.ToArray(),
+            TypeArgs = synTypeTypeArgs,
+            Constraints = synTypeConstraints
+        };
+
 
         _syntax.Types.Add(synType);
-        RejectUnderscoreDefinition(synType.Name);
+        RejectUnderscoreDefinition(synTypeName);
+
 
         // Push new path
         var oldScopeStack = _scopeStack;
@@ -749,7 +752,6 @@ class ParseZurf
                 var simpleField = ParseFieldSimple(new List<Token>());
                 if (simpleField != null)
                 {
-                    simpleField.Simple = true;
                     AddField(simpleField);
                 }
             } while (AcceptMatch(","));
@@ -879,16 +881,13 @@ class ParseZurf
         if (_token.Type != eTokenType.Identifier)
             return null;
 
-        var constraint = new SyntaxConstraint();
-        constraint.TypeName = typeToken;
         var constraintTypeNames = NewExprList();
         while (_token.Type == eTokenType.Identifier)
         {
             constraintTypeNames.Add(ParseType());
             AcceptMatch("+");
         }
-        constraint.TypeConstraints = FreeExprList(constraintTypeNames);
-        return constraint;
+        return new SyntaxConstraint(typeToken, FreeExprList(constraintTypeNames));
     }
 
     SyntaxField? ParseEnumField(List<Token> qualifiers)
@@ -900,18 +899,22 @@ class ParseZurf
         newVarName.Type = eTokenType.DefineField;
         RejectUnderscoreDefinition(newVarName);
 
-        var field = new SyntaxField(newVarName);
-        field.Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last();
-        field.Qualifiers = qualifiers.ToArray();
-        field.Comments = _comments.ToString();
+        var comments = _comments.ToString();
         _comments.Clear();
 
-        // Optionally initialize
+        // Optionally initialize via assignment
+        SyntaxExpr? initializer = null;
         if (AcceptMatch("="))
+            initializer = ParseExpr();
+
+        var field = new SyntaxField(newVarName)
         {
-            // Initialize via assignment
-            field.Initializer = ParseExpr();
-        }
+            Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last(),
+            Qualifiers = qualifiers.ToArray(),
+            Comments = comments,
+            Initializer = initializer
+        };
+
         return field;
     }
 
@@ -923,17 +926,27 @@ class ParseZurf
         newVarName.Type = eTokenType.DefineField;
         RejectUnderscoreDefinition(newVarName);
 
-        var field = new SyntaxField(newVarName);
-        field.Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last();
-        field.Qualifiers = qualifiers.ToArray();
-        field.Comments = _comments.ToString();
+        var comments = _comments.ToString();
         _comments.Clear();
 
+        SyntaxExpr? typeName = null;
         if (_tokenName != "=")
-            field.TypeName = ParseType();
+            typeName = ParseType();
 
+        SyntaxExpr? initializer = null;
         if (_tokenName == "=")
-            field.Initializer = new SyntaxUnary(Accept(), ParseRightSideOfAssignment());
+            initializer = new SyntaxUnary(Accept(), ParseRightSideOfAssignment());
+
+        var field = new SyntaxField(newVarName)
+        {
+            Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last(),
+            Qualifiers = qualifiers.ToArray(),
+            Comments = comments,
+            Simple = true,
+            TypeName = typeName,
+            Initializer = initializer
+        };
+
 
         return field;
     }
@@ -970,13 +983,15 @@ class ParseZurf
         if (_tokenName == "=")
             initializer = new SyntaxUnary(Accept(), ParseRightSideOfAssignment());
 
-        var field = new SyntaxField(newVarName);
-        field.Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last();
-        field.Qualifiers = qualifiers.ToArray();
-        field.Comments = _comments.ToString();
+        var field = new SyntaxField(newVarName)
+        {
+            Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last(),
+            Qualifiers = qualifiers.ToArray(),
+            Comments = _comments.ToString(),
+            TypeName = typeName,
+            Initializer = initializer,
+        };
         _comments.Clear();
-        field.TypeName = typeName;
-        field.Initializer = initializer;
         AddField(field);
     }
 
@@ -986,9 +1001,7 @@ class ParseZurf
     void ParseFunction(Token keyword, List<Token> qualifiers, bool allowBody)
     {
         // Parse func keyword
-        var synFunc = new SyntaxFunc(keyword);
-        synFunc.Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last();
-        synFunc.Comments = _comments.ToString();
+        var comments = _comments.ToString();
         _comments.Clear();
 
         if (_tokenName == "get" || _tokenName == "set")
@@ -997,9 +1010,19 @@ class ParseZurf
             qualifiers.Add(Accept());
         }
 
-        var validFunctionName = ParseExtensionTypeAndMethodName(out synFunc.ExtensionType, out synFunc.Name);
-        (synFunc.TypeArgs, synFunc.Constraints) = ParseTypeParameters();
-        synFunc.FunctionSignature = ParseFunctionSignature(keyword);
+        var validFunctionName = ParseExtensionTypeAndMethodName(out var extensionType, out var funcName);
+        (var typeArgs, var constraints) = ParseTypeParameters();
+        var functionSignature = ParseFunctionSignature(keyword);
+
+        var synFunc = new SyntaxFunc(keyword, funcName)
+        {
+            Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last(),
+            Comments = comments,
+            ExtensionType = extensionType,
+            TypeArgs = typeArgs,
+            Constraints = constraints,
+            FunctionSignature = functionSignature
+        };
 
         // Body
         if (AcceptMatch("extern") || AcceptMatch("todo"))
@@ -1011,6 +1034,7 @@ class ParseZurf
 
         if (validFunctionName)
             _syntax.Functions.Add(synFunc);
+
     }
 
 
@@ -2095,11 +2119,12 @@ class ParseZurf
     /// Parse a qualified identifier.  
     /// Error causes reject until errorStop and returns null.
     /// </summary>
-    void ParseQualifiedIdentifier(List<Token> tokens, string errorMessage)
+    List<Token> ParseQualifiedIdentifier(string errorMessage)
     {
         // Parse first identifier
+        var tokens = new List<Token>();
         if (!AcceptIdentifier(errorMessage))
-            return;
+            return tokens;
         tokens.Add(_prevToken);
 
         // Parse the rest
@@ -2108,6 +2133,7 @@ class ParseZurf
         { 
             tokens.Add(_prevToken);
         }
+        return tokens;
     }
 
     /// <summary>

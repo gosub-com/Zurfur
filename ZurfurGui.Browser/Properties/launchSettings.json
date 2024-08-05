@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "WebassemblyLibrary": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:52206;http://localhost:52207"
+    }
+  }
+}
