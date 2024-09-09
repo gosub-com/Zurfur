@@ -1,34 +1,45 @@
 ﻿using Microsoft.JSInterop;
+using System.Diagnostics;
 using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
+using static ZurfurGui.Browser.OsBrowser;
 
 namespace ZurfurGui;
 
-public partial class Program
+public static class Program
 {
-    static int _counter;
+    static Render _render = new();
 
     private static void Main(string[] args)
     {
-        Console.WriteLine("C# Main called");
+        Console.WriteLine($"C# Main called args: '{string.Join(" ", args)}'");
+        CalledFromCs(0);
+
+        var canvas = PrimaryCanvas;
+        var context = PrimaryContext;
+        
+        _render.RenderFrame();
+        StartRendering();
     }
 
-    [SupportedOSPlatform("browser")]
-    [JSExport]
-    public static async void StartCounter()
+    async static void StartRendering()
     {
         while (true)
         {
-            Console.WriteLine($"Counting {_counter}");
-            _counter++;
             await Task.Delay(1000);
+            try
+            {
+                _render.RenderFrame();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error while rendering: {e.Message}");
+            }
         }
+
     }
 
-    [SupportedOSPlatform("browser")]
-    [JSExport]
-    public static int GetCounter()
-    {
-        return _counter;
-    }
+
+
+
 }
