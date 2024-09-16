@@ -32,8 +32,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gosub.Avalonia.Controls", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gosub.Lex", "Gosub.Lex\Gosub.Lex.csproj", "{03371C79-31A9-4B23-8945-CA311342B825}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZurfurGui.Browser", "ZurfurGui.Browser\ZurfurGui.Browser.csproj", "{F542BA05-C23C-4CB1-B97B-2532F383C1D8}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -76,10 +74,6 @@ Global
 		{03371C79-31A9-4B23-8945-CA311342B825}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{03371C79-31A9-4B23-8945-CA311342B825}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{03371C79-31A9-4B23-8945-CA311342B825}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F542BA05-C23C-4CB1-B97B-2532F383C1D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F542BA05-C23C-4CB1-B97B-2532F383C1D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F542BA05-C23C-4CB1-B97B-2532F383C1D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F542BA05-C23C-4CB1-B97B-2532F383C1D8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
