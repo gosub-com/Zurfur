@@ -5,8 +5,9 @@ namespace Gosub.Lex;
 
 /// <summary>
 /// Lexical analyzer - scan and separate tokens in a file.
-/// Provide services for the editor to modify the text and re-tokenize
-/// whenever it changes.  Tokens never cross line boundaries.
+/// Provide services for the editor to modify the text and re-tokenize whenever it changes.  
+/// Tokens never contain new lines, but may contain spaces.
+/// File always end with "" (i.e. `EndToken`), but never contain one in the middle.
 /// Defaults to ScanText scanner.
 /// </summary>
 sealed public class Lexer

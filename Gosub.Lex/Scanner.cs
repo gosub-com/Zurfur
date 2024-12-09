@@ -2,7 +2,8 @@
 namespace Gosub.Lex;
 
 /// <summary>
-/// Base class for Lexer scanners
+/// Base class for Lexer scanners.
+/// Tokens must never contain new lines, but may contain spaces.
 /// </summary>
 public abstract class Scanner
 {

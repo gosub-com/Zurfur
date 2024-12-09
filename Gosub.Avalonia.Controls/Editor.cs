@@ -29,6 +29,10 @@ public class Editor : UserControl
     const int FILL_X_OFFSET = 3;
     const int LEFT_MARGIN = 0; // TBD: Change to variable and increase to add line numbers
 
+    static TextDecorationCollection s_underline = [new()];
+    static Token s_normalToken = new();
+
+
     // TBD: From template?
     const string FONT_NAME = "Courier New";
 
@@ -50,7 +54,6 @@ public class Editor : UserControl
 
     // Tabs and character
     double[] _tabSpacing = new double[32];
-    int _tabStartColumnPrevious = -1;
     string[] _insertOneString = [""];
     int _tabSize = 4;
     bool _tabInsertsSpaces = true;
@@ -63,9 +66,11 @@ public class Editor : UserControl
     double _mouseDownVerticalScroll;
     Token? _mouseHoverToken;
     Point _topLeft;
-    Point _testPoint;
+    Point? _testPoint;
     Token? _testToken;
     Size _fontSize = new(9, 19);
+    Size _clientSize;
+
 
     // NOTE: Invalidating can cause so much screen updating that the screen doesn't scroll
     // via the timer.  TBD: This was true in winforms, not sure about Avalonia. 
@@ -82,7 +87,6 @@ public class Editor : UserControl
     Rect _cursorRect;
     bool _cursorVisible;
     bool _overwriteMode;
-    bool _controlKeyDown;
 
 
     // Selection
@@ -91,9 +95,8 @@ public class Editor : UserControl
 
     // Fonts, colors, and misc.
     Dictionary<eTokenType, FontInfo> _tokenFonts = new();
-    Dictionary<eTokenType, FontInfo> tokenFontsBold = new();
+    Dictionary<eTokenType, FontInfo> _tokenFontsBold = new();
     Dictionary<eTokenType, FontInfo> _tokenFontsGrayed = new();
-    Dictionary<eTokenType, FontInfo> _tokenFontsUnderlined = new();
     Typeface _shrunkFont = new(FONT_NAME); // TBD: Remove
     Brush _selectColor = new SolidColorBrush(new Color(255, 208, 208, 255));
     Brush _selectColorNoFocus = new SolidColorBrush(new Color(255, 224, 224, 224));
@@ -105,26 +108,23 @@ public class Editor : UserControl
     Brush _textUnderOverwriteCursor = new SolidColorBrush(Colors.White);
     Pen _scopeLinePen = new Pen(Colors.LightGray.ToUInt32(), 1, new DashStyle([4,4], 0));
     Pen _scopeLineErrorPen = new Pen(Colors.Red.ToUInt32(), 1, new DashStyle([4, 4], 0));
-    static Token s_normalToken = new();
     TokenColorOverride[] _tokenColorOverrides = [];
     DispatcherTimer _timer = new DispatcherTimer() { Interval = TimeSpan.FromMilliseconds(20) };
     Cursor _beamCursor = new(StandardCursorType.Ibeam);
-    Cursor _handCursor = new(StandardCursorType.Arrow);
+    Cursor _arrowCursor = new(StandardCursorType.Arrow);
+    Cursor? _cursorOverride = null;
+
+    VerticalMarkInfo[] _verticalMarks = [];
+
+    ScrollBar _vScrollBar = new();
+    public int TopVisibleLine => (int)_vScrollBar.Value;
+
+    ScrollBar _hScrollBar = new();
 
 
     // TBD: Port to Avalonia
-    ScrollBar _vScrollBar = new();
-    public int TopVisibleLine => (int)_vScrollBar.Value;
-    bool hScrollBarVisible = true;
-    int hScrollBarHeight = 10;
-    int hScrollBarMaximum { get; set; }
-    int hScrollBarLargeChange { get; set; }
-    bool hScrollBarEnabled { get; set; }
-    int hScrollBarSmallChange { get; set; }
-    Point hScrollBarLocation { get; set; }
-    double hScrollBarWidth { get; set; }
-    double hScrollBarValue;
     void MessageBox(string message) { }
+
 
     public bool RemoveWhiteSpaceAtEndOnEnter = true;
 
@@ -201,21 +201,37 @@ public class Editor : UserControl
 
 
     /// <summary>
-    /// TBD: Copied from Avalonia.Controls.TextBox
+    /// Setup horizontal & vertical scroll bars
     /// </summary>
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        
-        if (Content == null)
-        {
-            _vScrollBar.Visibility = ScrollBarVisibility.Visible;
-            _vScrollBar.HorizontalAlignment = HorizontalAlignment.Right;
-            _vScrollBar.VerticalAlignment = VerticalAlignment.Stretch;
-            _vScrollBar.Visibility = ScrollBarVisibility.Visible;
-            _vScrollBar.ValueChanged += _vScrollBar_ValueChanged;
-            Content = _vScrollBar;
-        }
+
+        if (Content != null)
+            return;
+
+        // Vertical scroll bar
+        _vScrollBar.Visibility = ScrollBarVisibility.Visible;
+        _vScrollBar.HorizontalAlignment = HorizontalAlignment.Right;
+        _vScrollBar.VerticalAlignment = VerticalAlignment.Stretch;
+        _vScrollBar.Visibility = ScrollBarVisibility.Visible;
+        _vScrollBar.ValueChanged += _vScrollBar_ValueChanged;
+        DockPanel.SetDock(_vScrollBar, Dock.Right);
+           
+        // Horizontal scroll bar
+        _hScrollBar.Visibility = ScrollBarVisibility.Visible;
+        _hScrollBar.HorizontalAlignment = HorizontalAlignment.Stretch;
+        _hScrollBar.VerticalAlignment = VerticalAlignment.Bottom;
+        _hScrollBar.Visibility = ScrollBarVisibility.Visible;
+        _hScrollBar.Orientation = Orientation.Horizontal;
+        _hScrollBar.ValueChanged += _hScrollBar_ValueChanged;
+        DockPanel.SetDock(_hScrollBar, Dock.Bottom);
+
+        // Dock them
+        var panel = new DockPanel();
+        Content = panel;
+        panel.Children.Add(_vScrollBar);
+        panel.Children.Add(_hScrollBar);
     }
 
 
@@ -293,7 +309,8 @@ public class Editor : UserControl
     public void SetMarks(VerticalMarkInfo[] marks)
     {
         // TBD: Port to Avalonia
-        // vMarksLeft.SetMarks(marks);
+        _verticalMarks = marks;
+        InvalidateVisual();
     }
 
     /// <summary>
@@ -329,6 +346,23 @@ public class Editor : UserControl
         {
             _tokenColorOverrides = value;
             InvalidateVisual();
+        }
+    }
+
+
+    /// <summary>
+    /// Set the cursor (null to set the default)
+    /// </summary>
+    public Cursor? CursorOverride
+    {
+        get => _cursorOverride;
+        set
+        {
+            if (value != _cursorOverride)
+            {
+                _cursorOverride = value;
+                UpdateMouseHoverToken();
+            }
         }
     }
 
@@ -550,14 +584,9 @@ public class Editor : UserControl
     {
         if (_tokenFonts.Count == 0)
         {
-            // TBD: Port font sizes
-            //Font normalFont = new Font(Font, Font.Bold ? FontStyle.Bold : FontStyle.Regular);
-            //Font boldFont = new Font(Font, FontStyle.Bold);
-            //mShrunkFont = new Font(Font.Name, Font.Size * SHRUNK_FONT_SCALE, FontStyle.Bold);
             var normalFont = new Typeface(FONT_NAME, FontStyle.Normal, FontWeight.Medium);
             var boldFont = new Typeface(FONT_NAME, FontStyle.Normal, FontWeight.Bold);
             _shrunkFont = new Typeface(FONT_NAME, FontStyle.Normal, FontWeight.Normal);
-
 
             // TBD: These should come from a Json config file, and
             //      eTokenType should be an open ended index (i.e. integer)
@@ -581,29 +610,22 @@ public class Editor : UserControl
                 { eTokenType.BoldSymbol, new FontInfo(boldFont, Colors.Black) },
             };
 
-            // Setup bold, underlined, and grayed fonts
+            // Setup bold and grayed fonts
+            // NOTE: Bold for token types is set above, this is bold for the token bold bit
             foreach (var font in _tokenFonts)
             {
-                tokenFontsBold[font.Key] = new FontInfo(new Typeface(
-                    font.Value.Font.FontFamily
-                    //, FontStyle.Bold | font.Value.Font.Style // TBD: Port
-                    ), font.Value.Color);
-                _tokenFontsUnderlined[font.Key] = new FontInfo(new Typeface(
-                    font.Value.Font.FontFamily
-                    //, FontStyle.Underline | font.Value.Font.Style// TBD: Port
-                    ), font.Value.Color);
-                _tokenFontsGrayed[font.Key] = new FontInfo(font.Value.Font,
-                    Lerp(font.Value.Color, Colors.LightGray, 0.5f));
+                _tokenFontsBold[font.Key] = new FontInfo(
+                    new Typeface(font.Value.Font.FontFamily, weight: FontWeight.Bold), font.Value.Color);
+                _tokenFontsGrayed[font.Key] = new FontInfo(
+                    font.Value.Font, Lerp(font.Value.Color, Colors.LightGray, 0.5f));
             }
         }
         // Font info: normal, bold, or grayed (only one can be selected for now)
         Dictionary<eTokenType, FontInfo> colorTable;
         if (token.Bold)
-            colorTable = tokenFontsBold;
+            colorTable = _tokenFontsBold;
         else if (token.Grayed)
             colorTable = _tokenFontsGrayed;
-        else if (token.Underline)
-            colorTable = _tokenFontsUnderlined;
         else
             colorTable = _tokenFonts;
 
@@ -633,7 +655,6 @@ public class Editor : UserControl
                 return;
             InvalidateVisual();
             InvalidateMeasure();
-            _tabStartColumnPrevious = -1;
         }
     }
 
@@ -643,7 +664,7 @@ public class Editor : UserControl
         // Vertical properties
         int linesInFile = LineCount;
         int linesInWindow = LinesInWindow();
-        _vScrollBar.Maximum = linesInFile;
+        _vScrollBar.Maximum = Math.Max(1, linesInFile - linesInWindow);
         _vScrollBar.LargeChange = linesInWindow;
         _vScrollBar.ViewportSize = linesInWindow;
         //vScrollBar.IsEnabled = linesInFile > linesInWindow;
@@ -655,25 +676,19 @@ public class Editor : UserControl
         int charsAcrossWindow = CharsAcrossWindow();
         for (int i = 0; i < LineCount; i++)
             charsAccross = Math.Max(charsAccross, IndexToCol(GetLine(i), GetLine(i).Length));
-        hScrollBarMaximum = charsAccross;
-        hScrollBarLargeChange = Math.Max(1, charsAcrossWindow);
-        hScrollBarEnabled = charsAccross > charsAcrossWindow;
-        hScrollBarVisible = charsAccross > charsAcrossWindow && charsAccross > 1;
-        hScrollBarSmallChange = 1;
+        _hScrollBar.Maximum = charsAccross;
+        _hScrollBar.LargeChange = Math.Max(1, charsAcrossWindow);
+        _hScrollBar.IsEnabled = charsAccross > charsAcrossWindow;
+        _hScrollBar.IsVisible = charsAccross > charsAcrossWindow && charsAccross > 1;
+        if (!_hScrollBar.IsEnabled)
+            _hScrollBar.Value = 0;
+        _hScrollBar.SmallChange = 1;
 
         // Location & Size
         //vScrollBar.Location = new Point(Math.Max(0, _clientSize.Width - vScrollBar.Width), 0);
         //vScrollBar.Height = Math.Max(0, _clientSize.Height);
-        hScrollBarLocation = new Point(0, Math.Max(0, _clientSize.Height - hScrollBarHeight));
-        hScrollBarWidth = Math.Max(0, _clientSize.Width - (_vScrollBar.IsVisible ? _vScrollBar.Width : 0));
-
-        // TBD: Port to Avalonia
-        //vMarksLeft.Visible = vScrollBar.Visible;
-        //vMarksLeft.ArrowHight = vScrollBar.Width;
-        //vMarksLeft.Location = new Point(vScrollBar.Left - vMarksLeft.Width + 1, vScrollBar.Top);
-        //vMarksLeft.Height = vScrollBar.Height;
-        //vMarksLeft.CursorMark = CursorLoc.Y;
-        //vMarksLeft.Maximum = linesInFile - 1;
+        //hScrollBarLocation = new Point(0, Math.Max(0, _clientSize.Height - hScrollBarHeight));
+        //hScrollBarWidth = Math.Max(0, _clientSize.Width - (_vScrollBar.IsVisible ? _vScrollBar.Width : 0));
     }
     protected override void OnSizeChanged(SizeChangedEventArgs e)
     {
@@ -689,7 +704,6 @@ public class Editor : UserControl
     {
         InvalidateMeasure();
         _tokenFonts.Clear();
-        _tabStartColumnPrevious = -1;
         var vScrollWidth = _vScrollBar.Width; // Preserve vScrollBar width which gets changed when font is changed
         //base.OnFontChanged(e);
         _vScrollBar.Width = vScrollWidth;
@@ -838,10 +852,12 @@ public class Editor : UserControl
         // Horizontal
         int charsAcrossWindow = CharsAcrossWindow();
         int marginX = Math.Min(4, Math.Max(0, charsAcrossWindow - 5));
-        if (IndexToCol(CursorLoc) < hScrollBarValue + marginX)
-            hScrollBarValue = Math.Max(0, IndexToCol(CursorLoc) - marginX);
-        if (IndexToCol(CursorLoc) > hScrollBarValue + charsAcrossWindow - marginX)
-            hScrollBarValue = Math.Min(hScrollBarMaximum, IndexToCol(CursorLoc) - charsAcrossWindow + marginX);
+        if (IndexToCol(CursorLoc) < _hScrollBar.Value + marginX)
+            _hScrollBar.Value = Math.Max(0, IndexToCol(CursorLoc) - marginX);
+        
+        // TBD: Can scrolls off screen (CTRL-click a symbol)
+        //if (IndexToCol(CursorLoc) > _hScrollBar.Value + charsAcrossWindow - marginX)
+        //    _hScrollBar.Value = Math.Min(_hScrollBar.Maximum, IndexToCol(CursorLoc) - charsAcrossWindow + marginX);
     }
 
     /// <summary>
@@ -927,7 +943,7 @@ public class Editor : UserControl
     {
         UndoOp undo = new UndoOp();
         undo.TopIndex = (int)_vScrollBar.Value;
-        undo.LeftIndex = (int)hScrollBarValue;
+        undo.LeftIndex = (int)_hScrollBar.Value;
         undo.ModifyCount = _modifyCount;
         undo.SelStart = _selStart;
         undo.SelEnd = _selEnd;
@@ -1087,7 +1103,7 @@ public class Editor : UserControl
 
         // Set top of screen
         _vScrollBar.Value = Math.Max(0, Math.Min(_vScrollBar.Maximum, undo.TopIndex));
-        hScrollBarValue = Math.Max(0, Math.Min(hScrollBarMaximum, undo.LeftIndex));
+        _hScrollBar.Value = Math.Max(0, Math.Min(_hScrollBar.Maximum, undo.LeftIndex));
 
         var modified = Modified;
         _modifyCount = undo.ModifyCount;
@@ -1215,41 +1231,35 @@ public class Editor : UserControl
         return null;
     }
 
+    /// <summary>
+    /// Render the screen
+    /// </summary>
     public override void Render(DrawingContext context)
     {
         var timer = Stopwatch.StartNew();
         
         // NOTE: Must draw over the entire control, otherwise mouse hit-tests don't work
-        context.DrawRectangle(new SolidColorBrush(Colors.Transparent), 
-            null, new(new(0,0), _clientSize));
+        context.DrawRectangle(new SolidColorBrush(Colors.Transparent), null, new(new(0,0), _clientSize));
 
-        OnPaint(context);
-        base.Render(context);
-    }
-
-
-    /// <summary>
-    /// Paint the screen
-    /// </summary>
-    void OnPaint(DrawingContext context)
-    {
         DrawTokens(context, true);
         DrawSelection(context);
         DrawTokens(context, false);
         DrawLines(context);
         DrawCursor(context);
-    }
-    Size _clientSize;
+        DrawVerticalMarks(context);
 
+        base.Render(context);
+    }
 
     protected override Size MeasureOverride(Size availableSize)
     {
         // Take all the space given (within reason)
         _clientSize = availableSize.Constrain(new(10000, 10000));
+
         MeasureFont();
         RecalcLineTops();
         SetupScrollBars();
-        SetTopLeft((int)hScrollBarValue, (int)_vScrollBar.Value);
+        SetTopLeft((int)_hScrollBar.Value, (int)_vScrollBar.Value);
         UpdateCursorBlinker();
         UpdateMouseHoverToken();
 
@@ -1351,9 +1361,9 @@ public class Editor : UserControl
             return; // Off screen
 
         // Check if _testToken is under _testPoint, keep first hit which is the meta token
-        if (_testToken == null
-            && _testPoint.X >= x && _testPoint.X < xEnd
-            && _testPoint.Y >= y && _testPoint.Y < yEnd)
+        if (_testToken == null && _testPoint != null
+            && _testPoint.Value.X >= x && _testPoint.Value.X < xEnd
+            && _testPoint.Value.Y >= y && _testPoint.Value.Y < yEnd)
         {
             _testToken = token;
         }
@@ -1391,20 +1401,21 @@ public class Editor : UserControl
             return;
         }
 
-        // Adjust tabs (TBD: Port to Avalonia, split tabs and draw correctly)
-        int tabStartColumn = _tabSize - col % _tabSize;
-        if (tabStartColumn != _tabStartColumnPrevious && token.Name.IndexOf('\t') >= 0)
+        // Font color & underline
+        var fontInfo = GetFontInfo(token);
+        var font = fontInfo.Font;
+        var brush = fontInfo.Brush;
+        var decorations = token.Underline ? s_underline : null;
+        if (overrides != null)
         {
-            _tabStartColumnPrevious = tabStartColumn;
-
-            // TBD: Port to Avalonia to split strings and display tabbed text correctly
-            //mTabFormat.SetTabStops(tabStartColumn * mFontSize.Width, mTabSpacing);
+            if (overrides.Font != null)
+                font = overrides.Font.Value;
+            if (overrides.ForeColor != null)
+                brush = overrides.ForeColor;
+            if (overrides.Decorations != null)
+                decorations = overrides.Decorations;
         }
 
-        // Font color
-        var fontInfo = GetFontInfo(token);
-        var font = overrides != null && overrides.Font != null ? overrides.Font.Value : fontInfo.Font;
-        var brush = overrides != null && overrides.ForeColor != null ? overrides.ForeColor : fontInfo.Brush;
         if (token.Meta)
             brush = new SolidColorBrush(Colors.DimGray);
 
@@ -1413,22 +1424,25 @@ public class Editor : UserControl
             // Draw shrunk text
             x = (int)(x + _fontSize.Width * SHRUNK_FONT_OFFSET.X);
             y = (int)(y + _fontSize.Height * SHRUNK_FONT_OFFSET.Y);
-            DrawString(context, token.Name, _shrunkFont, brush, x, y);
+            DrawString(context, token.Name, _shrunkFont, brush, x, y, decorations);
         }
         else
         {
             // Draw normal text
-            DrawString(context, token.Name, font, brush, x, y);
+            DrawString(context, token.Name, font, brush, x, y, decorations);
         }
         // Draw outline
         if (overrides != null && overrides.OutlineColor != null)
             context.DrawRectangle(overrides.OutlineColor, backRect);
     }
 
-    void DrawString(DrawingContext contex, string text, Typeface font, Brush brush, double x, double y)
+    void DrawString(DrawingContext contex, string text, Typeface font, Brush brush, 
+        double x, double y, TextDecorationCollection ?decorations = null)
     {
         var formattedText = new FormattedText(text, CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight, font, FontSize, brush);
+        if (decorations != null)
+            formattedText.SetTextDecorations(decorations);
         contex.DrawText(formattedText, new(x, y));
     }
 
@@ -1535,6 +1549,32 @@ public class Editor : UserControl
                 GetFontInfo(s_normalToken).Font, _textUnderOverwriteCursor, x, y);
         }
     }
+
+    void DrawVerticalMarks(DrawingContext context)
+    {
+        foreach (var mark in _verticalMarks)
+            DrawMark(mark.Start, mark.Color);
+
+        if (_cursorVisible)
+            DrawMark(CursorLoc.Y, Colors.Blue);
+
+        return;
+
+        void DrawMark(int line, Color color)
+        {
+            var brush = new SolidColorBrush(color);
+            var pos = LineToVerticalPixel(line);
+            context.FillRectangle(brush, new(_clientSize.Width - 12, pos, 6, 3));
+        }
+
+        double LineToVerticalPixel(int line)
+        {
+            const double ARROW_HEIGHT = 16; // Height of scroll bar arrows
+            return line / (double)Math.Max(1, LineCount) * (_clientSize.Height - 2 * ARROW_HEIGHT) + ARROW_HEIGHT;
+        }
+
+    }
+
 
 
     /// <summary>
@@ -1748,19 +1788,23 @@ public class Editor : UserControl
         UpdateCursorBlinker();
     }
 
+    /// <summary>
+    /// Update the mouse hover token and set mouse cursor.
+    /// Send event when the hover token changes.
+    /// </summary>
     private void UpdateMouseHoverToken(bool forceEvent = false)
     {
-        // TBD: Port to Avalonia (many places use null here)
-        if (_mouseCurrentPosition == null)
-            return;
+        if (_cursorOverride != null)
+            Cursor = _cursorOverride;
+        else if (_mouseCurrentPosition != null && PointerOverText(_mouseCurrentPosition.Value))
+            Cursor = _beamCursor;
+        else
+            Cursor = _arrowCursor;
 
-        Cursor = PointerOverText(_mouseCurrentPosition.Value) ? _beamCursor : _handCursor;
-
-        // Draw to NULL graphics to find the point
-        _testPoint = _mouseCurrentPosition.Value;
+        // Find the token by drawing to NULL context and testing for _testPoint
+        _testPoint = _mouseCurrentPosition;
         _testToken = null;
         DrawTokens(null, true);
-
 
         // Set new mouse hover token
         if (forceEvent || _testToken != _mouseHoverToken)
@@ -1785,7 +1829,7 @@ public class Editor : UserControl
     /// </summary>
     void ScrollBar_Changed()
     {
-        SetTopLeft((int)hScrollBarValue, (int)_vScrollBar.Value);
+        SetTopLeft((int)_hScrollBar.Value, (int)_vScrollBar.Value);
         UpdateCursorBlinker();
         UpdateMouseHoverToken();
         InvalidateVisual();
@@ -1799,27 +1843,10 @@ public class Editor : UserControl
     /// <summary>
     /// User scrolls text
     /// </summary>
-    private void hScrollBar_ValueChanged(object sender, EventArgs e)
+    private void _hScrollBar_ValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
     {
         ScrollBar_Changed();
     }
-
-
-    protected override void OnKeyUp(KeyEventArgs e)
-    {
-        // SHIFT, CTRL, and ALT keys update the hover token
-        // since the look may change when these keys are pressed
-        var key = e.Key;
-        if (key == Key.LeftShift || key == Key.RightShift
-            || key == Key.LeftCtrl || key == Key.RightCtrl
-            || key == Key.LeftAlt || key == Key.RightAlt)
-        {
-            if (_controlKeyDown)
-                UpdateMouseHoverToken(true);
-            _controlKeyDown = false;
-        }
-    }
-
     
     /// <summary>
     /// Handle all control type keys
@@ -1830,7 +1857,17 @@ public class Editor : UserControl
         base.OnKeyDown(e);
         if (e.Handled)
             return;
-        e.Handled = true;
+
+        // This handles many keys, but allow other controls to handle them as well
+        if (e.Key == Key.Tab)
+            e.Handled = true; // Prevent default tab to next control
+
+        if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl
+            || e.Key == Key.LeftShift || e.Key == Key.RightShift
+            || e.Key == Key.LeftAlt || e.Key == Key.RightAlt)
+        { 
+            return; 
+        }
         
         var key = e.Key;
         var shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
@@ -1847,18 +1884,6 @@ public class Editor : UserControl
         //    FormSearchInstance.Show(ParentForm, this);
         //if (e.Key == Key.F3)
         //    FormSearchInstance.FindNext(ParentForm, this);
-
-        // SHIFT, CTRL, and ALT keys update the hover token
-        // since the look may change when these keys are pressed
-        if (key == Key.LeftShift || key == Key.RightShift
-            || key == Key.LeftCtrl || key == Key.RightCtrl
-            || key == Key.LeftAlt || key == Key.RightAlt)
-        {
-            if (!_controlKeyDown)
-                UpdateMouseHoverToken(true);
-            _controlKeyDown = true;
-            return;
-        }
 
         var ensureCursorOnScreen = true;
 
@@ -2190,7 +2215,7 @@ public class Editor : UserControl
             int linesInWindow = LinesInWindow();
             if (CursorLoc.Y - _vScrollBar.Value > linesInWindow
                     && _vScrollBar.Value < _vScrollBar.Maximum - linesInWindow
-                    && _mouseCurrentPosition.Value.Y > _clientSize.Height - hScrollBarHeight)
+                    && _mouseCurrentPosition.Value.Y > _clientSize.Height)
                 _vScrollBar.Value++;
 
             if (CursorLoc.Y < _vScrollBar.Value
@@ -2237,22 +2262,17 @@ public class Editor : UserControl
             Brush = new SolidColorBrush(color);
         }
     }
-
-    /// <summary>
-    /// Show marks on the vertical scroll bar
-    /// </summary>
-    public struct VerticalMarkInfo
-    {
-        public int Start;
-        public int Length;
-        public Color Color;
-    }
-
-
-
-
 }
 
+/// <summary>
+/// Show marks on the vertical scroll bar
+/// </summary>
+public struct VerticalMarkInfo
+{
+    public int Start;
+    public int Length;
+    public Color Color;
+}
 
 /// <summary>
 /// Override the background color of a token (use with Editor.TokenColorOverrides)
@@ -2264,6 +2284,7 @@ public class TokenColorOverride
     public Brush? ForeColor;
     public Pen? OutlineColor;
     public Brush? BackColor;
+    public TextDecorationCollection? Decorations;
 
     public TokenColorOverride(Token token)
     {

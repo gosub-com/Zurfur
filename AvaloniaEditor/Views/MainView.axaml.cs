@@ -145,14 +145,16 @@ public partial class MainView : UserControl
         mvCodeEditors.RemoveTab(key);
     }
 
-    private void treeProject_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    private async void treeProject_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         var si = treeProject.SelectedItem as NamedItem<Uri>;
         if (si != null)
         {
             var path = si.Item.AbsoluteUri;
             LoadOrUpdateEditorFromBuildSystem(path);
-            mvCodeEditors.ShowTab(path);
+            var editor = mvCodeEditors.ShowTab(path);
+            await Task.Delay(1); // NOTE: Focus fails when done immediately
+            editor?.Focus();
         }
     }
 
@@ -171,8 +173,18 @@ public partial class MainView : UserControl
         }
     }
 
-    private void mEditController_OnNavigateToSymbol(string path, int x, int y)
+    private async void mEditController_OnNavigateToSymbol(string path, int x, int y)
     {
+        await LoadOrUpdateEditor(path);
+        var editor = mvCodeEditors.ShowTab(path) as Editor;
+        if (editor != null)
+        {
+            await Task.Delay(1); // NOTE: Focus fails when done immediately
+            var loc = new TokenLoc(x, y);
+            editor.SelSet(loc, loc);
+            editor.CursorLoc = loc;
+            editor.Focus();
+        }
     }
 
     public async void buttonGenerateTapped(object source, TappedEventArgs args)
@@ -188,7 +200,9 @@ public partial class MainView : UserControl
         foreach (var name in files)
             await LoadOrUpdateEditor(name);
 
-        mvCodeEditors.ShowTab(mBuildPackage.OutputFileReport);
+        var editor = mvCodeEditors.ShowTab(mBuildPackage.OutputFileReport);
+        await Task.Delay(1); // NOTE: Focus fails when done immediately
+        editor?.Focus();
     }
 
     // Load or update editor from build system (if possible) or file system (if not possible)
@@ -217,7 +231,7 @@ public partial class MainView : UserControl
             var newEditor = new Editor() { Lexer = lexer };
             newEditor.TextChanged += editor_TextChanged;
             mvCodeEditors.SetTab(path, newEditor, Path.GetFileName(path));
-            mEditController.AddEditor(newEditor);
+            mEditController.AttachEditor(newEditor);
         }
         return true;
     }

@@ -30,22 +30,24 @@ namespace AvaloniaEditor;
 /// </summary>
 class ZurfEditController
 {
-    static Pen sBoldConnectorOutlineColor = new Pen(new Color(255, 192, 192, 255).ToUInt32());
-    static Brush sBoldConnectorBackColor = new SolidColorBrush(new Color(255, 224, 224, 255));
-    static Pen sConnectorOutlineColor = new Pen(new Color(255, 192, 192, 255).ToUInt32());
-    static Brush? sConnectorBackColor = null;
-    static WordSet sBoldHighlightConnectors = new WordSet("( ) [ ] { } < >");
+    static Pen s_BoldConnectorOutlineColor = new Pen(new Color(255, 192, 192, 255).ToUInt32());
+    static Brush s_BoldConnectorBackColor = new SolidColorBrush(new Color(255, 224, 224, 255));
+    static Pen s_ConnectorOutlineColor = new Pen(new Color(255, 192, 192, 255).ToUInt32());
+    static Brush? s_ConnectorBackColor = null;
+    static Brush s_LinkColorBrush = new SolidColorBrush(Colors.Blue);
+    static WordSet s_BoldHighlightConnectors = new WordSet("( ) [ ] { } < >");
 
-    HoverMessage mHoverMessageForm = new();
+    HoverMessage _hoverMessageForm = new();
+
+    // TBD: Port to Avalonia
     //ContextMenuStrip mContextMenuJson = new ContextMenuStrip()
     //    { AutoSize = false, Width = 100, ShowImageMargin = false }; // Autosizing didn't work, so hard code it here
 
-    Token? mHoverToken;
-    Editor? mActiveEditor;
+    Token? _hoverToken;
+    Editor? _activeEditor;
     DispatcherTimer _timer = new DispatcherTimer() { Interval = TimeSpan.FromMilliseconds(20) };
-    bool mUpdateInfo;
-
-    Dictionary<string, Editor> mEditors = new();
+    bool _updateInfo;
+    KeyModifiers _keyModifiers = KeyModifiers.None;
 
     public delegate void NavigateToSymbolDelegate(string path, int x, int y);
 
@@ -58,40 +60,21 @@ class ZurfEditController
         //    new ToolStripLabel("Format Json", null, true, new EventHandler(FormatJson)));
     }
 
-    public void SetHoverMessageParent(Panel parent)
+    /// <summary>
+    /// Call this function once on each editor to direct events to this controller
+    /// </summary>
+    public void AttachEditor(Editor editor)
     {
-        mHoverMessageForm.IsVisible = false;
-        mHoverMessageForm.Width = 600;
-        mHoverMessageForm.Height = 200;
-        mHoverMessageForm.VerticalAlignment = VerticalAlignment.Top;
-        mHoverMessageForm.HorizontalAlignment = HorizontalAlignment.Right;
-        parent.Children.Add(mHoverMessageForm);
-    }
-
-    public void AddEditor(Editor editor)
-    {
-        if (mEditors.ContainsKey(editor.Lexer.Path))
-            return;
-
-        mEditors[editor.Lexer.Path] = editor;
         editor.LexerChanged += Editor_LexerChanged;
         editor.TextChanged += editor_TextChanged;
         editor.MouseHoverTokenChanged += editor_MouseTokenChanged;
-        //editor.MouseClick += editor_MouseClick;
-        //editor.MouseDown += editor_MouseDown;
+        editor.PointerPressed += Editor_PointerPressed;
+        editor.PointerMoved += Editor_PointerMoved;
+        editor.PointerReleased += Editor_PointerReleased;
+        editor.PointerExited += Editor_PointerExited;
+        editor.KeyDown += Editor_KeyDown;
+        editor.KeyUp += Editor_KeyUp;
         _timer.IsEnabled = true;
-    }
-
-    public void RemoveEditor(Editor editor)
-    {
-        editor.LexerChanged += Editor_LexerChanged;
-        editor.TextChanged -= editor_TextChanged;
-        editor.MouseHoverTokenChanged -= editor_MouseTokenChanged;
-        //editor.MouseClick -= editor_MouseClick;
-        //editor.MouseDown -= editor_MouseDown;
-        mEditors.Remove(editor.Lexer.Path);
-        if (mEditors.Count == 0)
-            _timer.IsEnabled = false;
     }
 
     /// <summary>
@@ -99,7 +82,7 @@ class ZurfEditController
     /// </summary>
     public async void ActiveViewChanged(Editor editor)
     {
-        mActiveEditor = editor;
+        _activeEditor = editor;
         if (editor != null)
         {
             UpdateScrollBars(editor);
@@ -118,16 +101,122 @@ class ZurfEditController
         }
     }
 
+    /// <summary>
+    /// Call this once to set the control that should contain the hover message
+    /// </summary>
+    public void SetHoverMessageParent(Panel parent)
+    {
+        _hoverMessageForm.IsVisible = false;
+        _hoverMessageForm.Width = 600;
+        _hoverMessageForm.Height = 200;
+        _hoverMessageForm.VerticalAlignment = VerticalAlignment.Top;
+        _hoverMessageForm.HorizontalAlignment = HorizontalAlignment.Right;
+        parent.Children.Add(_hoverMessageForm);
+    }
+
+    private void Editor_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        // When the user click the editor, hide the message box until a new token is hovered over.
+        _hoverToken = null;
+        _hoverMessageForm.IsVisible = false;
+
+        if (e.KeyModifiers != _keyModifiers)
+        {
+            _keyModifiers = e.KeyModifiers;
+            UpdateMouseHoverToken();
+        }
+    }
+    private void Editor_PointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (e.KeyModifiers != _keyModifiers)
+        {
+            _keyModifiers = e.KeyModifiers;
+            UpdateMouseHoverToken();
+        }
+    }
+
+    private void Editor_PointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (e.KeyModifiers != _keyModifiers)
+        {
+            _keyModifiers = e.KeyModifiers;
+            UpdateMouseHoverToken();
+        }
+
+        if (_activeEditor == null)
+            return;
+
+        var editor = _activeEditor;
+
+        //  TBD: Convert json
+        //if (e.Button == MouseButtons.Right
+        //    && Path.GetExtension(editor.FilePath).ToLower() == ".json")
+        //{
+        //    mContextMenuJson.Show(editor, editor.PointToClient(Cursor.Position));
+        //}
+
+
+        var token = editor.MouseHoverToken;
+        if (token != null
+            && e.InitialPressMouseButton == MouseButton.Left
+            && _keyModifiers.HasFlag(KeyModifiers.Control)
+            && (token.Url != "" || token.GetInfo<Symbol>() != null))
+        {
+            if (token.Url.ToLower().StartsWith("http"))
+            {
+                TopLevel.GetTopLevel(_activeEditor)?.Launcher.LaunchUriAsync(new(token.Url));
+            }
+            else if (token.GetInfo<Symbol>() is Symbol sym)
+            {
+                if (OnNavigateToSymbol == null)
+                    Debug.WriteLine("ShowEvent handler not installed");
+                OnNavigateToSymbol?.Invoke(sym.Token.Path, sym.Token.X, sym.Token.Y);
+            }
+            else
+            {
+                Debug.WriteLine("Event handler not installed", "Zurfur");
+            }
+        }
+
+    }
+
+    private void Editor_PointerExited(object? sender, PointerEventArgs e)
+    {
+        if (e.KeyModifiers != _keyModifiers)
+        {
+            _keyModifiers = e.KeyModifiers;
+            UpdateMouseHoverToken();
+        }
+    }
+
+    private void Editor_KeyUp(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyModifiers != _keyModifiers)
+        {
+            _keyModifiers = e.KeyModifiers;
+            UpdateMouseHoverToken();
+        }
+    }
+
+    private void Editor_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyModifiers != _keyModifiers)
+        {
+            _keyModifiers = e.KeyModifiers;
+            UpdateMouseHoverToken();
+        }
+    }
+
     void editor_TextChanged(object? sender, EventArgs e)
     {
-        if (sender == mActiveEditor)
-            mUpdateInfo = true;
+        if (sender == _activeEditor)
+            _updateInfo = true;
     }
 
     private void Editor_LexerChanged(object? sender, EventArgs e)
     {
-        if (sender == mActiveEditor)
-            mUpdateInfo = true;
+        if (sender == _activeEditor)
+            _updateInfo = true;
     }
 
 
@@ -135,11 +224,11 @@ class ZurfEditController
     {
         DisplayHoverForm();
         SetHoverFormLocation(false);
-        if (mUpdateInfo)
+        if (_updateInfo)
         {
-            mUpdateInfo = false;
-            if (mActiveEditor != null)
-                UpdateScrollBars(mActiveEditor);
+            _updateInfo = false;
+            if (_activeEditor != null)
+                UpdateScrollBars(_activeEditor);
         }
     }
 
@@ -149,45 +238,51 @@ class ZurfEditController
     /// </summary>
     private void editor_MouseTokenChanged(object? sender, Token? prevToken, Token? newToken)
     {
-        var editor = sender as Editor;
-        if (editor == null)
+        UpdateMouseHoverToken();
+    }
+
+
+    // Called whenever the mouse hover token changes or when a modifier keys changed
+    void UpdateMouseHoverToken()
+    {
+        if (_activeEditor == null) 
             return;
 
-        // Setup to display the hover token
-        mHoverToken = newToken;
-        mHoverMessageForm.IsVisible = false;
+        var editor = _activeEditor;
+        var newToken = editor.MouseHoverToken;
 
-        // TBD: Remove after port to Avalonia
-        //mHoverMessageForm.IsVisible = newToken != null;
-        //if (newToken != null)
-        //    mHoverMessageForm.Message = newToken.ToString();
+        // Hide old form if hover token changed and setup to display the new token
+        if (_hoverToken != newToken)
+            _hoverMessageForm.IsVisible = false;
+        _hoverToken = newToken;
 
         // Show meta when hovering over control character
         editor.Lexer.ShowMetaTokens = newToken != null
             && newToken.Meta && (newToken == ";" || newToken == "{" || newToken == "}");
+
+
+        // Show active link when CTRL is pressed
+        var overrides = new List<TokenColorOverride>();
+        if (_keyModifiers.HasFlag(KeyModifiers.Control)
+            && newToken != null
+            && (newToken.Url != "" || newToken.GetInfo<Symbol>() != null))
+        {
+            var ov = new TokenColorOverride(newToken);
+            ov.ForeColor = s_LinkColorBrush;
+            ov.Decorations = [new()]; // Underline
+            overrides.Add(ov);
+            editor.CursorOverride = new Cursor(StandardCursorType.Hand);
+        }
+        else
+        {
+            editor.CursorOverride = null;
+        }
 
         // Update hover token colors
         editor.TokenColorOverrides = [];
         if (newToken == null)
             return;
 
-        // Show active link when CTRL is pressed
-        var overrides = new List<TokenColorOverride>();
-        /*
-        if ((Control.ModifierKeys & Keys.Control) == Keys.Control
-            && (newToken.Url != "" || newToken.GetInfo<Symbol>() != null))
-        {
-            var ov = new TokenColorOverride(newToken);
-            ov.Font = new Font(editor.Font, FontStyle.Underline);
-            ov.ForeColor = Brushes.Blue;
-            overrides.Add(ov);
-            editor.Cursor = Cursors.Hand;
-        }
-        else
-        {
-            editor.Cursor = Cursors.IBeam;
-        }
-        */
 
         // Make a list of connecting tokens
         var connectors = newToken.GetInfo<Token[]>();
@@ -195,10 +290,10 @@ class ZurfEditController
         {
             foreach (Token s in connectors)
             {
-                if (sBoldHighlightConnectors.Contains(s))
-                    overrides.Add(new TokenColorOverride(s, sBoldConnectorOutlineColor, sBoldConnectorBackColor));
+                if (s_BoldHighlightConnectors.Contains(s))
+                    overrides.Add(new TokenColorOverride(s, s_BoldConnectorOutlineColor, s_BoldConnectorBackColor));
                 else
-                    overrides.Add(new TokenColorOverride(s, sConnectorOutlineColor, sConnectorBackColor));
+                    overrides.Add(new TokenColorOverride(s, s_ConnectorOutlineColor, s_ConnectorBackColor));
             }
         }
 
@@ -218,9 +313,9 @@ class ZurfEditController
                 // Highlight symbols with the same name, and also
                 // NOTE: Local symbols have the same name, so compare symbol objects, not FullName
                 // specialized symbols with tokens matching location of definition
-                if ( (object)screenSymbol == (object)hoverSymbol
+                if ((object)screenSymbol == (object)hoverSymbol
                         || hoverSymbol.HasToken && hoverSymbol.Token.Location == screenToken.Location)
-                    overrides.Add(new TokenColorOverride(screenToken, sBoldConnectorOutlineColor, sBoldConnectorBackColor));
+                    overrides.Add(new TokenColorOverride(screenToken, s_BoldConnectorOutlineColor, s_BoldConnectorBackColor));
             }
         }
 
@@ -229,29 +324,20 @@ class ZurfEditController
             || newToken.Subtype == eTokenSubtype.CodeInComment
             || newToken.Underline)
         {
-            overrides.Add(new TokenColorOverride(newToken, 
+            overrides.Add(new TokenColorOverride(newToken,
                 newToken.Error ? new Pen(Colors.Red.ToUInt32()) : new Pen(Colors.LightBlue.ToUInt32())));
         }
 
         // Update editor to show them
         editor.TokenColorOverrides = overrides.ToArray();
-    }
 
-    /// <summary>
-    /// When the user click the editor, hide the message box until a
-    /// new token is hovered over.
-    /// </summary>
-    //private void editor_MouseDown(object sender, MouseEventArgs e)
-    //{
-    //    mHoverToken = null;
-    //    mHoverMessageForm.Visible = false;
-    //}
+    }
 
     private void FormatJson(object sender, EventArgs e)
     {
         try
         {
-            var editor = mActiveEditor;
+            var editor = _activeEditor;
             if (editor == null)
                 return;
 
@@ -267,69 +353,30 @@ class ZurfEditController
     }
 
 
-    /// <summary>
-    /// Open web browser
-    /// </summary>
-    /*
-    private void editor_MouseClick(object sender, MouseEventArgs e)
-    {
-        var editor = (TextEditor)sender;
-        if (e.Button == MouseButtons.Right
-            && Path.GetExtension(editor.FilePath).ToLower() == ".json")
-        {
-            mContextMenuJson.Show(editor, editor.PointToClient(Cursor.Position));
-        }
-
-
-        var token = editor.MouseHoverToken;
-        if (token != null 
-            && e.Button == MouseButtons.Left
-            && (Control.ModifierKeys & Keys.Control) == Keys.Control
-            && (token.Url != "" || token.GetInfo<Symbol>() != null))
-        {
-            if (token.Url.ToLower().StartsWith("http"))
-            {
-                System.Diagnostics.Process.Start(token.Url);
-            }
-            else if (token.GetInfo<Symbol>() != null)
-            {
-                var sym = token.GetInfo<Symbol>();
-                if (OnNavigateToSymbol == null)
-                    MessageBox.Show("Event handler not installed", "Zurfur");
-                else
-                    OnNavigateToSymbol?.Invoke(sym.Token.Path, sym.Token.X, sym.Token.Y);
-            }
-            else
-            {
-                MessageBox.Show("TBD: Still working on this:)", "Zurfur");
-            }
-        }
-    }
-    */
 
     /// <summary>
     /// Called from timer periodically to display the hover form
     /// </summary>
     void DisplayHoverForm()
     {
-        var showForm = mActiveEditor != null
-                && mHoverToken != null
-                && mHoverToken.Type != eTokenType.Comment
-                && (mHoverToken.GetInfo<string>() != null
-                        || mHoverToken.GetInfo<ParseInfo>() != null
-                        || mHoverToken.GetInfo<Symbol>() != null
-                        || mHoverToken.GetInfo<TokenError>() != null
-                        || mHoverToken.GetInfo<TokenWarn>() != null)
-                && !mHoverMessageForm.IsVisible;
+        var showForm = _activeEditor != null
+                && _hoverToken != null
+                && _hoverToken.Type != eTokenType.Comment
+                && (_hoverToken.GetInfo<string>() != null
+                        || _hoverToken.GetInfo<ParseInfo>() != null
+                        || _hoverToken.GetInfo<Symbol>() != null
+                        || _hoverToken.GetInfo<TokenError>() != null
+                        || _hoverToken.GetInfo<TokenWarn>() != null)
+                && !_hoverMessageForm.IsVisible;
         if (!showForm)
             return;
 
-        if (mHoverToken == null)
+        if (_hoverToken == null)
             return;
 
         // Show errors and warnings
         var message = "";
-        foreach (var error in mHoverToken.GetInfos<TokenError>())
+        foreach (var error in _hoverToken.GetInfos<TokenError>())
         {
             var errorType = "";
             if (error is ParseError)
@@ -341,7 +388,7 @@ class ZurfEditController
             message += $"ERROR{errorType}: {error}\r\n";
         }
 
-        foreach (var error in mHoverToken.GetInfos<TokenWarn>())
+        foreach (var error in _hoverToken.GetInfos<TokenWarn>())
             message += $"WARNING: {error}\r\n";
 
         // Show symbol info
@@ -350,19 +397,19 @@ class ZurfEditController
         message += GetSymbolInfo();
 
         // Show parse info and strings
-        foreach (var s in mHoverToken.GetInfos<ParseInfo>())
+        foreach (var s in _hoverToken.GetInfos<ParseInfo>())
             message += s + "\r\n\r\n";
-        foreach (var s in mHoverToken.GetInfos<string>())
+        foreach (var s in _hoverToken.GetInfos<string>())
             message += s + "\r\n\r\n";
 
-        mHoverMessageForm.Message = message.Trim();
+        _hoverMessageForm.Message = message.Trim();
 
         // Show form with proper size and location
         //var size = mHoverMessageForm.Message.Size;
         //mHoverMessageForm.ClientSize = new Size(size.Width + 8, size.Height + 8);
         SetHoverFormLocation(true);
         //mHoverMessageForm.Show(mActiveEditor.ParentForm);
-        mHoverMessageForm.IsVisible = true; // TBD: Port
+        _hoverMessageForm.IsVisible = true; // TBD: Port
     }
 
     private void SetHoverFormLocation(bool setX)
@@ -386,15 +433,15 @@ class ZurfEditController
 
     private string GetSymbolInfo()
     {
-        if (mHoverToken == null)
+        if (_hoverToken == null)
             return "";
         var message = "";
-        var symbols = mHoverToken.GetInfos<Symbol>();
+        var symbols = _hoverToken.GetInfos<Symbol>();
         if (symbols.Length == 0)
             return "";
 
         // When a token has multiple symbols or an error, display a summary.
-        if (symbols.Length > 1 || symbols.Length == 1 && mHoverToken.Error)
+        if (symbols.Length > 1 || symbols.Length == 1 && _hoverToken.Error)
         {
             message += "POSSIBLE SYMBOLS:\r\n";
             message += string.Join("\r\n", symbols.Select(sym =>
@@ -444,7 +491,6 @@ class ZurfEditController
 
     void UpdateScrollBars(Editor editor)
     {
-        /*
         // Warnings on text
         var marks = new List<VerticalMarkInfo>();
         int lastMark = -1;
@@ -454,7 +500,7 @@ class ZurfEditController
             if (token.Warn && token.Location.Y != lastMark)
             {
                 lastMark = token.Location.Y;
-                marks.Add(new VerticalMarkInfo { Color = Color.Gold, Length = 1, Start = lastMark });
+                marks.Add(new VerticalMarkInfo { Color = Colors.Gold, Length = 1, Start = lastMark });
             }
         }
         // Errors on text
@@ -465,7 +511,7 @@ class ZurfEditController
             if (token.Error && token.Location.Y != lastMark)
             {
                 lastMark = token.Location.Y;
-                marks.Add(new VerticalMarkInfo { Color = Color.Red, Length = 1, Start = lastMark });
+                marks.Add(new VerticalMarkInfo { Color = Colors.Red, Length = 1, Start = lastMark });
             }
         }
         // Errors on meta tokens
@@ -475,11 +521,9 @@ class ZurfEditController
             if (token.Error && token.Location.Y != lastMark)
             {
                 lastMark = token.Location.Y;
-                marks.Add(new VerticalMarkInfo { Color = Color.Red, Length = 1, Start = lastMark });
+                marks.Add(new VerticalMarkInfo { Color = Colors.Red, Length = 1, Start = lastMark });
             }
         }
         editor.SetMarks(marks.ToArray());
-        editor.InvalidateAll();
-        */
     }
 }

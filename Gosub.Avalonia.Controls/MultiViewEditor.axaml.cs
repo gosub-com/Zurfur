@@ -66,11 +66,18 @@ public partial class MultiViewEditor : UserControl
     public string[] TabKeys
         => _tabControl.Items.Select(i => (i as MultiViewTabItem)?.Key??"").ToArray(); // All Items are MultiViewTabItem
 
-    public void ShowTab(string key)
+    /// <summary>
+    /// Show the requested tab, returns the tab content or NULL if not found.
+    /// </summary>
+    public Control? ShowTab(string key)
     {
-        var tabItem2 = FindMvti(key);
-        if (tabItem2 != null) 
-            tabItem2.IsSelected = true;
+        var tabItem = FindMvti(key);
+        if (tabItem != null)
+        {
+            tabItem.IsSelected = true;
+            return tabItem.tabContent?.Content as Control;
+        }
+        return null;
     }
 
     public void RemoveTab(string key) 
