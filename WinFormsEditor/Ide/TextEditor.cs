@@ -67,10 +67,10 @@ public partial class TextEditor : UserControl, IEditor
     TokenLoc        mSelEnd;
 
     // Fonts, colors, and misc.
-    Dictionary<eTokenType, FontInfo> mTokenFonts = new Dictionary<eTokenType, FontInfo>();
-    Dictionary<eTokenType, FontInfo> mTokenFontsBold = new Dictionary<eTokenType, FontInfo>();
-    Dictionary<eTokenType, FontInfo> mTokenFontsGrayed = new Dictionary<eTokenType, FontInfo>();
-    Dictionary<eTokenType, FontInfo> mTokenFontsUnderlined = new Dictionary<eTokenType, FontInfo>();
+    Dictionary<TokenType, FontInfo> mTokenFonts = new Dictionary<TokenType, FontInfo>();
+    Dictionary<TokenType, FontInfo> mTokenFontsBold = new Dictionary<TokenType, FontInfo>();
+    Dictionary<TokenType, FontInfo> mTokenFontsGrayed = new Dictionary<TokenType, FontInfo>();
+    Dictionary<TokenType, FontInfo> mTokenFontsUnderlined = new Dictionary<TokenType, FontInfo>();
     Font mShrunkFont;
     Brush       mSelectColor = new SolidBrush(Color.FromArgb(208, 208, 255));
     Brush       mSelectColorNoFocus = new SolidBrush(Color.FromArgb(224, 224, 224));
@@ -86,6 +86,7 @@ public partial class TextEditor : UserControl, IEditor
 
 
     public bool RemoveWhiteSpaceAtEndOnEnter = true;
+    public bool ShowMetaTokens;
 
     // Internal quick access to mLexer
     int LineCount { get { return mLexer.LineCount; } }
@@ -551,24 +552,24 @@ public partial class TextEditor : UserControl, IEditor
 
             // TBD: These should come from a Json config file, and
             //      eTokenType should be an open ended index (i.e. integer)
-            mTokenFonts = new Dictionary<eTokenType, FontInfo>()
+            mTokenFonts = new Dictionary<TokenType, FontInfo>()
             {
-                { eTokenType.Normal, new FontInfo(normalFont, Color.Black) },
-                { eTokenType.Identifier, new FontInfo(normalFont, Color.Black) },
-                { eTokenType.Reserved, new FontInfo(normalFont, Color.Blue) },
-                { eTokenType.ReservedControl, new FontInfo(boldFont, Color.Blue) },
-                { eTokenType.ReservedVar, new FontInfo(boldFont, Color.DarkBlue) },
-                { eTokenType.ReservedType, new FontInfo(boldFont, Color.FromArgb(20,125,160)) },
-                { eTokenType.Quote, new FontInfo(normalFont, Color.Brown) },
-                { eTokenType.Comment, new FontInfo(normalFont, Color.Green) },
-                { eTokenType.NewVarSymbol, new FontInfo(normalFont, Color.Blue) },
-                { eTokenType.DefineField, new FontInfo(boldFont, Color.Black) },
-                { eTokenType.DefineMethod, new FontInfo(boldFont, Color.Black) },
-                { eTokenType.DefineFunParam, new FontInfo(boldFont, Color.Black) },
-                { eTokenType.DefineTypeParam, new FontInfo(boldFont, Color.Black) },
-                { eTokenType.DefineLocal, new FontInfo(boldFont, Color.Black) },
-                { eTokenType.TypeName, new FontInfo(normalFont, Color.FromArgb(20,125,160)) },
-                { eTokenType.BoldSymbol, new FontInfo(boldFont, Color.Black) },
+                { TokenType.Normal, new FontInfo(normalFont, Color.Black) },
+                { TokenType.Identifier, new FontInfo(normalFont, Color.Black) },
+                { TokenType.Reserved, new FontInfo(normalFont, Color.Blue) },
+                { TokenType.ReservedControl, new FontInfo(boldFont, Color.Blue) },
+                { TokenType.ReservedVar, new FontInfo(boldFont, Color.DarkBlue) },
+                { TokenType.ReservedType, new FontInfo(boldFont, Color.FromArgb(20,125,160)) },
+                { TokenType.Quote, new FontInfo(normalFont, Color.Brown) },
+                { TokenType.Comment, new FontInfo(normalFont, Color.Green) },
+                { TokenType.NewVarSymbol, new FontInfo(normalFont, Color.Blue) },
+                { TokenType.DefineField, new FontInfo(boldFont, Color.Black) },
+                { TokenType.DefineMethod, new FontInfo(boldFont, Color.Black) },
+                { TokenType.DefineFunParam, new FontInfo(boldFont, Color.Black) },
+                { TokenType.DefineTypeParam, new FontInfo(boldFont, Color.Black) },
+                { TokenType.DefineLocal, new FontInfo(boldFont, Color.Black) },
+                { TokenType.TypeName, new FontInfo(normalFont, Color.FromArgb(20,125,160)) },
+                { TokenType.BoldSymbol, new FontInfo(boldFont, Color.Black) },
             };
 
             // Setup bold, underlined, and grayed fonts
@@ -583,7 +584,7 @@ public partial class TextEditor : UserControl, IEditor
             }
         }
         // Font info: normal, bold, or grayed (only one can be selected for now)
-        Dictionary<eTokenType, FontInfo> colorTable;
+        Dictionary<TokenType, FontInfo> colorTable;
         if (token.Bold)
             colorTable = mTokenFontsBold;
         else if (token.Grayed)
@@ -594,7 +595,7 @@ public partial class TextEditor : UserControl, IEditor
             colorTable = mTokenFonts;
 
         if (!colorTable.TryGetValue(token.Type, out var fontInfo))
-            return colorTable[eTokenType.Normal];
+            return colorTable[TokenType.Normal];
         return fontInfo;
     }
 
@@ -1260,7 +1261,7 @@ public partial class TextEditor : UserControl, IEditor
         // Draw metatokens
         foreach (var metaToken in mLexer.MetaTokens)
             if (metaToken.Y >= startLine && metaToken.Y <= endLine)
-                if (background || mLexer.ShowMetaTokens)
+                if (background || ShowMetaTokens)
                     DrawToken(gr, metaToken, background);
 
         // Draw all tokens on the screen
@@ -1349,11 +1350,11 @@ public partial class TextEditor : UserControl, IEditor
             else
             {
                 // TBD: This should be looked up in GetFontInfo based on Type and Subtype
-                if (token.Subtype == eTokenSubtype.Error)
+                if (token.Subtype == TokenSubType.Error)
                     gr.FillRectangle(mErrorColor, backRect);
-                else if (token.Subtype == eTokenSubtype.Warn)
+                else if (token.Subtype == TokenSubType.Warn)
                     gr.FillRectangle(mWarnColor, backRect);
-                else if (token.Subtype == eTokenSubtype.CodeInComment)
+                else if (token.Subtype == TokenSubType.CodeInComment)
                     gr.FillRectangle(mCodeInCommentColor, backRect);
             }
             return;

@@ -205,7 +205,7 @@ static class Resolver
                     // Create tuple parameter symbol
                     if (tupleExpr.Token != "")
                     {
-                        var funParam = new Symbol(SymKind.TupleParam, table.EmptyTuple, tupleExpr.Token);
+                        var funParam = new Symbol(SymKind.TupleParam, table.EmptyTuple, searchScope.Path, tupleExpr.Token);
                         tupleExpr.Token.AddInfo(funParam);
                         funParam.Type = tupleType;
                         tupleSymbols.Add(funParam);

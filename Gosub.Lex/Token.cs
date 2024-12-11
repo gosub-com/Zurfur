@@ -4,7 +4,7 @@ namespace Gosub.Lex;
 /// <summary>
 /// Basic types recognized by the lexer
 /// </summary>
-public enum eTokenType : byte
+public enum TokenType : byte
 {
     // Lexer recognized types:
     Normal,
@@ -26,7 +26,7 @@ public enum eTokenType : byte
     BoldSymbol
 }
 
-public enum eTokenSubtype : byte
+public enum TokenSubType : byte
 {
     Normal,
     Error,
@@ -34,7 +34,7 @@ public enum eTokenSubtype : byte
     CodeInComment
 }
 
-public enum eTokenBits : short
+public enum TokenFlags : short
 {
     Eoln = 1, // Read only (set only once by lexer)
     Boln = 2, // Read only (set only once by lexer)
@@ -60,15 +60,10 @@ sealed public class Token
     // Fields
     public readonly string Name = "";
     public TokenLoc Location;
-    public eTokenType Type;
-    public eTokenSubtype Subtype;
-    eTokenBits _bits;
+    public TokenType Type;
+    public TokenSubType Subtype;
+    TokenFlags _flags;
     ObjectBag _info;
-
-    /// <summary>
-    /// The token path, which should only be set by the Lexer that owns it
-    /// </summary>
-    public string Path { get; private set; } = "";
 
     public Token()
     {
@@ -92,7 +87,7 @@ sealed public class Token
         Y = loc.Y;
     }
 
-    public Token(string name, int x, int y, eTokenType tokenType)
+    public Token(string name, int x, int y, TokenType tokenType)
     {
         Name = name;
         X = x;
@@ -100,12 +95,12 @@ sealed public class Token
         Type = tokenType;
     }
 
-    public Token(string name, int x, int y, eTokenBits tokenBits)
+    public Token(string name, int x, int y, TokenFlags flags)
     {
         Name = name;
         X = x;
         Y = y;
-        _bits = tokenBits;
+        _flags = flags;
     }
 
     /// <summary>
@@ -114,7 +109,6 @@ sealed public class Token
     public Token Clone()
     {
         var token = new Token(Name, X, Y);
-        token.Path = Path;
         if (Boln)
             token.SetBolnByLexerOnly();
         if (Eoln)
@@ -144,8 +138,8 @@ sealed public class Token
     /// </summary>
     public bool Error
     {
-        get => Subtype == eTokenSubtype.Error;
-        private set { Subtype = value ? eTokenSubtype.Error : eTokenSubtype.Normal; }
+        get => Subtype == TokenSubType.Error;
+        private set { Subtype = value ? TokenSubType.Error : TokenSubType.Normal; }
     }
 
     /// <summary>
@@ -153,87 +147,82 @@ sealed public class Token
     /// </summary>
     public bool Warn
     {
-        get => Subtype == eTokenSubtype.Warn;
-        private set { if (Subtype != eTokenSubtype.Error) Subtype = value ? eTokenSubtype.Warn : eTokenSubtype.Normal; }
+        get => Subtype == TokenSubType.Warn;
+        private set { if (Subtype != TokenSubType.Error) Subtype = value ? TokenSubType.Warn : TokenSubType.Normal; }
     }
 
     public bool Grayed
     {
-        get => (_bits & eTokenBits.Grayed) != 0;
-        set { _bits = _bits & ~eTokenBits.Grayed | (value ? eTokenBits.Grayed : 0); }
+        get => (_flags & TokenFlags.Grayed) != 0;
+        set { _flags = _flags & ~TokenFlags.Grayed | (value ? TokenFlags.Grayed : 0); }
     }
     public bool Underline
     {
-        get => (_bits & eTokenBits.Underline) != 0;
-        set { _bits = _bits & ~eTokenBits.Underline | (value ? eTokenBits.Underline : 0); }
+        get => (_flags & TokenFlags.Underline) != 0;
+        set { _flags = _flags & ~TokenFlags.Underline | (value ? TokenFlags.Underline : 0); }
     }
     public bool Bold
     {
-        get => (_bits & eTokenBits.Bold) != 0;
-        set { _bits = _bits & ~eTokenBits.Bold | (value ? eTokenBits.Bold : 0); }
+        get => (_flags & TokenFlags.Bold) != 0;
+        set { _flags = _flags & ~TokenFlags.Bold | (value ? TokenFlags.Bold : 0); }
     }
 
     public bool Meta
     {
-        get => (_bits & eTokenBits.Meta) != 0;
-        set { _bits = _bits & ~eTokenBits.Meta | (value ? eTokenBits.Meta : 0); }
+        get => (_flags & TokenFlags.Meta) != 0;
+        set { _flags = _flags & ~TokenFlags.Meta | (value ? TokenFlags.Meta : 0); }
     }
 
     public bool Eoln
-        => (_bits & eTokenBits.Eoln) != 0;
+        => (_flags & TokenFlags.Eoln) != 0;
 
     public bool Boln
-        => (_bits & eTokenBits.Boln) != 0;
+        => (_flags & TokenFlags.Boln) != 0;
 
     public bool OnlyTokenOnLine
-        => (~_bits & (eTokenBits.Boln | eTokenBits.Eoln)) == 0;
+        => (~_flags & (TokenFlags.Boln | TokenFlags.Eoln)) == 0;
 
     public bool Shrink
     {
-        get => (_bits & eTokenBits.Shrink) != 0;
-        set { _bits = _bits & ~eTokenBits.Shrink | (value ? eTokenBits.Shrink : 0); }
+        get => (_flags & TokenFlags.Shrink) != 0;
+        set { _flags = _flags & ~TokenFlags.Shrink | (value ? TokenFlags.Shrink : 0); }
     }
     public bool Continuation
     {
-        get => (_bits & eTokenBits.Continuation) != 0;
-        set { _bits = _bits & ~eTokenBits.Continuation | (value ? eTokenBits.Continuation : 0); }
+        get => (_flags & TokenFlags.Continuation) != 0;
+        set { _flags = _flags & ~TokenFlags.Continuation | (value ? TokenFlags.Continuation : 0); }
     }
 
     public bool VerticalLine
     {
-        get => (_bits & eTokenBits.VerticalLine) != 0;
-    }
-
-    public void SetPathByLexer(string path)
-    {
-        Path = path;
+        get => (_flags & TokenFlags.VerticalLine) != 0;
     }
 
     public void SetEolnByLexerOnly()
     {
-        _bits |= eTokenBits.Eoln;
+        _flags |= TokenFlags.Eoln;
     }
     public void SetBolnByLexerOnly()
     {
-        _bits |= eTokenBits.Boln;
+        _flags |= TokenFlags.Boln;
     }
 
     /// <summary>
-    /// Clear info, bits, type, and subtype, but not location or eoln bit
+    /// Clear info, flags, type, and subtype, but not location or eoln bit
     /// </summary>
     public void Clear()
     {
-        Type = eTokenType.Normal;
-        Subtype = eTokenSubtype.Normal;
-        Type = eTokenType.Normal;
-        _bits = _bits & eTokenBits.ReadOnlyMask;
+        Type = TokenType.Normal;
+        Subtype = TokenSubType.Normal;
+        Type = TokenType.Normal;
+        _flags = _flags & TokenFlags.ReadOnlyMask;
         _info = new ObjectBag();
     }
 
     public void AddInfo<T>(T info)
     {
         if (info is TokenVerticalLine)
-            _bits |= eTokenBits.VerticalLine;
+            _flags |= TokenFlags.VerticalLine;
         if (info is TokenError)
             Error = true;
         if (info is TokenWarn)
@@ -244,7 +233,7 @@ sealed public class Token
     {
         _info.RemoveInfo<T>();
         if (typeof(T) == typeof(TokenVerticalLine) || typeof(T).IsSubclassOf(typeof(TokenVerticalLine)))
-            _bits &= ~eTokenBits.VerticalLine;
+            _flags &= ~TokenFlags.VerticalLine;
         if (typeof(T) == typeof(TokenError) || typeof(T).IsSubclassOf(typeof(TokenError)))
             Error = GetInfo<TokenError>() != null;
         if (typeof(T) == typeof(TokenWarn) || typeof(T).IsSubclassOf(typeof(TokenWarn)))

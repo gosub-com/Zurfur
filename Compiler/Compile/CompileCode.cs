@@ -178,6 +178,7 @@ static class CompileCode
         Assembly assembly,
         Dictionary<string, InterfaceInfo> interfaces)
     {
+        var path = synFile.Lexer.Path;
         var typeVoid = table.Lookup(SymTypes.Void);
         var typeNil = table.Lookup(SymTypes.Nil);
         var typeInt = table.Lookup(SymTypes.Int);
@@ -609,7 +610,7 @@ static class CompileCode
                 // TBD: Allow user defined custom types
                 // TBD: Call conversion to type
                 untypedConst = false;
-                ex[0].Token.Type = eTokenType.TypeName;
+                ex[0].Token.Type = TokenType.TypeName;
                 var customType = ex[0].Token;
                 if (customType == "int")
                     numberType = typeInt;
@@ -779,7 +780,7 @@ static class CompileCode
 
         Rval? GenNewVarsOperator(SyntaxExpr ex)
         {
-            ex.Token.Type = eTokenType.NewVarSymbol;
+            ex.Token.Type = TokenType.NewVarSymbol;
             if (ex.Count == 0)
                 return null;  // Syntax error
             if (ex.Count == 1)
@@ -1330,7 +1331,7 @@ static class CompileCode
                 // but not int().MinValue
                 if (candidate.IsAnyTypeOrModule)
                 {
-                    token.Type = eTokenType.TypeName;
+                    token.Type = TokenType.TypeName;
                     if (flags.HasFlag(EvalFlags.AllowStatic) || candidate.FullName == SymTypes.Nil)
                     {
                         // Substitute generic parameter
@@ -1385,7 +1386,7 @@ static class CompileCode
         // Find a compatible constructor function.
         Symbol? FindCompatibleConstructor(Rval call, Symbol newType, List<Rval>? args)
         {
-            call.Token.Type = eTokenType.TypeName;
+            call.Token.Type = TokenType.TypeName;
             if (newType.IsSpecialized)
                 throw new Exception("Compiler error: FindCompatibleConstructor, unexpected specialized type");
 
@@ -2315,7 +2316,7 @@ static class CompileCode
                 }
             }
 
-            var local = new Symbol(SymKind.Local, null, token);
+            var local = new Symbol(SymKind.Local, null, path, token);
             var localScope = newVarScope >= 0 && !forLambda ? newVarScope : scopeNum;
             localsByName![token] = new LocalSymbol(local, localScope, localsByIndex!.Count);
             assembly.AddOpUseLocal(token, localsByIndex.Count, newVarCodeIndex);

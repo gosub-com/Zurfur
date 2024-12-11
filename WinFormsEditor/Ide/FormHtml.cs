@@ -89,7 +89,7 @@ public partial class FormHtml:Form
             int line = mLineCount == 0 ? 0 : mLineStart;
             int endLine = mLineCount == 0 ? int.MaxValue : mLineStart + mLineCount;
             int column = 0;
-            int tokenType = (int)eTokenType.Normal;
+            int tokenType = (int)TokenType.Normal;
             html.Append("<span class=s0>");
             foreach (var token in mLexer.GetEnumeratorStartAtLine(line))
             {

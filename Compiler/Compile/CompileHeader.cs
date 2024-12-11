@@ -71,25 +71,26 @@ static class CompileHeader
             {
                 foreach (var ns in syntaxFile.Value.Modules)
                 {
-                    var symbol = AddModule(ns.Value);
+                    var symbol = AddModule(ns.Value, syntaxFile.Key);
                     symbol.Comments += " " + ns.Value.Comments;
                 }
             }
         }
 
-        Symbol AddModule(SyntaxScope m)
+        Symbol AddModule(SyntaxScope m, string path)
         {
             if (syntaxToSymbol.TryGetValue(m, out var s1))
                 return s1;
             Symbol parent = table.Root;
             if (m.Parent != null)
-                parent = AddModule(m.Parent);
+                parent = AddModule(m.Parent, path);
             if (parent.TryGetPrimary(m.Name, out var s2))
             {
                 syntaxToSymbol[m] = s2!;
                 return s2!;
             }
-            var newModule = new Symbol(SymKind.Module, parent, m.Name);
+            var newModule = new Symbol(SymKind.Module, parent, path, m.Name);
+
             // TBD: Take qualifiers from module definition (generate error if inconsistent)
             newModule.Qualifiers = SymQualifiers.Pub;
             m.Name.AddInfo(newModule);
@@ -175,7 +176,7 @@ static class CompileHeader
                 if (token != null)
                 {
                     if (symbol.IsType || symbol.IsModule)
-                        token.Type = eTokenType.TypeName;
+                        token.Type = TokenType.TypeName;
                     token.AddInfo(symbol);
                 }
 
@@ -235,7 +236,7 @@ static class CompileHeader
                     // Add type
                     if (!syntaxToSymbol.TryGetValue(type.Parent!, out var parent))
                         continue; // Syntax errors
-                    var newType = new Symbol(SymKind.Type, parent, type.Name);
+                    var newType = new Symbol(SymKind.Type, parent, syntaxFile.Lexer.Path, type.Name);
                     newType.Comments = type.Comments;
                     newType.SetQualifiers(type.Qualifiers);
                     newType.Token.AddInfo(newType);
@@ -273,17 +274,17 @@ static class CompileHeader
                 // TBD: Simplify this, because it's identical to compiling:
                 //          "[static] fun Type.new() extern"
                 //      Plus, some of this code is repeated in other places
-                var constructor = new Symbol(SymKind.Fun, type.Parent, type.Token, "new");
+                var constructor = new Symbol(SymKind.Fun, type.Parent, type.Path, type.Token, "new");
                 constructor.Qualifiers |= SymQualifiers.My | SymQualifiers.Method | SymQualifiers.Extern;
                 var constructorType = Resolver.GetTypeWithGenericParameters(table, type);
                 //constructorType.Qualifiers |= SymQualifiers.My;
                 foreach (var genericParam in constructorType.TypeArgs)
-                    table.AddOrReject(new Symbol(SymKind.TypeParam, constructor, type.Token, genericParam.SimpleName));
+                    table.AddOrReject(new Symbol(SymKind.TypeParam, constructor, type.Path, type.Token, genericParam.SimpleName));
+
                 SetGenericParamSymbols(constructor);
 
-                constructor.Type = table.CreateTuple(new[] { 
-                    table.CreateTuple(new[] { constructorType }), 
-                    table.CreateTuple(new[] { constructorType }) });
+                constructor.Type = table.CreateTuple([ 
+                    table.CreateTuple([constructorType]), table.CreateTuple([constructorType]) ]);
 
                 table.AddOrReject(constructor);
             }
@@ -302,7 +303,7 @@ static class CompileHeader
             var typeParamSymbols = new List<Symbol>();
             foreach (var expr in typeArgs)
             {
-                var typeParam = new Symbol(SymKind.TypeParam, type, expr.Token);
+                var typeParam = new Symbol(SymKind.TypeParam, type, type.Path, expr.Token);
                 if (table.AddOrReject(typeParam))
                 {
                     expr.Token.AddInfo(typeParam);
@@ -325,7 +326,7 @@ static class CompileHeader
                     }
 
                     // Create the field
-                    var symField = new Symbol(SymKind.Field, symParent, field.Name);
+                    var symField = new Symbol(SymKind.Field, symParent, syntaxFile.Key, field.Name);
                     symField.SetQualifiers(field.Qualifiers);
                     symField.Comments = field.Comments;
                     symField.Token.AddInfo(symField);
@@ -343,7 +344,7 @@ static class CompileHeader
                         Reject(field.Name, "Expecting symbol to have an explicitly named type");
                         continue;
                     }
-                    symField.Type = ResolveTypeNameOrReject(symField.Parent!, field.TypeName);
+                    symField.Type = ResolveTypeNameOrReject(symField.Parent!, field.TypeName, syntaxFile.Key);
                     if (symField.TypeName == "" && !noCompilerChecks)
                         symField.Token.AddInfo(new VerifySuppressError());
                 }
@@ -359,12 +360,12 @@ static class CompileHeader
                     if (!syntaxToSymbol.TryGetValue(type.Parent, out var module))
                         continue;  // Syntax error already marked
                     if (module.TryGetPrimary(type.Name, out var symbol) && symbol!.IsType)
-                        ResolveConstraints(symbol, type.Constraints);
+                        ResolveConstraints(symbol, type.Constraints, syntaxFile.Key);
                 }
             }
         }
 
-        void ResolveConstraints(Symbol scope, SyntaxConstraint[] synConstraints)
+        void ResolveConstraints(Symbol scope, SyntaxConstraint[] synConstraints, string path)
         {
             if (synConstraints == null || synConstraints.Length == 0)
                 return;
@@ -401,7 +402,7 @@ static class CompileHeader
                 var constrainers = new List<Symbol>();
                 foreach (var c in synConstraint.TypeConstraints)
                 {
-                    var sym = ResolveTypeNameOrReject(scope, c);
+                    var sym = ResolveTypeNameOrReject(scope, c, path);
                     if (sym == null)
                         continue;  // Error already given
                     if (!sym.IsInterface)
@@ -427,11 +428,11 @@ static class CompileHeader
         {
             foreach (var syntaxFile in syntaxFiles)
                 foreach (var synFunc in syntaxFile.Value.Functions)
-                    ResolveFunction(synFunc);
+                    ResolveFunction(synFunc, syntaxFile.Key);
         }
 
         // Scope is where the function is defined (a module or type)
-        void ResolveFunction(SyntaxFunc synFunc)
+        void ResolveFunction(SyntaxFunc synFunc, string path)
         {
             // Get module containing function
             if (!syntaxToSymbol.TryGetValue(synFunc.Parent!, out var scope))
@@ -443,10 +444,10 @@ static class CompileHeader
                 Reject(synFunc.Name, "Syntax error or compiler error");
                 return;
             }
-            var useSymbolsFile = useSymbols.Files[synFunc.Token.Path];
 
             // Generate the function
-            var function = new Symbol(SymKind.Fun, scope, synFunc.Name);
+            var useSymbolsFile = useSymbols.Files[path];
+            var function = new Symbol(SymKind.Fun, scope, path, synFunc.Name);
             function.SetQualifiers(synFunc.Qualifiers);
             function.Comments = synFunc.Comments;
             AddTypeParams(function, synFunc.TypeArgs);
@@ -460,9 +461,9 @@ static class CompileHeader
             if (newReturn != null)
                 returns.Add(newReturn);
 
-            function.Type = table.CreateTuple(new Symbol[] {
+            function.Type = table.CreateTuple([
                 table.CreateTuple(parameters.Select(a => a.Type!).ToArray(), parameters.ToArray()),
-                table.CreateTuple(returns.Select(a => a.Type!).ToArray(), returns.ToArray()) });
+                table.CreateTuple(returns.Select(a => a.Type!).ToArray(), returns.ToArray()) ]);
 
             function.Token.AddInfo(function);
             if (synFunc.Parent.Name.Error)
@@ -474,7 +475,7 @@ static class CompileHeader
             }
             table.AddOrReject(function);
 
-            ResolveConstraints(function, synFunc.Constraints);
+            ResolveConstraints(function, synFunc.Constraints, path);
 
             Debug.Assert(!syntaxToSymbol.ContainsKey(synFunc));
             syntaxToSymbol[synFunc] = function;
@@ -483,6 +484,7 @@ static class CompileHeader
 
         Symbol? ResolveMyParam(Symbol method, SyntaxFunc func)
         {
+            var path = method.Path;
             var methodParent = method.Parent!;
             var extType = func.ExtensionType;
             if (methodParent.IsInterface)
@@ -494,7 +496,7 @@ static class CompileHeader
 
                 // Interface method
                 bool isStatic = method.IsStatic || !methodParent.IsInterface;
-                var myParam = new Symbol(SymKind.FunParam, method, func.Name, isStatic ? "My" : "my");
+                var myParam = new Symbol(SymKind.FunParam, method, path, func.Name, isStatic ? "My" : "my");
                 myParam.Type = Resolver.GetTypeWithGenericParameters(table, methodParent);
                 if (myParam.Type == null)
                     return null;
@@ -507,7 +509,7 @@ static class CompileHeader
 
             if (extType != null)
             {
-                var myParam = new Symbol(SymKind.FunParam, method, func.Name, method.IsStatic ? "My" : "my");
+                var myParam = new Symbol(SymKind.FunParam, method, path, func.Name, method.IsStatic ? "My" : "my");
                 if (extType != null && extType.Token == "mut")
                 {
                     myParam.SetQualifier("mut");
@@ -517,16 +519,16 @@ static class CompileHeader
                 if (extType.Token == ParseZurf.VT_TYPE_ARG)
                 {
                     // Generic parameters are supplied
-                    myParam.Type = ResolveTypeNameOrReject(myParam, extType);
+                    myParam.Type = ResolveTypeNameOrReject(myParam, extType, path);
                     if (myParam.Type == null)
                         return null;
                 }
                 else
                 {
-                    var recieverType = Resolver.FindGlobalType(extType.Token, table, method,
-                                    useSymbols.Files[extType.Token.Path]);
+                    var recieverType = Resolver.FindGlobalType(extType.Token, table, method, useSymbols.Files[path]);
                     if (recieverType == null)
                         return null;
+
                     if (recieverType.IsModule || recieverType.IsTypeParam)
                     {
                         Reject(extType.Token, $"Receiver type cannot be {recieverType.Kind}");
@@ -564,7 +566,7 @@ static class CompileHeader
             foreach (var parameter in synFunc.FunctionSignature[1])
                 if (parameter[0].Token != "")
                     Reject(parameter[0].Token, "'new' function must not have return parameters");
-            var returnParam = new Symbol(SymKind.FunParam, function, synFunc.Name, "");
+            var returnParam = new Symbol(SymKind.FunParam, function, function.Path, synFunc.Name, "");
             returnParam.Type = myParam.Type;
             function.Qualifiers &= ~SymQualifiers.Static;
             function.Qualifiers |= SymQualifiers.Method | SymQualifiers.My;
@@ -600,7 +602,10 @@ static class CompileHeader
                         $"The symbol is not a type, it is a {paramType.KindName}");
 
                 // Create function parameter symbol
-                var funParam = new Symbol(SymKind.FunParam, function, expr.Token, expr.Token.Name);
+                // NOTE: Un-named return parameters have an empty symbol name
+                var funParam = new Symbol(SymKind.FunParam, function, function.Path, expr.Token, expr.Token.Name);
+                
+                // Return parametrs without names
                 expr.Token.AddInfo(funParam);
                 foreach (var qualifier in expr[2])
                     funParam.SetQualifier(qualifier.Token);
@@ -611,12 +616,13 @@ static class CompileHeader
             return paramSyms;
         }
 
-        Symbol? ResolveTypeNameOrReject(Symbol scope, SyntaxExpr typeExpr)
+        Symbol? ResolveTypeNameOrReject(Symbol scope, SyntaxExpr typeExpr, string path)
         {
             // There will also be a syntax error
             if (typeExpr == null || typeExpr.Token.Name == "")
                 return null;
-            var symbol = Resolver.Resolve(typeExpr, table, false, scope, useSymbols.Files[typeExpr.Token.Path]);
+
+            var symbol = Resolver.Resolve(typeExpr, table, false, scope, useSymbols.Files[path]);
             if (symbol == null)
                 return null;
 

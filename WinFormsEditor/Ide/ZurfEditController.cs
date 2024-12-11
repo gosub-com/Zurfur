@@ -133,7 +133,7 @@ class ZurfEditController
         mHoverMessageForm.Visible = false;
 
         // Show meta when hovering over control character
-        editor.Lexer.ShowMetaTokens = newToken != null
+        editor.ShowMetaTokens = newToken != null
             && newToken.Meta && (newToken == ";" || newToken == "{" || newToken == "}");
 
         // Update hover token colors
@@ -193,8 +193,8 @@ class ZurfEditController
         }
 
         // Highlight current location (if not already showing something from above)
-        if (newToken.Type != eTokenType.Comment
-            || newToken.Subtype == eTokenSubtype.CodeInComment
+        if (newToken.Type != TokenType.Comment
+            || newToken.Subtype == TokenSubType.CodeInComment
             || newToken.Underline)
         {
             overrides.Add(new TokenColorOverride(newToken, newToken.Error ? Pens.Red : Pens.LightBlue));
@@ -263,7 +263,7 @@ class ZurfEditController
                 if (OnNavigateToSymbol == null)
                     MessageBox.Show("Event handler not installed", "Zurfur");
                 else
-                    OnNavigateToSymbol?.Invoke(sym.Token.Path, sym.Token.X, sym.Token.Y);
+                    OnNavigateToSymbol?.Invoke(sym.Path, sym.Token.X, sym.Token.Y);
             }
             else
             {
@@ -280,7 +280,7 @@ class ZurfEditController
     {
         var showForm = mActiveEditor != null
                 && mHoverToken != null
-                && mHoverToken.Type != eTokenType.Comment
+                && mHoverToken.Type != TokenType.Comment
                 && (mHoverToken.GetInfo<string>() != null
                         || mHoverToken.GetInfo<ParseInfo>() != null
                         || mHoverToken.GetInfo<Symbol>() != null

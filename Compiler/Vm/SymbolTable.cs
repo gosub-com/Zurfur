@@ -107,18 +107,18 @@ public class SymbolTable
 
     public SymbolTable()
     {
-        var preRoot = new Symbol(SymKind.Module, null, null, "");
-        Root = new Symbol(SymKind.Module, preRoot, null, "");
-        Unresolved = new Symbol(SymKind.Module, Root, null, "??");
-        _genericArgumentHolder = new Symbol(SymKind.Type, Root, null, "");
-        _genericTupleHolder = new Symbol(SymKind.Module, Root, null, "");
-        EmptyTuple = new Symbol(SymKind.Type, _genericTupleHolder, null, "()");
+        var preRoot = new Symbol(SymKind.Module, null, "", null, "");
+        Root = new Symbol(SymKind.Module, preRoot, "", null, "");
+        Unresolved = new Symbol(SymKind.Module, Root, "", null, "??");
+        _genericArgumentHolder = new Symbol(SymKind.Type, Root, "", null, "");
+        _genericTupleHolder = new Symbol(SymKind.Module, Root, "", null, "");
+        EmptyTuple = new Symbol(SymKind.Type, _genericTupleHolder, "", null, "()");
         _specializedTypes["()"] = EmptyTuple;
 
         // The lambda<T> has a type of T, which is a function tuple
-        LambdaType = new Symbol(SymKind.Type, _genericTupleHolder, null, "$lambda");
+        LambdaType = new Symbol(SymKind.Type, _genericTupleHolder, "", null, "$lambda");
         LambdaType.Type = GetGenericParam(0);
-        LambdaType.GenericParamSymbols = [new Symbol(SymKind.TypeParam, LambdaType, null, "T")];
+        LambdaType.GenericParamSymbols = [new Symbol(SymKind.TypeParam, LambdaType, "", null, "T")];
     }
 
 
@@ -259,7 +259,7 @@ public class SymbolTable
         if (typeArgs.Length == 0)
             return concreteType;
 
-        var symSpec = new Symbol(concreteType.Kind, concreteType,
+        var symSpec = new Symbol(concreteType.Kind, concreteType, concreteType.Path,
             concreteType.HasToken ? concreteType.Token : null, concreteType.SimpleName)
         {
             TypeArgs = typeArgs,
@@ -337,7 +337,7 @@ public class SymbolTable
         for (int i = _genericArguments.Count; i <= argNum; i++)
         {
             var name = $"#{i}";
-            var arg = new Symbol(SymKind.TypeParam, _genericArgumentHolder, null, name);
+            var arg = new Symbol(SymKind.TypeParam, _genericArgumentHolder, "", null, name);
             _genericArguments.Add(arg);
             AddOrReject(arg);
             _specializedTypes[name] = arg;
@@ -354,7 +354,7 @@ public class SymbolTable
         {
             // Create a generic constructor for generic type
             var type = GetGenericParam(i);
-            var constructor = new Symbol(SymKind.Fun, type, null, "new");
+            var constructor = new Symbol(SymKind.Fun, type, "", null, "new");
             constructor.Qualifiers |= SymQualifiers.Static | SymQualifiers.My | SymQualifiers.Method | SymQualifiers.Extern;
             constructor.Type = CreateTuple([
                     CreateTuple([type]),

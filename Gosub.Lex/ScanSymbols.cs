@@ -82,7 +82,7 @@ public class ScanSymbols : Scanner
         {
             charIndex = SkipNumber(line, startIndex);
             string number = Mintern(line.Substring(startIndex, charIndex - startIndex));
-            tokens.Add(new Token(number, startIndex, 0, eTokenType.Number));
+            tokens.Add(new Token(number, startIndex, 0, TokenType.Number));
             return;
         }
 
@@ -159,7 +159,7 @@ public class ScanSymbols : Scanner
             endIndex++;
         string token = Mintern(line.Substring(charIndex, endIndex - charIndex));
         charIndex = endIndex; // Skip token
-        return new Token(token, startIndex, 0, eTokenType.Identifier);
+        return new Token(token, startIndex, 0, TokenType.Identifier);
     }
 
     // Consolidate some interned strings

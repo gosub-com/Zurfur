@@ -94,9 +94,9 @@ public class Editor : UserControl
     TokenLoc _selEnd;
 
     // Fonts, colors, and misc.
-    Dictionary<eTokenType, FontInfo> _tokenFonts = new();
-    Dictionary<eTokenType, FontInfo> _tokenFontsBold = new();
-    Dictionary<eTokenType, FontInfo> _tokenFontsGrayed = new();
+    Dictionary<TokenType, FontInfo> _tokenFonts = new();
+    Dictionary<TokenType, FontInfo> _tokenFontsBold = new();
+    Dictionary<TokenType, FontInfo> _tokenFontsGrayed = new();
     Typeface _shrunkFont = new(FONT_NAME); // TBD: Remove
     Brush _selectColor = new SolidColorBrush(new Color(255, 208, 208, 255));
     Brush _selectColorNoFocus = new SolidColorBrush(new Color(255, 224, 224, 224));
@@ -127,6 +127,7 @@ public class Editor : UserControl
 
 
     public bool RemoveWhiteSpaceAtEndOnEnter = true;
+    public bool ShowMetaTokens;
 
     // Internal quick access to mLexer
     int LineCount { get { return _lexer.LineCount; } }
@@ -590,24 +591,24 @@ public class Editor : UserControl
 
             // TBD: These should come from a Json config file, and
             //      eTokenType should be an open ended index (i.e. integer)
-            _tokenFonts = new Dictionary<eTokenType, FontInfo>()
+            _tokenFonts = new Dictionary<TokenType, FontInfo>()
             {
-                { eTokenType.Normal, new FontInfo(normalFont, Colors.Black) },
-                { eTokenType.Identifier, new FontInfo(normalFont, Colors.Black) },
-                { eTokenType.Reserved, new FontInfo(normalFont, Colors.Blue) },
-                { eTokenType.ReservedControl, new FontInfo(boldFont, Colors.Blue) },
-                { eTokenType.ReservedVar, new FontInfo(boldFont, Colors.DarkBlue) },
-                { eTokenType.ReservedType, new FontInfo(boldFont, new Color(255, 20,125,160)) },
-                { eTokenType.Quote, new FontInfo(normalFont, Colors.Brown) },
-                { eTokenType.Comment, new FontInfo(normalFont, Colors.Green) },
-                { eTokenType.NewVarSymbol, new FontInfo(normalFont, Colors.Blue) },
-                { eTokenType.DefineField, new FontInfo(boldFont, Colors.Black) },
-                { eTokenType.DefineMethod, new FontInfo(boldFont, Colors.Black) },
-                { eTokenType.DefineFunParam, new FontInfo(boldFont, Colors.Black) },
-                { eTokenType.DefineTypeParam, new FontInfo(boldFont, Colors.Black) },
-                { eTokenType.DefineLocal, new FontInfo(boldFont, Colors.Black) },
-                { eTokenType.TypeName, new FontInfo(normalFont, new Color(255, 20,125,160)) },
-                { eTokenType.BoldSymbol, new FontInfo(boldFont, Colors.Black) },
+                { TokenType.Normal, new FontInfo(normalFont, Colors.Black) },
+                { TokenType.Identifier, new FontInfo(normalFont, Colors.Black) },
+                { TokenType.Reserved, new FontInfo(normalFont, Colors.Blue) },
+                { TokenType.ReservedControl, new FontInfo(boldFont, Colors.Blue) },
+                { TokenType.ReservedVar, new FontInfo(boldFont, Colors.DarkBlue) },
+                { TokenType.ReservedType, new FontInfo(boldFont, new Color(255, 20,125,160)) },
+                { TokenType.Quote, new FontInfo(normalFont, Colors.Brown) },
+                { TokenType.Comment, new FontInfo(normalFont, Colors.Green) },
+                { TokenType.NewVarSymbol, new FontInfo(normalFont, Colors.Blue) },
+                { TokenType.DefineField, new FontInfo(boldFont, Colors.Black) },
+                { TokenType.DefineMethod, new FontInfo(boldFont, Colors.Black) },
+                { TokenType.DefineFunParam, new FontInfo(boldFont, Colors.Black) },
+                { TokenType.DefineTypeParam, new FontInfo(boldFont, Colors.Black) },
+                { TokenType.DefineLocal, new FontInfo(boldFont, Colors.Black) },
+                { TokenType.TypeName, new FontInfo(normalFont, new Color(255, 20,125,160)) },
+                { TokenType.BoldSymbol, new FontInfo(boldFont, Colors.Black) },
             };
 
             // Setup bold and grayed fonts
@@ -621,7 +622,7 @@ public class Editor : UserControl
             }
         }
         // Font info: normal, bold, or grayed (only one can be selected for now)
-        Dictionary<eTokenType, FontInfo> colorTable;
+        Dictionary<TokenType, FontInfo> colorTable;
         if (token.Bold)
             colorTable = _tokenFontsBold;
         else if (token.Grayed)
@@ -630,7 +631,7 @@ public class Editor : UserControl
             colorTable = _tokenFonts;
 
         if (!colorTable.TryGetValue(token.Type, out var fontInfo))
-            return colorTable[eTokenType.Normal];
+            return colorTable[TokenType.Normal];
         return fontInfo;
     }
 
@@ -1302,7 +1303,7 @@ public class Editor : UserControl
         // Draw metatokens
         foreach (var metaToken in _lexer.MetaTokens)
             if (metaToken.Y >= startLine && metaToken.Y <= endLine)
-                if (background || _lexer.ShowMetaTokens)
+                if (background || ShowMetaTokens)
                     DrawToken(context, metaToken, background);
 
         // Draw all tokens on the screen
@@ -1391,11 +1392,11 @@ public class Editor : UserControl
             else
             {
                 // TBD: This should be looked up in GetFontInfo based on Type and Subtype
-                if (token.Subtype == eTokenSubtype.Error)
+                if (token.Subtype == TokenSubType.Error)
                     context.FillRectangle(_errorColor, backRect);
-                else if (token.Subtype == eTokenSubtype.Warn)
+                else if (token.Subtype == TokenSubType.Warn)
                     context.FillRectangle(_warnColor, backRect);
-                else if (token.Subtype == eTokenSubtype.CodeInComment)
+                else if (token.Subtype == TokenSubType.CodeInComment)
                     context.FillRectangle(_codeInCommentColor, backRect);
             }
             return;

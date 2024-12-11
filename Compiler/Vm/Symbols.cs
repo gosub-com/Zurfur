@@ -121,8 +121,8 @@ public enum SymQualifiers
 /// </summary>
 public class Symbol
 {
-    static Dictionary<string, Symbol> s_emptyDict = new Dictionary<string, Symbol>();
-    static Dictionary<int, string> s_tags = new Dictionary<int, string>();
+    static readonly Dictionary<string, Symbol> s_emptyDict = new();
+    static readonly Dictionary<int, string> s_tags = new();
 
     // Qualifier names (lower case)
     static readonly Dictionary<string, SymQualifiers> s_qualifierNames = new(
@@ -130,7 +130,7 @@ public class Symbol
             .Where(s => s != SymQualifiers.None)
             .Select(s => new KeyValuePair<string, SymQualifiers>(s.ToString().ToLower(), s)));
 
-    public static Dictionary<SymKind, string> s_kindNames = new Dictionary<SymKind, string>()
+    static readonly Dictionary<SymKind, string> s_kindNames = new Dictionary<SymKind, string>()
     {
         { SymKind.Module, "module" },
         { SymKind.Type, "type" },
@@ -149,20 +149,8 @@ public class Symbol
     public string? Comments;
 
     // The symbols in this scope
-    Dictionary<string, List<Symbol>>? mChildrenNamed;
-    int mChildrenNamedCount;
-
-    public Symbol ParentModule 
-    {
-        get 
-        {
-            var inModule = this;
-            while (inModule != null && !inModule.IsModule)
-                inModule = inModule.Parent;
-            ArgumentNullException.ThrowIfNull(inModule);
-            return inModule;
-        }
-    }
+    Dictionary<string, List<Symbol>>? _childrenNamed;
+    int _childrenNamedCount;
 
     // Set by `SetChildInternal`.  Type parameters are always first.
     // Currently, this is only used for storing the generic parameter
@@ -212,27 +200,14 @@ public class Symbol
     public Symbol[] GenericParamSymbols = Array.Empty<Symbol>();
 
     /// <summary>
-    /// Get the number of expected generic parameters from the concrete type.
-    /// </summary>
-    public int GenericParamCount()
-    {
-        if (IsTypeParam)
-            return 0;
-
-        var sym = Concrete;
-        int count = 0;
-        while (sym != null && !sym.IsModule)
-        {
-            count += sym.GenericParamSymbols.Length;
-            sym = sym.Parent;
-        }
-        return count;
-    }
-
-    /// <summary>
     /// Applicable to Types and Functions
     /// </summary>
     public Dictionary<string, Symbol[]>? Constraints;
+
+    /// <summary>
+    /// Path or URL of file containing symbol
+    /// </summary>
+    public readonly string Path;
 
     /// <summary>
     /// Set to true when a type or function has been specialized and
@@ -247,11 +222,13 @@ public class Symbol
     /// </summary>
     public Symbol(SymKind kind,
         Symbol? parent,
+        string path,
         Token ?token,
         string? name = null)
     {
         Kind = kind;
         Parent = parent;
+        Path = path;
 
         if (name != null)
             SimpleName = name;
@@ -264,7 +241,13 @@ public class Symbol
         FullName = SimpleName;
     }
 
-    public int ChildrenCount => mChildrenNamedCount;
+    private Symbol() 
+    {
+        SimpleName = "";
+        Path = "";
+    }
+
+    public int ChildrenCount => _childrenNamedCount;
     public string KindName => s_kindNames[Kind];
 
     public string TypeName => Type == null ? "" : Type.FullName;
@@ -296,6 +279,40 @@ public class Symbol
     public bool IsStatic => Qualifiers.HasFlag(SymQualifiers.Static);
     public bool IsGetter => Qualifiers.HasFlag(SymQualifiers.Get);
     public bool IsSetter => Qualifiers.HasFlag(SymQualifiers.Set);
+
+    /// <summary>
+    /// Get the parent module
+    /// </summary>
+    public Symbol ParentModule
+    {
+        get
+        {
+            var inModule = this;
+            while (inModule != null && !inModule.IsModule)
+                inModule = inModule.Parent;
+            ArgumentNullException.ThrowIfNull(inModule);
+            return inModule;
+        }
+    }
+
+    /// <summary>
+    /// Get the number of expected generic parameters from the concrete type.
+    /// </summary>
+    public int GenericParamCount()
+    {
+        if (IsTypeParam)
+            return 0;
+
+        var sym = Concrete;
+        int count = 0;
+        while (sym != null && !sym.IsModule)
+        {
+            count += sym.GenericParamSymbols.Length;
+            sym = sym.Parent;
+        }
+        return count;
+    }
+
 
     /// <summary>
     /// Generate the symbol's full name and parameter type list. Must be
@@ -465,9 +482,9 @@ public class Symbol
     public bool TryGetPrimary(string key, out Symbol? sym)
     {
         sym = null;
-        if (mChildrenNamed == null)
+        if (_childrenNamed == null)
             return false;
-        if (!mChildrenNamed.TryGetValue(key, out var symList))
+        if (!_childrenNamed.TryGetValue(key, out var symList))
             return false;
         if (!symList[0].IsFun)
         {
@@ -485,9 +502,9 @@ public class Symbol
     {
         get 
         {
-            if (mChildrenNamed == null)
+            if (_childrenNamed == null)
                 yield break;
-            foreach (var symList in mChildrenNamed.Values)
+            foreach (var symList in _childrenNamed.Values)
                 foreach (var sym in symList)
                     yield return sym;
         }
@@ -498,9 +515,9 @@ public class Symbol
     /// </summary>
     public IEnumerable<Symbol> ChildrenNamed(string simpleName)
     {
-        if (mChildrenNamed == null)
+        if (_childrenNamed == null)
             return s_emptyDict.Values;
-        if (!mChildrenNamed.TryGetValue(simpleName, out var children))
+        if (!_childrenNamed.TryGetValue(simpleName, out var children))
             return s_emptyDict.Values;
         return children;
     }
@@ -510,10 +527,10 @@ public class Symbol
     /// </summary>
     public IEnumerable<Symbol> ChildrenRecurse()
     {
-        if (mChildrenNamed == null)
+        if (_childrenNamed == null)
             yield break;
 
-        foreach (var symList in mChildrenNamed.Values)
+        foreach (var symList in _childrenNamed.Values)
         {
             foreach (var sym in symList)
             {
@@ -662,12 +679,12 @@ public class Symbol
                 return false;
         }
 
-        if (mChildrenNamed == null)
-            mChildrenNamed = new();
-        if (!mChildrenNamed.TryGetValue(sym.SimpleName, out var symList))
+        if (_childrenNamed == null)
+            _childrenNamed = new();
+        if (!_childrenNamed.TryGetValue(sym.SimpleName, out var symList))
         {
             symList = new();
-            mChildrenNamed[sym.SimpleName] = symList;
+            _childrenNamed[sym.SimpleName] = symList;
         }
 
         // Internal consistency check (see TryGetPrimary)
@@ -681,7 +698,7 @@ public class Symbol
         }
 
         symList.Add(sym);
-        sym.Order = mChildrenNamedCount++;
+        sym.Order = _childrenNamedCount++;
 
         remoteSymbol = null;
         return true;

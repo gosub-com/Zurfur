@@ -32,14 +32,14 @@ class ParseZil
                 if (token == "#")
                     isComment = true;
                 if (isComment)
-                    token.Type = eTokenType.Comment;
+                    token.Type = TokenType.Comment;
             }
 
             // Show bold lines
             if (tokens[0] == "fun" || tokens[0].Name.EndsWith(":"))
             {
                 foreach (var token in tokens)
-                    if (token.Type != eTokenType.Comment)
+                    if (token.Type != TokenType.Comment)
                         token.Bold = true;
             }
 

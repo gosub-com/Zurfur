@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -45,8 +46,7 @@ class ZilReport
                         continue;
 
                     var errors = token.GetInfos<TokenError>();
-                    var errorMessage = Path.GetFileName(token.Path)
-                        + $" ({token.Y + 1}:{token.X + 1})";
+                    var errorMessage = Path.GetFileName(lexer.Path) + $" ({token.Y + 1}:{token.X + 1})";
 
                     if (errors.Length == 0)
                         errorMessage += "Unknown!";
@@ -98,11 +98,21 @@ class ZilReport
                     fields++;
             };
 
+            var tokenCount = 0;
+            var metaTokenCount = 0;
+            foreach (var lexer in files)
+            {
+                for (var i = 0; i < lexer.LineCount; i++)
+                    tokenCount += lexer.GetLineTokens(i).Length;
+                metaTokenCount += lexer.MetaTokens.Count;
+            }
+
             headerFile.Add("SYMBOLS: " + count);
             headerFile.Add($"    Types: {types} ({typesNonGeneric} non-generic, {typesGeneric} generic)");
             headerFile.Add($"    Specializations: {symbols.SpecializedSymbols.Count} (generated from generics)");
             headerFile.Add($"    Methods: {methods}");
             headerFile.Add($"    Fields: {fields}");
+            headerFile.Add($"    Tokens: {tokenCount} ({metaTokenCount} meta tokens)");
             headerFile.Add("");
         }
 

@@ -81,18 +81,18 @@ class ParseJson
             return;
         }
         // TBD: Accept and build json style strings
-        Accept().Type = eTokenType.Quote;
+        Accept().Type = TokenType.Quote;
         while (_tokenName != "" && _tokenName != "\"" && !_token.Boln && !_token.Meta)
         {
             if (_tokenName == "\\")
             {
                 if (_lexerEnum.PeekNoSpace() == "\"")
-                    Accept().Type = eTokenType.Quote;
+                    Accept().Type = TokenType.Quote;
             }
-            Accept().Type = eTokenType.Quote;
+            Accept().Type = TokenType.Quote;
         }
         if (!_token.Boln && _tokenName == "\"")
-            Accept().Type = eTokenType.Quote;
+            Accept().Type = TokenType.Quote;
     }
 
     void ParseArray()
@@ -202,21 +202,21 @@ class ParseJson
             // Read next token (set EOF flag if no more tokens on line)
             if (_lexerEnum.MoveNext())
                 _token = _lexerEnum.Current;
-        } while (_token.Type == eTokenType.Comment);
+        } while (_token.Type == TokenType.Comment);
 
         // Reset token info
         _tokenName = _token.Name;
         _token.Clear();
         if (_tokenName.Length == 0)
-            _token.Type = eTokenType.Normal;
+            _token.Type = TokenType.Normal;
         else if (_tokenName[0] == '\"')
-            _token.Type = eTokenType.Quote;
+            _token.Type = TokenType.Quote;
         else if (char.IsDigit(_tokenName[0]))
-            _token.Type = eTokenType.Number;
+            _token.Type = TokenType.Number;
         else if (char.IsLetter(_tokenName[0]))
-            _token.Type = eTokenType.Identifier;
+            _token.Type = TokenType.Identifier;
         else
-            _token.Type = eTokenType.Normal;
+            _token.Type = TokenType.Normal;
 
         return _prevToken;
     }
