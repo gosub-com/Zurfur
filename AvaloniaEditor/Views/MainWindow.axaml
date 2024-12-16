@@ -6,7 +6,7 @@
         xmlns:views="clr-namespace:AvaloniaEditor.Views"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="AvaloniaEditor.Views.MainWindow"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/ZurfurIcon.ico"
         Title="AvaloniaEditor">
 		<views:MainView />
 </Window>

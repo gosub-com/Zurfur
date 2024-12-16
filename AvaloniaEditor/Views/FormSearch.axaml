@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" 
+             x:Class="AvaloniaEditor.FormSearch">
+	<Border Background="AliceBlue" BorderBrush="DarkBlue" BorderThickness="3" Margin="25,10">
+		<StackPanel Spacing="4" Margin="10">
+			<DockPanel>
+				<Button Click="buttonClose_Click" DockPanel.Dock="Right">X</Button>
+				<CheckBox
+					Name="checkShowReplace"
+					Checked="checkShowReplace_Changed" 
+					Unchecked="checkShowReplace_Changed" 
+					DockPanel.Dock="Right" 
+					Margin="0,0,10,0">Replace</CheckBox>
+				<TextBlock VerticalAlignment="Bottom" >Search For:</TextBlock>
+			</DockPanel>
+			<DockPanel>
+				<Button 
+					Name="buttonFindNext" 
+					DockPanel.Dock="Right" 
+					Width="120"
+					HorizontalContentAlignment="Center" 
+					Margin="10,0,0,0">Find Next</Button>
+				<TextBox Name="textSearch" DockPanel.Dock="Left"></TextBox>
+			</DockPanel>
+			<TextBlock>Replace with:</TextBlock>
+			<DockPanel>
+				<Button 
+					Name="buttonReplaceNext" 
+					DockPanel.Dock="Right"
+					Width="120" 
+					HorizontalContentAlignment="Center" 
+					Margin="10,0,0,0"> Replace Next</Button>
+				<TextBox Name="textReplace"></TextBox>
+			</DockPanel>
+			<DockPanel>
+				<Button 
+					Name="buttonReplaceAll"
+					DockPanel.Dock="Right" 
+					Width="120" 
+					HorizontalContentAlignment="Center">Replace All</Button>
+				<CheckBox Name="checkMatchCase">Match case</CheckBox>
+				<CheckBox Name="checkMatchWholeWord" Margin="10,0,10,0">Match whole word</CheckBox>
+			</DockPanel>
+		</StackPanel>
+	</Border>
+</UserControl>

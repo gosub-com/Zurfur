@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 using Avalonia;
@@ -5,7 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using System.Runtime.CompilerServices;
 
-namespace Gosub.Avalonia.Controls;
+namespace AvaloniaEditor.Views;
 
 public partial class MultiViewEditor : UserControl
 {

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Globalization;
 using System.Diagnostics;
@@ -1878,13 +1879,6 @@ public class Editor : UserControl
         if (!control && !alt)
             if (OnKeyText(e))
                 return;
-
-        // TBD: Port to Avalonia
-        // Display search form
-        //if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key == Key.F)
-        //    FormSearchInstance.Show(ParentForm, this);
-        //if (e.Key == Key.F3)
-        //    FormSearchInstance.FindNext(ParentForm, this);
 
         var ensureCursorOnScreen = true;
 

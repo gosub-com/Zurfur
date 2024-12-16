@@ -2,9 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:gosub="clr-namespace:Gosub.Avalonia.Controls;assembly=Gosub.Avalonia.Controls"			 			 
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Gosub.Avalonia.Controls.MultiViewTabItem">
+             x:Class="AvaloniaEditor.Views.MultiViewTabItem">
 		<TabItem.Header>
 			<StackPanel Orientation="Horizontal">
 				<Button Name="buttonClose" 

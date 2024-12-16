@@ -15,7 +15,7 @@ using System.Linq;
 using Gosub.Lex;
 using Avalonia.Input;
 using Zurfur;
-
+using Avalonia.Layout;
 
 namespace AvaloniaEditor.Views;
 
@@ -23,12 +23,12 @@ namespace AvaloniaEditor.Views;
 public partial class MainView : UserControl
 {
     const string ZURFUR_LIB_URL = "avares://ZurfurLib/ZurfurLib";
-    static readonly WordSet sTextEditorExtensions = new WordSet(".txt .json .md .htm .html .css .zurf .zil");
-    static readonly WordSet sImageEditorExtensions = new WordSet(".jpg .jpeg .png .bmp");
+    static readonly WordSet s_textEditorExtensions = new WordSet(".txt .json .md .htm .html .css .zurf .zil");
+    static readonly WordSet s_imageEditorExtensions = new WordSet(".jpg .jpeg .png .bmp");
 
-    FileSystemAvalonia mFileSystem = new();
-    BuildSystem mBuildPackage;
-    ZurfEditController mEditController = new();
+    FileSystemAvalonia _fileSystem = new();
+    BuildSystem _buildPackage;
+    ZurfEditController _editController = new();
 
     // Helper class to show items in the tree view
     record class NamedItem<T>(string Name, T Item)
@@ -41,17 +41,17 @@ public partial class MainView : UserControl
 
     public MainView()
     {
-        mBuildPackage = new(mFileSystem);
+        _buildPackage = new(_fileSystem);
         InitializeComponent();
     }
     protected override void OnLoaded(RoutedEventArgs e)
     {
         base.OnLoaded(e);
         labelStatus.Content = $"*{Assembly.GetExecutingAssembly().Location}*";
-        mBuildPackage.StatusUpdate += mBuildPackage_StatusUpdate;
-        mBuildPackage.FileUpdate += mBuildPackage_FileUpdate;
-        mEditController.OnNavigateToSymbol += mEditController_OnNavigateToSymbol;
-        mEditController.SetHoverMessageParent(panelMain);
+        _buildPackage.StatusUpdate += mBuildPackage_StatusUpdate;
+        _buildPackage.FileUpdate += mBuildPackage_FileUpdate;
+        _editController.OnNavigateToSymbol += mEditController_OnNavigateToSymbol;
+        _editController.SetHoverMessageParent(panelMain);
         mvCodeEditors.SelectionChanged += mvCodeEditors_SelectionChanged;
         mvCodeEditors.TabCloseRequest += mvCodeEditors_TabCloseRequest;
         treeProject.SelectionChanged += treeProject_SelectionChanged;
@@ -69,7 +69,7 @@ public partial class MainView : UserControl
             // Browser gets single threaded with await
             if (Assembly.GetExecutingAssembly().Location == "")
             {
-                mBuildPackage.Threading = BuildSystem.ThreadingModel.SingleAwait;
+                _buildPackage.Threading = BuildSystem.ThreadingModel.SingleAwait;
             }
 
             var urls = AssetLoader.GetAssets(new Uri(ZURFUR_LIB_URL), null).ToList();
@@ -78,7 +78,7 @@ public partial class MainView : UserControl
             labelStatus.Content = $"{urls.Count} files found";
             foreach (var url in urls)
             {
-                mBuildPackage.LoadFile(url.AbsoluteUri);
+                _buildPackage.LoadFile(url.AbsoluteUri);
                 treeProject.Items.Add(new NamedItem<Uri>(Path.GetFileName(url.AbsolutePath), url));
             }
         }
@@ -126,7 +126,7 @@ public partial class MainView : UserControl
         if (editor == null)
             return;
 
-        mEditController.ActiveViewChanged(editor);
+        _editController.ActiveViewChanged(editor);
 
         var item = treeProject.Items.FirstOrDefault(i => (i as NamedItem<Uri>)?.Item.AbsoluteUri == editor.Lexer.Path);
         if (item != null)
@@ -166,10 +166,10 @@ public partial class MainView : UserControl
             return;
 
         // Recompile if file is part of the build project
-        var lexer = mBuildPackage.GetLexer(editor.Lexer.Path);
+        var lexer = _buildPackage.GetLexer(editor.Lexer.Path);
         if (lexer != null && lexer.Path == editor.Lexer.Path)
         {
-            mBuildPackage.SetLexer(editor.Lexer);
+            _buildPackage.SetLexer(editor.Lexer);
         }
     }
 
@@ -189,20 +189,25 @@ public partial class MainView : UserControl
 
     public async void buttonGenerateTapped(object source, TappedEventArgs args)
     {
-        await mBuildPackage.GeneratePackage();
+        await _buildPackage.GeneratePackage();
 
         // projectTree.RefreshFiles();
         List<string> files =  [
-            mBuildPackage.OutputFileHeader,
-            mBuildPackage.OutputFileHeaderCode,
-            mBuildPackage.OutputFileReport,
+            _buildPackage.OutputFileHeader,
+            _buildPackage.OutputFileHeaderCode,
+            _buildPackage.OutputFileReport,
         ];
         foreach (var name in files)
             await LoadOrUpdateEditor(name);
 
-        var editor = mvCodeEditors.ShowTab(mBuildPackage.OutputFileReport);
+        var editor = mvCodeEditors.ShowTab(_buildPackage.OutputFileReport);
         await Task.Delay(1); // NOTE: Focus fails when done immediately
         editor?.Focus();
+    }
+
+    public void buttonSearchTapped(object source, TappedEventArgs args)
+    {
+        _editController.ShowSearchForm();
     }
 
     // Load or update editor from build system (if possible) or file system (if not possible)
@@ -216,7 +221,7 @@ public partial class MainView : UserControl
     private bool LoadOrUpdateEditorFromBuildSystem(string path)
     {
         // Attempt to open from build system
-        var lexer = mBuildPackage.GetLexer(path);
+        var lexer = _buildPackage.GetLexer(path);
         if (lexer == null)
             return false;
 
@@ -231,7 +236,7 @@ public partial class MainView : UserControl
             var newEditor = new Editor() { Lexer = lexer };
             newEditor.TextChanged += editor_TextChanged;
             mvCodeEditors.SetTab(path, newEditor, Path.GetFileName(path));
-            mEditController.AttachEditor(newEditor);
+            _editController.AttachEditor(newEditor);
         }
         return true;
     }
@@ -242,16 +247,16 @@ public partial class MainView : UserControl
         try
         {
             var buildFile = Path.GetExtension(path).ToLower();
-            if (sTextEditorExtensions.Contains(buildFile))
+            if (s_textEditorExtensions.Contains(buildFile))
             {
                 // Text file
                 var l = new Lexer();
-                l.Scan(await mFileSystem.ReadAllLinesAsync(path));
+                l.Scan(await _fileSystem.ReadAllLinesAsync(path));
                 var newEditor = new Editor() { Lexer = l };
                 newEditor.TextChanged += editor_TextChanged;
                 mvCodeEditors.SetTab(path, newEditor, Path.GetFileName(path));
             }
-            else if (sImageEditorExtensions.Contains(buildFile))
+            else if (s_imageEditorExtensions.Contains(buildFile))
             {
                 // TBD: Open an image editor
                 throw new Exception("File type not supported");

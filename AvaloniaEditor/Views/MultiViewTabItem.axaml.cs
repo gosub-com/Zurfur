@@ -1,3 +1,7 @@
+using System;
+using System.Linq;
+using System.Collections.Generic;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -7,7 +11,7 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using System.ComponentModel;
 
-namespace Gosub.Avalonia.Controls;
+namespace AvaloniaEditor.Views;
 
 public partial class MultiViewTabItem : TabItem
 {
@@ -15,7 +19,6 @@ public partial class MultiViewTabItem : TabItem
 
     public string Key { get; }
     public event EventHandler<MultiViewTabItem>? TabCloseRequest;
-
 
     public MultiViewTabItem(string key)
     {
@@ -31,8 +34,7 @@ public partial class MultiViewTabItem : TabItem
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
-        if (change.Property.Name == "IsPointerOver"
-            || change.Property.Name == "IsSelected")
+        if (change.Property.Name == "IsPointerOver" || change.Property.Name == "IsSelected")
         {
             if (IsPointerOver)
                 buttonClose.Opacity = 1;

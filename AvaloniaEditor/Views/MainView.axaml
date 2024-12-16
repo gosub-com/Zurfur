@@ -4,7 +4,6 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:AvaloniaEditor.ViewModels"
 			 xmlns:views="clr-namespace:AvaloniaEditor.Views"
-             xmlns:gosub="clr-namespace:Gosub.Avalonia.Controls;assembly=Gosub.Avalonia.Controls"			 
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="AvaloniaEditor.Views.MainView"
              x:DataType="vm:MainViewModel">
@@ -17,17 +16,18 @@
 		<DockPanel>
 			<StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
 				<Button Tapped="buttonGenerateTapped" >Generate</Button>
+				<Button Tapped="buttonSearchTapped" >Search (CTRL-F)</Button>
 			</StackPanel>
 			<StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom">
 				<Label Name="labelStatus">Status bar</Label>
 			</StackPanel>
 			<Grid ColumnDefinitions="180, 8, *">
-				<gosub:MyTreeView Name="treeProject" />
+				<views:MyTreeView Name="treeProject" />
 				<GridSplitter Grid.Column="1" Background="LightBlue" ResizeDirection="Columns"/>
 				<Grid Grid.Column="2" RowDefinitions="*, 8, 120">
-					<gosub:MultiViewEditor Name="mvCodeEditors" ></gosub:MultiViewEditor>
+					<views:MultiViewEditor Name="mvCodeEditors" ></views:MultiViewEditor>
 					<GridSplitter Grid.Row="1" Background="LightBlue" ResizeDirection="Rows"/>
-					<gosub:MultiViewEditor Grid.Row="2" Name="mvInfoEditors"></gosub:MultiViewEditor>
+					<views:MultiViewEditor Grid.Row="2" Name="mvInfoEditors"></views:MultiViewEditor>
 				</Grid>
 			</Grid>
 		</DockPanel>

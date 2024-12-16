@@ -6,7 +6,8 @@
              x:Class="AvaloniaEditor.Views.HoverMessage"
 			 Background="#f3f3f3"
 			 Design.Width="600"
-			 Design.Height="200">
+			 Design.Height="200"
+			 >
 	<Border BorderBrush="Blue" BorderThickness="2" Padding="5">
 		<TextBlock Name="hoverMessage" TextWrapping="Wrap">Message</TextBlock>
 	</Border>

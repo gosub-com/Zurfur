@@ -23,10 +23,18 @@
   <ItemGroup>
     <ProjectReference Include="..\Compiler\Compiler.csproj" />
     <ProjectReference Include="..\ZurfurLib\ZurfurLib.csproj" />
-    <ProjectReference Include="..\Gosub.Avalonia.Controls\Gosub.Avalonia.Controls.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="App\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Views\MultiViewEditor.axaml.cs">
+      <DependentUpon>%(Filename)</DependentUpon>
+    </Compile>
+    <Compile Update="Views\MultiViewTabItem.axaml.cs">
+      <DependentUpon>%(Filename)</DependentUpon>
+    </Compile>
   </ItemGroup>
 </Project>

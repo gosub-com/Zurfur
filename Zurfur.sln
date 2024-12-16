@@ -28,9 +28,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AvaloniaEditor.Browser", "A
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AvaloniaEditor.Desktop", "AvaloniaEditor.Desktop\AvaloniaEditor.Desktop.csproj", "{36657EF9-0682-408C-B253-74A28CF18BE5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gosub.Avalonia.Controls", "Gosub.Avalonia.Controls\Gosub.Avalonia.Controls.csproj", "{49B409D6-BFAA-42DA-AA2F-B2A00DB98DEF}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gosub.Lex", "Gosub.Lex\Gosub.Lex.csproj", "{03371C79-31A9-4B23-8945-CA311342B825}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Ide", "Ide", "{E9FEF292-5CF6-4155-ABCC-D9905F86B0C2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -66,10 +66,6 @@ Global
 		{36657EF9-0682-408C-B253-74A28CF18BE5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{36657EF9-0682-408C-B253-74A28CF18BE5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{36657EF9-0682-408C-B253-74A28CF18BE5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{49B409D6-BFAA-42DA-AA2F-B2A00DB98DEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{49B409D6-BFAA-42DA-AA2F-B2A00DB98DEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{49B409D6-BFAA-42DA-AA2F-B2A00DB98DEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{49B409D6-BFAA-42DA-AA2F-B2A00DB98DEF}.Release|Any CPU.Build.0 = Release|Any CPU
 		{03371C79-31A9-4B23-8945-CA311342B825}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{03371C79-31A9-4B23-8945-CA311342B825}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{03371C79-31A9-4B23-8945-CA311342B825}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -80,6 +76,9 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{3089177A-1B87-4E67-8D0D-E5C8922E5543} = {3F3F1568-E989-43F4-BEDD-12246A4D4CDC}
+		{AEC124B3-7178-4CD1-A605-02FFA44FD11A} = {E9FEF292-5CF6-4155-ABCC-D9905F86B0C2}
+		{C7D37D98-A232-4586-A624-F5FF88C9267E} = {E9FEF292-5CF6-4155-ABCC-D9905F86B0C2}
+		{36657EF9-0682-408C-B253-74A28CF18BE5} = {E9FEF292-5CF6-4155-ABCC-D9905F86B0C2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FE1CAD55-B0BB-4E39-99A2-6991D44AEE73}

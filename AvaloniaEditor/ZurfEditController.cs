@@ -38,6 +38,7 @@ class ZurfEditController
     static WordSet s_BoldHighlightConnectors = new WordSet("( ) [ ] { } < >");
 
     HoverMessage _hoverMessageForm = new();
+    FormSearch _searchForm = new();
 
     // TBD: Port to Avalonia
     //ContextMenuStrip mContextMenuJson = new ContextMenuStrip()
@@ -48,6 +49,7 @@ class ZurfEditController
     DispatcherTimer _timer = new DispatcherTimer() { Interval = TimeSpan.FromMilliseconds(20) };
     bool _updateInfo;
     KeyModifiers _keyModifiers = KeyModifiers.None;
+    Point _pointerPosition;
 
     public delegate void NavigateToSymbolDelegate(string path, int x, int y);
 
@@ -77,6 +79,7 @@ class ZurfEditController
         _timer.IsEnabled = true;
     }
 
+
     /// <summary>
     /// Set the active editor, or null if none is active
     /// </summary>
@@ -102,16 +105,32 @@ class ZurfEditController
     }
 
     /// <summary>
-    /// Call this once to set the control that should contain the hover message
+    /// Call this once to set the control that should contain the hover message and search form
     /// </summary>
     public void SetHoverMessageParent(Panel parent)
     {
         _hoverMessageForm.IsVisible = false;
-        _hoverMessageForm.Width = 600;
-        _hoverMessageForm.Height = 200;
+        _hoverMessageForm.MaxWidth = 850;
+        _hoverMessageForm.MaxHeight = 400;
         _hoverMessageForm.VerticalAlignment = VerticalAlignment.Top;
-        _hoverMessageForm.HorizontalAlignment = HorizontalAlignment.Right;
+        _hoverMessageForm.HorizontalAlignment = HorizontalAlignment.Left;
         parent.Children.Add(_hoverMessageForm);
+
+        _searchForm.IsVisible = false;
+        _searchForm.VerticalAlignment = VerticalAlignment.Top;
+        _searchForm.HorizontalAlignment = HorizontalAlignment.Right;
+        _searchForm.CloseClicked += (s, e) => 
+        { 
+            _searchForm.IsVisible = false; 
+            if (_activeEditor != null)
+                _activeEditor.Focus();
+        };
+        parent.Children.Add(_searchForm);
+    }
+
+    public void ShowSearchForm()
+    {
+        _searchForm.IsVisible = true;
     }
 
     private void Editor_PointerPressed(object? sender, PointerPressedEventArgs e)
@@ -126,8 +145,10 @@ class ZurfEditController
             UpdateMouseHoverToken();
         }
     }
+
     private void Editor_PointerMoved(object? sender, PointerEventArgs e)
     {
+        _pointerPosition = e.GetPosition(_hoverMessageForm.GetVisualParent());
         if (e.KeyModifiers != _keyModifiers)
         {
             _keyModifiers = e.KeyModifiers;
@@ -177,7 +198,6 @@ class ZurfEditController
                 Debug.WriteLine("Event handler not installed", "Zurfur");
             }
         }
-
     }
 
     private void Editor_PointerExited(object? sender, PointerEventArgs e)
@@ -200,6 +220,17 @@ class ZurfEditController
 
     private void Editor_KeyDown(object? sender, KeyEventArgs e)
     {
+        // Display search form
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key == Key.F)
+        {
+            e.Handled = true;
+            _searchForm.IsVisible = true;
+        }
+
+        // TBD: Port to Avalonia
+        //if (e.Key == Key.F3)
+        //    FormSearchInstance.FindNext(ParentForm, this);
+
         if (e.KeyModifiers != _keyModifiers)
         {
             _keyModifiers = e.KeyModifiers;
@@ -223,7 +254,7 @@ class ZurfEditController
     void _timer_Tick(object? sender, EventArgs e)
     {
         DisplayHoverForm();
-        SetHoverFormLocation(false);
+        SetHoverFormLocationY();
         if (_updateInfo)
         {
             _updateInfo = false;
@@ -404,31 +435,32 @@ class ZurfEditController
 
         _hoverMessageForm.Message = message.Trim();
 
-        // Show form with proper size and location
-        //var size = mHoverMessageForm.Message.Size;
-        //mHoverMessageForm.ClientSize = new Size(size.Width + 8, size.Height + 8);
-        SetHoverFormLocation(true);
-        //mHoverMessageForm.Show(mActiveEditor.ParentForm);
-        _hoverMessageForm.IsVisible = true; // TBD: Port
+        // Show form
+        _hoverMessageForm.Margin = new Thickness(_pointerPosition.X - 200, -10000, 0, 0);
+        _hoverMessageForm.UpdateLayout();
+        _hoverMessageForm.IsVisible = true;
     }
 
-    private void SetHoverFormLocation(bool setX)
+    private void SetHoverFormLocationY()
     {
-        /*
-        if (mActiveEditor == null || mHoverToken == null) 
+        if (_activeEditor == null || _hoverToken == null || !_hoverMessageForm.IsVisible 
+                || _hoverMessageForm.Bounds.Height == 0) 
             return;
 
-        if (setX)
-            mHoverMessageForm.Left = Form.MousePosition.X;
+        // Move hover box above or below mouse pointer
+        var fontSize = 16; // FIX ME: _activeEditor.FontSize;
+        var tokenScreen = _activeEditor.PointToScreen(_activeEditor.LocationToken(_hoverToken.Location));
+        var pointerScreen = _hoverMessageForm.GetVisualParent()?.PointToScreen(_pointerPosition) ?? new();
+        var below = tokenScreen.Y < pointerScreen.Y - fontSize/2;
 
-        var top = mActiveEditor.PointToScreen(mActiveEditor.LocationToken(mHoverToken.Location)).Y;
-        var fontSize = mActiveEditor.FontSize;
-        if (Form.MousePosition.Y > top + fontSize.Height / 2)
-            top += 2*fontSize.Height;
+        // NOTE: The bounds gets re-measured after it is displayed, so there can be a little flickering/movement
+        double y;
+        if (below)
+            y = _pointerPosition.Y + fontSize * 1.5;
         else
-            top -= mHoverMessageForm.Height + fontSize.Height;
-        mHoverMessageForm.Top = top;
-        */
+            y = _pointerPosition.Y - _hoverMessageForm.Bounds.Height - fontSize * 1.5;
+
+        _hoverMessageForm.Margin = new(_hoverMessageForm.Margin.Left, y, 0, 0);
     }
 
     private string GetSymbolInfo()
