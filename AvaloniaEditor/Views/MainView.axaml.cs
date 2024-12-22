@@ -145,31 +145,14 @@ public partial class MainView : UserControl
         mvCodeEditors.RemoveTab(key);
     }
 
-    private async void treeProject_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    private void treeProject_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         var si = treeProject.SelectedItem as NamedItem<Uri>;
         if (si != null)
         {
             var path = si.Item.AbsoluteUri;
             LoadOrUpdateEditorFromBuildSystem(path);
-            var editor = mvCodeEditors.ShowTab(path);
-            await Task.Delay(1); // NOTE: Focus fails when done immediately
-            editor?.Focus();
-        }
-    }
-
-    private void editor_TextChanged(object? sender, EventArgs e)
-    {
-        // Notify build system
-        var editor = sender as Editor;
-        if (editor == null)
-            return;
-
-        // Recompile if file is part of the build project
-        var lexer = _buildPackage.GetLexer(editor.Lexer.Path);
-        if (lexer != null && lexer.Path == editor.Lexer.Path)
-        {
-            _buildPackage.SetLexer(editor.Lexer);
+            mvCodeEditors.ShowTab(path);
         }
     }
 
@@ -179,11 +162,9 @@ public partial class MainView : UserControl
         var editor = mvCodeEditors.ShowTab(path) as Editor;
         if (editor != null)
         {
-            await Task.Delay(1); // NOTE: Focus fails when done immediately
             var loc = new TokenLoc(x, y);
             editor.SelSet(loc, loc);
             editor.CursorLoc = loc;
-            editor.Focus();
         }
     }
 
@@ -200,9 +181,7 @@ public partial class MainView : UserControl
         foreach (var name in files)
             await LoadOrUpdateEditor(name);
 
-        var editor = mvCodeEditors.ShowTab(_buildPackage.OutputFileReport);
-        await Task.Delay(1); // NOTE: Focus fails when done immediately
-        editor?.Focus();
+        mvCodeEditors.ShowTab(_buildPackage.OutputFileReport);
     }
 
     public void buttonSearchTapped(object source, TappedEventArgs args)
@@ -234,12 +213,11 @@ public partial class MainView : UserControl
         {
             // Add new editor
             var newEditor = new Editor() { Lexer = lexer };
-            newEditor.TextChanged += editor_TextChanged;
-            mvCodeEditors.SetTab(path, newEditor, Path.GetFileName(path));
-            _editController.AttachEditor(newEditor);
+            AddNewEditor(path, newEditor);
         }
         return true;
     }
+
 
     async Task LoadOrUpdateEditorFromFileSystem(string path)
     {
@@ -253,8 +231,7 @@ public partial class MainView : UserControl
                 var l = new Lexer();
                 l.Scan(await _fileSystem.ReadAllLinesAsync(path));
                 var newEditor = new Editor() { Lexer = l };
-                newEditor.TextChanged += editor_TextChanged;
-                mvCodeEditors.SetTab(path, newEditor, Path.GetFileName(path));
+                AddNewEditor(path, newEditor);
             }
             else if (s_imageEditorExtensions.Contains(buildFile))
             {
@@ -272,5 +249,29 @@ public partial class MainView : UserControl
             mvCodeEditors.SetTab("PopupError", new Editor() { Lexer = l }, "Error");
         }
     }
+
+    private void AddNewEditor(string path, Editor newEditor)
+    {
+        newEditor.TextChanged += editor_TextChanged;
+        mvCodeEditors.SetTab(path, newEditor, Path.GetFileName(path));
+        _editController.AttachEditor(newEditor);
+    }
+
+    private void editor_TextChanged(object? sender, EventArgs e)
+    {
+        // Notify build system
+        var editor = sender as Editor;
+        if (editor == null)
+            return;
+
+        // Recompile if file is part of the build project
+        var lexer = _buildPackage.GetLexer(editor.Lexer.Path);
+        if (lexer != null && lexer.Path == editor.Lexer.Path)
+        {
+            _buildPackage.SetLexer(editor.Lexer);
+        }
+    }
+
+
 
 }

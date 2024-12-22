@@ -19,30 +19,44 @@
 			<DockPanel>
 				<Button 
 					Name="buttonFindNext" 
+					Click="buttonFindNext_Click"
 					DockPanel.Dock="Right" 
 					Width="120"
 					HorizontalContentAlignment="Center" 
-					Margin="10,0,0,0">Find Next</Button>
-				<TextBox Name="textSearch" DockPanel.Dock="Left"></TextBox>
+					Margin="10,0,0,0">Find (F3)</Button>
+				<TextBox Name="textSearch" TextChanged="textSearch_TextChanged" DockPanel.Dock="Left"></TextBox>
 			</DockPanel>
-			<TextBlock>Replace with:</TextBlock>
+			<DockPanel>
+				<TextBlock Name="labelMatches" DockPanel.Dock="Right" Width="120">labelMatches</TextBlock>
+				<TextBlock>Replace with:</TextBlock>
+			</DockPanel>
 			<DockPanel>
 				<Button 
-					Name="buttonReplaceNext" 
+					Name="buttonReplaceNext"
+					Click="buttonReplaceNext_Click"
 					DockPanel.Dock="Right"
 					Width="120" 
 					HorizontalContentAlignment="Center" 
-					Margin="10,0,0,0"> Replace Next</Button>
+					Margin="10,0,0,0"> Replace</Button>
 				<TextBox Name="textReplace"></TextBox>
 			</DockPanel>
 			<DockPanel>
 				<Button 
 					Name="buttonReplaceAll"
+					Click="buttonReplaceAll_Click"
 					DockPanel.Dock="Right" 
 					Width="120" 
 					HorizontalContentAlignment="Center">Replace All</Button>
-				<CheckBox Name="checkMatchCase">Match case</CheckBox>
-				<CheckBox Name="checkMatchWholeWord" Margin="10,0,10,0">Match whole word</CheckBox>
+				<CheckBox 
+					Name="checkMatchCase"
+					Checked="checkMatchCase_Changed" 
+					Unchecked="checkMatchCase_Changed" 					
+					>Match case</CheckBox>
+				<CheckBox 
+					Name="checkMatchWholeWord" 
+					Checked="checkMatchWholeWord_Changed" 
+					Unchecked="checkMatchWholeWord_Changed" 										
+					Margin="10,0,10,0">Match whole word</CheckBox>
 			</DockPanel>
 		</StackPanel>
 	</Border>

@@ -1685,7 +1685,7 @@ public class Editor : UserControl
             // Set cursor location, remove selection
             SetCursorByMouse(position);
             _selStart = _selEnd = CursorLoc;
-            _mouseDownSelect = PointerOverText(position);
+            _mouseDownSelect = e.Pointer.Type != PointerType.Touch;
             _mouseDownDrag = !_mouseDownSelect;
             UpdateCursorBlinker();
             UpdateMouseHoverToken();

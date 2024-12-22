@@ -22,6 +22,8 @@ using AvaloniaEditor.Views;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia.Markup.Xaml.Templates;
+using Avalonia.LogicalTree;
+using System.Threading.Tasks;
 
 namespace AvaloniaEditor;
 
@@ -41,8 +43,12 @@ class ZurfEditController
     FormSearch _searchForm = new();
 
     // TBD: Port to Avalonia
-    //ContextMenuStrip mContextMenuJson = new ContextMenuStrip()
-    //    { AutoSize = false, Width = 100, ShowImageMargin = false }; // Autosizing didn't work, so hard code it here
+    Button _jsonButton = new() { Content = "Format JSON" };
+    Flyout _contextMenuJson = new() 
+    { 
+        ShowMode = FlyoutShowMode.Transient,
+        OverlayDismissEventPassThrough = true
+    };
 
     Token? _hoverToken;
     Editor? _activeEditor;
@@ -58,9 +64,34 @@ class ZurfEditController
     public ZurfEditController()
     {
         _timer.Tick += _timer_Tick;
-        //mContextMenuJson.Items.Add(
-        //    new ToolStripLabel("Format Json", null, true, new EventHandler(FormatJson)));
+        _jsonButton.Click += FormatJson;
+        _contextMenuJson.Content = _jsonButton;
     }
+
+    /// <summary>
+    /// Call this once to set the control that should contain the hover message and search form
+    /// </summary>
+    public void SetHoverMessageParent(Panel parent)
+    {
+        _hoverMessageForm.IsVisible = false;
+        _hoverMessageForm.MaxWidth = 850;
+        _hoverMessageForm.MaxHeight = 400;
+        _hoverMessageForm.VerticalAlignment = VerticalAlignment.Top;
+        _hoverMessageForm.HorizontalAlignment = HorizontalAlignment.Left;
+        parent.Children.Add(_hoverMessageForm);
+
+        _searchForm.IsVisible = false;
+        _searchForm.VerticalAlignment = VerticalAlignment.Top;
+        _searchForm.HorizontalAlignment = HorizontalAlignment.Right;
+        _searchForm.CloseClicked += (s, e) =>
+        {
+            _searchForm.IsVisible = false;
+            if (_activeEditor != null)
+                _activeEditor.Focus();
+        };
+        parent.Children.Add(_searchForm);
+    }
+
 
     /// <summary>
     /// Call this function once on each editor to direct events to this controller
@@ -81,56 +112,41 @@ class ZurfEditController
 
 
     /// <summary>
-    /// Set the active editor, or null if none is active
+    /// Set the active editor, or null if none is active.
     /// </summary>
     public async void ActiveViewChanged(Editor editor)
     {
+        _searchForm.SetEditor(editor);
         _activeEditor = editor;
-        if (editor != null)
+        if (_activeEditor == null)
+            return;
+
+        //Set focus, NOTE: The focus can't be set until after the control is displayed, so wait a bit
+        await Task.Delay(50);
+        if (_activeEditor != editor)
+            return; // Something else got displayed while waiting
+        _activeEditor.Focus();
+
+        UpdateScrollBars(editor);
+        editor_MouseTokenChanged(editor, null, null);
+
+        // Show Format Json context menu
+        if (Path.GetExtension(editor.Lexer.Path).ToLower() == ".json"
+            && editor.Lexer.LineCount == 1
+            && editor.Lexer.GetLine(0).Length > 80)
         {
-            UpdateScrollBars(editor);
-            editor_MouseTokenChanged(editor, null, null);
-
-            // Show Format Json context menu
-            if (Path.GetExtension(editor.Lexer.Path).ToLower() == ".json"
-                && editor.Lexer.LineCount == 1
-                && editor.Lexer.GetLine(0).Length > 80)
-            {
-                // The control is invisible, so wait a short period for it to appear
-                await System.Threading.Tasks.Task.Delay(50);
-                //if (editor.IsVisible)
-                //    mContextMenuJson.Show(editor, new Point(20, 30));
-            }
+            // The control is invisible, so wait a short period for it to appear
+            _contextMenuJson.Placement = PlacementMode.Pointer;
+            _contextMenuJson.HorizontalOffset = 10;
+            _contextMenuJson.VerticalOffset = 50;
+            if (editor.IsVisible)
+                _contextMenuJson.ShowAt(_activeEditor);               
         }
-    }
-
-    /// <summary>
-    /// Call this once to set the control that should contain the hover message and search form
-    /// </summary>
-    public void SetHoverMessageParent(Panel parent)
-    {
-        _hoverMessageForm.IsVisible = false;
-        _hoverMessageForm.MaxWidth = 850;
-        _hoverMessageForm.MaxHeight = 400;
-        _hoverMessageForm.VerticalAlignment = VerticalAlignment.Top;
-        _hoverMessageForm.HorizontalAlignment = HorizontalAlignment.Left;
-        parent.Children.Add(_hoverMessageForm);
-
-        _searchForm.IsVisible = false;
-        _searchForm.VerticalAlignment = VerticalAlignment.Top;
-        _searchForm.HorizontalAlignment = HorizontalAlignment.Right;
-        _searchForm.CloseClicked += (s, e) => 
-        { 
-            _searchForm.IsVisible = false; 
-            if (_activeEditor != null)
-                _activeEditor.Focus();
-        };
-        parent.Children.Add(_searchForm);
     }
 
     public void ShowSearchForm()
     {
-        _searchForm.IsVisible = true;
+        _searchForm.ShowAndFocus();
     }
 
     private void Editor_PointerPressed(object? sender, PointerPressedEventArgs e)
@@ -167,14 +183,15 @@ class ZurfEditController
         if (_activeEditor == null)
             return;
 
+        // Format JSON context menu
         var editor = _activeEditor;
-
-        //  TBD: Convert json
-        //if (e.Button == MouseButtons.Right
-        //    && Path.GetExtension(editor.FilePath).ToLower() == ".json")
-        //{
-        //    mContextMenuJson.Show(editor, editor.PointToClient(Cursor.Position));
-        //}
+        if (e.InitialPressMouseButton == MouseButton.Right && Path.GetExtension(editor.Lexer.Path).ToLower() == ".json")
+        {
+            _contextMenuJson.Placement = PlacementMode.Pointer;
+            _contextMenuJson.HorizontalOffset = 0;
+            _contextMenuJson.VerticalOffset = 0;
+            _contextMenuJson.ShowAt(_activeEditor);
+        }
 
 
         var token = editor.MouseHoverToken;
@@ -224,12 +241,12 @@ class ZurfEditController
         if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key == Key.F)
         {
             e.Handled = true;
-            _searchForm.IsVisible = true;
+            ShowSearchForm();
         }
 
-        // TBD: Port to Avalonia
-        //if (e.Key == Key.F3)
-        //    FormSearchInstance.FindNext(ParentForm, this);
+        // Find next
+        if (e.Key == Key.F3)
+            _searchForm.FindNext();
 
         if (e.KeyModifiers != _keyModifiers)
         {
@@ -364,10 +381,11 @@ class ZurfEditController
 
     }
 
-    private void FormatJson(object sender, EventArgs e)
+    private void FormatJson(object? sender, RoutedEventArgs e)
     {
         try
         {
+            _contextMenuJson.Hide();
             var editor = _activeEditor;
             if (editor == null)
                 return;
