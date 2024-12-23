@@ -3,12 +3,12 @@ mod Zurfur
 
 [pub]
 type interface GetIterator<T>
-    fun getIterator() Iterator<T>
+    fun self.getIterator() Iterator<T>
 
 // Implement this on all iterators
 [pub]
 type interface Iterator<T>
-    fun mut next() ?T
+    fun mut self.next() ?T
 
 
 fun _for<S>(s GetIterator<S>) Iterator<S>
@@ -19,10 +19,10 @@ fun _for<S>(s Iterator<S>) Iterator<S>
 
 // *** MAP ***
 
-fun GetIterator.map<S,R>(f fun(inoput S) R) Iterator<R>
+fun (my GetIterator<S>) map<S,R>(f fun(inoput S) R) Iterator<R>
     ret my.getIterator.map(f)
 
-fun Iterator.map<S, R>(f fun(input S) R) Iterator<R>
+fun (my Iterator<S>) map<S, R>(f fun(input S) R) Iterator<R>
     ret MapIterator<S, R>(my, f)
     
 type ref MapIterator<S, R>
@@ -30,11 +30,11 @@ type ref MapIterator<S, R>
     _f fun(input S) R
 
 // TBD: Remove this when `init` is implemented
-fun MapIterator.new<S, R>(iter Iterator<S>, f fun(input S) R)
+fun (my MapIterator<S,R>) new<S, R>(iter Iterator<S>, f fun(input S) R)
     my._iter = iter
     my._f = f
 
-fun mut MapIterator.next<S, R>() ?R
+fun (my mut MapIterator<S,R>) next<S, R>() ?R
     let a = my._iter.next()
     if a @ item
         ret my._f(a)
@@ -42,10 +42,10 @@ fun mut MapIterator.next<S, R>() ?R
 
 // *** FILTER ***
 
-fun GetIterator.filter<S>(f fun(inoput S) bool) Iterator<S>
+fun (my GetIterator<S>) filter<S>(f fun(inoput S) bool) Iterator<S>
     ret my.getIterator.filter(f)
 
-fun Iterator.filter<S>(f fun(input S) bool) Iterator<S>
+fun (my Iterator<S>) filter<S>(f fun(input S) bool) Iterator<S>
     ret FilterIterator<S>(my, f)
     
 type ref FilterIterator<S>
@@ -53,11 +53,11 @@ type ref FilterIterator<S>
     _f fun(input S) bool
 
 // TBD: Remove this when `init` is implemented
-fun FilterIterator.new<S>(iter Iterator<S>, f fun(input S) bool)
+fun (my FilterIterator<S>) new<S>(iter Iterator<S>, f fun(input S) bool)
     my._iter = iter
     my._f = f
 
-fun mut FilterIterator.next<S>() ?S
+fun (my mut FilterIterator<S>) next<S>() ?S
     while my._iter.next @ item
         if my._f(item)
             ret item
@@ -65,18 +65,18 @@ fun mut FilterIterator.next<S>() ?S
 
 // *** OTHER ***
 
-fun GetIterator.reduce<S,R>(acc R, f fun(acc R, value S) R) R
+fun (my GetIterator<S>) reduce<S,R>(acc R, f fun(acc R, value S) R) R
     ret my.getIterator.reduce<S,R>(acc, f)
 
-fun Iterator.reduce<S,R>(acc R, f fun(acc R, value S) R) R
+fun (my Iterator<S>) reduce<S,R>(acc R, f fun(acc R, value S) R) R
     while my.next() @ item
         acc = f(acc, item)
     ret acc
 
-fun GetIterator.reduce<S>(f fun(item1 S, item2 S) S) ?S
+fun (my GetIterator<S>) reduce<S>(f fun(item1 S, item2 S) S) ?S
     ret my.getIterator.reduce<S>(f)
 
-fun Iterator.reduce<S>(f fun(item1 S, item2 S) S) ?S
+fun (my Iterator<S>) reduce<S>(f fun(item1 S, item2 S) S) ?S
     if not (my.next()@acc)
         ret nil
     while my.next() @ item
@@ -85,7 +85,7 @@ fun Iterator.reduce<S>(f fun(item1 S, item2 S) S) ?S
 
 
 [pub]
-fun mut Iterator.toList<T GetIterator<T>>() List<T>
+fun (my mut Iterator<T>) toList<T GetIterator<T>>() List<T>
     @list = List<T>()
     while my.next()@item
         list.push(item)

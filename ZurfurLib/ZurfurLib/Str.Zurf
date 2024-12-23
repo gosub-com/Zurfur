@@ -7,10 +7,10 @@
     //       and its implicit conversion to Span
 
 // TBD: Need to collect stuff from Array
-[pub] fun get str.len() int
+[pub] fun get (my str) len() int
     ret 0
 
-[pub] fun str.toStr() str
+[pub] fun (my str) toStr() str
     ret my
 
 [pub] fun _opAdd(a str, b str) str {}

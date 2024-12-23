@@ -10,17 +10,17 @@ use Zurfur[Iterator, SpanIterator]
 type ImpNone()
 
 type interface TakeConcrete
-    fun take(a int)
+    fun self.take(a int)
 type interface TakeConcrete2 // TBD: Interfce to interface for compatible interfaces
-    fun take(a int)
+    fun self.take(a int)
 type interface TakeInterface
-    fun take(a TakeConcrete)
+    fun self.take(a TakeConcrete)
     
 type ImpTakeConcrete()
-fun ImpTakeConcrete.take(a int) todo
+fun (my ImpTakeConcrete) take(a int) todo
 
 type ImpTakeInterface()
-fun ImpTakeInterface.take(a TakeConcrete) todo
+fun (my ImpTakeInterface) take(a TakeConcrete) todo
 
 
 fun takeInterfaceConcrete(x TakeConcrete) todo

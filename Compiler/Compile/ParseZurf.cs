@@ -81,18 +81,18 @@ class ParseZurf
         + "extends impl implements fun afun sfun def yield yld let "
         + "any Any dyn Dyn dynamic Dynamic select match from to of on cofun "
         + "throws rethrow @ # and or not xor with exit pragma require ensure "
-        + "of sync except exception loc local global my My self Self this This");
+        + "of sync except exception loc local global self Self this This");
 
     public static WordSet ReservedWords => s_reservedWords;
 
-    static WordSet s_scopeQualifiers = new("pub public private unsafe unsealed static protected");
-    static WordSet s_fieldQualifiers = new("ro mut static");
+    static WordSet s_scopeQualifiers = new("pub public private unsafe unsealed protected");
+    static WordSet s_fieldQualifiers = new("ro mut");
     static WordSet s_preTypeQualifiers = new("ro ref struct noclone unsafe enum union interface");
     static WordSet s_postFieldQualifiers = new("init mut ref");
     static WordSet s_paramQualifiers = new("ro own mut");
 
     static WordSet s_allowReservedFunNames = new("require new drop");
-    static WordSet s_reservedIdentifierVariables = new("nil true false new move my sizeof typeof require");
+    static WordSet s_reservedIdentifierVariables = new("nil true false new move sizeof typeof require");
     static WordSet s_reservedMemberNames = new("clone");
     static WordSet s_typeUnaryOps = new("? ! * ^ [ & ro");
 
@@ -1010,7 +1010,7 @@ class ParseZurf
             qualifiers.Add(Accept());
         }
 
-        var validFunctionName = ParseExtensionTypeAndMethodName(out var extensionType, out var funcName);
+        var validFunctionName = ParseExtensionTypeAndMethodName(out var receiverParam, out var funcName);
         (var typeArgs, var constraints) = ParseTypeParameters();
         var functionSignature = ParseFunctionSignature(keyword);
 
@@ -1018,7 +1018,7 @@ class ParseZurf
         {
             Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last(),
             Comments = comments,
-            ExtensionType = extensionType,
+            ReceiverParam = receiverParam,
             TypeArgs = typeArgs,
             Constraints = constraints,
             FunctionSignature = functionSignature
@@ -1042,28 +1042,31 @@ class ParseZurf
     /// Returns true if we are a valid method name
     /// </summary>
     bool ParseExtensionTypeAndMethodName(
-        out SyntaxExpr? extensionType,
+        out SyntaxExpr? receiverParam,
         out Token funcName)
     {
-        extensionType = null;
+        receiverParam = null;
         funcName = _token;
 
         // Golang style receiver
-        Token? mutToken; // TBD: Probably needs to be part of the type name
+        Token? mutToken = null; // TBD: Probably needs to be part of the type name
         if (AcceptMatch("("))
         {
             var open = _prevToken;
-            mutToken = _token == "mut" ? Accept() : null;
-            extensionType = ParseType();
-            if (extensionType is SyntaxError)
-                extensionType = null;
+            receiverParam = ParseFunctionParam(false);
             if (AcceptMatchOrReject(")"))
                 Connect(open, _prevToken);
         }
         else
         {
             mutToken = _token == "mut" ? Accept() : null;
+            if (AcceptMatch("self"))
+            {
+                receiverParam = new SyntaxToken(_prevToken);
+                AcceptMatchOrReject(".");
+            }
         }
+
 
         // Function name
         if (!AcceptIdentifier("Expecting a function or type name", s_rejectTypeName, s_allowReservedFunNames))
@@ -1071,20 +1074,10 @@ class ParseZurf
 
         // Shortcut receiver style
         funcName = _prevToken;
-        if (extensionType == null && AcceptMatch("."))
-        {
-            if (!AcceptIdentifier("Expecting a function or type name", s_rejectTypeName, s_allowReservedFunNames))
-                return true;  // We some kind of valid function name
-            funcName.Type = TokenType.TypeName;
-            extensionType = new SyntaxToken(funcName);
-            funcName = _prevToken;
-        }
         funcName.Type = s_allowReservedFunNames.Contains(funcName.Name) ? TokenType.Reserved : TokenType.DefineMethod;
 
         // TBD: Record 'mut' token for static functions inside interfaces
-        if (mutToken != null && extensionType != null)
-            extensionType = new SyntaxUnary(mutToken, extensionType);
-        else if (mutToken != null)
+        if (mutToken != null)
             mutToken.AddWarning("Not stored in parse tree yet");
 
         RejectUnderscoreDefinition(funcName);
@@ -1140,11 +1133,11 @@ class ParseZurf
         var openToken = _prevToken;
         var parameters = NewExprList();
         if (_tokenName != ")")
-            parameters.Add(ParseFunctionParam());
+            parameters.Add(ParseFunctionParam(true));
         while (AcceptMatch(","))
         {
             Connect(openToken, _prevToken);
-            parameters.Add(ParseFunctionParam());
+            parameters.Add(ParseFunctionParam(true));
         }
 
         if (AcceptMatchOrReject(")", "Expecting ')' or ','"))
@@ -1154,7 +1147,7 @@ class ParseZurf
     }
 
     // Syntax Tree: (name, type, initializer, qualifiers)
-    SyntaxExpr ParseFunctionParam()
+    SyntaxExpr ParseFunctionParam(bool allowInitializer)
     {
         var qualifiers = NewExprList();
 
@@ -1164,9 +1157,6 @@ class ParseZurf
         name.Type = TokenType.DefineFunParam;
         RejectUnderscoreDefinition(name);
 
-        if (AcceptMatch("my"))
-            qualifiers.Add(new SyntaxToken(_prevToken));
-
         // TBD: Param qualifiers probably need to be part of type
         while (s_paramQualifiers.Contains(_token))
             qualifiers.Add(new SyntaxToken(Accept()));
@@ -1174,7 +1164,11 @@ class ParseZurf
         var type = ParseType();
         var initializer = (SyntaxExpr)EmptyExpr;
         if (AcceptMatch("="))
+        {
+            if (!allowInitializer)
+                RejectToken(_prevToken, "Initializer not allowed");
             initializer = ParseExpr();
+        }
         return new SyntaxMulti(name, type, initializer, 
             new SyntaxMulti(EmptyToken, FreeExprList(qualifiers)));
     }

@@ -11,17 +11,17 @@ type struct Range<T Number<T>>
     high T
 
 [pub]
-fun Range.new<T>(low T, high T)
+fun (my Range<T>) new<T>(low T, high T)
     // TBD: (r.low, r.high) = (low, high)
     my.low = low
     my.high = high
 
 [pub]
-fun get Range.length<T Number<T>>() T // TBD: Use constraints from `Range`
+fun get (my Range<T>) length<T Number<T>>() T // TBD: Use constraints from `Range`
     ret my.high-my.low
 
 [pub]
-fun get Range.getIterator<T>() RangeIterator<T>
+fun get (my Range<T>) getIterator<T>() RangeIterator<T>
     ret RangeIterator<T>(my.low, my.high)
         
 [pub]
@@ -30,13 +30,13 @@ type RangeIterator<T Number<T>>
     high T pub init
 
 [pub]
-fun RangeIterator.new<T>(low T, high T)
+fun (my RangeIterator<T>) new<T>(low T, high T)
     // TBD: (my.current, my.high) = (low, high)
     my.current = low
     my.high = high
 
 [pub]
-fun mut RangeIterator.next<T Number<T>>() ?T
+fun (my mut RangeIterator<T>) next<T Number<T>>() ?T
     if my.current >= my.high
         ret nil
     @prev = my.current

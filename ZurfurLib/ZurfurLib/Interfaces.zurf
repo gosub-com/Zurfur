@@ -11,29 +11,29 @@ type interface Copy<T> {}
 // Equality for containers and sorting (NaN == NaN).
 // For floating point equality, use _opEqUnordered.
 type interface Equatable<T>
-    fun getHash() int
+    fun self.getHash() int
     fun _opEq(a T, b T) bool
 
 // Comparison for containers and sorting (NaN == NaN, NaN < -Inf).
 // For floating point, use _opGtUnordered, _opGeUnordered, etc.
 type interface Comparable<T>
-    fun getHash() u32
+    fun self.getHash() u32
     fun _opEq(a T, b T) bool
     fun _opCmp(a T, b T) int
 
 // Common math operators
 type interface Number<T>
-    fun getHash() int
-    [static] fun _opEq(a T, b T) bool
-    [static] fun _opCmp(a T, b T) int
-    [static] fun _opAdd(a T, b T) T
-    [static] fun _opSub(a T, b T) T
-    [static] fun _opNeg(a T) T
-    [static] fun _opMul(a T, b T) T
-    [static] fun _opDiv(a T, b T) T
-    [static] fun _opRem(a T, b T) T
-    [static] fun get Zero() T
-    [static] fun get One() T
-    [static] fun get MinValue() T
-    [static] fun get MaxValue() T
-    [static] fun get NanOrMin() T
+    fun self.getHash() int
+    fun _opEq(a T, b T) bool
+    fun _opCmp(a T, b T) int
+    fun _opAdd(a T, b T) T
+    fun _opSub(a T, b T) T
+    fun _opNeg(a T) T
+    fun _opMul(a T, b T) T
+    fun _opDiv(a T, b T) T
+    fun _opRem(a T, b T) T
+    fun get Zero() T
+    fun get One() T
+    fun get MinValue() T
+    fun get MaxValue() T
+    fun get NanOrMin() T

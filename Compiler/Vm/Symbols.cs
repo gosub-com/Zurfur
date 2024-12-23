@@ -74,7 +74,6 @@ public enum SymKind
 public enum SymQualifiers
 {
     None = 0,
-    My = 0x1,
     Method = 0x2,
     Interface = 0x4,
     Const = 0x8,
@@ -273,7 +272,6 @@ public class Symbol
     public bool IsTypeParam => Kind == SymKind.TypeParam;
     public bool IsFunParam => Kind == SymKind.FunParam;
     public bool IsLocal => Kind == SymKind.Local;
-    public bool IsMy => Qualifiers.HasFlag(SymQualifiers.My);
     public bool IsMethod => Qualifiers.HasFlag(SymQualifiers.Method);
     public bool IsConst => Qualifiers.HasFlag(SymQualifiers.Const);
     public bool IsStatic => Qualifiers.HasFlag(SymQualifiers.Static);

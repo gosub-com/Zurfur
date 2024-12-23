@@ -530,8 +530,6 @@ static class CompileCode
                 return GenStr(ex);
             else if (name == "nil")
                 return new Rval(token) { Type = typeNil };
-            else if (name == "my")
-                return GenIdentifier(ex);
             else if (name == "require")
                 return GenIdentifier(ex);
             else if (name == ParseZurf.VT_TYPE_ARG)
