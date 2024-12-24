@@ -14,42 +14,42 @@ use Zurfur.Math[cos,sin]
 use Zurfur.ConvertBytes[bytesToHex]
 
 // Simple types have public fields:
-[pub] type SimpleType(firstName str, lastName str)
-[pub] type ro SimpleImmutableType(firstName str, fastName str)
+[pub] type SimpleType(firstName Str, lastName Str)
+[pub] type ro SimpleImmutableType(firstName Str, fastName Str)
 
 // Define a type
 [pub]
 type MyType
-    text str                // Public
-    _misc str               // Private
-    _list List<int> pub ref // Private with pub ro
+    text Str                // Public
+    _misc Str               // Private
+    _list List<Int> pub ref // Private with pub ro
 
 fun test_map()
 
     for ir in 0..2
         Log.info("")
 
-    let i = List<int>().getIterator()
-    let m3 = i.map<int,str>(q => 0.0)
+    let i = List<Int>().getIterator()
+    let m3 = i.map<Int,Str>(q => 0.0)
     let m3item = m3.next()
-    let m4 = i.map<int,str>(q => 0.0).map<str,float>(q => "hello")
+    let m4 = i.map<Int,Str>(q => 0.0).map<Str,Float>(q => "hello")
     let m4item = m4.next()
-    let m5 = List<int>().map<int,str>(q => 0).map<str,float>(q => 0)
-    let m5List = m5.toList<float>
+    let m5 = List<Int>().map<Int,Str>(q => 0).map<Str,Float>(q => 0)
+    let m5List = m5.toList<Float>
     
 
-    let myFold = List<int>()
-        .reduce<int, float>(0.0, |acc, item| => acc + item.toFloat)
-    let myReduce = List<int>()
-        .reduce<int>(|item1, item2| => item1 + item2)
+    let myFold = List<Int>()
+        .reduce<Int, Float>(0.0, |acc, item| => acc + item.toFloat)
+    let myReduce = List<Int>()
+        .reduce<Int>(|item1, item2| => item1 + item2)
 
-    let myStringList = List<int>()
-        .map<int, str>(s => s.toStr)
-        .map<str,str>(s => s + " ")
-        .reduce<str,str>("", |acc, item| => acc + item)
+    let myStringList = List<Int>()
+        .map<Int, Str>(s => s.toStr)
+        .map<Str,Str>(s => s + " ")
+        .reduce<Str,Str>("", |acc, item| => acc + item)
 
       
-    let testIter = (0..5).map<int,float>(fl => (2*fl).toFloat + 0.5)
+    let testIter = (0..5).map<Int,Float>(fl => (2*fl).toFloat + 0.5)
 
 
 // Declare a method to multiply and add three keys on Map<K,V>.
@@ -69,19 +69,19 @@ fun (my MyType) countToTen()
 fun (my MyType) getIterator() MyTypeIter todo
 
 type MyTypeIter
-    a int
+    a Int
     
-fun (my MyTypeIter) next() ?int
+fun (my MyTypeIter) next() ?Int
     todo
 
 // Setter for list, which is already public read-only
 [pub]
-fun set (my MyType) list(v own List<int>)
+fun set (my MyType) list(v own List<Int>)
     my._list = v
     my.mapChangedEvent()
     for x in MyType()
         nop
-    MyType().map<int,str>(s => "")
+    MyType().map<Int,Str>(s => "")
 
 fun (my MyType) mapChangedEvent() {}
 
@@ -104,7 +104,7 @@ fun test_HelloWorld()
 
             
 [pub]
-fun circle(a float, r float)(x float, y float)
+fun circle(a Float, r Float)(x Float, y Float)
     let q = circle(1.0,2.0)
     let p = q.x
     ret (cos(a)*r, sin(a)*r)
@@ -115,32 +115,32 @@ fun circle2<T0, T1>(a T0, r T1)(x T0, y T1)
 [pub]
 type Example
     
-    a1 str
-    a2 str = "Hello"
-    a3 List<str> = ["Hello", "World"]
-    a4 List<int> = [1,2]
-    a5 List<int> pub ref
-    a6 List<int> pub mut
-    a7 List<int> pub mut
-    //pub a8 List<int>
-    //pub a9 private set List<int>
-    //pub private set a9 List<int>
+    a1 Str
+    a2 Str = "Hello"
+    a3 List<Str> = ["Hello", "World"]
+    a4 List<Int> = [1,2]
+    a5 List<Int> pub ref
+    a6 List<Int> pub mut
+    a7 List<Int> pub mut
+    //pub a8 List<Int>
+    //pub a9 private set List<Int>
+    //pub private set a9 List<Int>
 
-    map1 ro Map<str,int> = ["A":1,"B":2]        // Immutable map
-    map2 ro mut Map<str,int> = ["A":1,"B":2]    // Can't be assigned, can be mutated
-    map3 ro Map<str,int> pub init               // Read only, init in constructor or allow public init
+    map1 ro Map<Str,Int> = ["A":1,"B":2]        // Immutable map
+    map2 ro mut Map<Str,Int> = ["A":1,"B":2]    // Can't be assigned, can be mutated
+    map3 ro Map<Str,Int> pub init               // Read only, init in constructor or allow public init
     
-    a Zim<void>
-    c Zim<i8>
-    e Zim<byte>
-    f Zim<i16>
-    g Zim<u16>
-    h Zim<i32>
-    i Zim<u32>
-    j Zim<int>
-    m Zim<float>
-    n Zim<f32>
-    o Zim<str>
+    a Zim<Void>
+    c Zim<I8>
+    e Zim<Byte>
+    f Zim<I16>
+    g Zim<U16>
+    h Zim<I32>
+    i Zim<U32>
+    j Zim<Int>
+    m Zim<Float>
+    n Zim<F32>
+    o Zim<Str>
     p Zim<Decimal>
 
 [pub]
@@ -148,21 +148,21 @@ type Zim<T>
     q T pub mut
 
 // Type test for test_main
-type Token(a int)
-fun AcceptMatch(m str) ?Token
+type Token(a Int)
+fun AcceptMatch(m Str) ?Token
     ret nil
 
 // This is a public documentation comment.  Do not use XML.
 // Use `name` to refer to variables in the code.
 [pub]
-fun test_Main(args Array<str>, stream Zurfur.Io.Reader)
+fun test_Main(args Array<Str>, stream Zurfur.Io.Reader)
 
     // This is a regular private comment
     Log.info("Hello World, 2+2={2+2}")
 
     let v = ""
     //let myStrings = ["a", "b", "c"]
-    let myStrings = Array<str>()
+    let myStrings = Array<Str>()
 
     if myStrings[1]@q == "x"
         v = "x"
@@ -177,13 +177,13 @@ fun test_Main(args Array<str>, stream Zurfur.Io.Reader)
     
     let a = tr"Column 1{\t}Column 2{\rn}"
     let data = "Name:{name}{\t}Occupation:{lastName}{\rn}"
-    let buffer = Buffer<byte>()
+    let buffer = Buffer<Byte>()
     
     while stream.read(buffer[0..4])!@size == 4
         let bytes = buffer[0..4].bytesToHex(false) // TBD: Scan use statements for extension methods
 
-    // AcceptMatch returns ?Token = (bool, Token)
-    // @Token captures the token, leaving the bool
+    // AcceptMatch returns ?Token = (Bool, Token)
+    // @Token captures the token, leaving the Bool
     if AcceptMatch("(")@Token
         nop
 

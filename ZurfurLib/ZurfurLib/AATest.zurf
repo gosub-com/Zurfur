@@ -18,46 +18,46 @@ use Zurfur.Draw2d[Size, Point]
 
 
 fun test_reduce()
-    @myReduce1 = List<int>()
+    @myReduce1 = List<Int>()
         .reduce(|item1, item2| => item1 + item2)
-    @myReduce2 = List<int>()
+    @myReduce2 = List<Int>()
         .reduce(|item1, item2| => item1 + item2)
-    @myReduceInt = List<int>()
+    @myReduceInt = List<Int>()
         .reduceInt(|item1, item2| => item1 + item2)
-    @myReduceTuple1 = List<(x int, y int)>()
+    @myReduceTuple1 = List<(x Int, y Int)>()
         .reduce(|item1, item2| => item1)
-    @myReduceTuple2 = List<(a int, b int)>()
+    @myReduceTuple2 = List<(a Int, b Int)>()
         .reduce(|item1, item2| => item2)
 
-fun (my GetIterator<int>) reduceInt(f fun(item1 int, item2 int) int) ?int
-    ret my.getIterator.reduce<int>(f) 
+fun (my GetIterator<Int>) reduceInt(f fun(item1 Int, item2 Int) Int) ?Int
+    ret my.getIterator.reduce<Int>(f) 
 
 fun testInfer()
-    @m = List<(x int, y float)>()
-    @m2 = inferFun(m)               // float
+    @m = List<(x Int, y Float)>()
+    @m2 = inferFun(m)               // Float
 
     // Tuple
-    @ml = List<(x int, y f32)>()
-    @ml2 = List<(int, f32)>()
-    @mli2 = ml[0].y                 // float
+    @ml = List<(x Int, y F32)>()
+    @ml2 = List<(Int, F32)>()
+    @mli2 = ml[0].y                 // Float
     takeListOfTuples(ml)
 
 fun inferFun<S,R>(x List<(S,R)>) R
     ret R()
 
 
-fun takeListOfTuples(x List<(a int, b f32)>) f32
+fun takeListOfTuples(x List<(a Int, b F32)>) F32
     ret x[0].b
 
 
 // TBD: Global variables need to be compiled
 @a1 AParamable = A1Parameter()
-@b1 AParamable = int()
+@b1 AParamable = Int()
 
 
 type interface AParamable
-    fun self.takePointer(a *int) Span<int>
-    fun self.takeInt(a int) float
+    fun self.takePointer(a *Int) Span<Int>
+    fun self.takeInt(a Int) Float
 
 type interface BParamable
     fun self.fun1(x AParamable)
@@ -65,32 +65,32 @@ type interface BParamable
     fun self.fun3(a AParamable, b BParamable)
 
 type A1Parameter
-    a int
-fun (my A1Parameter) takePointer(a *int) Span<int>
-    ret Span<int>()
-fun (my A1Parameter) takeInt(a int) float
+    a Int
+fun (my A1Parameter) takePointer(a *Int) Span<Int>
+    ret Span<Int>()
+fun (my A1Parameter) takeInt(a Int) Float
     ret 0.0
 
 type A1ParameterNot1
-    a int
-fun (my A1ParameterNot1) takePointer(a *int) int // Causes it to not be AParamable
+    a Int
+fun (my A1ParameterNot1) takePointer(a *Int) Int // Causes it to not be AParamable
     ret 0
-fun (my A1ParameterNot1) takeInt(a int) float
+fun (my A1ParameterNot1) takeInt(a Int) Float
     ret 0.0
 
 type A1ParameterNot2
-    a int
-fun (my A1ParameterNot2) takePointer(a *int) Span<int>
-    ret Span<int>()
-fun (my A1ParameterNot2) takeInt(a int) int // Causes it to not be AParamable
+    a Int
+fun (my A1ParameterNot2) takePointer(a *Int) Span<Int>
+    ret Span<Int>()
+fun (my A1ParameterNot2) takeInt(a Int) Int // Causes it to not be AParamable
     ret 0
 
 
     
 type interface Printable
-    fun self.toStr() str    
+    fun self.toStr() Str    
 type interface Printable2
-    fun self.toStr() str    
+    fun self.toStr() Str    
 
 fun test_printableFail<T Printable, Q>(t T, q Q)
     // Fail test case
@@ -109,20 +109,20 @@ fun test_Global<T TestGlobal>()
 
 type interface TestGlobal2<T>
     fun testGlobal2(x T) T
-fun test_Global2<T TestGlobal2<int>>(t T)
+fun test_Global2<T TestGlobal2<Int>>(t T)
     @x = testGlobal2(1)
 
     // Fail test case
     //testGlobal2(t)
 
 
-fun lambdaCall(a fun(b float)int) todo
-fun lambdaCall(a fun(b f32)i32) todo
-fun lambdaCall2(a fun(b float)int) todo
+fun lambdaCall(a fun(b Float)Int) todo
+fun lambdaCall(a fun(b F32)I32) todo
+fun lambdaCall2(a fun(b Float)Int) todo
 
 
 fun test_lambdaCall()
-    lambdaCall(|a float| => a + 32) // TBD: Should be OK
+    lambdaCall(|a Float| => a + 32) // TBD: Should be OK
     lambdaCall2(a => 0)
 
 [pub] type MyCollection<T> {}
@@ -139,17 +139,17 @@ fun test_lambdaCall()
 
 
 fun test_use()
-    @myCollection = MyCollection<int>()
+    @myCollection = MyCollection<Int>()
     @myCollectionIter = myCollection.getIterator
     @myCollectionItem = myCollectionIter.next()
-    @myCollectionMapIter = myCollection.map<int,str>(i => i.toStr)
-    // TBD: Fix asset hit for: @myCollectionMapList = myCollection.map<int,str>(@i => i.toStr).toList
-    @myCollectionMapList2 = myCollection.map<int,str>(i => i.toStr).toList<str>
+    @myCollectionMapIter = myCollection.map<Int,Str>(i => i.toStr)
+    // TBD: Fix asset hit for: @myCollectionMapList = myCollection.map<Int,Str>(@i => i.toStr).toList
+    @myCollectionMapList2 = myCollection.map<Int,Str>(i => i.toStr).toList<Str>
 
-    @myReduce = List<int>()
-        .reduce<int>(|item1, item2| => item1 + item2)
+    @myReduce = List<Int>()
+        .reduce<Int>(|item1, item2| => item1 + item2)
     
-    @myCollectionNot = MyCollectionNot<int>()
+    @myCollectionNot = MyCollectionNot<Int>()
     @myCollectionNotIter = myCollectionNot.getIterator
     @myCollectionNotItem = myCollectionNotIter.next()
     for @a in myCollectionNot
@@ -160,25 +160,25 @@ fun test_map()
     for @ir in 0..2
         Log.info("")
 
-    @i = List<int>().getIterator()
-    @m3 = i.map<int,str>(q => 0.0)
+    @i = List<Int>().getIterator()
+    @m3 = i.map<Int,Str>(q => 0.0)
     @m3item = m3.next()
-    @m4 = i.map<int,str>(q => 0.0).map<str,float>(q => "hello")
+    @m4 = i.map<Int,Str>(q => 0.0).map<Str,Float>(q => "hello")
     @m4item = m4.next()
-    @m5 = List<int>().map<int,str>(q => 0).map<str,float>(q => 0)
-    @m5List = m5.toList<float>
+    @m5 = List<Int>().map<Int,Str>(q => 0).map<Str,Float>(q => 0)
+    @m5List = m5.toList<Float>
 
-    @myFold = List<int>()
-        .reduce<int, float>(0.0, |acc, item| => acc + item.toFloat)
-    @myReduce = List<int>()
-        .reduce<int>(|item1, item2| => item1 + item2)
+    @myFold = List<Int>()
+        .reduce<Int, Float>(0.0, |acc, item| => acc + item.toFloat)
+    @myReduce = List<Int>()
+        .reduce<Int>(|item1, item2| => item1 + item2)
 
-    @myStringList = List<int>()
-        .map<int, str>(s => s.toStr)
-        .map<str,str>(s => s + " ")
-        .reduce<str,str>("", |acc, item| => acc + item)
+    @myStringList = List<Int>()
+        .map<Int, Str>(s => s.toStr)
+        .map<Str,Str>(s => s + " ")
+        .reduce<Str,Str>("", |acc, item| => acc + item)
 
-    @testIter = (0..5).map<int,float>(fl => (2*fl).toFloat + 0.5)
+    @testIter = (0..5).map<Int,Float>(fl => (2*fl).toFloat + 0.5)
 
     // TBD: This should work
     for @a in m5
@@ -210,7 +210,7 @@ fun test_callInterfaces() AParamable
     //test_paramable(3)
     //if false
     //    ret 3
-    //@b1 AParamable = int()
+    //@b1 AParamable = Int()
     //@c1 AParamable = A1ParameterNot1()
     //@d1 AParamable = A1ParameterNot2()
 
@@ -219,19 +219,19 @@ fun test_callInterfaces() AParamable
     //test_printPrintable(ints) // TBD: Should this be allowed?
     
 
-    @ints = List<int>()
+    @ints = List<Int>()
     test_printable(1)
     test_printable(1.0)
     test_printable("hello")
 
     // TBD: Need correct assembly
-    test_multiPrintableOverload(1,   1, 0 byte, "x")
-    test_multiPrintableOverload(1.0, 1, 0 byte, 2.3 f32)
+    test_multiPrintableOverload(1,   1, 0 Byte, "x")
+    test_multiPrintableOverload(1.0, 1, 0 Byte, 2.3 F32)
 
     // TBD: Still working on this
     test_printInts(ints)
 
-    @intSpan = Span<int>()
+    @intSpan = Span<Int>()
     test_printInts(intSpan)
 
     // TBD: Generic interfaces, etc
@@ -241,7 +241,7 @@ fun test_paramable(p AParamable)
     @x = p.takePointer(nil)
 
 fun test_for()
-    @list = List<int>()
+    @list = List<Int>()
     for @i in list
         @istr = i.toStr
 
@@ -249,12 +249,12 @@ fun test_printable(x Printable)
     @item = x.toStr
     Log.info("Item={item}")
 
-fun test_multiPrintableOverload(a int, b int, c Printable, d Printable)
+fun test_multiPrintableOverload(a Int, b Int, c Printable, d Printable)
     Log.info("Item={a},{b},{c},{d}")
-fun test_multiPrintableOverload(a float, b int, c Printable, d Printable)
+fun test_multiPrintableOverload(a Float, b Int, c Printable, d Printable)
     Log.info("Item={a},{b},{c},{d}")
 
-fun test_printInts(x GetIterator<int>)
+fun test_printInts(x GetIterator<Int>)
     @i = x.getIterator
     while i.next()@item
         @s = item.toStr
@@ -273,12 +273,12 @@ fun test_printGeneric<T Printable>(x mut GetIterator<T>)
         @s = item.toStr()
         Log.info("Item={s}")
 
-fun aaa_arith(a int, b int, c mut aaa_arith_test) int
+fun aaa_arith(a Int, b Int, c mut aaa_arith_test) Int
     Log.info("Hello world: 2+2 is " + (2 + 2).toStr)
     @x = a+b
     @y = a*b
     Log.info("X is " + x.toStr + ", Y is " + y.toStr)
-    @tuples = List<(int, str)>()
+    @tuples = List<(Int, Str)>()
     tuples.push((1, "Hello"))
     @tupleElement = tuples[0]    
     @hold
@@ -302,7 +302,7 @@ fun aaa_arith(a int, b int, c mut aaa_arith_test) int
     
     ret y + c.b.e + c.property
 
-fun MyGenericInt<T Number<int>>()
+fun MyGenericInt<T Number<Int>>()
     @a = T()
     @c = T.One
     @d = One
@@ -315,34 +315,34 @@ fun MyGeneric<T Number<T>>()
 
 
 type aaa_arith_test
-    a int
+    a Int
     b aaa_arith_test2
-    c int
-    _property int
+    c Int
+    _property Int
     
-fun get (my aaa_arith_test) property() int
+fun get (my aaa_arith_test) property() Int
     ret my._property
-fun set (my aaa_arith_test) property(d int)
+fun set (my aaa_arith_test) property(d Int)
     my._property = d
 
 fun get (my aaa_arith_test) bref() mut &aaa_arith_test2
     ret my.b
 
 type aaa_arith_test2
-    d int
-    e int
-    f int
+    d Int
+    e Int
+    f Int
  
 
 
 fun test_listMap()
-    @a = List<float>()
-    @c = a.map<float,int>(i => i.toIntMask)
+    @a = List<Float>()
+    @c = a.map<Float,Int>(i => i.toIntMask)
 
 
-fun test_forEach(args Array<str>)
+fun test_forEach(args Array<Str>)
     @sum = 0
-    @list List<int>
+    @list List<Int>
     list.forEach(item => { sum += item })
 
 
@@ -355,7 +355,7 @@ fun (my Iterator<Source>) orderBy<Source,Key>(keySelector fun(i Source)Key) Iter
 fun (my Iterator<Source>) thenBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
     todo
 
-fun (my Iterator<T>) find<T>(f fun(item T) bool) mut ?&T
+fun (my Iterator<T>) find<T>(f fun(item T) Bool) mut ?&T
     while my.next()@item
         if f(item)
             ret &item // TBD: Require `&` here
@@ -363,7 +363,7 @@ fun (my Iterator<T>) find<T>(f fun(item T) bool) mut ?&T
 
 
 // Simple selection sort
-fun (my Span<T>) test_selectionSort<T>(lessThan fun(a T,b T)bool)
+fun (my Span<T>) test_selectionSort<T>(lessThan fun(a T,b T)Bool)
     for @i in 0..my.len-1
         @lowElem = my[i]
         @lowIndex = i
@@ -382,8 +382,8 @@ type MyPoint<T1,T2,T3>
     a T1
     b T2
     c T3
-    x (int, T1, int)
-    y (a int, b T1, c int, d (r int, b int))
+    x (Int, T1, Int)
+    y (a Int, b T1, c Int, d (r Int, b Int))
 
 type interface GetIterator2<Item>
     fun self.iterator2() Iterator<Item>
@@ -394,8 +394,8 @@ type interface GetMap<Item1,Item2>
     fun self.getMapValues() Iterator<Item2>
 
 type interface Getter
-    fun get self.myGet() i32
-    fun self.myFun() i32
+    fun get self.myGet() I32
+    fun self.myFun() I32
 
 type interface Getter2<T>
     fun get self.myGet2() T
@@ -412,60 +412,60 @@ fun getMapFun<K,V>() Map<V,K>
 
 fun myFun2Interf<T>(i T) T todo
 
-fun takeFun(i fun(a int)int) todo
+fun takeFun(i fun(a Int)Int) todo
 
 type interface GetHash
-    fun self.getHash() u32
+    fun self.getHash() U32
 
 fun test_tuples()
-    @tuples = List<(int, str)>()
+    @tuples = List<(Int, Str)>()
     tuples.push((1, "Hello"))
     @tupleElement = tuples[0]
     
-    @tuplesNamed = List<(x int,  y str)>()
+    @tuplesNamed = List<(x Int,  y Str)>()
     tuplesNamed.push((1, "Hello"))
     @tuplesNamedElement = tuplesNamed[0]
     @element = tuplesNamedElement.x
 
 fun AAAAA<X,
-        T Number<T> + GetHash + GetIterator<int> + GetIterator2<int> + GetMap<f32,float> + Iterator<int>,
-        Q Number<Q> + Getter + Getter2<int> + MyAdd<Q>
-        >(t T, q Q, intf1 Iterator<i32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<float>, myGetter Getter)
+        T Number<T> + GetHash + GetIterator<Int> + GetIterator2<Int> + GetMap<F32,Float> + Iterator<Int>,
+        Q Number<Q> + Getter + Getter2<Int> + MyAdd<Q>
+        >(t T, q Q, intf1 Iterator<I32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<Float>, myGetter Getter)
 
     // Source code symbols should be non-generic
-    @next3 = q.myGet2           // int
-    @next4 = q.myFun2Ns()       // int
-    @next5 = Q.myFun2Stat()     // int
-    @next6 = q.myGet            // i32
-    @next7 = q.myFun()          // i32
+    @next3 = q.myGet2           // Int
+    @next4 = q.myFun2Ns()       // Int
+    @next5 = Q.myFun2Stat()     // Int
+    @next6 = q.myGet            // I32
+    @next7 = q.myFun()          // I32
     @addTestQ = q + q           // #2
     @mulTestT = t * t           // #1
 
     
-    @next1 = t.next()           // ?int
+    @next1 = t.next()           // ?Int
     @gotq = myFun2Interf(q)     // #2
-    @gotInt = myFun2Interf(3)   // int  - myFun2Interf not linked to specialized
-    @next2 = intf1.next()       // ?i32 - Next is linked to generic
-    @myGet = q.myGet            // i32
-    @myGetter2 = myGetter.myGet // i32
-    @myGet2 = q.myGet2          // int
+    @gotInt = myFun2Interf(3)   // Int  - myFun2Interf not linked to specialized
+    @next2 = intf1.next()       // ?I32 - Next is linked to generic
+    @myGet = q.myGet            // I32
+    @myGetter2 = myGetter.myGet // I32
+    @myGet2 = q.myGet2          // Int
     @mgGet2a = mgQ.myGet2       // #2
-    @mgGet2F = mgF.myGet2       // float
-    @mgFun2F = mgF.myFun2()     // float
-    @myPoint = MyPoint<int,float,f32>().b   // float
+    @mgGet2F = mgF.myGet2       // Float
+    @mgFun2F = mgF.myFun2()     // Float
+    @myPoint = MyPoint<Int,Float,F32>().b   // Float
 
-    @intf2b = intf2.getHash()   // u32
+    @intf2b = intf2.getHash()   // U32
     @myAddNs = q.myAddNotStatic(Q(),Q())    // #2
     @myAdd = Q.myAddStatic(Q(),Q())         // #2
-    @myFun = q.myFun()          // i32
-    @myFun2 = q.myFun2()        // int
-    @getMap = t.getMap()        // Map<f32,float>
-    @getMapFunc = getMapFun<i32,u32>()  // Map<u32,i32>
-    @getMapKeys = t.getMapKeys()        // Iterator<f32>
-    @getMapValues = t.getMapValues()    // Iterator<float>
-    @iter1 = t.getIterator                 // Iterator<int>
-    @iter2 = t.iterator2()              // Iterator<int>
-    @first = iter1.next()               // ?int
+    @myFun = q.myFun()          // I32
+    @myFun2 = q.myFun2()        // Int
+    @getMap = t.getMap()        // Map<F32,Float>
+    @getMapFunc = getMapFun<I32,U32>()  // Map<U32,I32>
+    @getMapKeys = t.getMapKeys()        // Iterator<F32>
+    @getMapValues = t.getMapValues()    // Iterator<Float>
+    @iter1 = t.getIterator                 // Iterator<Int>
+    @iter2 = t.iterator2()              // Iterator<Int>
+    @first = iter1.next()               // ?Int
     @x = 1
     @y = 2
     @z1 = x + y
@@ -479,11 +479,11 @@ fun AAAAA<X,
 
     // TBD: Resolve multiple interface implementations, which is
     //      allowed since they would be resolved when called
-    //@aa = t.getHash()           // u32
+    //@aa = t.getHash()           // U32
     //@z6 = T().getHash()
 
     for @item in t
-        @itemt = item           // int
+        @itemt = item           // Int
 
 
 fun MyFun1<T1,T2,T3>(a T1, b T2, c T3)(x T2, y T3)
@@ -493,13 +493,13 @@ fun MyFun1<T1,T2,T3>(a T1, b T2, c T3)(x T2, y T3)
 fun MyFun2<I,O>(i I) O
     ret O()
 
-fun MyFun3<I,O>(i int) O
+fun MyFun3<I,O>(i Int) O
     ret O()
 
-fun MyFun4<T0,T1,T2,T3>(i int) List<T2>
+fun MyFun4<T0,T1,T2,T3>(i Int) List<T2>
     ret List<T2>()
 
-fun MyFun5<T0,T1,T2,T3>(i int)(a List<T1>, b List<T3>)
+fun MyFun5<T0,T1,T2,T3>(i Int)(a List<T1>, b List<T3>)
     ret (List<T1>(), List<T3>())
 
 fun inferMap<T1,T2>(a Map<T1,T2>, b List<T2>)(x T1, y T2)
@@ -507,32 +507,32 @@ fun inferMap<T1,T2>(a Map<T1,T2>, b List<T2>)(x T1, y T2)
 
 fun Test<X0,X1,X2,X3>()
     @infer1 = MyFun1(0, "", 0.0)
-    @infer2 = MyFun1(0, List<int>(), 0)
+    @infer2 = MyFun1(0, List<Int>(), 0)
     @infer3 = MyFun1(0, List<X2>(), 0.0)
-    @infer4 = inferMap(Map<int,str>(), List<str>())
-    @f1 = MyFun2<int, float>(0)
-    @f2 = MyFun3<int,float>(1)
-    @f3 = MyFun3<float,int>(1)
-    @f4 = MyFun4<float,int,List<X3>,u32>(1)
-    @f5 = MyFun5<float,int,str,u64>(1)
-    @a = MyPoint<int,float,str>()
+    @infer4 = inferMap(Map<Int,Str>(), List<Str>())
+    @f1 = MyFun2<Int, Float>(0)
+    @f2 = MyFun3<Int,Float>(1)
+    @f3 = MyFun3<Float,Int>(1)
+    @f4 = MyFun4<Float,Int,List<X3>,U32>(1)
+    @f5 = MyFun5<Float,Int,Str,U64>(1)
+    @a = MyPoint<Int,Float,Str>()
     @b = MyPoint<X2, List<X3>, Map<X1,X3>>()
-    @c = MyFun1<int, MyPoint<int,int,int>, str>(0, MyPoint<int,int,int>(), "hello")
-    @d = MyFun1<int, MyPoint<int,X3,int>, str>(0, MyPoint<int,X3,int>(), "hello")
+    @c = MyFun1<Int, MyPoint<Int,Int,Int>, Str>(0, MyPoint<Int,Int,Int>(), "hello")
+    @d = MyFun1<Int, MyPoint<Int,X3,Int>, Str>(0, MyPoint<Int,X3,Int>(), "hello")
     @e = MyFun2<X2,X3>(X2())
-    @g = MyFun2<int,float>(0)
-    @h = MyFun2<float,int>(0.0)
-    @f4a = MyFun4<int,str,f32,u64>(0)
-    @f5a = MyFun5<int,str,f32,u64>(0) 
-    @i Size<int> = Size<int>(0,0)  
-    @k float = 0.0
-    @l float = 0float
+    @g = MyFun2<Int,Float>(0)
+    @h = MyFun2<Float,Int>(0.0)
+    @f4a = MyFun4<Int,Str,F32,U64>(0)
+    @f5a = MyFun5<Int,Str,F32,U64>(0) 
+    @i Size<Int> = Size<Int>(0,0)  
+    @k Float = 0.0
+    @l Float = 0Float
     @p1 = Xuint()
-    @p2 = castPointer<RawPointer<byte>>(p1)
-    @p3 = castPointer<RawPointer<int>>(p2)
+    @p2 = castPointer<RawPointer<Byte>>(p1)
+    @p3 = castPointer<RawPointer<Int>>(p2)
     @p4 = castPointer<Xuint>(p3)
     @t = (0,1,2)
-    @toSize = Point<f32>().toSizeTest
+    @toSize = Point<F32>().toSizeTest
 
 type OneGeneric<T> { } 
 
@@ -548,10 +548,10 @@ fun get (my Point<T>) toSizeTest<T>() Size<T>
 
 
 fun helloVoid() {}
-fun helloInt() int {}
-fun cos2(a int)(x float, y int) {}
+fun helloInt() Int {}
+fun cos2(a Int)(x Float, y Int) {}
  
-fun test(x float)
+fun test(x Float)
     @a = 3
     @b = x
     @c = x == 3.0
@@ -565,17 +565,17 @@ fun test(x float)
 
 
 type AAAA<T>
-    v void
+    v Void
 
 type BBBB
-    v void
+    v Void
         
 fun (my BBBB) BBBB_fm1() {}
 fun (my BBBB) BBBB_fm2(a BBBB) {}
     
 
 
-fun (my AAAA<int>) AAAA_fm() {}
+fun (my AAAA<Int>) AAAA_fm() {}
 fun (my AAAA<T>) AAAA_fm<T>() {}
 fun (my BBBB) AAAA_fm() {}
 
@@ -589,14 +589,14 @@ fun (my aapoint) AAAA() {}
 fun (my aapoint) BBBB() {}
 fun (my aapoint) AAAB() {}
 fun (my List<T>) X<T>() {}
-fun (my int) X() {}
+fun (my Int) X() {}
     
 
 type aapoint
-    v void
+    v Void
     
 type bbpoint
-    v void
+    v Void
 
 [pub] fun (my aapoint) x() {}
 
@@ -607,27 +607,27 @@ type bbpoint
 
   
 [pub] type AAFun    
-    aaf4 fun(a int, b int) int
-    aaf5 AAFunc<int, int>
+    aaf4 fun(a Int, b Int) Int
+    aaf5 AAFunc<Int, Int>
     aaf6 fun()()
     aaf7 fun()
-    aaf8 fun()int
-    aaf9 fun(a int)
-    aaf9a fun(a int) int
-    aaf9b fun(a int)(x int)
-    af10 fun(v int)int
+    aaf8 fun()Int
+    aaf9 fun(a Int)
+    aaf9a fun(a Int) Int
+    aaf9b fun(a Int)(x Int)
+    af10 fun(v Int)Int
 
-fun (my AAFun) aaaa(a int, b int) int { }
-fun (my AAFun) aaaa(a int, b float) int { }
-fun (my AAFun) aaaa(x float, y int) int { }
-fun (my AAFun) aaf1(a int, b int)int { }
-fun (my AAFun) aaf2(v AAFunc<int, int>) { }
+fun (my AAFun) aaaa(a Int, b Int) Int { }
+fun (my AAFun) aaaa(a Int, b Float) Int { }
+fun (my AAFun) aaaa(x Float, y Int) Int { }
+fun (my AAFun) aaf1(a Int, b Int)Int { }
+fun (my AAFun) aaf2(v AAFunc<Int, Int>) { }
 fun (my AAFun) aaf3<T1,T2>(i T1)T2 { }
-fun (my AAFun) aaf1s(a int, b int)int { }
-fun (my AAFun) aaf2s(v AAFunc<int, int>) { }
+fun (my AAFun) aaf1s(a Int, b Int)Int { }
+fun (my AAFun) aaf2s(v AAFunc<Int, Int>) { }
 fun (my AAFun) aaf3s<T1,T2>(i T1)T2 { }
-fun (my AAFun) af6(p fun(v int)bool) {}
-fun (my AAFun) af7<X>(p fun(v X)bool) {}
+fun (my AAFun) af6(p fun(v Int)Bool) {}
+fun (my AAFun) af7<X>(p fun(v X)Bool) {}
 
 
 [pub] type AAFunc<T1,T2>
@@ -635,53 +635,53 @@ fun (my AAFun) af7<X>(p fun(v X)bool) {}
 
 
 // TBD: These are identical to the ones defined in the class
-fun (my AGenericTest<T,QQQ>) af6<T,QQQ>(p fun(v int)bool) {}
-//fun AGenericTest<T, QQQ>.af7<X>(p fun(v X)bool) {}
+fun (my AGenericTest<T,QQQ>) af6<T,QQQ>(p fun(v Int)Bool) {}
+//fun AGenericTest<T, QQQ>.af7<X>(p fun(v X)Bool) {}
 //fun AGenericTest<T, QQQ>.af8<T1,T2>(i T1)T2 { }
 //fun AGenericTest<T, QQQ>.Q<T1>() {}
 //[pub] fun AGenericTest<T, QQQ>.new()
 //    todo
-//[pub] fun AGenericTest<T, QQQ>.new(a int)
+//[pub] fun AGenericTest<T, QQQ>.new(a Int)
 //    todo
-//[pub] fun AGenericTest<T, QQQ>.aaa(a Zurfur.Draw2d.Size<int>) {}
+//[pub] fun AGenericTest<T, QQQ>.aaa(a Zurfur.Draw2d.Size<Int>) {}
 //[pub] fun AGenericTest<T, QQQ>.P1() { ret 0 }
 //[pub] fun AGenericTest<T, QQQ>.P2()() { ret 0}
 //[pub] fun P2<Quack>(a Quack, b QQQ) { ret (a.ToStr() + b.ToStr()).Length; }
 //[pub] fun AGenericTest<T, QQQ>.P3<Z>() { ret 0; }
 //[pub] fun AGenericTest<T, QQQ>.P4<Quack, Quack1>() { ret 0; }
-//[pub] fun AGenericTest<T, QQQ>.fun9(a *?OneGeneric<List<int>>) { }
+//[pub] fun AGenericTest<T, QQQ>.fun9(a *?OneGeneric<List<Int>>) { }
 
-//[pub] fun AGenericTest<T, QQQ>.UseIt(x Zurfur.int, y List<Inner1<int,int>>, z List<str>)
+//[pub] fun AGenericTest<T, QQQ>.UseIt(x Zurfur.Int, y List<Inner1<Int,Int>>, z List<Str>)
 //    XField0.ToStr()
-    // Xfield2<str, T>.P3<T>(); - Xfield2 can't use type parameters
+    // Xfield2<Str, T>.P3<T>(); - Xfield2 can't use type parameters
     // Xfield2.P3(); - Can't infer P3<type>
 //    Xfield2.P3<T>()
-//    @a = List<str, Outer<int, int>>()
-//    Inner1<str, byte>.Inner2<short, ushort>.Hello = 1
-//    Outer<T, QQQ>.Inner1<str, byte>.Inner2<short, ushort>.Hello = 2
-//    Outer<QQQ, T>.Inner1<str, byte>.Inner2<short, ushort>.Hello = 3
-//    Outer<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, byte>.Hello = 4
-//    @p = AGenericTest<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, byte>()
+//    @a = List<Str, Outer<Int, Int>>()
+//    Inner1<Str, Byte>.Inner2<short, ushort>.Hello = 1
+//    Outer<T, QQQ>.Inner1<Str, Byte>.Inner2<short, ushort>.Hello = 2
+//    Outer<QQQ, T>.Inner1<Str, Byte>.Inner2<short, ushort>.Hello = 3
+//    Outer<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, Byte>.Hello = 4
+//    @p = AGenericTest<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, Byte>()
 //    p.P5<short, QQQ, ushort>(3, QQQ(), 0)
 //[pub] fun (AGenericTest<T, QQQ>.Inner1<Ta, Qa>) P1(a T, b QQQ, c Ta, d Qa)
 //    ret 0
 
 type interface ToStr
-    fun get self.toStr() str
+    fun get self.toStr() Str
 
-[pub] fun GenericTest<Q1 ToStr,Q2 ToStr>(a Q1, b Q2) int
+[pub] fun GenericTest<Q1 ToStr,Q2 ToStr>(a Q1, b Q2) Int
     ret a.toStr.len + b.toStr.len    
 
 [pub] type AGenericTest<T, QQQ Equatable<T>> // TBD: new() where T : new()
     
     af0 fun()()
     af1 fun()
-    af2 fun()int
-    af3 fun(a int)
-    af4 fun(a int) int
-    af5 fun(a int)(x int)
+    af2 fun()Int
+    af3 fun(a Int)
+    af4 fun(a Int) Int
+    af5 fun(a Int)(x Int)
     
     field0 T = 0
-    Xfield6 Zurfur.int
+    Xfield6 Zurfur.Int
 
     

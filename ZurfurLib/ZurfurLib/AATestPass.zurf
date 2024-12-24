@@ -10,14 +10,14 @@ use Zurfur[Iterator, SpanIterator]
 type ImpNone()
 
 type interface TakeConcrete
-    fun self.take(a int)
+    fun self.take(a Int)
 type interface TakeConcrete2 // TBD: Interfce to interface for compatible interfaces
-    fun self.take(a int)
+    fun self.take(a Int)
 type interface TakeInterface
     fun self.take(a TakeConcrete)
     
 type ImpTakeConcrete()
-fun (my ImpTakeConcrete) take(a int) todo
+fun (my ImpTakeConcrete) take(a Int) todo
 
 type ImpTakeInterface()
 fun (my ImpTakeInterface) take(a TakeConcrete) todo
@@ -37,8 +37,8 @@ fun test_interfaces()
 // Test type inference on an iterator
 fun inferIterator<A,I>(a A, i Iterator<I>) todo
 fun test_inferIterator()
-    inferIterator(1, SpanIterator<f32>())  // inferIterator<int,f32>
-    inferIterator(1, List<f32>().getIterator)  // inferIterator<int,f32>
+    inferIterator(1, SpanIterator<F32>())  // inferIterator<Int,F32>
+    inferIterator(1, List<F32>().getIterator)  // inferIterator<Int,F32>
     
 
     

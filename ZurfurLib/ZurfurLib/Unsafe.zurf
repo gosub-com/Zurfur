@@ -14,14 +14,14 @@ fun (my RawPointer<T>) getRawPointer<T>() RawPointerMarker extern
 fun castPointer<T GetRawPointer>(i GetRawPointer) T
     extern
 
-// Unsigned extended int, u32 or u64 depending on machine pointer size.
+// Unsigned extended Int, U32 or U64 depending on machine pointer size.
 // This is the internal representation of a pointer.
 [pub]
 type ro Xuint
-    value u32 // or u64
+    value U32 // or U64
 
-fun (my Xuint) new(value u64)
-    assert(value <= (0u32).MaxValue.toU64)
+fun (my Xuint) new(value U64)
+    assert(value <= (0U32).MaxValue.toU64)
     my.value = value.toU32Mask
 
 // Internal representation of `ref`, a compiler generated stack only pointer.
@@ -46,21 +46,21 @@ type interface GetRawPointer
 type ro RawPointer<T>
     value Xuint
 
-fun _opEq<T>(a RawPointer<T>, b RawPointer<T>) bool extern
-fun _opCmp<T>(a RawPointer<T>, b RawPointer<T>) int extern
-fun _opAdd<T>(a RawPointer<T>, b u64) RawPointer<T> extern
-fun _opAdd<T>(a u64, b RawPointer<T>) RawPointer<T> extern
+fun _opEq<T>(a RawPointer<T>, b RawPointer<T>) Bool extern
+fun _opCmp<T>(a RawPointer<T>, b RawPointer<T>) Int extern
+fun _opAdd<T>(a RawPointer<T>, b U64) RawPointer<T> extern
+fun _opAdd<T>(a U64, b RawPointer<T>) RawPointer<T> extern
 fun _opSub<T>(a RawPointer<T>, b RawPointer<T>) RawPointer<T> extern
-fun _opSub<T>(a RawPointer<T>, b u64) RawPointer<T> extern
-fun _opAdd<T>(a RawPointer<T>, b int) *T extern
-fun _opAdd<T>(a int,b *T) *T extern
+fun _opSub<T>(a RawPointer<T>, b U64) RawPointer<T> extern
+fun _opAdd<T>(a RawPointer<T>, b Int) *T extern
+fun _opAdd<T>(a Int,b *T) *T extern
 
 
 // TBD: Move to a different modulem probably Zurfur.Internal
 // All heap objects start with this header.  It must be 64 bits wide to
 // ensure proper alignment. 
 type GcHeapObject
-    refCount i32
+    refCount I32
     typeId Type     // Must be 32 bits even on 64 bit machines.
     // Object data is stored following this header
 
@@ -71,9 +71,9 @@ type GcHeapArray
     // TBD: use GcHeapObject
     //NOTE: Until we get 'use', the first two fields MUST be the same
     //      as GcHeapObject since we will cast pointers back and forth
-    refCount i32
+    refCount I32
     typeId Type
-    length u32
-    capacity u32
+    length U32
+    capacity U32
     // Array of object data is stored following this header
     

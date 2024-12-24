@@ -16,16 +16,16 @@ fun test_makeError()
 // ### Interface conversion that fails
 
 type interface TakeConcrete
-    fun self.take(a int)
+    fun self.take(a Int)
 type interface TakeConcrete2
-    fun self.take(a int)
+    fun self.take(a Int)
 type interface TakeInterface
     fun self.take(a TakeConcrete)
     
 type ImpNone()
 
 type ImpTakeConcrete()
-fun (my ImpTakeConcrete) take(a int) todo
+fun (my ImpTakeConcrete) take(a Int) todo
 
 type ImpTakeInterface()
 fun (my ImpTakeInterface) take(a TakeConcrete) todo
@@ -74,7 +74,7 @@ fun test_noImp4()
 
 fun takeInterfaceConcreteInfer<T>(x TakeConcrete) todo
 fun test_noImpInfer1()
-    takeInterfaceConcreteInfer<byte>(ImpTakeConcrete()) // Ok
+    takeInterfaceConcreteInfer<Byte>(ImpTakeConcrete()) // Ok
     takeInterfaceConcreteInfer(ImpTakeConcrete())       // Cannot infer interface type args
 
 
@@ -82,17 +82,17 @@ fun test_noImpInfer1()
 
 fun takeInterfaceInterfaceInfer<T>(x TakeInterface) todo
 fun test_noImpInfer2()
-    takeInterfaceInterfaceInfer<byte>(ImpTakeInterface())   // Ok
+    takeInterfaceInterfaceInfer<Byte>(ImpTakeInterface())   // Ok
     takeInterfaceInterfaceInfer(ImpTakeInterface())         // Cannot infer interface type args
 
 
 // ### Convert concrete types to interface
 
 type interface Printable
-    fun self.toStr() str
+    fun self.toStr() Str
     
 type interface Printable2
-    fun self.toStr() str
+    fun self.toStr() Str
     
 type MyCollection<T> {}
 type MyCollectionIter<T> {}
@@ -106,7 +106,7 @@ fun (my MyCollection<T>) getIterator<T>() MyCollectionIter<T>
 fun (my MyCollectionIter<T>) next<T>() ?T
     nop
 
-fun (my GetIterator<int>) reduceInt(f fun(item1 int, item2 int) int) ?int
+fun (my GetIterator<Int>) reduceInt(f fun(item1 Int, item2 Int) Int) ?Int
     ret my.getIterator.reduce(f) 
 
 fun test_takePrintable(a Printable)
@@ -116,7 +116,7 @@ fun test_printable()
     test_takePrintable(1)
     test_takePrintable(1.0)
     test_takePrintable("")
-    test_takePrintable(MyCollection<int>()) // Doesn't implement Printable
+    test_takePrintable(MyCollection<Int>()) // Doesn't implement Printable
     
 
 // ### Constraint used properly
@@ -131,7 +131,7 @@ fun test_printableFail2<Q, T Printable>(t T, q Q)
     q.toStr // toStr not defined in Q
     t.toStr // ok
 
-// ### Incompatible parameter types (expecting int)
+// ### Incompatible parameter types (expecting Int)
 
 type interface TestGlobal
     fun testGlobal()
@@ -140,22 +140,22 @@ fun test_Global<T TestGlobal>()
 type interface TestGlobal2<T>
     fun testGlobal2(x T) T
 
-fun test_Global2<T TestGlobal2<int>>(t T)
-    testGlobal2(t)  // Incompatible parameter types (expecting int, not T)
+fun test_Global2<T TestGlobal2<Int>>(t T)
+    testGlobal2(t)  // Incompatible parameter types (expecting Int, not T)
     testGlobal2(1)  // Ok
 
-// ### Incompatible parameter types (expecting int)
+// ### Incompatible parameter types (expecting Int)
 
-fun test_Global2a<T TestGlobal2<int>>(t T)
-    testGlobal2(1.0)  // Incompatible parameter types (expecting int)
+fun test_Global2a<T TestGlobal2<Int>>(t T)
+    testGlobal2(1.0)  // Incompatible parameter types (expecting Int)
 
 
 // ### Lambda return type is checked
 // TBD: *** FAILED TEST *** need to check lambda returns
 
-fun lambdaCall(a fun(b float)int) todo
+fun lambdaCall(a fun(b Float)Int) todo
 fun test_lambdaCall2()
-    lambdaCall(a => 0.0)  // TBD: Should fail, return is int
+    lambdaCall(a => 0.0)  // TBD: Should fail, return is Int
 
     // Make this test case pass (until we can fix the above error)
     MakeTestCaseFail
@@ -169,45 +169,45 @@ fun test_newInfer()
 // ### Basic interface works
 
 fun test_newInfer2()
-    @a = MyCollection<int>()    // ok
+    @a = MyCollection<Int>()    // ok
     @b = a.getIterator          // ok
     @c = b.next()               // ok
-    @d ?int = c                 // ok
-    @e int = c                  // Can't assign type
+    @d ?Int = c                 // ok
+    @e Int = c                  // Can't assign type
 
 // ### Type doesn't implement the interface because
 
 fun test_noImplementInterface1()
-    @myCollection = MyCollection<int>()
-    @ok1 = myCollection.map<int,str>(i => i.toStr).toList<str>     // Type arg given
-    @ok2 = myCollection.map<int,str>(i => i.toStr).toList          // Infer toList
-    @fail = myCollection.map<int,str>(i => i.toStr).toList<int>    // Error on toList
+    @myCollection = MyCollection<Int>()
+    @ok1 = myCollection.map<Int,Str>(i => i.toStr).toList<Str>     // Type arg given
+    @ok2 = myCollection.map<Int,Str>(i => i.toStr).toList          // Infer toList
+    @fail = myCollection.map<Int,Str>(i => i.toStr).toList<Int>    // Error on toList
 
 // ### Type doesn't implement the interface
 
 fun test_noImplementInterface2()
-    @myCollectionNot = MyCollectionNot<int>()
-    @myCollectionNotMapIter = myCollectionNot.map<int,str>(i => i.toStr)
+    @myCollectionNot = MyCollectionNot<Int>()
+    @myCollectionNotMapIter = myCollectionNot.map<Int,Str>(i => i.toStr)
 
 // ### Type doesn't implement the interface because of explicit type
 
 fun test_returnFail()
-    @ok1 = List<int>().reduce<int>(|item1, item2| => item1 + item2)
-    @ok2 = List<int>().reduce(|item1, item2| => item1 + item2)
-    @fail = List<int>().reduce<float>(|item1, item2| => item1 + item2)
-    @ok3 = List<int>().reduce(|item1, item2| => item1 + item2)
+    @ok1 = List<Int>().reduce<Int>(|item1, item2| => item1 + item2)
+    @ok2 = List<Int>().reduce(|item1, item2| => item1 + item2)
+    @fail = List<Int>().reduce<Float>(|item1, item2| => item1 + item2)
+    @ok3 = List<Int>().reduce(|item1, item2| => item1 + item2)
 
 // ### Type doesn't implement interface because of reciever parameter
 
 fun test_reduceConcrete()
-    @ok = List<int>().reduceInt(|item1, item2| => item1 + item2)
-    @fail = List<float>().reduceInt(|item1, item2| => item1 + item2)
+    @ok = List<Int>().reduceInt(|item1, item2| => item1 + item2)
+    @fail = List<Float>().reduceInt(|item1, item2| => item1 + item2)
 
 // ### Can't have type arguments
 
 fun test_reduceConcrete2()
-    @ok = List<int>().reduceInt(|item1, item2| => item1 + item2)
-    @fail = List<int>().reduceInt<float>(|item1, item2| => item1 + item2)
+    @ok = List<Int>().reduceInt(|item1, item2| => item1 + item2)
+    @fail = List<Int>().reduceInt<Float>(|item1, item2| => item1 + item2)
     
 // ### Ambiguous type inference on interface function
 
@@ -215,51 +215,51 @@ type interface AmbiguousInterface<T>
     fun self.f(a T)
     
 type AmbiguousTest()
-fun (my AmbiguousTest) f(a int) todo
-fun (my AmbiguousTest) f(b float) todo
+fun (my AmbiguousTest) f(a Int) todo
+fun (my AmbiguousTest) f(b Float) todo
 
 fun takeAmbiguous<T>(i AmbiguousInterface<T>) todo
 
 fun test_ambiguousInterface1()
-    takeAmbiguous<int>(AmbiguousTest())     // Ok
-    takeAmbiguous<float>(AmbiguousTest())   // Ok
+    takeAmbiguous<Int>(AmbiguousTest())     // Ok
+    takeAmbiguous<Float>(AmbiguousTest())   // Ok
     takeAmbiguous(AmbiguousTest())          // Type inference is ambiguous for this interface
 
     
 // ### Type doesn't implement the interface
 
 fun test_noImp7()
-    takeAmbiguous<int>(AmbiguousTest())     // Ok
-    takeAmbiguous<float>(AmbiguousTest())   // Ok
-    takeAmbiguous<byte>(AmbiguousTest())    // Type doesn't implement the interface
+    takeAmbiguous<Int>(AmbiguousTest())     // Ok
+    takeAmbiguous<Float>(AmbiguousTest())   // Ok
+    takeAmbiguous<Byte>(AmbiguousTest())    // Type doesn't implement the interface
 
 // ### Type doesn't implement the interface
 
 fun test_noImp8()
-    @a AmbiguousInterface<int> = AmbiguousTest()    // Ok
-    @b AmbiguousInterface<float> = AmbiguousTest()  // Ok
-    @c AmbiguousInterface<byte> = AmbiguousTest()   // Type doesn't implement the interface
+    @a AmbiguousInterface<Int> = AmbiguousTest()    // Ok
+    @b AmbiguousInterface<Float> = AmbiguousTest()  // Ok
+    @c AmbiguousInterface<Byte> = AmbiguousTest()   // Type doesn't implement the interface
 
 // ### Ambiguous type inference on interface function parameter
 
 type interface AmbiguousInterfaceFunParam<T>
     fun self.f(a T, b T)
 type AmbiguousTestFunParam()
-fun (my AmbiguousTestFunParam) f(a int, b int) todo
-fun (my AmbiguousTestFunParam) f(b float, c int) todo
+fun (my AmbiguousTestFunParam) f(a Int, b Int) todo
+fun (my AmbiguousTestFunParam) f(b Float, c Int) todo
 
 fun takeAmbiguousFunParam<T>(i AmbiguousInterfaceFunParam<T>) todo
 
 
 fun test_ambiguousInterfaceParam()
-    takeAmbiguousFunParam<int>(AmbiguousTestFunParam())     // Ok: f(int,int) is implemented
-    takeAmbiguousFunParam<float>(AmbiguousTestFunParam())   // Fail: f(float,float) not implemented
-    takeAmbiguousFunParam(AmbiguousTestFunParam())          // Ok: f(float,float) not implemented
+    takeAmbiguousFunParam<Int>(AmbiguousTestFunParam())     // Ok: f(Int,Int) is implemented
+    takeAmbiguousFunParam<Float>(AmbiguousTestFunParam())   // Fail: f(Float,Float) not implemented
+    takeAmbiguousFunParam(AmbiguousTestFunParam())          // Ok: f(Float,Float) not implemented
     
 
 // ### Ambiguous function call
 
-fun (my u16) toStr() str todo
+fun (my u16) toStr() Str todo
 fun test_ambiguousFunCall()
     u16().toStr
 

@@ -42,18 +42,18 @@ fun (my mut MapIterator<S,R>) next<S, R>() ?R
 
 // *** FILTER ***
 
-fun (my GetIterator<S>) filter<S>(f fun(inoput S) bool) Iterator<S>
+fun (my GetIterator<S>) filter<S>(f fun(inoput S) Bool) Iterator<S>
     ret my.getIterator.filter(f)
 
-fun (my Iterator<S>) filter<S>(f fun(input S) bool) Iterator<S>
+fun (my Iterator<S>) filter<S>(f fun(input S) Bool) Iterator<S>
     ret FilterIterator<S>(my, f)
     
 type ref FilterIterator<S>
     _iter Iterator<S>
-    _f fun(input S) bool
+    _f fun(input S) Bool
 
 // TBD: Remove this when `init` is implemented
-fun (my FilterIterator<S>) new<S>(iter Iterator<S>, f fun(input S) bool)
+fun (my FilterIterator<S>) new<S>(iter Iterator<S>, f fun(input S) Bool)
     my._iter = iter
     my._f = f
 

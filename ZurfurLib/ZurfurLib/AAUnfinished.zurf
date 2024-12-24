@@ -6,12 +6,12 @@ use Zurfur.Draw2d[Point, Size]
 
 
 type VariantMap
-    notDone int
+    notDone Int
 
 type Label
-    text str
-    location Point<int>
-    size Size<int>
+    text Str
+    location Point<Int>
+    size Size<Int>
     
 type MyForm
     message1 Label
@@ -35,15 +35,15 @@ type MyForm
 
 // TBD: Still working out how to do this:
 //
-//[pub] fun mut Iterator.filter(f fun(item Item) bool) FilterIterator<Iterator<Item>, Item>
+//[pub] fun mut Iterator.filter(f fun(item Item) Bool) FilterIterator<Iterator<Item>, Item>
 //    ret FilterIterator<This, Item>(this, f)
 //        
 //type ref FilterIterator<Iter, Item>
 //        where Iter is Iterator<Item>
 //    @iter ref Iter pub init
-//    @f ref fun(item Item) bool pub init
+//    @f ref fun(item Item) Bool pub init
 //
-//fun test_Filter() Array<int>
+//fun test_Filter() Array<Int>
 //    @listIn = [1,2,3,4,5]
 //    ret listIn.filter(@n => n in 2..5).toArray()
             

@@ -9,7 +9,7 @@ use Zurfur.Unsafe[castPointer, RawPointer]
 [pub]
 type ref Span<T>
     data ro mut &T
-    len ro int
+    len ro Int
 
 
 [pub] fun (my Span<T>) getIterator<T>() SpanIterator<T>
@@ -29,12 +29,12 @@ type ref SpanIterator<T>
        
     
 [pub]
-fun _opIndex<T>(s Span<T>, i int) mut &T
+fun _opIndex<T>(s Span<T>, i Int) mut &T
     require(i in 0..s.len)
     todo // Implementation TBD
 
 [pub]
-fun _opIndex<T>(s Span<T>, range Range<int>) mut Span<T>
+fun _opIndex<T>(s Span<T>, range Range<Int>) mut Span<T>
     require(range.low in 0..s.len)
     require(range.high in 0..s.len)
     require(range.low <= range.high)

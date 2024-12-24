@@ -12,7 +12,7 @@ use Zurfur.Unsafe[castPointer, GcHeapArray]
 
 
 // Send to DlMalloc
-fun calloc(size int) *void
+fun calloc(size Int) *Void
     todo
 
 
@@ -21,9 +21,9 @@ fun calloc(size int) *void
 // exists is a runtime error.
 [pub]
 type List<T>
-    const MaxItems int = u32.MaxValue/2
+    const MaxItems Int = u32.MaxValue/2
     list *GcHeapArray
-    _len int
+    _len Int
 
 [pub]
 fun (my List<T>) new<T>()
@@ -31,7 +31,7 @@ fun (my List<T>) new<T>()
         
 
 [pub]
-fun (my List<T>) new<T>(capacity int)
+fun (my List<T>) new<T>(capacity Int)
     require(capacity in 0..my.MaxItems)
     if capacity == 0
         my.list = &*empty
@@ -39,13 +39,13 @@ fun (my List<T>) new<T>(capacity int)
         my.list = castPointer<*GcHeapArray>(calloc(sizeof(T)*capacity + sizeof(GcHeapArray)))
 
 
-fun get (my List<T>) len<T>() int
+fun get (my List<T>) len<T>() Int
     ret my._len
 
 // Returns true if there is a reference to any element.  When locked, the
 // list length cannot be changed.  A GC implementation might not ever lock.
 [pub]
-fun get (my List<T>) locked<T>() bool
+fun get (my List<T>) locked<T>() Bool
     ret my.list.refCount != 0
 
 // TBD: Only generic
@@ -72,12 +72,12 @@ fun (my List<T>) new<T>(items mut Iterator<T>)
     todo
 
 [pub]
-fun _opIndex<T>(l List<T>, i int) mut &T
+fun _opIndex<T>(l List<T>, i Int) mut &T
     require(i in 0..l.len)
     todo
 
 [pub]
-fun _opIndex<T>(l List<T>, r Range<int>) mut []T
+fun _opIndex<T>(l List<T>, r Range<Int>) mut []T
     require(r.low in 0..l.len)
     require(r.high in 0..l.len)
     require(r.low <= r.high)
@@ -89,12 +89,12 @@ fun get (my List<T>) getIterator<T>() SpanIterator<T>
 
 
 [pub]
-fun get (my List<T>) capacity<T>() int
+fun get (my List<T>) capacity<T>() Int
     ret my.list.capacity.toInt
 
 // Set the capacity, won't shrink below count.
 [pub]
-fun set (my List<T>) capacity<T>(value int)
+fun set (my List<T>) capacity<T>(value Int)
     require(not my.locked and value < my.MaxItems)
     todo
 
@@ -125,15 +125,15 @@ fun set (my List<T>) capacity<T>(value int)
     todo
 
 // Duplicate clones onto the end of the list
-[pub] fun (my mut List<T>) pushClones<T>(item T, count int)
+[pub] fun (my mut List<T>) pushClones<T>(item T, count Int)
     require(not my.locked)
     todo
 
 
-[pub] fun (my mut List<T>) insertIp<T>(index int, item own T)
+[pub] fun (my mut List<T>) insertIp<T>(index Int, item own T)
     require(not my.locked)
     todo
 
-[pub] fun (my mut List<T>) removeIp<T>(index int) T
+[pub] fun (my mut List<T>) removeIp<T>(index Int) T
     require(not my.locked)
     todo

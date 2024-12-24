@@ -17,7 +17,7 @@ static class CompileCode
 {
     static WordSet s_operators = new WordSet("+ - * / % & | ~ == != >= <= > < << >> and or not in |= &= += -= <<= >>= .. ..+ ]");
     static WordSet s_cmpOperators = new WordSet("== != >= <= > <");
-    static WordSet s_intTypeNames = new WordSet("Zurfur.int Zurfur.u64 Zurfur.i32 Zurfur.u32");
+    static WordSet s_intTypeNames = new WordSet("Zurfur.Int Zurfur.U64 Zurfur.I32 Zurfur.U32");
     static WordSet s_derefRef = new WordSet("Zurfur.Unsafe.Ref`1");
     static WordSet s_derefPointers = new WordSet("Zurfur.Unsafe.RawPointer`1 Zurfur.Pointer`1");
     public static WordMap<string> OpNames = new WordMap<string> {
@@ -610,19 +610,19 @@ static class CompileCode
                 untypedConst = false;
                 ex[0].Token.Type = TokenType.TypeName;
                 var customType = ex[0].Token;
-                if (customType == "int")
+                if (customType == "Int")
                     numberType = typeInt;
-                else if (customType == "u64")
+                else if (customType == "U64")
                     numberType = typeU64;
-                else if (customType == "i32")
+                else if (customType == "I32")
                     numberType = typeI32;
-                else if (customType == "u32")
+                else if (customType == "U32")
                     numberType = typeU32;
-                else if (customType == "float")
+                else if (customType == "Float")
                     numberType = typeFloat;
-                else if (customType == "f32")
+                else if (customType == "F32")
                     numberType = typeF32;
-                else if (customType == "byte")
+                else if (customType == "Byte")
                     numberType = typeByte;
                 else
                     Reject(ex[0].Token, $"'{ex[0].Token}' undefined number type");
