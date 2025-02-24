@@ -11,19 +11,19 @@ type interface Copy<T> {}
 // Equality for containers and sorting (NaN == NaN).
 // For floating point equality, use _opEqUnordered.
 type interface Equatable<T>
-    fun self.getHash() Int
+    fun .getHash() Int
     fun _opEq(a T, b T) Bool
 
 // Comparison for containers and sorting (NaN == NaN, NaN < -Inf).
 // For floating point, use _opGtUnordered, _opGeUnordered, etc.
 type interface Comparable<T>
-    fun self.getHash() U32
+    fun .getHash() U32
     fun _opEq(a T, b T) Bool
     fun _opCmp(a T, b T) Int
 
 // Common math operators
 type interface Number<T>
-    fun self.getHash() Int
+    fun .getHash() Int
     fun _opEq(a T, b T) Bool
     fun _opCmp(a T, b T) Int
     fun _opAdd(a T, b T) T

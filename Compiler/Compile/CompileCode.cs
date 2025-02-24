@@ -296,7 +296,7 @@ static class CompileCode
                 GenContinueStatement(s);
             else if (name == "for")
                 GenForStatement(s);
-            else if (name == "ret" || name == "yield")
+            else if (name == "return" || name == "yield")
                 GenReturnStatement(s);
             else
             {
@@ -548,7 +548,7 @@ static class CompileCode
                 return GenAssign(ex);
             else if (s_operators.Contains(name))
                 return GenOperator(ex);
-            else if (name == "??")
+            else if (name == "ife")
                 return GenTernary(ex);
             else if (name == "&*")
                 return GenRefOrAddressOf(ex);
@@ -1416,7 +1416,7 @@ static class CompileCode
 
         // Given the call and its parameters, find the best matching function.
         // If there is an error, mark it and give feedback on possible matches.
-        // When args is null, it means the there was an error evaluating the
+        // When args is null, it means that there was an error evaluating the
         // parameter types, so just try to give good feedback.
         Symbol? FindCompatibleFunction(
             Rval call,

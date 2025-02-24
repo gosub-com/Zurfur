@@ -5,9 +5,9 @@ mod Zurfur.Unsafe
 use Zurfur[RawPointerMarker, Type]
 
 // Mark these types as pointers and allow castPointer
-fun (my Xuint) getRawPointer() RawPointerMarker extern
-fun (my Ref<T>) getRawPointer<T>() RawPointerMarker extern
-fun (my RawPointer<T>) getRawPointer<T>() RawPointerMarker extern
+fun .getRawPointer(my Xuint) RawPointerMarker extern
+fun .getRawPointer<T>(my Ref<T>) RawPointerMarker extern
+fun .getRawPointer<T>(my RawPointer<T>) RawPointerMarker extern
 
 // Cast from one pointer type to another pointer type.
 [pub]
@@ -20,7 +20,7 @@ fun castPointer<T GetRawPointer>(i GetRawPointer) T
 type ro Xuint
     value U32 // or U64
 
-fun (my Xuint) new(value U64)
+fun .new(my Xuint, value U64) Xuint
     assert(value <= (0U32).MaxValue.toU64)
     my.value = value.toU32Mask
 
@@ -38,7 +38,7 @@ type ref ro Ref<T>
 // and can allow `castPointer`.  `RawPointerMarker` is private, so only
 // pointer types can implement this.
 type interface GetRawPointer
-    fun self.getRawPointer() RawPointerMarker
+    fun .getRawPointer() RawPointerMarker
 
 // A raw pointer.  The compiler translates *T to RawPointer<T>
 // and automatically dereferences when "." is used.

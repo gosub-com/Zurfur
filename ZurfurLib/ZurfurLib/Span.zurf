@@ -12,7 +12,7 @@ type ref Span<T>
     len ro Int
 
 
-[pub] fun (my Span<T>) getIterator<T>() SpanIterator<T>
+[pub] fun .getIterator<T>(my Span<T>) SpanIterator<T>
     todo
 
 [pub]
@@ -20,12 +20,12 @@ type ref SpanIterator<T>
     _data *T
     _end *T
 
-[pub] fun (my SpanIterator<T>) next<T>() ?&T
+[pub] fun .next<T>(my SpanIterator<T>) ?&T
     if my._data >= my._end
-        ret nil
+        return nil
     @r = my._data
     my._data = my._data + 1
-    ret r
+    return r
        
     
 [pub]

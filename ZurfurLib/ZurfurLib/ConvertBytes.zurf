@@ -3,9 +3,9 @@
 // of platform.  Floating point formats are IEEE.
 //
 // Most conversions have 3 overloads:
-//     (Span<Byte>) bytesToType()
-//     (Span<Byte>) setBytesType(value type)
-//     (Span<Byte>) pushBytesType(value type)
+//     .bytesToType(my Span<Byte>)
+//     .setBytesType(my Span<Byte>, value type)
+//     .pushBytesType(my Span<Byte>, value type)
 //
 // Examples:
 //     @myU32 = myList[index::4].bytesToU32()
@@ -22,23 +22,23 @@ fun Test_ConvertExample()
     myList.pushBytesU32(myU32)
 
 
-[pub] fun (my Span<Byte>) bytesToHex(capitalize Bool = false) Str todo
-[pub] fun (my mut Span<Byte>) pushBytesToHex(bytes []Byte, capitalize Bool = false) todo
-[pub] fun (my mut Span<Byte>) pushHexToBytes(hex []Byte) ! todo
+[pub] fun .bytesToHex(my Span<Byte>, capitalize Bool = false) Str todo
+[pub] fun .pushBytesToHex(my mut Span<Byte>, bytes []Byte, capitalize Bool = false) todo
+[pub] fun .pushHexToBytes(my mut Span<Byte>, hex []Byte) ! todo
 
 
 // Convert 4 bytes (U32) to Int (little endian)
 [pub]
-fun (my Span<Byte>) bytesToU32() U32
+fun .bytesToU32(my Span<Byte>) U32
     require(my.len == 4)
-    ret     my[0].toU32
+    return     my[0].toU32
             + (my[1].toU32 << 8)
             + (my[2].toU32 << 16)
             + (my[3].toU32 << 24)
 
 // Convert U32 to 4 bytes (little endian) 
 [pub]
-fun (my mut Span<Byte>) setBytesU32(v U32)
+fun .setBytesU32(my mut Span<Byte>, v U32)
     require(my.len == 4)
     my[0] = v.toByteMask
     my[1] = (v<<8).toByteMask
@@ -47,102 +47,102 @@ fun (my mut Span<Byte>) setBytesU32(v U32)
 
 // Convert U32 to 4 bytes (little endian) and push to list
 [pub]
-fun (my mut List<Byte>) pushBytesU32(v U32)
+fun .pushBytesU32(my mut List<Byte>, v U32)
     my.pushClones<Byte>(Byte(), 4)
     my[my.len-4..+4].setBytesU32(v)
 
 
 [pub]
-fun (my Span<Byte>) bytesToI32() I32
+fun .bytesToI32(my Span<Byte>) I32
     require(my.len == 4)
-    ret my.bytesToU32().toI32Mask
+    return my.bytesToU32().toI32Mask
     
 [pub]
-fun (my mut Span<Byte>) setBytesI32(v I32)
+fun .setBytesI32(my mut Span<Byte>, v I32)
     require(my.len == 4)
     my.setBytesU32(v.toU32Mask)
     
 [pub]
-fun (my mut List<Byte>) pushBytesI32(v I32)
+fun .pushBytesI32(my mut List<Byte>, v I32)
     my.pushBytesU32(v.toU32Mask)
 
 [pub]
-fun (my Span<Byte>) bytesToU16() U16
+fun .bytesToU16(my Span<Byte>) U16
     require(my.len == 2)
     todo
     
 [pub]
-fun (my mut Span<Byte>) setBytesU16(v U16)
+fun .setBytesU16(my mut Span<Byte>, v U16)
     require(my.len == 2)
     todo
 
 [pub]
-fun (my mut List<Byte>) pushBytesU16(v U16)
+fun .pushBytesU16(my mut List<Byte>, v U16)
     require(false, "not implemented")
     
 [pub]
-fun (my Span<Byte>) bytesToI16() I16
+fun .bytesToI16(my Span<Byte>) I16
     require(my.len == 2)
     todo
     
 [pub]
-fun (my mut Span<Byte>) setBytesI16(v I16)
+fun .setBytesI16(my mut Span<Byte>, v I16)
     require(my.len == 2)
     todo
     
 [pub]
-fun (my mut List<Byte>) pushBytesI16(v I16) todo
+fun .pushBytesI16(my mut List<Byte>, v I16) todo
 
 [pub]
-fun (my Span<Byte>) bytesToU64() U64
+fun .bytesToU64(my Span<Byte>) U64
     require(my.len == 8)
     todo
     
 [pub]
-fun (my mut Span<Byte>) setBytesU64(v U64)
+fun .setBytesU64(my mut Span<Byte>, v U64)
     require(my.len == 8)
     todo
     
 [pub]
-fun (my mut Span<Byte>) pushBytesU64(v U64) todo
+fun .pushBytesU64(my mut Span<Byte>, v U64) todo
 
 [pub]
-fun (my Span<Byte>) bytesToInt() Int
+fun .bytesToInt(my Span<Byte>) Int
     require(my.len == 8)
     todo
     
 [pub]
-fun (my mut Span<Byte>) setBytesInt(v Int)
+fun .setBytesInt(my mut Span<Byte>, v Int)
     require(my.len == 8)
     todo
     
 [pub]
-fun (my mut List<Byte>) pushBytesInt(v Int) todo
+fun .pushBytesInt(my mut List<Byte>, v Int) todo
 
 [pub]
-fun (my Span<Byte>) bytesToF32() F32
+fun .bytesToF32(my Span<Byte>) F32
     require(my.len == 4)
     todo
     
 [pub]
-fun (my mut Span<Byte>) setBytesF32(v F32)
+fun .setBytesF32(my mut Span<Byte>, v F32)
     require(my.len == 4)
     todo
     
 [pub]
-fun (my mut List<Byte>) pushBytesF32(v F32) todo
+fun .pushBytesF32(my mut List<Byte>, v F32) todo
 
 [pub]
-fun (my Span<Byte>) bytesToFloat() Float
+fun .bytesToFloat(my Span<Byte>) Float
     require(my.len == 8)
     todo
     
 [pub]
-fun (my mut Span<Byte>) setBytesFloat(v Float)
+fun .setBytesFloat(my mut Span<Byte>, v Float)
     require(my.len == 8)
     todo
     
 [pub]
-fun (my mut List<Byte>) pushBytesFloat(v Float) todo
+fun .pushBytesFloat(my mut List<Byte>, v Float) todo
 
    

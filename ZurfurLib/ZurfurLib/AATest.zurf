@@ -29,8 +29,8 @@ fun test_reduce()
     @myReduceTuple2 = List<(a Int, b Int)>()
         .reduce(|item1, item2| => item2)
 
-fun (my GetIterator<Int>) reduceInt(f fun(item1 Int, item2 Int) Int) ?Int
-    ret my.getIterator.reduce<Int>(f) 
+fun .reduceInt(my GetIterator<Int>, f fun(item1 Int, item2 Int) Int) ?Int
+    return my.getIterator.reduce<Int>(f) 
 
 fun testInfer()
     @m = List<(x Int, y Float)>()
@@ -43,11 +43,11 @@ fun testInfer()
     takeListOfTuples(ml)
 
 fun inferFun<S,R>(x List<(S,R)>) R
-    ret R()
+    return R()
 
 
 fun takeListOfTuples(x List<(a Int, b F32)>) F32
-    ret x[0].b
+    return x[0].b
 
 
 // TBD: Global variables need to be compiled
@@ -56,41 +56,41 @@ fun takeListOfTuples(x List<(a Int, b F32)>) F32
 
 
 type interface AParamable
-    fun self.takePointer(a *Int) Span<Int>
-    fun self.takeInt(a Int) Float
+    fun .takePointer(a *Int) Span<Int>
+    fun .takeInt(a Int) Float
 
 type interface BParamable
-    fun self.fun1(x AParamable)
-    fun self.fun2(y BParamable)
-    fun self.fun3(a AParamable, b BParamable)
+    fun .fun1(x AParamable)
+    fun .fun2(y BParamable)
+    fun .fun3(a AParamable, b BParamable)
 
 type A1Parameter
     a Int
-fun (my A1Parameter) takePointer(a *Int) Span<Int>
-    ret Span<Int>()
-fun (my A1Parameter) takeInt(a Int) Float
-    ret 0.0
+fun .takePointer(my A1Parameter, a *Int) Span<Int>
+    return Span<Int>()
+fun .takeInt(my A1Parameter, a Int) Float
+    return 0.0
 
 type A1ParameterNot1
     a Int
-fun (my A1ParameterNot1) takePointer(a *Int) Int // Causes it to not be AParamable
-    ret 0
-fun (my A1ParameterNot1) takeInt(a Int) Float
-    ret 0.0
+fun takePointer(my A1ParameterNot1, a *Int) Int // Causes it to not be AParamable
+    return 0
+fun .takeInt(my A1ParameterNot1, a Int) Float
+    return 0.0
 
 type A1ParameterNot2
     a Int
-fun (my A1ParameterNot2) takePointer(a *Int) Span<Int>
-    ret Span<Int>()
-fun (my A1ParameterNot2) takeInt(a Int) Int // Causes it to not be AParamable
-    ret 0
+fun .takePointer(my A1ParameterNot2, a *Int) Span<Int>
+    return Span<Int>()
+fun .takeInt(my A1ParameterNot2, a Int) Int // Causes it to not be AParamable
+    return 0
 
 
     
 type interface Printable
-    fun self.toStr() Str    
+    fun .toStr() Str    
 type interface Printable2
-    fun self.toStr() Str    
+    fun .toStr() Str    
 
 fun test_printableFail<T Printable, Q>(t T, q Q)
     // Fail test case
@@ -132,9 +132,9 @@ fun test_lambdaCall()
 [pub] type MyCollectionNotIter<T> {}
 
 
-[pub] fun (my MyCollection<T>) getIterator<T>() MyCollectionIter<T>
+[pub] fun .getIterator<T>(my MyCollection<T>) MyCollectionIter<T>
     nop
-[pub] fun (my MyCollectionIter<T>) next<T>() ?T
+[pub] fun .next<T>(my MyCollectionIter<T>) ?T
     nop
 
 
@@ -185,9 +185,9 @@ fun test_map()
         Log.info("")
 
 
-[pub] fun (my MyCollectionNot<T>) getIterator<T>() MyCollectionNotIter<T>
+[pub] fun .getIterator<T>(my MyCollectionNot<T>) MyCollectionNotIter<T>
     nop
-[pub] fun (my MyCollectionNotIter<T>) next<T>() ?T
+[pub] fun .next<T>(my MyCollectionNotIter<T>) ?T
     nop
     
 
@@ -199,9 +199,9 @@ fun test_callInterfaces() AParamable
 
     // Passing test cases (TBD: Verifier to ensure no local variables returned by ref)
     if false
-        ret a
+        return a
     if false
-        ret A1Parameter()
+        return A1Parameter()
 
     @a1 AParamable = A1Parameter()
     test_paramable(A1Parameter())
@@ -209,7 +209,7 @@ fun test_callInterfaces() AParamable
     // Failing test cases
     //test_paramable(3)
     //if false
-    //    ret 3
+    //    return 3
     //@b1 AParamable = Int()
     //@c1 AParamable = A1ParameterNot1()
     //@d1 AParamable = A1ParameterNot2()
@@ -300,7 +300,7 @@ fun aaa_arith(a Int, b Int, c mut aaa_arith_test) Int
 
     c.property = 10
     
-    ret y + c.b.e + c.property
+    return y + c.b.e + c.property
 
 fun MyGenericInt<T Number<Int>>()
     @a = T()
@@ -320,13 +320,13 @@ type aaa_arith_test
     c Int
     _property Int
     
-fun get (my aaa_arith_test) property() Int
-    ret my._property
-fun set (my aaa_arith_test) property(d Int)
+fun get .property(my aaa_arith_test) Int
+    return my._property
+fun set .property(my aaa_arith_test, d Int)
     my._property = d
 
-fun get (my aaa_arith_test) bref() mut &aaa_arith_test2
-    ret my.b
+fun get .bref(my aaa_arith_test) mut &aaa_arith_test2
+    return my.b
 
 type aaa_arith_test2
     d Int
@@ -347,23 +347,23 @@ fun test_forEach(args Array<Str>)
 
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-fun (my Iterator<Item>) alphaLengthWise<Item, L>(lengthProvider fun(t Item) L) Iterator<Item>
-    ret my.orderBy<Item, L>(a => lengthProvider(a))
+fun .alphaLengthWise<Item, L>(my Iterator<Item>, lengthProvider fun(t Item) L) Iterator<Item>
+    return my.orderBy<Item, L>(a => lengthProvider(a))
         .thenBy<Item, L>(a => a)
-fun (my Iterator<Source>) orderBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
+fun .orderBy<Source,Key>(my Iterator<Source>, keySelector fun(i Source)Key) Iterator<Source>
     todo
-fun (my Iterator<Source>) thenBy<Source,Key>(keySelector fun(i Source)Key) Iterator<Source>
+fun .thenBy<Source,Key>(my Iterator<Source>, keySelector fun(i Source)Key) Iterator<Source>
     todo
 
-fun (my Iterator<T>) find<T>(f fun(item T) Bool) mut ?&T
+fun .find<T>(my Iterator<T>, f fun(item T) Bool) mut ?&T
     while my.next()@item
         if f(item)
-            ret &item // TBD: Require `&` here
-    ret nil
+            return &item // TBD: Require `&` here
+    return nil
 
 
 // Simple selection sort
-fun (my Span<T>) test_selectionSort<T>(lessThan fun(a T,b T)Bool)
+fun .test_selectionSort<T>(my Span<T>, lessThan fun(a T,b T)Bool)
     for @i in 0..my.len-1
         @lowElem = my[i]
         @lowIndex = i
@@ -386,36 +386,36 @@ type MyPoint<T1,T2,T3>
     y (a Int, b T1, c Int, d (r Int, b Int))
 
 type interface GetIterator2<Item>
-    fun self.iterator2() Iterator<Item>
+    fun .iterator2() Iterator<Item>
 
 type interface GetMap<Item1,Item2>
-    fun self.getMap() Map<Item1, Item2>
-    fun self.getMapKeys() Iterator<Item1>
-    fun self.getMapValues() Iterator<Item2>
+    fun .getMap() Map<Item1, Item2>
+    fun .getMapKeys() Iterator<Item1>
+    fun .getMapValues() Iterator<Item2>
 
 type interface Getter
-    fun get self.myGet() I32
-    fun self.myFun() I32
+    fun get .myGet() I32
+    fun .myFun() I32
 
 type interface Getter2<T>
-    fun get self.myGet2() T
-    fun self.myFun2() T
-    fun self.myFun2Ns() T
+    fun get .myGet2() T
+    fun .myFun2() T
+    fun .myFun2Ns() T
     fun myFun2Stat() T
 
 type interface MyAdd<T>
-    fun self.myAddNotStatic(a T, b T) T
+    fun .myAddNotStatic(a T, b T) T
     fun myAddStatic(a T, b T) T
 
 fun getMapFun<K,V>() Map<V,K>
-    ret Map<V,K>()
+    return Map<V,K>()
 
 fun myFun2Interf<T>(i T) T todo
 
 fun takeFun(i fun(a Int)Int) todo
 
 type interface GetHash
-    fun self.getHash() U32
+    fun .getHash() U32
 
 fun test_tuples()
     @tuples = List<(Int, Str)>()
@@ -488,22 +488,22 @@ fun AAAAA<X,
 
 fun MyFun1<T1,T2,T3>(a T1, b T2, c T3)(x T2, y T3)
     @q = b
-    ret (T2(), T3())
+    return (T2(), T3())
 
 fun MyFun2<I,O>(i I) O
-    ret O()
+    return O()
 
 fun MyFun3<I,O>(i Int) O
-    ret O()
+    return O()
 
 fun MyFun4<T0,T1,T2,T3>(i Int) List<T2>
-    ret List<T2>()
+    return List<T2>()
 
 fun MyFun5<T0,T1,T2,T3>(i Int)(a List<T1>, b List<T3>)
-    ret (List<T1>(), List<T3>())
+    return (List<T1>(), List<T3>())
 
 fun inferMap<T1,T2>(a Map<T1,T2>, b List<T2>)(x T1, y T2)
-    ret (T1(), T2())
+    return (T1(), T2())
 
 fun Test<X0,X1,X2,X3>()
     @infer1 = MyFun1(0, "", 0.0)
@@ -536,12 +536,12 @@ fun Test<X0,X1,X2,X3>()
 
 type OneGeneric<T> { } 
 
-fun get (my Point<T>) toSizeTest<T>() Size<T>
+fun get .toSizeTest<T>(my Point<T>) Size<T>
     @a = Size<T>(T(),T())
     @b = Size<T>()
     @c = Size(my.x, my.y)
     @d = Size(0,0)
-    ret c
+    return c
 
 
 
@@ -570,26 +570,26 @@ type AAAA<T>
 type BBBB
     v Void
         
-fun (my BBBB) BBBB_fm1() {}
-fun (my BBBB) BBBB_fm2(a BBBB) {}
+fun .BBBB_fm1(my BBBB) {}
+fun .BBBB_fm2(my BBBB, a BBBB) {}
     
 
 
-fun (my AAAA<Int>) AAAA_fm() {}
-fun (my AAAA<T>) AAAA_fm<T>() {}
-fun (my BBBB) AAAA_fm() {}
+fun .AAAA_fm(my AAAA<Int>) {}
+fun .AAAA_fm<T>(my AAAA<T>) {}
+fun .AAAA_fm(my BBBB) {}
 
 fun AAAA_f() {}
 
-fun (my BBBB) AAAA_fe2(a BBBB) {}
+fun .AAAA_fe2(my BBBB, a BBBB) {}
 
 // TBD: AAAA should not conflict with AAAA typename
 //      must be resolved before moving methods to module level
-fun (my aapoint) AAAA() {}
-fun (my aapoint) BBBB() {}
-fun (my aapoint) AAAB() {}
-fun (my List<T>) X<T>() {}
-fun (my Int) X() {}
+fun .AAAA(my aapoint) {}
+fun .BBBB(my aapoint) {}
+fun .AAAB(my aapoint) {}
+fun .X<T>(my List<T>) {}
+fun .X(my Int) {}
     
 
 type aapoint
@@ -598,12 +598,12 @@ type aapoint
 type bbpoint
     v Void
 
-[pub] fun (my aapoint) x() {}
+[pub] fun .x(my aapoint) {}
 
-[pub] fun (my bbpoint) xx() {}
+[pub] fun .xx(my bbpoint) {}
 
-[pub] fun (my aapoint) y() {}
-[pub] fun (my bbpoint) yy() {}
+[pub] fun .y(my aapoint) {}
+[pub] fun .yy(my bbpoint) {}
 
   
 [pub] type AAFun    
@@ -617,17 +617,17 @@ type bbpoint
     aaf9b fun(a Int)(x Int)
     af10 fun(v Int)Int
 
-fun (my AAFun) aaaa(a Int, b Int) Int { }
-fun (my AAFun) aaaa(a Int, b Float) Int { }
-fun (my AAFun) aaaa(x Float, y Int) Int { }
-fun (my AAFun) aaf1(a Int, b Int)Int { }
-fun (my AAFun) aaf2(v AAFunc<Int, Int>) { }
-fun (my AAFun) aaf3<T1,T2>(i T1)T2 { }
-fun (my AAFun) aaf1s(a Int, b Int)Int { }
-fun (my AAFun) aaf2s(v AAFunc<Int, Int>) { }
-fun (my AAFun) aaf3s<T1,T2>(i T1)T2 { }
-fun (my AAFun) af6(p fun(v Int)Bool) {}
-fun (my AAFun) af7<X>(p fun(v X)Bool) {}
+fun .aaaa(my AAFun, a Int, b Int) Int { }
+fun .aaaa(my AAFun, a Int, b Float) Int { }
+fun .aaaa(my AAFun, x Float, y Int) Int { }
+fun .aaf1(my AAFun, a Int, b Int)Int { }
+fun .aaf2(my AAFun, v AAFunc<Int, Int>) { }
+fun .aaf3<T1,T2>(my AAFun, i T1)T2 { }
+fun .aaf1s(my AAFun, a Int, b Int)Int { }
+fun .aaf2s(my AAFun, v AAFunc<Int, Int>) { }
+fun .aaf3s<T1,T2>(my AAFun, i T1)T2 { }
+fun .af6(my AAFun, p fun(v Int)Bool) {}
+fun .af7<X>(my AAFun, p fun(v X)Bool) {}
 
 
 [pub] type AAFunc<T1,T2>
@@ -635,7 +635,7 @@ fun (my AAFun) af7<X>(p fun(v X)Bool) {}
 
 
 // TBD: These are identical to the ones defined in the class
-fun (my AGenericTest<T,QQQ>) af6<T,QQQ>(p fun(v Int)Bool) {}
+fun .af6<T,QQQ>(my AGenericTest<T,QQQ>, p fun(v Int)Bool) {}
 //fun AGenericTest<T, QQQ>.af7<X>(p fun(v X)Bool) {}
 //fun AGenericTest<T, QQQ>.af8<T1,T2>(i T1)T2 { }
 //fun AGenericTest<T, QQQ>.Q<T1>() {}
@@ -644,11 +644,11 @@ fun (my AGenericTest<T,QQQ>) af6<T,QQQ>(p fun(v Int)Bool) {}
 //[pub] fun AGenericTest<T, QQQ>.new(a Int)
 //    todo
 //[pub] fun AGenericTest<T, QQQ>.aaa(a Zurfur.Draw2d.Size<Int>) {}
-//[pub] fun AGenericTest<T, QQQ>.P1() { ret 0 }
-//[pub] fun AGenericTest<T, QQQ>.P2()() { ret 0}
-//[pub] fun P2<Quack>(a Quack, b QQQ) { ret (a.ToStr() + b.ToStr()).Length; }
-//[pub] fun AGenericTest<T, QQQ>.P3<Z>() { ret 0; }
-//[pub] fun AGenericTest<T, QQQ>.P4<Quack, Quack1>() { ret 0; }
+//[pub] fun AGenericTest<T, QQQ>.P1() { return 0 }
+//[pub] fun AGenericTest<T, QQQ>.P2()() { return 0}
+//[pub] fun P2<Quack>(a Quack, b QQQ) { return (a.ToStr() + b.ToStr()).Length; }
+//[pub] fun AGenericTest<T, QQQ>.P3<Z>() { return 0; }
+//[pub] fun AGenericTest<T, QQQ>.P4<Quack, Quack1>() { return 0; }
 //[pub] fun AGenericTest<T, QQQ>.fun9(a *?OneGeneric<List<Int>>) { }
 
 //[pub] fun AGenericTest<T, QQQ>.UseIt(x Zurfur.Int, y List<Inner1<Int,Int>>, z List<Str>)
@@ -664,13 +664,13 @@ fun (my AGenericTest<T,QQQ>) af6<T,QQQ>(p fun(v Int)Bool) {}
 //    @p = AGenericTest<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, Byte>()
 //    p.P5<short, QQQ, ushort>(3, QQQ(), 0)
 //[pub] fun (AGenericTest<T, QQQ>.Inner1<Ta, Qa>) P1(a T, b QQQ, c Ta, d Qa)
-//    ret 0
+//    return 0
 
 type interface ToStr
-    fun get self.toStr() Str
+    fun get .toStr() Str
 
 [pub] fun GenericTest<Q1 ToStr,Q2 ToStr>(a Q1, b Q2) Int
-    ret a.toStr.len + b.toStr.len    
+    return a.toStr.len + b.toStr.len    
 
 [pub] type AGenericTest<T, QQQ Equatable<T>> // TBD: new() where T : new()
     

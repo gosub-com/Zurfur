@@ -54,36 +54,35 @@ fun test_map()
 
 // Declare a method to multiply and add three keys on Map<K,V>.
 // Return Nan (or MinValue for integer types) if any key is missing.
-fun (my Map<K,V>) madd<K,V Number<V>>(mul1 K, mul2 K, add K) V
+fun .madd<K,V Number<V>>(my Map<K,V>, mul1 K, mul2 K, add K) V
     if my[mul1]@mul1Val and my[mul2]@mul2Val and my[add]@addVal
-        ret mul1Val * mul2Val + addVal
-    ret V.NanOrMin        
+        return mul1Val * mul2Val + addVal
+    return V.NanOrMin        
 
-// Method
 [pub]
-fun (my MyType) countToTen()
+fun countToTen()
     Log.info("Hello world.  Let's count to 10.")
     for i in 1..+10
         Log.info("Count={i}, text={m.text}")
 
-fun (my MyType) getIterator() MyTypeIter todo
+fun .getIterator(my MyType) MyTypeIter todo
 
 type MyTypeIter
     a Int
     
-fun (my MyTypeIter) next() ?Int
+fun .next(my MyTypeIter) ?Int
     todo
 
 // Setter for list, which is already public read-only
 [pub]
-fun set (my MyType) list(v own List<Int>)
+fun set .list(my MyType, v own List<Int>)
     my._list = v
     my.mapChangedEvent()
     for x in MyType()
         nop
     MyType().map<Int,Str>(s => "")
 
-fun (my MyType) mapChangedEvent() {}
+fun .mapChangedEvent(my MyType) {}
 
 fun test_HelloWorld()
     Log.info("Hello World.  Let's count from 1 to 10.")
@@ -107,10 +106,10 @@ fun test_HelloWorld()
 fun circle(a Float, r Float)(x Float, y Float)
     let q = circle(1.0,2.0)
     let p = q.x
-    ret (cos(a)*r, sin(a)*r)
+    return (cos(a)*r, sin(a)*r)
 
 fun circle2<T0, T1>(a T0, r T1)(x T0, y T1)
-    ret (T0(), T1())
+    return (T0(), T1())
 
 [pub]
 type Example
@@ -150,7 +149,7 @@ type Zim<T>
 // Type test for test_main
 type Token(a Int)
 fun AcceptMatch(m Str) ?Token
-    ret nil
+    return nil
 
 // This is a public documentation comment.  Do not use XML.
 // Use `name` to refer to variables in the code.
@@ -187,4 +186,4 @@ fun test_Main(args Array<Str>, stream Zurfur.Io.Reader)
     if AcceptMatch("(")@Token
         nop
 
-    ret
+    return

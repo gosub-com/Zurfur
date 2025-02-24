@@ -36,7 +36,7 @@ type MyForm
 // TBD: Still working out how to do this:
 //
 //[pub] fun mut Iterator.filter(f fun(item Item) Bool) FilterIterator<Iterator<Item>, Item>
-//    ret FilterIterator<This, Item>(this, f)
+//    return FilterIterator<This, Item>(this, f)
 //        
 //type ref FilterIterator<Iter, Item>
 //        where Iter is Iterator<Item>
@@ -45,5 +45,5 @@ type MyForm
 //
 //fun test_Filter() Array<Int>
 //    @listIn = [1,2,3,4,5]
-//    ret listIn.filter(@n => n in 2..5).toArray()
+//    return listIn.filter(@n => n in 2..5).toArray()
             

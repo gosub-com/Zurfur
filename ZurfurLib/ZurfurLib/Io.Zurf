@@ -5,20 +5,20 @@ mod Zurfur.Io
 
 type interface Reader
     // TBD: Handle `mut` fro interfaces
-    afun mut self.read(data mut Span<Byte>) !Int
+    afun mut .read(data mut Span<Byte>) !Int
 
 type interface Writer
-    afun mut self.write(data Span<Byte>) !Int
-    afun mut self.flush() !
+    afun mut .write(data Span<Byte>) !Int
+    afun mut .flush() !
 
 type enum SeekOrigin
     Begin; Current; End
 
 type interface Seeker
-    fun mut self.seek(offset Int, origin SeekOrigin) !Int
+    fun mut .seek(offset Int, origin SeekOrigin) !Int
     
-[pub] fun get (my Seeker) length() !Int { }
-[pub] fun get (my Seeker) position() !Int { }
-[pub] fun set (my Seeker) position(value Int) ! { }
+[pub] fun get .length(my Seeker) !Int { }
+[pub] fun get .position(my Seeker) !Int { }
+[pub] fun set .position(my Seeker, value Int) ! { }
 
 type noclone FileStream { }

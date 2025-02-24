@@ -57,7 +57,7 @@ fun K(a Int, x)  void
     a+= 1       // No error here because it's marked on the previous line
 
 
-    if a > 3 ret 4 // Error: Compound must be on next line
+    if a > 3 return 4 // Error: Compound must be on next line
 
 
     if

@@ -39,7 +39,7 @@ class ZurfEditController
     static Brush s_LinkColorBrush = new SolidColorBrush(Colors.Blue);
     static WordSet s_BoldHighlightConnectors = new WordSet("( ) [ ] { } < >");
 
-    HoverMessage _hoverMessageForm = new();
+    HoverMessage _hoverForm = new();
     FormSearch _searchForm = new();
 
     // TBD: Port to Avalonia
@@ -73,12 +73,12 @@ class ZurfEditController
     /// </summary>
     public void SetHoverMessageParent(Panel parent)
     {
-        _hoverMessageForm.IsVisible = false;
-        _hoverMessageForm.MaxWidth = 850;
-        _hoverMessageForm.MaxHeight = 400;
-        _hoverMessageForm.VerticalAlignment = VerticalAlignment.Top;
-        _hoverMessageForm.HorizontalAlignment = HorizontalAlignment.Left;
-        parent.Children.Add(_hoverMessageForm);
+        _hoverForm.IsVisible = false;
+        _hoverForm.MaxWidth = 850;
+        _hoverForm.MaxHeight = 400;
+        _hoverForm.VerticalAlignment = VerticalAlignment.Top;
+        _hoverForm.HorizontalAlignment = HorizontalAlignment.Left;
+        parent.Children.Add(_hoverForm);
 
         _searchForm.IsVisible = false;
         _searchForm.VerticalAlignment = VerticalAlignment.Top;
@@ -86,7 +86,10 @@ class ZurfEditController
         _searchForm.CloseClicked += (s, e) =>
         {
             _searchForm.IsVisible = false;
-            if (_activeEditor != null)
+        };
+        _searchForm.PropertyChanged += (s, e) =>
+        {
+            if (e.Property == Visual.IsVisibleProperty && !_searchForm.IsVisible && _activeEditor != null)
                 _activeEditor.Focus();
         };
         parent.Children.Add(_searchForm);
@@ -153,7 +156,7 @@ class ZurfEditController
     {
         // When the user click the editor, hide the message box until a new token is hovered over.
         _hoverToken = null;
-        _hoverMessageForm.IsVisible = false;
+        _hoverForm.IsVisible = false;
 
         if (e.KeyModifiers != _keyModifiers)
         {
@@ -164,7 +167,7 @@ class ZurfEditController
 
     private void Editor_PointerMoved(object? sender, PointerEventArgs e)
     {
-        _pointerPosition = e.GetPosition(_hoverMessageForm.GetVisualParent());
+        _pointerPosition = e.GetPosition(_hoverForm.GetVisualParent());
         if (e.KeyModifiers != _keyModifiers)
         {
             _keyModifiers = e.KeyModifiers;
@@ -301,7 +304,7 @@ class ZurfEditController
 
         // Hide old form if hover token changed and setup to display the new token
         if (_hoverToken != newToken)
-            _hoverMessageForm.IsVisible = false;
+            _hoverForm.IsVisible = false;
         _hoverToken = newToken;
 
         // Show meta when hovering over control character
@@ -416,7 +419,7 @@ class ZurfEditController
                         || _hoverToken.GetInfo<Symbol>() != null
                         || _hoverToken.GetInfo<TokenError>() != null
                         || _hoverToken.GetInfo<TokenWarn>() != null)
-                && !_hoverMessageForm.IsVisible;
+                && !_hoverForm.IsVisible;
         if (!showForm)
             return;
 
@@ -451,34 +454,37 @@ class ZurfEditController
         foreach (var s in _hoverToken.GetInfos<string>())
             message += s + "\r\n\r\n";
 
-        _hoverMessageForm.Message = message.Trim();
+        _hoverForm.Message = message.Trim();
 
         // Show form
-        _hoverMessageForm.Margin = new Thickness(_pointerPosition.X - 200, -10000, 0, 0);
-        _hoverMessageForm.UpdateLayout();
-        _hoverMessageForm.IsVisible = true;
+        _hoverForm.Margin = new Thickness(_pointerPosition.X - 200, -10000, 0, 0);
+        _hoverForm.UpdateLayout();
+        _hoverForm.IsVisible = true;
     }
 
     private void SetHoverFormLocationY()
     {
-        if (_activeEditor == null || _hoverToken == null || !_hoverMessageForm.IsVisible 
-                || _hoverMessageForm.Bounds.Height == 0) 
+        var hoverFormContainer = _hoverForm.GetVisualParent();
+
+        if (_activeEditor == null || _hoverToken == null || hoverFormContainer == null || _hoverForm.Bounds.Height == 0) 
             return;
 
         // Move hover box above or below mouse pointer
         var fontSize = 16; // FIX ME: _activeEditor.FontSize;
         var tokenScreen = _activeEditor.PointToScreen(_activeEditor.LocationToken(_hoverToken.Location));
-        var pointerScreen = _hoverMessageForm.GetVisualParent()?.PointToScreen(_pointerPosition) ?? new();
+        var pointerScreen = hoverFormContainer.PointToScreen(_pointerPosition);
         var below = tokenScreen.Y < pointerScreen.Y - fontSize/2;
+
+        var tokenLocContainer = hoverFormContainer.PointToClient(tokenScreen);
 
         // NOTE: The bounds gets re-measured after it is displayed, so there can be a little flickering/movement
         double y;
         if (below)
-            y = _pointerPosition.Y + fontSize * 1.5;
+            y = tokenLocContainer.Y + fontSize * 2.5;
         else
-            y = _pointerPosition.Y - _hoverMessageForm.Bounds.Height - fontSize * 1.5;
+            y = tokenLocContainer.Y - _hoverForm.Bounds.Height - fontSize * 1.5;
 
-        _hoverMessageForm.Margin = new(_hoverMessageForm.Margin.Left, y, 0, 0);
+        _hoverForm.Margin = new(_hoverForm.Margin.Left, y, 0, 0);
     }
 
     private string GetSymbolInfo()

@@ -26,12 +26,12 @@ type List<T>
     _len Int
 
 [pub]
-fun (my List<T>) new<T>()
+fun .new<T>(my List<T>) List<T>
     my.list = &*empty
         
 
 [pub]
-fun (my List<T>) new<T>(capacity Int)
+fun .new<T>(my List<T>, capacity Int)
     require(capacity in 0..my.MaxItems)
     if capacity == 0
         my.list = &*empty
@@ -39,36 +39,36 @@ fun (my List<T>) new<T>(capacity Int)
         my.list = castPointer<*GcHeapArray>(calloc(sizeof(T)*capacity + sizeof(GcHeapArray)))
 
 
-fun get (my List<T>) len<T>() Int
-    ret my._len
+fun get .len<T>(my List<T>) Int
+    return my._len
 
 // Returns true if there is a reference to any element.  When locked, the
 // list length cannot be changed.  A GC implementation might not ever lock.
 [pub]
-fun get (my List<T>) locked<T>() Bool
-    ret my.list.refCount != 0
+fun get .locked<T>(my List<T>) Bool
+    return my.list.refCount != 0
 
 // TBD: Only generic
 // Usage: myList.For @item => DoStuffWithItem()
-[pub] fun (my List<T>) forEach<T>(f fun(item mut T)) {}
+[pub] fun .forEach<T>(my List<T>, f fun(item mut T)) {}
 
 
 // The compiler ensures drop cannot be called when there is
 // reference to an element.
 [pub]
-fun (my List<T>) drop<T>()
+fun .drop<T>(my List<T>)
     require(not my.locked) // Not possible because the compiler ensures
     todo
 
 
 // Clone items into the new list
 [pub]
-fun (my List<T>) new<T Clone<T>>(items []T)
+fun .new<T Clone<T>>(my List<T>, items []T)
     todo
 
 // Clone items into the new list
 [pub]
-fun (my List<T>) new<T>(items mut Iterator<T>)
+fun .new<T>(my List<T>, items mut Iterator<T>)
     todo
 
 [pub]
@@ -84,56 +84,56 @@ fun _opIndex<T>(l List<T>, r Range<Int>) mut []T
     todo
 
 [pub]
-fun get (my List<T>) getIterator<T>() SpanIterator<T>
+fun get .getIterator<T>(my List<T>) SpanIterator<T>
     todo
 
 
 [pub]
-fun get (my List<T>) capacity<T>() Int
-    ret my.list.capacity.toInt
+fun get .capacity<T>(my List<T>) Int
+    return my.list.capacity.toInt
 
 // Set the capacity, won't shrink below count.
 [pub]
-fun set (my List<T>) capacity<T>(value Int)
+fun set .capacity<T>(my List<T>, value Int)
     require(not my.locked and value < my.MaxItems)
     todo
 
 
 // Return a new list with all occurences of `seqSearch`
 // replaced by `seqReplace`.
-[pub] fun (my mut List<T>) replaceIp<T>(seqSearch []T, seqReplace[]T)
+[pub] fun .replaceIp<T>(my mut List<T>, seqSearch []T, seqReplace[]T)
     require(not my.locked)
     todo
 
-[pub] fun (my mut List<T>) clear<T>()
+[pub] fun .clear<T>(my mut List<T>)
     require(not my.locked)
     todo
 
 // Push the item onto the end of the list
-[pub] fun (my mut List<T>) push<T>(item own T)
+[pub] fun .push<T>(my mut List<T>, item own T)
     require(not my.locked)
     todo
 
 // Push item clones onto the end of the list
-[pub] fun (my mut List<T>) push<T>(items []T)
+[pub] fun .push<T>(my mut List<T>, items []T)
     require(not my.locked)
     todo
 
 // Push item clones onto the end of the list
-[pub] fun (my mut List<T>) push<T>(items mut Iterator<T>)
+[pub] fun .push<T>(my mut List<T>, items mut Iterator<T>)
     require(not my.locked)
     todo
 
 // Duplicate clones onto the end of the list
-[pub] fun (my mut List<T>) pushClones<T>(item T, count Int)
+[pub] fun .pushClones<T>(my mut List<T>, item T, count Int)
     require(not my.locked)
     todo
 
 
-[pub] fun (my mut List<T>) insertIp<T>(index Int, item own T)
+[pub] fun .insertIp<T>(my mut List<T>, index Int, item own T)
     require(not my.locked)
     todo
 
-[pub] fun (my mut List<T>) removeIp<T>(index Int) T
+[pub] fun .removeIp<T>(my mut List<T>, index Int) T
     require(not my.locked)
     todo

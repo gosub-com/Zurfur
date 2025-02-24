@@ -10,7 +10,7 @@ use Zurfur[Decimal]
 // Math intrinsics for I32
 // --------------------------
 [pub] fun abs(n I32) I32 extern
-[pub] fun (my I32) clamp(min I32, max I32) I32
+[pub] fun .clamp(my I32, min I32, max I32) I32
     require(min <= max)
     todo
     
@@ -22,7 +22,7 @@ use Zurfur[Decimal]
 // --------------------------
 // Math intrinsics for U32
 // --------------------------
-[pub] fun (my U32) clamp(min U32, max U32) U32
+[pub] fun .clamp(my U32, min U32, max U32) U32
     require(min <= max)
     todo
     
@@ -34,7 +34,7 @@ use Zurfur[Decimal]
 // Math intrinsics for Int
 // --------------------------
 [pub] fun abs(n Int) Int extern
-[pub] fun (my Int) clamp(min Int, max Int) Int
+[pub] fun .clamp(my Int, min Int, max Int) Int
     require(min <= max)
     todo
     
@@ -46,7 +46,7 @@ use Zurfur[Decimal]
 // --------------------------
 // Math intrinsics for U64
 // --------------------------
-[pub] fun (my U64) clamp(min U64, max U64) U64
+[pub] fun .clamp(my U64, min U64, max U64) U64
     require(min <= max)
     todo
     
@@ -63,7 +63,7 @@ use Zurfur[Decimal]
 [pub] fun atan(n F32) F32 extern
 [pub] fun atan2(x F32, y F32) F32 extern
 [pub] fun ceil(n F32) F32 extern
-[pub] fun (my F32) clamp(min F32, max F32) F32
+[pub] fun .clamp(my F32, min F32, max F32) F32
     require(min<=max)
     todo
     
@@ -98,7 +98,7 @@ use Zurfur[Decimal]
 [pub] fun atan(n Float) Float extern
 [pub] fun atan2(x Float, y Float) Float extern
 [pub] fun ceil(n Float) Float extern
-[pub] fun (my Float) clamp(min Float, max Float) Float
+[pub] fun .clamp(my Float, min Float, max Float) Float
     require(min<=max)
     todo
     
@@ -128,7 +128,7 @@ use Zurfur[Decimal]
 // Math intrinsics for Decimal
 // --------------------------
 [pub] fun abs(n Decimal) Decimal extern
-[pub] fun (my Decimal) clamp(min Decimal, max Decimal) Decimal
+[pub] fun .clamp(my Decimal, min Decimal, max Decimal) Decimal
     require(min <= max)
     todo
     

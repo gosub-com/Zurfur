@@ -74,11 +74,11 @@ class ParseZurf
         + "continue do then else elif todo extern nil true false defer use "
         + "finally for goto go if ife in is mod app include "
         + "new out pub public private priv readonly ro ref aref mut imut "
-        + "return ret sizeof struct switch throw try nop "
+        + "return sizeof struct switch throw try nop "
         + "typeof type unsafe static while dowhile scope loop "
         + "async await astart atask task get set var when nameof "
         + "box init move copy clone drop own super "
-        + "extends impl implements fun afun sfun def yield yld let "
+        + "extends impl implements fun afun sfun def yield let "
         + "any Any dyn Dyn dynamic Dynamic select match from to of on cofun "
         + "throws rethrow @ # and or not xor with exit pragma require ensure "
         + "of sync except exception loc local global self Self this This");
@@ -1010,15 +1010,28 @@ class ParseZurf
             qualifiers.Add(Accept());
         }
 
-        var validFunctionName = ParseExtensionTypeAndMethodName(out var receiverParam, out var funcName);
+        // Interface mut function
+        // TBD: Move to parameter
+        Token? mutToken = null;
+        mutToken = _token == "mut" ? Accept() : null;
+        if (mutToken != null)
+            mutToken.AddWarning("Not stored in parse tree yet");
+
+
+        var hasReceiver = AcceptMatch(".");
+
+
+        var validFunctionName = ParseExtensionTypeAndMethodName(out var funcName);
         (var typeArgs, var constraints) = ParseTypeParameters();
+
+
         var functionSignature = ParseFunctionSignature(keyword);
 
         var synFunc = new SyntaxFunc(keyword, funcName)
         {
             Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last(),
             Comments = comments,
-            ReceiverParam = receiverParam,
+            HasReceiver = hasReceiver,
             TypeArgs = typeArgs,
             Constraints = constraints,
             FunctionSignature = functionSignature
@@ -1041,32 +1054,9 @@ class ParseZurf
     /// <summary>
     /// Returns true if we are a valid method name
     /// </summary>
-    bool ParseExtensionTypeAndMethodName(
-        out SyntaxExpr? receiverParam,
-        out Token funcName)
+    bool ParseExtensionTypeAndMethodName(out Token funcName)
     {
-        receiverParam = null;
         funcName = _token;
-
-        // Golang style receiver
-        Token? mutToken = null; // TBD: Probably needs to be part of the type name
-        if (AcceptMatch("("))
-        {
-            var open = _prevToken;
-            receiverParam = ParseFunctionParam(false);
-            if (AcceptMatchOrReject(")"))
-                Connect(open, _prevToken);
-        }
-        else
-        {
-            mutToken = _token == "mut" ? Accept() : null;
-            if (AcceptMatch("self"))
-            {
-                receiverParam = new SyntaxToken(_prevToken);
-                AcceptMatchOrReject(".");
-            }
-        }
-
 
         // Function name
         if (!AcceptIdentifier("Expecting a function or type name", s_rejectTypeName, s_allowReservedFunNames))
@@ -1076,9 +1066,6 @@ class ParseZurf
         funcName = _prevToken;
         funcName.Type = s_allowReservedFunNames.Contains(funcName.Name) ? TokenType.Reserved : TokenType.DefineMethod;
 
-        // TBD: Record 'mut' token for static functions inside interfaces
-        if (mutToken != null)
-            mutToken.AddWarning("Not stored in parse tree yet");
 
         RejectUnderscoreDefinition(funcName);
         return true;
@@ -1303,8 +1290,8 @@ class ParseZurf
 
             case "throw":
             case "return":
+            case "yield":
             case "ret":
-            case "yld":
                 keyword.Type = TokenType.ReservedControl;
                 Accept();
                 if (s_statementEndings.Contains(_tokenName))
@@ -1425,7 +1412,7 @@ class ParseZurf
             return ParseLambdaBody(_prevToken, parameters);
         }
 
-        var result = ParseTernary();
+        var result = ParseConditionalOr();
 
         // Lambda with single variable parameter
         if (_tokenName == "=>")
@@ -1451,38 +1438,7 @@ class ParseZurf
         if (_token == "{")
             return new SyntaxBinary(lambdaToken, parameters, ParseStatements());
         else
-            return new SyntaxBinary(lambdaToken, parameters, ParseTernary());
-    }
-
-    SyntaxExpr ParseTernary()
-    {
-        var result = ParseConditionalOr();
-        if (_tokenName == "??")
-        {
-            if (_inTernary)
-                RejectToken(_token, "Ternary expressions may not be nested");
-            _inTernary = true;
-            _token.Type = TokenType.BoldSymbol;
-            var operatorToken = Accept();
-            var firstConditional = ParseRange();
-            if (_tokenName != ":")
-            {
-                _inTernary = false;
-                Reject("Expecting a ':' to separate expression for the ternary '?' operator");
-                return result;
-            }
-            _token.Type = TokenType.BoldSymbol;
-            Connect(_token, operatorToken);
-            Accept();
-            result = new SyntaxMulti(operatorToken, result, firstConditional, ParseRange());
-            _inTernary = false;
-
-            if (_tokenName == "??")
-                RejectToken(_token, "Ternary operator is not associative");
-            else if (_tokenName == ":")
-                RejectToken(_token, "Ternary operator already has an else clause.");
-        }
-        return result;
+            return new SyntaxBinary(lambdaToken, parameters, ParseConditionalOr());
     }
 
     SyntaxExpr ParseConditionalOr()
@@ -1592,6 +1548,9 @@ class ParseZurf
             return new SyntaxUnary(Accept(), ParseUnary());
         }
 
+        if (_tokenName == "ife")
+            return ParseIfe();
+
         var result = ParsePrimary();
 
         if (_tokenName == "!" || _tokenName == "!!")
@@ -1599,18 +1558,35 @@ class ParseZurf
         return result;
     }
 
-    /// <summary>
-    /// Parse a function taking a type name (sizeof, typeof, etc)
-    /// </summary>
-    private SyntaxExpr ParseFunTakingType()
+    SyntaxExpr ParseIfe()
     {
-        if (!AcceptMatchOrReject("("))
-            return new SyntaxError(_token);
-        var funcOpenToken = _prevToken;
-        var funType = ParseType();
-        if (AcceptMatchOrReject(")"))
-            Connect(_prevToken, funcOpenToken);
-        return funType;
+        if (Accept() != "ife")
+            throw new Exception("Compiler error: Expecting 'ife'");
+
+        var operatorToken = _prevToken;
+        var result = ParseConditionalOr();
+
+        if (!AcceptMatchOrReject(":", "Expecting ':' to separate 'ife' condition", false))
+            return result;
+        _prevToken.Type = TokenType.BoldSymbol;
+        Connect(_prevToken, operatorToken);
+
+        if (_inTernary)
+            RejectToken(operatorToken, "'ife' expressions may not be nested");
+        _inTernary = true;
+
+        var firstConditional = ParseRange();
+        if (!AcceptMatchOrReject(":", "Expecting ':' to separate 'ife' expressions", false))
+        {
+            _inTernary = false;
+            return result;
+        }
+        _prevToken.Type = TokenType.BoldSymbol;
+        Connect(_prevToken, operatorToken);
+        result = new SyntaxMulti(operatorToken, result, firstConditional, ParseRange());
+        _inTernary = false;
+
+        return result;
     }
 
     private SyntaxExpr ParseNewVars()
@@ -1713,6 +1689,19 @@ class ParseZurf
         return result;
     }
 
+    /// <summary>
+    /// Parse a function taking a type name (sizeof, typeof, etc)
+    /// </summary>
+    private SyntaxExpr ParseFunTakingType()
+    {
+        if (!AcceptMatchOrReject("("))
+            return new SyntaxError(_token);
+        var funcOpenToken = _prevToken;
+        var funType = ParseType();
+        if (AcceptMatchOrReject(")"))
+            Connect(_prevToken, funcOpenToken);
+        return funType;
+    }
 
     /// <summary>
     /// Parse an atom - identifier, number, string literal, or parentheses

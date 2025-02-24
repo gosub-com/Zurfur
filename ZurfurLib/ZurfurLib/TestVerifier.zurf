@@ -22,30 +22,30 @@ type VerifyErrors<T>
     b List<Int,Int>
   
 // Duplicate
-fun VerifyErrors<T>.VerifyErrors() void {} // TBD: Don't allow same name
-fun VerifyErrors<T>.Y(Y Int) void {}
-fun VerifyErrors<T>.X(T Int) void {} // TBD: Verifier should catch this
-fun VerifyErrors<T>.IllegalGenericOverload<X>(a Int) void { }
-fun VerifyErrors<T>.IllegalGenericOverload(a byte) void { }
+fun .VerifyErrors<T>(my VerifyErrors<T>) Void {} // TBD: Don't allow same name
+fun .Y<T>(my VerifyErrors<T>, Y Int) Void {}
+fun .X<T>(my VerifyErrors<T>, T Int) Void {} // TBD: Verifier should catch this
+fun .IllegalGenericOverload<T, X>(my VerifyErrors<T>, a Int) Void { }
+fun .IllegalGenericOverload<T>(my VerifyErrors<T>, a Byte) Void { }
 
-fun VerifyErrors<T>.BadOverload(a Int) {  } // Dummy
-fun VerifyErrors<T>.BadOverload(a Int) Int{  } // TBD: This overload should fail 
+fun .BadOverload<T>(my VerifyErrors<T>, a Int) {  } // Dummy
+fun .BadOverload<T>(my VerifyErrors<T>, a Int) Int{  } // TBD: This overload should fail 
 
 // Undefined/unresolved
-fun VerifyErrors<T>.F4(a List<Int,hello>) void { }
-fun VerifyErrors<T>.F5(a List<List<x>>) void { }
+fun .F4<T>(my VerifyErrors<T>, a List<Int,hello>) Void { }
+fun .F5<T>(my VerifyErrors<T>, a List<List<x>>) Void { }
 
 // Wrong number of type parameters
-fun VerifyErrors<T>.F1(a List) void { }
-fun VerifyErrors<T>.F3(a List<Int,Int>) void { }
+fun .F1<T>(my VerifyErrors<T>, a List) Void { }
+fun .F3<T>(my VerifyErrors<T>, a List<Int,Int>) Void { }
 
-fun VerifyErrors<T>.fun1(a List<List<x>>) void { } // Undefined generic symbol
-fun VerifyErrors<T>.fun2(a List) void { } // Wrong number of generic parameters
-fun VerifyErrors<T>.fun3(a List<Int,Int>) void { } // Wrong number of generic parameters
-fun VerifyErrors<T>.fun4(a List<List>) void { } // Wrong number of generic parameters
-fun VerifyErrors<T>.fun5(a List<List<Int,Int>>) void { } // Wrong number of generic parameters
-fun VerifyErrors<T>.fun6(a Zurfur) void {} // Symbol is a module
-fun VerifyErrors<T>.fun7(a field1) void {} // Symbol is a field
-fun VerifyErrors<T>.fun8(a fun1) void {} // Symbol is a method
-fun VerifyErrors<T>.fun9(a *?OneGeneric) void { }
-fun VerifyErrors<T>.fun10(a undefinedSymbol) void {} // Symbol is undefined
+fun .fun1<T>(my VerifyErrors<T>, a List<List<x>>) Void { } // Undefined generic symbol
+fun .fun2<T>(my VerifyErrors<T>, a List) Void { } // Wrong number of generic parameters
+fun .fun3<T>(my VerifyErrors<T>, a List<Int,Int>) Void { } // Wrong number of generic parameters
+fun .fun4<T>(my VerifyErrors<T>, a List<List>) Void { } // Wrong number of generic parameters
+fun .fun5<T>(my VerifyErrors<T>, a List<List<Int,Int>>) Void { } // Wrong number of generic parameters
+fun .fun6<T>(my VerifyErrors<T>, a Zurfur) Void {} // Symbol is a module
+fun .fun7<T>(my VerifyErrors<T>, a field1) Void {} // Symbol is a field
+fun .fun8<T>(my VerifyErrors<T>, a fun1) Void {} // Symbol is a method
+fun .fun9<T>(my VerifyErrors<T>, a *?OneGeneric) Void { }
+fun .fun10<T>(my VerifyErrors<T>, a undefinedSymbol) Void {} // Symbol is undefined

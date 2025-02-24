@@ -35,41 +35,33 @@ Golang, Rust, Python, JavaScript, and other languages.
     * Target WebAssembly in the browser with easy JavaScript interop
 * **Ownership, mutability, and nullabilty are part of the type system:**
     * `ro` means read only *all the way down* (not like C#, where `readonly` only protects the top level)
-    * All types are values (i.e. *owned*) except for `ro` types (e.g. `str`), pointers (e.g. `^MyType`) and borrowed references (e.g. `&myValue`)
-    * All mutable types have a `ro` counterpart which can be copied quickly via single pointer assignment (e.g. `str` is `ro List<byte>`)
+    * All types are values (i.e. *owned*) except for `ro` types (e.g. `Str`), pointers (e.g. `^MyType`) and borrowed references (e.g. `&myValue`)
+    * All mutable types have a `ro` counterpart which can be copied quickly via single pointer assignment (e.g. `Str` is `ro List<Byte>`)
     * Function parameters must be explicitly marked `mut` if they mutate anything
     * References and pointers are non-nullable, but may use `?MyType` or `?^MyType` for nullable
     * Deterministic destructors (e.g. `FileStream` closes itself automatically)
 * **Fast and efficient:**
-    * Return references and span used everywhere. `[]int` is `Span<int>`
+    * Return references and span used everywhere. `[]Int` is `Span<Int>`
     * Functions pass parameters by reference, but will pass a copy when it is more efficient
     * Explicit `copy` required when copying an object that requires dynamic allocation
     * Most objects are deleted without needing GC.  Heap objects are reference counted.
 
 ## Variables and Mutability
 
-***NOTE:*** I am still investigating different ways to introduce local variables:
-
-    @a = getList()      // a is assignable, the list is immutable
-    @b = mut getList()  // a is assignable, the list is mutable
-
-***TBD:*** `let` and `var` refer to assignablility:
-
-`let` for un-assignable, `mut` for mutable, and `var` for assignable.  For example:
+`let` for un-assignable, `mut` for mutable, and `var` for assignable and mutable.  For example:
 
     let a = getList()       // a is un-assignable, the list is immutable
     mut b = getList()       // b is un-assignable, the list is mutable
     var c = getList()       // c is assignable, the list is immutable
-    var mut d = getList()   // d is assignable, the list is mutable
 
 
 ## Types
 
 The ones we all know and love:
 
-    nil, bool, i8, byte, i16, u16, i32, u32, int, u64, f32, float, str
+    nil, bool, I8, Byte, I16, U16, I32, I32, Int, U64, F32, Float, Str
 
-`int` and `float` are 64 bits wide.  `str` is an array of bytes.
+`Int` and `Float` are 64 bits wide.
 
 | Type | Description
 | :--- | :---
@@ -79,7 +71,7 @@ The ones we all know and love:
 | Maybe\<T\> | Identical to `?T`.  Always optimized for pointers and references.
 | Result\<T\> | Same as `!T`. An optional containing either a return value or an `Error` interface.
 | Error | An interface containing a `message` string and an integer `code`
-| str, str16 | A `ro List<byte>` or `ro List<u16>` with support for UTF-8 and UTF-16.  `str16` is a JavaScript or C# style Unicode string
+| Str | Strings are an immutable list of bytes with support for UTF-8, similar to how [Golang](https://go.dev/blog/strings) strings.
 
 All types have a compiler generated `ro` counterpart which can be copied
 very quickly since cloning them is just copying a reference without dynamic
@@ -96,16 +88,16 @@ The scope of a private variable is the file that it is declared in.
 
     [pub]                               // Make this type public
     type Example
-        list1 List<int> = [1,2,3]       // Public, initialized with [1,2,3]
-        _list2 List<int>                // Private, initialized with []
-        _list3 List<int> pub let        // Private, but with public read-only access
-        _list4 List<int> pub let mut    // Private, but with public modify, but not assignable
+        list1 List<Int> = [1,2,3]       // Public, initialized with [1,2,3]
+        _list2 List<Int>                // Private, initialized with []
+        _list3 List<Int> pub let        // Private, but with public read-only access
+        _list4 List<Int> pub let mut    // Private, but with public modify, but not assignable
 
 The public getter or setter has the same name as the private field, except without the leading `_`.
 
 ### Strings
 
-Strings (i.e. `str`) are immutable byte lists (i.e. `ro List<byte>`), generally
+Strings (i.e. `Str`) are immutable byte lists (i.e. `ro List<Byte>`), generally
 assumed to hold UTF8 encoded characters.  However, there is no rule enforcing
 the UTF8 encoding so they may hold any binary data.
 
@@ -116,9 +108,9 @@ an interpolation (e.g. `"{\t}"` is a tab).
 
 ![](Doc/Strings.png)
 
-There is no `StringBuilder` type, use `List<byte>` instead:
+There is no `StringBuilder` type, use `List<Byte>` instead:
 
-    let sb = mut List<byte>()
+    let sb = mut List<Byte>()
     sb.push("Count from 1 to 10: ")
     for count in 1..+10
         sb.push(" {count}")
@@ -126,7 +118,7 @@ There is no `StringBuilder` type, use `List<byte>` instead:
 
 ### Span
 
-Span is a view into a `List`, `ro List`, or `str`, etc..  They are `type ref` and
+Span is a view into a `List`, `ro List`, or `Str`, etc..  They are `type ref` and
 may never be stored on the heap.  Unlike in C#, a span can be used to pass
 data to an async function.  
 
@@ -134,15 +126,15 @@ The declaration syntax `[]Type` translates to `Span<Type>`.  The following
 definitions are identical:
 
     // The following definitions are identical:
-    fun writeData(data Span<byte>) !int
-    fun writeData(data []byte) !int
+    fun writeData(data Span<Byte>) !Int
+    fun writeData(data []Byte) !Int
 
 
 Mutating the `len` or `capacity` of a `List` (not the elements of it) while
 there is a `Span` or reference pointing into it is a programming error, and
 fails the same as indexing outside of array bounds.
 
-    let list = mut List<byte>()
+    let list = mut List<Byte>()
     list.push("Hello Pat")      // list is "Hello Pat"
     let slice = mut list[6..+3] // slice is "Pat"
     slice[0] = "M"[0]           // slice is "Mat", list is "Hello Mat"
@@ -172,7 +164,7 @@ with C and gives an error where not compatible:
 |== != < <= > >= === !== `in` `not in`|Not associative, === and !== is only for pointers
 |`and`| Conditional *and*, short circuit
 |`or`| Conditional *or*, short circuit
-|`a ?? b : c`| Ternary operator.  Not associative, no nesting (see below for restrictions)
+|`ife a : b : c`| If expression, ***TBD:** Syntax?
 |=>| Lambda
 |key:value| Key value pair (only inside `()`, `[]` or where expected)
 |,| Comma Separator (not an expression)
@@ -188,21 +180,13 @@ The `!` opererator passes an error up to the caller when a `Result` has an
 an error up to the caller, or captures the value returned by `read` into the
 new variable `length`.
 
-The range operator `..` takes two `int`s and make a `Range` which is a
-`type Range(High int, Low int)`.  The `..+` operator also makes a
+The range operator `..` takes two `Int`s and make a `Range` which is a
+`type Range(High Int, Low Int)`.  The `..+` operator also makes a
 range, but the second parameter is a count (`High = Low + Count`).  
 
 Operator `==` does not default to object comparison, and only works when it
 is defined for the given type.  Use `===` and `!==` for object comparison. 
 Comparisons are not associative, so `a == b == c` is illegal.
-
-**TBD:** The ternary operator is not associative and cannot be nested.  
-Examples of illegal expresions are `c1 ?? x : c2 ?? y : z` (not associative),
-`c1 ?? x : (c2 ?? y : z)` (no nesting).  The result expressions may not
-directly contain an operator with lower precedence than range.
-For example, `a==b ?? x==3 : y==4` is illegal.  Parentheses can be
-used to override that behavior, `a==b ?? (x==3) : (y==4)` and
-`a==b ?? (@p=> p==3) : (@p=> p==4)` are acceptable.
 
 The pair operator `:` makes a key/value pair which can be used
 in a list to initialize a map.
@@ -218,7 +202,7 @@ only be used where they are expected, such as a function call or lambda.
 overloaded.  The `==` and `!=` operator may be overloaded together by implementing
 `fun _opEq(a myType, b myType) bool`.  All six comparison operators,
 `==`, `!=`, `<`, `<=`, `==`, `!=`, `>=`, and `>` can be implemented with just
-one function: `fun _opCmp(a myType, b myType) int`.  If both comparison functions
+one function: `fun _opCmp(a myType, b myType) Int`.  If both comparison functions
 are defined, `_opEq` is used for equality comparisons, and `_opCmp` is used
 for the others.  **TBD**: `_opCmpOrdered` vs `_opCmp` for unordered?
 
@@ -298,30 +282,3 @@ Both `switch` and `match` are reserved for future use.  For now, use `if`,
     else myNum >= 3
         DoTheLastThing()
 
-## Packages and Modules
-
-A package is like a C# assembly.  It is the basic unit for distributing
-a library or application and is a .`zip` file with a `.zil` extension.
-It will be defined here [ZIL Specification](Doc/Zil.md).
-
-Modules are like a C# static class and namespace combined.  They can contain
-static functions, fields, and extension methods.  From within a package,
-module names act like namespaces and stitch together just as they do in C#.
-From outside the package, they look and act like a C# static class.
-
-The `mod` keyword does not nest, or require curly braces.  The module name
-must be declared at the top of each file, after `use` statements, and before
-type, function, or field definitions.  A file may contain other modules, but
-all of them must be nested inside the top level module:
-
-
-    mod MyCompany.MyProject               // Top level module
-    mod MyCompany.MyProject.Utils         // Ok since it is nested in the top level
-    mod MyCompany.MyProject.OtherUtils    // Ok since it is also nested
-    mod MyCompany.MyOtherProject          // ILLEGAL since it is not nested
-
-Package names should be unique across the world, such as a domain name
-followed by a project (e.g. `com.gosub.zurfur`).  For now, top level module
-names must be unique across an entire project.  If there are any top level
-module name clashes, the project will fail to build.  In the future, there
-may be syntax or project settings to resolve that.

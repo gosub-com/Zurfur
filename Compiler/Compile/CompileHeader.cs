@@ -452,10 +452,15 @@ static class CompileHeader
             function.SetQualifiers(synFunc.Qualifiers);
             function.Comments = synFunc.Comments;
             AddTypeParams(function, synFunc.TypeArgs);
-            var receiverParam = ResolveReceiver(synFunc, table, function, function, useSymbolsFile);
+            var receiverParam = ResolveInerfaceReceiver(synFunc, function);
             var parameters = ResolveFunParams(synFunc.FunctionSignature[0], table, function, function, useSymbolsFile);
             var returns = ResolveFunParams(synFunc.FunctionSignature[1], table, function, function, useSymbolsFile);
             var newReturn = ResolveNewReturn(function, receiverParam, synFunc);
+
+            if (synFunc.HasReceiver)
+            {
+                function.Qualifiers |= SymQualifiers.Method;
+            }
 
             if (receiverParam != null)
                 parameters.Insert(0, receiverParam);
@@ -484,51 +489,33 @@ static class CompileHeader
 
         }
 
-        Symbol? ResolveReceiver(
-            SyntaxFunc synFun, 
-            SymbolTable table,
-            Symbol function,
-            Symbol searchScope,
-            UseSymbolsFile useSymbols)
-        {
-            if (function.Parent!.IsInterface)
-                return ResolveInerfaceReceiver(synFun, function);
-
-            var receiverParam = synFun.ReceiverParam;
-            if (receiverParam == null)
-                return null;
-            if (receiverParam.Token == "self")
-            {
-                Reject(receiverParam.Token, "self is not allowed on non-interface functions");
-                return null;
-            }
-            function.Qualifiers |= SymQualifiers.Method;
-            return ResolveFunParam(receiverParam, table, function, searchScope, useSymbols);
-        }
-
         Symbol? ResolveInerfaceReceiver(SyntaxFunc synFun, Symbol function)
         {
-            var methodParent = function.Parent!;
-            if (synFun.ReceiverParam != null && synFun.ReceiverParam.Token == "self")
+            // Interface method
+            var methodParent = function.Parent;
+            if (methodParent == null)
+                return null;
+            if (!methodParent.IsInterface)
+                return null;
+
+            if (synFun.HasReceiver)
             {
-                var selfParam = new Symbol(SymKind.FunParam, function, function.Path, synFun.Name, synFun.ReceiverParam.Token);
-                selfParam.Type = Resolver.GetTypeWithGenericParameters(table, methodParent);
-                if (selfParam == null)
+                var myParam = new Symbol(SymKind.FunParam, function, function.Path, synFun.Name, "my");
+                myParam.Type = Resolver.GetTypeWithGenericParameters(table, methodParent);
+                if (myParam == null)
                     return null;  // Can't resolve
                 function.Qualifiers |= SymQualifiers.Method;
                 if (!noCompilerChecks)
-                    selfParam.Token.AddInfo(new VerifySuppressError());
-                return selfParam;
+                    myParam.Token.AddInfo(new VerifySuppressError());
+                return myParam;
             }
 
-            if (synFun.ReceiverParam != null)
-                Reject(synFun.ReceiverParam.Token, "Interface methods may not have a receiver type");
             if (synFun.TypeArgs != null && synFun.TypeArgs.Count >= 1)
                 Reject(synFun.TypeArgs[0].Token, "Interface methods may not have type parameters");
 
-            // Interface method
+            // Interface method - static
             function.Qualifiers |= SymQualifiers.Method | SymQualifiers.Static;
-            var interfaceParam = new Symbol(SymKind.FunParam, function, function.Path, synFun.Name, "self");
+            var interfaceParam = new Symbol(SymKind.FunParam, function, function.Path, synFun.Name, "my");
             interfaceParam.Type = Resolver.GetTypeWithGenericParameters(table, methodParent);
             if (interfaceParam.Type == null)
                 return null;
