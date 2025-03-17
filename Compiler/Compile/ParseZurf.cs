@@ -74,18 +74,18 @@ class ParseZurf
         + "continue do then else elif todo extern nil true false defer use "
         + "finally for goto go if ife in is mod app include "
         + "new out pub public private priv readonly ro ref aref mut imut "
-        + "return sizeof struct switch throw try nop "
+        + "return sizeof struct switch throw try nop implicit "
         + "typeof type unsafe static while dowhile scope loop "
         + "async await astart atask task get set var when nameof "
         + "box init move copy clone drop own super "
-        + "extends impl implements fun afun sfun def yield let "
-        + "any Any dyn Dyn dynamic Dynamic select match from to of on cofun "
+        + "fun afun sfun def yield let "
+        + "dyn dynamic match from to of on "
         + "throws rethrow @ # and or not xor with exit pragma require ensure "
-        + "of sync except exception loc local global self Self this This");
+        + "of sync except exception loc local global self Self ");
 
     public static WordSet ReservedWords => s_reservedWords;
 
-    static WordSet s_scopeQualifiers = new("pub public private unsafe unsealed protected");
+    static WordSet s_scopeQualifiers = new("pub public private unsafe implicit");
     static WordSet s_fieldQualifiers = new("ro mut");
     static WordSet s_preTypeQualifiers = new("ro ref struct noclone unsafe enum union interface");
     static WordSet s_postFieldQualifiers = new("init mut ref");
@@ -592,17 +592,13 @@ class ParseZurf
         while (AcceptMatch("["))
         {
             var open = _prevToken;
-            if (s_scopeQualifiers.Contains(_token))
-            {
-                while (s_scopeQualifiers.Contains(_token))
-                    qualifiers.Add(Accept());
-            }
-            else
-                attributes.Add(ParseExpr());
-
+            attributes.Add(ParseExpr());
             if (AcceptMatchOrReject("]"))
                 Connect(_prevToken, open);
         }
+
+        while (s_scopeQualifiers.Contains(_token))
+            qualifiers.Add(Accept());
 
         FreeExprList(attributes); // TBD: Store in expression tree
     }

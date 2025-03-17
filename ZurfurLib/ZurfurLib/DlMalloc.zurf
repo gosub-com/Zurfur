@@ -83,7 +83,7 @@ fun get MAX_SMALL_REQUEST() U64
     return MAX_SMALL_SIZE - CHUNK_ALIGN_MASK - CHUNK_OVERHEAD
 
 
-[pub] type unsafe DlMalloc
+pub type unsafe DlMalloc
 
     //  Top
     //    The topmost chunk of the currently active segment. Its size is
@@ -792,8 +792,7 @@ fun .bin_find(my DlMalloc, x *mchunk) Bool
     return false
 
 // Check all properties of malloc_state.
-[pub]
-fun .CheckHeap(my DlMalloc) HeapStats
+pub fun .CheckHeap(my DlMalloc) HeapStats
     assert(my.is_initialized())
 
     // check bins
@@ -1565,8 +1564,7 @@ fun .init_user_mstate(my mut DlMalloc, tbase *Byte, tsize U64)
 
 
 // Allocate a block of memory
-[pub]
-fun .malloc(my mut DlMalloc, length U64) *Void
+pub fun .malloc(my mut DlMalloc, length U64) *Void
     //     Basic algorithm:
     //     If a small request (< 256 bytes minus per-chunk overhead):
     //       1. If one exists, use a remainderless chunk in associated smallbin.
@@ -1690,8 +1688,7 @@ fun .malloc(my mut DlMalloc, length U64) *Void
     return mem
 
 // Free a block of memory
-[pub]
-fun .free(my mut DlMalloc, mem *Void)
+pub fun .free(my mut DlMalloc, mem *Void)
     // Consolidate freed chunks with preceeding or succeeding bordering
     // free chunks, if they exist, and then place in a bin.  Intermixed
     // with special cases for top, dv, mmapped chunks, and usage errors.
@@ -1773,15 +1770,13 @@ fun .free(my mut DlMalloc, mem *Void)
     my.CallUsageErrorAction(p)
 
 
-[pub]
-fun .inspectAll(my DlMalloc, handler fun(start *Void, next *Void, used U64))
+pub fun .inspectAll(my DlMalloc, handler fun(start *Void, next *Void, used U64))
     if my.ok_magic()
         my.internal_inspect_all(handler)
     else
         my.CallUsageErrorAction(nil)
 
-[pub]
-fun .trim(my mut DlMalloc, pad U64) Int
+pub fun .trim(my mut DlMalloc, pad U64) Int
     let result = 0
     if my.ok_magic()
         result = my.sys_trim(pad)
@@ -1791,14 +1786,14 @@ fun .trim(my mut DlMalloc, pad U64) Int
 
 // ------ End of DlMalloc ------
 
-[pub] type HeapStats
+pub type HeapStats
     HeapSize Int
     UsedChunks Int
     UsedBytes Int
     FreeChunks Int
     FreeBytes Int
 
-[pub] fun .toStr(my HeapStats) Str
+pub fun .toStr(my HeapStats) Str
     return "HeapSize={h.HeapSize}"
             ", UB={h.UsedBytes}"
             ", FB={h.FreeBytes}"
@@ -1941,8 +1936,7 @@ fun .trim(my mut DlMalloc, pad U64) Int
 //        for sake of usage checks.
 //
 // Originally malloc_chunk, now mchunk
-[pub]
-type mchunk
+pub type mchunk
     prev_foot_ptr *Void // Size of previous chunk (if free).
     head_ptr *Void      // Size and inuse bits.
     fd *mchunk          // double links -- used only if free.
@@ -2127,8 +2121,7 @@ fun get FENCEPOST_HEAD() U64
 //  is of course much better.
 //
 // Originally malloc_tree_chunk, now tchunk
-[pub]
-type tchunk
+pub type tchunk
     // The first four fields must be compatible with mchunk
     prev_foot_ptr *Void
     head_ptr *Void

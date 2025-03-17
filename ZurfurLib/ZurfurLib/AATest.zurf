@@ -125,16 +125,16 @@ fun test_lambdaCall()
     lambdaCall(|a Float| => a + 32) // TBD: Should be OK
     lambdaCall2(a => 0)
 
-[pub] type MyCollection<T> {}
-[pub] type MyCollectionIter<T> {}
+pub type MyCollection<T> {}
+pub type MyCollectionIter<T> {}
 
-[pub] type MyCollectionNot<T> {}
-[pub] type MyCollectionNotIter<T> {}
+pub type MyCollectionNot<T> {}
+pub type MyCollectionNotIter<T> {}
 
 
-[pub] fun .getIterator<T>(my MyCollection<T>) MyCollectionIter<T>
+pub fun .getIterator<T>(my MyCollection<T>) MyCollectionIter<T>
     nop
-[pub] fun .next<T>(my MyCollectionIter<T>) ?T
+pub fun .next<T>(my MyCollectionIter<T>) ?T
     nop
 
 
@@ -185,9 +185,9 @@ fun test_map()
         Log.info("")
 
 
-[pub] fun .getIterator<T>(my MyCollectionNot<T>) MyCollectionNotIter<T>
+pub fun .getIterator<T>(my MyCollectionNot<T>) MyCollectionNotIter<T>
     nop
-[pub] fun .next<T>(my MyCollectionNotIter<T>) ?T
+pub fun .next<T>(my MyCollectionNotIter<T>) ?T
     nop
     
 
@@ -598,15 +598,15 @@ type aapoint
 type bbpoint
     v Void
 
-[pub] fun .x(my aapoint) {}
+pub fun .x(my aapoint) {}
 
-[pub] fun .xx(my bbpoint) {}
+pub fun .xx(my bbpoint) {}
 
-[pub] fun .y(my aapoint) {}
-[pub] fun .yy(my bbpoint) {}
+pub fun .y(my aapoint) {}
+pub fun .yy(my bbpoint) {}
 
   
-[pub] type AAFun    
+pub type AAFun    
     aaf4 fun(a Int, b Int) Int
     aaf5 AAFunc<Int, Int>
     aaf6 fun()()
@@ -630,49 +630,20 @@ fun .af6(my AAFun, p fun(v Int)Bool) {}
 fun .af7<X>(my AAFun, p fun(v X)Bool) {}
 
 
-[pub] type AAFunc<T1,T2>
+pub type AAFunc<T1,T2>
     Invoke fun (v T1) T2
 
 
-// TBD: These are identical to the ones defined in the class
 fun .af6<T,QQQ>(my AGenericTest<T,QQQ>, p fun(v Int)Bool) {}
-//fun AGenericTest<T, QQQ>.af7<X>(p fun(v X)Bool) {}
-//fun AGenericTest<T, QQQ>.af8<T1,T2>(i T1)T2 { }
-//fun AGenericTest<T, QQQ>.Q<T1>() {}
-//[pub] fun AGenericTest<T, QQQ>.new()
-//    todo
-//[pub] fun AGenericTest<T, QQQ>.new(a Int)
-//    todo
-//[pub] fun AGenericTest<T, QQQ>.aaa(a Zurfur.Draw2d.Size<Int>) {}
-//[pub] fun AGenericTest<T, QQQ>.P1() { return 0 }
-//[pub] fun AGenericTest<T, QQQ>.P2()() { return 0}
-//[pub] fun P2<Quack>(a Quack, b QQQ) { return (a.ToStr() + b.ToStr()).Length; }
-//[pub] fun AGenericTest<T, QQQ>.P3<Z>() { return 0; }
-//[pub] fun AGenericTest<T, QQQ>.P4<Quack, Quack1>() { return 0; }
-//[pub] fun AGenericTest<T, QQQ>.fun9(a *?OneGeneric<List<Int>>) { }
 
-//[pub] fun AGenericTest<T, QQQ>.UseIt(x Zurfur.Int, y List<Inner1<Int,Int>>, z List<Str>)
-//    XField0.ToStr()
-    // Xfield2<Str, T>.P3<T>(); - Xfield2 can't use type parameters
-    // Xfield2.P3(); - Can't infer P3<type>
-//    Xfield2.P3<T>()
-//    @a = List<Str, Outer<Int, Int>>()
-//    Inner1<Str, Byte>.Inner2<short, ushort>.Hello = 1
-//    Outer<T, QQQ>.Inner1<Str, Byte>.Inner2<short, ushort>.Hello = 2
-//    Outer<QQQ, T>.Inner1<Str, Byte>.Inner2<short, ushort>.Hello = 3
-//    Outer<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, Byte>.Hello = 4
-//    @p = AGenericTest<long, ulong>.Inner1<T, decimal>.Inner2<QQQ, Byte>()
-//    p.P5<short, QQQ, ushort>(3, QQQ(), 0)
-//[pub] fun (AGenericTest<T, QQQ>.Inner1<Ta, Qa>) P1(a T, b QQQ, c Ta, d Qa)
-//    return 0
 
 type interface ToStr
     fun get .toStr() Str
 
-[pub] fun GenericTest<Q1 ToStr,Q2 ToStr>(a Q1, b Q2) Int
+pub fun GenericTest<Q1 ToStr,Q2 ToStr>(a Q1, b Q2) Int
     return a.toStr.len + b.toStr.len    
 
-[pub] type AGenericTest<T, QQQ Equatable<T>> // TBD: new() where T : new()
+pub type AGenericTest<T, QQQ Equatable<T>> // TBD: new() where T : new()
     
     af0 fun()()
     af1 fun()

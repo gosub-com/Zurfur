@@ -21,8 +21,7 @@ fun test_Shape()
 
 // TBD: Infer constraint on functions below from Point<T>
 //      Default constructor taking both x and y
-[pub]
-type struct Point<T Number<T>>
+pub type struct Point<T Number<T>>
     x T
     y T
 
@@ -30,42 +29,34 @@ type struct Point<T Number<T>>
 fun get .x2<T>(my Point<T>) mut &T
     return &my.x // TBD: Require `&`, do not allow just `my.x`
 
-[pub]
-type struct Size<T Number<T>>
+pub type struct Size<T Number<T>>
     width T
     height T
 
-[pub]
-type struct Rect<T Number<T>>
+pub type struct Rect<T Number<T>>
     // TBD: use location Point<T>
     //      use size Size<T>
     location Point<T>
     size Size<T>
 
 // Identical to fields (not necessary when we have 'use location Point<T>' syntax)
-[pub]
-fun get .x<T>(my Rect<T>) mut &T
+pub fun get .x<T>(my Rect<T>) mut &T
     return &my.location.x // TBD: Require `&`
-[pub]
-fun get .y<T>(my Rect<T>) mut &T
+pub fun get .y<T>(my Rect<T>) mut &T
     return &my.location.y // TBD: Require `&`
-[pub]
-fun get .width<T>(my Rect<T>) mut &T
+pub fun get .width<T>(my Rect<T>) mut &T
     return &my.size.height // TBD: Require `&`
-[pub]
-fun get .height<T>(my Rect<T>) mut &T
+pub fun get .height<T>(my Rect<T>) mut &T
     return &my.size.width // TBD: Require `&`
 
 
-[pub]
-fun .new<T>(my Point<T>, x T, y T) Point<T>
+pub fun .new<T>(my Point<T>, x T, y T) Point<T>
     // TBD: (my.x, my.y) = (x, y)
     my.x = x
     my.y = y
 
 
-[pub]
-fun .toSize<T>(my Point<T>) Size<T>
+pub fun .toSize<T>(my Point<T>) Size<T>
     return Size<T>(my.x, my.y)
 
 // TBD: Remove
@@ -74,75 +65,60 @@ fun .yf<T>(my Point<T>) T
 
 
 // TBD: Infer constraint from Point<T>
-[pub]
-fun _opAdd<T Number<T>>(a Point<T>, b Point<T>) Point<T>
+pub fun _opAdd<T Number<T>>(a Point<T>, b Point<T>) Point<T>
     return Point(a.x+b.x, a.y+b.y)
 
-[pub]
-fun _opNeg<T Number<T>>(a Point<T>) Point<T>
+pub fun _opNeg<T Number<T>>(a Point<T>) Point<T>
     return Point(-a.x, -a.y)
 
-[pub]
-fun _opSub<T Number<T>>(a Point<T>, b Point<T>) Point<T>
+pub fun _opSub<T Number<T>>(a Point<T>, b Point<T>) Point<T>
     return Point(a.x-b.x, a.y-b.y)
 
-[pub]
-fun _opMul<T Number<T>>(a T, b Point<T>) Point<T>
+pub fun _opMul<T Number<T>>(a T, b Point<T>) Point<T>
     return Point(a*b.x, a*b.y)
 
-[pub]
-fun _opMul<T Number<T>>(a Point<T>, b T) Point<T>
+pub fun _opMul<T Number<T>>(a Point<T>, b T) Point<T>
     return Point(a.x*b, a.y*b)
 
-[pub]
-fun _opDiv<T Number<T>>(a T, b Point<T>) Point<T>
+pub fun _opDiv<T Number<T>>(a T, b Point<T>) Point<T>
     return Point(a/b.x, a/b.y)
 
-[pub]
-fun _opDiv<T Number<T>>(a Point<T>, b T) Point<T>
+pub fun _opDiv<T Number<T>>(a Point<T>, b T) Point<T>
     return Point(a.x/b, a.y/b)
 
-[pub]
-fun .new<T>(my Size<T>, width T, height T) Size<T>
+pub fun .new<T>(my Size<T>, width T, height T) Size<T>
     // TBD: (my.width, my.height) = (width, height)
     my.width = width
     my.height = height
     
-[pub]
-fun .toPoint<T>(my Size<T>) Point<T>
+pub fun .toPoint<T>(my Size<T>) Point<T>
     return Point(my.width, my.height)
 
 
 // TBD: Shortcut syntax for this:
-[pub]
-fun .new<T>(my Rect<T>, x T, y T, width T, height T) Rect<T>
+pub fun .new<T>(my Rect<T>, x T, y T, width T, height T) Rect<T>
     my.x = x
     my.y = y
     my.width = width
     my.height = height
     
-[pub]
-fun .new<T>(my Rect<T>, location Point<T>, size Size<T>) Rect<T>
+pub fun .new<T>(my Rect<T>, location Point<T>, size Size<T>) Rect<T>
     my.location = location
     my.size = size
 
 
 // TBD: Operators (add, multiply, divide, sizes, etc.)
 
-[pub]
-fun get .left<T>(my Rect<T>) T
+pub fun get .left<T>(my Rect<T>) T
     return my.x
     
-[pub]
-fun get .right<T Number<T>>(my Rect<T>) T // TBD: Use constraints from `Rect`
+pub fun get .right<T Number<T>>(my Rect<T>) T // TBD: Use constraints from `Rect`
     return my.x + my.width
 
-[pub]
-fun get .top<T>(my Rect<T>) T
+pub fun get .top<T>(my Rect<T>) T
     return my.y
     
-[pub]
-fun get .bottom<T Number<T>>(my Rect<T>) T // TBD: Use constraints from `Rect`
+pub fun get .bottom<T Number<T>>(my Rect<T>) T // TBD: Use constraints from `Rect`
     return my.y + my.height
     
     

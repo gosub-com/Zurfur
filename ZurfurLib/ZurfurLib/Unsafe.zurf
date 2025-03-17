@@ -10,14 +10,12 @@ fun .getRawPointer<T>(my Ref<T>) RawPointerMarker extern
 fun .getRawPointer<T>(my RawPointer<T>) RawPointerMarker extern
 
 // Cast from one pointer type to another pointer type.
-[pub]
-fun castPointer<T GetRawPointer>(i GetRawPointer) T
+pub fun castPointer<T GetRawPointer>(i GetRawPointer) T
     extern
 
 // Unsigned extended Int, U32 or U64 depending on machine pointer size.
 // This is the internal representation of a pointer.
-[pub]
-type ro Xuint
+pub type ro Xuint
     value U32 // or U64
 
 fun .new(my Xuint, value U64) Xuint
@@ -42,8 +40,7 @@ type interface GetRawPointer
 
 // A raw pointer.  The compiler translates *T to RawPointer<T>
 // and automatically dereferences when "." is used.
-[pub]
-type ro RawPointer<T>
+pub type ro RawPointer<T>
     value Xuint
 
 fun _opEq<T>(a RawPointer<T>, b RawPointer<T>) Bool extern
