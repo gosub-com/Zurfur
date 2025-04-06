@@ -9,7 +9,7 @@ type MapEntry(index U32, hash U32)
 
 
 // Key value pair
-pub type KvPair<K Equatable<K>,V>
+pub type KvPair<K Equatable<K>, V>
     key K pub ref
     value V pub mut
 
@@ -40,10 +40,6 @@ pub fun _opIndex<K,V>(m Map<K,V>, key K) mut ?&V
     extern
 
 pub fun .contains<K,V>(my Map<K,V>, key K) Bool
-    extern
-
-// TBD: Return GetIterator<(K, V)>???
-pub fun get .iterator<K,V>(my Map<K,V>) mut Iterator<KvPair<K, V>>
     extern
 
 pub fun get .keys<K,V>(my Map<K,V>) Iterator<K>

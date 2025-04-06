@@ -5,32 +5,82 @@
 
 mod AATest
 
-
 use Zurfur
-use Zurfur[Log, Iterator, GetIterator, Equatable, Number]
+use Zurfur[Log, Iterator, Iterable, Equatable, Number]
 use Zurfur.Unsafe[Xuint, RawPointer, castPointer,]
 use Zurfur.Math[cos]
 use Zurfur.Draw2d[Size, Point]
 
  
 //pragma ShowParse
- 
-
 
 fun test_reduce()
-    @myReduce1 = List<Int>()
-        .reduce(|item1, item2| => item1 + item2)
-    @myReduce2 = List<Int>()
-        .reduce(|item1, item2| => item1 + item2)
-    @myReduceInt = List<Int>()
-        .reduceInt(|item1, item2| => item1 + item2)
-    @myReduceTuple1 = List<(x Int, y Int)>()
-        .reduce(|item1, item2| => item1)
-    @myReduceTuple2 = List<(a Int, b Int)>()
-        .reduce(|item1, item2| => item2)
 
-fun .reduceInt(my GetIterator<Int>, f fun(item1 Int, item2 Int) Int) ?Int
-    return my.getIterator.reduce<Int>(f) 
+    // TBD: Need return type inference here
+    takeListInt(returnList())
+    takeListInt(returnList<Int>())
+    takeIteratorInt2("", List<Int>().asIterator)
+    takeIteratorInt(List<Int>().asIterator)
+    takeIteratorInt(List<Int>())
+    @myReduceInt2 = List<Int>().asIterator.reduceInt(|item1, item2| => item1 + item2)
+    @myReduceInt1 = List<Int>().reduceInt(|item1, item2| => item1 + item2)
+    takeIterator4(List<Int>().asIterator, |i1,i2| => 2)
+    takeIterator4(List<Int>().asSpan, |i1,i2| => 2)
+    @p1 Iterator<Int> = List<Int>().asIterator
+    @p2 Iterator<Int> = List<Int>()
+    takeIterator1(p1)
+    takeIterator1(List<Int>().asIterator)
+    takeIterator1(List<Int>())
+    p1.takeIterator2
+    List<Int>().asIterator.takeIterator2
+    List<Int>().takeIterator2
+    takeIteratorInt(p1)
+    takeIteratorInt(List<Int>().asIterator)
+
+    takeIterator1(MyType().asIterator)
+    takeIterator1(MyType())
+    MyType().asIterator.map<Int,Str>(s => "")
+    MyType().map<Int,Str>(s => "")
+    MyType().asIterator.map<Int,Str>(s => "")
+
+    for x1 in MyType()
+        nop
+    for x2 in List<Int>()
+        nop
+
+    @myReduce1 = List<Int>().reduce(|item1, item2| => item1 + item2)
+    @myReduce2 = List<Int>().reduce(|item1, item2| => item1 + item2)
+    @myReduceTuple1 = List<(x Int, y Int)>().reduce(|item1, item2| => item1)
+    @myReduceTuple2 = List<(a Int, b Int)>().reduce(|item1, item2| => item2)
+
+pub type MyType()
+implicit fun .asIterator(my MyType) MyTypeIter todo
+
+type MyTypeIter()
+fun .next(my MyTypeIter) ?Int
+    todo
+
+fun .reduceInt(my Iterator<Int>, f fun(item1 Int, item2 Int) Int) ?Int
+    return my.reduce(f)
+
+fun takeIterator1<T>(a Iterator<T>)
+    return
+
+fun .takeIterator2<T>(a Iterator<T>)
+    return
+
+fun takeIteratorInt(a Iterator<Int>)
+    return
+    
+fun takeIteratorInt2<T1,T2>(a T1, b Iterator<T2>)
+    return
+
+fun takeIterator4(my Iterator<Int>, f fun(item1 Int, item2 Int) Int) ?Int
+    return my.reduce(f)
+
+fun returnList<T>()List<T> todo
+fun takeList<T>(a List<T>) todo
+fun takeListInt(a List<Int>) todo
 
 fun testInfer()
     @m = List<(x Int, y Float)>()
@@ -104,11 +154,13 @@ fun test_printableAmbiguous<T Printable + Printable2>(t T)
 
 type interface TestGlobal
     fun testGlobal()
+    
 fun test_Global<T TestGlobal>()
     testGlobal()
 
 type interface TestGlobal2<T>
     fun testGlobal2(x T) T
+
 fun test_Global2<T TestGlobal2<Int>>(t T)
     @x = testGlobal2(1)
 
@@ -125,22 +177,22 @@ fun test_lambdaCall()
     lambdaCall(|a Float| => a + 32) // TBD: Should be OK
     lambdaCall2(a => 0)
 
-pub type MyCollection<T> {}
-pub type MyCollectionIter<T> {}
+type MyCollection<T> {}
+type MyCollectionIter<T> {}
 
-pub type MyCollectionNot<T> {}
-pub type MyCollectionNotIter<T> {}
+type MyCollectionNot<T> {}
+type MyCollectionNotIter<T> {}
 
 
-pub fun .getIterator<T>(my MyCollection<T>) MyCollectionIter<T>
+implicit fun .asIterator<T>(my MyCollection<T>) MyCollectionIter<T>
     nop
-pub fun .next<T>(my MyCollectionIter<T>) ?T
+fun .next<T>(my MyCollectionIter<T>) ?T
     nop
 
 
 fun test_use()
     @myCollection = MyCollection<Int>()
-    @myCollectionIter = myCollection.getIterator
+    @myCollectionIter = myCollection.asIterator
     @myCollectionItem = myCollectionIter.next()
     @myCollectionMapIter = myCollection.map<Int,Str>(i => i.toStr)
     // TBD: Fix asset hit for: @myCollectionMapList = myCollection.map<Int,Str>(@i => i.toStr).toList
@@ -150,7 +202,7 @@ fun test_use()
         .reduce<Int>(|item1, item2| => item1 + item2)
     
     @myCollectionNot = MyCollectionNot<Int>()
-    @myCollectionNotIter = myCollectionNot.getIterator
+    @myCollectionNotIter = myCollectionNot.asIterator
     @myCollectionNotItem = myCollectionNotIter.next()
     for @a in myCollectionNot
         nop
@@ -160,7 +212,7 @@ fun test_map()
     for @ir in 0..2
         Log.info("")
 
-    @i = List<Int>().getIterator()
+    @i = List<Int>().asIterator()
     @m3 = i.map<Int,Str>(q => 0.0)
     @m3item = m3.next()
     @m4 = i.map<Int,Str>(q => 0.0).map<Str,Float>(q => "hello")
@@ -180,12 +232,11 @@ fun test_map()
 
     @testIter = (0..5).map<Int,Float>(fl => (2*fl).toFloat + 0.5)
 
-    // TBD: This should work
     for @a in m5
         Log.info("")
 
 
-pub fun .getIterator<T>(my MyCollectionNot<T>) MyCollectionNotIter<T>
+pub fun .asIterator<T>(my MyCollectionNot<T>) MyCollectionNotIter<T>
     nop
 pub fun .next<T>(my MyCollectionNotIter<T>) ?T
     nop
@@ -254,21 +305,21 @@ fun test_multiPrintableOverload(a Int, b Int, c Printable, d Printable)
 fun test_multiPrintableOverload(a Float, b Int, c Printable, d Printable)
     Log.info("Item={a},{b},{c},{d}")
 
-fun test_printInts(x GetIterator<Int>)
-    @i = x.getIterator
+fun test_printInts(x Iterable<Int>)
+    @i = x.asIterator
     while i.next()@item
         @s = item.toStr
         Log.info("Item={s}")
 
-fun test_printPrintable(x mut GetIterator<Printable>)
-    @i = x.getIterator
+fun test_printPrintable(x mut Iterable<Printable>)
+    @i = x.asIterator
     while i.next()@item
         @s = item.toStr
         Log.info("Item={item}")
 
 
-fun test_printGeneric<T Printable>(x mut GetIterator<T>)
-    @i = x.getIterator
+fun test_printGeneric<T Printable>(x mut Iterable<T>)
+    @i = x.asIterator
     while i.next()@item
         @s = item.toStr()
         Log.info("Item={s}")
@@ -348,12 +399,16 @@ fun test_forEach(args Array<Str>)
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
 fun .alphaLengthWise<Item, L>(my Iterator<Item>, lengthProvider fun(t Item) L) Iterator<Item>
-    return my.orderBy<Item, L>(a => lengthProvider(a))
-        .thenBy<Item, L>(a => a)
+    return my.orderBy<Item, L>(a => lengthProvider(a)).thenBy<Item, L>(a => a)
+    
 fun .orderBy<Source,Key>(my Iterator<Source>, keySelector fun(i Source)Key) Iterator<Source>
     todo
+    
 fun .thenBy<Source,Key>(my Iterator<Source>, keySelector fun(i Source)Key) Iterator<Source>
     todo
+
+fun test_alphaLengthWise()
+    let a = List<Str>().asIterator.alphaLengthWise<Str, Int>(i => i.len)
 
 fun .find<T>(my Iterator<T>, f fun(item T) Bool) mut ?&T
     while my.next()@item
@@ -385,7 +440,7 @@ type MyPoint<T1,T2,T3>
     x (Int, T1, Int)
     y (a Int, b T1, c Int, d (r Int, b Int))
 
-type interface GetIterator2<Item>
+type interface Iterable2<Item>
     fun .iterator2() Iterator<Item>
 
 type interface GetMap<Item1,Item2>
@@ -428,7 +483,7 @@ fun test_tuples()
     @element = tuplesNamedElement.x
 
 fun AAAAA<X,
-        T Number<T> + GetHash + GetIterator<Int> + GetIterator2<Int> + GetMap<F32,Float> + Iterator<Int>,
+        T Number<T> + GetHash + Iterable<Int> + Iterable2<Int> + GetMap<F32,Float> + Iterator<Int>,
         Q Number<Q> + Getter + Getter2<Int> + MyAdd<Q>
         >(t T, q Q, intf1 Iterator<I32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<Float>, myGetter Getter)
 
@@ -463,7 +518,7 @@ fun AAAAA<X,
     @getMapFunc = getMapFun<I32,U32>()  // Map<U32,I32>
     @getMapKeys = t.getMapKeys()        // Iterator<F32>
     @getMapValues = t.getMapValues()    // Iterator<Float>
-    @iter1 = t.getIterator                 // Iterator<Int>
+    @iter1 = t.asIterator                 // Iterator<Int>
     @iter2 = t.iterator2()              // Iterator<Int>
     @first = iter1.next()               // ?Int
     @x = 1
@@ -475,14 +530,14 @@ fun AAAAA<X,
     @z3 = a + b                 // #1
     @z4 = _opAdd(a, b)
     @z5 = T.One
-    @iter3 = t.getIterator()
+    @iter3 = t.asIterator()
 
     // TBD: Resolve multiple interface implementations, which is
     //      allowed since they would be resolved when called
     //@aa = t.getHash()           // U32
     //@z6 = T().getHash()
 
-    for @item in t
+    for @item in t.asIterator
         @itemt = item           // Int
 
 

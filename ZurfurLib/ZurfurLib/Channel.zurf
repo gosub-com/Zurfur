@@ -1,11 +1,13 @@
 ﻿
 mod Zurfur
 
+
+
 // Experiment on how to do golang channels using async.
 afun readSequence()
     // ch is captured by the closure
     @ch = Channel<Int>()
-    astart produceSequence(ch)
+    produceSequence(ch)
     @sum = 0
     while ch.read()@i
         sum += i

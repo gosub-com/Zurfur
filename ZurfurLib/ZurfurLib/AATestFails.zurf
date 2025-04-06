@@ -6,7 +6,7 @@ pragma NoParse
 
 mod AATestFails
 
-use Zurfur[Iterator, GetIterator]
+use Zurfur[Iterator, Iterable]
 
 // Make first test case pass by adding a syntax error
 fun test_makeError()
@@ -101,13 +101,13 @@ type MyCollectionNot<T> {}
 type MyCollectionNotIter<T> {}
 
 
-fun .getIterator<T>(my MyCollection<T>) MyCollectionIter<T>
+implicit fun .asIterator<T>(my MyCollection<T>) MyCollectionIter<T>
     nop
 fun .next<T>(my MyCollectionIter<T>) ?T
     nop
 
-fun .reduceInt(my GetIterator<Int>, f fun(item1 Int, item2 Int) Int) ?Int
-    return my.getIterator.reduce(f) 
+fun .reduceInt(my Iterable<Int>, f fun(item1 Int, item2 Int) Int) ?Int
+    return my.asIterator.reduce(f) 
 
 fun test_takePrintable(a Printable)
     @x = a.toStr
@@ -170,7 +170,7 @@ fun test_newInfer()
 
 fun test_newInfer2()
     @a = MyCollection<Int>()    // ok
-    @b = a.getIterator          // ok
+    @b = a.asIterator          // ok
     @c = b.next()               // ok
     @d ?Int = c                 // ok
     @e Int = c                  // Can't assign type

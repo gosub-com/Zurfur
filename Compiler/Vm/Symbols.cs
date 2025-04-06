@@ -275,6 +275,7 @@ public class Symbol
     public bool IsStatic => Qualifiers.HasFlag(SymQualifiers.Static);
     public bool IsGetter => Qualifiers.HasFlag(SymQualifiers.Get);
     public bool IsSetter => Qualifiers.HasFlag(SymQualifiers.Set);
+    public bool IsImplicit => Qualifiers.HasFlag(SymQualifiers.Implicit);
 
     /// <summary>
     /// Get the parent module

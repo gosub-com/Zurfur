@@ -9,7 +9,7 @@
 mod TestExample
 
 use Zurfur
-use Zurfur[Decimal, Log, Number, GetIterator, Iterator]
+use Zurfur[Decimal, Log, Number, Iterator]
 use Zurfur.Math[cos,sin]
 use Zurfur.ConvertBytes[bytesToHex]
 
@@ -28,7 +28,7 @@ fun test_map()
     for ir in 0..2
         Log.info("")
 
-    let i = List<Int>().getIterator()
+    let i = List<Int>().asIterator
     let m3 = i.map<Int,Str>(q => 0.0)
     let m3item = m3.next()
     let m4 = i.map<Int,Str>(q => 0.0).map<Str,Float>(q => "hello")
@@ -63,7 +63,7 @@ pub fun countToTen()
     for i in 1..+10
         Log.info("Count={i}, text={m.text}")
 
-fun .getIterator(my MyType) MyTypeIter todo
+implicit fun .asIterator(my MyType) MyTypeIter todo
 
 type MyTypeIter
     a Int

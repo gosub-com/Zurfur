@@ -10,6 +10,16 @@ using Zurfur.Vm;
 
 namespace Zurfur.Compiler;
 
+
+static class ArrayHelper
+{
+    public static T[] Clone2<T>(this T[] array)
+    {
+        return (T[])(Array)array.Clone();
+    }
+
+}
+
 /// <summary>
 /// Compile the code given the output of header file generation.
 /// </summary>
@@ -44,16 +54,13 @@ static class CompileCode
     static List<Rval> EmptyCallParams
         => new List<Rval>();
 
-    record struct ParamMatch(
-        CallCompatible Compatibility, 
-        Symbol? FunConversion = null,
-        InterfaceInfo ?InterfaceConversion = null,
-        bool PointerConversion = false);
-    record struct CallMatch(
-        CallCompatible Compatibility, 
-        Symbol? SpecializedFun = null, 
-        Symbol[]?TypeArgs = null);
+    record struct CallMatch(CallCompatible Compatibility, Symbol[] TypeArgs);
 
+    record struct ParamMatch(
+        CallCompatible Compatibility,
+        Symbol[] TypeArgs,
+        Symbol? FunConversion = null,
+        InterfaceInfo ?InterfaceConversion = null);
 
     record struct IfaceFunInfo(Symbol IfaceFun, List<Symbol> Candidates);
 
@@ -152,7 +159,7 @@ static class CompileCode
 
         // Map "{interface}->{concrete}" to the interface info
         var interfaces = new Dictionary<string, InterfaceInfo>();
-
+        var implicitCache = new Dictionary<string, Symbol[]>();
 
         foreach (var synFile in synFiles)
         {
@@ -163,7 +170,7 @@ static class CompileCode
                 if (!syntaxToSymbol.TryGetValue(synFunc, out var currentFunction))
                     continue; // Syntax error
                 Debug.Assert(currentFunction.IsFun);
-                GenFunction(synFile.Value, synFunc, table, fileUses, currentFunction, assembly, interfaces);
+                GenFunction(synFile.Value, synFunc, table, fileUses, currentFunction, assembly, interfaces, implicitCache);
             }
         }
         return assembly;
@@ -176,7 +183,8 @@ static class CompileCode
         UseSymbolsFile fileUses,
         Symbol function,
         Assembly assembly,
-        Dictionary<string, InterfaceInfo> interfaces)
+        Dictionary<string, InterfaceInfo> interfaces,
+        Dictionary<string, Symbol[]> implicitCache)
     {
         var path = synFile.Lexer.Path;
         var typeVoid = table.Lookup(SymTypes.Void);
@@ -204,8 +212,6 @@ static class CompileCode
 
         Debug.Assert(function.IsFun);
 
-        // TBD: Remove null forgiving operator below when the compiler
-        //      is improved:  https://github.com/dotnet/roslyn/issues/29892
         var commentLines = new Dictionary<int, bool>();
         var localsByName = new Dictionary<string, LocalSymbol>();
         var localsByIndex = new List<Symbol>();
@@ -448,20 +454,8 @@ static class CompileCode
         // Get the for loop iterator type, e.g. T in object.iterator.next() -> Maybe<T>
         Symbol? GenForIterator(Token token, Symbol inType)
         {
-            var getIter = GenFindAndCall(token, DerefRef(inType), "getIterator");
-            if (getIter == null)
-                return null;
-            var getNext = GenFindAndCall(token, getIter, "next");
-            if (getNext == null)
-                return null;
-            if (!getNext.IsSpecialized
-                || getNext.TypeArgs.Length != 1
-                || getNext.Parent!.FullName != SymTypes.Maybe)
-            {
-                Reject(token, $"Expecting the function '{getIter}.next()' to return a Maybe<T>, but it returns '{getNext}'");
-                return null;
-            }
-            return getNext.TypeArgs[0];
+            // TBD: This generates a crummy error message "No function '_for' in the type..."
+            return GenFindAndCall(token, DerefRef(inType), "_for");
         }
 
         // Find and call a function (or getter) taking no arguments,
@@ -556,10 +550,6 @@ static class CompileCode
                 return new Rval(token) { Type = typeInt };
             else if (name == "true" || name == "false")
                 return new Rval(token) { Type = typeBool };
-            else if (name == "astart")
-                return GenAstart(ex);
-            else if (name == "?")
-                return GenDefaultOperator(ex);
             else if (name == "!" || name == "!!")
                 return GenErrorOperator(ex);
             else if (name == ";" || name == "{")
@@ -927,6 +917,23 @@ static class CompileCode
             rval.Type = table.CreateRef(type, rawPointer);
         }
 
+        Rval? GenErrorOperator(SyntaxExpr ex)
+        {
+            if (HasError(ex))
+                return null;
+            var op = GenExpr(ex[0]);
+            EvalCall(op, EmptyCallParams);
+            if (op == null || op.Type == null)
+                return null;
+            if (op.Type.Parent!.FullName != SymTypes.Result && op.Type.Parent.FullName != SymTypes.Maybe
+                    || op.Type.TypeArgs.Length != 1)
+            {
+                Reject(ex.Token, $"Expecting 'Result<T>' or 'Maybe<T>', but got '{op.Type}'");
+                return null;
+            }
+            return new Rval(ex.Token) { Type = op.Type.TypeArgs[0] };
+        }
+
 
         Rval? GenAssign(SyntaxExpr ex)
         {
@@ -934,12 +941,11 @@ static class CompileCode
                 return null;  // Syntax error
 
             var left = GenExpr(ex[0]);
-            var right = GenExpr(ex[1]);
-
-            // TBD: This eval returns NULL, but has the type
-            //      See if remove EvalCall
-            EvalCall(right, EmptyCallParams);
             EvalCall(left, EmptyCallParams, EvalFlags.AssignmentTarget);
+
+            var right = GenExpr(ex[1]);
+            EvalCall(right, EmptyCallParams);
+
             var rightType = right?.Type;
             if (left == null || right == null || rightType == null || left.Symbol == null)
                 return null;
@@ -1027,37 +1033,6 @@ static class CompileCode
 
             return null;
         }
-
-        Rval? GenAstart(SyntaxExpr ex)
-        {
-            //Reject(ex.Token, "Not implemented yet");
-            GenCallParams(ex, 0);
-            return null;
-        }
-
-        Rval? GenDefaultOperator(SyntaxExpr ex)
-        {
-            Reject(ex.Token, "Not compiled yet");
-            return null;
-        }
-
-        Rval? GenErrorOperator(SyntaxExpr ex)
-        {
-            if (HasError(ex))
-                return null;
-            var op = GenExpr(ex[0]);
-            EvalCall(op, EmptyCallParams);
-            if (op == null || op.Type == null)
-                return null;
-            if (op.Type.Parent!.FullName != SymTypes.Result && op.Type.Parent.FullName != SymTypes.Maybe
-                    || op.Type.TypeArgs.Length != 1)
-            {
-                Reject(ex.Token, $"Expecting 'Result<T>' or 'Maybe<T>', but got '{op.Type}'");
-                return null;
-            }
-            return new Rval(ex.Token) { Type = op.Type.TypeArgs[0] };
-        }
-
 
         Rval? GenOperator(SyntaxExpr ex)
         {
@@ -1325,8 +1300,7 @@ static class CompileCode
                     candidate = table.CreateSpecializedType(candidate, inType.TypeArgs, null);
                 token.AddInfo(candidate);
 
-                // Static type or module, e.g. int.MinValue, or Log.info,
-                // but not int().MinValue
+                // Static type or module, e.g. int.MinValue, or Log.info, but not int().MinValue
                 if (candidate.IsAnyTypeOrModule)
                 {
                     token.Type = TokenType.TypeName;
@@ -1369,8 +1343,7 @@ static class CompileCode
             }
 
             // Find the function to call
-            call.Symbol = FindCompatibleFunction(call, candidates,
-                args, flags.HasFlag(EvalFlags.AssignmentTarget), rejectName);
+            call.Symbol = FindCompatibleFunction(call, candidates, args, flags.HasFlag(EvalFlags.AssignmentTarget), rejectName);
             call.Type = call.Symbol?.FunReturnType;
 
             if (call.Symbol != null)
@@ -1453,20 +1426,28 @@ static class CompileCode
                 args.Insert(0, call);
             }
 
-            // Generate list of matching symbols, update
-            // the candidates to their specialized form
+            // Generate list of matching symbols, update the candidates to their specialized form
             var compatibleErrors = new Dictionary<CallCompatible, bool>();
             var matchingFuns = new List<Symbol>();
-            for (int i = 0; i < candidates.Count; i++)
+            foreach (var candidate in candidates)
             {
-                var callMatch = IsCallCompatible(call, candidates[i], args);
-                if (callMatch.Compatibility != CallCompatible.Compatible)
-                    compatibleErrors[callMatch.Compatibility] = true;
+                var callMatch = IsCallCompatible(call, candidate, args);
 
-                if (callMatch.SpecializedFun != null)
+                if (callMatch.Compatibility == CallCompatible.Compatible)
                 {
-                    matchingFuns.Add(callMatch.SpecializedFun);
-                    candidates[i] = callMatch.SpecializedFun;
+                    if (candidate.IsFun)
+                    {
+                        if (candidate.IsSpecialized)
+                            matchingFuns.Add(candidate); // constraint
+                        else
+                            matchingFuns.Add(table.CreateSpecializedType(candidate, callMatch.TypeArgs));
+                    }
+                    else
+                        matchingFuns.Add(candidate); // Lambda
+                }
+                else
+                {
+                    compatibleErrors[callMatch.Compatibility] = true;
                 }
             }
 
@@ -1527,28 +1508,33 @@ static class CompileCode
             // type directly, but the lambda is a specialization of $lambda<T>.
             // TBD: Make function a specialization of $fun<T> so lambda and
             //      function have the same layout.
-            var lambdaOrFunType = func.IsFun ? func : func.Type;
-            if (lambdaOrFunType == null)
+            if (func.IsFun)
             {
-                Reject(call.Token, "Compiler error, invalid lambda type");
-                return null;
+                // Return the function
+                return func;
             }
-            return lambdaOrFunType;
-        }
+            else
+            {
+                if (func.Type == null)
+                    Reject(call.Token, "Compiler error, invalid lambda type");
+                return func.Type;
+            }
 
-        // Checks if the function call is compatible, return the possibly
-        // specialized function.  Returns null if not compatible.
+        }       
+
+
+        // Checks if the function call is compatible, return the inferred type arguments if compatible
         CallMatch IsCallCompatible(Rval call, Symbol func, List<Rval> args)
         {
             if (!func.IsFun)
-                return IsLambdaCompatible(call, func, args);
+                return IsLambdaCompatible(call.Name, func, args);
 
             if (func.IsMethod && call.InType != null)
             {
                 if (call.IsStatic && !func.IsStatic)
-                    return new CallMatch(CallCompatible.StaticCallToNonStaticMethod);
+                    return new CallMatch(CallCompatible.StaticCallToNonStaticMethod, []);
                 if (!call.IsStatic && func.IsStatic)
-                    return new CallMatch(CallCompatible.NonStaticCallToStaticMethod);
+                    return new CallMatch(CallCompatible.NonStaticCallToStaticMethod, []);
             }
 
             var typeArgsExpectedCount = func.GenericParamCount();
@@ -1558,12 +1544,10 @@ static class CompileCode
                 // Type args from constraint
                 typeArgs = func.TypeArgs;
                 if (call.TypeArgs.Length != 0)
-                    return new CallMatch(CallCompatible.TypeArgsSuppliedByConstraint);
+                    return new CallMatch(CallCompatible.TypeArgsSuppliedByConstraint, []);
             }
             else if (call.TypeArgs.Length != 0)
                 typeArgs = call.TypeArgs;   // Type args supplied by user
-            else if (typeArgsExpectedCount == 0)
-                typeArgs = Array.Empty<Symbol>();
             else
                 typeArgs = table.CreateUnresolvedArray(typeArgsExpectedCount); // Infer type args
 
@@ -1571,14 +1555,13 @@ static class CompileCode
             if (typeArgs.Length != typeArgsExpectedCount)
             {
                 if (typeArgs.Length == 0 && typeArgsExpectedCount != 0)
-                    return new CallMatch(CallCompatible.ExpectingSomeTypeArgs, null, typeArgs);
+                    return new CallMatch(CallCompatible.ExpectingSomeTypeArgs, []);
                 if (typeArgs.Length != 0 && typeArgsExpectedCount == 0)
-                    return new CallMatch(CallCompatible.ExpectingNoTypeArgs, null, typeArgs);
+                    return new CallMatch(CallCompatible.ExpectingNoTypeArgs, []);
                 else
-                    return new CallMatch(CallCompatible.WrongNumberOfTypeArgs, null, typeArgs);
+                    return new CallMatch(CallCompatible.WrongNumberOfTypeArgs, []);
             }
 
-            // Don't consider first parameter of static method
             func = func.Concrete;
             var funParams = new Span<Symbol>(func.FunParamTypes);
             if (func.IsMethod && func.IsStatic)
@@ -1586,36 +1569,32 @@ static class CompileCode
            
             var match = AreFunParamsCompatible(call.Name, func, args, funParams, typeArgs);
             if (match.Compatibility != CallCompatible.Compatible)
-                return match with { TypeArgs = typeArgs };
+                return match;
 
             // TBD: This will be moved to caller so we can infer lambda returns
-            if (typeArgs.Any(s => s.IsUnresolved))
-                return new CallMatch(CallCompatible.TypeArgsNotInferrable, null, typeArgs);
-            
-            if (match.Compatibility == CallCompatible.Compatible)
-                match.SpecializedFun = table.CreateSpecializedType(func, typeArgs);
+            if (match.TypeArgs.Any(s => s.IsUnresolved))
+                return new CallMatch(CallCompatible.TypeArgsNotInferrable, []);
 
-            return match with { TypeArgs = typeArgs };
+            return match;
         }
 
-        CallMatch IsLambdaCompatible(Rval call, Symbol variable, List<Rval> args)
+        CallMatch IsLambdaCompatible(string callName, Symbol variable, List<Rval> args)
         {
             if (!variable.IsFunParam && !variable.IsLocal && !variable.IsField)
-                return new CallMatch(CallCompatible.NotAFunction);
+                return new CallMatch(CallCompatible.NotAFunction, []);
 
             var lambda = variable.Type;
             if (lambda == null
                     || !lambda.IsLambda
                     || lambda.TypeArgs.Length != 1)
-                return new CallMatch(CallCompatible.NotAFunction);
+                return new CallMatch(CallCompatible.NotAFunction, []);
 
             // Get lambda parameters
             var funParams = lambda.TypeArgs[0];
             if (funParams.TypeArgs.Length != 2)
-                return new CallMatch(CallCompatible.NotAFunction);
+                return new CallMatch(CallCompatible.NotAFunction, []);
 
-            return AreFunParamsCompatible(call.Name, variable, args, 
-                funParams.TypeArgs[0].TypeArgs, Array.Empty<Symbol>());
+            return AreFunParamsCompatible(callName, variable, args, funParams.TypeArgs[0].TypeArgs, []);
         }
 
 
@@ -1624,7 +1603,7 @@ static class CompileCode
         // On success, some type args may still be un-resolved because
         // lambdas have not beeen compiled yet, and lambda return values
         // have not been accounted for.
-        // TBD: typeArgs should be immutable (make CallMatch return inferred type args)
+        // typeArgs is not modified
         // TBD: Review similarity to AreInterfaceParamsCompatible
         CallMatch AreFunParamsCompatible(
             string callName, 
@@ -1638,11 +1617,11 @@ static class CompileCode
             {
                 // Ignore setter parameter type since it is checked by the assignment
                 if (i == 1 && func.IsSetter && funParams.Length == 2)
-                    return new CallMatch(CallCompatible.Compatible, func);
+                    return new CallMatch(CallCompatible.Compatible, typeArgs);
 
                 // TBD: Default parameters, etc.
                 if (i >= args.Count || i >= funParams.Length)
-                    return new CallMatch(CallCompatible.WrongNumberOfParameters);
+                    return new CallMatch(CallCompatible.WrongNumberOfParameters, []);
 
                 var arg = args[i];
                 var param = funParams[i];
@@ -1669,16 +1648,20 @@ static class CompileCode
                         if (arg.Type!.Concrete.FullName == param.Concrete.FullName)
                             continue;
                         else
-                            return new CallMatch(CallCompatible.IncompatibleParameterTypes);
+                            return new CallMatch(CallCompatible.IncompatibleParameterTypes, []);
                     }
                 }
 
-                var compat = IsFunParamConvertable(arg.Type!, param, typeArgs).Compatibility;
+                var paramMatch = IsFunParamConvertable(arg.Type!, param, typeArgs);
+                var compat = paramMatch.Compatibility;
                 if (compat != CallCompatible.Compatible)
-                    return new CallMatch(compat);
+                    return new CallMatch(compat, []);
+
+                // Accept inferred type arguments
+                typeArgs = paramMatch.TypeArgs;
             }
 
-            return new CallMatch(CallCompatible.Compatible, func);
+            return new CallMatch(CallCompatible.Compatible, typeArgs);
         }
 
         bool IsFunParamConvertableReject(Token t, Symbol argType, Symbol paramType)
@@ -1693,7 +1676,7 @@ static class CompileCode
         // Can the given argument be converted to the parameter type?
         // If so, update typeArgs to be inferred.
         // NOTE: Match all lambda's since we haven't compiled them yet
-        // TBD: typeArgs should be immutable (make ParamMatch return inferred type args)
+        // typeArgs is not modified
         ParamMatch IsFunParamConvertable(Symbol argType, Symbol paramType, Symbol[] typeArgs)
         {
             argType = DerefRef(argType);
@@ -1701,55 +1684,154 @@ static class CompileCode
 
             // The generic concrete lambda type matches all lambdas
             // because its type is set later when it is compiled.
+            // TBD: Need to resolve here by walking down tree
             if (argType.IsLambda && !argType.IsSpecialized && paramType.IsLambda)
-                return new(CallCompatible.Compatible);
+                return new(CallCompatible.Compatible, typeArgs);
+
 
             var (match, inferred) = InferTypesMatch(argType, paramType, typeArgs);
             if (match)
-            {
-                inferred.CopyTo(typeArgs, 0);
-                return new(CallCompatible.Compatible);
-            }
+                return new(CallCompatible.Compatible, inferred);
 
             // Implicit conversion from nil to *T or from *T to *void
             if (paramType.Parent!.FullName == SymTypes.RawPointer)
             {
+                // TBD: Need return type inference to make implicit conversion work here
                 if (argType.FullName == SymTypes.Nil)
-                    return new(CallCompatible.Compatible, null, null, true);
-                if (argType.Parent!.FullName == SymTypes.RawPointer && DerefPointers(paramType) == typeVoid)
-                    return new(CallCompatible.Compatible, null, null, true);
+                    return new(CallCompatible.Compatible, typeArgs, null, null);
             }
 
-            // Implicit conversion to interface type?
-            if (!paramType.IsInterface)
-                return new(CallCompatible.IncompatibleParameterTypes);
+
+            // TBD: Interface to interface conversion not supported yet
             if (argType.IsInterface && paramType.IsInterface)
-                return new(CallCompatible.InterfaceToInterfaceConversionNotSupported);
+                return new(CallCompatible.InterfaceToInterfaceConversionNotSupported, typeArgs);
 
-            Debug.Assert(paramType.GenericParamCount() == 0 || paramType.IsSpecialized);
-            var ifaceConversion = ConvertToInterfaceInfo(argType, paramType, typeArgs);
-            if (ifaceConversion.Compatibility != CallCompatible.Compatible)
-                return new(ifaceConversion.Compatibility);
+            // ----------------------------------------------------------
+            // Implicit conversion from concrete type to interface type
+            // ----------------------------------------------------------
+            InterfaceInfo? ifaceConversion = null;
+            if (!argType.IsInterface && paramType.IsInterface)
+            {
+                ifaceConversion = ConvertToInterfaceInfo(argType, paramType, typeArgs);
+                if (ifaceConversion.Compatibility == CallCompatible.Compatible)
+                    return new(CallCompatible.Compatible, ifaceConversion.TypeArgs, null, ifaceConversion);
+            }
 
-            // Interface conversion successful
-            return new(CallCompatible.Compatible, null, ifaceConversion);
+            // ------------------------------------
+            // Implcit Conversion to exact match
+            // ------------------------------------
+            
+            // Retrieve implicit conversions from argType, parmType, and current function modules
+            var conversions = new List<Symbol>();
+            PushImplicits(argType, conversions);
+            if (paramType.ParentModule.FullName != argType.ParentModule.FullName)
+                PushImplicits(paramType, conversions);
+            if (function.ParentModule.FullName != argType.ParentModule.FullName && function.ParentModule.FullName != paramType.ParentModule.FullName)
+                PushImplicits(function, conversions);
+
+            var callableConversions = new List<(Symbol function, Symbol[] inferred)>();
+            var exactConversions = new List<Symbol[]>();
+            foreach (var conversion in conversions)
+            {
+                var parameters = conversion.FunParamTypes;
+                var returns = conversion.FunReturnTypes;
+                if (parameters.Length != 1 || parameters[0].IsInterface || returns.Length != 1 || returns[0].IsInterface)
+                    continue; // These should fail during validation
+                
+                // Can we call it with the given parameters?
+                var (matchConversion, inferredConversionTypes) = InferTypesMatch(argType, parameters[0], 
+                    table.CreateUnresolvedArray(conversion.GenericParamCount()));
+
+                if (!matchConversion)
+                    continue;  // Not callable
+                
+                // Specialize the function to get return type 
+                Debug.Assert( (argType.IsSpecialized || argType.TypeArgs.Length == 0) && !conversion.IsSpecialized);
+                var specializedConversion = table.CreateSpecializedType(conversion, inferredConversionTypes);
+                callableConversions.Add((specializedConversion, inferredConversionTypes));
+                
+                // Find matching return type
+                var (match2, inferredReturns) = InferTypesMatch(specializedConversion.FunReturnType, paramType, typeArgs);
+                if (match2)
+                    exactConversions.Add(inferredReturns);
+            }
+
+            // No conversions at all
+            if (callableConversions.Count == 0)
+            {
+                return ifaceConversion == null 
+                    ? new(CallCompatible.IncompatibleParameterTypes, typeArgs) : new(ifaceConversion.Compatibility, typeArgs);
+            }
+
+            // Exactly one perfect match
+            if (exactConversions.Count == 1)
+            {
+                return new(CallCompatible.Compatible, exactConversions[0]);
+            }
+
+            // Ambiguous conversion
+            if (exactConversions.Count > 1)
+            {
+                // TBD: Ruling out here because of ambiguous could be problematic because it can hide problems above.
+                //      Need to rull out ambiguous at function candidate level unless another parameter fails completely.
+                //      ACCEPTABLE, BUT AMBIGUOUS - SHOULD FAIL AT CANDIDATE LEVEL
+                return new(CallCompatible.ImplicitConversionAmbiguous, exactConversions[0]);
+            }
+
+            // ------------------------------------
+            // Implcit Conversion to interface?
+            // ------------------------------------
+            if (!paramType.IsInterface)
+                return ifaceConversion == null
+                    ? new(CallCompatible.IncompatibleParameterTypes, typeArgs) : new(ifaceConversion.Compatibility, typeArgs);
+
+            var ifaceConversions = new List<Symbol[]>();
+            foreach (var conversion in callableConversions)
+            {
+
+                var ifaceConversion2 = ConvertToInterfaceInfo(conversion.function.FunReturnType, paramType, typeArgs);
+                if (ifaceConversion2.Compatibility == CallCompatible.Compatible)
+                    ifaceConversions.Add(ifaceConversion2.TypeArgs);                
+            }
+
+            if (ifaceConversions.Count == 1)
+                return new(CallCompatible.Compatible, ifaceConversions[0]);
+
+            if (ifaceConversions.Count > 1)
+            {
+                // TBD: ACCEPTABLE, BUT AMBIGUOUS - SHOULD FAIL AT CANDIDATE LEVEL
+                return new(CallCompatible.ImplicitConversionToInterfaceAmbiguous, typeArgs);
+            }
+
+            return ifaceConversion == null
+                ? new(CallCompatible.IncompatibleParameterTypes, typeArgs) : new(ifaceConversion.Compatibility, typeArgs);
         }
+
+        // Retrieve implicit functions from the symbol's module (cache them in implicitCache for speed)
+        void PushImplicits(Symbol symbol, List<Symbol> implicits)
+        {
+            if (!implicitCache.TryGetValue(symbol.ParentModule.FullName, out var implicitsList))
+            {
+                implicitsList = symbol.ParentModule.Children.Where(s => s.IsImplicit && s.IsFun && s.IsMethod).ToArray();
+                implicitCache[symbol.ParentModule.FullName] = implicitsList;
+            }
+            foreach (var impl in implicitsList)
+                implicits.Add(impl);
+        }
+
 
         // If possible, convert concrete type to an interface.
         // If not possible, generate a list of what's missing.
-        // Infer unresolved type args on success, or restore on failure.
+        // On success, return newly inferred typeArgs (return old typeArgs on fail)
+        // typeArgs is not modified
         InterfaceInfo ConvertToInterfaceInfo(Symbol concrete, Symbol iface, Symbol[] typeArgs)
         {
             // Memoize interface conversion along with type args per call
             var name = $"{concrete}->{iface}:[{string.Join(",", typeArgs.Select(s => s.FullName))}]";
             if (interfaces.TryGetValue(name, out var memInfo))
-            {
-                if (memInfo.TypeArgs != null)
-                    memInfo.TypeArgs.AsSpan().CopyTo(typeArgs);
                 return memInfo;
-            }
 
-            interfaces[name] = new InterfaceInfo(concrete, iface, [], CallCompatible.GeneratingNow);
+            interfaces[name] = new InterfaceInfo(concrete, iface, [], CallCompatible.GeneratingNow, typeArgs);
             var info = ConvertToInterfaceInfoMemoized(concrete, iface, typeArgs);
             interfaces[name] = info;
             return info;
@@ -1758,8 +1840,8 @@ static class CompileCode
 
         // If possible, convert concrete type to an interface.
         // If not possible, generate a list of what's missing.
-        // Infer unresolved type args on success, or restore on failure.
-        // TBD: Make typeArgs immutable
+        // On success, return newly inferred typeArgs (return old typeArgs on fail)
+        // typeArgs is not modified
         InterfaceInfo ConvertToInterfaceInfoMemoized(Symbol concrete, Symbol iface, Symbol[] typeArgs)
         {
             // Generic arguments must be resolved
@@ -1770,24 +1852,20 @@ static class CompileCode
             // Check identity interface
             if (TypesMatch(concrete, iface))
             {
-                var ifaceIdentity = new InterfaceInfo(concrete, iface, 
-                    [], CallCompatible.Compatible);
+                var ifaceIdentity = new InterfaceInfo(concrete, iface, [], CallCompatible.Compatible, typeArgs);
                 return ifaceIdentity;
             }
 
             // Fail interface-to-interface conversion
             if (concrete.IsInterface)
             {
-                var ifaceFail = new InterfaceInfo(concrete, iface, 
-                    [], CallCompatible.InterfaceToInterfaceConversionNotSupported);
+                var ifaceFail = new InterfaceInfo(concrete, iface, [], CallCompatible.InterfaceToInterfaceConversionNotSupported, typeArgs);
                 return ifaceFail;
             }
 
-            // Save inferred type args, TBD: make typeArgs immutable
-            var hadUnresolvedTypeArgs = typeArgs.Length != 0 && typeArgs.Any(s => s.IsUnresolved);
-            var typeArgsInferred = typeArgs;
-            if (hadUnresolvedTypeArgs)
-                typeArgsInferred = (Symbol[])typeArgs.Clone();
+            // Keep typeArgs immutable (i.e. clone it if it could be changed)
+            var hadUnresolvedTypeArgs = typeArgs.Any(s => s.IsUnresolved);
+            var typeArgsInferred = hadUnresolvedTypeArgs ? typeArgs.Clone2() : typeArgs;
 
             // Get interface functions and implementing candidates
             var ifaceFunCandidates = new List<IfaceFunInfo>();
@@ -1821,7 +1899,7 @@ static class CompileCode
             if (ifaceFunCandidates.Any(f => f.Candidates.Count == 0))
             {
                 return new InterfaceInfo(concrete, table.ReplaceGenericTypeParams(iface, typeArgs), 
-                    ifaceFunCandidates.Select(s => s.IfaceFun).ToList(), CallCompatible.InterfaceNotImplementedByType);
+                    ifaceFunCandidates.Select(s => s.IfaceFun).ToList(), CallCompatible.InterfaceNotImplementedByType, typeArgs);
             }
 
             // Find list of implemented/failed functions
@@ -1884,32 +1962,30 @@ static class CompileCode
             if (failedFuns.Count != 0)
             {
                 return new InterfaceInfo(concrete, table.ReplaceGenericTypeParams(iface, typeArgs), 
-                    failedFuns, CallCompatible.InterfaceNotImplementedByType);
+                    failedFuns, CallCompatible.InterfaceNotImplementedByType, typeArgs);
             }
 
             if (typeArgsAmbiguous != null)
             {
                 return new InterfaceInfo(concrete, table.ReplaceGenericTypeParams(iface, typeArgs),
-                    typeArgsAmbiguous, CallCompatible.TypeArgsAmbiguousFromInterfaceFun);
+                    typeArgsAmbiguous, CallCompatible.TypeArgsAmbiguousFromInterfaceFun, typeArgs);
             }
 
             if (typeArgsInferred.Any(s => s.IsUnresolved))
             {
                 return new InterfaceInfo(concrete, table.ReplaceGenericTypeParams(iface, typeArgs),
-                    [table.ReplaceGenericTypeParams(iface, typeArgsInferred)], CallCompatible.TypeArgsNotInferrableFromInterfaceParameter);
+                    [table.ReplaceGenericTypeParams(iface, typeArgsInferred)], CallCompatible.TypeArgsNotInferrableFromInterfaceParameter, typeArgs);
             }
 
             // Implemented and resolved
             var ifacePassParameterized = table.ReplaceGenericTypeParams(iface, typeArgsInferred);
 
-            // TBD: Return newTypeArgs rather than mutating typeArgs here
-            typeArgsInferred.CopyTo(typeArgs.AsSpan());
-            return new InterfaceInfo(concrete, ifacePassParameterized, implementedFuns, 
-                CallCompatible.Compatible, hadUnresolvedTypeArgs ? typeArgsInferred : null);
+            return new InterfaceInfo(concrete, ifacePassParameterized, implementedFuns, CallCompatible.Compatible, typeArgsInferred);
         }
 
 
         // Match parameters to arguments and infer unresolved type args.
+        // typeArgs is not modified
         // TBD: Review similarity to AreFunParamsCompatible
         (bool match, Symbol[] inferred) AreInterfaceParamsCompatible(
             Symbol ifaceFun, Symbol concreteFun, Symbol[] typeArgs)
@@ -1917,22 +1993,16 @@ static class CompileCode
             var ifaceParams = ifaceFun.FunParamTypes;
             var funParams = concreteFun.FunParamTypes;
 
-            // Keep typeArgs immutable
+            // Keep typeArgs immutable (i.e. clone it if it could be changed)
             var typeArgsInferred = typeArgs;
-            if (typeArgs.Length != 0 && typeArgs.Any(s => s.IsUnresolved))
-                typeArgsInferred = (Symbol[])typeArgsInferred.Clone();
+            if (typeArgs.Any(s => s.IsUnresolved))
+                typeArgsInferred = typeArgsInferred.Clone2();
 
-            // TBD: Run param 0 through conversion to get proper
-            //      type inferrence on the first parameter
-            if (typeArgs.All(a => a.IsResolved))
-            {
-                //var compatP0 = IsInterfaceParamConvertable(funParams[0], ifaceParams[0], typeArgs, typeArgsInferred);
-            }
+            if (funParams.Length != ifaceParams.Length)
+                return (false, typeArgs);
 
             // Verify parameters
             // NOTE: Ignore the first parameter because it is the interface
-            if (funParams.Length != ifaceParams.Length)
-                return (false, typeArgs);
             for (int i = 1; i < funParams.Length; i++)
             {
                 var compat = IsInterfaceParamConvertable(funParams[i], ifaceParams[i], typeArgs, typeArgsInferred);
@@ -1996,7 +2066,7 @@ static class CompileCode
             {
                 // When all type params are resolved, we are good to go
                 // because the subsitution below should always succeed
-                if (typeArgs.All(ta => ta.IsResolved))
+                if (ifaceConversion.TypeArgs?.All(ta => ta.IsResolved) ?? true)
                 {
                     // ***TBD***: Still working on this, all should be good
                     //return CallCompatible.Compatible;
@@ -2029,16 +2099,18 @@ static class CompileCode
         /// <summary>
         /// Check to see if the types match while inferring type args.
         /// Infer newTypeArgs on success, otherwise return original typeArgs.
-        /// typeArgs in not modified.
+        /// typeArgs are not modified.
         /// </summary>
         (bool match, Symbol[] newTypeArgs) InferTypesMatch(Symbol argType, Symbol paramType, Symbol[] typeArgs)
         {
-            // Fast path for no type args
+            // Fast paths for non-matching concrete type or no type-args
+            if (!paramType.IsGenericArg && argType.Concrete.FullName != paramType.Concrete.FullName)
+                return (false, typeArgs);
             if (typeArgs.Length == 0 || !paramType.HasGenericArg)
                 return (TypesMatch(argType, paramType), typeArgs);
 
             // Infer types on unresolved parameters (non-destructively)
-            var typeArgsInferred = typeArgs.All(s => s.IsResolved) ? typeArgs : (Symbol[])typeArgs.Clone();
+            var typeArgsInferred = typeArgs.All(s => s.IsResolved) ? typeArgs : typeArgs.Clone2();
             var match = InferTypesMatchNoRestore(argType, paramType, typeArgsInferred);
             return (match, match ? typeArgsInferred : typeArgs);
         }
@@ -2049,9 +2121,6 @@ static class CompileCode
         /// </summary>
         bool InferTypesMatchNoRestore(Symbol argType, Symbol paramType, Symbol[] typeArgs)
         {
-            argType = DerefRef(argType);
-            paramType = DerefRef(paramType);
-
             // If it's a generic arg, use the given parameter type
             if (paramType.IsGenericArg)
             {

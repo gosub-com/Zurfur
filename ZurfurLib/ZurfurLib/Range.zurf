@@ -17,7 +17,7 @@ pub fun .new<T>(my Range<T>, low T, high T) Range<T>
 pub fun get .length<T Number<T>>(my Range<T>) T // TBD: Use constraints from `Range`
     return my.high-my.low
 
-pub fun get .getIterator<T>(my Range<T>) RangeIterator<T>
+pub implicit fun get .asIterator<T>(my Range<T>) RangeIterator<T>
     return RangeIterator<T>(my.low, my.high)
         
 pub type RangeIterator<T Number<T>>

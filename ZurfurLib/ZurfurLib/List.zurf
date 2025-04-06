@@ -64,19 +64,8 @@ pub fun .new<T Clone<T>>(my List<T>, items []T)
 pub fun .new<T>(my List<T>, items mut Iterator<T>)
     todo
 
-pub fun _opIndex<T>(l List<T>, i Int) mut &T
-    require(i in 0..l.len)
-    todo
-
-pub fun _opIndex<T>(l List<T>, r Range<Int>) mut []T
-    require(r.low in 0..l.len)
-    require(r.high in 0..l.len)
-    require(r.low <= r.high)
-    todo
-
-pub fun get .getIterator<T>(my List<T>) SpanIterator<T>
-    todo
-
+pub implicit fun get .asSpan<T>(my List<T>) Span<T> todo
+pub implicit fun get .asIterator<T>(my List<T>) SpanIterator<T> todo
 
 pub fun get .capacity<T>(my List<T>) Int
     return my.list.capacity.toInt

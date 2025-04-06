@@ -1,24 +1,19 @@
 ﻿
 mod Zurfur
 
-pub type interface GetIterator<T>
-    fun .getIterator() Iterator<T>
+pub type interface Iterable<T>
+    fun .asIterator() Iterator<T>
 
 // Implement this on all iterators
 pub type interface Iterator<T>
     fun mut .next() ?T
 
 
-fun _for<S>(s GetIterator<S>) Iterator<S>
-    return s.getIterator
-fun _for<S>(s Iterator<S>) Iterator<S>
-    return s
+// This is never called.  It is implemented by the compiler to generate a for loop.
+fun ._for<T>(my Iterator<T>) T extern
 
 
 // *** MAP ***
-
-fun .map<S,R>(my GetIterator<S>, f fun(inoput S) R) Iterator<R>
-    return my.getIterator.map(f)
 
 fun .map<S, R>(my Iterator<S>, f fun(input S) R) Iterator<R>
     return MapIterator<S, R>(my, f)
@@ -40,9 +35,6 @@ fun .next<S, R>(my mut MapIterator<S,R>) ?R
 
 // *** FILTER ***
 
-fun .filter<S>(my GetIterator<S>, f fun(inoput S) Bool) Iterator<S>
-    return my.getIterator.filter(f)
-
 fun .filter<S>(my Iterator<S>, f fun(input S) Bool) Iterator<S>
     return FilterIterator<S>(my, f)
     
@@ -63,16 +55,11 @@ fun .next<S>(my mut FilterIterator<S>) ?S
 
 // *** OTHER ***
 
-fun .reduce<S,R>(my GetIterator<S>, acc R, f fun(acc R, value S) R) R
-    return my.getIterator.reduce<S,R>(acc, f)
 
 fun .reduce<S,R>(my Iterator<S>, acc R, f fun(acc R, value S) R) R
     while my.next() @ item
         acc = f(acc, item)
     return acc
-
-fun .reduce<S>(my GetIterator<S>, f fun(item1 S, item2 S) S) ?S
-    return my.getIterator.reduce<S>(f)
 
 fun .reduce<S>(my Iterator<S>, f fun(item1 S, item2 S) S) ?S
     if not (my.next()@acc)
@@ -82,7 +69,7 @@ fun .reduce<S>(my Iterator<S>, f fun(item1 S, item2 S) S) ?S
     return acc
 
 
-pub fun .toList<T GetIterator<T>>(my mut Iterator<T>) List<T>
+pub fun .toList<T Iterable<T>>(my mut Iterator<T>) List<T>
     @list = List<T>()
     while my.next()@item
         list.push(item)

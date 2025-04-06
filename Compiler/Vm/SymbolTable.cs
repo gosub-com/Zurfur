@@ -23,7 +23,7 @@ public record InterfaceInfo(
     Symbol Interface, 
     List<Symbol> Functions, 
     CallCompatible Compatibility,
-    Symbol[]? TypeArgs = null)
+    Symbol[] TypeArgs)
 {
     public string Name { get; private set; } = GetName(Concrete, Interface);
     public override string ToString() => Name;
@@ -52,6 +52,8 @@ public enum CallCompatible
     InterfaceGenerating,
     InterfaceToInterfaceConversionNotSupported,
     InterfaceNotImplementedByType,
+    ImplicitConversionAmbiguous,
+    ImplicitConversionToInterfaceAmbiguous,
 }
 
 /// <summary>
@@ -100,6 +102,8 @@ public class SymbolTable
     public Symbol Unresolved { get; private set; }
     public Symbol []CreateUnresolvedArray(int count)
     {
+        if (count == 0)
+            return Array.Empty<Symbol>();
         var unresolved = new Symbol[count];
         Array.Fill(unresolved, Unresolved);
         return unresolved;
@@ -297,7 +301,7 @@ public class SymbolTable
     {
         if (args.Length == 0 || !type.HasGenericArg)
         {
-            Debug.Assert(type.Type == null);
+            //Debug.Assert(type.Type == null);
             return type;
         }
 

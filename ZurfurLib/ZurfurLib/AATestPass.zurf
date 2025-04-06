@@ -38,7 +38,60 @@ fun test_interfaces()
 fun inferIterator<A,I>(a A, i Iterator<I>) todo
 fun test_inferIterator()
     inferIterator(1, SpanIterator<F32>())  // inferIterator<Int,F32>
-    inferIterator(1, List<F32>().getIterator)  // inferIterator<Int,F32>
+    inferIterator(1, List<F32>().asIterator)  // inferIterator<Int,F32>
+    inferIterator(1, List<F32>())  // inferIterator<Int,F32>
     
+// Simple implicit conversion
+type FromImplicit()
+type ToImplicit()
+implicit fun .toToImplicit(a FromImplicit) ToImplicit todo
+implicit fun .toToImplicit(a Map<Int,Float>) ToImplicit todo
+fun checkImplicit1(a ToImplicit) todo
+fun test_implicit()
+    checkImplicit1(ToImplicit())
+    checkImplicit1(FromImplicit())
+    checkImplicit1(Map<Int,Float>())
+    // checkImplicit1(Map<Int,Int>())  FAIL because no implicit conversion
 
+// Generic implcit conversion
+type FromImplicitG<T1, T2, T3>()
+type ToImplicitG<T1, T2, T3>()
+implicit fun .toToImplicit<T1,T2,T3>(a FromImplicitG<T1,T2,T3>) ToImplicitG<Int,T3, T2> todo
+fun checkImplicitG<T1,T2,T3>(a ToImplicitG<T1,T2,T3>)(a T2,b T3,c T1) todo
+fun checkInferredG<T1,T2,T3>(a T2, b ToImplicitG<Int, T3, I8>, c ToImplicitG<Int, I16, T1>)(a T2, b T3, c T1) todo
+fun makeImplicitFromG<T1, T2, T3>(a T1, b T2, c T3) FromImplicitG<T2, T3, T1> todo
+fun test_implicitG()
+    // Rotate type args though checkImplcit2 without conversion
+    let a (I32, U32, F32) = checkImplicitG(ToImplicitG<F32,I32,U32>())
+    // Rotate type args though conversion (set T1 to Int and swap T2 and T3) then rotate through checkImplcit2
+    let b (U32, I32, Int) = checkImplicitG(FromImplicitG<F32,I32,U32>())
+    // Make implicit rotates args
+    let c FromImplicitG<Byte, I8, U32> = makeImplicitFromG(1U32, Byte(), I8())
+    let d ToImplicitG<Int, U32, I8> = c // Implicit conversion (T1=Int,T2=T3,T3=T2)
+    let e FromImplicitG<Str, U64,I16> = makeImplicitFromG(I16(), "", 1U64)
+    let f ToImplicitG<Int, I16, U64> = e // Implicit conversion (T1=Int,T2=T3,T3=T2)
+    let g (Float, U32, U64) = checkInferredG(1.0, c, e)
+    let h (Float, U32, U64) = checkInferredG(1.0, c, f)
+    let i (Float, U32, U64) = checkInferredG(1.0, d, e)
+    let j (Float, U32, U64) = checkInferredG(1.0, c, f)
+    let k (Float, U32, U64) = checkInferredG(1.0, makeImplicitFromG(1U32, Byte(), I8()), makeImplicitFromG(I16(), "", 1U64)) 
+
+// Implicit conversion to interface
+type interface ImplicitI<T>
+    fun .callme(a T) T
+type ToImplicitI<T>()
+fun .callme<T>(my ToImplicitI<T>, a T)T todo
+type FromImplicitI<T>()
+implicit fun .toToImplicit<T>(my FromImplicitI<T>)ToImplicitI<T> todo
+fun checkImplicitFun<T>(a ToImplicitI<T>) T todo
+fun checkImplicitI<T>(a ImplicitI<T>) T
+    return a.callme(T())
+fun checkImplicitI2(a ImplicitI<Int>) Int
+    return a.callme(Int())
+fun test_implicitI()
+    let a Float = checkImplicitFun(ToImplicitI<Float>())
+    let b Float = checkImplicitFun(FromImplicitI<Float>())
+    let c Int = checkImplicitI(ToImplicitI<Int>())
+    let d = checkImplicitI(FromImplicitI<Int>())
+    let e = checkImplicitI2(FromImplicitI<Int>())
     
