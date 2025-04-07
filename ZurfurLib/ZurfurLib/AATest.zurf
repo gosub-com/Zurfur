@@ -53,8 +53,8 @@ fun test_reduce()
     @myReduceTuple1 = List<(x Int, y Int)>().reduce(|item1, item2| => item1)
     @myReduceTuple2 = List<(a Int, b Int)>().reduce(|item1, item2| => item2)
 
-pub type MyType()
-implicit fun .asIterator(my MyType) MyTypeIter todo
+[pub] type MyType()
+[implicit] fun .asIterator(my MyType) MyTypeIter todo
 
 type MyTypeIter()
 fun .next(my MyTypeIter) ?Int
@@ -184,7 +184,7 @@ type MyCollectionNot<T> {}
 type MyCollectionNotIter<T> {}
 
 
-implicit fun .asIterator<T>(my MyCollection<T>) MyCollectionIter<T>
+[implicit] fun .asIterator<T>(my MyCollection<T>) MyCollectionIter<T>
     nop
 fun .next<T>(my MyCollectionIter<T>) ?T
     nop
@@ -236,9 +236,9 @@ fun test_map()
         Log.info("")
 
 
-pub fun .asIterator<T>(my MyCollectionNot<T>) MyCollectionNotIter<T>
+[pub] fun .asIterator<T>(my MyCollectionNot<T>) MyCollectionNotIter<T>
     nop
-pub fun .next<T>(my MyCollectionNotIter<T>) ?T
+[pub] fun .next<T>(my MyCollectionNotIter<T>) ?T
     nop
     
 
@@ -653,15 +653,15 @@ type aapoint
 type bbpoint
     v Void
 
-pub fun .x(my aapoint) {}
+[pub] fun .x(my aapoint) {}
 
-pub fun .xx(my bbpoint) {}
+[pub] fun .xx(my bbpoint) {}
 
-pub fun .y(my aapoint) {}
-pub fun .yy(my bbpoint) {}
+[pub] fun .y(my aapoint) {}
+[pub] fun .yy(my bbpoint) {}
 
   
-pub type AAFun    
+[pub] type AAFun    
     aaf4 fun(a Int, b Int) Int
     aaf5 AAFunc<Int, Int>
     aaf6 fun()()
@@ -685,7 +685,7 @@ fun .af6(my AAFun, p fun(v Int)Bool) {}
 fun .af7<X>(my AAFun, p fun(v X)Bool) {}
 
 
-pub type AAFunc<T1,T2>
+[pub] type AAFunc<T1,T2>
     Invoke fun (v T1) T2
 
 
@@ -695,10 +695,10 @@ fun .af6<T,QQQ>(my AGenericTest<T,QQQ>, p fun(v Int)Bool) {}
 type interface ToStr
     fun get .toStr() Str
 
-pub fun GenericTest<Q1 ToStr,Q2 ToStr>(a Q1, b Q2) Int
+[pub] fun GenericTest<Q1 ToStr,Q2 ToStr>(a Q1, b Q2) Int
     return a.toStr.len + b.toStr.len    
 
-pub type AGenericTest<T, QQQ Equatable<T>> // TBD: new() where T : new()
+[pub] type AGenericTest<T, QQQ Equatable<T>> // TBD: new() where T : new()
     
     af0 fun()()
     af1 fun()

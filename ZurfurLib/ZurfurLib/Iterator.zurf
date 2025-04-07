@@ -1,11 +1,11 @@
 ﻿
 mod Zurfur
 
-pub type interface Iterable<T>
+[pub] type interface Iterable<T>
     fun .asIterator() Iterator<T>
 
 // Implement this on all iterators
-pub type interface Iterator<T>
+[pub] type interface Iterator<T>
     fun mut .next() ?T
 
 
@@ -69,7 +69,7 @@ fun .reduce<S>(my Iterator<S>, f fun(item1 S, item2 S) S) ?S
     return acc
 
 
-pub fun .toList<T Iterable<T>>(my mut Iterator<T>) List<T>
+[pub] fun .toList<T Iterable<T>>(my mut Iterator<T>) List<T>
     @list = List<T>()
     while my.next()@item
         list.push(item)

@@ -8,6 +8,9 @@ using Gosub.Lex;
 
 namespace Zurfur.Compiler;
 
+/// <summary>
+/// Utilities used when compiling the header and code
+/// </summary>
 static class Resolver
 {
     /// <summary>

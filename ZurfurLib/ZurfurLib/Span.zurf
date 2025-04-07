@@ -6,17 +6,18 @@ use Zurfur[Equatable]
 use Zurfur.Unsafe[castPointer, RawPointer]
 
 // []T is converted to Span<T>
-pub type ref Span<T>
+[pub] type ref Span<T>
     data ro mut &T
     len ro Int
 
-pub implicit fun get .asIterator<T>(my Span<T>) SpanIterator<T> todo
+[pub][implicit]
+fun get .asIterator<T>(my Span<T>) SpanIterator<T> todo
 
-pub type ref SpanIterator<T>
+[pub] type ref SpanIterator<T>
     _data *T
     _end *T
 
-pub fun .next<T>(my SpanIterator<T>) ?&T
+[pub] fun .next<T>(my SpanIterator<T>) ?&T
     if my._data >= my._end
         return nil
     @r = my._data
@@ -24,11 +25,11 @@ pub fun .next<T>(my SpanIterator<T>) ?&T
     return r
        
     
-pub fun _opIndex<T>(s Span<T>, i Int) mut &T
+[pub] fun _opIndex<T>(s Span<T>, i Int) mut &T
     require(i in 0..s.len)
     todo // Implementation TBD
 
-pub fun _opIndex<T>(s Span<T>, range Range<Int>) mut Span<T>
+[pub] fun _opIndex<T>(s Span<T>, range Range<Int>) mut Span<T>
     require(range.low in 0..s.len)
     require(range.high in 0..s.len)
     require(range.low <= range.high)

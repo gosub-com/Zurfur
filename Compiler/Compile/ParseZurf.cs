@@ -592,13 +592,13 @@ class ParseZurf
         while (AcceptMatch("["))
         {
             var open = _prevToken;
-            attributes.Add(ParseExpr());
+            if (s_scopeQualifiers.Contains(_token))
+                qualifiers.Add(Accept());
+            else
+                attributes.Add(ParseExpr());
             if (AcceptMatchOrReject("]"))
                 Connect(_prevToken, open);
         }
-
-        while (s_scopeQualifiers.Contains(_token))
-            qualifiers.Add(Accept());
 
         FreeExprList(attributes); // TBD: Store in expression tree
     }

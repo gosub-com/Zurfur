@@ -4,11 +4,11 @@ mod Zurfur.Io.File
 use Zurfur.Io[FileStream]
 
 
-pub afun open(fileName Str, mode Str="r") !FileStream { }
-pub afun readAllText(fileName Str) !List<Str> { }
-pub afun readAllBytes(fileName Str) !List<Byte> { }
-pub afun writeAllText(fileName Str, data List<Str>) ! { }
-pub afun writeAllBytes(fileName Str, data List<Byte>) ! { }
+[pub] afun open(fileName Str, mode Str="r") !FileStream { }
+[pub] afun readAllText(fileName Str) !List<Str> { }
+[pub] afun readAllBytes(fileName Str) !List<Byte> { }
+[pub] afun writeAllText(fileName Str, data List<Str>) ! { }
+[pub] afun writeAllBytes(fileName Str, data List<Byte>) ! { }
 
 // TBD: It's probably better to have cancellation built
 //      into the async system.  Maybe progress too.

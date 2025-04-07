@@ -101,7 +101,7 @@ type MyCollectionNot<T> {}
 type MyCollectionNotIter<T> {}
 
 
-implicit fun .asIterator<T>(my MyCollection<T>) MyCollectionIter<T>
+[implicit] fun .asIterator<T>(my MyCollection<T>) MyCollectionIter<T>
     nop
 fun .next<T>(my MyCollectionIter<T>) ?T
     nop
