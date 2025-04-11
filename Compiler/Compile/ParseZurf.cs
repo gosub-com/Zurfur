@@ -593,9 +593,16 @@ class ParseZurf
         {
             var open = _prevToken;
             if (s_scopeQualifiers.Contains(_token))
-                qualifiers.Add(Accept());
+            {
+                do
+                {
+                    qualifiers.Add(Accept());
+                } while (AcceptMatch(","));
+            }
             else
+            {
                 attributes.Add(ParseExpr());
+            }
             if (AcceptMatchOrReject("]"))
                 Connect(_prevToken, open);
         }
@@ -713,28 +720,26 @@ class ParseZurf
         if (!CheckIdentifier("Expecting a type name"))
             return;
 
-        var synTypeName = Accept();
-        synTypeName.Type = TokenType.TypeName;
-        (var synTypeTypeArgs, var synTypeConstraints) = ParseTypeParameters();
+        var typeName = Accept();
+        typeName.Type = TokenType.TypeName;
+        var typeArgs = ParseTypeParameters();
+        var constraints = ParseConstraints(keyword);
 
-        var synType = new SyntaxType(keyword, synTypeName) 
+        var synType = new SyntaxType(keyword, typeName) 
         {
             Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last(),
             Comments = comments,
             Qualifiers = qualifiers.ToArray(),
-            TypeArgs = synTypeTypeArgs,
-            Constraints = synTypeConstraints
+            TypeArgs = typeArgs,
+            Constraints = constraints ?? []
         };
 
-
         _syntax.Types.Add(synType);
-        RejectUnderscoreDefinition(synTypeName);
-
+        RejectUnderscoreDefinition(typeName);
 
         // Push new path
         var oldScopeStack = _scopeStack;
-        _scopeStack = new List<SyntaxScope>(oldScopeStack);
-        _scopeStack.Add(synType);
+        _scopeStack = [.. oldScopeStack, synType];
 
         // Simple struct
         if (AcceptMatch("("))
@@ -841,11 +846,10 @@ class ParseZurf
         }
     }
 
-
-    (SyntaxExpr? typeParams, SyntaxConstraint[]? constraints) ParseTypeParameters()
+    SyntaxExpr? ParseTypeParameters()
     {
         if (!AcceptMatch("<"))
-            return (null, null);
+            return null;
         var openToken = _prevToken;
         var typeParams = NewExprList();
         var constraints = Array.Empty<SyntaxConstraint>();
@@ -856,35 +860,40 @@ class ParseZurf
             if (_prevToken.Type == TokenType.Identifier)
                 _prevToken.Type = TokenType.DefineTypeParam;
 
-            if (_token.Type == TokenType.Identifier)
-            {
-                var constraint = ParseConstraint(_prevToken);
-                if (constraint != null)
-                    constraints = constraints.Append(constraint).ToArray();
-            }
-
             if (AcceptMatch(","))
                 Connect(openToken, _prevToken);
         }
         if (AcceptMatch(">"))
             Connect(openToken, _prevToken);
 
-        return (new SyntaxMulti(openToken, FreeExprList(typeParams)), constraints);
+        return new SyntaxMulti(openToken, FreeExprList(typeParams));
     }
 
-    SyntaxConstraint? ParseConstraint(Token typeToken)
+
+    SyntaxConstraint[] ParseConstraints(Token keyword)
     {
-        if (_token.Type != TokenType.Identifier)
-            return null;
-
-        var constraintTypeNames = NewExprList();
-        while (_token.Type == TokenType.Identifier)
+        if (!AcceptMatchPastMetaSemicolon("where", keyword))
+            return [];
+        
+        var constraints = new List<SyntaxConstraint>();
+        do
         {
-            constraintTypeNames.Add(ParseType());
-            AcceptMatch("+");
-        }
-        return new SyntaxConstraint(typeToken, FreeExprList(constraintTypeNames));
+            if (AcceptIdentifier("Expecting type parameter name", s_rejectTypeName))
+            {
+                var typeName = _prevToken;
+                typeName.Type = TokenType.TypeName;
+                var constraintTypeNames = NewExprList();
+                do
+                {
+                    constraintTypeNames.Add(ParseType());
+                } while (AcceptMatch("+"));
+                if (constraintTypeNames.Count != 0)
+                    constraints.Add(new SyntaxConstraint(typeName, FreeExprList(constraintTypeNames)));
+            }
+        } while (AcceptMatch(","));
+        return constraints.ToArray();
     }
+
 
     SyntaxField? ParseEnumField(List<Token> qualifiers)
     {
@@ -1016,12 +1025,10 @@ class ParseZurf
 
         var hasReceiver = AcceptMatch(".");
 
-
         var validFunctionName = ParseExtensionTypeAndMethodName(out var funcName);
-        (var typeArgs, var constraints) = ParseTypeParameters();
-
-
+        var typeArgs = ParseTypeParameters();
         var functionSignature = ParseFunctionSignature(keyword);
+        var constraints = ParseConstraints(keyword);
 
         var synFunc = new SyntaxFunc(keyword, funcName)
         {
@@ -1029,7 +1036,7 @@ class ParseZurf
             Comments = comments,
             HasReceiver = hasReceiver,
             TypeArgs = typeArgs,
-            Constraints = constraints,
+            Constraints = constraints ?? [],
             FunctionSignature = functionSignature
         };
 
@@ -2168,29 +2175,29 @@ class ParseZurf
         return false;
     }
 
-    bool IsMatchPastMetaSemicolon(string match)
+    bool AcceptMatchPastMetaSemicolon(string match, Token keyword)
     {
-        if (_tokenName == match)
+        if (AcceptMatch(match))
+        {
+            _prevToken.Type = TokenType.Reserved;
             return true;
+        }
         if (!_token.Meta || _tokenName != ";")
             return false;
-        return NextLineToken() == match;
+
+        // Token on next line must match and line up under first token of this line
+        if (_token.Y + 1 >= _lexer.LineCount)
+            return false;
+        var nextLineTokens = _lexer.GetLineTokens(_token.Y + 1);
+        if (nextLineTokens.Length == 0 || nextLineTokens[0].Name != match || nextLineTokens[0].X != _lexer.GetLineTokens(keyword.Y)[0].X) 
+            return false;
+        Accept();
+        Accept();
+        Debug.Assert(_prevToken.Name == match);
+        _prevToken.Type = TokenType.Reserved;
+        return true;
     }
 
-    // Return the token on the next line ignoring empty lines and comments
-    Token NextLineToken()
-    {
-        int y = _token.Y + 1;
-        while (y < _lexer.LineCount)
-        {
-            var lt = _lexer.GetLineTokens(y);
-            y++;
-            if (lt.Length == 0 || lt[0] == TOKEN_COMMENT)
-                continue;
-            return lt[0];
-        }
-        return EmptyToken;
-    }
 
     bool ExpectStartOfScope()
     {

@@ -53,7 +53,8 @@ fun test_map()
 
 // Declare a method to multiply and add three keys on Map<K,V>.
 // Return Nan (or MinValue for integer types) if any key is missing.
-fun .madd<K,V Number<V>>(my Map<K,V>, mul1 K, mul2 K, add K) V
+fun .madd<K,V>(my Map<K,V>, mul1 K, mul2 K, add K) V
+where V Number<V>
     if my[mul1]@mul1Val and my[mul2]@mul2Val and my[add]@addVal
         return mul1Val * mul2Val + addVal
     return V.NanOrMin        
@@ -74,7 +75,8 @@ fun .next(my MyTypeIter) ?Int
     todo
 
 // Setter for list, which is already public read-only
-[pub] fun set .list(my MyType, v own List<Int>)
+[pub]
+fun set .list(my MyType, v own List<Int>)
     my._list = v
     my.mapChangedEvent()
     for x in MyType()
@@ -101,7 +103,8 @@ fun test_HelloWorld()
     let t1r2 = t1.y
 
             
-[pub] fun circle(a Float, r Float)(x Float, y Float)
+[pub]
+fun circle(a Float, r Float)(x Float, y Float)
     let q = circle(1.0,2.0)
     let p = q.x
     return (cos(a)*r, sin(a)*r)
@@ -109,7 +112,8 @@ fun test_HelloWorld()
 fun circle2<T0, T1>(a T0, r T1)(x T0, y T1)
     return (T0(), T1())
 
-[pub] type Example
+[pub]
+type Example
     
     a1 Str
     a2 Str = "Hello"
@@ -139,7 +143,8 @@ fun circle2<T0, T1>(a T0, r T1)(x T0, y T1)
     o Zim<Str>
     p Zim<Decimal>
 
-[pub] type Zim<T>
+[pub]
+type Zim<T>
     q T pub mut
 
 // Type test for test_main
@@ -149,7 +154,8 @@ fun AcceptMatch(m Str) ?Token
 
 // This is a public documentation comment.  Do not use XML.
 // Use `name` to refer to variables in the code.
-[pub] fun test_Main(args Array<Str>, stream Zurfur.Io.Reader)
+[pub]
+fun test_Main(args Array<Str>, stream Zurfur.Io.Reader)
 
     // This is a regular private comment
     Log.info("Hello World, 2+2={2+2}")

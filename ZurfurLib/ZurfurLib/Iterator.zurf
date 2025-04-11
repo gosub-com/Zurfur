@@ -69,7 +69,9 @@ fun .reduce<S>(my Iterator<S>, f fun(item1 S, item2 S) S) ?S
     return acc
 
 
-[pub] fun .toList<T Iterable<T>>(my mut Iterator<T>) List<T>
+[pub]
+fun .toList<T>(my mut Iterator<T>) List<T>
+where T Iterable<T>
     @list = List<T>()
     while my.next()@item
         list.push(item)

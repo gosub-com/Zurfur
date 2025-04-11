@@ -10,12 +10,15 @@ fun .getRawPointer<T>(my Ref<T>) RawPointerMarker extern
 fun .getRawPointer<T>(my RawPointer<T>) RawPointerMarker extern
 
 // Cast from one pointer type to another pointer type.
-[pub] fun castPointer<T GetRawPointer>(i GetRawPointer) T
+[pub]
+fun castPointer<T>(i GetRawPointer) T
+where T GetRawPointer
     extern
 
 // Unsigned extended Int, U32 or U64 depending on machine pointer size.
 // This is the internal representation of a pointer.
-[pub] type ro Xuint
+[pub]
+type ro Xuint
     value U32 // or U64
 
 fun .new(my Xuint, value U64) Xuint
@@ -40,23 +43,22 @@ type interface GetRawPointer
 
 // A raw pointer.  The compiler translates *T to RawPointer<T>
 // and automatically dereferences when "." is used.
-[pub] type ro RawPointer<T>
+[pub]
+type ro RawPointer<T>
     value Xuint
 
-[pub] [implicit]
-fun .toVoid<T>(p *T)*Void extern
+[pub, implicit] fun .toVoid<T>(p *T)*Void extern
 
-[pub] [implicit]
-fun .toPointer<T>(n Nil)*T extern
+[pub, implicit] fun .toPointer<T>(n Nil)*T extern
 
-fun _opEq<T>(a RawPointer<T>, b RawPointer<T>) Bool extern
-fun _opCmp<T>(a RawPointer<T>, b RawPointer<T>) Int extern
-fun _opAdd<T>(a RawPointer<T>, b U64) RawPointer<T> extern
-fun _opAdd<T>(a U64, b RawPointer<T>) RawPointer<T> extern
-fun _opSub<T>(a RawPointer<T>, b RawPointer<T>) RawPointer<T> extern
-fun _opSub<T>(a RawPointer<T>, b U64) RawPointer<T> extern
-fun _opAdd<T>(a RawPointer<T>, b Int) *T extern
-fun _opAdd<T>(a Int,b *T) *T extern
+[pub] fun _opEq<T>(a RawPointer<T>, b RawPointer<T>) Bool extern
+[pub] fun _opCmp<T>(a RawPointer<T>, b RawPointer<T>) Int extern
+[pub] fun _opAdd<T>(a RawPointer<T>, b U64) RawPointer<T> extern
+[pub] fun _opAdd<T>(a U64, b RawPointer<T>) RawPointer<T> extern
+[pub] fun _opSub<T>(a RawPointer<T>, b RawPointer<T>) RawPointer<T> extern
+[pub] fun _opSub<T>(a RawPointer<T>, b U64) RawPointer<T> extern
+[pub] fun _opAdd<T>(a RawPointer<T>, b Int) *T extern
+[pub] fun _opAdd<T>(a Int,b *T) *T extern
 
 
 // TBD: Move to a different modulem probably Zurfur.Internal

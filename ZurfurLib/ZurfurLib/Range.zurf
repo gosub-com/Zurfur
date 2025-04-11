@@ -5,32 +5,42 @@ use Zurfur[Copy, Iterator, Number]
 use Zurfur.Math[abs]
 
 // TBD: Default constructor taking low and high
-[pub] type struct Range<T Number<T>>
+[pub]
+type struct Range<T>
+where T Number<T>
     low T
     high T
 
-[pub] fun .new<T>(my Range<T>, low T, high T) Range<T>
+[pub]
+fun .new<T>(my Range<T>, low T, high T) Range<T>
     // TBD: (r.low, r.high) = (low, high)
     my.low = low
     my.high = high
 
-[pub] fun get .length<T Number<T>>(my Range<T>) T // TBD: Use constraints from `Range`
+[pub]
+fun get .length<T>(my Range<T>) T // TBD: Use constraints from `Range`
+where T Number<T>
     return my.high-my.low
 
-[pub] [implicit]
+[pub, implicit]
 fun get .asIterator<T>(my Range<T>) RangeIterator<T>
     return RangeIterator<T>(my.low, my.high)
         
-[pub] type RangeIterator<T Number<T>>
+[pub]
+type RangeIterator<T>
+where T Number<T>
     current T pub init
     high T pub init
 
-[pub] fun .new<T>(my RangeIterator<T>, low T, high T) RangeIterator<T>
+[pub]
+fun .new<T>(my RangeIterator<T>, low T, high T) RangeIterator<T>
     // TBD: (my.current, my.high) = (low, high)
     my.current = low
     my.high = high
 
-[pub] fun .next<T Number<T>>(my mut RangeIterator<T>) ?T
+[pub]
+fun .next<T>(my mut RangeIterator<T>) ?T
+where T Number<T>
     if my.current >= my.high
         return nil
     @prev = my.current

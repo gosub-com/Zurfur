@@ -9,55 +9,71 @@ type MapEntry(index U32, hash U32)
 
 
 // Key value pair
-[pub] type KvPair<K Equatable<K>, V>
+[pub]
+type KvPair<K, V>
+where K Equatable<K>
     key K pub ref
     value V pub mut
 
 // A map is a hash table
-[pub] type Map<K Equatable<K>,V>
+[pub]
+type Map<K,V>
+where K Equatable<K>
     _items List<KvPair<K,V>>
     _buckets List<MapEntry>
 
 
 
 // TBD: Need this: fun (kv Map<K,V>.Pair) ...
-[pub] fun .new<K,V>(my KvPair<K,V>, key own K, value own V) KvPair<K,V>
+[pub]
+fun .new<K,V>(my KvPair<K,V>, key own K, value own V) KvPair<K,V>
     my.key = key
     my.value = value
 
 
-[pub] fun .new<K,V>(my Map<K,V>, capacity Int) Map<K,V>
+[pub]
+fun .new<K,V>(my Map<K,V>, capacity Int) Map<K,V>
     extern
     
-[pub] fun .new<K,V>(keyValues Iterator<KvPair<K, V>>) Map<K,V>
+[pub]
+fun .new<K,V>(keyValues Iterator<KvPair<K, V>>) Map<K,V>
     extern
     
-[pub] fun get .len<K,V>(my Map<K,V>) Int
+[pub]
+fun get .len<K,V>(my Map<K,V>) Int
     extern
 
 // TBD: Figure out map["Hello"] += 1
-[pub] fun _opIndex<K,V>(m Map<K,V>, key K) mut ?&V
+[pub]
+fun _opIndex<K,V>(m Map<K,V>, key K) mut ?&V
     extern
 
-[pub] fun .contains<K,V>(my Map<K,V>, key K) Bool
+[pub]
+fun .contains<K,V>(my Map<K,V>, key K) Bool
     extern
 
-[pub] fun get .keys<K,V>(my Map<K,V>) Iterator<K>
+[pub]
+fun get .keys<K,V>(my Map<K,V>) Iterator<K>
     extern
 
-[pub] fun get .values<K,V>(my Map<K,V>) mut Iterator<V>
+[pub]
+fun get .values<K,V>(my Map<K,V>) mut Iterator<V>
     extern
 
-[pub] fun .clear<K,V>(my mut Map<K,V>)
+[pub]
+fun .clear<K,V>(my mut Map<K,V>)
     extern
 
-[pub] fun .add<K,V>(my mut Map<K,V>, item KvPair<K, V>)
+[pub]
+fun .add<K,V>(my mut Map<K,V>, item KvPair<K, V>)
     extern
 
-[pub] fun .add<K,V>(my mut Map<K,V>, items Iterator<KvPair<K, V>>)
+[pub]
+fun .add<K,V>(my mut Map<K,V>, items Iterator<KvPair<K, V>>)
     extern
 
-[pub] fun .remove<K,V>(my mut Map<K,V>, key K) ?V
+[pub]
+fun .remove<K,V>(my mut Map<K,V>, key K) ?V
     extern
 
     

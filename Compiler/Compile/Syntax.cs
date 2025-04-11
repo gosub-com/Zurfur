@@ -85,10 +85,10 @@ record class SyntaxType : SyntaxScope
     public bool Simple;
     public SyntaxExpr? Alias;
     public SyntaxExpr? TypeArgs { get; init; }
-    public SyntaxConstraint[]? Constraints { get; init; }
+    public SyntaxConstraint[] Constraints { get; init; } = [];
 }
 
-record class SyntaxConstraint(Token? TypeName, SyntaxExpr[]? TypeConstraints);
+record class SyntaxConstraint(Token? TypeName, SyntaxExpr[] TypeConstraints);
 
 record class SyntaxField : SyntaxScope
 {
@@ -117,6 +117,6 @@ record class SyntaxFunc : SyntaxScope
     public bool HasReceiver { get; init; }
     public SyntaxExpr? TypeArgs { get; init; }
     public SyntaxExpr? FunctionSignature { get; init; }
-    public SyntaxConstraint[]? Constraints { get; init; }
+    public SyntaxConstraint[] Constraints { get; init; } = [];
     public SyntaxExpr? Statements;
 }

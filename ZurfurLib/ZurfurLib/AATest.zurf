@@ -142,26 +142,30 @@ type interface Printable
 type interface Printable2
     fun .toStr() Str    
 
-fun test_printableFail<T Printable, Q>(t T, q Q)
+fun test_printableFail<T, Q>(t T, q Q)
+where T Printable
     // Fail test case
     //q.toStr
     nop
 
 // TBD: This should be acceptable
-fun test_printableAmbiguous<T Printable + Printable2>(t T)
+fun test_printableAmbiguous<T>(t T)
+where T Printable + Printable2
     t.toStr // TBD: Should not fail
 
 
 type interface TestGlobal
     fun testGlobal()
     
-fun test_Global<T TestGlobal>()
+fun test_Global<T>()
+where T TestGlobal
     testGlobal()
 
 type interface TestGlobal2<T>
     fun testGlobal2(x T) T
 
-fun test_Global2<T TestGlobal2<Int>>(t T)
+fun test_Global2<T>(t T)
+where T TestGlobal2<Int>
     @x = testGlobal2(1)
 
     // Fail test case
@@ -318,7 +322,8 @@ fun test_printPrintable(x mut Iterable<Printable>)
         Log.info("Item={item}")
 
 
-fun test_printGeneric<T Printable>(x mut Iterable<T>)
+fun test_printGeneric<T>(x mut Iterable<T>)
+where T Printable
     @i = x.asIterator
     while i.next()@item
         @s = item.toStr()
@@ -353,12 +358,14 @@ fun aaa_arith(a Int, b Int, c mut aaa_arith_test) Int
     
     return y + c.b.e + c.property
 
-fun MyGenericInt<T Number<Int>>()
+fun MyGenericInt<T>()
+where T Number<Int>
     @a = T()
     @c = T.One
     @d = One
 
-fun MyGeneric<T Number<T>>()
+fun MyGeneric<T>()
+where T Number<T>
     @a = T()
     @c = T.One
     @d = One
@@ -482,10 +489,9 @@ fun test_tuples()
     @tuplesNamedElement = tuplesNamed[0]
     @element = tuplesNamedElement.x
 
-fun AAAAA<X,
-        T Number<T> + GetHash + Iterable<Int> + Iterable2<Int> + GetMap<F32,Float> + Iterator<Int>,
+fun AAAAA<X,T,Q>(t T, q Q, intf1 Iterator<I32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<Float>, myGetter Getter)
+where   T Number<T> + GetHash + Iterable<Int> + Iterable2<Int> + GetMap<F32,Float> + Iterator<Int>,
         Q Number<Q> + Getter + Getter2<Int> + MyAdd<Q>
-        >(t T, q Q, intf1 Iterator<I32>, intf2 GetHash, mgQ Getter2<Q>, mgF Getter2<Float>, myGetter Getter)
 
     // Source code symbols should be non-generic
     @next3 = q.myGet2           // Int
@@ -661,7 +667,8 @@ type bbpoint
 [pub] fun .yy(my bbpoint) {}
 
   
-[pub] type AAFun    
+[pub]
+type AAFun    
     aaf4 fun(a Int, b Int) Int
     aaf5 AAFunc<Int, Int>
     aaf6 fun()()
@@ -685,7 +692,8 @@ fun .af6(my AAFun, p fun(v Int)Bool) {}
 fun .af7<X>(my AAFun, p fun(v X)Bool) {}
 
 
-[pub] type AAFunc<T1,T2>
+[pub]
+type AAFunc<T1,T2>
     Invoke fun (v T1) T2
 
 
@@ -695,10 +703,14 @@ fun .af6<T,QQQ>(my AGenericTest<T,QQQ>, p fun(v Int)Bool) {}
 type interface ToStr
     fun get .toStr() Str
 
-[pub] fun GenericTest<Q1 ToStr,Q2 ToStr>(a Q1, b Q2) Int
+[pub]
+fun GenericTest<Q1,Q2>(a Q1, b Q2) Int
+where Q1 ToStr, Q2 ToStr
     return a.toStr.len + b.toStr.len    
 
-[pub] type AGenericTest<T, QQQ Equatable<T>> // TBD: new() where T : new()
+[pub]
+type AGenericTest<T, QQQ> // TBD: new() where T : new()
+where QQQ Equatable<T>
     
     af0 fun()()
     af1 fun()

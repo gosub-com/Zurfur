@@ -121,13 +121,15 @@ fun test_printable()
 
 // ### Constraint used properly
 
-fun test_printableFail1<T Printable, Q>(t T, q Q)
+fun test_printableFail1<T, Q>(t T, q Q)
+where T Printable
     q.toStr // toStr not defined in Q
     t.toStr // ok
 
 // ### Constraint used properly
 
-fun test_printableFail2<Q, T Printable>(t T, q Q)
+fun test_printableFail2<Q, T>(t T, q Q)
+where T Printable
     q.toStr // toStr not defined in Q
     t.toStr // ok
 
@@ -135,18 +137,21 @@ fun test_printableFail2<Q, T Printable>(t T, q Q)
 
 type interface TestGlobal
     fun testGlobal()
-fun test_Global<T TestGlobal>()
+fun test_Global<T>()
+where T TestGlobal
     testGlobal()
 type interface TestGlobal2<T>
     fun testGlobal2(x T) T
 
-fun test_Global2<T TestGlobal2<Int>>(t T)
+fun test_Global2<T>(t T)
+where T TestGlobal2<Int>
     testGlobal2(t)  // Incompatible parameter types (expecting Int, not T)
     testGlobal2(1)  // Ok
 
 // ### Incompatible parameter types (expecting Int)
 
-fun test_Global2a<T TestGlobal2<Int>>(t T)
+fun test_Global2a<T>(t T)
+where T TestGlobal2<Int>
     testGlobal2(1.0)  // Incompatible parameter types (expecting Int)
 
 
