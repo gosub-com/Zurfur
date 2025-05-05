@@ -13,14 +13,17 @@ pragma AllowUnderscoreDefinitions
 [pub] fun require(condition Bool, message Str) todo
 
 // Return type of functions that don't return anything
-[pub] type ro struct Void()
+[pub]
+type ro struct Void()
 
 // Empty value for pointers and optionals
-[pub] type ro struct Nil()
+[pub]
+type ro struct Nil()
 
 // Maybe<T> is the same as ?T.  Pointer and reference types are always
 // optimized so that `?&T`, `?*T`, `?^T`, and `?Box<T>` are just one pointer.
-[pub] type Maybe<T>
+[pub]
+type Maybe<T>
     // TBD: Assigning to `Maybe<T>` can change the type of `value` to nil.
     //      If we allow returning a reference to `T`, it must be in a box.
     //      For reference types, we can optimize to remove one box.
@@ -33,39 +36,48 @@ pragma AllowUnderscoreDefinitions
     my.value = Box<T>(value)
     my.hasValue = true
 
+[pub, implicit] fun .toMaybe<T>(my T) Maybe<T> todo
+[pub, implicit] fun .toMaybe2<T>(my Nil) Maybe<T> todo
+ 
 type Box<T>
     const __size Int = 1
 
 fun .new<T>(my Box<T>, value own T) Box<T>
     nop
 
-[pub] type ro interface Error
+[pub]
+type ro interface Error
     fun get .code() ErrorCode    // Machine readable error code
     fun get .message() Str       // Human readable error code
 
 
 // Result[T] - Same as !T
-[pub] type union Result<T>
+[pub]
+type union Result<T>
     ok T
     error ro Error
 
 // Machine readable (Zig style?) error code, possibly a Str or U32
-[pub] type enum ErrorCode
+[pub]
+type enum ErrorCode
     Success = 0 
 
     
 
 // a UTF8 encoded character, same as I32
-[pub] type Rune = I32
+[pub]
+type Rune = I32
 
 // Base interface for all types
-[pub] type interface Object()
+[pub]
+type interface Object()
 
 
 // All types have a unique `id`, but other non-essential metadata is opt-in.
 // This must always be 32 bits, even on 64 bit machines, so as not to change
 // the `GcHeapObject` footprint.
-[pub] type ro struct Type
+[pub]
+type ro struct Type
     id U32
 
 
@@ -74,7 +86,8 @@ fun .new<T>(my Box<T>, value own T) Box<T>
     todo
 
 // Bool (true or false)
-[pub] type ro struct Bool
+[pub]
+type ro struct Bool
     const __size Int = 1
 
 [pub] fun .getHash(my Bool) Int extern
@@ -86,7 +99,8 @@ fun .new<T>(my Box<T>, value own T) Box<T>
 [pub] fun _opLogicalNot(a Bool) Bool extern
 
 // I8 (-128..127)
-[pub] type ro struct I8
+[pub]
+type ro struct I8
     const __size Int = 1
     const __align Int = 1
     const Zero I8 = 0
@@ -112,7 +126,8 @@ fun .new<T>(my Box<T>, value own T) Box<T>
 
 
 // Byte (0..255)
-[pub] type ro struct Byte
+[pub]
+type ro struct Byte
     const __size Int = 1
     const __align Int = 1    
     const Zero Byte = 0
@@ -139,7 +154,8 @@ fun .new<T>(my Box<T>, value own T) Box<T>
 [pub] fun .toDecimal(my Byte) Decimal extern
 
 // I16 (-32768..32768)
-[pub] type ro struct I16
+[pub]
+type ro struct I16
     const __size Int = 2
     const __align Int = 2    
     const Zero I16 = 0
@@ -166,7 +182,8 @@ fun .new<T>(my Box<T>, value own T) Box<T>
 [pub] fun .toU16Mask(my I16) U16 extern    
 
 // U16 (0..65535)
-[pub] type ro struct U16
+[pub]
+type ro struct U16
     const __size Int = 2
     const __align Int = 2    
     const Zero U16 = 0
@@ -195,7 +212,8 @@ fun .new<T>(my Box<T>, value own T) Box<T>
 [pub] fun .toI16Mask(my U16) I16 extern
 
 // A 32 bit integer
-[pub] type ro struct I32
+[pub]
+type ro struct I32
     const __size Int = 4
     const __align Int = 4    
     const Zero I32 = 0
@@ -239,7 +257,8 @@ fun .new<T>(my Box<T>, value own T) Box<T>
 [pub] fun .toU32Mask(my I32) U32 extern
 
 // 32 bit unsigned integer
-[pub] type ro struct U32
+[pub]
+type ro struct U32
     const __size Int = 4
     const __align Int = 4    
     const Zero U32 = 0
@@ -284,7 +303,8 @@ fun .new<T>(my Box<T>, value own T) Box<T>
 [pub] fun .toI32Mask(my U32) I32 extern
 
 // 64 bit integer
-[pub] type ro struct Int
+[pub]
+type ro struct Int
     const __size Int = 8
     const __align Int = 8    
     const Zero Int = 0
@@ -331,7 +351,8 @@ fun .new<T>(my Box<T>, value own T) Box<T>
 [pub] fun .toU64Mask(my Int) U64 extern
 
 // 64 bit unsigned integer
-[pub] type ro struct U64
+[pub]
+type ro struct U64
     const __size Int = 8
     const __align Int = 8    
     const Zero U64 = 0
@@ -379,16 +400,19 @@ fun .new<T>(my Box<T>, value own T) Box<T>
 [pub] fun .toU32Mask(my U64) U32 extern
 [pub] fun .toIntMask(my U64) Int extern
 
-[pub] type ro struct i128
+[pub]
+type ro struct i128
     const __size Int = 16
     const __align Int = 16
 
-[pub] type ro struct u128
+[pub]
+type ro struct u128
     const __size Int = 16
     const __align Int = 16
 
 // 32 bit floating point value
-[pub] type ro struct F32
+[pub]
+type ro struct F32
     const __size Int = 4
     const __align Int = 4    
     const Zero F32 = 0
@@ -436,7 +460,8 @@ fun .new<T>(my Box<T>, value own T) Box<T>
 [pub] fun .toU64Mask(my F32) U64 extern
 
 // 64 bit floating point value
-[pub] type ro struct Float
+[pub]
+type ro struct Float
     const __size Int = 8
     const __align Int = 8    
     const Zero Float = 0
@@ -485,7 +510,8 @@ fun .new<T>(my Box<T>, value own T) Box<T>
 
 // 128 bit decimal integer.  This will support nan, infinity, and
 // exponents covering the entire range of Float with more precision.
-[pub] type ro struct Decimal
+[pub]
+type ro struct Decimal
     const __size Int = 16
     const __align Int = 16
     const Zero Decimal = 0
@@ -532,7 +558,8 @@ fun .new<T>(my Box<T>, value own T) Box<T>
 
 // This will represent a time/date in UTC with timezone, wall clock,
 // and monotonic clock, similar to Golang time https://pkg.go.dev/time
-[pub] type ro struct Time
+[pub]
+type ro struct Time
     _low U64
     _high U32
     _tz U32

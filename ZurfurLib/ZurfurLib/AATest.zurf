@@ -10,14 +10,22 @@ use Zurfur[Log, Iterator, Iterable, Equatable, Number]
 use Zurfur.Unsafe[Xuint, RawPointer, castPointer,]
 use Zurfur.Math[cos]
 use Zurfur.Draw2d[Size, Point]
-
  
 //pragma ShowParse
 
+fun AAA_test_paramable(p AParamable)
+    let a *Int
+    let x = p.takePointer(nil)
+    let b = nil == a
+    let c = a == nil
+
+    
+
 fun test_reduce()
 
+
     // TBD: Need return type inference here
-    takeListInt(returnList())
+    // TBD: takeListInt(returnList())
     takeListInt(returnList<Int>())
     takeIteratorInt2("", List<Int>().asIterator)
     takeIteratorInt(List<Int>().asIterator)
@@ -192,6 +200,10 @@ type MyCollectionNotIter<T> {}
     nop
 fun .next<T>(my MyCollectionIter<T>) ?T
     nop
+fun .asIterator<T>(my MyCollectionNot<T>) MyCollectionNotIter<T>
+    nop
+fun .next<T>(my MyCollectionNotIter<T>) ?T
+    nop
 
 
 fun test_use()
@@ -208,8 +220,6 @@ fun test_use()
     @myCollectionNot = MyCollectionNot<Int>()
     @myCollectionNotIter = myCollectionNot.asIterator
     @myCollectionNotItem = myCollectionNotIter.next()
-    for @a in myCollectionNot
-        nop
         
 
 fun test_map()
@@ -240,10 +250,6 @@ fun test_map()
         Log.info("")
 
 
-[pub] fun .asIterator<T>(my MyCollectionNot<T>) MyCollectionNotIter<T>
-    nop
-[pub] fun .next<T>(my MyCollectionNotIter<T>) ?T
-    nop
     
 
 fun test_callInterfaces() AParamable

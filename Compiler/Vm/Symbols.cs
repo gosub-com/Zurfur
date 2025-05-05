@@ -608,7 +608,7 @@ public class Symbol
                 if (s_qualifierNames.TryGetValue(name, out var s))
                     Qualifiers |= s;
                 else
-                    Debug.Assert(false); 
+                     Debug.Assert(false); 
                 break;
         }
     }

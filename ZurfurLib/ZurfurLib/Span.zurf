@@ -3,7 +3,7 @@
 mod Zurfur
 
 use Zurfur[Equatable]
-use Zurfur.Unsafe[castPointer, RawPointer]
+use Zurfur.Unsafe[RawPointer, Ref]
 
 // []T is converted to Span<T>
 [pub] type ref Span<T>
@@ -22,7 +22,7 @@ fun get .asIterator<T>(my Span<T>) SpanIterator<T> todo
         return nil
     @r = my._data
     my._data = my._data + 1
-    return r
+    return Ref(r) // TBD: Unsafe.Ref(r) should work here
        
     
 [pub] fun _opIndex<T>(s Span<T>, i Int) mut &T

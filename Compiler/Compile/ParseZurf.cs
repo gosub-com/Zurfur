@@ -596,7 +596,8 @@ class ParseZurf
             {
                 do
                 {
-                    qualifiers.Add(Accept());
+                    if (s_scopeQualifiers.Contains(_token))
+                        qualifiers.Add(Accept());
                 } while (AcceptMatch(","));
             }
             else

@@ -58,46 +58,46 @@ static class CodeLib
     }
 
     /// <summary>
-    /// Check to see if the types match while inferring type args.
+    /// Check to see if the types match while inferring paramTypeArgs from argType.
     /// Infer newTypeArgs on success, otherwise return original typeArgs.
     /// NOTE: This can return TRUE even when typeArgs are not inferred
     /// typeArgs are not modified.
     /// </summary>
-    public static (bool match, Symbol[] newTypeArgs) InferTypesMatch(Symbol argType, Symbol paramType, Symbol[] typeArgs)
+    public static (bool match, Symbol[] newTypeArgs) InferTypesMatch(Symbol argType, Symbol paramType, Symbol[] paramTypeArgs)
     {
         // Fast paths for non-matching concrete type or no type-args
         if (!paramType.IsGenericArg && argType.Concrete.FullName != paramType.Concrete.FullName)
-            return (false, typeArgs);
-        if (typeArgs.Length == 0 || !paramType.HasGenericArg)
-            return (TypesMatch(argType, paramType), typeArgs);
+            return (false, paramTypeArgs);
+        if (paramTypeArgs.Length == 0 || !paramType.HasGenericArg)
+            return (TypesMatch(argType, paramType), paramTypeArgs);
 
         // Infer types on unresolved parameters (non-destructively)
-        var typeArgsInferred = typeArgs.All(s => s.IsResolved) ? typeArgs : typeArgs.Clone2();
+        var typeArgsInferred = paramTypeArgs.All(s => s.IsResolved) ? paramTypeArgs : paramTypeArgs.Clone2();
         var match = InferTypesMatchNoRestore(argType, paramType, typeArgsInferred);
-        return (match, match ? typeArgsInferred : typeArgs);
+        return (match, match ? typeArgsInferred : paramTypeArgs);
     }
 
     /// <summary>
-    /// Check to see if the types match while inferring type args.
+    /// Check to see if the types match while inferring paramTypeArgs from argType.
     /// Does not restore type args on failure.
     /// </summary>
-    public static bool InferTypesMatchNoRestore(Symbol argType, Symbol paramType, Symbol[] typeArgs)
+    static bool InferTypesMatchNoRestore(Symbol argType, Symbol paramType, Symbol[] paramTypeArgs)
     {
         // If it's a generic arg, use the given parameter type
         if (paramType.IsGenericArg)
         {
             var paramNum = paramType.GenericParamNum();
-            Debug.Assert(paramNum < typeArgs.Length);
-            if (typeArgs[paramNum].IsResolved)
+            Debug.Assert(paramNum < paramTypeArgs.Length);
+            if (paramTypeArgs[paramNum].IsResolved)
             {
                 // If types do not match, it's a contradiction, e.g. user calls f(0, "x") on f<T>(x T, y T).
                 // TBD: Give better error message (this just fails with 'wrong number of type args')
-                return TypesMatch(typeArgs[paramNum], argType);
+                return TypesMatch(paramTypeArgs[paramNum], argType);
             }
             else
             {
                 // Inferred a type argument
-                typeArgs[paramNum] = argType;
+                paramTypeArgs[paramNum] = argType;
                 return true;
             }
         }
@@ -105,10 +105,9 @@ static class CodeLib
             return false;
 
         // If they are both the same generic type, check type parameters
-        Debug.Assert(paramType.TypeArgs.Length == argType.TypeArgs.Length);
         for (int i = 0; i < paramType.TypeArgs.Length; i++)
         {
-            if (!InferTypesMatchNoRestore(argType.TypeArgs[i], paramType.TypeArgs[i], typeArgs))
+            if (!InferTypesMatchNoRestore(argType.TypeArgs[i], paramType.TypeArgs[i], paramTypeArgs))
                 return false;
         }
         return true;

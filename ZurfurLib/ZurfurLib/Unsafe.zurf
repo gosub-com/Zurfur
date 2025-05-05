@@ -35,6 +35,8 @@ type ref ro Ref<T>
     value *T
 
 
+[pub] fun .new<T>(my Ref<T>, p *T) Ref<T> todo
+
 // When implemented, the compiler knows it is a pointer (32 or 64 bits)
 // and can allow `castPointer`.  `RawPointerMarker` is private, so only
 // pointer types can implement this.

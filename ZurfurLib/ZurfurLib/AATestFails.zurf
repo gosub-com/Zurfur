@@ -269,7 +269,19 @@ fun test_ambiguousFunCall()
     U16().toStr
 
 
+// ### Ambiguous implicit conversion
 
+fun takePointerAmb(a *Int) todo
+fun takePointerAmb(a *Byte) todo
+fun takePointerAmbOk(a *Int) todo
+
+fun test_ambiguousImplicit()
+    takePointerAmbOk(nil)
+    var a *Byte = nil
+    var b *Int = nil
+    takePointerAmb(a)
+    takePointerAmb(b)
+    takePointerAmb(nil)
 
 
 
