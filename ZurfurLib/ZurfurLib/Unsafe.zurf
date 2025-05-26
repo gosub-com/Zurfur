@@ -5,15 +5,15 @@ mod Zurfur.Unsafe
 use Zurfur[RawPointerMarker, Type]
 
 // Mark these types as pointers and allow castPointer
-fun .getRawPointer(my Xuint) RawPointerMarker extern
-fun .getRawPointer<T>(my Ref<T>) RawPointerMarker extern
-fun .getRawPointer<T>(my RawPointer<T>) RawPointerMarker extern
+fun Xuint.getRawPointer(my) RawPointerMarker extern
+fun Ref.getRawPointer<T>(my) RawPointerMarker extern
+fun RawPointer.getRawPointer<T>(my) RawPointerMarker extern
 
 // Cast from one pointer type to another pointer type.
 [pub]
 fun castPointer<T>(i GetRawPointer) T
 where T GetRawPointer
-    extern
+extern
 
 // Unsigned extended Int, U32 or U64 depending on machine pointer size.
 // This is the internal representation of a pointer.
@@ -21,7 +21,7 @@ where T GetRawPointer
 type ro Xuint
     value U32 // or U64
 
-fun .new(my Xuint, value U64) Xuint
+fun Xuint.new(my, value U64) 
     assert(value <= (0U32).MaxValue.toU64)
     my.value = value.toU32Mask
 
@@ -35,13 +35,13 @@ type ref ro Ref<T>
     value *T
 
 
-[pub] fun .new<T>(my Ref<T>, p *T) Ref<T> todo
+[pub] fun Ref.new<T>(my, p *T) todo
 
 // When implemented, the compiler knows it is a pointer (32 or 64 bits)
 // and can allow `castPointer`.  `RawPointerMarker` is private, so only
 // pointer types can implement this.
 type interface GetRawPointer
-    fun .getRawPointer() RawPointerMarker
+    fun getRawPointer(my) RawPointerMarker
 
 // A raw pointer.  The compiler translates *T to RawPointer<T>
 // and automatically dereferences when "." is used.
@@ -49,15 +49,15 @@ type interface GetRawPointer
 type ro RawPointer<T>
     value Xuint
 
-[pub, implicit] fun .toVoid<T>(p *T)*Void extern
+[pub, implicit] fun RawPointer.toVoid<T>(my *T)*Void extern
 
-[pub, implicit] fun .toPointer<T>(n Nil)*T extern
+[pub, implicit] fun Nil.toPointer<T>(my)*T extern
 
 [pub] fun _opEq<T>(a RawPointer<T>, b RawPointer<T>) Bool extern
 [pub] fun _opCmp<T>(a RawPointer<T>, b RawPointer<T>) Int extern
 [pub] fun _opAdd<T>(a RawPointer<T>, b U64) RawPointer<T> extern
 [pub] fun _opAdd<T>(a U64, b RawPointer<T>) RawPointer<T> extern
-[pub] fun _opSub<T>(a RawPointer<T>, b RawPointer<T>) RawPointer<T> extern
+[pub] fun _opSub<T>(a RawPointer<T>, b  RawPointer<T>) RawPointer<T> extern
 [pub] fun _opSub<T>(a RawPointer<T>, b U64) RawPointer<T> extern
 [pub] fun _opAdd<T>(a RawPointer<T>, b Int) *T extern
 [pub] fun _opAdd<T>(a Int,b *T) *T extern

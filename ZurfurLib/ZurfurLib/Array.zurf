@@ -11,15 +11,15 @@
 
 // TBD: Remove this since it will be implemented by List
 [pub] fun _opIndex<T>(a Array<T>, i Int) mut &T
-    require(i in 0..a.len)
+require i in 0..a.len
     todo // Implementation TBD
 
 
 
 // TBD: Remove this since it will be implemented by List
 [pub] fun _opIndex<T>(b Buffer<T>, range Range<Int>) mut Span<T>
-    require(range.low in 0..b.len)
-    require(range.high in 0..b.len)
-    require(range.low <= range.high)
+require range.low in 0..b.len
+require range.high in 0..b.len
+require range.low <= range.high
     todo // Implementation TBD
     

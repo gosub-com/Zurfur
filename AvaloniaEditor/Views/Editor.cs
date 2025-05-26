@@ -598,9 +598,10 @@ public class Editor : UserControl
                 { TokenType.Identifier, new FontInfo(normalFont, Colors.Black) },
                 { TokenType.Reserved, new FontInfo(normalFont, Colors.Blue) },
                 { TokenType.ReservedControl, new FontInfo(boldFont, Colors.Blue) },
-                { TokenType.ReservedVar, new FontInfo(boldFont, Colors.DarkBlue) },
-                { TokenType.ReservedType, new FontInfo(boldFont, new Color(255, 20,125,160)) },
-                { TokenType.Quote, new FontInfo(normalFont, Colors.Brown) },
+                { TokenType.ReservedVar, new FontInfo(boldFont, new Color(255, 0, 0, 192)) },
+                { TokenType.ReservedType, new FontInfo(boldFont, new Color(255, 20, 125, 160)) },
+                { TokenType.QuoteMark, new FontInfo(boldFont, new Color(255, 132, 34, 34)) },
+                { TokenType.QuoteText, new FontInfo(normalFont, Colors.Brown) }, 
                 { TokenType.Comment, new FontInfo(normalFont, Colors.Green) },
                 { TokenType.NewVarSymbol, new FontInfo(normalFont, Colors.Blue) },
                 { TokenType.DefineField, new FontInfo(boldFont, Colors.Black) },
@@ -608,7 +609,7 @@ public class Editor : UserControl
                 { TokenType.DefineFunParam, new FontInfo(boldFont, Colors.Black) },
                 { TokenType.DefineTypeParam, new FontInfo(boldFont, Colors.Black) },
                 { TokenType.DefineLocal, new FontInfo(boldFont, Colors.Black) },
-                { TokenType.TypeName, new FontInfo(normalFont, new Color(255, 20,125,160)) },
+                { TokenType.TypeName, new FontInfo(normalFont, new Color(255, 20, 125, 160)) },
                 { TokenType.BoldSymbol, new FontInfo(boldFont, Colors.Black) },
             };
 

@@ -257,11 +257,19 @@ public class SymbolTable
         Debug.Assert(!concreteType.IsSpecialized);
         Debug.Assert(concreteType.IsType || concreteType.IsFun || concreteType.IsField);
         Debug.Assert(tupleSymbols == null || tupleSymbols.Length == 0 || tupleSymbols.Length == typeArgs.Length);
-        if (!NoCompilerChecks && concreteType.SimpleName != "()")
-            Debug.Assert(concreteType.GenericParamCount() == typeArgs.Length);
 
         if (typeArgs.Length == 0)
             return concreteType;
+
+
+        if (!NoCompilerChecks && concreteType.SimpleName != "()")
+        {
+            // TBD: This triggers when creating an interface for this:
+            //      concreteType: Zurfur.write(my Zurfur.List<Zurfur.Byte>,buffer Zurfur.Span<Zurfur.Byte>)(Zurfur.Result<()>)
+            //      typeArgs: [Zurfur.Byte]
+            // Debug.Assert(concreteType.GenericParamCount() == typeArgs.Length);
+        }
+
 
         var symSpec = new Symbol(concreteType.Kind, concreteType, concreteType.Path,
             concreteType.HasToken ? concreteType.Token : null, concreteType.SimpleName)

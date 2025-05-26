@@ -81,18 +81,18 @@ class ParseJson
             return;
         }
         // TBD: Accept and build json style strings
-        Accept().Type = TokenType.Quote;
+        Accept().Type = TokenType.QuoteText;
         while (_tokenName != "" && _tokenName != "\"" && !_token.Boln && !_token.Meta)
         {
             if (_tokenName == "\\")
             {
                 if (_lexerEnum.PeekNoSpace() == "\"")
-                    Accept().Type = TokenType.Quote;
+                    Accept().Type = TokenType.QuoteText;
             }
-            Accept().Type = TokenType.Quote;
+            Accept().Type = TokenType.QuoteText;
         }
         if (!_token.Boln && _tokenName == "\"")
-            Accept().Type = TokenType.Quote;
+            Accept().Type = TokenType.QuoteText;
     }
 
     void ParseArray()
@@ -210,7 +210,7 @@ class ParseJson
         if (_tokenName.Length == 0)
             _token.Type = TokenType.Normal;
         else if (_tokenName[0] == '\"')
-            _token.Type = TokenType.Quote;
+            _token.Type = TokenType.QuoteText;
         else if (char.IsDigit(_tokenName[0]))
             _token.Type = TokenType.Number;
         else if (char.IsLetter(_tokenName[0]))

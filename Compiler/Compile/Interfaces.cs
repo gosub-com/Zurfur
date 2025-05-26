@@ -133,7 +133,7 @@ class Interfaces
                 var funParams = concreteFun.FunParamTypes;
                 Debug.Assert(funParams.Length != 0);
                 Debug.Assert(funParams[0].Concrete.FullName == concrete.Concrete.FullName);
-                Debug.Assert(ifaceParams[0].Concrete.FullName == iface.Concrete.FullName);
+                Debug.Assert(ifaceParams.Length != 0 && ifaceParams[0].Concrete.FullName == iface.Concrete.FullName);
 
                 var (match, inferred) = AreInterfaceParamsCompatible(table, ifaceFun, concreteFun, typeArgs);
 

@@ -21,22 +21,22 @@ public class ParseError : TokenError
 class ParseZurf
 {
     // NOTE: >=, >>, and >>= are omitted and handled at parser level.
-    public const string MULTI_CHAR_TOKENS = ".* &* << <= == != && || ?? !! "
-        + "+= -= *= /= %= &= |= ~= <<= => -> !== === :: .. ..+ ... ++ -- // \"\"\"";
+    public const string MULTI_CHAR_TOKENS = ".* &* << <= == != && || ?? !! += -= *= /= %= &= |= ~= <<= => -> " 
+        +$"!== === :: .. ..+ ... ++ -- // {TOKEN_STR_LITERAL_MULTI_BEGIN} {TOKEN_STR_LITERAL_MULTI_END} ```";
 
 
     public const string VT_TYPE_ARG = "$"; // Differentiate from '<' (must be 1 char long)
     public const string TOKEN_STR_LITERAL = "\"";
-    public const string TOKEN_STR_LITERAL_MULTI = "\"\"\"";
+    public const string TOKEN_STR_LITERAL_MULTI_BEGIN = "``";
+    public const string TOKEN_STR_LITERAL_MULTI_END = "``";
+    public const string TOKEN_STR_INTEPOLATE = "#";
     public const string TOKEN_COMMENT = "//";
 
-    // Probably will also allow 2, but must also require
-    // the entire file to be one way or the other.
+    // Probably will also allow 2, but must also require the entire file to be one way or the other.
     const int SCOPE_INDENT = 4;
 
     // TBD: Allow pragmas to be set externally
-    static WordSet s_pragmas = new("ShowParse NoParse NoCompilerChecks "
-        + "NoVerify AllowUnderscoreDefinitions");
+    static WordSet s_pragmas = new("ShowParse NoParse NoCompilerChecks NoVerify AllowUnderscoreDefinitions");
 
 
     ParseZurfCheck _zurfParseCheck;
@@ -80,19 +80,19 @@ class ParseZurf
         + "box init move copy clone drop own super "
         + "fun afun sfun def yield let "
         + "dyn dynamic match from to of on "
-        + "throws rethrow @ # and or not xor with exit pragma require ensure "
+        + "throws rethrow @ # and or not xor with exit pragma "
         + "of sync except exception loc local global self Self ");
 
     public static WordSet ReservedWords => s_reservedWords;
 
-    static WordSet s_scopeQualifiers = new("pub public private unsafe implicit");
+    static WordSet s_scopeQualifiers = new("pub public private unsafe implicit static");
     static WordSet s_fieldQualifiers = new("ro mut");
     static WordSet s_preTypeQualifiers = new("ro ref struct noclone unsafe enum union interface");
     static WordSet s_postFieldQualifiers = new("init mut ref");
     static WordSet s_paramQualifiers = new("ro own mut");
 
-    static WordSet s_allowReservedFunNames = new("require new drop");
-    static WordSet s_reservedIdentifierVariables = new("nil true false new move sizeof typeof require");
+    static WordSet s_allowReservedFunNames = new("new drop");
+    static WordSet s_reservedIdentifierVariables = new("nil true false new move sizeof typeof");
     static WordSet s_reservedMemberNames = new("clone");
     static WordSet s_typeUnaryOps = new("? ! * ^ [ & ro");
 
@@ -241,7 +241,7 @@ class ParseZurf
 
             if (token == TOKEN_STR_LITERAL)
                 ScanQuoteSingleLine();
-            else if (token == TOKEN_STR_LITERAL_MULTI)
+            else if (token == TOKEN_STR_LITERAL_MULTI_BEGIN)
                 ScanQuoteMultiLine();
             else
                 prevNonCommentToken = token;
@@ -327,12 +327,10 @@ class ParseZurf
         void ScanQuoteSingleLine()
         {
             // Single line quote (always ends at end of line)
-            token.Type = TokenType.Quote;
             bool quoteEoln = token.Eoln;
             if (!token.Eoln)
                 while (e.MoveNext(out token) && token != TOKEN_STR_LITERAL && !token.Eoln)
-                    token.Type = TokenType.Quote;
-            token.Type = TokenType.Quote;
+                    ; // Skip until end of quote (or line)
             if (quoteEoln || token.Eoln && token != TOKEN_STR_LITERAL)
             {
                 // ERROR: Expecting end quote.  Mark it and add meta semicolon.
@@ -353,11 +351,11 @@ class ParseZurf
         void ScanQuoteMultiLine()
         {
             // Multi line quote
-            token.Type = TokenType.Quote;
-            while (e.MoveNext(out token) && token != TOKEN_STR_LITERAL_MULTI && token != "")
-                token.Type = TokenType.Quote;
+            //e.MoveNext(out token); // Skip begin quote token
+            while (e.MoveNext(out token) && token != TOKEN_STR_LITERAL_MULTI_END && token != "")
+                ; // Skip until end of quote (or file)
             if (token == "")
-                RejectToken(token, "Expecting \"\"\" to end the multi-line string literal");
+                RejectToken(token, $"Expecting {TOKEN_STR_LITERAL_MULTI_END} to end the multi-line string literal");
             else
                 prevNonCommentToken = token;
         }
@@ -812,11 +810,6 @@ class ParseZurf
                 ParseTypeScopeStatements(parent, qualifiers);
                 break;
 
-
-            case "where":
-                RejectToken(Accept(), "'where' is reserved in this context");
-                break;
-
             case "const":
                 if (isInterface || isEnum)
                     RejectToken(_token, $"Interfaces and enumerations may not contain 'const'");
@@ -870,7 +863,7 @@ class ParseZurf
         return new SyntaxMulti(openToken, FreeExprList(typeParams));
     }
 
-
+    // Parse "where" statement
     SyntaxConstraint[] ParseConstraints(Token keyword)
     {
         if (!AcceptMatchPastMetaSemicolon("where", keyword))
@@ -1016,63 +1009,71 @@ class ParseZurf
             qualifiers.Add(Accept());
         }
 
-        // Interface mut function
-        // TBD: Move to parameter
-        Token? mutToken = null;
-        mutToken = _token == "mut" ? Accept() : null;
-        if (mutToken != null)
-            mutToken.AddWarning("Not stored in parse tree yet");
-
-
-        var hasReceiver = AcceptMatch(".");
-
-        var validFunctionName = ParseExtensionTypeAndMethodName(out var funcName);
-        var typeArgs = ParseTypeParameters();
-        var functionSignature = ParseFunctionSignature(keyword);
-        var constraints = ParseConstraints(keyword);
-
-        var synFunc = new SyntaxFunc(keyword, funcName)
+        // Parse function receiver type and name: [receiver.]name
+        Token? receiverToken = null;
+        Token? receiverTypeName = null;
+        Token? functionName = null;
+        functionName = ParseFunctionName();
+        if (AcceptMatch("."))
         {
-            Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last(),
-            Comments = comments,
-            HasReceiver = hasReceiver,
-            TypeArgs = typeArgs,
-            Constraints = constraints ?? [],
-            FunctionSignature = functionSignature
-        };
+            receiverToken = _prevToken;
+            receiverTypeName = functionName;
+            if (receiverTypeName != null)
+                receiverTypeName.Type = TokenType.TypeName;
+            functionName = ParseFunctionName();
+        }
+
+        var typeParams = ParseTypeParameters();
+        var functionSignature = ParseFunctionSignature(keyword, true, true);
+        var constraints = ParseConstraints(keyword);
+        
+        var requires = NewExprList();
+        while (AcceptMatchPastMetaSemicolon("require", keyword))
+            requires.Add(ParseExpr());
 
         // Body
-        if (AcceptMatch("extern") || AcceptMatch("todo"))
+        SyntaxExpr? statements = null;
+        if (AcceptMatchPastMetaSemicolon("extern", keyword) || AcceptMatchPastMetaSemicolon("todo", keyword))
             qualifiers.Add(_prevToken);
         else if (allowBody)
-            synFunc.Statements = ParseStatements(synFunc);
+            statements = ParseStatements();
 
-        synFunc.Qualifiers = qualifiers.ToArray();
-
-        if (validFunctionName)
-            _syntax.Functions.Add(synFunc);
-
+        // Don't compile unless there is a valid function name
+        if (functionName != null)
+        {
+            _syntax.Functions.Add(new SyntaxFunc(keyword, functionName)
+            {
+                Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last(),
+                Comments = comments,
+                ReceiverToken = receiverToken,
+                TypeParams = typeParams,
+                ReceiverTypeName = receiverTypeName,
+                Constraints = constraints ?? [],
+                FunctionSignature = functionSignature,
+                Requires = FreeExprList(requires),
+                Statements = statements,
+                Qualifiers = qualifiers.ToArray()
+            });
+        }
     }
 
 
     /// <summary>
     /// Returns true if we are a valid method name
     /// </summary>
-    bool ParseExtensionTypeAndMethodName(out Token funcName)
+    Token? ParseFunctionName()
     {
-        funcName = _token;
-
         // Function name
         if (!AcceptIdentifier("Expecting a function or type name", s_rejectTypeName, s_allowReservedFunNames))
-            return false;
+            return null;
 
         // Shortcut receiver style
-        funcName = _prevToken;
+        var funcName = _prevToken;
         funcName.Type = s_allowReservedFunNames.Contains(funcName.Name) ? TokenType.Reserved : TokenType.DefineMethod;
 
 
         RejectUnderscoreDefinition(funcName);
-        return true;
+        return funcName;
     }
 
 
@@ -1082,16 +1083,16 @@ class ParseZurf
     ///     [1] - Returns (name, type) possibly blank for each
     ///     [2] - error/exit token
     /// </summary>
-    private SyntaxExpr ParseFunctionSignature(Token keyword)
+    private SyntaxExpr ParseFunctionSignature(Token keyword, bool allowEmptyFirstType, bool allowInitializer)
     {
         // Parameters
-        var funcParams = ParseFunctionParams();
+        var funcParams = ParseFunctionParams(allowEmptyFirstType, true);
 
         // Returns
         SyntaxExpr returnParams;
         if (_token == ("("))
         {
-            returnParams = ParseFunctionParams();
+            returnParams = ParseFunctionParams(false, false);
         }
         else
         {
@@ -1114,7 +1115,7 @@ class ParseZurf
     }
 
 
-    SyntaxExpr ParseFunctionParams()
+    SyntaxExpr ParseFunctionParams(bool allowEmptyFirstType, bool allowInitializer)
     {
         // Read open token, '('
         if (!AcceptMatchOrReject("("))
@@ -1124,11 +1125,11 @@ class ParseZurf
         var openToken = _prevToken;
         var parameters = NewExprList();
         if (_tokenName != ")")
-            parameters.Add(ParseFunctionParam(true));
+            parameters.Add(ParseFunctionParam(allowEmptyFirstType, allowInitializer));
         while (AcceptMatch(","))
         {
             Connect(openToken, _prevToken);
-            parameters.Add(ParseFunctionParam(true));
+            parameters.Add(ParseFunctionParam(false, allowInitializer));
         }
 
         if (AcceptMatchOrReject(")", "Expecting ')' or ','"))
@@ -1137,13 +1138,14 @@ class ParseZurf
         return new SyntaxMulti(EmptyToken, FreeExprList(parameters));
     }
 
-    // Syntax Tree: (name, type, initializer, qualifiers)
-    SyntaxExpr ParseFunctionParam(bool allowInitializer)
+    // Syntax Tree: variable name[type, initializer, qualifiers]
+    SyntaxExpr ParseFunctionParam(bool allowEmptyType, bool allowInitializer)
     {
         var qualifiers = NewExprList();
 
         if (!AcceptIdentifier("Expecting a variable name", s_rejectFuncParam))
             return SyntaxError;
+
         var name = _prevToken;
         name.Type = TokenType.DefineFunParam;
         RejectUnderscoreDefinition(name);
@@ -1152,7 +1154,10 @@ class ParseZurf
         while (s_paramQualifiers.Contains(_token))
             qualifiers.Add(new SyntaxToken(Accept()));
 
-        var type = ParseType();
+        var type = (SyntaxExpr)EmptyExpr;
+        if (!allowEmptyType || BeginsType())
+            type = ParseType();
+
         var initializer = (SyntaxExpr)EmptyExpr;
         if (AcceptMatch("="))
         {
@@ -1164,7 +1169,7 @@ class ParseZurf
             new SyntaxMulti(EmptyToken, FreeExprList(qualifiers)));
     }
 
-    SyntaxExpr ParseStatements(SyntaxFunc ?topLevelFunction = null)
+    SyntaxExpr ParseStatements()
     {
         if (!ExpectStartOfScope())
             return new SyntaxError(EmptyToken);
@@ -1173,7 +1178,7 @@ class ParseZurf
         var statement = NewExprList();
         while (_token != "" && _token != "}")
         {
-            ParseStatement(statement, topLevelFunction);
+            ParseStatement(statement);
             ExpectEndOfStatement();
         }
         if (ExpectEndOfScope())
@@ -1184,7 +1189,7 @@ class ParseZurf
 
     // Parse a statement.  `topLevelFunction` is null unless this is being
     // parsed at the top most level functipn
-    private void ParseStatement(List<SyntaxExpr> statements, SyntaxFunc ?topLevelFunction)
+    private void ParseStatement(List<SyntaxExpr> statements)
     {
         var keyword = _token;
         switch (_token)
@@ -1193,21 +1198,6 @@ class ParseZurf
                 break;
 
             case ";":
-                break;
-
-            case "extern":
-                if (topLevelFunction == null)
-                    RejectToken(_token, "The 'extern' qualifier can only be used at the top level function scope");
-                else if (statements.Count != 0)
-                    // TBD: Error for statements following this one
-                    RejectToken(_token, "The 'extern' qualifier must be the only statement in the function");
-                else
-                    topLevelFunction.Qualifiers = topLevelFunction.Qualifiers.Append(_token).ToArray();
-                Accept();
-                break;
-
-            case "where":
-                RejectToken(Accept(), "'where' is reserved in this context");
                 break;
 
             case "{":
@@ -1746,14 +1736,14 @@ class ParseZurf
                 return new SyntaxUnary(numberToken, new SyntaxToken(Accept()));
             return new SyntaxToken(numberToken);
         }
-        if (_tokenName == TOKEN_STR_LITERAL || _tokenName == TOKEN_STR_LITERAL_MULTI)
+        if (_tokenName == TOKEN_STR_LITERAL || _tokenName == TOKEN_STR_LITERAL_MULTI_BEGIN)
         {
             return ParseStringLiteral(null);
         }
         if (_token.Type == TokenType.Identifier)
         {
             var identifier = Accept();
-            if (_tokenName == TOKEN_STR_LITERAL || _tokenName == TOKEN_STR_LITERAL_MULTI)
+            if (_tokenName == TOKEN_STR_LITERAL || _tokenName == TOKEN_STR_LITERAL_MULTI_BEGIN)
             {
                 identifier.Type = TokenType.Reserved;
                 return ParseStringLiteral(identifier);
@@ -1775,7 +1765,7 @@ class ParseZurf
     /// <summary>
     /// Parse interpolated string: "string {expr} continue {\rn}"
     /// Or multi line string: """string ${expr} continye ${\r\n}"
-    /// Prefix may be null, or 'tr'.  Next token must be quote symbol.
+    /// Prefix may be null, or 'tr'.  Next token must be the begin quote symbol.
     /// TBD: Store "tr" in the parse tree.
     /// </summary>
     SyntaxExpr ParseStringLiteral(Token? syntax)
@@ -1810,23 +1800,23 @@ class ParseZurf
             if (containsReplacement && STR_PARAM.Contains(token.Name))
                 RejectToken(token, $"Interpolated string literal may not contain {STR_PARAM}");
             token.AddInfo(new ParseInfo(strPrint));
-            token.Type = TokenType.Quote;
         }
 
         return new SyntaxUnary(quote, new SyntaxMulti(new Token(str), FreeExprList(literalExpr)));
 
-        void ParseQuote(string terminator)
+        void ParseQuote(string beginQuote)
         {
-            bool multiLine = terminator == TOKEN_STR_LITERAL_MULTI;
-            while (_token == terminator)
+            var terminator = beginQuote == TOKEN_STR_LITERAL ? TOKEN_STR_LITERAL : TOKEN_STR_LITERAL_MULTI_END;
+            var multiLine = beginQuote == TOKEN_STR_LITERAL_MULTI_BEGIN;
+
+            while (_token == beginQuote)
             {
                 // Read until end quote or end of line
                 BeginScoop(_token);
                 literalTokens.Add(Accept());
                 while (_token != terminator && _token != "" && !(_token.Meta && _token == ";"))
                 {
-                    if (!multiLine && _token == "{"
-                        || multiLine && _token == "$" && _enum.PeekNoSpace() == "{")
+                    if (!multiLine && _token == "{" || multiLine && _token == TOKEN_STR_INTEPOLATE && _enum.PeekNoSpace() == "{")
                     {
                         EndScoop(_token);
                         if (multiLine)
@@ -1834,7 +1824,10 @@ class ParseZurf
                         ParseInterpolatedExpression();
                     }
                     else
+                    {
+                        _token.Type = TokenType.QuoteText;
                         literalTokens.Add(Accept());
+                    }
                 }
                 EndScoop(_token);
 
@@ -1994,9 +1987,6 @@ class ParseZurf
             var token = Accept();
             if (token.Type != TokenType.Reserved)
                 token.Type = TokenType.TypeName;
-            if (token.Name == "[")
-                if (AcceptMatchOrReject("]"))
-                    _prevToken.Type = TokenType.TypeName;
 
             var tArg = NewMetaToken(token, VT_TYPE_ARG);
             var tName = new SyntaxToken(token);
@@ -2010,7 +2000,7 @@ class ParseZurf
             return ParseTypeTuple();
 
         if (_token == "fun" || _token == "afun")
-            return ParseFunctionSignature(Accept());
+            return ParseFunctionSignature(Accept(), false, false);
 
         if (_token.Type != TokenType.Identifier)
         {
@@ -2289,8 +2279,8 @@ class ParseZurf
         // Set token type
         if (_tokenName.Length == 0)
             _token.Type = TokenType.Normal;
-        else if (_tokenName[0] == TOKEN_STR_LITERAL[0])
-            _token.Type = TokenType.Quote;
+        else if (_tokenName == TOKEN_STR_LITERAL || _tokenName == TOKEN_STR_LITERAL_MULTI_BEGIN || _tokenName == TOKEN_STR_LITERAL_MULTI_END)
+            _token.Type = TokenType.QuoteMark;
         else if (_tokenName[0] >= '0' && _tokenName[0] <= '9')
             _token.Type = TokenType.Number;
         else if (s_reservedWords.Contains(_tokenName))

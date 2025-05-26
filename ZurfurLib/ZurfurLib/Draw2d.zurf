@@ -27,7 +27,7 @@ where T Number<T>
     y T
 
 // Identical to a field
-fun get .x2<T>(my Point<T>) mut &T
+fun get Point.x2<T>(my) mut &T
     return &my.x // TBD: Require `&`, do not allow just `my.x`
 
 [pub]
@@ -46,36 +46,36 @@ where T Number<T>
 
 // Identical to fields (not necessary when we have 'use location Point<T>' syntax)
 [pub]
-fun get .x<T>(my Rect<T>) mut &T
+fun get Rect.x<T>(my) mut &T
     return &my.location.x // TBD: Require `&`
     
 [pub]
-fun get .y<T>(my Rect<T>) mut &T
+fun get Rect.y<T>(my) mut &T
     return &my.location.y // TBD: Require `&`
     
 [pub]
-fun get .width<T>(my Rect<T>) mut &T
+fun get Rect.width<T>(my) mut &T
     return &my.size.height // TBD: Require `&`
     
 [pub]
-fun get .height<T>(my Rect<T>) mut &T
+fun get Rect.height<T>(my) mut &T
     return &my.size.width // TBD: Require `&`
     
 
 
 [pub]
-fun .new<T>(my Point<T>, x T, y T) Point<T>
+fun Point.new<T>(my, x T, y T)
     // TBD: (my.x, my.y) = (x, y)
     my.x = x
     my.y = y
 
 
 [pub]
-fun .toSize<T>(my Point<T>) Size<T>
+fun Point.toSize<T>(my) Size<T>
     return Size<T>(my.x, my.y)
 
 // TBD: Remove
-fun .yf<T>(my Point<T>) T
+fun Point.yf<T>(my) T
     return my.y
 
 
@@ -115,26 +115,26 @@ where T Number<T>
     return Point(a.x/b, a.y/b)
 
 [pub]
-fun .new<T>(my Size<T>, width T, height T) Size<T>
+fun Size.new<T>(my, width T, height T)
     // TBD: (my.width, my.height) = (width, height)
     my.width = width
     my.height = height
     
 [pub]
-fun .toPoint<T>(my Size<T>) Point<T>
+fun Size.toPoint<T>(my) Point<T>
     return Point(my.width, my.height)
 
 
 
 [pub]
-fun .new<T>(my Rect<T>, x T, y T, width T, height T) Rect<T>
+fun Rect.new<T>(my, x T, y T, width T, height T)
     my.x = x
     my.y = y
     my.width = width
     my.height = height
     
 [pub]
-fun .new<T>(my Rect<T>, location Point<T>, size Size<T>) Rect<T>
+fun Rect.new<T>(my, location Point<T>, size Size<T>)
     my.location = location
     my.size = size
 
@@ -142,20 +142,20 @@ fun .new<T>(my Rect<T>, location Point<T>, size Size<T>) Rect<T>
 // TBD: Operators (add, multiply, divide, sizes, etc.)
 
 [pub]
-fun get .left<T>(my Rect<T>) T
+fun get Rect.left<T>(my) T
     return my.x
     
 [pub]
-fun get .right<T>(my Rect<T>) T // TBD: Use constraints from `Rect`
+fun get Rect.right<T>(my) T // TBD: Use constraints from `Rect`
 where T Number<T>
     return my.x + my.width
 
 [pub]
-fun get .top<T>(my Rect<T>) T
+fun get Rect.top<T>(my) T
     return my.y
     
 [pub]
-fun get .bottom<T>(my Rect<T>) T // TBD: Use constraints from `Rect`
+fun get Rect.bottom<T>(my) T // TBD: Use constraints from `Rect`
 where T Number<T>
     return my.y + my.height
     

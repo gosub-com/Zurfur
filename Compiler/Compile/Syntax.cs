@@ -114,9 +114,12 @@ record class SyntaxFunc : SyntaxScope
             yield return Statements;
     }
 
-    public bool HasReceiver { get; init; }
-    public SyntaxExpr? TypeArgs { get; init; }
-    public SyntaxExpr? FunctionSignature { get; init; }
-    public SyntaxConstraint[] Constraints { get; init; } = [];
-    public SyntaxExpr? Statements;
+    public SyntaxExpr? TypeParams { get; init; }
+
+    public Token? ReceiverToken { get; init; }
+    public Token? ReceiverTypeName { get; init; }
+    public required SyntaxExpr FunctionSignature { get; init; }
+    public required SyntaxConstraint[] Constraints { get; init; }
+    public required SyntaxExpr []Requires;
+    public required SyntaxExpr? Statements;
 }

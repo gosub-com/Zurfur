@@ -20,10 +20,9 @@ type ro Pointer<T>
     value *GcHeapObject  // Can also point to GcHeapArray<T>
 
 // Mark these types as the only pointer types in the system
-fun .getRawPointer<T>(my Pointer<T>) RawPointerMarker extern
+fun Pointer.getRawPointer<T>(my) RawPointerMarker extern
 
-fun free(memory *GcHeapObject)
-    extern // Pass to DlMalloc.free
+fun free(memory *GcHeapObject) extern // Pass to DlMalloc.free
     
 
     

@@ -5,19 +5,32 @@ mod Zurfur
 use Zurfur[Equatable]
 use Zurfur.Unsafe[RawPointer, Ref]
 
-// []T is converted to Span<T>
-[pub] type ref Span<T>
+[pub]
+type ref Span<T>
     data ro mut &T
     len ro Int
-
-[pub, implicit]
-fun get .asIterator<T>(my Span<T>) SpanIterator<T> todo
-
-[pub] type ref SpanIterator<T>
+    
+[pub]
+type ref SpanIterator<T>
     _data *T
     _end *T
 
-[pub] fun .next<T>(my SpanIterator<T>) ?&T
+[pub]
+type ref SpanReader
+    data mut SpanIterator<Byte>
+
+// Create a span (on the stack if it can, heap if not)
+[pub] fun Span.new<T>(my, length Int) todo
+
+[pub, implicit]
+fun get Span.asIterator<T>(my) SpanIterator<T> todo
+
+[pub]
+fun get Span.asReader(my Span<Byte>) SpanReader todo
+
+afun SpanReader.read(my, data mut Span<Byte>) !Int todo
+
+[pub] fun SpanIterator.next<T>(my) ?&T
     if my._data >= my._end
         return nil
     @r = my._data
@@ -26,13 +39,13 @@ fun get .asIterator<T>(my Span<T>) SpanIterator<T> todo
        
     
 [pub] fun _opIndex<T>(s Span<T>, i Int) mut &T
-    require(i in 0..s.len)
+require i in 0..s.len
     todo // Implementation TBD
 
 [pub] fun _opIndex<T>(s Span<T>, range Range<Int>) mut Span<T>
-    require(range.low in 0..s.len)
-    require(range.high in 0..s.len)
-    require(range.low <= range.high)
+require range.low in 0..s.len
+require range.high in 0..s.len
+require range.low <= range.high
     todo // Implementation TBD
 
       

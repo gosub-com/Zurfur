@@ -16,19 +16,19 @@ fun test_makeError()
 // ### Interface conversion that fails
 
 type interface TakeConcrete
-    fun .take(a Int)
+    fun take(my, a Int)
 type interface TakeConcrete2
-    fun .take(a Int)
+    fun take(my, a Int)
 type interface TakeInterface
-    fun .take(a TakeConcrete)
+    fun take(my, a TakeConcrete)
     
 type ImpNone()
 
 type ImpTakeConcrete()
-fun .take(my ImpTakeConcrete, a Int) todo
+fun ImpTakeConcrete.take(my, a Int) todo
 
 type ImpTakeInterface()
-fun .take(my ImpTakeInterface, a TakeConcrete) todo
+fun ImpTakeInterface.take(my, a TakeConcrete) todo
 
 fun takeInterfaceConcrete(x TakeConcrete) todo
 fun takeInterfaceInterface(x TakeInterface) todo
@@ -89,10 +89,10 @@ fun test_noImpInfer2()
 // ### Convert concrete types to interface
 
 type interface Printable
-    fun .toStr() Str
+    fun toStr(my) Str
     
 type interface Printable2
-    fun .toStr() Str
+    fun toStr(my) Str
     
 type MyCollection<T> {}
 type MyCollectionIter<T> {}
@@ -101,12 +101,12 @@ type MyCollectionNot<T> {}
 type MyCollectionNotIter<T> {}
 
 
-[implicit] fun .asIterator<T>(my MyCollection<T>) MyCollectionIter<T>
+[implicit] fun MyCollection.asIterator<T>(my) MyCollectionIter<T>
     nop
-fun .next<T>(my MyCollectionIter<T>) ?T
+fun MyCollectionIter.next<T>(my) ?T
     nop
 
-fun .reduceInt(my Iterable<Int>, f fun(item1 Int, item2 Int) Int) ?Int
+fun Iterable.reduceInt(my Iterable<Int>, f fun(item1 Int, item2 Int) Int) ?Int
     return my.asIterator.reduce(f) 
 
 fun test_takePrintable(a Printable)
@@ -136,12 +136,12 @@ where T Printable
 // ### Incompatible parameter types (expecting Int)
 
 type interface TestGlobal
-    fun testGlobal()
+    [static] fun testGlobal()
 fun test_Global<T>()
 where T TestGlobal
     testGlobal()
 type interface TestGlobal2<T>
-    fun testGlobal2(x T) T
+    [static] fun testGlobal2(x T) T
 
 fun test_Global2<T>(t T)
 where T TestGlobal2<Int>
@@ -217,11 +217,11 @@ fun test_reduceConcrete2()
 // ### Ambiguous type inference on interface function
 
 type interface AmbiguousInterface<T>
-    fun .f(a T)
+    fun f(my, a T)
     
 type AmbiguousTest()
-fun .f(my AmbiguousTest, a Int) todo
-fun .f(my AmbiguousTest, b Float) todo
+fun AmbiguousTest.f(my, a Int) todo
+fun AmbiguousTest.f(my, b Float) todo
 
 fun takeAmbiguous<T>(i AmbiguousInterface<T>) todo
 
@@ -248,10 +248,10 @@ fun test_noImp8()
 // ### Ambiguous type inference on interface function parameter
 
 type interface AmbiguousInterfaceFunParam<T>
-    fun .f(a T, b T)
+    fun f(my, a T, b T)
 type AmbiguousTestFunParam()
-fun .f(my AmbiguousTestFunParam, a Int, b Int) todo
-fun .f(my AmbiguousTestFunParam, b Float, c Int) todo
+fun AmbiguousTestFunParam.f(my, a Int, b Int) todo
+fun AmbiguousTestFunParam.f(my, b Float, c Int) todo
 
 fun takeAmbiguousFunParam<T>(i AmbiguousInterfaceFunParam<T>) todo
 
@@ -264,7 +264,7 @@ fun test_ambiguousInterfaceParam()
 
 // ### Ambiguous function call
 
-fun .toStr(my U16) Str todo
+fun U16.toStr(my) Str todo
 fun test_ambiguousFunCall()
     U16().toStr
 

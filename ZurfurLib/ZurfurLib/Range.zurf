@@ -12,18 +12,18 @@ where T Number<T>
     high T
 
 [pub]
-fun .new<T>(my Range<T>, low T, high T) Range<T>
+fun Range.new<T>(my, low T, high T)
     // TBD: (r.low, r.high) = (low, high)
     my.low = low
     my.high = high
 
 [pub]
-fun get .length<T>(my Range<T>) T // TBD: Use constraints from `Range`
+fun get Range.length<T>(my) T // TBD: Use constraints from `Range`
 where T Number<T>
     return my.high-my.low
 
 [pub, implicit]
-fun get .asIterator<T>(my Range<T>) RangeIterator<T>
+fun get Range.asIterator<T>(my) RangeIterator<T>
     return RangeIterator<T>(my.low, my.high)
         
 [pub]
@@ -33,13 +33,13 @@ where T Number<T>
     high T pub init
 
 [pub]
-fun .new<T>(my RangeIterator<T>, low T, high T) RangeIterator<T>
+fun RangeIterator.new<T>(my, low T, high T)
     // TBD: (my.current, my.high) = (low, high)
     my.current = low
     my.high = high
 
 [pub]
-fun .next<T>(my mut RangeIterator<T>) ?T
+fun RangeIterator.next<T>(my mut) ?T
 where T Number<T>
     if my.current >= my.high
         return nil

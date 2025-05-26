@@ -236,6 +236,12 @@ static class CompileCode
         foreach (var p in function.FunParamTuple.TupleSymbols)
             localsByIndex.Add(p);
 
+        // Generate requires
+        // TBD: Put these in a special place since they are part of the prototype
+        foreach (var synRequire in synFunc.Requires)
+            GenTopExpr(synRequire);
+
+        // Generate statements
         if (synFunc.Statements != null)
             GenStatements(synFunc.Statements);
         EndLocalScope();
@@ -303,18 +309,22 @@ static class CompileCode
             else if (name == "return" || name == "yield")
                 GenReturnStatement(s);
             else
+                GenTopExpr(s);             
+        }
+
+        // Generate top level expression, e.g. f(x), etc.
+        void GenTopExpr(SyntaxExpr ex)
+        {
+            var rval = GenExpr(ex);
+            EvalCall(rval, EmptyCallParams, EvalFlags.AssignmentTarget);
+            if (rval != null && rval.Symbol != null && rval.Symbol.IsFun)
             {
-                // Generate top level expression, e.g. f(x), etc.
-                var rval = GenExpr(s);
-                EvalCall(rval, EmptyCallParams, EvalFlags.AssignmentTarget);
-                if (rval != null && rval.Symbol != null && rval.Symbol.IsFun)
-                {
-                    // TBD: Mark an error for non-mut function calls
-                    if (rval.Symbol.IsGetter || rval.Symbol.IsSetter)
-                        Reject(rval.Symbol.Token, "Top level statement cannot be a getter or setter");
-                }
+                // TBD: Mark an error for non-mut function calls
+                if (rval.Symbol.IsGetter || rval.Symbol.IsSetter)
+                    Reject(rval.Symbol.Token, "Top level statement cannot be a getter or setter");
             }
         }
+
 
         void GenWhileStatement(SyntaxExpr ex)
         {
@@ -512,7 +522,7 @@ static class CompileCode
             // Terminals: Number, string, identifier
             if (char.IsDigit(name[0]))
                 return GenConstNumber(ex);
-            else if (name == "\"" || name == "\"\"\"")
+            else if (name == ParseZurf.TOKEN_STR_LITERAL || name == ParseZurf.TOKEN_STR_LITERAL_MULTI_BEGIN)
                 return GenStr(ex);
             else if (name == "nil")
                 return new Rval(token) { Type = typeNil };
@@ -1826,7 +1836,7 @@ static class CompileCode
             var name = token.Name;
             var pi = Array.FindIndex(function.FunParamTuple.TupleSymbols, f => f.SimpleName == name);
             if (pi >= 0)
-                return (function.FunParamTuple.TupleSymbols[pi], 0);
+                return (function.FunParamTuple.TupleSymbols[pi], pi);
             var ri = Array.FindIndex(function.FunReturnTuple.TupleSymbols, f => f.SimpleName == name);
             if (ri >= 0)
             {
@@ -1855,6 +1865,8 @@ static class CompileCode
             var local = FindLocal(token);
             if (local.sym != null)
             {
+                if (local.index == 0 && function.IsMethod)
+                    token.Type = TokenType.ReservedVar;  // Mark receiver variable
                 token.AddInfo(local.sym);
                 assembly.AddOpLdlr(local.sym.Token, local.index);
                 return new List<Symbol>() { local.sym };

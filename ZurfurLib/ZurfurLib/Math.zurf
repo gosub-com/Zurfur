@@ -10,8 +10,8 @@ use Zurfur[Decimal]
 // Math intrinsics for I32
 // --------------------------
 [pub] fun abs(n I32) I32 extern
-[pub] fun .clamp(my I32, min I32, max I32) I32
-    require(min <= max)
+[pub] fun I32.clamp(my, min I32, max I32) I32
+require min <= max
     todo
     
 [pub] fun max(n1 I32, n2 I32) I32 extern
@@ -22,8 +22,8 @@ use Zurfur[Decimal]
 // --------------------------
 // Math intrinsics for U32
 // --------------------------
-[pub] fun .clamp(my U32, min U32, max U32) U32
-    require(min <= max)
+[pub] fun U32.clamp(my, min U32, max U32) U32
+require min <= max
     todo
     
 [pub] fun max(n1 U32, n2 U32) U32 extern
@@ -34,8 +34,8 @@ use Zurfur[Decimal]
 // Math intrinsics for Int
 // --------------------------
 [pub] fun abs(n Int) Int extern
-[pub] fun .clamp(my Int, min Int, max Int) Int
-    require(min <= max)
+[pub] fun Int.clamp(my, min Int, max Int) Int
+require min <= max
     todo
     
 [pub] fun max(n1 Int, n2 Int) Int extern
@@ -46,8 +46,8 @@ use Zurfur[Decimal]
 // --------------------------
 // Math intrinsics for U64
 // --------------------------
-[pub] fun .clamp(my U64, min U64, max U64) U64
-    require(min <= max)
+[pub] fun U64.clamp(my, min U64, max U64) U64
+require min <= max
     todo
     
 [pub] fun max(n1 U64, n2 U64) U64 extern
@@ -63,8 +63,8 @@ use Zurfur[Decimal]
 [pub] fun atan(n F32) F32 extern
 [pub] fun atan2(x F32, y F32) F32 extern
 [pub] fun ceil(n F32) F32 extern
-[pub] fun .clamp(my F32, min F32, max F32) F32
-    require(min<=max)
+[pub] fun F32.clamp(my, min F32, max F32) F32
+require min<=max
     todo
     
 [pub] fun cos(n F32) F32 extern
@@ -98,8 +98,8 @@ use Zurfur[Decimal]
 [pub] fun atan(n Float) Float extern
 [pub] fun atan2(x Float, y Float) Float extern
 [pub] fun ceil(n Float) Float extern
-[pub] fun .clamp(my Float, min Float, max Float) Float
-    require(min<=max)
+[pub] fun Float.clamp(my, min Float, max Float) Float
+require min<=max
     todo
     
 [pub] fun cos(n Float) Float extern
@@ -128,8 +128,8 @@ use Zurfur[Decimal]
 // Math intrinsics for Decimal
 // --------------------------
 [pub] fun abs(n Decimal) Decimal extern
-[pub] fun .clamp(my Decimal, min Decimal, max Decimal) Decimal
-    require(min <= max)
+[pub] fun Decimal.clamp(my, min Decimal, max Decimal) Decimal
+require min <= max
     todo
     
 [pub] fun max(n1 Decimal, n2 Decimal) Decimal extern

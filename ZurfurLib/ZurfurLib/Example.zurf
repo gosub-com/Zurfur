@@ -11,7 +11,7 @@ mod TestExample
 use Zurfur
 use Zurfur[Decimal, Log, Number, Iterator]
 use Zurfur.Math[cos,sin]
-use Zurfur.ConvertBytes[bytesToHex]
+use Zurfur.ConvertBytes[writeBytesHex]
 
 // Simple types have public fields:
 [pub] type SimpleType(firstName Str, lastName Str)
@@ -53,7 +53,7 @@ fun test_map()
 
 // Declare a method to multiply and add three keys on Map<K,V>.
 // Return Nan (or MinValue for integer types) if any key is missing.
-fun .madd<K,V>(my Map<K,V>, mul1 K, mul2 K, add K) V
+fun Map.madd<K,V>(my, mul1 K, mul2 K, add K) V
 where V Number<V>
     if my[mul1]@mul1Val and my[mul2]@mul2Val and my[add]@addVal
         return mul1Val * mul2Val + addVal
@@ -66,24 +66,24 @@ fun countToTen()
         Log.info("Count={i}, text={m.text}")
 
 [implicit]
-fun .asIterator(my MyType) MyTypeIter todo
+fun MyType.asIterator(my) MyTypeIter todo
 
 type MyTypeIter
     a Int
     
-fun .next(my MyTypeIter) ?Int
+fun MyTypeIter.next(my) ?Int
     todo
 
 // Setter for list, which is already public read-only
 [pub]
-fun set .list(my MyType, v own List<Int>)
+fun set MyType.list(my, v own List<Int>)
     my._list = v
     my.mapChangedEvent()
     for x in MyType()
         nop
     MyType().map<Int,Str>(s => "")
 
-fun .mapChangedEvent(my MyType) {}
+fun MyType.mapChangedEvent(my) {}
 
 fun test_HelloWorld()
     Log.info("Hello World.  Let's count from 1 to 10.")
@@ -95,9 +95,13 @@ fun test_HelloWorld()
     let c = tr"Translated string"          // Translated at runtime
     let d = "Hello world, a+b={a+b}{\n}"   // Interpolated with \n at the end
     let e = tr"Hello world, X={X}!{\n}"    // Translated, interpolated, \n at end
-    let g = """{"X":1,"Y":2}"""            // Containing quote
-    let h = """{"X":${x},"Y":2}"""         // Containing quote and interpolated
-
+    let g = ``{"X":1,"Y":2}``              // Containing quote
+    let h = ``{"X":#{x},"Y":2}``           // Containing quote and interpolated
+    let markDown = ``
+This is a multi-line markdown comment that can have `code` in it.
+Even 3 ``` or 4 ```` backticks if you need them (just not two backticks)
+Multi-line comments can also be interpolated: #{a}
+``
     let t1 = circle2(1, 2.0)
     let t1r1 = t1.x
     let t1r2 = t1.y
@@ -178,9 +182,10 @@ fun test_Main(args Array<Str>, stream Zurfur.Io.Reader)
     let a = tr"Column 1{\t}Column 2{\rn}"
     let data = "Name:{name}{\t}Occupation:{lastName}{\rn}"
     let buffer = Buffer<Byte>()
-    
+
+    let hexString = List<Byte>()
     while stream.read(buffer[0..4])!@size == 4
-        let bytes = buffer[0..4].bytesToHex(false) // TBD: Scan use statements for extension methods
+        hexString.writeBytesHex(buffer[0..4], false) // TBD: Scan use statements for extension methods
 
     // AcceptMatch returns ?Token = (Bool, Token)
     // @Token captures the token, leaving the Bool

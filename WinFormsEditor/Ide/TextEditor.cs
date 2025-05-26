@@ -560,7 +560,7 @@ public partial class TextEditor : UserControl, IEditor
                 { TokenType.ReservedControl, new FontInfo(boldFont, Color.Blue) },
                 { TokenType.ReservedVar, new FontInfo(boldFont, Color.DarkBlue) },
                 { TokenType.ReservedType, new FontInfo(boldFont, Color.FromArgb(20,125,160)) },
-                { TokenType.Quote, new FontInfo(normalFont, Color.Brown) },
+                { TokenType.QuoteText, new FontInfo(normalFont, Color.Brown) },
                 { TokenType.Comment, new FontInfo(normalFont, Color.Green) },
                 { TokenType.NewVarSymbol, new FontInfo(normalFont, Color.Blue) },
                 { TokenType.DefineField, new FontInfo(boldFont, Color.Black) },

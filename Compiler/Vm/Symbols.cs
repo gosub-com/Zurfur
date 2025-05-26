@@ -33,7 +33,7 @@ public static class SymTypes
     public const string Span = "Zurfur.Span`1";
 
     public static readonly WordMap<string> FriendlyNames = new WordMap<string>
-        { { RawPointer, "*" }, { Pointer, "^" }, { Maybe, "?" }, { Ref, "&"}, { Span, "[]" } };
+        { { RawPointer, "*" }, { Pointer, "^" }, { Maybe, "?" }, { Ref, "&"} };
 
     public static readonly WordMap<string> UnaryTypeSymbols = new WordMap<string>()
     {
