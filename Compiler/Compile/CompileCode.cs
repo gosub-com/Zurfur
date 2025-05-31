@@ -1691,25 +1691,27 @@ static class CompileCode
             // User supplied implicit conversion to exact match
             // ----------------------------------------------------------
 
-            // Retrieve implicit conversions from argType, parmType, and current function modules
+            // Retrieve implicit conversions from argType and parmType
             var conversions = new List<Symbol>();
-            PushImplicits(argType, conversions);
-            if (paramType.ParentModule.FullName != argType.ParentModule.FullName)
-                PushImplicits(paramType, conversions);
-            if (function.ParentModule.FullName != argType.ParentModule.FullName && function.ParentModule.FullName != paramType.ParentModule.FullName)
-                PushImplicits(function, conversions);
+            PushImplicits(argType.Concrete, conversions);
+            if (paramType.Concrete.FullName != argType.Concrete.FullName)
+                PushImplicits(paramType.Concrete, conversions);
 
             var callableIfaceConversions = new List<(Symbol funReturnType, Symbol[] inferred)>();
             var exactConversions = new List<Symbol[]>();
+
             foreach (var conversion in conversions)
             {
                 var parameters = conversion.FunParamTypes;
                 var returns = conversion.FunReturnTypes;
-                if (parameters.Length != 1 || parameters[0].IsInterface || returns.Length != 1 || returns[0].IsInterface)
-                    continue; // These should fail during validation
-                
+                if (parameters.Length == 0)
+                    continue; // Should fail during validation
+                var inputParam = conversion.IsStatic && parameters.Length >= 2 ? parameters[1] : parameters[0];
+                if (inputParam.IsInterface || returns.Length != 1 || returns[0].IsInterface)
+                    continue; // Should fail during validation
+
                 // Can we call it with the given parameter?
-                var (matchConversion, inferredConversionTypes) = InferTypesMatch(argType, parameters[0], 
+                var (matchConversion, inferredConversionTypes) = InferTypesMatch(argType, inputParam, 
                     table.CreateUnresolvedArray(conversion.GenericParamCount()));
 
                 if (!matchConversion)
@@ -1820,10 +1822,10 @@ static class CompileCode
         // Retrieve implicit functions from the symbol's module (cache them in implicitCache for speed)
         void PushImplicits(Symbol symbol, List<Symbol> implicits)
         {
-            if (!implicitCache.TryGetValue(symbol.ParentModule.FullName, out var implicitsList))
+            if (!implicitCache.TryGetValue(symbol.FullName, out var implicitsList))
             {
-                implicitsList = symbol.ParentModule.Children.Where(s => s.IsImplicit && s.IsFun && s.IsMethod).ToArray();
-                implicitCache[symbol.ParentModule.FullName] = implicitsList;
+                implicitsList = symbol.Children.Where(s => s.IsImplicit && s.IsFun && (s.IsStatic || s.IsGetter)).ToArray();
+                implicitCache[symbol.FullName] = implicitsList;
             }
             foreach (var impl in implicitsList)
                 implicits.Add(impl);

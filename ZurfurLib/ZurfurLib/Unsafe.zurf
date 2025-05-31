@@ -49,9 +49,8 @@ type interface GetRawPointer
 type ro RawPointer<T>
     value Xuint
 
-[pub, implicit] fun RawPointer.toVoid<T>(my *T)*Void extern
-
-[pub, implicit] fun Nil.toPointer<T>(my)*T extern
+    [pub, implicit] fun get toVoid(my)*Void extern
+    [pub, implicit, static] fun toPointer(value Nil)*T extern
 
 [pub] fun _opEq<T>(a RawPointer<T>, b RawPointer<T>) Bool extern
 [pub] fun _opCmp<T>(a RawPointer<T>, b RawPointer<T>) Int extern

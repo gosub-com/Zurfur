@@ -11,6 +11,11 @@ where T Number<T>
     low T
     high T
 
+    [pub, implicit]
+    fun get asIterator(my) RangeIterator<T>
+        return RangeIterator<T>(my.low, my.high)
+
+
 [pub]
 fun Range.new<T>(my, low T, high T)
     // TBD: (r.low, r.high) = (low, high)
@@ -21,10 +26,6 @@ fun Range.new<T>(my, low T, high T)
 fun get Range.length<T>(my) T // TBD: Use constraints from `Range`
 where T Number<T>
     return my.high-my.low
-
-[pub, implicit]
-fun get Range.asIterator<T>(my) RangeIterator<T>
-    return RangeIterator<T>(my.low, my.high)
         
 [pub]
 type RangeIterator<T>

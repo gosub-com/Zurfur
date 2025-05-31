@@ -32,12 +32,13 @@ type Maybe<T>
     value Box<T>
     hasValue Bool
 
+    [pub, static, implicit] fun toMaybe(value T) Maybe<T> todo
+    [pub, static, implicit] fun toMaybe(value Nil) Maybe<T> todo
+
 [pub] fun Maybe.new<T>(my, value own T)
     my.value = Box<T>(value)
     my.hasValue = true
 
-[pub, implicit] fun T.toMaybe<T>(my T) Maybe<T> todo
-[pub, implicit] fun Nil.toMaybe2<T>(my) Maybe<T> todo
  
 type Box<T>
     const __size Int = 1
@@ -57,7 +58,7 @@ type union Result<T>
     ok T
     error ro Error
 
-[pub, implicit] fun T.toResult<T>(my T) Result<T> todo
+    [pub, implicit, static] fun toResult(value T) Result<T> todo
 
 // Machine readable (Zig style?) error code, possibly a Str or U32
 [pub]

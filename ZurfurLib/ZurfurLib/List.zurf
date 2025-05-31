@@ -22,8 +22,16 @@ fun calloc(size Int) *Void
 [pub]
 type List<T>
     const MaxItems Int = u32.MaxValue/2
+    
     list *GcHeapArray
     _len Int
+
+    [pub, implicit]
+    fun get asSpan(my) Span<T> todo
+    
+    [pub, implicit]
+    fun get asIterator(my) SpanIterator<T> todo
+
 
 [pub]
 fun List.new<T>(my)
@@ -63,12 +71,6 @@ where T Clone<T>
 [pub]
 fun List.new<T>(my, items mut Iterator<T>)
     todo
-
-[pub, implicit]
-fun get List.asSpan<T>(my) Span<T> todo
-
-[pub, implicit]
-fun get List.asIterator<T>(my) SpanIterator<T> todo
 
 [pub]
 fun get List.capacity<T>(my) Int

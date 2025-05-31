@@ -65,7 +65,6 @@ fun countToTen()
     for i in 1..+10
         Log.info("Count={i}, text={m.text}")
 
-[implicit]
 fun MyType.asIterator(my) MyTypeIter todo
 
 type MyTypeIter
@@ -79,9 +78,9 @@ fun MyTypeIter.next(my) ?Int
 fun set MyType.list(my, v own List<Int>)
     my._list = v
     my.mapChangedEvent()
-    for x in MyType()
+    for x in MyType().asIterator
         nop
-    MyType().map<Int,Str>(s => "")
+    MyType().asIterator.map<Int,Str>(s => "")
 
 fun MyType.mapChangedEvent(my) {}
 

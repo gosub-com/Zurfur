@@ -42,11 +42,14 @@ fun test_inferIterator()
     inferIterator(1, List<F32>())  // inferIterator<Int,F32>
     
 // Simple implicit conversion
-type FromImplicit()
-type ToImplicit()
-[implicit] fun FromImplicit.toToImplicit(my) ToImplicit todo
-[implicit] fun Map.toToImplicit(my Map<Int,Float>) ToImplicit todo
+type FromImplicit
+    [pub, implicit] fun get toToImplicit(my) ToImplicit todo
+
+type ToImplicit
+    [pub, implicit, static] fun toToImplicit(value Map<Int,Float>) ToImplicit todo
+
 fun checkImplicit1(a ToImplicit) todo
+
 fun test_implicit()
     checkImplicit1(ToImplicit())
     checkImplicit1(FromImplicit())
@@ -54,12 +57,16 @@ fun test_implicit()
     // checkImplicit1(Map<Int,Int>())  FAIL because no implicit conversion
 
 // Generic implcit conversion
-type FromImplicitG<T1, T2, T3>()
+type FromImplicitG<T1, T2, T3>
+    [pub, implicit] fun get toToImplicit(my) ToImplicitG<Int,T3, T2> todo
+
 type ToImplicitG<T1, T2, T3>()
-[implicit] fun FromImplicitG.toToImplicit<T1,T2,T3>(my) ToImplicitG<Int,T3, T2> todo
+
 fun checkImplicitG<T1,T2,T3>(a ToImplicitG<T1,T2,T3>)(a T2,b T3,c T1) todo
 fun checkInferredG<T1,T2,T3>(a T2, b ToImplicitG<Int, T3, I8>, c ToImplicitG<Int, I16, T1>)(a T2, b T3, c T1) todo
+
 fun makeImplicitFromG<T1, T2, T3>(a T1, b T2, c T3) FromImplicitG<T2, T3, T1> todo
+
 fun test_implicitG()
     // Rotate type args though checkImplcit2 without conversion
     let a (I32, U32, F32) = checkImplicitG(ToImplicitG<F32,I32,U32>())
@@ -79,15 +86,22 @@ fun test_implicitG()
 // Implicit conversion to interface
 type interface ImplicitI<T>
     fun callme(my, a T) T
+    
 type ToImplicitI<T>()
+
 fun ToImplicitI.callme<T>(my, a T)T todo
-type FromImplicitI<T>()
-[implicit] fun FromImplicitI.toToImplicit<T>(my)ToImplicitI<T> todo
+
+type FromImplicitI<T>
+    [pub, implicit] fun get toToImplicit(my) ToImplicitI<T> todo
+
 fun checkImplicitFun<T>(a ToImplicitI<T>) T todo
+
 fun checkImplicitI<T>(a ImplicitI<T>) T
     return a.callme(T())
+
 fun checkImplicitI2(a ImplicitI<Int>) Int
     return a.callme(Int())
+
 fun test_implicitI()
     let a Float = checkImplicitFun(ToImplicitI<Float>())
     let b Float = checkImplicitFun(FromImplicitI<Float>())

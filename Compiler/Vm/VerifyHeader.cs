@@ -120,9 +120,9 @@ public static class VerifyHeader
             RejectDuplicateTypeParameterName(func.Token, funParent.Parent!); // Skip containing type or method
 
             if (!funParent.IsInterface && !funParent.IsModule
-                && !func.IsGetter && !func.IsSetter)
+                && !func.IsGetter && !func.IsSetter && !func.IsStatic)
             {
-                Reject(func.Token, "Only getters or setters ('fun get' or 'fun set') are allowed inside a type");
+                Reject(func.Token, "Only 'get', 'set', and 'static' functions are allowed inside a type");
             }
         }
 

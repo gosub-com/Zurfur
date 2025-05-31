@@ -9,6 +9,9 @@ use Zurfur.Unsafe[RawPointer, Ref]
 type ref Span<T>
     data ro mut &T
     len ro Int
+
+    [pub, implicit] fun get asIterator(my) SpanIterator<T> todo
+
     
 [pub]
 type ref SpanIterator<T>
@@ -21,9 +24,6 @@ type ref SpanReader
 
 // Create a span (on the stack if it can, heap if not)
 [pub] fun Span.new<T>(my, length Int) todo
-
-[pub, implicit]
-fun get Span.asIterator<T>(my) SpanIterator<T> todo
 
 [pub]
 fun get Span.asReader(my Span<Byte>) SpanReader todo

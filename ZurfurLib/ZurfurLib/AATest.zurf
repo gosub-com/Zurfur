@@ -72,8 +72,8 @@ fun test_reduce()
     @myReduceTuple1 = List<(x Int, y Int)>().reduce(|item1, item2| => item1)
     @myReduceTuple2 = List<(a Int, b Int)>().reduce(|item1, item2| => item2)
 
-[pub] type MyType()
-[implicit] fun MyType.asIterator(my) MyTypeIter todo
+[pub] type MyType
+    [pub, implicit] fun get asIterator(my) MyTypeIter todo
 
 type MyTypeIter()
 fun MyTypeIter.next(my) ?Int
@@ -200,15 +200,17 @@ fun test_lambdaCall()
     lambdaCall(|a Float| => a + 32) // TBD: Should be OK
     lambdaCall2(a => 0)
 
-type MyCollection<T> {}
+type MyCollection<T>
+    [pub, implicit] fun get asIterator(my) MyCollectionIter<T>
+        nop
+
 type MyCollectionIter<T> {}
 
 type MyCollectionNot<T> {}
+
 type MyCollectionNotIter<T> {}
 
 
-[implicit] fun MyCollection.asIterator<T>(my) MyCollectionIter<T>
-    nop
 fun MyCollectionIter.next<T>(my) ?T
     nop
 fun MyCollectionNot.asIterator<T>(my) MyCollectionNotIter<T>
