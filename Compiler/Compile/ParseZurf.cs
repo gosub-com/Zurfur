@@ -740,32 +740,10 @@ class ParseZurf
         var oldScopeStack = _scopeStack;
         _scopeStack = [.. oldScopeStack, synType];
 
-        // Simple struct
-        if (AcceptMatch("("))
-        {
-            synType.Simple = true;
-            var open = _prevToken;
-            do
-            {
-                if (_token == ")")
-                    break;
-                var simpleField = ParseFieldSimple(new List<Token>());
-                if (simpleField != null)
-                {
-                    AddField(simpleField);
-                }
-            } while (AcceptMatch(","));
-            if (AcceptMatchOrReject(")"))
-                Connect(_prevToken, open);
-            _scopeStack = oldScopeStack;
-            return;
-        }
-
         // Alias or 'is' type
         if (AcceptMatch("=") || AcceptMatch("is"))
         {
             var prev = _prevToken.Name;
-            synType.Simple = true;
             synType.Alias = ParseType();
             _scopeStack = oldScopeStack;
             return;
@@ -1010,13 +988,11 @@ class ParseZurf
         }
 
         // Parse function receiver type and name: [receiver.]name
-        Token? receiverToken = null;
         Token? receiverTypeName = null;
         Token? functionName = null;
         functionName = ParseFunctionName();
         if (AcceptMatch("."))
         {
-            receiverToken = _prevToken;
             receiverTypeName = functionName;
             if (receiverTypeName != null)
                 receiverTypeName.Type = TokenType.TypeName;
@@ -1045,7 +1021,6 @@ class ParseZurf
             {
                 Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last(),
                 Comments = comments,
-                ReceiverToken = receiverToken,
                 TypeParams = typeParams,
                 ReceiverTypeName = receiverTypeName,
                 Constraints = constraints ?? [],

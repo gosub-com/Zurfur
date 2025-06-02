@@ -167,6 +167,11 @@ public class Symbol
     public readonly string SimpleName;
 
     /// <summary>
+    /// Static extension methods need to know what scope they are in
+    /// </summary>
+    public Symbol? StaticScope;
+
+    /// <summary>
     /// Field, local, parameter, lambda, or function type.
     /// A function or lambda's return type is a tuple containing two 
     /// tuples: ((ParameterTypes),(ReturnTypes)).
@@ -363,6 +368,10 @@ public class Symbol
             return;
         }
 
+        var staticScope = "";
+        if (StaticScope != null)
+            staticScope = $"[{StaticScope}]";
+
         var funParams = "";
         if (IsFun && Type != null)
             funParams = FunParamTuple.FullName + FunReturnTuple.FullName;
@@ -374,7 +383,7 @@ public class Symbol
 
         // Specialized functions get the parents functions parant
         var parentFullName = Concrete.Parent!.FullName;
-        FullName = parentFullName + "." + SimpleName + genericArgsCount + typeArgs + funParams;
+        FullName = parentFullName + "." + SimpleName + genericArgsCount + typeArgs + staticScope + funParams;
     }
 
     /// <summary>

@@ -14,11 +14,11 @@ pragma AllowUnderscoreDefinitions
 
 // Return type of functions that don't return anything
 [pub]
-type ro struct Void()
+type ro struct Void {}
 
 // Empty value for pointers and optionals
 [pub]
-type ro struct Nil()
+type ro struct Nil {}
 
 // Maybe<T> is the same as ?T.  Pointer and reference types are always
 // optimized so that `?&T`, `?*T`, `?^T`, and `?Box<T>` are just one pointer.
@@ -73,7 +73,7 @@ type Rune = I32
 
 // Base interface for all types
 [pub]
-type interface Object()
+type interface Object {}
 
 
 // All types have a unique `id`, but other non-essential metadata is opt-in.

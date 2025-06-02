@@ -141,9 +141,6 @@ class ParseZurfCheck
 
             var outerKeyword = field.Parent == null ? "" : field.Parent.Keyword;
 
-            if (!field.Simple && field.Parent is SyntaxType t && t.Simple)
-                m_parser.RejectToken(field.Name, "Fields may not be defined inside a type with parameters");
-
             // TBD: Move this to ZilVerifyHeader
             if (outerKeyword == "interface" && !Array.Exists(field.Qualifiers, a => a.Name =="const"))
             {

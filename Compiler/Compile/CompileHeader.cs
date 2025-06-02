@@ -459,7 +459,7 @@ static class CompileHeader
                 Reject(synFunc.TypeParams[0].Token, "Interface methods may not have type parameters");
 
             var receiverParam = ResolveReceiver(synFunc, table, useSymbolsFile, function);
-            var parametersEnumerator = receiverParam == null || function.IsStatic ? synFunc.FunctionSignature[0] : synFunc.FunctionSignature[0].Skip(1);
+            var parametersEnumerator = receiverParam == null ? synFunc.FunctionSignature[0] : synFunc.FunctionSignature[0].Skip(1);
             var parameters = ResolveFunParams(parametersEnumerator, table, function, function, useSymbolsFile);
             var returns = ResolveFunParams(synFunc.FunctionSignature[1], table, function, function, useSymbolsFile);
             var newReturn = ResolveNewReturn(function, receiverParam, synFunc);
@@ -497,56 +497,64 @@ static class CompileHeader
             var functionParent = function.Parent;
             ArgumentNullException.ThrowIfNull(functionParent, "function.Parent cannot be null");
 
-            // Functions inside a type use the it as the receiver type
-            if (!functionParent.IsModule)
+            // Functions in types may not include an explicit receiver type
+            if (!functionParent.IsModule && synFunc.ReceiverTypeName != null)
             {
-                if (synFunc.ReceiverToken != null)
-                    Reject(synFunc.ReceiverToken, "Methods may not specify a receiver type");
-                if (synFunc.ReceiverTypeName != null)
-                    Reject(synFunc.ReceiverTypeName, "Methods may not specify a receiver type");
-
-                function.Qualifiers |= SymQualifiers.Method;
-                if (function.IsStatic)
-                {
-                    // Static interface function has implicit receiver 
-                    var myParamIntf = new Symbol(SymKind.FunParam, function, function.Path, synFunc.Name, "my");
-                    myParamIntf.Type = Resolver.GetTypeWithGenericParameters(table, functionParent);
-                    function.Qualifiers |= SymQualifiers.Static;
-                    if (!noCompilerChecks)
-                        myParamIntf.Token.AddInfo(new VerifySuppressError());
-                    return myParamIntf;
-                }
-                else
-                {
-                    return ResolveMyParamType(synFunc, functionParent, table, useSymbolsFile, function);
-                }
+                Reject(synFunc.ReceiverTypeName, "Functions declared in a type may not have an explicit receiver type");
+                return null;
             }
-            else
-            {
-                // No receiver type specified
-                if (synFunc.ReceiverToken == null || synFunc.ReceiverTypeName == null)
-                    return null;
 
-                // Resolve the receiver type name
-                Symbol? receiverType = Resolver.FindGlobalType(synFunc.ReceiverTypeName, table, function, useSymbolsFile);
+            // Resolve receiver type name (if supplied)
+            Symbol? receiverType = null;
+            if (synFunc.ReceiverTypeName != null)
+            {
+                receiverType = Resolver.FindGlobalType(synFunc.ReceiverTypeName, table, function, useSymbolsFile);
                 if (receiverType == null)
-                {
-                    Reject(synFunc.ReceiverTypeName, "Unknown receiver type name");
-                    return null;
-                }
+                    return null; // Error marked above
+
+                synFunc.ReceiverTypeName.AddInfo(receiverType);
                 if (!receiverType.IsType && !receiverType.IsTypeParam)
                 {
                     table.Reject(synFunc.ReceiverTypeName, $"The symbol is not a type, it is a {receiverType.KindName}");
                     return null;
                 }
-                function.Qualifiers |= SymQualifiers.Method;
-                synFunc.ReceiverTypeName.AddInfo(receiverType);
+            }
 
-                return ResolveMyParamType(synFunc, receiverType, table, useSymbolsFile, function);
+            // Static function - requires a receiver parameter
+            if (function.IsStatic)
+            {
+                function.Qualifiers |= SymQualifiers.Static | SymQualifiers.Method;
+
+                // Static functions in types don't need anything more
+                if (!functionParent.IsModule)
+                    return null;
+
+                if (receiverType == null)
+                {
+                    Reject(synFunc.Name, "Module level static functions must specify a receiver type");
+                    return null;
+                }
+
+                function.StaticScope = receiverType;
+                return null;
+            }
+
+            // Add receiver parameter
+            if (functionParent.IsModule)
+            {
+                if (synFunc.ReceiverTypeName == null || receiverType == null)
+                    return null; // No receiver type specified
+
+                return ResolveMyParam(synFunc, receiverType, table, useSymbolsFile, function);
+            }
+            else
+            {
+                return ResolveMyParam(synFunc, functionParent, table, useSymbolsFile, function);
             }
         }
 
-        Symbol? ResolveMyParamType(SyntaxFunc synFunc, Symbol receiverType, SymbolTable table, UseSymbolsFile useSymbolsFile, Symbol function)
+        // Resolve an explicit "my" param, which is allowed to omit the type name
+        Symbol? ResolveMyParam(SyntaxFunc synFunc, Symbol receiverType, SymbolTable table, UseSymbolsFile useSymbolsFile, Symbol function)
         {
             // Parameter syntax tree: variable name[type, initializer, qualifiers]
             if (synFunc.FunctionSignature.Count == 0
@@ -596,6 +604,7 @@ static class CompileHeader
                 //     TBD: Reject on exact matching generic parameters, e.g: fun List<T>.myFunc(my List<T>)
 
             }
+            function.Qualifiers |= SymQualifiers.Method;
             parameter.Token.AddInfo(myParam);
             parameter.Token.Type = TokenType.ReservedVar;
 

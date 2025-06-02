@@ -12,7 +12,8 @@ use Zurfur.Io[FileStream]
 
 // TBD: It's probably better to have cancellation built
 //      into the async system.  Maybe progress too.
-type Progress(bytesTotal Int, bytesTransferred Int)
+type Progress {bytesTotal Int; bytesTransferred Int}
+
 afun readAllText(
     fileName Str,
     progress ?fun (p Progress) = nil) ! { }

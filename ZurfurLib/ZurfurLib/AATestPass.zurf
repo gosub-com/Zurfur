@@ -7,23 +7,28 @@ mod AATestPass
 use Zurfur[Iterator, SpanIterator]
 
 
-type ImpNone()
+type ImpNone {}
 
 type interface TakeConcrete
     fun take(my, a Int)
+    
 type interface TakeConcrete2 // TBD: Interfce to interface for compatible interfaces
     fun take(my, a Int)
+    
 type interface TakeInterface
     fun take(my, a TakeConcrete)
     
-type ImpTakeConcrete()
+type ImpTakeConcrete {}
+
 fun ImpTakeConcrete.take(my, a Int) todo
 
-type ImpTakeInterface()
+type ImpTakeInterface {}
+
 fun ImpTakeInterface.take(my, a TakeConcrete) todo
 
 
 fun takeInterfaceConcrete(x TakeConcrete) todo
+
 fun takeInterfaceInterface(x TakeInterface) todo
 
 fun test_interfaces()
@@ -60,7 +65,7 @@ fun test_implicit()
 type FromImplicitG<T1, T2, T3>
     [pub, implicit] fun get toToImplicit(my) ToImplicitG<Int,T3, T2> todo
 
-type ToImplicitG<T1, T2, T3>()
+type ToImplicitG<T1, T2, T3> {}
 
 fun checkImplicitG<T1,T2,T3>(a ToImplicitG<T1,T2,T3>)(a T2,b T3,c T1) todo
 fun checkInferredG<T1,T2,T3>(a T2, b ToImplicitG<Int, T3, I8>, c ToImplicitG<Int, I16, T1>)(a T2, b T3, c T1) todo
@@ -87,7 +92,7 @@ fun test_implicitG()
 type interface ImplicitI<T>
     fun callme(my, a T) T
     
-type ToImplicitI<T>()
+type ToImplicitI<T> {}
 
 fun ToImplicitI.callme<T>(my, a T)T todo
 
@@ -108,4 +113,30 @@ fun test_implicitI()
     let c Int = checkImplicitI(ToImplicitI<Int>())
     let d = checkImplicitI(FromImplicitI<Int>())
     let e = checkImplicitI2(FromImplicitI<Int>())
+
+// Test static fields and methods
+
+type StaticTest
+    [static] staticField Int
+    [static] fun staticFun(a Str) Int todo
+
+type interface StaticInterfaceTest
+    fun methodFun(my, a Str) Int
+    [static] fun staticFun(a Str) Int
+
+[static] fun StaticTest.staticExtensionFun(a Str) Int todo
+
+
+fun test_staticTest()
+    let a Int = StaticTest.staticField
+    let b Int = StaticTest.staticFun("a")
+    let c Int = StaticTest.staticExtensionFun("a")
+    let e Int = StaticInterfaceTest.staticFun("x") // TBD: Must fail
+
+fun test_staticInterface<T>(a T)
+where T StaticInterfaceTest
+    let x Int = T.staticFun("Hello")
+    let y Int = a.methodFun("Hello")
+
+
     

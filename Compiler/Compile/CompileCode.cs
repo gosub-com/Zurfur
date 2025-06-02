@@ -1540,11 +1540,7 @@ static class CompileCode
             }
 
             func = func.Concrete;
-            var funParams = new Span<Symbol>(func.FunParamTypes);
-            if (func.IsMethod && func.IsStatic)
-                funParams = funParams.Slice(1);
-           
-            var match = AreFunParamsCompatible(call.Name, func, args, funParams, typeArgs);
+            var match = AreFunParamsCompatible(call.Name, func, args, func.FunParamTypes, typeArgs);
             if (match.Compatibility != CallCompatible.Compatible)
                 return match;
 
@@ -1926,7 +1922,7 @@ static class CompileCode
 
             var symbols = new List<Symbol>();
             AddFunctionsNamedInModule(name, function.ParentModule, symbols, true);
-            AddSymbolsNamedInType(name, inType, symbols);
+            AddFunctionsNamedInType(name, inType, symbols);
             AddMethodsInModuleWithType(name, inType.ParentModule, inType, symbols);
 
             // Search 'use' symbol for methods with first parameter that matches
@@ -1953,7 +1949,7 @@ static class CompileCode
             {
                 Debug.Assert(constraint.IsInterface);
                 var i = symbols.Count;
-                AddSymbolsNamedInType(name, constraint, symbols);
+                AddFunctionsNamedInType(name, constraint, symbols);
 
                 // Replace generic type args with the given type arguments
                 while (i < symbols.Count)

@@ -17,15 +17,15 @@ static class CodeLib
     static WordSet s_derefPointers = new WordSet("Zurfur.Unsafe.RawPointer`1 Zurfur.Pointer`1");
 
     // Add all children with the given name (including specialized type)
-    public static void AddSymbolsNamedInType(string name, Symbol inType, List<Symbol> symbols)
+    public static void AddFunctionsNamedInType(string name, Symbol inType, List<Symbol> symbols)
     {
-        AddSymbolsNamedConcrete(name, inType, symbols);
+        AddFunctionsNamedConcrete(name, inType, symbols);
         if (inType.IsSpecialized)
-            AddSymbolsNamedConcrete(name, inType.Parent!, symbols);
+            AddFunctionsNamedConcrete(name, inType.Parent!, symbols);
     }
 
     // Add all children with the given name (primary or non-extension method)
-    public static void AddSymbolsNamedConcrete(string name, Symbol inType, List<Symbol> symbols)
+    public static void AddFunctionsNamedConcrete(string name, Symbol inType, List<Symbol> symbols)
     {
         foreach (var child in inType.ChildrenNamed(name))
             if (child.IsFun)
@@ -51,8 +51,14 @@ static class CodeLib
 
             // Compare the non-specialized type
             //      e.g: List<#1> matches List<byte> so we get all functions
+
+            // Static methods use static scope "virtual" parameter
+            if (child.StaticScope != null && child.StaticScope.Concrete.FullName == inType.FullName)
+                symbols.Add(child);
+
+            // Non-static methods use first parameter
             var parameters = child.FunParamTypes;
-            if (parameters.Length != 0 && parameters[0].Concrete.FullName == inType.FullName)
+            if (child.StaticScope == null && parameters.Length != 0 && parameters[0].Concrete.FullName == inType.FullName)
                 symbols.Add(child);
         }
     }

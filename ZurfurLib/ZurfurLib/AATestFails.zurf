@@ -22,15 +22,18 @@ type interface TakeConcrete2
 type interface TakeInterface
     fun take(my, a TakeConcrete)
     
-type ImpNone()
+type ImpNone {}
 
-type ImpTakeConcrete()
+type ImpTakeConcrete {}
+
 fun ImpTakeConcrete.take(my, a Int) todo
 
-type ImpTakeInterface()
+type ImpTakeInterface {}
+
 fun ImpTakeInterface.take(my, a TakeConcrete) todo
 
 fun takeInterfaceConcrete(x TakeConcrete) todo
+
 fun takeInterfaceInterface(x TakeInterface) todo
 
 fun test_noImp1()
@@ -73,6 +76,7 @@ fun test_noImp4()
 // ### Cannot infer interface type args
 
 fun takeInterfaceConcreteInfer<T>(x TakeConcrete) todo
+
 fun test_noImpInfer1()
     takeInterfaceConcreteInfer<Byte>(ImpTakeConcrete()) // Ok
     takeInterfaceConcreteInfer(ImpTakeConcrete())       // Cannot infer interface type args
@@ -81,6 +85,7 @@ fun test_noImpInfer1()
 // ### Cannot infer interface type args
 
 fun takeInterfaceInterfaceInfer<T>(x TakeInterface) todo
+
 fun test_noImpInfer2()
     takeInterfaceInterfaceInfer<Byte>(ImpTakeInterface())   // Ok
     takeInterfaceInterfaceInfer(ImpTakeInterface())         // Cannot infer interface type args
@@ -114,6 +119,7 @@ fun Iterable.reduceInt(my Iterable<Int>, f fun(item1 Int, item2 Int) Int) ?Int
 fun test_takePrintable(a Printable)
     @x = a.toStr
     x = ""
+    
 fun test_printable()
     test_takePrintable(1)
     test_takePrintable(1.0)
@@ -139,9 +145,11 @@ where T Printable
 
 type interface TestGlobal
     [static] fun testGlobal()
+    
 fun test_Global<T>()
 where T TestGlobal
     testGlobal()
+    
 type interface TestGlobal2<T>
     [static] fun testGlobal2(x T) T
 
@@ -161,13 +169,13 @@ where T TestGlobal2<Int>
 // TBD: *** FAILED TEST *** need to check lambda returns
 
 fun lambdaCall(a fun(b Float)Int) todo
+
 fun test_lambdaCall2()
     lambdaCall(a => 0.0)  // TBD: Should fail, return is Int
 
     // Make this test case pass (until we can fix the above error)
     MakeTestCaseFail
     
-
 // ### Can't infer type
 
 fun test_newInfer()
@@ -221,8 +229,10 @@ fun test_reduceConcrete2()
 type interface AmbiguousInterface<T>
     fun f(my, a T)
     
-type AmbiguousTest()
+type AmbiguousTest {}
+
 fun AmbiguousTest.f(my, a Int) todo
+
 fun AmbiguousTest.f(my, b Float) todo
 
 fun takeAmbiguous<T>(i AmbiguousInterface<T>) todo
@@ -251,8 +261,11 @@ fun test_noImp8()
 
 type interface AmbiguousInterfaceFunParam<T>
     fun f(my, a T, b T)
-type AmbiguousTestFunParam()
+    
+type AmbiguousTestFunParam {}
+
 fun AmbiguousTestFunParam.f(my, a Int, b Int) todo
+
 fun AmbiguousTestFunParam.f(my, b Float, c Int) todo
 
 fun takeAmbiguousFunParam<T>(i AmbiguousInterfaceFunParam<T>) todo
@@ -267,6 +280,7 @@ fun test_ambiguousInterfaceParam()
 // ### Ambiguous function call
 
 fun U16.toStr(my) Str todo
+
 fun test_ambiguousFunCall()
     U16().toStr
 
@@ -286,5 +300,28 @@ fun test_ambiguousImplicit()
     takePointerAmb(nil)
 
 
+// ### Test static
+
+type StaticTest
+    [static] staticField Int
+    [static] fun staticFun() Int todo
+
+[static] fun StaticTest.staticExtensionFun() Int todo
+
+fun test_static()
+    let a Int = StaticTest.staticField
+    let b Int = StaticTest.staticFun
+    let c Int = StaticTest.staticExtensionFun
+    let d = StaticTest().staticExtensionFun   // Non static function call
+
+// ### Test static fail
+
+fun test_static2()
+    let a = StaticTest().staticFun // Non static function call
+
+// ### Test static fail - field
+
+fun test_static3()
+    let a = StaticTest().staticField // Non static function call
 
 // ### END OF FILE

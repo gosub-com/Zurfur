@@ -13,9 +13,9 @@ use Zurfur[Decimal, Log, Number, Iterator]
 use Zurfur.Math[cos,sin]
 use Zurfur.ConvertBytes[writeBytesHex]
 
-// Simple types have public fields:
-[pub] type SimpleType(firstName Str, lastName Str)
-[pub] type ro SimpleImmutableType(firstName Str, fastName Str)
+//Simple types
+[pub] type SimpleType {firstName Str; lastName Str}
+[pub] type ro SimpleImmutableType {firstName Str; fastName Str}
 
 // Define a type
 [pub] type MyType
@@ -151,7 +151,7 @@ type Zim<T>
     q T pub mut
 
 // Type test for test_main
-type Token(a Int)
+type Token {a Int}
 fun AcceptMatch(m Str) ?Token
     return nil
 

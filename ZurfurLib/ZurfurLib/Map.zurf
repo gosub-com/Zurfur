@@ -5,7 +5,7 @@ use Zurfur[Iterator, Equatable]
 
 
 // Entries in the bucket list
-type MapEntry(index U32, hash U32)
+type MapEntry {index U32; hash U32}
 
 
 // Key value pair

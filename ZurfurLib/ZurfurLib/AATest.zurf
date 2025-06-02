@@ -14,7 +14,8 @@ use Zurfur.ConvertBytes[readBytesInt64, writeBytesInt64, writeBytesHex]
  
 //pragma ShowParse
 
-type ReadStuff()
+type ReadStuff {}
+
 fun ReadStuff.read(my, buffer Span<Byte>) !Int todo
 
 fun AAA_test_paramable(p AParamable)
@@ -75,7 +76,7 @@ fun test_reduce()
 [pub] type MyType
     [pub, implicit] fun get asIterator(my) MyTypeIter todo
 
-type MyTypeIter()
+type MyTypeIter {}
 fun MyTypeIter.next(my) ?Int
     todo
 
