@@ -24,7 +24,6 @@ class ParseZurf
     public const string MULTI_CHAR_TOKENS = ".* &* << <= == != && || ?? !! += -= *= /= %= &= |= ~= <<= => -> " 
         +$"!== === :: .. ..+ ... ++ -- // {TOKEN_STR_LITERAL_MULTI_BEGIN} {TOKEN_STR_LITERAL_MULTI_END} ```";
 
-
     public const string VT_TYPE_ARG = "$"; // Differentiate from '<' (must be 1 char long)
     public const string TOKEN_STR_LITERAL = "\"";
     public const string TOKEN_STR_LITERAL_MULTI_BEGIN = "``";
@@ -37,7 +36,6 @@ class ParseZurf
 
     // TBD: Allow pragmas to be set externally
     static WordSet s_pragmas = new("ShowParse NoParse NoCompilerChecks NoVerify AllowUnderscoreDefinitions");
-
 
     ParseZurfCheck _zurfParseCheck;
 
@@ -110,7 +108,7 @@ class ParseZurf
     // argument ambiguities. The following symbols allow us to call functions,
     // create types, and access static members. For example `F<T1>()` to
     // call a function or constructor and `F<T1>.Name` to access a static member.
-    static WordSet s_typeArgumentParameterSymbols = new("( ) . , ;");
+    static WordSet s_typeArgumentParameterSymbols = new("( ) . , ; }");
 
     Regex s_findUrl = new(@"///|//|`|((http|https|file|Http|Https|File|HTTP|HTTPS|FILE)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)");
 
@@ -284,7 +282,7 @@ class ParseZurf
             }
 
             // Add scope/expression separators '{', '}', or ';'
-            var xIndex = _lexer.GetLine(prevNonCommentToken.Y).Length;
+            var xIndex = EndOfCodeLine(prevNonCommentToken.Y);
             if (token.X > scope + SCOPE_INDENT - 1)
             {
                 // Add open braces '{'
@@ -297,15 +295,13 @@ class ParseZurf
             }
             else if (token.X < scope - (SCOPE_INDENT - 1))
             {
-                // Add close braces with semi-colons ';};'
+                // Add close braces '}'
                 do {
                     // End statement before brace
-                    _insertedTokens.Add(AddMetaToken(new Token(";", xIndex++, prevNonCommentToken.Y)));
                     scope -= SCOPE_INDENT;
                     var openBrace = braceStack.Pop();
                     var closeBrace = AddMetaToken(new Token("}", xIndex++, prevNonCommentToken.Y));
                     _insertedTokens.Add(closeBrace);
-                    _insertedTokens.Add(AddMetaToken(new Token(";", xIndex++, prevNonCommentToken.Y)));
 
                     Token.AddScopeLines(_lexer, openBrace.y, closeBrace.Y - openBrace.y, false);
 
@@ -317,11 +313,22 @@ class ParseZurf
             }
             else
             {
-                _insertedTokens.Add(AddMetaToken(new Token(";",
-                        xIndex++, prevNonCommentToken.Y)));
+                _insertedTokens.Add(AddMetaToken(new Token(";", xIndex++, prevNonCommentToken.Y)));
             }
 
             prevNonContinuationLineToken = token;
+        }
+
+        // Find end of line, excluding comment
+        int EndOfCodeLine(int y)
+        {
+            var line = _lexer.GetLineTokens(y);
+            int i = line.Length;
+            while (--i >= 0 && line[i].Type == TokenType.Comment)
+                ;
+            if (i < 0)
+                return 0;
+            return line[i].X + line[i].Name.Length;
         }
 
         void ScanQuoteSingleLine()
@@ -525,11 +532,11 @@ class ParseZurf
         // Read attributes and qualifiers
         ParseAttributes(qualifiers);
 
+        bool isCompound = false;
         var keyword = _token;
         switch (_tokenName)
         {
             case ";":
-                Accept();
                 break;
 
             case "pragma":
@@ -551,13 +558,14 @@ class ParseZurf
                 qualifiers.Add(Accept());
                 ParseTypeScope(keyword, qualifiers);
                 qualifiers.Clear();
+                isCompound = true;
                 break;
 
             case "fun":
             case "afun":
                 _token.Type = TokenType.ReservedControl;
                 qualifiers.Add(Accept());
-                ParseFunction(keyword, qualifiers, true);
+                isCompound = ParseFunction(keyword, qualifiers, true);
                 qualifiers.Clear();
                 break;
 
@@ -582,7 +590,9 @@ class ParseZurf
                 qualifiers.Clear();
                 break;
         }
+        ExpectEndOfStatement(isCompound);
     }
+
 
     private void ParseAttributes(List<Token> qualifiers)
     {
@@ -764,7 +774,6 @@ class ParseZurf
             while (_token != "" && _token != "}")
             {
                 ParseTypeScopeStatement(synType, qualifiers2);
-                ExpectEndOfStatement();
             }
             if (ExpectEndOfScope())
                 Connect(_prevToken, openBrace);
@@ -778,6 +787,7 @@ class ParseZurf
         var isInterface = Array.Find(parent.Qualifiers, a => a == "interface") != null;
         var isEnum = Array.Find(parent.Qualifiers, a => a == "enum") != null;
 
+        bool isCompound = false;
         switch (_tokenName)
         {
             case ";":
@@ -786,6 +796,7 @@ class ParseZurf
             case "{":
                 RejectToken(_token, "Unnecessary scope is not allowed");
                 ParseTypeScopeStatements(parent, qualifiers);
+                isCompound = true;
                 break;
 
             case "const":
@@ -801,7 +812,7 @@ class ParseZurf
             case "afun":
                 _token.Type = TokenType.ReservedControl;
                 qualifiers.Add(Accept());
-                ParseFunction(_token, qualifiers, !isInterface);
+                isCompound = ParseFunction(_token, qualifiers, !isInterface);
                 qualifiers.Clear();
                 break;
 
@@ -816,6 +827,9 @@ class ParseZurf
                 qualifiers.Clear();
                 break;
         }
+
+        ExpectEndOfStatement(isCompound);
+
     }
 
     SyntaxExpr? ParseTypeParameters()
@@ -973,9 +987,9 @@ class ParseZurf
     }
 
     /// <summary>
-    /// Function
+    /// Parse a function.  Return true if it was a compound statement
     /// </summary>
-    void ParseFunction(Token keyword, List<Token> qualifiers, bool allowBody)
+    bool ParseFunction(Token keyword, List<Token> qualifiers, bool allowBody)
     {
         // Parse func keyword
         var comments = _comments.ToString();
@@ -1008,11 +1022,17 @@ class ParseZurf
             requires.Add(ParseExpr());
 
         // Body
+        bool isCompound = false;
         SyntaxExpr? statements = null;
         if (AcceptMatchPastMetaSemicolon("extern", keyword) || AcceptMatchPastMetaSemicolon("todo", keyword))
+        {
             qualifiers.Add(_prevToken);
+        }
         else if (allowBody)
+        {
             statements = ParseStatements();
+            isCompound = true;
+        }
 
         // Don't compile unless there is a valid function name
         if (functionName != null)
@@ -1030,6 +1050,7 @@ class ParseZurf
                 Qualifiers = qualifiers.ToArray()
             });
         }
+        return isCompound;
     }
 
 
@@ -1154,7 +1175,6 @@ class ParseZurf
         while (_token != "" && _token != "}")
         {
             ParseStatement(statement);
-            ExpectEndOfStatement();
         }
         if (ExpectEndOfScope())
             Connect(_prevToken, openBrace);
@@ -1166,6 +1186,7 @@ class ParseZurf
     // parsed at the top most level functipn
     private void ParseStatement(List<SyntaxExpr> statements)
     {
+        bool isCompound = false;
         var keyword = _token;
         switch (_token)
         {
@@ -1178,6 +1199,7 @@ class ParseZurf
             case "{":
                 RejectToken(_token, "Unnecessary scope is not allowed");
                 statements.Add(ParseStatements());
+                isCompound = true;
                 break;
             
             case "defer":
@@ -1189,18 +1211,21 @@ class ParseZurf
                 // WHILE (condition) (body)
                 _token.Type = TokenType.ReservedControl;
                 statements.Add(new SyntaxBinary(Accept(), ParseExpr(), ParseStatements()));
+                isCompound = true;
                 break;
 
             case "scope":
                 // SCOPE (body)
                 _token.Type = TokenType.ReservedControl;
                 statements.Add(new SyntaxUnary(Accept(), ParseStatements()));
+                isCompound = true;
                 break;
 
             case "do":
                 // DO (body)
                 _token.Type = TokenType.ReservedControl;
                 statements.Add(new SyntaxUnary(Accept(), ParseStatements()));
+                isCompound = true;
                 break;
 
             case "dowhile":
@@ -1212,6 +1237,7 @@ class ParseZurf
                 _token.Type = TokenType.ReservedControl;
                 Accept();
                 statements.Add(new SyntaxBinary(keyword, ParseExpr(), ParseStatements()));
+                isCompound = true;
                 break;
 
             case "elif":
@@ -1231,6 +1257,7 @@ class ParseZurf
                     // `else`
                     statements.Add(new SyntaxUnary(keyword, ParseStatements()));
                 }
+                isCompound = true;
                 break;
 
             case "for":
@@ -1246,6 +1273,7 @@ class ParseZurf
                 AcceptMatchOrReject("in");
                 var forCondition = ParseExpr();
                 statements.Add(new SyntaxMulti(keyword, forVariable, forCondition, ParseStatements()));
+                isCompound = true;
                 break;
 
             case "astart":
@@ -1290,7 +1318,7 @@ class ParseZurf
                 var qualifiers = new List<Token>() { Accept() };
                 keyword.Type = TokenType.ReservedControl;  // Fix keyword to make it control
                 keyword.AddWarning("Local function not working yet");
-                ParseFunction(keyword, qualifiers, true);
+                isCompound = ParseFunction(keyword, qualifiers, true);
                 break;
 
             default:
@@ -1310,6 +1338,9 @@ class ParseZurf
                 statements.Add(result);
                 break;
         }
+
+        ExpectEndOfStatement(isCompound);
+
     }
 
     /// <summary>
@@ -2175,11 +2206,11 @@ class ParseZurf
         return AcceptMatchOrReject("}", "Expecting end of statements, either '}' or next line must be outdented");
     }
 
-    // Expect either ';' or '}', anything else is an error.  Don't eat '}'
-    void ExpectEndOfStatement()
+    // Regular statements expect a ";" but don't need it before "}".  Compound statements don't need one.
+    void ExpectEndOfStatement(bool isCompound)
     {
-        if (_token != "}")
-            AcceptMatchOrReject(";", "Expecting end of line or ';' after statement");
+        if (!AcceptMatch(";") && _token != "}" && !isCompound)
+            Reject("Expecting ';' or end of line to end statement");
     }
 
     // Accept match, otherwise reject until match token, then try one more time
@@ -2187,8 +2218,7 @@ class ParseZurf
     {
         if (AcceptMatch(matchToken))
             return true;
-        Reject(message != null ? message : ("Expecting '" + matchToken + "'"), 
-                    tryToRecover ? new WordSet(matchToken) : null);
+        Reject(message != null ? message : $"Expecting '{matchToken}'", tryToRecover ? new WordSet(matchToken) : null);
         if (tryToRecover)
             return AcceptMatch(matchToken);
         return false;

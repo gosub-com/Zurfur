@@ -29,6 +29,8 @@ public partial class MainView : UserControl
     FileSystemAvalonia _fileSystem = new();
     BuildSystem _buildPackage;
     ZurfEditController _editController = new();
+    Editor? _activeEditor;
+    string _compilerStatus = "";
 
     // Helper class to show items in the tree view
     record class NamedItem<T>(string Name, T Item)
@@ -84,13 +86,15 @@ public partial class MainView : UserControl
         }
         catch (Exception ex)
         {
-            labelStatus.Content = $"ERROR: {ex.Message}";
+            _compilerStatus = $"ERROR: {ex.Message}";
+            UpdateStatus();
         }
     }
 
     void mBuildPackage_StatusUpdate(object sender, BuildSystem.UpdatedEventArgs e)
     {
-        labelStatus.Content = e.Message;
+        _compilerStatus = e.Message;
+        UpdateStatus();
     }
 
     private void mBuildPackage_FileUpdate(object sender, BuildSystem.UpdatedEventArgs e)
@@ -125,6 +129,9 @@ public partial class MainView : UserControl
         Debug.Assert(editor != null); // Currently only editors added to mvCodeEditors
         if (editor == null)
             return;
+
+        _activeEditor = editor;
+        UpdateStatus();
 
         _editController.ActiveViewChanged(editor);
 
@@ -253,8 +260,14 @@ public partial class MainView : UserControl
     private void AddNewEditor(string path, Editor newEditor)
     {
         newEditor.TextChanged += editor_TextChanged;
+        newEditor.CursorLocChanged += editor_CursorLocChanged;
         mvCodeEditors.SetTab(path, newEditor, Path.GetFileName(path));
         _editController.AttachEditor(newEditor);
+    }
+
+    private void editor_CursorLocChanged(object? sender, EventArgs e)
+    {
+        UpdateStatus();
     }
 
     private void editor_TextChanged(object? sender, EventArgs e)
@@ -270,6 +283,58 @@ public partial class MainView : UserControl
         {
             _buildPackage.SetLexer(editor.Lexer);
         }
+    }
+
+    void UpdateStatus()
+    {
+        var cursorLineStatus = "";
+        var cursorLocation = "";
+        if (_activeEditor != null)
+        {
+            cursorLocation = $"{_activeEditor.CursorLoc.Y + 1}:{_activeEditor.CursorLoc.X + 1}";
+            cursorLineStatus = FindErrorOnLine(_activeEditor.Lexer, _activeEditor.CursorLoc);
+        }
+        labelLocation.Content = cursorLocation;
+        labelStatus.Content = _compilerStatus + (cursorLineStatus == "" ? "" : $" - {cursorLineStatus}");
+    }
+
+    private static string FindErrorOnLine(Lexer lexer, TokenLoc cursor)
+    {
+        var errorMessage = "";
+        var tokens = new List<Token>();
+        var lastToken = new Token();
+        foreach (var token in lexer.GetEnumeratorStartAtLine(cursor.Y))
+        {
+            if (token.Y != cursor.Y)
+            {
+                lastToken = token;
+                break;
+            }
+            tokens.Add(token);
+        }
+        // The error can be marked on the next line if it's a brace.
+        // The parser should probably detect that and add a virtual
+        // token on the previous line
+        if (lastToken.Name == "{" || lastToken == "}")
+            tokens.Add(lastToken);
+
+        foreach (var token in lexer.MetaTokens)
+            if (token.Y == cursor.Y)
+                tokens.Add(token);
+
+        tokens.Sort((a, b) =>
+        {
+            if (a.Location == b.Location) return 0;
+            return a.Location < b.Location ? -1 : 1;
+        });
+        foreach (var token in tokens)
+        {
+            var error = token.GetInfo<TokenError>();
+            if (error != null && (errorMessage == "" || token.Location.X < cursor.X))
+                errorMessage = error.ToString();
+        }
+
+        return errorMessage;
     }
 
 

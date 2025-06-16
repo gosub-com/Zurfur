@@ -18,9 +18,10 @@
 				<Button Tapped="buttonGenerateTapped" >Generate</Button>
 				<Button Tapped="buttonSearchTapped" >Search (CTRL-F)</Button>
 			</StackPanel>
-			<StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom">
-				<Label Name="labelStatus">Status bar</Label>
-			</StackPanel>
+			<Grid DockPanel.Dock="Bottom">
+				<Label Name="labelStatus" HorizontalAlignment="Left">Status bar</Label>
+				<Label Name="labelLocation" HorizontalAlignment="Right">Location</Label>
+			</Grid>
 			<Grid ColumnDefinitions="180, 8, *">
 				<views:MyTreeView Name="treeProject" />
 				<GridSplitter Grid.Column="1" Background="LightBlue" ResizeDirection="Columns"/>
