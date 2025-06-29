@@ -220,6 +220,14 @@ sealed public class Token
         _info = new ObjectBag();
     }
 
+    /// <summary>
+    /// Set bits (but not the read-only bits)
+    /// </summary>
+    public void SetBits(TokenFlags flags)
+    {
+        _flags |= flags & ~TokenFlags.ReadOnlyMask;
+    }
+
     public void AddInfo<T>(T info)
     {
         if (info is TokenVerticalLine)

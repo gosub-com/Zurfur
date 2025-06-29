@@ -95,11 +95,11 @@ fun test_HelloWorld()
     let d = "Hello world, a+b={a+b}{\n}"   // Interpolated with \n at the end
     let e = tr"Hello world, X={X}!{\n}"    // Translated, interpolated, \n at end
     let g = ``{"X":1,"Y":2}``              // Containing quote
-    let h = ``{"X":#{x},"Y":2}``           // Containing quote and interpolated
+    let h = ``{"X":%{x},"Y":2}``           // Containing quote and interpolated
     let markDown = ``
-This is a multi-line markdown comment that can have `code` in it.
+This is a multi-line markdown comment that can have markdown `code` in it.
 Even 3 ``` or 4 ```` backticks if you need them (just not two backticks)
-Multi-line comments can also be interpolated: #{a}
+Multi-line comments can also be interpolated: %{a}
 ``
     let t1 = circle2(1, 2.0)
     let t1r1 = t1.x

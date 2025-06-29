@@ -140,6 +140,19 @@ static class CompileCode
         }
     }
 
+    // Info needed across multiple functions
+    class CompilerState
+    {
+        public required SymbolTable Table;
+        public required Assembly Assembly;
+        public required Interfaces Interfaces;
+        
+        public Dictionary<string, Symbol[]> ImplicitCache = new();
+        public List<(Token token, string errorMessage)> TokenRejects = new();
+        public List<(Token token, object info)> TokenInfos = new();
+        public List<(Token token, TokenType type)> TokenTypes = new();
+    }
+
     static public Assembly GenerateCode(
         Dictionary<string, SyntaxFile> synFiles,
         SymbolTable table,
@@ -155,47 +168,59 @@ static class CompileCode
         assembly.Types.AddOrFind(table.Lookup(SymTypes.Str)!);
         assembly.Types.AddOrFind(table.EmptyTuple);
 
-        // Map "{interface}->{concrete}" to the interface info
-        var interfaces = new Interfaces(table);
-        var implicitCache = new Dictionary<string, Symbol[]>();
+        var state = new CompilerState { 
+            Table = table, 
+            Assembly = assembly, 
+            Interfaces = new Interfaces(table), 
+        };
 
-        foreach (var synFile in synFiles)
+
+        try
         {
-            var fileUses = allFileUses.Files[synFile.Key];
-            foreach (var synFunc in synFile.Value.Functions)
+            foreach (var synFile in synFiles)
             {
-                // Get current function
-                if (!syntaxToSymbol.TryGetValue(synFunc, out var currentFunction))
-                    continue; // Syntax error
-                Debug.Assert(currentFunction.IsFun);
-                GenFunction(synFile.Value, synFunc, table, fileUses, currentFunction, assembly, interfaces, implicitCache);
+                var fileUses = allFileUses.Files[synFile.Key];
+                foreach (var synFunc in synFile.Value.Functions)
+                {
+                    // Get current function
+                    if (!syntaxToSymbol.TryGetValue(synFunc, out var currentFunction))
+                        continue; // Syntax error
+                    Debug.Assert(currentFunction.IsFun);
+                    GenFunction(state, synFile.Value, synFunc, fileUses, currentFunction);
+                }
             }
+        }
+        finally
+        {
+            foreach (var t in state.TokenRejects)
+                state.Table.Reject(t.token, t.errorMessage);
+            foreach (var t in state.TokenInfos)
+                t.token.AddInfo(t.info);
+            foreach (var t in state.TokenTypes)
+                t.token.Type = t.type;
         }
         return assembly;
     }
 
     static void GenFunction(
+        CompilerState state,
         SyntaxFile synFile,
         SyntaxFunc synFunc,
-        SymbolTable table,
         UseSymbolsFile fileUses,
-        Symbol function,
-        Assembly assembly,
-        Interfaces interfaces,
-        Dictionary<string, Symbol[]> implicitCache)
+        Symbol function)
     {
         var path = synFile.Lexer.Path;
-        var typeVoid = table.Lookup(SymTypes.Void);
-        var typeNil = table.Lookup(SymTypes.Nil);
-        var typeInt = table.Lookup(SymTypes.Int);
-        var typeU64 = table.Lookup(SymTypes.U64);
-        var typeI32 = table.Lookup(SymTypes.I32);
-        var typeU32 = table.Lookup(SymTypes.U32);
-        var typeStr = table.Lookup(SymTypes.Str);
-        var typeBool = table.Lookup(SymTypes.Bool);
-        var typeByte = table.Lookup(SymTypes.Byte);
-        var typeFloat = table.Lookup(SymTypes.Float);
-        var typeF32 = table.Lookup(SymTypes.F32);
+        var typeVoid = state.Table.Lookup(SymTypes.Void);
+        var typeNil = state.Table.Lookup(SymTypes.Nil);
+        var typeInt = state.Table.Lookup(SymTypes.Int);
+        var typeU64 = state.Table.Lookup(SymTypes.U64);
+        var typeI32 = state.Table.Lookup(SymTypes.I32);
+        var typeU32 = state.Table.Lookup(SymTypes.U32);
+        var typeStr = state.Table.Lookup(SymTypes.Str);
+        var typeBool = state.Table.Lookup(SymTypes.Bool);
+        var typeByte = state.Table.Lookup(SymTypes.Byte);
+        var typeFloat = state.Table.Lookup(SymTypes.Float);
+        var typeF32 = state.Table.Lookup(SymTypes.F32);
         
         Debug.Assert(typeVoid != null 
             && typeNil != null
@@ -224,12 +249,12 @@ static class CompileCode
         for (var y = y1;  y <= y2; y++)
         {
             commentLines[y] = true;
-            assembly.AddOpComment(synFunc.Keyword, synFile.Lexer.GetLine(y));
+            state.Assembly.AddOpComment(synFunc.Keyword, synFile.Lexer.GetLine(y));
         }
 
         // Generate code for this function
-        var opStartIndex = assembly.Code.Count;
-        assembly.AddOpBeginFun(function);
+        var opStartIndex = state.Assembly.Code.Count;
+        state.Assembly.AddOpBeginFun(function);
         BeginLocalScope(function.Token);
 
         // Add input parameters as locals
@@ -248,15 +273,15 @@ static class CompileCode
 
         // Replace local symbol index with the type.  This is done because
         // the type wasn't known when it was created.
-        for (var i = opStartIndex; i < assembly.Code.Count; i++)
+        for (var i = opStartIndex; i < state.Assembly.Code.Count; i++)
         {
-            var op = assembly.Code[i];
+            var op = state.Assembly.Code[i];
             if (op.Op == Op.Loc)
             {
                 var symType = localsByIndex[(int)op.Operand].Type;
                 if (symType == null)
                     symType = typeVoid;
-                assembly.Code[i] = new AsOp(Op.Loc, assembly.Types.AddOrFind(symType));
+                state.Assembly.Code[i] = new AsOp(Op.Loc, state.Assembly.Types.AddOrFind(symType));
             }
         }
 
@@ -330,16 +355,16 @@ static class CompileCode
         {
             // Condition
             newVarScope = scopeNum;     // Locals in condition go in outer scope
-            newVarCodeIndex = assembly.Code.Count;
+            newVarCodeIndex = state.Assembly.Code.Count;
             BeginLocalScope(ex.Token);
             GenBoolCondition(ex, "while");
-            assembly.AddOp(Op.Brnif, ex.Token, 1);
+            state.Assembly.AddOp(Op.Brnif, ex.Token, 1);
             newVarScope = -1;           // End special locals condition scope
             newVarCodeIndex = -1;
 
             // Statements
             GenStatementsWithScope(ex[1], ex.Token);
-            assembly.AddOp(Op.Br, ex.Token, -1);
+            state.Assembly.AddOp(Op.Br, ex.Token, -1);
 
             EndLocalScope();
         }
@@ -368,17 +393,17 @@ static class CompileCode
         {
             // If condition
             newVarScope = scopeNum;         // Locals in condition go in outer scope
-            newVarCodeIndex = assembly.Code.Count;
+            newVarCodeIndex = state.Assembly.Code.Count;
             BeginLocalScope(s[i].Token);    // If...elif...else scope
             BeginLocalScope(s[i].Token);    // If... scope
             GenBoolCondition(s[i], "if");
-            assembly.AddOp(Op.Brnif, s[i].Token, 1);
+            state.Assembly.AddOp(Op.Brnif, s[i].Token, 1);
             newVarScope = -1;               // End special locals condition scope
             newVarCodeIndex = -1;
 
             // If statements
             GenStatements(s[i][1]);
-            assembly.AddOp(Op.Br, s[i].Token, 2);
+            state.Assembly.AddOp(Op.Br, s[i].Token, 2);
             EndLocalScope();
 
 
@@ -388,9 +413,9 @@ static class CompileCode
                 i += 1;
                 BeginLocalScope(s[i].Token);
                 GenBoolCondition(s[i], "if");
-                assembly.AddOp(Op.Brnif, s[i].Token, 1);
+                state.Assembly.AddOp(Op.Brnif, s[i].Token, 1);
                 GenStatements(s[i][1]);
-                assembly.AddOp(Op.Br, s[i].Token, 2);
+                state.Assembly.AddOp(Op.Br, s[i].Token, 2);
                 EndLocalScope();
             }
 
@@ -486,19 +511,29 @@ static class CompileCode
                 return null;
             }
 
-            var rval = returns.Count == 0 ? new Rval(ex.Token) { Type = table.EmptyTuple } : returns[0];
+            var rval = returns.Count == 0 ? new Rval(ex.Token) { Type = state.Table.EmptyTuple } : returns[0];
             EvalCall(rval, EmptyCallParams);
             if (rval == null || rval.Type == null)
                 return null;
 
-            ex.Token.AddInfo(rval.Type);
+            AddInfo(ex.Token, rval.Type);
             var funReturnType = function.FunReturnType;
 
             IsFunParamConvertableReject(ex.Token, rval.Type, funReturnType);
 
-            assembly.AddOp(Op.Ret, ex.Token, 0);
+            state.Assembly.AddOp(Op.Ret, ex.Token, 0);
 
             return rval;
+        }
+
+        void AddInfo(Token token, object info)
+        {
+            state.TokenInfos.Add((token, info));
+        }
+
+        void SetTokenType(Token t, TokenType type)
+        {
+            state.TokenTypes.Add((t, type));
         }
 
         // Evaluate an expression.  When null is returned, the error is already marked.
@@ -516,7 +551,7 @@ static class CompileCode
             if (!commentLines!.ContainsKey(token.Y))
             {
                 commentLines[token.Y] = true;
-                assembly.AddOpComment(token, synFile.Lexer.GetLine(token.Y));
+                state.Assembly.AddOpComment(token, synFile.Lexer.GetLine(token.Y));
             }
 
             // Terminals: Number, string, identifier
@@ -586,12 +621,12 @@ static class CompileCode
             {
                 // Store double as IEEE 754 long
                 double.TryParse(ex.Token, out var number);
-                assembly.AddOp(Op.Float, ex.Token, BitConverter.DoubleToInt64Bits(number));
+                state.Assembly.AddOp(Op.Float, ex.Token, BitConverter.DoubleToInt64Bits(number));
             }
             else
             {
                 long.TryParse(ex.Token, out var number);
-                assembly.AddOp(Op.I64, ex.Token, number);
+                state.Assembly.AddOp(Op.I64, ex.Token, number);
             }
 
             var untypedConst = true;
@@ -600,7 +635,7 @@ static class CompileCode
                 // TBD: Allow user defined custom types
                 // TBD: Call conversion to type
                 untypedConst = false;
-                ex[0].Token.Type = TokenType.TypeName;
+                SetTokenType(ex[0].Token, TokenType.TypeName);
                 var customType = ex[0].Token;
                 if (customType == "Int")
                     numberType = typeInt;
@@ -624,9 +659,9 @@ static class CompileCode
 
         Rval GenStr(SyntaxExpr ex)
         {
-            assembly.AddOpStr(ex.Token, ex[0].Token);
+            state.Assembly.AddOpStr(ex.Token, ex[0].Token);
             foreach (var interp in ex[0])
-                assembly.AddOpNoImp(ex.Token, "Interpolate: " + interp.ToString());
+                state.Assembly.AddOpNoImp(ex.Token, "Interpolate: " + interp.ToString());
             return new Rval(ex.Token) { Type = typeStr };
         }
 
@@ -642,7 +677,7 @@ static class CompileCode
             if (HasError(ex))
                 return null;
             var symbols = GenExpr(ex[0]);
-            var typeParams = Resolver.ResolveTypeArgs(ex, table, function, fileUses);
+            var typeParams = Resolver.ResolveTypeArgs(ex, state.Table, function, fileUses);
             if (symbols == null || typeParams == null)
                 return null;
             symbols.TypeArgs = typeParams.ToArray();
@@ -667,7 +702,7 @@ static class CompileCode
                 return null;
 
             var types = args.Select(t => t.Type).ToArray();
-            var tuple = table.CreateTuple(types!);
+            var tuple = state.Table.CreateTuple(types!);
             return new Rval(ex.Token) { Type = tuple };
         }
 
@@ -716,8 +751,8 @@ static class CompileCode
                     return null;
                 }
                 if (i < leftType.TupleSymbols.Length)
-                    token.AddInfo(leftType.TupleSymbols[i]);
-                assembly.AddOpNoImp(token, $"tuple {token}");
+                    AddInfo(token, leftType.TupleSymbols[i]);
+                state.Assembly.AddOpNoImp(token, $"tuple {token}");
                 return new Rval(token) { 
                     Type = leftType.TypeArgs[i], 
                     Symbol = leftType.TupleSymbols[i] };
@@ -747,13 +782,13 @@ static class CompileCode
             }
             left.Type = DerefPointers(left.Type);
             MakeIntoRef(left);
-            ex.Token.AddInfo(left.Type);
+            AddInfo(ex.Token, left.Type);
             return new Rval(ex.Token) { Type = left.Type };
         }
 
         Rval? GenNewVarsOperator(SyntaxExpr ex)
         {
-            ex.Token.Type = TokenType.NewVarSymbol;
+            SetTokenType(ex.Token, TokenType.NewVarSymbol);
             if (ex.Count == 0)
                 return null;  // Syntax error
             if (ex.Count == 1)
@@ -778,7 +813,7 @@ static class CompileCode
             // Assign type to local variable
             var local = FindLocal(variables.Token).sym;
             Debug.Assert(local != null && local.IsLocal);
-            local.Token.AddInfo(local);
+            AddInfo(local.Token, local);
             if (local.Type != null)
             {
                 Reject(variables.Token, "New variables in binary '@' operator must not have types");
@@ -810,7 +845,7 @@ static class CompileCode
 
                 // Resolve type (if given)
                 if (e.Count >= 1 && e[0].Token != "")
-                    local.Type = Resolver.Resolve(e[0], table, false, function, fileUses);
+                    local.Type = Resolver.Resolve(e[0], state.Table, false, function, fileUses);
             }
 
             if (newSymbols.Count == 0)
@@ -846,7 +881,7 @@ static class CompileCode
 
                 // Resolve type (if given)
                 if (e.Count >= 1 && e[0].Token != "")
-                    local.Type = Resolver.Resolve(e[0], table, false, function, fileUses);
+                    local.Type = Resolver.Resolve(e[0], state.Table, false, function, fileUses);
             }
             return newSymbols;
         }
@@ -882,7 +917,7 @@ static class CompileCode
                 MakeIntoRef(rval, true);
             }
 
-            ex.Token.AddInfo(rval.Type);
+            AddInfo(ex.Token, rval.Type);
             return rval;
         }
 
@@ -899,7 +934,7 @@ static class CompileCode
                 return;
             }
 
-            rval.Type = table.CreateRef(type, rawPointer);
+            rval.Type = state.Table.CreateRef(type, rawPointer);
         }
 
         Rval? GenErrorOperator(SyntaxExpr ex)
@@ -962,7 +997,7 @@ static class CompileCode
             // A setter is a function call
             if (assignedSymbol != null && assignedSymbol.IsSetter)
             {
-                if (leftType.FullName != table.EmptyTuple.FullName)
+                if (leftType.FullName != state.Table.EmptyTuple.FullName)
                 {
                     // TBD: Enforce by verifier
                     Reject(ex.Token, "Setter must not return a value");
@@ -982,9 +1017,9 @@ static class CompileCode
                     return null;
 
                 // Debug, TBD: Remove or get better compiler feedback system
-                ex.Token.AddInfo($"setter({args[1].FullName}) = ({rightType.FullName})");
+                AddInfo(ex.Token, $"setter({args[1].FullName}) = ({rightType.FullName})");
 
-                assembly.AddOpNoImp(ex.Token, $"setter assignment");
+                state.Assembly.AddOpNoImp(ex.Token, $"setter assignment");
 
                 // TBD: Need to make this into a function call
                 return null;
@@ -1004,9 +1039,9 @@ static class CompileCode
                 return null;
 
             // Debug, TBD: Remove or get better compiler feedback system
-            ex.Token.AddInfo($"({leftType.FullName}) = ({rightType.FullName})");
+            AddInfo(ex.Token, $"({leftType.FullName}) = ({rightType.FullName})");
 
-            assembly.AddOp(Op.Setr, ex.Token, 0);
+            state.Assembly.AddOp(Op.Setr, ex.Token, 0);
 
             return null;
         }
@@ -1062,13 +1097,13 @@ static class CompileCode
                     return null;
                 }
                 if (token == "<")
-                    assembly.AddOp(Op.Lt, token, 0);
+                    state.Assembly.AddOp(Op.Lt, token, 0);
                 else if (token == "<=")
-                    assembly.AddOp(Op.Le, token, 0);
+                    state.Assembly.AddOp(Op.Le, token, 0);
                 else if (token == ">")
-                    assembly.AddOp(Op.Gt, token, 0);
+                    state.Assembly.AddOp(Op.Gt, token, 0);
                 else if (token == ">=")
-                    assembly.AddOp(Op.Ge, token, 0);
+                    state.Assembly.AddOp(Op.Ge, token, 0);
 
                 funType = typeBool;
             }
@@ -1159,7 +1194,7 @@ static class CompileCode
         //      during function resolution.
         Rval GenLambda(SyntaxExpr ex)
         {
-            return new Rval(ex.Token) { Type = table.LambdaType, LambdaSyntax = ex };
+            return new Rval(ex.Token) { Type = state.Table.LambdaType, LambdaSyntax = ex };
         }
 
         // Called after function resolution, when the lambda
@@ -1187,7 +1222,7 @@ static class CompileCode
                 if (lambdaLocals[i].Type != null)
                     Reject(lambdaLocals[i].Token, "TBD: Lambda's can't have explicit types yet");
                 lambdaLocals[i].Type = lambdaParams[i];
-                lambdaLocals[i].Token.AddInfo(lambdaLocals[i]);
+                AddInfo(lambdaLocals[i].Token, lambdaLocals[i]);
             }
             GenCallParams(ex, 1);
             EndLocalScope();
@@ -1274,18 +1309,18 @@ static class CompileCode
 
                 var inType = call.InType;
                 if (candidate.IsField && candidate.Type != null && inType != null && inType.TypeArgs.Length != 0)
-                    candidate = table.CreateSpecializedType(candidate, inType.TypeArgs, null);
-                token.AddInfo(candidate);
+                    candidate = state.Table.CreateSpecializedType(candidate, inType.TypeArgs, null);
+                AddInfo(token, candidate);
 
                 // Static type or module, e.g. int.MinValue, or Log.info, but not int().MinValue
                 if (candidate.IsAnyTypeOrModule)
                 {
-                    token.Type = TokenType.TypeName;
+                    SetTokenType(token, TokenType.TypeName);
                     if (flags.HasFlag(EvalFlags.AllowStatic) || candidate.FullName == SymTypes.Nil)
                     {
                         // Substitute generic parameter
                         if (candidate.IsTypeParam)
-                            call.Type = table.GetGenericParam(candidate.GenericParamNum());
+                            call.Type = state.Table.GetGenericParam(candidate.GenericParamNum());
                         else
                             call.Type = candidate;
 
@@ -1313,7 +1348,7 @@ static class CompileCode
 
                     // A field is the same thing as a getter returning a mutable ref
                     MakeIntoRef(call);
-                    assembly.AddOpNoImp(candidate.Token, $"field {candidate.FullName}");
+                    state.Assembly.AddOpNoImp(candidate.Token, $"field {candidate.FullName}");
                     call.Symbol = candidate;
                     return;
                 }
@@ -1326,15 +1361,15 @@ static class CompileCode
             if (call.Symbol != null)
             {
                 if (!flags.HasFlag(EvalFlags.DontAddCallInfo))
-                    call.Token.AddInfo(call.Symbol);
-                assembly.AddOpCall(call.Token, call.Symbol);
+                    AddInfo(call.Token, call.Symbol);
+                state.Assembly.AddOpCall(call.Token, call.Symbol);
             }
         }
 
         // Find a compatible constructor function.
         Symbol? FindCompatibleConstructor(Rval call, Symbol newType, List<Rval>? args)
         {
-            call.Token.Type = TokenType.TypeName;
+            SetTokenType(call.Token, TokenType.TypeName);
             if (newType.IsSpecialized)
                 throw new Exception("Compiler error: FindCompatibleConstructor, unexpected specialized type");
 
@@ -1352,7 +1387,7 @@ static class CompileCode
                     return null;
                 }
                 Debug.Assert(call.InType == null);
-                return table.GetGenericParamConstructor(newType.GenericParamNum());
+                return state.Table.GetGenericParamConstructor(newType.GenericParamNum());
             }
 
             // Search for `new` function
@@ -1386,7 +1421,7 @@ static class CompileCode
             {
                 // Give some feedback on the functions that could be called
                 foreach (var sym in candidates)
-                    call.Token.AddInfo(sym);
+                    AddInfo(call.Token, sym);
 
                 // If there is just 1 symbol without generic arguments,
                 // assume that is what was called. This gives better type
@@ -1417,7 +1452,7 @@ static class CompileCode
                         if (candidate.IsSpecialized)
                             matchingFuns.Add(candidate); // constraint
                         else
-                            matchingFuns.Add(table.CreateSpecializedType(candidate, callMatch.TypeArgs));
+                            matchingFuns.Add(state.Table.CreateSpecializedType(candidate, callMatch.TypeArgs));
                     }
                     else
                         matchingFuns.Add(candidate); // Lambda
@@ -1526,7 +1561,7 @@ static class CompileCode
             else if (call.TypeArgs.Length != 0)
                 typeArgs = call.TypeArgs;   // Type args supplied by user
             else
-                typeArgs = table.CreateUnresolvedArray(typeArgsExpectedCount); // Infer type args
+                typeArgs = state.Table.CreateUnresolvedArray(typeArgsExpectedCount); // Infer type args
 
             // Verify number of type arguments
             if (typeArgs.Length != typeArgsExpectedCount)
@@ -1678,7 +1713,7 @@ static class CompileCode
             InterfaceInfo? ifaceConversion = null;
             if (!argType.IsInterface && paramType.IsInterface)
             {
-                ifaceConversion = interfaces.ConvertToInterfaceInfo(table, argType, paramType, typeArgs);
+                ifaceConversion = state.Interfaces.ConvertToInterfaceInfo(state.Table, argType, paramType, typeArgs);
                 if (ifaceConversion.Compatibility == CallCompatible.Compatible)
                     return new(CallCompatible.Compatible, ifaceConversion.TypeArgs, null, ifaceConversion);
             }
@@ -1707,8 +1742,8 @@ static class CompileCode
                     continue; // Should fail during validation
 
                 // Can we call it with the given parameter?
-                var (matchConversion, inferredConversionTypes) = InferTypesMatch(argType, inputParam, 
-                    table.CreateUnresolvedArray(conversion.GenericParamCount()));
+                var (matchConversion, inferredConversionTypes) = InferTypesMatch(argType, inputParam,
+                    state.Table.CreateUnresolvedArray(conversion.GenericParamCount()));
 
                 if (!matchConversion)
                     continue;  // Not callable
@@ -1720,8 +1755,8 @@ static class CompileCode
                 if (!paramType.IsInterface && inferredConversionTypes.Any(s => s.IsUnresolved))
                 {
                     // Try to infer un-resolved type parameters from the given parameter
-                    var (matchConversion2, inferredConversionTypes2) = InferTypesMatch(paramType, conversion.FunReturnType, 
-                        table.CreateUnresolvedArray(inferredConversionTypes.Length));
+                    var (matchConversion2, inferredConversionTypes2) = InferTypesMatch(paramType, conversion.FunReturnType,
+                        state.Table.CreateUnresolvedArray(inferredConversionTypes.Length));
 
                     if (matchConversion2)
                     {
@@ -1747,7 +1782,7 @@ static class CompileCode
 
                 // Specialize the function return type
                 Debug.Assert( (argType.IsSpecialized || argType.TypeArgs.Length == 0) && !conversion.IsSpecialized);
-                var concreteConversionReturnType = table.ReplaceGenericTypeParams(conversion.FunReturnType, inferredConversionTypes);
+                var concreteConversionReturnType = state.Table.ReplaceGenericTypeParams(conversion.FunReturnType, inferredConversionTypes);
 
                 if (paramType.IsInterface)
                 {
@@ -1797,7 +1832,7 @@ static class CompileCode
             var ifaceConversions = new List<Symbol[]>();
             foreach (var conversion in callableIfaceConversions)
             {
-                var ifaceConversion2 = interfaces.ConvertToInterfaceInfo(table, conversion.funReturnType, paramType, typeArgs);
+                var ifaceConversion2 = state.Interfaces.ConvertToInterfaceInfo(state.Table, conversion.funReturnType, paramType, typeArgs);
                 if (ifaceConversion2.Compatibility == CallCompatible.Compatible)
                     ifaceConversions.Add(ifaceConversion2.TypeArgs);                
             }
@@ -1818,10 +1853,10 @@ static class CompileCode
         // Retrieve implicit functions from the symbol's module (cache them in implicitCache for speed)
         void PushImplicits(Symbol symbol, List<Symbol> implicits)
         {
-            if (!implicitCache.TryGetValue(symbol.FullName, out var implicitsList))
+            if (!state.ImplicitCache.TryGetValue(symbol.FullName, out var implicitsList))
             {
                 implicitsList = symbol.Children.Where(s => s.IsImplicit && s.IsFun && (s.IsStatic || s.IsGetter)).ToArray();
-                implicitCache[symbol.FullName] = implicitsList;
+                state.ImplicitCache[symbol.FullName] = implicitsList;
             }
             foreach (var impl in implicitsList)
                 implicits.Add(impl);
@@ -1864,9 +1899,9 @@ static class CompileCode
             if (local.sym != null)
             {
                 if (local.index == 0 && function.IsMethod)
-                    token.Type = TokenType.ReservedVar;  // Mark receiver variable
-                token.AddInfo(local.sym);
-                assembly.AddOpLdlr(local.sym.Token, local.index);
+                    SetTokenType(token, TokenType.ReservedVar);  // Mark receiver variable
+                AddInfo(token, local.sym);
+                state.Assembly.AddOpLdlr(local.sym.Token, local.index);
                 return new List<Symbol>() { local.sym };
             }
 
@@ -1957,7 +1992,7 @@ static class CompileCode
                     var s = symbols[i];
                     if (s.GenericParamCount() == constraint.TypeArgs.Length)
                     {
-                        symbols[i] = table.CreateSpecializedType(s, constraint.TypeArgs, null);
+                        symbols[i] = state.Table.CreateSpecializedType(s, constraint.TypeArgs, null);
                     }
                     i++;
                 }
@@ -2001,7 +2036,7 @@ static class CompileCode
             var local = new Symbol(SymKind.Local, null, path, token);
             var localScope = newVarScope >= 0 && !forLambda ? newVarScope : scopeNum;
             localsByName![token] = new LocalSymbol(local, localScope, localsByIndex!.Count);
-            assembly.AddOpUseLocal(token, localsByIndex.Count, newVarCodeIndex);
+            state.Assembly.AddOpUseLocal(token, localsByIndex.Count, newVarCodeIndex);
             localsByIndex.Add(local);
             return local;
         }
@@ -2009,7 +2044,7 @@ static class CompileCode
         void BeginLocalScope(Token token)
         {
             scopeNum++;
-            assembly.AddOp(Op.BeginScope, token, 0);
+            state.Assembly.AddOp(Op.BeginScope, token, 0);
             scopeToken![scopeNum] = token;
         }
 
@@ -2022,7 +2057,7 @@ static class CompileCode
                 else if (local.ScopeNum > scopeNum)
                     local.ScopeNum = scopeNum;
             }
-            assembly.AddOp(Op.EndScope, scopeToken![scopeNum], 0);
+            state.Assembly.AddOp(Op.EndScope, scopeToken![scopeNum], 0);
             scopeNum--;
         }
 
@@ -2074,18 +2109,17 @@ static class CompileCode
         {
             Reject(token, message);
             foreach (var sym in symbols)
-                token.AddInfo(sym);
+                AddInfo(token, sym);
         }
 
         void Reject(Token token, string message)
         {
-            // TBD: Limit errors based on nearby syntax errors?
-            table.Reject(token, message);
+            state.TokenRejects.Add((token, message));
         }
 
         void RejectExpr(SyntaxExpr ex, string message) 
         {
-            table.Reject(ex.Token, message);
+            state.TokenRejects.Add((ex.Token, message));
             foreach (var e in ex)
                 RejectExpr(e, message);
         }
