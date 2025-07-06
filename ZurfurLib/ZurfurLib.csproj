@@ -6,6 +6,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="ZurfurLib\Queue.zurf" />
+  </ItemGroup>
+
   
   <ItemGroup>
     <AvaloniaResource Include="Resources\Test.txt" />
@@ -58,9 +62,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </AvaloniaResource>
     <AvaloniaResource Include="ZurfurLib\Map.zurf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </AvaloniaResource>
-    <AvaloniaResource Include="ZurfurLib\Math.zurf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </AvaloniaResource>
     <AvaloniaResource Include="ZurfurLib\Pointers.zurf">
@@ -153,13 +154,7 @@
 		<None Include="ZurfurLib\Map.zurf">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
-		<None Include="ZurfurLib\Math.zurf">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
 		<None Include="ZurfurLib\Pointers.zurf">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-		<None Include="ZurfurLib\Queue.zurf">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Include="ZurfurLib\Range.zurf">

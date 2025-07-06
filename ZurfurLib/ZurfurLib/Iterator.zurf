@@ -2,20 +2,20 @@
 mod Zurfur
 
 [pub] type interface Iterable<T>
-    fun asIterator(my) Iterator<T>
+    fun asIterator() Iterator<T>
 
 // Implement this on all iterators
 [pub] type interface Iterator<T>
-    fun next(my mut) ?T
+    fun mut next() ?T
 
 
 // This is never called.  It is implemented by the compiler to generate a for loop.
-fun Iterator._for<T>(my) T extern
+fun _for<T>(my Iterator<T>) T extern
 
 
 // *** MAP ***
 
-fun Iterator.map<S, R>(my Iterator<S>, f fun(input S) R) Iterator<R>
+fun map<S, R>(my Iterator<S>, f fun(input S) R) Iterator<R>
     return MapIterator<S, R>(my, f)
     
 type ref MapIterator<S, R>
@@ -23,11 +23,11 @@ type ref MapIterator<S, R>
     _f fun(input S) R
 
 // TBD: Remove this when `init` is implemented
-fun MapIterator.new<S, R>(my, iter Iterator<S>, f fun(input S) R)
+fun new<S, R>(my MapIterator<S,R>, iter Iterator<S>, f fun(input S) R)
     my._iter = iter
     my._f = f
 
-fun MapIterator.next<S, R>(my mut) ?R
+fun next<S, R>(my mut MapIterator<S,R>) ?R
     let a = my._iter.next()
     if a @ item
         return my._f(a)
@@ -35,7 +35,7 @@ fun MapIterator.next<S, R>(my mut) ?R
 
 // *** FILTER ***
 
-fun Iterator.filter<S>(my, f fun(input S) Bool) Iterator<S>
+fun filter<S>(my Iterator<S>, f fun(input S) Bool) Iterator<S>
     return FilterIterator<S>(my, f)
     
 type ref FilterIterator<S>
@@ -43,11 +43,11 @@ type ref FilterIterator<S>
     _f fun(input S) Bool
 
 // TBD: Remove this when `init` is implemented
-fun FilterIterator.new<S>(my, iter Iterator<S>, f fun(input S) Bool)
+fun new<S>(my FilterIterator<S>, iter Iterator<S>, f fun(input S) Bool)
     my._iter = iter
     my._f = f
 
-fun FilterIterator.next<S>(my mut) ?S
+fun next<S>(my mut FilterIterator<S>) ?S
     while my._iter.next @ item
         if my._f(item)
             return item
@@ -56,12 +56,12 @@ fun FilterIterator.next<S>(my mut) ?S
 // *** OTHER ***
 
 
-fun Iterator.reduce<S,R>(my Iterator<S>, acc R, f fun(acc R, value S) R) R
+fun reduce<S,R>(my Iterator<S>, acc R, f fun(acc R, value S) R) R
     while my.next() @ item
         acc = f(acc, item)
     return acc
 
-fun Iterator.reduce<S>(my, f fun(item1 S, item2 S) S) ?S
+fun reduce<S>(my Iterator<S>, f fun(item1 S, item2 S) S) ?S
     if not (my.next()@acc)
         return nil
     while my.next() @ item
@@ -70,7 +70,7 @@ fun Iterator.reduce<S>(my, f fun(item1 S, item2 S) S) ?S
 
 
 [pub]
-fun Iterator.toList<T>(my mut) List<T>
+fun toList<T>(my mut Iterator<T>) List<T>
 where T Iterable<T>
     @list = List<T>()
     while my.next()@item

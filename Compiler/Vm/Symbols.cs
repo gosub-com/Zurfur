@@ -7,6 +7,7 @@ using System.Reflection;
 using System.ComponentModel.DataAnnotations;
 
 using Gosub.Lex;
+using System.Diagnostics.CodeAnalysis;
 namespace Zurfur.Vm;
 
 /// <summary>
@@ -74,7 +75,6 @@ public enum SymKind
 public enum SymQualifiers
 {
     None = 0,
-    Method = 0x1,
     Interface = 0x2,
     Const = 0x4,
     Static = 0x8,
@@ -165,11 +165,6 @@ public class Symbol
     /// (e.g. `_myField` could become `myField` for a public getter)
     /// </summary>
     public readonly string SimpleName;
-
-    /// <summary>
-    /// Static extension methods need to know what scope they are in
-    /// </summary>
-    public Symbol? StaticScope;
 
     /// <summary>
     /// Field, local, parameter, lambda, or function type.
@@ -275,7 +270,6 @@ public class Symbol
     public bool IsTypeParam => Kind == SymKind.TypeParam;
     public bool IsFunParam => Kind == SymKind.FunParam;
     public bool IsLocal => Kind == SymKind.Local;
-    public bool IsMethod => Qualifiers.HasFlag(SymQualifiers.Method);
     public bool IsConst => Qualifiers.HasFlag(SymQualifiers.Const);
     public bool IsStatic => Qualifiers.HasFlag(SymQualifiers.Static);
     public bool IsGetter => Qualifiers.HasFlag(SymQualifiers.Get);
@@ -368,10 +362,6 @@ public class Symbol
             return;
         }
 
-        var staticScope = "";
-        if (StaticScope != null)
-            staticScope = $"[{StaticScope}]";
-
         var funParams = "";
         if (IsFun && Type != null)
             funParams = FunParamTuple.FullName + FunReturnTuple.FullName;
@@ -383,7 +373,7 @@ public class Symbol
 
         // Specialized functions get the parents functions parant
         var parentFullName = Concrete.Parent!.FullName;
-        FullName = parentFullName + "." + SimpleName + genericArgsCount + typeArgs + staticScope + funParams;
+        FullName = parentFullName + "." + SimpleName + genericArgsCount + typeArgs + funParams;
     }
 
     /// <summary>
@@ -464,18 +454,9 @@ public class Symbol
         var funParams = "";
         if (IsFun && Type != null)
         {
-            if (IsMethod && FunParamTuple.TypeArgs.Length != 0)
-            {
-                // Methods use first parameter as receiver type
-                funParams = FunParamTuple.FriendlyNameInternal(true) + FunReturnTuple.FriendlyNameInternal(false);
-                myParam = FunParamTuple.TypeArgs[0].FriendlyNameInternal(false) + ".";
-            }
-            else
-            {
-                // Non-methods show parameters only
-                funParams = FunParamTuple.FriendlyNameInternal(false) + FunReturnTuple.FriendlyNameInternal(false);
-                myParam = "";
-            }
+            // Non-methods show parameters only
+            funParams = FunParamTuple.FriendlyNameInternal(false) + FunReturnTuple.FriendlyNameInternal(false);
+            myParam = "";
         }
 
         return myParam + SimpleName + genericArgs + funParams;
@@ -485,7 +466,7 @@ public class Symbol
     // Find anything that is not a function.
     // There can only be one primary symbol per simple name,
     // and it is always at the beginning of the list.
-    public bool TryGetPrimary(string key, out Symbol? sym)
+    public bool TryGetPrimary(string key, [MaybeNullWhen(false)] out Symbol sym)
     {
         sym = null;
         if (_childrenNamed == null)

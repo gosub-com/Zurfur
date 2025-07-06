@@ -6,9 +6,8 @@
 mod AATest
 
 use Zurfur
-use Zurfur[Log, Iterator, Iterable, Equatable, Number]
+use Zurfur[Log, Iterator, Iterable, Equatable, Number, cos]
 use Zurfur.Unsafe[Xuint, RawPointer, castPointer,]
-use Zurfur.Math[cos]
 use Zurfur.Draw2d[Size, Point]
 use Zurfur.ConvertBytes[readBytesInt64, writeBytesInt64, writeBytesHex]
  
@@ -16,7 +15,7 @@ use Zurfur.ConvertBytes[readBytesInt64, writeBytesInt64, writeBytesHex]
 
 type ReadStuff {}
 
-fun ReadStuff.read(my, buffer Span<Byte>) !Int todo
+fun read(my ReadStuff, buffer Span<Byte>) !Int todo
 
 fun AAA_test_paramable(p AParamable)
     let a *Int
@@ -74,19 +73,19 @@ fun test_reduce()
     @myReduceTuple2 = List<(a Int, b Int)>().reduce(|item1, item2| => item2)
 
 [pub] type MyType
-    [pub, implicit] fun get asIterator(my) MyTypeIter todo
+    [pub, implicit] fun get asIterator() MyTypeIter todo
 
 type MyTypeIter {}
-fun MyTypeIter.next(my) ?Int
+fun next(my MyTypeIter) ?Int
     todo
 
-fun Iterator.reduceInt(my Iterator<Int>, f fun(item1 Int, item2 Int) Int) ?Int
+fun reduceInt(my Iterator<Int>, f fun(item1 Int, item2 Int) Int) ?Int
     return my.reduce(f)
 
 fun takeIterator1<T>(a Iterator<T>)
     return
 
-fun Iterator.takeIterator2<T>(my)
+fun takeIterator2<T>(my Iterator<T>)
     return
 
 fun takeIteratorInt(my Iterator<Int>)
@@ -126,41 +125,41 @@ fun takeListOfTuples(x List<(a Int, b F32)>) F32
 
 
 type interface AParamable
-    fun takePointer(my, a *Int) Span<Int>
-    fun takeInt(my, a Int) Float
+    fun takePointer(a *Int) Span<Int>
+    fun takeInt(a Int) Float
 
 type interface BParamable
-    fun fun1(my, x AParamable)
-    fun fun2(my, y BParamable)
-    fun fun3(my, a AParamable, b BParamable)
+    fun fun1(x AParamable)
+    fun fun2(y BParamable)
+    fun fun3(a AParamable, b BParamable)
 
 type A1Parameter
     a Int
-fun A1Parameter.takePointer(my, a *Int) Span<Int>
+fun takePointer(my A1Parameter, a *Int) Span<Int>
     return Span<Int>()
-fun A1Parameter.takeInt(my, a Int) Float
+fun takeInt(my A1Parameter, a Int) Float
     return 0.0
 
 type A1ParameterNot1
     a Int
 fun takePointer(my A1ParameterNot1, a *Int) Int // Causes it to not be AParamable
     return 0
-fun A1ParameterNot1.takeInt(my, a Int) Float
+fun takeInt(my A1ParameterNot1, a Int) Float
     return 0.0
 
 type A1ParameterNot2
     a Int
-fun A1ParameterNot2.takePointer(my, a *Int) Span<Int>
+fun takePointer(my A1ParameterNot2, a *Int) Span<Int>
     return Span<Int>()
-fun A1ParameterNot2.takeInt(my, a Int) Int // Causes it to not be AParamable
+fun takeInt(my A1ParameterNot2, a Int) Int // Causes it to not be AParamable
     return 0
 
 
     
 type interface Printable
-    fun toStr(my) Str    
+    fun toStr() Str    
 type interface Printable2
-    fun toStr(my) Str    
+    fun toStr() Str    
 
 fun test_printableFail<T, Q>(t T, q Q)
 where T Printable
@@ -202,7 +201,7 @@ fun test_lambdaCall()
     lambdaCall2(a => 0)
 
 type MyCollection<T>
-    [pub, implicit] fun get asIterator(my) MyCollectionIter<T>
+    [pub, implicit] fun get asIterator() MyCollectionIter<T>
         nop
 
 type MyCollectionIter<T> {}
@@ -212,11 +211,11 @@ type MyCollectionNot<T> {}
 type MyCollectionNotIter<T> {}
 
 
-fun MyCollectionIter.next<T>(my) ?T
+fun next<T>(my MyCollectionIter<T>) ?T
     nop
-fun MyCollectionNot.asIterator<T>(my) MyCollectionNotIter<T>
+fun asIterator<T>(my MyCollectionNot<T>) MyCollectionNotIter<T>
     nop
-fun MyCollectionNotIter.next<T>(my) ?T
+fun next<T>(my MyCollectionNotIter<T>) ?T
     nop
 
 
@@ -398,12 +397,12 @@ type aaa_arith_test
     c Int
     _property Int
     
-fun get aaa_arith_test.property(my) Int
+fun get property(my aaa_arith_test) Int
     return my._property
-fun set aaa_arith_test.property(my, d Int)
+fun set property(my aaa_arith_test, d Int)
     my._property = d
 
-fun get aaa_arith_test.bref(my) mut &aaa_arith_test2
+fun get bref(my aaa_arith_test) mut &aaa_arith_test2
     return my.b
 
 type aaa_arith_test2
@@ -425,19 +424,19 @@ fun test_forEach(args Array<Str>)
 
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-fun Iterator.alphaLengthWise<Item, L>(my, lengthProvider fun(t Item) L) Iterator<Item>
+fun alphaLengthWise<Item, L>(my Iterator<Item>, lengthProvider fun(t Item) L) Iterator<Item>
     return my.orderBy<Item, L>(a => lengthProvider(a)).thenBy<Item, L>(a => a)
     
-fun Iterator.orderBy<Source,Key>(my, keySelector fun(i Source)Key) Iterator<Source>
+fun orderBy<Source,Key>(my Iterator<Source>, keySelector fun(i Source)Key) Iterator<Source>
     todo
     
-fun Iterator.thenBy<Source,Key>(my, keySelector fun(i Source)Key) Iterator<Source>
+fun thenBy<Source,Key>(my Iterator<Source>, keySelector fun(i Source)Key) Iterator<Source>
     todo
 
 fun test_alphaLengthWise()
     let a = List<Str>().asIterator.alphaLengthWise<Str, Int>(i => i.len)
 
-fun Iterator.find<T>(my, f fun(item T) Bool) mut ?&T
+fun find<T>(my Iterator<T>, f fun(item T) Bool) mut ?&T
     while my.next()@item
         if f(item)
             return &item // TBD: Require `&` here
@@ -445,7 +444,7 @@ fun Iterator.find<T>(my, f fun(item T) Bool) mut ?&T
 
 
 // Simple selection sort
-fun Span.test_selectionSort<T>(my, lessThan fun(a T,b T)Bool)
+fun test_selectionSort<T>(my Span<T>, lessThan fun(a T,b T)Bool)
     for @i in 0..my.len-1
         @lowElem = my[i]
         @lowIndex = i
@@ -468,25 +467,25 @@ type MyPoint<T1,T2,T3>
     y (a Int, b T1, c Int, d (r Int, b Int))
 
 type interface Iterable2<Item>
-    fun iterator2(my) Iterator<Item>
+    fun iterator2() Iterator<Item>
 
 type interface GetMap<Item1,Item2>
-    fun getMap(my) Map<Item1, Item2>
-    fun getMapKeys(my) Iterator<Item1>
-    fun getMapValues(my) Iterator<Item2>
+    fun getMap() Map<Item1, Item2>
+    fun getMapKeys() Iterator<Item1>
+    fun getMapValues() Iterator<Item2>
 
 type interface Getter
-    fun get myGet(my) I32
-    fun myFun(my) I32
+    fun get myGet() I32
+    fun myFun() I32
 
 type interface Getter2<T>
-    fun get myGet2(my) T
-    fun myFun2(my) T
-    fun myFun2Ns(my) T
+    fun get myGet2() T
+    fun myFun2() T
+    fun myFun2Ns() T
     [static] fun myFun2Stat() T
 
 type interface MyAdd<T>
-    fun myAddNotStatic(my, a T, b T) T
+    fun myAddNotStatic(a T, b T) T
     [static] fun myAddStatic(a T, b T) T
 
 fun getMapFun<K,V>() Map<V,K>
@@ -497,7 +496,7 @@ fun myFun2Interf<T>(i T) T todo
 fun takeFun(i fun(a Int)Int) todo
 
 type interface GetHash
-    fun getHash(my) U32
+    fun getHash() U32
 
 fun test_tuples()
     @tuples = List<(Int, Str)>()
@@ -617,7 +616,7 @@ fun Test<X0,X1,X2,X3>()
 
 type OneGeneric<T> { } 
 
-fun get Point.toSizeTest<T>(my) Size<T>
+fun get toSizeTest<T>(my Point<T>) Size<T>
     @a = Size<T>(T(),T())
     @b = Size<T>()
     @c = Size(my.x, my.y)
@@ -651,26 +650,26 @@ type AAAA<T>
 type BBBB
     v Void
         
-fun BBBB.BBBB_fm1(my) {}
-fun BBBB.BBBB_fm2(my, a BBBB) {}
+fun BBBB_fm1(my BBBB) {}
+fun BBBB_fm2(my BBBB, a BBBB) {}
     
 
 
-fun AAAA.AAAA_fm(my AAAA<Int>) {}
-fun AAAA.AAAA_fm<T>(my) {}
-fun BBBB.AAAA_fm(my) {}
+fun AAAA_fm(my AAAA<Int>) {}
+fun AAAA_fm<T>(my AAAA<T>) {}
+fun AAAA_fm(my BBBB) {}
 
 fun AAAA_f() {}
 
-fun BBBB.AAAA_fe2(my, a BBBB) {}
+fun AAAA_fe2(my BBBB, a BBBB) {}
 
 // TBD: AAAA should not conflict with AAAA typename
 //      must be resolved before moving methods to module level
-fun aapoint.AAAA(my) {}
-fun aapoint.BBBB(my) {}
-fun aapoint.AAAB(my) {}
-fun List.X<T>(my) {}
-fun Int.X(my) {}
+fun AAAA(my aapoint) {}
+fun BBBB(my aapoint) {}
+fun AAAB(my aapoint) {}
+fun X<T>(my List<T>) {}
+fun X(my Int) {}
     
 
 type aapoint
@@ -679,12 +678,12 @@ type aapoint
 type bbpoint
     v Void
 
-[pub] fun aapoint.x(my) {}
+[pub] fun x(my aapoint) {}
 
-[pub] fun bbpoint.xx(my) {}
+[pub] fun xx(my bbpoint) {}
 
-[pub] fun aapoint.y(my) {}
-[pub] fun bbpoint.yy(my) {}
+[pub] fun y(my aapoint) {}
+[pub] fun yy(my bbpoint) {}
 
   
 [pub]
@@ -699,17 +698,17 @@ type AAFun
     aaf9b fun(a Int)(x Int)
     af10 fun(v Int)Int
 
-fun AAFun.aaaa(my, a Int, b Int) Int { }
-fun AAFun.aaaa(my, a Int, b Float) Int { }
-fun AAFun.aaaa(my, x Float, y Int) Int { }
-fun AAFun.aaf1(my, a Int, b Int)Int { }
-fun AAFun.aaf2(my, v AAFunc<Int, Int>) { }
-fun AAFun.aaf3<T1,T2>(my, i T1)T2 { }
-fun AAFun.aaf1s(my, a Int, b Int)Int { }
-fun AAFun.aaf2s(my, v AAFunc<Int, Int>) { }
-fun AAFun.aaf3s<T1,T2>(my, i T1)T2 { }
-fun AAFun.af6(my, p fun(v Int)Bool) {}
-fun AAFun.af7<X>(my, p fun(v X)Bool) {}
+fun aaaa(my AAFun, a Int, b Int) Int { }
+fun aaaa(my AAFun, a Int, b Float) Int { }
+fun aaaa(my AAFun, x Float, y Int) Int { }
+fun aaf1(my AAFun, a Int, b Int)Int { }
+fun aaf2(my AAFun, v AAFunc<Int, Int>) { }
+fun aaf3<T1,T2>(my AAFun, i T1)T2 { }
+fun aaf1s(my AAFun, a Int, b Int)Int { }
+fun aaf2s(my AAFun, v AAFunc<Int, Int>) { }
+fun aaf3s<T1,T2>(my AAFun, i T1)T2 { }
+fun af6(my AAFun, p fun(v Int)Bool) {}
+fun af7<X>(my AAFun, p fun(v X)Bool) {}
 
 
 [pub]
@@ -717,11 +716,11 @@ type AAFunc<T1,T2>
     Invoke fun (v T1) T2
 
 
-fun AGenericTest.af6<T,QQQ>(my, p fun(v Int)Bool) {}
+fun af6<T,QQQ>(my AGenericTest<T,QQQ>, p fun(v Int)Bool) {}
 
 
 type interface ToStr
-    fun get toStr(my) Str
+    fun get toStr() Str
 
 [pub]
 fun GenericTest<Q1,Q2>(a Q1, b Q2) Int

@@ -2,7 +2,6 @@
 mod Zurfur
 
 use Zurfur[Copy, Iterator, Number]
-use Zurfur.Math[abs]
 
 // TBD: Default constructor taking low and high
 [pub]
@@ -12,18 +11,18 @@ where T Number<T>
     high T
 
     [pub, implicit]
-    fun get asIterator(my) RangeIterator<T>
-        return RangeIterator<T>(my.low, my.high)
+    fun get asIterator() RangeIterator<T>
+        return RangeIterator<T>(self.low, self.high)
 
 
 [pub]
-fun Range.new<T>(my, low T, high T)
+fun new<T>(my Range<T>, low T, high T)
     // TBD: (r.low, r.high) = (low, high)
     my.low = low
     my.high = high
 
 [pub]
-fun get Range.length<T>(my) T // TBD: Use constraints from `Range`
+fun get length<T>(my Range<T>) T // TBD: Use constraints from `Range`
 where T Number<T>
     return my.high-my.low
         
@@ -34,13 +33,13 @@ where T Number<T>
     high T pub init
 
 [pub]
-fun RangeIterator.new<T>(my, low T, high T)
+fun new<T>(my RangeIterator<T>, low T, high T)
     // TBD: (my.current, my.high) = (low, high)
     my.current = low
     my.high = high
 
 [pub]
-fun RangeIterator.next<T>(my mut) ?T
+fun next<T>(my mut RangeIterator<T>) ?T
 where T Number<T>
     if my.current >= my.high
         return nil

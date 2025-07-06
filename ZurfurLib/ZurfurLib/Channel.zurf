@@ -26,15 +26,15 @@ type Channel<T>
 // Read an item from the channel.  Blocks if the channel is empty.  Returns
 // the item synchrounously if there is already one in the queue.  Returns nil
 // if the channel is closed or there is already a reader waiting on the channel.
-afun Channel.read<T>(my) ?T extern
+afun read<T>(my Channel<T>) ?T extern
 
 // Write an item to the channel.  Blocks if the channel is full.  Throws if
 // the channel is closed. Complete synchrounously if possible.
-afun Channel.write<T>(my, item T) ! extern
+afun write<T>(my Channel<T>, item T) ! extern
 
-fun get Channel.len<T>(my) Int extern
+fun get len<T>(my Channel<T>) Int extern
 
-fun get Channel.capacity<T>(my) Int extern
+fun get capacity<T>(my Channel<T>) Int extern
 
 // Close the channel
-afun Channel.close<T>(my) ! extern
+afun close<T>(my Channel<T>) ! extern

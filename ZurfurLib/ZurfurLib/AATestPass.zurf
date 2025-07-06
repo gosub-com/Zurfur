@@ -10,21 +10,21 @@ use Zurfur[Iterator, SpanIterator]
 type ImpNone {}
 
 type interface TakeConcrete
-    fun take(my, a Int)
+    fun take(a Int)
     
 type interface TakeConcrete2 // TBD: Interfce to interface for compatible interfaces
-    fun take(my, a Int)
+    fun take(a Int)
     
 type interface TakeInterface
-    fun take(my, a TakeConcrete)
+    fun take(a TakeConcrete)
     
 type ImpTakeConcrete {}
 
-fun ImpTakeConcrete.take(my, a Int) todo
+fun take(my ImpTakeConcrete, a Int) todo
 
 type ImpTakeInterface {}
 
-fun ImpTakeInterface.take(my, a TakeConcrete) todo
+fun take(my ImpTakeInterface, a TakeConcrete) todo
 
 
 fun takeInterfaceConcrete(x TakeConcrete) todo
@@ -48,7 +48,7 @@ fun test_inferIterator()
     
 // Simple implicit conversion
 type FromImplicit
-    [pub, implicit] fun get toToImplicit(my) ToImplicit todo
+    [pub, implicit] fun get toToImplicit() ToImplicit todo
 
 type ToImplicit
     [pub, implicit, static] fun toToImplicit(value Map<Int,Float>) ToImplicit todo
@@ -63,7 +63,7 @@ fun test_implicit()
 
 // Generic implcit conversion
 type FromImplicitG<T1, T2, T3>
-    [pub, implicit] fun get toToImplicit(my) ToImplicitG<Int,T3, T2> todo
+    [pub, implicit] fun get toToImplicit() ToImplicitG<Int,T3, T2> todo
 
 type ToImplicitG<T1, T2, T3> {}
 
@@ -90,14 +90,14 @@ fun test_implicitG()
 
 // Implicit conversion to interface
 type interface ImplicitI<T>
-    fun callme(my, a T) T
+    fun callme(a T) T
     
 type ToImplicitI<T> {}
 
-fun ToImplicitI.callme<T>(my, a T)T todo
+fun callme<T>(my ToImplicitI<T>, a T)T todo
 
 type FromImplicitI<T>
-    [pub, implicit] fun get toToImplicit(my) ToImplicitI<T> todo
+    [pub, implicit] fun get toToImplicit() ToImplicitI<T> todo
 
 fun checkImplicitFun<T>(a ToImplicitI<T>) T todo
 
@@ -121,16 +121,14 @@ type StaticTest
     [static] fun staticFun(a Str) Int todo
 
 type interface StaticInterfaceTest
-    fun methodFun(my, a Str) Int
+    fun methodFun(a Str) Int
     [static] fun staticFun(a Str) Int
 
-[static] fun StaticTest.staticExtensionFun(a Str) Int todo
 
 
 fun test_staticTest()
     let a Int = StaticTest.staticField
     let b Int = StaticTest.staticFun("a")
-    let c Int = StaticTest.staticExtensionFun("a")
     let e Int = StaticInterfaceTest.staticFun("x") // TBD: Must fail
 
 fun test_staticInterface<T>(a T)

@@ -9,8 +9,7 @@
 mod TestExample
 
 use Zurfur
-use Zurfur[Decimal, Log, Number, Iterator]
-use Zurfur.Math[cos,sin]
+use Zurfur[Decimal, Log, Number, Iterator, cos, sin]
 use Zurfur.ConvertBytes[writeBytesHex]
 
 //Simple types
@@ -53,7 +52,7 @@ fun test_map()
 
 // Declare a method to multiply and add three keys on Map<K,V>.
 // Return Nan (or MinValue for integer types) if any key is missing.
-fun Map.madd<K,V>(my, mul1 K, mul2 K, add K) V
+fun madd<K,V>(my Map<K,V>, mul1 K, mul2 K, add K) V
 where V Number<V>
     if my[mul1]@mul1Val and my[mul2]@mul2Val and my[add]@addVal
         return mul1Val * mul2Val + addVal
@@ -65,24 +64,24 @@ fun countToTen()
     for i in 1..+10
         Log.info("Count={i}, text={m.text}")
 
-fun MyType.asIterator(my) MyTypeIter todo
+fun asIterator(my MyType) MyTypeIter todo
 
 type MyTypeIter
     a Int
     
-fun MyTypeIter.next(my) ?Int
+fun next(my MyTypeIter) ?Int
     todo
 
 // Setter for list, which is already public read-only
 [pub]
-fun set MyType.list(my, v own List<Int>)
+fun set list(my MyType, v own List<Int>)
     my._list = v
     my.mapChangedEvent()
     for x in MyType().asIterator
         nop
     MyType().asIterator.map<Int,Str>(s => "")
 
-fun MyType.mapChangedEvent(my) {}
+fun mapChangedEvent(my MyType) {}
 
 fun test_HelloWorld()
     Log.info("Hello World.  Let's count from 1 to 10.")

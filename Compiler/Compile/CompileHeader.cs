@@ -109,9 +109,9 @@ static class CompileHeader
                 var fileUseSymbols = new UseSymbolsFile();
 
                 // Add prelude to all files
-                if (table.Root.TryGetPrimary("Zurfur", out var zSym) && zSym!.IsModule)
+                if (table.Root.TryGetPrimary("Zurfur", out var zurfurModule) && zurfurModule.IsModule)
                     foreach (var name in ZURFUR_PRELUDE.Split(' '))
-                        AddUseSymbolsFromModule(zSym, name, null, fileUseSymbols);
+                        AddUseSymbolsFromModule(zurfurModule, name, null, fileUseSymbols);
 
                 // Process use statements
                 foreach (var use in syntaxFile.Value.Using)
@@ -157,7 +157,7 @@ static class CompileHeader
                     Reject(name, "Module or type name not found");
                     return null;
                 }
-                symbol = child!;
+                symbol = child;
             }
             return symbol;
         }
@@ -165,12 +165,15 @@ static class CompileHeader
         void AddUseSymbolsFromModule(Symbol module, string name, Token? token, UseSymbolsFile useSymbolsFile)
         {
             var symbols = GetUseSymbolsFromModule(module, name);
+
+            // Reject if not found
             if (symbols.Count == 0)
             {
                 if (token != null)
                     Reject(token, $"Symbol not found in '{module}'");
                 return;
             }
+            // Add symbol info to token
             foreach (var symbol in symbols)
             {
                 useSymbolsFile.AddSymbol(symbol.SimpleName, symbol);
@@ -194,7 +197,7 @@ static class CompileHeader
                 module.ChildrenNamed(name).Where(child => child.IsFun && child.Token == name));
 
             // Add the type and its operators
-            if (module.TryGetPrimary(name, out Symbol? typeSym) && typeSym != null)
+            if (module.TryGetPrimary(name, out var typeSym))
             {
                 symbols.Add(typeSym);
 
@@ -213,7 +216,7 @@ static class CompileHeader
                     foreach (var child in module.Children)
                     {
                         // Add any method matching the interface
-                        if (child.IsFun && child.IsMethod && !child.IsStatic 
+                        if (child.IsFun && !child.IsStatic 
                                 && child.FunParamTypes.Length != 0
                                 && child.FunParamTypes[0].IsInterface
                                 && child.FunParamTypes[0].Concrete.FullName == typeSym.FullName)
@@ -276,7 +279,7 @@ static class CompileHeader
                 //          "[static] fun Type.new() extern"
                 //      Plus, some of this code is repeated in other places
                 var constructor = new Symbol(SymKind.Fun, type.Parent, type.Path, type.Token, "new");
-                constructor.Qualifiers |= SymQualifiers.Method | SymQualifiers.Extern;
+                constructor.Qualifiers |= SymQualifiers.Extern;
                 var constructorType = Resolver.GetTypeWithGenericParameters(table, type);
                 //constructorType.Qualifiers |= SymQualifiers.My;
                 foreach (var genericParam in constructorType.TypeArgs)
@@ -458,16 +461,14 @@ static class CompileHeader
             if ( (function.Parent?.IsInterface??false) && synFunc.TypeParams != null && synFunc.TypeParams.Count >= 1)
                 Reject(synFunc.TypeParams[0].Token, "Interface methods may not have type parameters");
 
-            var receiverParam = ResolveReceiver(synFunc, table, useSymbolsFile, function);
-            var parametersEnumerator = receiverParam == null ? synFunc.FunctionSignature[0] : synFunc.FunctionSignature[0].Skip(1);
-            var parameters = ResolveFunParams(parametersEnumerator, table, function, function, useSymbolsFile);
+            var selfParameter = ResolveSelfParameter(synFunc, table, useSymbolsFile, function);
+            var parameters = ResolveFunParams(synFunc.FunctionSignature[0], table, function, function, useSymbolsFile);
             var returns = ResolveFunParams(synFunc.FunctionSignature[1], table, function, function, useSymbolsFile);
-            var newReturn = ResolveNewReturn(function, receiverParam, synFunc);
+            var newReturn = ResolveNewReturn(function, synFunc, parameters);
 
-
-            // Insert receiver and return params
-            if (receiverParam != null)
-                parameters.Insert(0, receiverParam);
+            // Insert implicit and return params
+            if (selfParameter != null)
+                parameters.Insert(0, selfParameter);
             if (newReturn != null)
                 returns.Add(newReturn);
 
@@ -492,138 +493,43 @@ static class CompileHeader
             syntaxToSymbol[synFunc] = function;
         }
 
-        Symbol? ResolveReceiver(SyntaxFunc synFunc, SymbolTable table, UseSymbolsFile useSymbolsFile, Symbol function)
+
+        Symbol? ResolveSelfParameter(SyntaxFunc synFunc, SymbolTable table, UseSymbolsFile useSymbolsFile, Symbol function)
         {
-            var functionParent = function.Parent;
-            ArgumentNullException.ThrowIfNull(functionParent, "function.Parent cannot be null");
+            var methodParent = function.Parent!;
 
-            // Functions in types may not include an explicit receiver type
-            if (!functionParent.IsModule && synFunc.ReceiverTypeName != null)
-            {
-                Reject(synFunc.ReceiverTypeName, "Functions declared in a type may not have an explicit receiver type");
+            if (methodParent.IsModule || function.IsStatic)
                 return null;
-            }
 
-            // Resolve receiver type name (if supplied)
-            Symbol? receiverType = null;
-            if (synFunc.ReceiverTypeName != null)
-            {
-                receiverType = Resolver.FindGlobalType(synFunc.ReceiverTypeName, table, function, useSymbolsFile);
-                if (receiverType == null)
-                    return null; // Error marked above
-
-                synFunc.ReceiverTypeName.AddInfo(receiverType);
-                if (!receiverType.IsType && !receiverType.IsTypeParam)
-                {
-                    table.Reject(synFunc.ReceiverTypeName, $"The symbol is not a type, it is a {receiverType.KindName}");
-                    return null;
-                }
-            }
-
-            // Static function - requires a receiver parameter
-            if (function.IsStatic)
-            {
-                function.Qualifiers |= SymQualifiers.Static | SymQualifiers.Method;
-
-                // Static functions in types don't need anything more
-                if (!functionParent.IsModule)
-                    return null;
-
-                if (receiverType == null)
-                {
-                    Reject(synFunc.Name, "Module level static functions must specify a receiver type");
-                    return null;
-                }
-
-                function.StaticScope = receiverType;
+            // Interface method
+            bool isStatic = function.IsStatic || !methodParent.IsInterface;
+            var myParam = new Symbol(SymKind.FunParam, function, function.Path, synFunc.Name, "self");
+            myParam.Type = Resolver.GetTypeWithGenericParameters(table, methodParent);
+            if (myParam.Type == null)
                 return null;
-            }
-
-            // Add receiver parameter
-            if (functionParent.IsModule)
-            {
-                if (synFunc.ReceiverTypeName == null || receiverType == null)
-                    return null; // No receiver type specified
-
-                return ResolveMyParam(synFunc, receiverType, table, useSymbolsFile, function);
-            }
-            else
-            {
-                return ResolveMyParam(synFunc, functionParent, table, useSymbolsFile, function);
-            }
-        }
-
-        // Resolve an explicit "my" param, which is allowed to omit the type name
-        Symbol? ResolveMyParam(SyntaxFunc synFunc, Symbol receiverType, SymbolTable table, UseSymbolsFile useSymbolsFile, Symbol function)
-        {
-            // Parameter syntax tree: variable name[type, initializer, qualifiers]
-            if (synFunc.FunctionSignature.Count == 0
-                || synFunc.FunctionSignature[0].Count == 0
-                || synFunc.FunctionSignature[0][0].Count != 3)
-            {
-                Reject(synFunc.Name, "Expecting an explicit receiver parameter");
-                return null;
-            }
-
-            // Resolve receiver parameter
-            var parameter = synFunc.FunctionSignature[0][0];
-            Symbol myParam;
-            if (parameter[0].Token == "")
-            {
-                if (receiverType.IsTypeParam)
-                {
-                    Reject(parameter.Token, "Generic receiver type must use explicit type");
-                    return null;
-                }
-                // Receiver parameter type not supplied, generate one from the receiver type
-                myParam = new Symbol(SymKind.FunParam, function, function.Path, parameter.Token);
-                myParam.Type = Resolver.GetTypeWithGenericParameters(table, receiverType);
-
-                // Reject on unused generic parameters, eg: List.myFunc(my)
-                if (receiverType.GenericParamCount() != 0 && function.GenericParamCount() == 0)
-                    table.Reject(synFunc.Name, "Function must include type parameters when using implicit parameter type");
-
-                // TBD: Verify function has same number of generic type parameters as receiver type
-                //if (synFunc.TypeParams != null && synFunc.TypeParams.Count != receiverType.GenericParamCount())
-                //    Reject(synFunc.ReceiverTypeName, $"Expecting {receiverType.GenericParamCount()} type parameters (or none)");
-            }
-            else
-            {
-                // Parameter parameter type is supplied, use it instead of the given receiver type
-                var manualReceiverType = ResolveFunParam(parameter, table, function, function, useSymbolsFile);
-                if (manualReceiverType == null || manualReceiverType.Type == null)
-                    return null;
-                myParam = manualReceiverType;
-
-                // When receiver parameter type is supplied, it must exactly match the receiver type (or be a type parameter)
-                if (myParam.Type.Concrete.FullName != receiverType.Concrete.FullName && !receiverType.IsTypeParam)
-                    Resolver.RejectTypeArgLeftDotRight(parameter[0], table, $"Expecting receiver type '{synFunc.ReceiverTypeName}'");
-                else if (receiverType.Concrete.GenericParamCount() == 0 && !receiverType.IsTypeParam)
-                    Resolver.RejectTypeArgLeftDotRight(parameter[0], table, $"No need to supply the receiver parameter type");
-                // else if (...)
-                //     TBD: Reject on exact matching generic parameters, e.g: fun List<T>.myFunc(my List<T>)
-
-            }
-            function.Qualifiers |= SymQualifiers.Method;
-            parameter.Token.AddInfo(myParam);
-            parameter.Token.Type = TokenType.ReservedVar;
-
+            if (!noCompilerChecks)
+                myParam.Token.AddInfo(new VerifySuppressError());
             return myParam;
         }
 
 
-        Symbol? ResolveNewReturn(Symbol function, Symbol? myParam, SyntaxFunc synFunc)
+        Symbol? ResolveNewReturn(Symbol function, SyntaxFunc synFunc, List<Symbol> parameters)
         {
-            if (myParam == null || synFunc.Name != "new")
+            if (synFunc.Name != "new")
                 return null;
 
             foreach (var parameter in synFunc.FunctionSignature[1])
                 if (parameter[0].Token != "")
                     Reject(parameter[0].Token, "'new' function must not have return parameters");
+            if (parameters.Count == 0)
+            {
+                Reject(function.Token, "Expecting 'new' to have a method parameter");
+                return null;
+            }
+
             var returnParam = new Symbol(SymKind.FunParam, function, function.Path, synFunc.Name, "");
-            returnParam.Type = myParam.Type;
+            returnParam.Type = parameters[0].Type;
             function.Qualifiers &= ~SymQualifiers.Static;
-            function.Qualifiers |= SymQualifiers.Method;
             return returnParam;
         }
 
@@ -680,9 +586,10 @@ static class CompileHeader
             // Return parametrs without names
             expr.Token.AddInfo(funParam);
             foreach (var qualifier in expr[2])
-                funParam.SetQualifier(qualifier.Token);
+                if (qualifier.Token != ".")
+                    funParam.SetQualifier(qualifier.Token);
 
-            funParam.Type = paramType;
+                    funParam.Type = paramType;
             return funParam;
         }
 

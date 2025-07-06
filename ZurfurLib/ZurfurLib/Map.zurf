@@ -26,43 +26,43 @@ where K Equatable<K>
 
 // TBD: Need this: fun (kv Map<K,V>.Pair) ...
 [pub]
-fun KvPair.new<K,V>(my, key own K, value own V)
+fun new<K,V>(my KvPair<K,V>, key own K, value own V)
     my.key = key
     my.value = value
 
 
 [pub]
-fun Map.new<K,V>(my, capacity Int) extern
+fun new<K,V>(my Map<K,V>, capacity Int) extern
     
 [pub]
-fun Iterator.new<K,V>(keyValues Iterator<KvPair<K, V>>) extern
+fun new<K,V>(keyValues Iterator<KvPair<K, V>>) extern
     
 [pub]
-fun get Map.len<K,V>(my) Int extern
+fun get len<K,V>(my Map<K,V>) Int extern
 
 // TBD: Figure out map["Hello"] += 1
 [pub]
 fun _opIndex<K,V>(m Map<K,V>, key K) mut ?&V extern
 
 [pub]
-fun Map.contains<K,V>(my, key K) Bool extern
+fun contains<K,V>(my Map<K,V>, key K) Bool extern
 
 [pub]
-fun get Map.keys<K,V>(my) Iterator<K> extern
+fun get keys<K,V>(my Map<K,V>) Iterator<K> extern
 
 [pub]
-fun get Map.values<K,V>(my) mut Iterator<V> extern
+fun get values<K,V>(my Map<K,V>) mut Iterator<V> extern
 
 [pub]
-fun Map.clear<K,V>(my mut) extern
+fun clear<K,V>(my mut Map<K,V>) extern
 
 [pub]
-fun Map.add<K,V>(my mut, item KvPair<K, V>) extern
+fun add<K,V>(my mut Map<K,V>, item KvPair<K, V>) extern
 
 [pub]
-fun Map.add<K,V>(my mut, items Iterator<KvPair<K, V>>) extern
+fun add<K,V>(my mut Map<K,V>, items Iterator<KvPair<K, V>>) extern
 
 [pub]
-fun Map.remove<K,V>(my mut, key K) ?V extern
+fun remove<K,V>(my mut Map<K,V>, key K) ?V extern
 
     

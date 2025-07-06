@@ -96,7 +96,7 @@ class ParseZurf
     static WordSet s_paramQualifiers = new("ro own mut");
 
     static WordSet s_allowReservedFunNames = new("new drop");
-    static WordSet s_reservedIdentifierVariables = new("nil true false new move sizeof typeof");
+    static WordSet s_reservedIdentifierVariables = new("nil true false new self move sizeof typeof");
     static WordSet s_reservedMemberNames = new("clone");
     static WordSet s_typeUnaryOps = new("? ! * ^ [ & ro");
 
@@ -1061,26 +1061,21 @@ class ParseZurf
         var comments = _comments.ToString();
         _comments.Clear();
 
+        Token? mutFun = null;
         if (_tokenName == "get" || _tokenName == "set")
         {
             SetTokenType(_token, TokenType.ReservedControl);
             qualifiers.Add(Accept());
         }
-
-        // Parse function receiver type and name: [receiver.]name
-        Token? receiverTypeName = null;
-        Token? functionName = null;
-        functionName = ParseFunctionName();
-        if (AcceptMatch("."))
+        else if (AcceptMatch("mut"))
         {
-            receiverTypeName = functionName;
-            if (receiverTypeName != null)
-                SetTokenType(receiverTypeName, TokenType.TypeName);
-            functionName = ParseFunctionName();
+            mutFun = _prevToken;
         }
 
+        // Parse function receiver type and name: [receiver.]name
+        var functionName = ParseFunctionName();
         var typeParams = ParseTypeParameters();
-        var functionSignature = ParseFunctionSignature(keyword, true, true);
+        var functionSignature = ParseFunctionSignature(keyword, true);
         var constraints = ParseConstraints(keyword);
         
         var requires = NewExprList();
@@ -1108,8 +1103,8 @@ class ParseZurf
                 Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last(),
                 Comments = comments,
                 TypeParams = typeParams,
-                ReceiverTypeName = receiverTypeName,
                 Constraints = constraints ?? [],
+                MutFun = mutFun,
                 FunctionSignature = functionSignature,
                 Requires = FreeExprList(requires),
                 Statements = statements,
@@ -1145,16 +1140,16 @@ class ParseZurf
     ///     [1] - Returns (name, type) possibly blank for each
     ///     [2] - error/exit token
     /// </summary>
-    private SyntaxExpr ParseFunctionSignature(Token keyword, bool allowEmptyFirstType, bool allowInitializer)
+    private SyntaxExpr ParseFunctionSignature(Token keyword, bool allowInitializer)
     {
         // Parameters
-        var funcParams = ParseFunctionParams(allowEmptyFirstType, true);
+        var funcParams = ParseFunctionParams(true);
 
         // Returns
         SyntaxExpr returnParams;
         if (_token == ("("))
         {
-            returnParams = ParseFunctionParams(false, false);
+            returnParams = ParseFunctionParams(false);
         }
         else
         {
@@ -1177,7 +1172,7 @@ class ParseZurf
     }
 
 
-    SyntaxExpr ParseFunctionParams(bool allowEmptyFirstType, bool allowInitializer)
+    SyntaxExpr ParseFunctionParams(bool allowInitializer)
     {
         // Read open token, '('
         if (!AcceptMatchOrReject("("))
@@ -1187,11 +1182,11 @@ class ParseZurf
         var openToken = _prevToken;
         var parameters = NewExprList();
         if (_tokenName != ")")
-            parameters.Add(ParseFunctionParam(allowEmptyFirstType, allowInitializer));
+            parameters.Add(ParseFunctionParam(allowInitializer));
         while (AcceptMatch(","))
         {
             Connect(openToken, _prevToken);
-            parameters.Add(ParseFunctionParam(false, allowInitializer));
+            parameters.Add(ParseFunctionParam(allowInitializer));
         }
 
         if (AcceptMatchOrReject(")", "Expecting ')' or ','"))
@@ -1201,9 +1196,10 @@ class ParseZurf
     }
 
     // Syntax Tree: variable name[type, initializer, qualifiers]
-    SyntaxExpr ParseFunctionParam(bool allowEmptyType, bool allowInitializer)
+    SyntaxExpr ParseFunctionParam(bool allowInitializer)
     {
         var qualifiers = NewExprList();
+
 
         if (!AcceptIdentifier("Expecting a variable name", s_rejectFuncParam))
             return SyntaxError;
@@ -1216,10 +1212,7 @@ class ParseZurf
         while (s_paramQualifiers.Contains(_token))
             qualifiers.Add(new SyntaxToken(Accept()));
 
-        var type = (SyntaxExpr)EmptyExpr;
-        if (!allowEmptyType || BeginsType())
-            type = ParseType();
-
+        var type = ParseType();
         var initializer = (SyntaxExpr)EmptyExpr;
         if (AcceptMatch("="))
         {
@@ -2069,7 +2062,7 @@ class ParseZurf
             return ParseTypeTuple();
 
         if (_token == "fun" || _token == "afun")
-            return ParseFunctionSignature(Accept(), false, false);
+            return ParseFunctionSignature(Accept(), false);
 
         if (_token.Type != TokenType.Identifier)
         {

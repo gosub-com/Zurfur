@@ -35,7 +35,7 @@ type Maybe<T>
     [pub, static, implicit] fun toMaybe(value T) Maybe<T> todo
     [pub, static, implicit] fun toMaybe(value Nil) Maybe<T> todo
 
-[pub] fun Maybe.new<T>(my, value own T)
+[pub] fun new<T>(my Maybe<T>, value own T)
     my.value = Box<T>(value)
     my.hasValue = true
 
@@ -43,13 +43,13 @@ type Maybe<T>
 type Box<T>
     const __size Int = 1
 
-fun Box.new<T>(my, value own T)
+fun new<T>(my Box<T>, value own T)
     nop
 
 [pub]
 type ro interface Error
-    fun get code(my) ErrorCode    // Machine readable error code
-    fun get message(my) Str       // Human readable error code
+    fun get code() ErrorCode    // Machine readable error code
+    fun get message() Str       // Human readable error code
 
 
 // Result[T] - Same as !T
@@ -93,7 +93,7 @@ type ro struct Type
 type ro struct Bool
     const __size Int = 1
 
-[pub] fun Bool.getHash(my) Int extern
+[pub] fun getHash(my Bool) Int extern
 [pub] fun _opEq(a Bool, b Bool) Bool extern
 
 // TBD: These operators must be restricted to Bool
@@ -115,16 +115,16 @@ type ro struct I8
 [pub] fun _opEq(a I8, b I8) Bool extern
 [pub] fun _opCmp(a I8, b I8) Int extern
 
-[pub] fun I8.getHash(my) Int extern
-[pub] fun I8.toStr(my) Str extern
-[pub] fun I8.toByte(my) ?Byte extern
-[pub] fun I8.toByteMask(my) Byte extern
-[pub] fun I8.toI16(my) I16 extern
-[pub] fun I8.toI32(my) I32 extern
-[pub] fun I8.toInt(my) Int extern
-[pub] fun I8.toF32(my) F32 extern
-[pub] fun I8.toFloat(my) Float extern
-[pub] fun I8.toDecimal(my) Decimal extern
+[pub] fun getHash(my I8) Int extern
+[pub] fun toStr(my I8) Str extern
+[pub] fun toByte(my I8) ?Byte extern
+[pub] fun toByteMask(my I8) Byte extern
+[pub] fun toI16(my I8) I16 extern
+[pub] fun toI32(my I8) I32 extern
+[pub] fun toInt(my I8) Int extern
+[pub] fun toF32(my I8) F32 extern
+[pub] fun toFloat(my I8) Float extern
+[pub] fun toDecimal(my I8) Decimal extern
 
 
 
@@ -142,19 +142,19 @@ type ro struct Byte
 [pub] fun _opEq(a Byte, b Byte) Bool extern
 [pub] fun _opCmp(a Byte, b Byte) Int extern
 
-[pub] fun Byte.getHash(my) Int extern
-[pub] fun Byte.toStr(my) Str extern
-[pub] fun Byte.toI8(my) ?I8 extern
-[pub] fun Byte.toI8Mask(my) I8 extern
-[pub] fun Byte.toI16(my) I16 extern
-[pub] fun Byte.toU16(my) U16 extern
-[pub] fun Byte.toI32(my) I32 extern
-[pub] fun Byte.toU32(my) U32 extern
-[pub] fun Byte.toInt(my) Int extern
-[pub] fun Byte.toU64(my) U64 extern
-[pub] fun Byte.toF32(my) F32 extern
-[pub] fun Byte.toFloat(my) Float extern
-[pub] fun Byte.toDecimal(my) Decimal extern
+[pub] fun getHash(my Byte) Int extern
+[pub] fun toStr(my Byte) Str extern
+[pub] fun toI8(my Byte) ?I8 extern
+[pub] fun toI8Mask(my Byte) I8 extern
+[pub] fun toI16(my Byte) I16 extern
+[pub] fun toU16(my Byte) U16 extern
+[pub] fun toI32(my Byte) I32 extern
+[pub] fun toU32(my Byte) U32 extern
+[pub] fun toInt(my Byte) Int extern
+[pub] fun toU64(my Byte) U64 extern
+[pub] fun toF32(my Byte) F32 extern
+[pub] fun toFloat(my Byte) Float extern
+[pub] fun toDecimal(my Byte) Decimal extern
 
 // I16 (-32768..32768)
 [pub]
@@ -170,19 +170,19 @@ type ro struct I16
 [pub] fun _opEq(a I16, b I16) Bool extern
 [pub] fun _opCmp(a I16, b I16) Int extern
 
-[pub] fun I16.getHash(my) Int extern
-[pub] fun I16.toStr(my) Str extern
-[pub] fun I16.toI8(my) ?I8 extern
-[pub] fun I16.toByte(my) ?Byte extern
-[pub] fun I16.toU16(my) ?U16 extern
-[pub] fun I16.toI32(my) I32 extern
-[pub] fun I16.toInt(my) Int extern
-[pub] fun I16.toF32(my) F32 extern
-[pub] fun I16.toFloat(my) Float extern
-[pub] fun I16.toDecimal(my) Decimal extern    
-[pub] fun I16.toI8Mask(my) I8 extern
-[pub] fun I16.toByteMask(my) Byte extern
-[pub] fun I16.toU16Mask(my) U16 extern    
+[pub] fun getHash(my I16) Int extern
+[pub] fun toStr(my I16) Str extern
+[pub] fun toI8(my I16) ?I8 extern
+[pub] fun toByte(my I16) ?Byte extern
+[pub] fun toU16(my I16) ?U16 extern
+[pub] fun toI32(my I16) I32 extern
+[pub] fun toInt(my I16) Int extern
+[pub] fun toF32(my I16) F32 extern
+[pub] fun toFloat(my I16) Float extern
+[pub] fun toDecimal(my I16) Decimal extern    
+[pub] fun toI8Mask(my I16) I8 extern
+[pub] fun toByteMask(my I16) Byte extern
+[pub] fun toU16Mask(my I16) U16 extern    
 
 // U16 (0..65535)
 [pub]
@@ -198,21 +198,21 @@ type ro struct U16
 [pub] fun _opEq(a U16, b U16) Bool extern
 [pub] fun _opCmp(a U16, b U16) Int extern
 
-[pub] fun U16.getHash(my) Int extern
-[pub] fun U16.toStr(my) Str extern
-[pub] fun U16.toI8(my) ?I8 extern
-[pub] fun U16.toByte(my) ?Byte extern
-[pub] fun U16.toI16(my) ?I16 extern
-[pub] fun U16.toI32(my) I32 extern
-[pub] fun U16.toU32(my) U32 extern
-[pub] fun U16.toInt(my) Int extern
-[pub] fun U16.toU64(my) U64 extern
-[pub] fun U16.toF32(my) F32 extern
-[pub] fun U16.toFloat(my) Float extern
-[pub] fun U16.toDecimal(my) Decimal extern
-[pub] fun U16.toI8Mask(my) I8 extern
-[pub] fun U16.toByteMask(my) Byte extern
-[pub] fun U16.toI16Mask(my) I16 extern
+[pub] fun getHash(my U16) Int extern
+[pub] fun toStr(my U16) Str extern
+[pub] fun toI8(my U16) ?I8 extern
+[pub] fun toByte(my U16) ?Byte extern
+[pub] fun toI16(my U16) ?I16 extern
+[pub] fun toI32(my U16) I32 extern
+[pub] fun toU32(my U16) U32 extern
+[pub] fun toInt(my U16) Int extern
+[pub] fun toU64(my U16) U64 extern
+[pub] fun toF32(my U16) F32 extern
+[pub] fun toFloat(my U16) Float extern
+[pub] fun toDecimal(my U16) Decimal extern
+[pub] fun toI8Mask(my U16) I8 extern
+[pub] fun toByteMask(my U16) Byte extern
+[pub] fun toI16Mask(my U16) I16 extern
 
 // A 32 bit integer
 [pub]
@@ -242,22 +242,30 @@ type ro struct I32
 [pub] fun _opBitShl(a I32, b Int) I32 extern
 [pub] fun _opBitShr(a I32, b Int) I32 extern
 
-[pub] fun I32.getHash(my) Int extern
-[pub] fun I32.toStr(my) Str extern
-[pub] fun I32.toI8(my) ?I8 extern
-[pub] fun I32.toByte(my) ?Byte extern
-[pub] fun I32.toI16(my) ?I16 extern
-[pub] fun I32.toU16(my) ?U16 extern
-[pub] fun I32.toU32(my) ?U32 extern
-[pub] fun I32.toInt(my) Int extern
-[pub] fun I32.toF32(my) F32 extern
-[pub] fun I32.toFloat(my) Float extern
-[pub] fun I32.toDecimal(my) Decimal extern    
-[pub] fun I32.toI8Mask(my) I8 extern
-[pub] fun I32.toByteMask(my) Byte extern
-[pub] fun I32.toI16Mask(my) I16 extern
-[pub] fun I32.toU16Mask(my) U16 extern
-[pub] fun I32.toU32Mask(my) U32 extern
+[pub] fun getHash(my I32) Int extern
+[pub] fun toStr(my I32) Str extern
+[pub] fun toI8(my I32) ?I8 extern
+[pub] fun toByte(my I32) ?Byte extern
+[pub] fun toI16(my I32) ?I16 extern
+[pub] fun toU16(my I32) ?U16 extern
+[pub] fun toU32(my I32) ?U32 extern
+[pub] fun toInt(my I32) Int extern
+[pub] fun toF32(my I32) F32 extern
+[pub] fun toFloat(my I32) Float extern
+[pub] fun toDecimal(my I32) Decimal extern    
+[pub] fun toI8Mask(my I32) I8 extern
+[pub] fun toByteMask(my I32) Byte extern
+[pub] fun toI16Mask(my I32) I16 extern
+[pub] fun toU16Mask(my I32) U16 extern
+[pub] fun toU32Mask(my I32) U32 extern
+
+[pub] fun abs(n I32) I32 extern
+[pub] fun clamp(my I32, min I32, max I32) I32 require min <= max extern
+[pub] fun max(n1 I32, n2 I32) I32 extern
+[pub] fun min(n1 I32, n2 I32) I32 extern
+[pub] fun sign(n I32) I32 extern
+[pub] fun sq(n I32) I32 extern
+
 
 // 32 bit unsigned integer
 [pub]
@@ -287,23 +295,29 @@ type ro struct U32
 [pub] fun _opBitShl(a U32, b Int) U32 extern
 [pub] fun _opBitShr(a U32, b Int) U32 extern
 
-[pub] fun U32.getHash(my) Int extern
-[pub] fun U32.toStr(my) Str extern
-[pub] fun U32.toI8(my) ?I8 extern
-[pub] fun U32.toByte(my) ?Byte extern
-[pub] fun U32.toI16(my) ?I16 extern
-[pub] fun U32.toU16(my) ?U16 extern
-[pub] fun U32.toI32(my) ?I32 extern        
-[pub] fun U32.toInt(my) Int extern
-[pub] fun U32.toU64(my) U64 extern
-[pub] fun U32.toF32(my) F32 extern
-[pub] fun U32.toFloat(my) Float extern
-[pub] fun U32.toDecimal(my) Decimal extern        
-[pub] fun U32.toI8Mask(my) I8 extern
-[pub] fun U32.toByteMask(my) Byte extern
-[pub] fun U32.toI16Mask(my) I16 extern
-[pub] fun U32.toU16Mask(my) U16 extern
-[pub] fun U32.toI32Mask(my) I32 extern
+[pub] fun getHash(my U32) Int extern
+[pub] fun toStr(my U32) Str extern
+[pub] fun toI8(my U32) ?I8 extern
+[pub] fun toByte(my U32) ?Byte extern
+[pub] fun toI16(my U32) ?I16 extern
+[pub] fun toU16(my U32) ?U16 extern
+[pub] fun toI32(my U32) ?I32 extern        
+[pub] fun toInt(my U32) Int extern
+[pub] fun toU64(my U32) U64 extern
+[pub] fun toF32(my U32) F32 extern
+[pub] fun toFloat(my U32) Float extern
+[pub] fun toDecimal(my U32) Decimal extern        
+[pub] fun toI8Mask(my U32) I8 extern
+[pub] fun toByteMask(my U32) Byte extern
+[pub] fun toI16Mask(my U32) I16 extern
+[pub] fun toU16Mask(my U32) U16 extern
+[pub] fun toI32Mask(my U32) I32 extern
+
+[pub] fun clamp(my U32, min U32, max U32) U32 require min <= max extern
+[pub] fun max(n1 U32, n2 U32) U32 extern
+[pub] fun min(n1 U32, n2 U32) U32 extern
+[pub] fun sq(n U32) U32 extern
+
 
 // 64 bit integer
 [pub]
@@ -333,25 +347,33 @@ type ro struct Int
 [pub] fun _opBitShl(a Int, b Int) Int extern
 [pub] fun _opBitShr(a Int, b Int) Int extern
 
-[pub] fun Int.getHash(my) Int extern
-[pub] fun Int.toStr(my) Str extern
-[pub] fun Int.toI8(my) ?I8 extern
-[pub] fun Int.toByte(my) ?Byte extern
-[pub] fun Int.toI16(my) ?I16 extern
-[pub] fun Int.toU16(my) ?U16 extern
-[pub] fun Int.toI32(my) ?I32 extern
-[pub] fun Int.toU32(my) ?U32 extern
-[pub] fun Int.toU64(my) ?U64 extern    
-[pub] fun Int.toF32(my) F32 extern
-[pub] fun Int.toFloat(my) Float extern
-[pub] fun Int.toDecimal(my) Decimal extern
-[pub] fun Int.toI8Mask(my) I8 extern
-[pub] fun Int.toByteMask(my) Byte extern
-[pub] fun Int.toI16Mask(my) I16 extern
-[pub] fun Int.toU16Mask(my) U16 extern
-[pub] fun Int.toI32Mask(my) I32 extern
-[pub] fun Int.toU32Mask(my) U32 extern
-[pub] fun Int.toU64Mask(my) U64 extern
+[pub] fun getHash(my Int) Int extern
+[pub] fun toStr(my Int) Str extern
+[pub] fun toI8(my Int) ?I8 extern
+[pub] fun toByte(my Int) ?Byte extern
+[pub] fun toI16(my Int) ?I16 extern
+[pub] fun toU16(my Int) ?U16 extern
+[pub] fun toI32(my Int) ?I32 extern
+[pub] fun toU32(my Int) ?U32 extern
+[pub] fun toU64(my Int) ?U64 extern    
+[pub] fun toF32(my Int) F32 extern
+[pub] fun toFloat(my Int) Float extern
+[pub] fun toDecimal(my Int) Decimal extern
+[pub] fun toI8Mask(my Int) I8 extern
+[pub] fun toByteMask(my Int) Byte extern
+[pub] fun toI16Mask(my Int) I16 extern
+[pub] fun toU16Mask(my Int) U16 extern
+[pub] fun toI32Mask(my Int) I32 extern
+[pub] fun toU32Mask(my Int) U32 extern
+[pub] fun toU64Mask(my Int) U64 extern
+
+[pub] fun abs(n Int) Int extern
+[pub] fun clamp(my Int, min Int, max Int) Int require min <= max extern
+[pub] fun max(n1 Int, n2 Int) Int extern
+[pub] fun min(n1 Int, n2 Int) Int extern
+[pub] fun sign(n Int) Int extern
+[pub] fun sq(n Int) Int extern
+
 
 // 64 bit unsigned integer
 [pub]
@@ -383,25 +405,30 @@ type ro struct U64
 [pub] fun _opBitShr(a U64, b U64) U64 extern
 [pub] fun _opBitShl(a U64, b U64) U64 extern
 
-[pub] fun U64.getHash(my) Int extern
-[pub] fun U64.toStr(my) Str extern
-[pub] fun U64.toI8(my) ?I8 extern
-[pub] fun U64.toByte(my) ?Byte extern
-[pub] fun U64.toI16(my) ?I16 extern
-[pub] fun U64.toU16(my) ?U16 extern
-[pub] fun U64.toI32(my) ?I32 extern
-[pub] fun U64.toU32(my) ?U32 extern
-[pub] fun U64.toInt(my) ?Int extern
-[pub] fun U64.toF32(my) F32 extern
-[pub] fun U64.toFloat(my) Float extern
-[pub] fun U64.toDecimal(my) Decimal extern
-[pub] fun U64.toI8Mask(my) I8 extern
-[pub] fun U64.toByteMask(my) Byte extern
-[pub] fun U64.toI16Mask(my) I16 extern
-[pub] fun U64.toU16Mask(my) U16 extern
-[pub] fun U64.toI32Mask(my) I32 extern
-[pub] fun U64.toU32Mask(my) U32 extern
-[pub] fun U64.toIntMask(my) Int extern
+[pub] fun getHash(my U64) Int extern
+[pub] fun toStr(my U64) Str extern
+[pub] fun toI8(my U64) ?I8 extern
+[pub] fun toByte(my U64) ?Byte extern
+[pub] fun toI16(my U64) ?I16 extern
+[pub] fun toU16(my U64) ?U16 extern
+[pub] fun toI32(my U64) ?I32 extern
+[pub] fun toU32(my U64) ?U32 extern
+[pub] fun toInt(my U64) ?Int extern
+[pub] fun toF32(my U64) F32 extern
+[pub] fun toFloat(my U64) Float extern
+[pub] fun toDecimal(my U64) Decimal extern
+[pub] fun toI8Mask(my U64) I8 extern
+[pub] fun toByteMask(my U64) Byte extern
+[pub] fun toI16Mask(my U64) I16 extern
+[pub] fun toU16Mask(my U64) U16 extern
+[pub] fun toI32Mask(my U64) I32 extern
+[pub] fun toU32Mask(my U64) U32 extern
+[pub] fun toIntMask(my U64) Int extern
+[pub] fun clamp(my U64, min U64, max U64) U64 require min <= max extern
+[pub] fun max(n1 U64, n2 U64) U64 extern
+[pub] fun min(n1 U64, n2 U64) U64 extern
+[pub] fun sq(n U64) U64 extern
+
 
 [pub]
 type ro struct i128
@@ -446,21 +473,50 @@ type ro struct F32
 [pub] fun _opDiv(a F32, b F32) F32 extern
 [pub] fun _opRem(a F32, b F32) F32 extern
 
-[pub] fun F32.getHash(my) Int extern
-[pub] fun F32.isInfinity(my) Bool extern
-[pub] fun F32.isNan(my) Bool extern
-[pub] fun F32.isNegInfinity(my) Bool extern
-[pub] fun F32.isPosInfinity(my) Bool extern        
+[pub] fun getHash(my F32) Int extern
+[pub] fun isInfinity(my F32) Bool extern
+[pub] fun isNan(my F32) Bool extern
+[pub] fun isNegInfinity(my F32) Bool extern
+[pub] fun isPosInfinity(my F32) Bool extern        
 
-[pub] fun F32.toStr(my) Str extern
-[pub] fun F32.toByte(my) ?Byte extern
-[pub] fun F32.toInt(my) ?Int extern
-[pub] fun F32.toU64(my) ?U64 extern
-[pub] fun F32.toFloat(my) Float extern
-[pub] fun F32.toDecimal(my) Decimal extern    
-[pub] fun F32.toByteMask(my) Byte extern
-[pub] fun F32.toIntMask(my) Int extern
-[pub] fun F32.toU64Mask(my) U64 extern
+[pub] fun toStr(my F32) Str extern
+[pub] fun toByte(my F32) ?Byte extern
+[pub] fun toInt(my F32) ?Int extern
+[pub] fun toU64(my F32) ?U64 extern
+[pub] fun toFloat(my F32) Float extern
+[pub] fun toDecimal(my F32) Decimal extern    
+[pub] fun toByteMask(my F32) Byte extern
+[pub] fun toIntMask(my F32) Int extern
+[pub] fun toU64Mask(my F32) U64 extern
+
+[pub] fun abs(n F32) F32 extern
+[pub] fun acos(n F32) F32 extern
+[pub] fun asin(n F32) F32 extern
+[pub] fun atan(n F32) F32 extern
+[pub] fun atan2(x F32, y F32) F32 extern
+[pub] fun ceil(n F32) F32 extern
+[pub] fun clamp(my F32, min F32, max F32) F32 require min <= max extern
+[pub] fun cos(n F32) F32 extern
+[pub] fun cosh(n F32) F32 extern
+[pub] fun exp(n F32) F32 extern
+[pub] fun floor(n F32) F32 extern
+[pub] fun log(n F32) F32 extern
+[pub] fun log2(n F32) F32 extern
+[pub] fun log10(n F32) F32 extern
+[pub] fun log(n F32, base F32) F32 extern
+[pub] fun max(n1 F32, n2 F32) F32 extern
+[pub] fun min(n1 F32, n2 F32) F32 extern
+[pub] fun pow(x F32, y F32) F32 extern
+[pub] fun round(n F32, digits Int = 0) F32 extern
+[pub] fun sign(n F32) Int extern
+[pub] fun sin(n F32) F32 extern
+[pub] fun sinh(n F32) F32 extern
+[pub] fun sqrt(n F32) F32 extern
+[pub] fun sq(n F32) F32 extern
+[pub] fun tan(n F32) F32 extern
+[pub] fun tanh(n F32) F32 extern
+[pub] fun trunc(n F32) F32 extern
+
 
 // 64 bit floating point value
 [pub]
@@ -495,21 +551,49 @@ type ro struct Float
 [pub] fun _opDiv(a Float, b Float) Float extern
 [pub] fun _opRem(a Float, b Float) Float extern
 
-[pub] fun Float.getHash(my)  Int extern
-[pub] fun Float.isInfinity(my)  Bool extern
-[pub] fun Float.isNan(my)  Bool extern
-[pub] fun Float.isNegInfinity(my)  Bool extern
-[pub] fun Float.isPosInfinity(my)  Bool extern        
+[pub] fun getHash(my Float)  Int extern
+[pub] fun isInfinity(my Float)  Bool extern
+[pub] fun isNan(my Float)  Bool extern
+[pub] fun isNegInfinity(my Float)  Bool extern
+[pub] fun isPosInfinity(my Float)  Bool extern        
 
-[pub] fun Float.toStr(my)  Str extern
-[pub] fun Float.toByte(my)  ?Byte extern
-[pub] fun Float.toInt(my)  ?Int extern
-[pub] fun Float.toU64(my)  ?U64 extern
-[pub] fun Float.toDecimal(my)  Decimal extern
-[pub] fun Float.toByteMask(my)  Byte extern
-[pub] fun Float.toIntMask(my)  Int extern
-[pub] fun Float.toU64Mask(my)  U64 extern
-[pub] fun Float.toF32Clamp(my)  F32 extern
+[pub] fun toStr(my Float)  Str extern
+[pub] fun toByte(my Float)  ?Byte extern
+[pub] fun toInt(my Float)  ?Int extern
+[pub] fun toU64(my Float)  ?U64 extern
+[pub] fun toDecimal(my Float)  Decimal extern
+[pub] fun toByteMask(my Float)  Byte extern
+[pub] fun toIntMask(my Float)  Int extern
+[pub] fun toU64Mask(my Float)  U64 extern
+[pub] fun toF32Clamp(my Float)  F32 extern
+
+[pub] fun abs(n Float) Float extern
+[pub] fun acos(n Float) Float extern
+[pub] fun asin(n Float) Float extern
+[pub] fun atan(n Float) Float extern
+[pub] fun atan2(x Float, y Float) Float extern
+[pub] fun ceil(n Float) Float extern
+[pub] fun clamp(my Float, min Float, max Float) Float require min<=max extern
+[pub] fun cos(n Float) Float extern
+[pub] fun cosh(n Float) Float extern
+[pub] fun exp(n Float) Float extern
+[pub] fun floor(n Float) Float extern
+[pub] fun log(n Float) Float extern
+[pub] fun log2(n Float) Float extern
+[pub] fun log10(n Float) Float extern
+[pub] fun log(n Float, base Float) Float extern
+[pub] fun max(n1 Float, n2 Float) Float extern
+[pub] fun min(n1 Float, n2 Float) Float extern
+[pub] fun pow(x Float, y Float) Float extern
+[pub] fun round(n Float, digits Int = 0) Float extern
+[pub] fun sign(n Float) Int extern
+[pub] fun sin(n Float) Float extern
+[pub] fun sinh(n Float) Float extern
+[pub] fun sqrt(n Float) Float extern
+[pub] fun sq(n Float) Float extern
+[pub] fun tan(n Float) Float extern
+[pub] fun tanh(n Float) Float extern
+[pub] fun trunc(n Float) Float extern
 
 // 128 bit decimal integer.  This will support nan, infinity, and
 // exponents covering the entire range of Float with more precision.
@@ -542,22 +626,28 @@ type ro struct Decimal
 [pub] fun _opDiv(a Decimal, b Decimal) Decimal extern
 [pub] fun _opRem(a Decimal, b Decimal) Decimal extern
 
-[pub] fun Decimal.getHash(my) Int extern
-[pub] fun Decimal.isInfinity(my) Bool extern
-[pub] fun Decimal.isNan(my) Bool extern
-[pub] fun Decimal.isNegInfinity(my) Bool extern
-[pub] fun Decimal.isPosInfinity(my) Bool extern
+[pub] fun getHash(my Decimal) Int extern
+[pub] fun isInfinity(my Decimal) Bool extern
+[pub] fun isNan(my Decimal) Bool extern
+[pub] fun isNegInfinity(my Decimal) Bool extern
+[pub] fun isPosInfinity(my Decimal) Bool extern
 
-[pub] fun Decimal.toStr(my) Str extern
-[pub] fun Decimal.toByte(my) ?Byte extern
-[pub] fun Decimal.toInt(my) ?Int extern
-[pub] fun Decimal.toU64(my) ?U64 extern
-[pub] fun Decimal.toByteMask(my) Byte extern
-[pub] fun Decimal.toIntMask(my) Int extern
-[pub] fun Decimal.toU64Mask(my) U64 extern
-[pub] fun Decimal.toIntClamp(my) Int extern
-[pub] fun Decimal.toF32Clamp(my) F32 extern
-[pub] fun Decimal.toFloatClamp(my) Float extern
+[pub] fun toStr(my Decimal) Str extern
+[pub] fun toByte(my Decimal) ?Byte extern
+[pub] fun toInt(my Decimal) ?Int extern
+[pub] fun toU64(my Decimal) ?U64 extern
+[pub] fun toByteMask(my Decimal) Byte extern
+[pub] fun toIntMask(my Decimal) Int extern
+[pub] fun toU64Mask(my Decimal) U64 extern
+[pub] fun toIntClamp(my Decimal) Int extern
+[pub] fun toF32Clamp(my Decimal) F32 extern
+[pub] fun toFloatClamp(my Decimal) Float extern
+
+[pub] fun abs(n Decimal) Decimal extern
+[pub] fun clamp(my Decimal, min Decimal, max Decimal) Decimal require min <= max extern
+[pub] fun max(n1 Decimal, n2 Decimal) Decimal extern
+[pub] fun min(n1 Decimal, n2 Decimal) Decimal extern
+[pub] fun sign(n Decimal) Int extern
 
 // This will represent a time/date in UTC with timezone, wall clock,
 // and monotonic clock, similar to Golang time https://pkg.go.dev/time

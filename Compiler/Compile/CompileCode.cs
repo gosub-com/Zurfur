@@ -561,6 +561,8 @@ static class CompileCode
                 return GenStr(ex);
             else if (name == "nil")
                 return new Rval(token) { Type = typeNil };
+            else if (name == "self")
+                return GenIdentifier(ex);
             else if (name == "require")
                 return GenIdentifier(ex);
             else if (name == ParseZurf.VT_TYPE_ARG)
@@ -1541,10 +1543,13 @@ static class CompileCode
             if (!func.IsFun)
                 return IsLambdaCompatible(call.Name, func, args);
 
-            if (func.IsMethod && call.InType != null)
+            if (call.InType != null)
             {
-                if (call.IsStatic && !func.IsStatic)
-                    return new CallMatch(CallCompatible.StaticCallToNonStaticMethod, []);
+                // TBD: Review if these are necessary
+                //if (call.IsStatic && !func.IsStatic)
+                //    return new CallMatch(CallCompatible.StaticCallToNonStaticMethod, []);
+                
+                // TBD: Review
                 if (!call.IsStatic && func.IsStatic)
                     return new CallMatch(CallCompatible.NonStaticCallToStaticMethod, []);
             }
@@ -1898,15 +1903,13 @@ static class CompileCode
             var local = FindLocal(token);
             if (local.sym != null)
             {
-                if (local.index == 0 && function.IsMethod)
-                    SetTokenType(token, TokenType.ReservedVar);  // Mark receiver variable
                 AddInfo(token, local.sym);
                 state.Assembly.AddOpLdlr(local.sym.Token, local.index);
                 return new List<Symbol>() { local.sym };
             }
 
             // Find primary in this module
-            if (function.ParentModule.TryGetPrimary(name, out var primary) && primary != null)
+            if (function.ParentModule.TryGetPrimary(name, out var primary))
                 return new List<Symbol>() { primary };
 
             // Find function in module, use, or constraints
@@ -1922,11 +1925,11 @@ static class CompileCode
         {
             // Find global symbols in this module
             var symbols = new List<Symbol>();
-            AddFunctionsNamedInModule(name, function.ParentModule, symbols, false);
+            AddFunctionsNamedInModule(name, function.ParentModule, symbols);
 
-            // Search 'use' symbol for non-methods
+            // Search 'use' symbols
             if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
-                symbols.AddRange(useSymbols.Where(s => !s.IsMethod));
+                symbols.AddRange(useSymbols);
 
             // Add global constaints
             if (function.Constraints != null)
@@ -1950,19 +1953,19 @@ static class CompileCode
         {
             // Return a primary (non-function) symbol, field
             // type, interface, etc., or null if not found
-            if (inType.TryGetPrimary(name, out var s1) && s1 != null)
+            if (inType.TryGetPrimary(name, out var s1))
                 return new List<Symbol>() { s1 };
-            if (inType.IsSpecialized && inType.Parent!.TryGetPrimary(name, out var s2) && s2 != null)
+            if (inType.IsSpecialized && inType.Parent!.TryGetPrimary(name, out var s2))
                 return new List<Symbol>() { s2 };
 
             var symbols = new List<Symbol>();
-            AddFunctionsNamedInModule(name, function.ParentModule, symbols, true);
+            AddFunctionsNamedInModule(name, function.ParentModule, symbols);
             AddFunctionsNamedInType(name, inType, symbols);
-            AddMethodsInModuleWithType(name, inType.ParentModule, inType, symbols);
+            AddFunctionsInModuleWithType(name, inType.ParentModule, inType, symbols);
 
-            // Search 'use' symbol for methods with first parameter that matches
+            // Search 'use' symbols
             if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
-                symbols.AddRange(useSymbols.Where(s => s.IsMethod));
+                symbols.AddRange(useSymbols.Where(s => s.IsFun));
 
             // Add constraints when the receiver is generic
             if (function.Constraints != null

@@ -32,33 +32,29 @@ static class CodeLib
                 symbols.Add(child);
     }
 
-    public static void AddFunctionsNamedInModule(string name, Symbol inModule, List<Symbol> symbols, bool methods)
+    public static void AddFunctionsNamedInModule(string name, Symbol inModule, List<Symbol> symbols)
     {
         foreach (var child in inModule.ChildrenNamed(name))
-            if (child.IsFun && child.IsMethod == methods)
+            if (child.IsFun)
                 symbols.Add(child);
     }
 
-    // Add methods with first parameter of inType
-    public static void AddMethodsInModuleWithType(string name, Symbol inModule, Symbol inType, List<Symbol> symbols)
+    // Add functions with first parameter of withType
+    public static void AddFunctionsInModuleWithType(string name, Symbol inModule, Symbol withType, List<Symbol> symbols)
     {
         // Ignore mut, etc., then just compare the non-specialized type.
-        inType = inType.Concrete;
+        withType = withType.Concrete;
         foreach (var child in inModule.ChildrenNamed(name))
         {
-            if (!child.IsFun || !child.IsMethod)
+            if (!child.IsFun)
                 continue;
 
             // Compare the non-specialized type
             //      e.g: List<#1> matches List<byte> so we get all functions
 
-            // Static methods use static scope "virtual" parameter
-            if (child.StaticScope != null && child.StaticScope.Concrete.FullName == inType.FullName)
-                symbols.Add(child);
-
             // Non-static methods use first parameter
             var parameters = child.FunParamTypes;
-            if (child.StaticScope == null && parameters.Length != 0 && parameters[0].Concrete.FullName == inType.FullName)
+            if (parameters.Length != 0 && parameters[0].Concrete.FullName == withType.FullName)
                 symbols.Add(child);
         }
     }

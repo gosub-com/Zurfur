@@ -10,7 +10,7 @@ type ref Span<T>
     data ro mut &T
     len ro Int
 
-    [pub, implicit] fun get asIterator(my) SpanIterator<T> todo
+    [pub, implicit] fun get asIterator() SpanIterator<T> todo
 
     
 [pub]
@@ -23,14 +23,14 @@ type ref SpanReader
     data mut SpanIterator<Byte>
 
 // Create a span (on the stack if it can, heap if not)
-[pub] fun Span.new<T>(my, length Int) todo
+[pub] fun new<T>(my Span<T>, length Int) todo
 
 [pub]
-fun get Span.asReader(my Span<Byte>) SpanReader todo
+fun get asReader(my Span<Byte>) SpanReader todo
 
-afun SpanReader.read(my, data mut Span<Byte>) !Int todo
+afun read(my SpanReader, data mut Span<Byte>) !Int todo
 
-[pub] fun SpanIterator.next<T>(my) ?&T
+[pub] fun next<T>(my SpanIterator<T>) ?&T
     if my._data >= my._end
         return nil
     @r = my._data

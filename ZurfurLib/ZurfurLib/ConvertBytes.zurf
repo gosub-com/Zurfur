@@ -3,10 +3,10 @@
 // Floating point formats are IEEE.
 //
 // Conversions are in the forms of:
-//      Span<Byte>.getBytesType(my, index Int)
-//      Span<Byte>.setBytesType(my mut, index Int, value Type)
-//      Reader.readBytesType(my)
-//      Writer.writeBytesType(my, value type)
+//      getBytesType(my Span<Byte>, index Int)
+//      setBytesType(my mut Span<Byte>, index Int, value Type)
+//      readBytesType(my Reader)
+//      writeBytesType(my Writer, value type)
 //
 mod Zurfur.ConvertBytes
 
@@ -29,23 +29,23 @@ fun Test_ConvertExample()
     
 
 
-[pub] fun Writer.writeBytesHex(my, bytes Span<Byte>, capitalize Bool = false)! todo
+[pub] fun writeBytesHex(my Writer, bytes Span<Byte>, capitalize Bool = false)! todo
 
 
 // Read 8 bytes from the stream, convert to an int in little endian
-[pub] fun Reader.readBytesInt64(my) !Int
+[pub] fun readBytesInt64(my Reader) !Int
     var bytes = Span<Byte>(8)
     my.readExact(bytes)!
     return bytes.getBytesInt64(0)
 
-[pub] fun Writer.writeBytesInt64(my, value Int)!
+[pub] fun writeBytesInt64(my Writer, value Int)!
     var bytes = Span<Byte>(8)
     bytes.setBytesInt64(0, value)
     my.write(bytes)!
 
 
 // Convert 4 bytes (U32) to Int (little endian)
-[pub] fun Span.getBytesInt64(my Span<Byte>, index Int) Int
+[pub] fun getBytesInt64(my Span<Byte>, index Int) Int
     let s = my[index..+8]
     return     s[0].toInt
             | (s[1].toInt << 8)
@@ -57,7 +57,7 @@ fun Test_ConvertExample()
             | (s[7].toInt << 56)
 
 // Convert U32 to 4 bytes (little endian) 
-[pub] fun Span.setBytesInt64(my mut Span<Byte>, index Int, value Int)
+[pub] fun setBytesInt64(my mut Span<Byte>, index Int, value Int)
     var s = my[index..+8]
     s[0] = value // TBD: Should be error
     s[0] = value.toByteMask

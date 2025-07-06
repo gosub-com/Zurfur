@@ -85,7 +85,7 @@ class Interfaces
             // Find functions in the concrete type or its module
             var concreteFuns = new List<Symbol>();
             AddFunctionsNamedInType(ifaceFun.SimpleName, concrete, concreteFuns);
-            AddMethodsInModuleWithType(ifaceFun.SimpleName, concrete.ParentModule, concrete, concreteFuns);
+            AddFunctionsInModuleWithType(ifaceFun.SimpleName, concrete.ParentModule, concrete, concreteFuns);
 
             // Specialize interface and functions.
             // NOTE: Specialized interfaces don't currently carry

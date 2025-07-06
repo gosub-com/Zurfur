@@ -6,71 +6,63 @@ pragma NoParse
 
 mod AATestFails
 
-use Zurfur[Iterator, Iterable]
+use Zurfur[Iterator, Iterable, Log]
 
 // Make first test case pass by adding a syntax error
 fun test_makeError()
     makeError
 
+// ###
+
+fun test_ufcs(a Str)
+    ("").Log.info
+    Log.info("Hello")
+    test_ufcs("hello")
+    ("").test_ufcs
 
 // ### Interface conversion that fails
 
 type interface TakeConcrete
-    fun take(my, a Int)
+    fun take(a Int)
 type interface TakeConcrete2
-    fun take(my, a Int)
+    fun take(a Int)
 type interface TakeInterface
-    fun take(my, a TakeConcrete)
+    fun take(a TakeConcrete)
     
 type ImpNone {}
 
 type ImpTakeConcrete {}
 
-fun ImpTakeConcrete.take(my, a Int) todo
+fun take(my ImpTakeConcrete, a Int) todo
 
 type ImpTakeInterface {}
 
-fun ImpTakeInterface.take(my, a TakeConcrete) todo
+fun take(my ImpTakeInterface, a TakeConcrete) todo
 
 fun takeInterfaceConcrete(x TakeConcrete) todo
 
 fun takeInterfaceInterface(x TakeInterface) todo
 
 fun test_noImp1()
-    @a TakeConcrete = ImpTakeConcrete()
+    let x TakeConcrete = ImpTakeConcrete()
     takeInterfaceConcrete(ImpTakeConcrete())
-    @b TakeConcrete = ImpNone() // Type doesn't implement interface
-
-// ### Interface conversion that fails
-
-fun test_noImp2()
+    let y TakeConcrete = ImpNone() // Type doesn't implement interface
+// ###
     takeInterfaceConcrete(ImpTakeConcrete())
     takeInterfaceConcrete(ImpNone()) // Type doesn't implement interface
-
-// ### Interface conversion that fails
-
-fun test_noImp5()
-    @t TakeInterface = ImpTakeConcrete() // Type doesn't implement the interface
-
-// ### Interface conversion that fails
-
-fun test_noImp6()
+// ###
+    let z TakeInterface = ImpTakeConcrete() // Type doesn't implement the interface
+// ###
     takeInterfaceConcrete(ImpTakeConcrete())
     takeInterfaceInterface(ImpTakeConcrete()) // Type doesn't implement the interface
-
-// ### Interface conversion that fails
-
-fun test_noImp3()
-    @a TakeConcrete = ImpTakeConcrete()
-    @b TakeConcrete = a
-    @c TakeConcrete2 = a // Interface to interface conversion not supported
-
-// ### Interface conversion that fails
-
-fun test_noImp4()
+// ###
+    let a TakeConcrete = ImpTakeConcrete()
+    let b TakeConcrete = a
+    let c TakeConcrete2 = a // Interface to interface conversion not supported
+// ###
     takeInterfaceConcrete(ImpTakeConcrete())
-    @b TakeConcrete2 = ImpTakeConcrete()
-    takeInterfaceConcrete(b) // Interface to interface conversion not supported
+    let d TakeConcrete2 = ImpTakeConcrete()
+    takeInterfaceConcrete(d) // Interface to interface conversion not supported
     
 
 // ### Cannot infer interface type args
@@ -94,13 +86,13 @@ fun test_noImpInfer2()
 // ### Convert concrete types to interface
 
 type interface Printable
-    fun toStr(my) Str
+    fun toStr() Str
     
 type interface Printable2
-    fun toStr(my) Str
+    fun toStr() Str
     
 type MyCollection<T>
-    [implicit] fun get asIterator(my) MyCollectionIter<T>
+    [implicit] fun get asIterator() MyCollectionIter<T>
         nop
 
 type MyCollectionIter<T> {}
@@ -110,10 +102,10 @@ type MyCollectionNot<T> {}
 type MyCollectionNotIter<T> {}
 
 
-fun MyCollectionIter.next<T>(my) ?T
+fun next<T>(my MyCollectionIter<T>) ?T
     nop
 
-fun Iterable.reduceInt(my Iterable<Int>, f fun(item1 Int, item2 Int) Int) ?Int
+fun reduceInt(my Iterable<Int>, f fun(item1 Int, item2 Int) Int) ?Int
     return my.asIterator.reduce(f) 
 
 fun test_takePrintable(a Printable)
@@ -227,13 +219,13 @@ fun test_reduceConcrete2()
 // ### Ambiguous type inference on interface function
 
 type interface AmbiguousInterface<T>
-    fun f(my, a T)
+    fun f(a T)
     
 type AmbiguousTest {}
 
-fun AmbiguousTest.f(my, a Int) todo
+fun f(my AmbiguousTest, a Int) todo
 
-fun AmbiguousTest.f(my, b Float) todo
+fun f(my AmbiguousTest, b Float) todo
 
 fun takeAmbiguous<T>(i AmbiguousInterface<T>) todo
 
@@ -249,10 +241,7 @@ fun test_noImp7()
     takeAmbiguous<Int>(AmbiguousTest())     // Ok
     takeAmbiguous<Float>(AmbiguousTest())   // Ok
     takeAmbiguous<Byte>(AmbiguousTest())    // Type doesn't implement the interface
-
-// ### Type doesn't implement the interface
-
-fun test_noImp8()
+// ###
     @a AmbiguousInterface<Int> = AmbiguousTest()    // Ok
     @b AmbiguousInterface<Float> = AmbiguousTest()  // Ok
     @c AmbiguousInterface<Byte> = AmbiguousTest()   // Type doesn't implement the interface
@@ -260,13 +249,13 @@ fun test_noImp8()
 // ### Ambiguous type inference on interface function parameter
 
 type interface AmbiguousInterfaceFunParam<T>
-    fun f(my, a T, b T)
+    fun f(a T, b T)
     
 type AmbiguousTestFunParam {}
 
-fun AmbiguousTestFunParam.f(my, a Int, b Int) todo
+fun f(my AmbiguousTestFunParam, a Int, b Int) todo
 
-fun AmbiguousTestFunParam.f(my, b Float, c Int) todo
+fun f(my AmbiguousTestFunParam, b Float, c Int) todo
 
 fun takeAmbiguousFunParam<T>(i AmbiguousInterfaceFunParam<T>) todo
 
@@ -279,7 +268,7 @@ fun test_ambiguousInterfaceParam()
 
 // ### Ambiguous function call
 
-fun U16.toStr(my) Str todo
+fun toStr(my U16) Str todo
 
 fun test_ambiguousFunCall()
     U16().toStr
@@ -305,23 +294,32 @@ fun test_ambiguousImplicit()
 type StaticTest
     [static] staticField Int
     [static] fun staticFun() Int todo
+    normalField Int
+    fun normalFun() Int todo
+    fun ambigFun() Int todo
 
-[static] fun StaticTest.staticExtensionFun() Int todo
+fun ambigFun(a StaticTest) Int todo
 
 fun test_static()
     let a Int = StaticTest.staticField
     let b Int = StaticTest.staticFun
-    let c Int = StaticTest.staticExtensionFun
-    let d = StaticTest().staticExtensionFun   // Non static function call
-
-// ### Test static fail
-
-fun test_static2()
-    let a = StaticTest().staticFun // Non static function call
-
-// ### Test static fail - field
-
-fun test_static3()
-    let a = StaticTest().staticField // Non static function call
+    let c = StaticTest.staticFun
+    let d = StaticTest.normalField // Static mismatch
+// ###
+    let e = StaticTest.normalFun // Wrong number of parameters
+    let f = StaticTest.normalFun(StaticTest()) // Non static function call
+// ###
+    let g = StaticTest().staticFun // Non static function call
+// ###
+    let h = StaticTest().staticField // Non static function call
+// ###
+    let i = normalFun(StaticTest()) // Undefined global function
+// ###
+    let j = StaticTest.ambigFun(StaticTest()) // TBD FAIL: Should select the correct one
+    let k = ambigFun(StaticTest()) // TBD FAIL: This should be ambiguous
+// ###
+    let l = StaticTest().ambigFun // This is ambiguous
+// ###
+    let m = AATestFails.ambigFun(StaticTest()) // TBD FAIL: This should work
 
 // ### END OF FILE
