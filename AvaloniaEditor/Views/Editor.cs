@@ -9,6 +9,7 @@ using Avalonia.Layout;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Media;
 using Avalonia.Interactivity;
 
@@ -722,13 +723,13 @@ public class Editor : UserControl
         UpdateCursorBlinker();
     }
 
-    protected override void OnGotFocus(GotFocusEventArgs e)
+    protected override void OnGotFocus(FocusChangedEventArgs e)
     {
         base.OnGotFocus(e);
         UpdateCursorBlinker();
     }
 
-    protected override void OnLostFocus(RoutedEventArgs e)
+    protected override void OnLostFocus(FocusChangedEventArgs e)
     {
         UpdateCursorBlinker();
         base.OnLostFocus(e);
@@ -875,7 +876,7 @@ public class Editor : UserControl
     /// <summary>
     /// Copy to clipboard
     /// </summary>
-    void Copy()
+    async void Copy()
     {
         var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
         if (clipboard == null)
@@ -886,7 +887,7 @@ public class Editor : UserControl
             string[] copy = _lexer.GetText(_selStart, _selEnd);
             if (copy.Length == 1)
             {
-                clipboard.SetTextAsync(copy[0]);
+                await clipboard.SetTextAsync(copy[0]);
             }
             else if (copy.Length > 1)
             {
@@ -900,11 +901,11 @@ public class Editor : UserControl
                     sb.Append("\r\n");
                     sb.Append(copy[i]);
                 }
-                clipboard.SetTextAsync(sb.ToString());
+                await clipboard.SetTextAsync(sb.ToString());
             }
             else
             {
-                clipboard.SetTextAsync("");
+                await clipboard.SetTextAsync("");
             }
         }
         catch (Exception e)
@@ -926,7 +927,7 @@ public class Editor : UserControl
             return;
         try
         {
-            string clip = await clipboard.GetTextAsync() ?? "";
+            string clip = await ClipboardExtensions.TryGetTextAsync(clipboard) ?? "";
             string[] clipArray = clip.Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
             CursorLoc = ReplaceText(clipArray, CursorLoc, CursorLoc);
 

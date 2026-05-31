@@ -1,23 +1,39 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
 	<RunAOTCompilation>true</RunAOTCompilation>
   </PropertyGroup>
-
   
   <ItemGroup>
-    <AvaloniaResource Include="Assets\**" />
+      <AvaloniaResource Include="**/*.axaml" />
+      
+      <!-- I have no idea why this is necessary, but this fixes a duplicate x:Class error -->
+      <AvaloniaResource Remove="App.axaml" />
+      <AvaloniaResource Remove="Views\FormSearch.axaml" />
+      <AvaloniaResource Remove="Views\HoverMessage.axaml" />
+      <AvaloniaResource Remove="Views\MainView.axaml" />
+      <AvaloniaResource Remove="Views\MainWindow.axaml" />
+      <AvaloniaResource Remove="Views\MultiViewEditor.axaml" />
+      <AvaloniaResource Remove="Views\MultiViewTabItem.axaml" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <None Remove="Assets\ZurfurIcon.ico" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\ZurfurIcon.ico" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.2.5" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.5" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.5" />
+    <PackageReference Include="Avalonia" Version="12.0.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.4" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.4" />
 
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.2.5" />
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.17" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,10 +42,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="App\" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <Compile Update="App.axaml.cs">
+      <DependentUpon>App.axaml</DependentUpon>
+    </Compile>
     <Compile Update="Views\MultiViewEditor.axaml.cs">
       <DependentUpon>%(Filename)</DependentUpon>
     </Compile>

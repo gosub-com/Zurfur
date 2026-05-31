@@ -10,8 +10,7 @@
 				<Button Click="buttonClose_Click" DockPanel.Dock="Right">X</Button>
 				<CheckBox
 					Name="checkShowReplace"
-					Checked="checkShowReplace_Changed" 
-					Unchecked="checkShowReplace_Changed" 
+					IsCheckedChanged="checkShowReplace_Changed" 
 					DockPanel.Dock="Right" 
 					Margin="0,0,10,0">Replace</CheckBox>
 				<TextBlock VerticalAlignment="Bottom" >Search For:</TextBlock>
@@ -49,13 +48,11 @@
 					HorizontalContentAlignment="Center">Replace All</Button>
 				<CheckBox 
 					Name="checkMatchCase"
-					Checked="checkMatchCase_Changed" 
-					Unchecked="checkMatchCase_Changed" 					
+					IsCheckedChanged="checkMatchCase_Changed" 
 					>Match case</CheckBox>
 				<CheckBox 
 					Name="checkMatchWholeWord" 
-					Checked="checkMatchWholeWord_Changed" 
-					Unchecked="checkMatchWholeWord_Changed" 										
+					IsCheckedChanged="checkMatchWholeWord_Changed" 
 					Margin="10,0,10,0">Match whole word</CheckBox>
 			</DockPanel>
 		</StackPanel>
