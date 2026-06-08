@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-using Gosub.Lex;
+using Zurfur.Lex;
 
 namespace Zurfur.Compiler;
 

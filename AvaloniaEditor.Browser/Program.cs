@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Browser;
 
-using AvaloniaEditor;
+using Zurfur.Editor;
 
 internal partial class Program
 {

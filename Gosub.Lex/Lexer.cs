@@ -1,7 +1,7 @@
 ﻿
 using System.Diagnostics;
 
-namespace Gosub.Lex;
+namespace Zurfur.Lex;
 
 /// <summary>
 /// Lexical analyzer - scan and separate tokens in a file.

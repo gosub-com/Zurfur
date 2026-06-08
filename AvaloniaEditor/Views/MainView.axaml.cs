@@ -9,15 +9,15 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 
 using Zurfur.Build;
-using Gosub.Avalonia.Controls;
 using Avalonia.Platform;
 using System.Linq;
-using Gosub.Lex;
+using Zurfur.Lex;
 using Avalonia.Input;
 using Zurfur;
 using Avalonia.Layout;
+using AvaloniaEditor;
 
-namespace AvaloniaEditor.Views;
+namespace Zurfur.Editor.Views;
 
 
 public partial class MainView : UserControl

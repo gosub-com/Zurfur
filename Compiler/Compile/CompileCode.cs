@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 
-using Gosub.Lex;
+using Zurfur.Lex;
 using Zurfur.Vm;
 using static Zurfur.Compiler.CodeLib;
 

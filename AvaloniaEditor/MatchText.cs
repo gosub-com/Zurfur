@@ -1,11 +1,12 @@
-﻿using Gosub.Lex;
+﻿using Zurfur.Lex;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using Gosub.Avalonia.Controls;
+using Zurfur.Editor.Views;
+
 
 namespace AvaloniaEditor;
 

@@ -3,10 +3,10 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 
-using AvaloniaEditor.ViewModels;
-using AvaloniaEditor.Views;
+using Zurfur.Editor.ViewModels;
+using Zurfur.Editor.Views;
 
-namespace AvaloniaEditor;
+namespace Zurfur.Editor;
 
 public partial class App : Application
 {

@@ -1,5 +1,5 @@
 ﻿
-namespace AvaloniaEditor.ViewModels;
+namespace Zurfur.Editor.ViewModels;
 
 public class ViewModelBase
 {

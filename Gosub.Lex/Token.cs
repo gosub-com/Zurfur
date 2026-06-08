@@ -1,5 +1,5 @@
 ﻿
-namespace Gosub.Lex;
+namespace Zurfur.Lex;
 
 /// <summary>
 /// Basic types recognized by the lexer

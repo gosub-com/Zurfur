@@ -15,8 +15,8 @@ using Avalonia.Interactivity;
 
 using Avalonia.Threading;
 
-using Gosub.Lex;
-namespace Gosub.Avalonia.Controls;
+using Zurfur.Lex;
+namespace Zurfur.Editor.Views;
 
 /// <summary>
 /// Avalonia editor control.

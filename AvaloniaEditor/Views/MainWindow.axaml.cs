@@ -2,7 +2,7 @@
 using Avalonia.Interactivity;
 using System.Diagnostics;
 
-namespace AvaloniaEditor.Views;
+namespace Zurfur.Editor.Views;
 
 public partial class MainWindow : Window
 {

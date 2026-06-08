@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 
-namespace AvaloniaEditor.Views;
+namespace Zurfur.Editor.Views;
 
 public partial class HoverMessage : UserControl
 {

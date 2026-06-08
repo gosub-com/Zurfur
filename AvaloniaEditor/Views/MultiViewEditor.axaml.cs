@@ -8,7 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using System.Runtime.CompilerServices;
 
-namespace AvaloniaEditor.Views;
+namespace Zurfur.Editor.Views;
 
 public partial class MultiViewEditor : UserControl
 {

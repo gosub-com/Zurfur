@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection.Metadata;
-using Gosub.Lex;
+using Zurfur.Lex;
 using Zurfur.Vm;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 

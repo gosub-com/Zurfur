@@ -13,12 +13,11 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Interactivity;
 
-using Gosub.Lex;
-using Gosub.Avalonia.Controls;
+using Zurfur.Lex;
 using Zurfur;
 using Zurfur.Compiler;
 using Zurfur.Vm;
-using AvaloniaEditor.Views;
+using Zurfur.Editor.Views;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia.Markup.Xaml.Templates;

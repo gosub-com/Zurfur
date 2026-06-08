@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" 
-             x:Class="AvaloniaEditor.FormSearch">
+			  x:Class="Zurfur.Editor.Views.FormSearch">
 	<Border Background="AliceBlue" BorderBrush="DarkBlue" BorderThickness="3" Margin="25,10">
 		<StackPanel Spacing="4" Margin="10">
 			<DockPanel>

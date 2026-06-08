@@ -1,5 +1,5 @@
 ﻿
-namespace Gosub.Lex;
+namespace Zurfur.Lex;
 
 /// <summary>
 /// Scan for text, symbols, and numbers.  By default, all symbols are one character.

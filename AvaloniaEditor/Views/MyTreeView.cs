@@ -10,7 +10,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 
-namespace AvaloniaEditor.Views;
+namespace Zurfur.Editor.Views;
 
 
 /// <summary>

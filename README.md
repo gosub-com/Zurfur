@@ -5,6 +5,8 @@
 I am moving the documentation to
 [Confluence](https://zurfur.atlassian.net/wiki/external/ZjJlYjUwZmIzMzg0NGJkY2ExMmJlY2MwNDVlNTU4ODU)
 
+I have been working on the [Memory Model](Doc/Ownership%20Model.md)
+
 Zurfur is a programming language I'm designing for fun and enlightenment.
 The language is named after our cat, Zurfur, who was named by my son.  It's
 spelled **_ZurFUR_** because our cat has fur. The syntax is still

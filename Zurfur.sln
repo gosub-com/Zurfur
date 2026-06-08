@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.6.11822.322 stable
+VisualStudioVersion = 18.6.11822.322
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3F3F1568-E989-43F4-BEDD-12246A4D4CDC}"
 	ProjectSection(SolutionItems) = preProject
@@ -12,7 +12,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Doc", "Doc", "{3089177A-1B87-4E67-8D0D-E5C8922E5543}"
 	ProjectSection(SolutionItems) = preProject
-		Doc\Zil.md = Doc\Zil.md
+		Doc\Ownership Model.md = Doc\Ownership Model.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Compiler", "Compiler\Compiler.csproj", "{FE91B666-494A-4BDB-AD07-C53D9FEE1C0F}"

@@ -1,5 +1,5 @@
 ﻿
-namespace Gosub.Lex;
+namespace Zurfur.Lex;
 
 /// <summary>
 /// Base class for Lexer scanners.

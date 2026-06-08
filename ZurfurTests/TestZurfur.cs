@@ -7,6 +7,7 @@ namespace Zurfur.Tests;
 
 public class TestZurfur
 {
+    static readonly TimeSpan COMPILE_TIMEOUT = TimeSpan.FromSeconds(5);
     readonly ITestOutputHelper _output;
 
     public TestZurfur(ITestOutputHelper output)
@@ -30,7 +31,7 @@ public class TestZurfur
         var timer = Stopwatch.StartNew();
         foreach (var file in FileSystemOs.EnumerateAllFiles(testProjectDir))
             builder.LoadFile(file);
-        await builder.Compile();
+        await builder.Compile().WaitAsync(COMPILE_TIMEOUT);
         var compileTime1 = timer.ElapsedMilliseconds;
 
         // Remove pragmas
@@ -45,11 +46,13 @@ public class TestZurfur
         // Recompile without pragmas
         timer = Stopwatch.StartNew();
         builder.SetLexer(lexer);
-        await builder.Compile();
+        await builder.Compile().WaitAsync(COMPILE_TIMEOUT);
         Debug.WriteLine($"Load and Compile in {compileTime1} ms, recompile in {timer.ElapsedMilliseconds} ms");
 
         // Scan that each test case contains exactly one error
         lexer = builder.GetLexer(lexerName);
+        Assert.NotNull(lexer);
+
         var fails = 0;
         var testCases = 0;
         var errorCount = 0;

@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.ComponentModel.DataAnnotations;
 
-using Gosub.Lex;
+using Zurfur.Lex;
 using System.Diagnostics.CodeAnalysis;
 namespace Zurfur.Vm;
 

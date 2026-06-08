@@ -2,6 +2,8 @@
 
 using Avalonia;
 
+using Zurfur.Editor;
+
 namespace AvaloniaEditor.Desktop;
 
 class Program

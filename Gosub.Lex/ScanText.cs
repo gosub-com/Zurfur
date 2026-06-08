@@ -1,5 +1,5 @@
 ﻿
-namespace Gosub.Lex;
+namespace Zurfur.Lex;
 
 /// <summary>
 /// Default scanner for a generic text file.  Just split it by white space, nothing else.

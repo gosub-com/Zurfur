@@ -11,7 +11,7 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using System.ComponentModel;
 
-namespace AvaloniaEditor.Views;
+namespace Zurfur.Editor.Views;
 
 public partial class MultiViewTabItem : TabItem
 {

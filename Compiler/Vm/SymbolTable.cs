@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 
-using Gosub.Lex;
+using Zurfur.Lex;
 namespace Zurfur.Vm;
 
 public class ZilCompileError : TokenError

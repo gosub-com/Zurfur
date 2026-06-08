@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Diagnostics;
 
 
-using Gosub.Lex;
+using Zurfur.Lex;
 using Zurfur.Vm;
 using Zurfur.Compiler;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace Zurfur.Build;
 
@@ -194,6 +193,14 @@ public class BuildSystem
         return tcs.Task;
     }
 
+    void FailPendingCompiles(Exception exception)
+    {
+        var compileDoneTasks = _compileDoneTasks;
+        _compileDoneTasks = new();
+        foreach (var tcs in compileDoneTasks)
+            tcs.TrySetException(exception);
+    }
+
     /// <summary>
     /// Called whenever anything changes.  NOTE: Doesn't start a new
     /// build if in the process of compiling, but the compiler will
@@ -221,6 +228,8 @@ public class BuildSystem
         }
         catch (Exception ex)
         {
+            FailPendingCompiles(ex);
+
             // TBD: Send another message for popup with stack trace.
             // NOTE: The stack trace is stored in the error message
             //       associated with the token that caused the failure.
@@ -255,9 +264,10 @@ public class BuildSystem
             await Generate();
         }
 
-        foreach (var tcs in _compileDoneTasks)
+        var compileDoneTasks = _compileDoneTasks;
+        _compileDoneTasks = new();
+        foreach (var tcs in compileDoneTasks)
             tcs.SetResult(true);
-        _compileDoneTasks.Clear();
     }
 
     async Task LoadAndLex()

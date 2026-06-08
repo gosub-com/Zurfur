@@ -1,7 +1,6 @@
-﻿using Avalonia.Interactivity;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
-namespace AvaloniaEditor.ViewModels;
+namespace Zurfur.Editor.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {

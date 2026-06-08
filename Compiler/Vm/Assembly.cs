@@ -5,7 +5,7 @@ using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using Gosub.Lex;
+using Zurfur.Lex;
 
 namespace Zurfur.Vm;
 

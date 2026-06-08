@@ -5,13 +5,14 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using System;
 
-using Gosub.Avalonia.Controls;
-using Gosub.Lex;
+using Zurfur.Editor.Views;
+using Zurfur.Lex;
 using static System.Net.Mime.MediaTypeNames;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using AvaloniaEditor;
 
-namespace AvaloniaEditor;
+namespace Zurfur.Editor.Views;
 
 public partial class FormSearch : UserControl
 {

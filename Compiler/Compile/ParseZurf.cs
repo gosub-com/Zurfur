@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Text;
 
-using Gosub.Lex;
+using Zurfur.Lex;
 using Zurfur.Vm;
 
 namespace Zurfur.Compiler;
