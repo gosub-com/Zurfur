@@ -2,20 +2,24 @@
 
 ![Logo](Zurfur.jpg)
 
+I love C#. It's my favorite language to program in. But I'd like to have some features from other
+languages built in from the ground up. I'm thinking about ownership, immutability, nullability,
+and functional programming.
+
 Zurfur is a programming language I'm designing for fun and enlightenment. The language is named
 after our cat, Zurfur, who was named by my son.  It's spelled **_ZurFUR_** because our cat has fur.
 The syntax is still being developed and nothing is set in stone.  If you want to try it, click 
 here https://gosub.com/zurfur
 
-I love C#. It's my favorite language to program in. But I'd like to have some features from other
-languages built in from the ground up. I'm thinking about ownership, immutability, nullability,
-and functional programming.
+Ducumentation:
 
-I have been working on the [Ownership and Memory Model](Doc/Ownership%20Model.md) which explains how
-ownership, mutability, and the type system work together in Zurfur.
+* [Ownership Model](Doc/Ownership%20Model.md) which explains how ownership, mutability,and the type
+  system work together in Zurfur.
+* [Memory Model](Doc/Memory%20Model.md) which explains how the first version of Zurfur manages memory.
 
-I'm also working on [Zurfur Gui](https://github.com/gosub-com/ZurfurGui). 
-You can see it here https://gosub.com/zurfurgui.
+
+I'm also working on [Zurfur Gui](https://github.com/gosub-com/ZurfurGui), which
+you can see here https://gosub.com/zurfurgui.
 
 Older documentation on
 [Confluence](https://zurfur.atlassian.net/wiki/external/ZjJlYjUwZmIzMzg0NGJkY2ExMmJlY2MwNDVlNTU4ODU)
@@ -30,22 +34,41 @@ concepts from
 Golang, Rust, Python, JavaScript, and other languages.
 
 * **Prime directives:**
-    * Fun and easy to use
-    * Faster than C# and unsafe code just as fast as C
-    * Target WebAssembly in the browser with easy JavaScript interop
+    * Fun and easy to use.
+    * Faster than C# and unsafe code just as fast as C.
+    * Target WebAssembly in the browser with easy JavaScript interop.
 * **Ownership, mutability, and nullability are part of the type system:**
-    * `ro` means read only *all the way down* (not like C#, where `readonly` only protects the top level)
-    * All types are values (i.e. *owned*) except for `ro` types (e.g. `Str`), pointers (e.g. `^MyType`) and borrowed references (e.g. `&myValue`)
-    * All mutable types have a `ro` counterpart which can be copied quickly via single pointer assignment (e.g. `Str` is `ro List<Byte>`)
-    * Function parameters must be explicitly marked `mut` if they mutate anything
-    * References and pointers are non-nullable, but may use `?MyType` or `?^MyType` for nullable
+    * `ro` means read-only *all the way down*, not like C# where `readonly` protects only the top level.
+    * All types are values (i.e. *owned*) except for `ro` types (e.g. `Str`), pointers (`^T`) and borrowed references (`&T`).
+    * All mutable types have a `ro` counterpart which can be copied quickly via single pointer assignment (e.g. `Str` and `ro List<Byte>`).
+    * Function parameters must be explicitly marked `mut` if they modify anything.
+    * References and pointers are non-nullable, but may use `?T` for nullable.
 * **Fast and efficient:**
-    * Return references and span used everywhere. `[]Int` is `Span<Int>`
-    * Functions pass parameters by reference, but will pass a copy when it is more efficient
-    * Explicit `copy` required when copying an object that requires dynamic allocation
+    * Return references and span used everywhere. `[]Int` is `Span<Int>`.
+    * Functions pass parameters by reference, but will pass a copy when it is more efficient.
+    * Explicit `copy` required when copying an object that requires dynamic allocation.
 
 ## Types
 
+Types fall into the basic categories of `struct`, `data`, `object`, and `interface`.  Data types can
+be subdivided into `enum` and `flags`.  Finally, there are type attributes, such as `ro`, `box`, and 
+`ref` which can be applied to types to change their behavior. For a deeper understanding of these types,
+review the [Ownership Model](Doc/Ownership%20Model.md)
+
+| Type | Description
+| :--- | :---
+| struct | `type struct` can be trivially copied, bit for bit, and may not contain heap allocated data structures of any kind, including `data`, `object`, or `interface` types.  
+| data | `type data` may hold mutable or immutable data.  It should act like data, must be copyable, and the compiler will generate a `ro` counterpart which should have proper semantics. Private data is generally not used, except for caching. It may not contain an `object` or `interface` type.
+| object | `type object` is expected to contain mutable hidden data.  It does not have a `ro` counterpart, does not need to be copyable nor have an `==` operator.  An object type is stored in-line in memory and obeys the ownership rules as data types (i.e. it's not a reference type like in C#).
+| enum | `type enum` is a discriminated union, similar to Rust's `enum`.
+| flags | `type flags` is similar to C#'s `enum`.  Flags take a numeric type parameter like `type flags<Byte>` or `type flags<Int>` to hold typed constants.
+| interface | `type interface` is a set of functions that can be implemented by any type.  It is similar to Golang's interfaces (i.e. duck typed), but with support for default implementations.
+| ro | A `ro` type means it's read only.  This can be used at the type declaration `type ro data MyType` or at the variable declaration `ro List<Int>`.
+| box | A `box` stores its data stored on the heap.  It can be used at the type declaration `type box data MyType` or at the variable declaration `List<box MyType>`.
+| ref | A `ref` type is the only type that can contains a reference.  It is restricted to being owned by the stack.
+
+
+### Basic Types
 The ones we all know and love:
 
     nil, Bool, I8, Byte, I16, U16, I32, I32, Int, U64, F32, Float, Str
@@ -84,13 +107,82 @@ dispatch.  Unions (i.e. sum types) are used for small well defined hierarchies. 
 embeddging can be used to "include" a base type in anther type using composition.  Golang doesn’t need
 inheritance, and neither does Zurfur.
 
+## Syntax 
+
+### Whitespace and Offside Rule
+
+Zurfur uses significant whitespace for scope definition with strict, deterministic rules. Exactly four
+spaces per indentation level are required, with tabs forbidden. Curly braces are reserved for explicit
+scope boundaries (and interpolated strings) and provide an escape hatch when indent-independent syntax
+is needed, but the standard convention is to omit them and let indentation define scope naturally.
+
+Line continuations are determined by a specific set of symbols, some at the end of the line, and some at
+the beginning of the line. Continued lines must use hanging indentation.  This deterministic rule set,
+processed after lexical analysis but before parsing, eliminates ambiguity and makes the language easier
+for both humans and AI systems to generate and understand.
+
+This design enforces visual consistency, reduces syntactic noise, and provides clear error messages. The
+strict rules make code more predictable for AI-assisted programming while the brace escape hatch maintains
+flexibility for edge cases like programmatically generated code or copy-pasted snippets.
+
+### Keywords `return` and `yield`
+
+The `return` keyword always exits the function declaration it appears in, regardless of nesting depth.
+Zurfur requires an explicit `return` statement at the end of every function that returns a value.
+Explicit `return` statements make the returned value immediately obvious without requiring knowledge
+of expression-vs-statement rules.  Functions that don't return a value can omit `return` entirely.
+
+Within lambda expressions, the `yield` keyword is used to exit the lambda early and return control
+to the calling code.  Using `yield` instead of `return` in lambdas eliminates ambiguity when reading
+nested code, as it clearly indicates that the control flow is returning to the caller of the lambda
+rather than exiting an outer function. 
+
+### No need for `await` keyword
+
+Zurfur does not use an `await` keyword. Async functions (`afun`) are called with the same syntax as sync
+functions (`fun`) and automatically suspend until completion. The compiler prevents sync functions from 
+calling async functions, maintaining clear boundaries in the type system. 
+
+Editor tooling should visually distinguish async call sites (e.g., underlining or color-coding) to help
+developers understand control flow. This eliminates the syntactic overhead of `await` keywords while
+preserving the semantic clarity of structured concurrency, similar to Go's approach but with explicit 
+async/sync separation at the function signature level.
+
+While the default blocking behavior is appropriate for sequential logic, Zurfur provides the `astart`
+keyword for launching async functions concurrently without blocking. The `astart` keyword starts an async
+function in the background and immediately returns a `Task<T>`.
+
+## Concurrency Model
+
+Zurfur is single-threaded like Node.js, using async/await for I/O concurrency without data races. For true
+parallelism, Zurfur will support Web Workers with message-passing communication. Only owned, serializable
+data can cross worker boundaries — borrowed references and `ref` types cannot escape the owning worker's 
+context, which the type system enforces. This provides a clean separation: async for concurrency within a
+worker, workers for parallelism across cores. A built-in library will simplify spawning workers and marshaling
+function calls across them automatically.
+
+
 ## Variables and Mutability
 
-`let` for un-assignable, `mut` for mutable, and `var` for assignable and mutable.  For example:
+Local variable binding uses `let` for immutable, `mut` for mutable (but not assignable), `var` for
+assignable (but not mutable), and `var mut` for assignable and mutable.  For example:
 
-    let a = getList()       // a is un-assignable, the list is immutable
-    mut b = getList()       // b is un-assignable, the list is mutable
-    var c = getList()       // c is assignable, the list is immutable
+    // NOTE: getList returns List<Int>
+    let a = getList         // `a` is un-assignable, the list is immutable
+    mut b = getList         // `b` is un-assignable, the list is mutable
+    var c = getList         // `c` is assignable, the list is immutable
+    var mut d = getList     // `d` is assignable and the list is mutable
+
+    // NOTE: getRoList returns ro List<Int>
+    // `mut` and `var mut` are illegal because the list is immutable
+    let a = getList         // `a` is un-assignable, the list is immutable
+    var c = getList         // `c` is assignable, the list is immutable
+
+    // NOTE: getStruct returns some struct type
+    // `mut` and `var mut` are illegal because a struct is immutable
+    let a = getStruct         // `a` is un-assignable, the struct cannot be modified
+    var c = getStruct         // `c` is assignable, the struct can be modified
+
 
 ### Privacy
 
@@ -160,47 +252,34 @@ with C and gives an error where not compatible:
 
 |Operators | Notes
 | :--- | :---
-|`x.y`  `f<type>(x)` `x.(type)` `a[i]` | Primary
-|- ~ & `ref` `not` `sizeof` `typeof` `unsafe` | Unary
-|@| Capture new variable
+|`x.y`  `f<type>(x)` `x.(type)` `a[i]` | Primary.
+|- ~ & `ref` `not` `sizeof` `typeof` `unsafe` | Unary.  The `~` operator is both xor and unary
+complement, same as `^` in Golang.
+|@| Capture the result of an expression into a variable.
 |?| Use default for `Maybe`
-|!| For `Result` and `Maybe`, generate value or throw error when `nil`
-|!!!| For `Result` and `Maybe`, generate value or panic when `nil`
+|!| For `Result` and `Maybe`, generate value or return an error. This operator passes an error up
+to the caller when a `Result` has an `Error`. For example `while stream.read(buffer)!@length != 0`
+passes an error up to the caller, or captures the value returned by `read` into the new variable `length`.
+|!!!| For `Result` and `Maybe`, generate value or panic.
 |`is` `is not` `as` | Type conversion and comparison
 |<< >>| Bitwise shift (can't mix arithmetic and bit operators, **TBD:** always require parentheses)
 |* / % & | Multiply, divide, modulus, and bitwise *AND* (can't mix arithmetic and bit operators)
 |~| Bitwise *XOR* (can't mix with arithmetic operators)
 |+ - &#124; | Add, bitwise *OR* (can't mix arithmetic and bit operators)
 |.. ..+| Range (Low..High) and range count (Low..+Count).  Inclusive of low, exclusive of high. 
-|== != < <= > >= === !== `in` `not in`|Not associative, === and !== is only for pointers
+The range operator `..` takes two `Int`s and makes a `Range` which is a `type Range {high Int; low Int}`.
+The `..+` operator also makes a range, but the second parameter is a count (`high = low + count`).
+|== != < <= > >= `in` `not in`| Operator `==` does not default to object comparison and only works
+when it is defined by the given type.  Comparisons are not associative, so `a == b == c` is illegal.
 |`and`| Conditional *and*, short circuit
 |`or`| Conditional *or*, short circuit
 |`ife a : b : c`| If expression, ***TBD:** Syntax?
 |=>| Lambda
-|key:value| Key value pair (only inside `()`, `[]` or where expected)
-|,| Comma Separator (not an expression)
-|= += -= *= /= %= &= |= ~= <<= >>=| Assignment Statements (not an expression)
+|key:value| Key value pair, only allowed inside `()`, `[]` or where expected.
+|,| The comma is a separator and not an expression.
+|= += -= *= /= %= &= |= ~= <<= >>=| Assignment is a statement, so expressions
+`while (a = count) < 20` are illegal. In this case, `while count@a < 20`.
 
-
-The `~` operator is both xor and unary complement, same as `^` in Golang.
-
-The `@` operator captures the expression into a new variable.
-
-The `!` operator passes an error up to the caller when a `Result` has an `Error`. For example
-`while stream.read(buffer)!@length != 0` passes an error up to the caller, or captures the value
-returned by `read` into the new variable `length`.
-
-The range operator `..` takes two `Int`s and makes a `Range` which is a `type Range {high Int; low Int}`.
-The `..+` operator also makes a range, but the second parameter is a count (`high = low + count`).
-
-Operator `==` does not default to object comparison and only works when it is defined for the given type.
-Use `===` and `!==` for object comparison. Comparisons are not associative, so `a == b == c` is illegal.
-
-The pair operator `:` makes a key/value pair which can be used in a list to initialize a map.
-
-Assignment is a statement, not an expression.  Therefore, expressions like `a = b = 1` and
-`while (a = count) < 20` are not allowed. In the latter case, use `while count@a < 20`. Comma is also
-not an expression and may only be used where they are expected, such as a function call or lambda.
 
 #### Operator Overloading
 
