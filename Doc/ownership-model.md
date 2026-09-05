@@ -3,7 +3,7 @@
 This is a work-in-progress, and is still just brainstorming. I'm trying to work out an ownership 
 model that is simpler than Rust's borrow checker but is more useful than C#'s non-ownership model. 
 
-Zurfur is garbage collected and also single threaded (like node.js), so we don't need an ownership
+Zurfur is garbage collected and also single threaded (for now), so we don't need an ownership
 model to help with memory or thread safety. The primary purpose of the ownership model is to help
 programmers and AI reason about aliasing and iterator invalidation.
 
@@ -16,7 +16,7 @@ and mutability boundaries of its data within a cycle-free hierarchy. Because own
 a strict tree or directed acyclic graph, an object can never own its ancestors, which prevents object
 graphs with reference cycles.
 
-In a `List<Box<MyObject>>`, the outer `List` fully controls the lifecycle of everything inside it. 
+In a `List<box MyObject>`, the outer `List` fully controls the lifecycle of everything inside it. 
 If the list is cleared, its structural ownership of those objects ends. However, because memory 
 safety is guaranteed by a garbage collector, the owner can hand out temporary views (borrows) 
 of its data to async tasks without tracking who holds them. 
@@ -29,17 +29,17 @@ tasks will safely delay final destruction until those tasks drop their reference
 
 The type system separates data into mutable and deeply immutable variants. Every mutable data type
 `T` possesses an immutable counterpart, `ro T`. Immutability is transitive and strictly follows the
-ownership tree. For example, `ro List<Box<MyObject>>` structurally expands to `ro List<ro Box<ro MyObject>>`,
+ownership tree. For example, `ro List<box MyObject>` structurally expands to `ro List<ro box ro MyObject>`,
 freezing the entire hierarchy. Conversion from `T` to `ro T` is achieved via `t.toRo`, while reverting 
 to a mutable instance requires a deep allocation via `ro_t.copy`.
 
 While mutable types enforce strict exclusive ownership, immutable types bypass ownership entirely
 in favor of unrestricted reference-sharing. Because `ro` types do not track ownership, assignments always
-perform fast, non-allocating reference copies. For instance, a `List<ro Box<MyObject>>` with 1,000 elements
+perform fast, non-allocating reference copies. For instance, a `List<ro box MyObject>` with 1,000 elements
 can safely have every single element point to the same immutable box instance in memory. Note that
 a `List<ro MyObject>` has all of the elements in-line (not boxed) so even though they can be copied
 quickly, they cannot be combined to point to the same instance in memory.  This means the former may be
-more efficient even though `Box<MyObject>` is heap allocated.
+more efficient even though `box MyObject` is heap allocated.
 
 Despite allowing widespread aliasing, this model strictly preserves the underlying acyclic constraint: 
 immutable data can never form reference cycles. Developers are free to pass and share read-only data 
@@ -63,9 +63,9 @@ implicitly copied on assignment.
 Equality checks (`==`) follow the same structural boundaries and operate on the entire owned object
 tree as strict logical equality. They don't use reference identity except when explicitly comparing
 pointers or for optimizing read-only data type comparisons. For example, comparison of two variables
-of the type `List<Box<MyObject>>` compiles only if `MyObject` implements equality. The comparison
+of the type `List<box MyObject>` compiles only if `MyObject` implements equality. The comparison
 evaluates the logical values deep within the structure. Consequently, comparing a list to its freshly
-deserialized counterpart, `myList1 == Deserialize<List<Box<MyObject>>>`, will correctly evaluate to
+deserialized counterpart, `myList1 == Deserialize<List<box MyObject>>`, will correctly evaluate to
 `true` or `false` despite them occupying different locations in physical memory. When reference
 identity checks are required, a built-in function like `REF_EQ(myList1, myList2)` can be used.
 
@@ -123,7 +123,7 @@ Zurfur defines distinct categories for function input parameters and return valu
   transfer ownership. Other mutable references to `p` may still exist.
 
 - **OWN:** `fun f(p own T)` Passes the parameter and transfers its ownership to the callee which may
-  modify, store, or drop the value.  Ownership is structural, and this does not gaurantee there are
+  modify, store, or drop the value.  Ownership is structural, and this does not guarantee there are
   no outstanding references into the object. 
 
 - **UNIQUE:** `fun f(p unique T)`. Take temporary full ownership and then give it back, possibly
@@ -160,22 +160,27 @@ cannot allow iteration over "ghost objects" created (maybe) when `append` is cal
 can we allow iterating over "empty spots" created when `pop` is called on the list.
 
 This is accomplished with the `unique` keyword and a combination of compile-time and run-time checks.
-While iterating, safe non-invalidating mutations (e.g. `myList[0] = someValue`) are allowed, but unsafe
-iterator-invalidating mutations (e.g. `myList.append(someValue)`) are not. The `append` function, for
-example, requires the list to be unique, meaning that there are no outstanding references into the list
-that could be invalidated by the append operation.
+Zurfur distinguishes between ordinary access to elements and exclusive structural access to a container's
+backing storage. Safe non-invalidating mutations (e.g. `myList[0] = someValue`) are allowed even while
+references or iterators into the list exist. By contrast, structurally invalidating operations such as
+`append`, `push`, `pop`, `remove`, `clear`, or anything else that may resize, reallocate, or reshuffle
+the underlying storage require the list to be unique.
 
 If the compiler can prove there are no outstanding references, the call is allowed. If it cannot, the
 programmer must use an explicit run-time check: `myList.unique.append(item)` which will panic if there
 are any outstanding borrows.  The `unique` keyword alerts the developer that there could be a run-time
-error if they are not careful about handing out references to the collection.  For definesive programming,
-the `List` supports `isUnique` which returns true if there are no outstanding references into it.
+error if they are not careful about handing out references to the collection. The run-time mechanism is
+intended to be lightweight: the list's backing array tracks outstanding borrows with a reference count,
+and a structural operation will panic if that count is non-zero. For defensive programming, `List`
+supports `isUnique` which returns true if there are no outstanding references into it.
 
-Uniqueness is shallow and applies only to `List`, which is the only built-in dynamically sized heap object.
-This restriction is intentional, as it minimizes the reference tracking overhead required, should Zurfur
-switch to a compacting garbage collector in the future. Other collections are expected to either use `List`
-as an underlying container or use `ro T` to avoid iterator invalidation issues.
-
+Uniqueness is shallow and applies to structurally invalidating operations on resizable storage. In the
+current design, `List` is the only built-in dynamically sized heap object, so it is the main place where
+`unique` appears explicitly. This restriction is intentional, as it minimizes the reference tracking
+overhead required, should Zurfur switch to a compacting garbage collector in the future. Other collections
+such as `Map` are expected to use `List` as an underlying container and therefore inherit the same rule
+for any operation that could invalidate outstanding views into that storage. This means `unique` is not a
+general borrow-checking mode for all mutation; it is a targeted rule for structural invalidation.
 
 ## Pointers (^T)
 
@@ -220,16 +225,22 @@ and an async function can be suspended. Async functions suspend and block by def
 keyword is not needed for normal async function calls.
 
 Async does not imply heap allocation. Async means stack, but there can be many async stacks and they
-can be suspended. References can be captured on an async stack, and even stored in a `List<&T>`, but
-they can never escape from the stack they were originally created on.
+can be suspended. References can be captured on an async stack, survive across async suspension, and even
+be stored in a `List<&T>`, but they can never escape from the stack they were originally created on.
+
+Allowing references to survive suspension is important so iterators, spans, and other borrowed views can
+flow naturally through async code without forcing copies or special async-only view types. The cost of
+this flexibility is not a full Rust-style borrow checker. Instead, any outstanding borrow continues to
+block structurally invalidating operations on the underlying `List` storage for as long as that borrow
+remains live, even across async calls.
 
 	// References captured by this function cannot escape
 	afun myAsyncFunction(list mut List<MyObject>)
-	    let slice = list.slice(1, 5) // This slice can persist across async calls
-	    callSync(list)      // This function cannot be suspended because it is a sync function
-	    callAsync(list)     // This function may or may not be suspended (other functions may run in between)
-	    callSync(list)      // This function will run immediately after callAsync completes
-	    slice[0].field = X	// This is valid, but the slice is gone when the function ends
+		let slice = list.slice(1, 5) // This slice can persist across async calls
+		callSync(list)      // This function cannot be suspended because it is a sync function
+		callAsync(slice)    // This function may suspend while the borrowed slice remains live
+		callSync(list)      // Structural mutation still requires uniqueness while slice is live
+		slice[0].field = X  // This is valid, but the slice is gone when the function ends
 
 Async is built into the type system because there is a benefit in knowing if a function is quick and atomic or
 slow and non-atomic.

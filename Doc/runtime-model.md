@@ -1,6 +1,6 @@
-# Memory Model
+# Runtime Model
 
-Zurfur is single-threaded, stores nested data fields directly in-line by default (similar to C),
+Zurfur is single-threaded (for now), stores nested data fields directly in-line by default,
 and operates within a strict ownership model. This deterministic landscape opens the door to
 high-performance reference counting (RC) rather than relying on a heavy compacting runtime. By
 utilizing static lifetime analysis, many (if not most) reference count updates can be entirely
@@ -20,10 +20,10 @@ completely intentional:
 
 * Types are stored in-line by default, meaning structures nest directly inside their parent
   frames without pointer indirection.
-* To move an item to the heap, the programmer must explicitly declare a `Box<T>` or `^T`.
+* To move an item to the heap, the programmer must explicitly declare a `box T` or `^T`.
 * Just as an experienced C++ developer avoids wrapping primitive integers in discrete heap
   allocations via `new int`, a Zurfur developer can visually audit and control memory overhead
-  directly via `Box` usage in the source code.
+  directly via `box` usage in the source code.
 
 ## Compound Allocation Optimization for Deeply Immutable Types
 
