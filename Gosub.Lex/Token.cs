@@ -39,7 +39,7 @@ public enum TokenFlags : short
 {
     Eoln = 1, // Read only (set only once by lexer)
     Boln = 2, // Read only (set only once by lexer)
-    ReadOnlyMask = Eoln | Boln,
+    ReadOnlyMask = Eoln | Boln | Meta,
     Grayed = 4,
     Underline = 8,
     Bold = 16,
@@ -209,7 +209,7 @@ sealed public class Token
     }
 
     /// <summary>
-    /// Clear info, flags, type, and subtype, but not location or eoln bit
+    /// Clear info, flags, type, and subtype, but not location, eoln or meta flags.
     /// </summary>
     public void Clear()
     {

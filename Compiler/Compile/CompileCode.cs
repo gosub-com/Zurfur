@@ -154,36 +154,33 @@ static class CompileCode
     }
 
     static public Assembly GenerateCode(
-        Dictionary<string, SyntaxFile> synFiles,
-        SymbolTable table,
-        Dictionary<SyntaxScope, Symbol> syntaxToSymbol,
-        UseSymbols allFileUses)
+        Dictionary<string, SyntaxFile> syntaxFiles,
+        CompileHeaderOutput header)
     {
         var assembly = new Assembly();
-        assembly.Types.AddOrFind(table.EmptyTuple);
-        assembly.Types.AddOrFind(table.Lookup(SymTypes.Nil)!);
-        assembly.Types.AddOrFind(table.Lookup(SymTypes.Bool)!);
-        assembly.Types.AddOrFind(table.Lookup(SymTypes.Int)!);
-        assembly.Types.AddOrFind(table.Lookup(SymTypes.Float)!);
-        assembly.Types.AddOrFind(table.Lookup(SymTypes.Str)!);
-        assembly.Types.AddOrFind(table.EmptyTuple);
+        assembly.Types.AddOrFind(header.Table.EmptyTuple);
+        assembly.Types.AddOrFind(header.Table.Lookup(SymTypes.Nil)!);
+        assembly.Types.AddOrFind(header.Table.Lookup(SymTypes.Bool)!);
+        assembly.Types.AddOrFind(header.Table.Lookup(SymTypes.Int)!);
+        assembly.Types.AddOrFind(header.Table.Lookup(SymTypes.Float)!);
+        assembly.Types.AddOrFind(header.Table.Lookup(SymTypes.Str)!);
+        assembly.Types.AddOrFind(header.Table.EmptyTuple);
 
         var state = new CompilerState { 
-            Table = table, 
+            Table = header.Table, 
             Assembly = assembly, 
-            Interfaces = new Interfaces(table), 
+            Interfaces = new Interfaces(header.Table), 
         };
-
 
         try
         {
-            foreach (var synFile in synFiles)
+            foreach (var synFile in syntaxFiles)
             {
-                var fileUses = allFileUses.Files[synFile.Key];
+                var fileUses = header.Uses.Files[synFile.Key];
                 foreach (var synFunc in synFile.Value.Functions)
                 {
                     // Get current function
-                    if (!syntaxToSymbol.TryGetValue(synFunc, out var currentFunction))
+                    if (!header.SyntaxToSymbol.TryGetValue(synFunc, out var currentFunction))
                         continue; // Syntax error
                     Debug.Assert(currentFunction.IsFun);
                     GenFunction(state, synFile.Value, synFunc, fileUses, currentFunction);
@@ -1720,7 +1717,13 @@ static class CompileCode
             {
                 ifaceConversion = state.Interfaces.ConvertToInterfaceInfo(state.Table, argType, paramType, typeArgs);
                 if (ifaceConversion.Compatibility == CallCompatible.Compatible)
+                {
+                    // TBD: This is incorrect code generation (we need to generate code in a separate pass)
+                    // It is here temporarily so I can look at the output while working on the interface type system
+                    state.Assembly.AddOpInterface(paramType.Token, ifaceConversion);
+
                     return new(CallCompatible.Compatible, ifaceConversion.TypeArgs, null, ifaceConversion);
+                }
             }
 
             // ----------------------------------------------------------
@@ -1839,7 +1842,13 @@ static class CompileCode
             {
                 var ifaceConversion2 = state.Interfaces.ConvertToInterfaceInfo(state.Table, conversion.funReturnType, paramType, typeArgs);
                 if (ifaceConversion2.Compatibility == CallCompatible.Compatible)
-                    ifaceConversions.Add(ifaceConversion2.TypeArgs);                
+                {
+                    // TBD: This is incorrect code generation (we need to generate code in a separate pass)
+                    // It is here temporarily so I can look at the output while working on the interface type system
+                    state.Assembly.AddOpInterface(paramType.Token, ifaceConversion2);
+
+                    ifaceConversions.Add(ifaceConversion2.TypeArgs);
+                }
             }
 
             if (ifaceConversions.Count == 1)

@@ -10,12 +10,12 @@ use Zurfur[Iterator, Iterable, Log]
 
 // Make first test case pass by adding a syntax error
 fun test_makeError()
-    makeError
+    makeError // ***
 
 // ###
 
 fun test_ufcs(a Str)
-    ("").Log.info
+    ("").Log.info // ***
     Log.info("Hello")
     test_ufcs("hello")
     ("").test_ufcs
@@ -46,32 +46,36 @@ fun takeInterfaceInterface(x TakeInterface) todo
 fun test_noImp1()
     let x TakeConcrete = ImpTakeConcrete()
     takeInterfaceConcrete(ImpTakeConcrete())
-    let y TakeConcrete = ImpNone() // Type doesn't implement interface
+    let y TakeConcrete = ImpNone() // *** Type doesn't implement interface
+
 // ###
     takeInterfaceConcrete(ImpTakeConcrete())
-    takeInterfaceConcrete(ImpNone()) // Type doesn't implement interface
+    takeInterfaceConcrete(ImpNone()) // *** Type doesn't implement interface
+
 // ###
-    let z TakeInterface = ImpTakeConcrete() // Type doesn't implement the interface
+    let z TakeInterface = ImpTakeConcrete() // *** Type doesn't implement the interface
+
 // ###
     takeInterfaceConcrete(ImpTakeConcrete())
-    takeInterfaceInterface(ImpTakeConcrete()) // Type doesn't implement the interface
+    takeInterfaceInterface(ImpTakeConcrete()) // *** Type doesn't implement the interface
+
 // ###
     let a TakeConcrete = ImpTakeConcrete()
     let b TakeConcrete = a
-    let c TakeConcrete2 = a // Interface to interface conversion not supported
+    let c TakeConcrete2 = a // *** Interface to interface conversion not supported
+
 // ###
     takeInterfaceConcrete(ImpTakeConcrete())
     let d TakeConcrete2 = ImpTakeConcrete()
-    takeInterfaceConcrete(d) // Interface to interface conversion not supported
+    takeInterfaceConcrete(d) // *** Interface to interface conversion not supported
     
-
 // ### Cannot infer interface type args
 
 fun takeInterfaceConcreteInfer<T>(x TakeConcrete) todo
 
 fun test_noImpInfer1()
-    takeInterfaceConcreteInfer<Byte>(ImpTakeConcrete()) // Ok
-    takeInterfaceConcreteInfer(ImpTakeConcrete())       // Cannot infer interface type args
+    takeInterfaceConcreteInfer<Byte>(ImpTakeConcrete())
+    takeInterfaceConcreteInfer(ImpTakeConcrete()) // *** Cannot infer interface type args
 
 
 // ### Cannot infer interface type args
@@ -79,8 +83,8 @@ fun test_noImpInfer1()
 fun takeInterfaceInterfaceInfer<T>(x TakeInterface) todo
 
 fun test_noImpInfer2()
-    takeInterfaceInterfaceInfer<Byte>(ImpTakeInterface())   // Ok
-    takeInterfaceInterfaceInfer(ImpTakeInterface())         // Cannot infer interface type args
+    takeInterfaceInterfaceInfer<Byte>(ImpTakeInterface())
+    takeInterfaceInterfaceInfer(ImpTakeInterface()) // *** Cannot infer interface type args
 
 
 // ### Convert concrete types to interface
@@ -116,22 +120,22 @@ fun test_printable()
     test_takePrintable(1)
     test_takePrintable(1.0)
     test_takePrintable("")
-    test_takePrintable(MyCollection<Int>()) // Doesn't implement Printable
+    test_takePrintable(MyCollection<Int>()) // *** Doesn't implement Printable
     
 
 // ### Constraint used properly
 
 fun test_printableFail1<T, Q>(t T, q Q)
 where T Printable
-    q.toStr // toStr not defined in Q
-    t.toStr // ok
+    q.toStr // *** toStr not defined in Q
+    t.toStr
 
 // ### Constraint used properly
 
 fun test_printableFail2<Q, T>(t T, q Q)
 where T Printable
-    q.toStr // toStr not defined in Q
-    t.toStr // ok
+    q.toStr // *** toStr not defined in Q
+    t.toStr
 
 // ### Incompatible parameter types (expecting Int)
 
@@ -147,14 +151,14 @@ type interface TestGlobal2<T>
 
 fun test_Global2<T>(t T)
 where T TestGlobal2<Int>
-    testGlobal2(t)  // Incompatible parameter types (expecting Int, not T)
-    testGlobal2(1)  // Ok
+    testGlobal2(t)  // *** Incompatible parameter types (expecting Int, not T)
+    testGlobal2(1)
 
 // ### Incompatible parameter types (expecting Int)
 
 fun test_Global2a<T>(t T)
 where T TestGlobal2<Int>
-    testGlobal2(1.0)  // Incompatible parameter types (expecting Int)
+    testGlobal2(1.0)  // *** Incompatible parameter types (expecting Int)
 
 
 // ### Lambda return type is checked
@@ -166,21 +170,21 @@ fun test_lambdaCall2()
     lambdaCall(a => 0.0)  // TBD: Should fail, return is Int
 
     // Make this test case pass (until we can fix the above error)
-    MakeTestCaseFail
+    MakeTestCaseFail // ***
     
 // ### Can't infer type
 
 fun test_newInfer()
-    @a = MyCollection() // Can't infer type
+    @a = MyCollection() // *** Can't infer type
 
 // ### Basic interface works
 
 fun test_newInfer2()
-    @a = MyCollection<Int>()    // ok
-    @b = a.asIterator          // ok
-    @c = b.next()               // ok
-    @d ?Int = c                 // ok
-    @e Int = c                  // Can't assign type
+    @a = MyCollection<Int>()
+    @b = a.asIterator
+    @c = b.next()
+    @d ?Int = c
+    @e Int = c                  // *** Can't assign type
 
 // ### Type doesn't implement the interface because
 
@@ -188,33 +192,33 @@ fun test_noImplementInterface1()
     @myCollection = MyCollection<Int>()
     @ok1 = myCollection.map<Int,Str>(i => i.toStr).toList<Str>     // Type arg given
     @ok2 = myCollection.map<Int,Str>(i => i.toStr).toList          // Infer toList
-    @fail = myCollection.map<Int,Str>(i => i.toStr).toList<Int>    // Error on toList
+    @fail = myCollection.map<Int,Str>(i => i.toStr).toList<Int>    // *** Error on toList
 
 // ### Type doesn't implement the interface
 
 fun test_noImplementInterface2()
     @myCollectionNot = MyCollectionNot<Int>()
-    @myCollectionNotMapIter = myCollectionNot.map<Int,Str>(i => i.toStr)
+    @myCollectionNotMapIter = myCollectionNot.map<Int,Str>(i => i.toStr) // ***
 
 // ### Type doesn't implement the interface because of explicit type
 
 fun test_returnFail()
     @ok1 = List<Int>().reduce<Int>(|item1, item2| => item1 + item2)
     @ok2 = List<Int>().reduce(|item1, item2| => item1 + item2)
-    @fail = List<Int>().reduce<Float>(|item1, item2| => item1 + item2)
+    @fail = List<Int>().reduce<Float>(|item1, item2| => item1 + item2) // ***
     @ok3 = List<Int>().reduce(|item1, item2| => item1 + item2)
 
 // ### Type doesn't implement interface because of reciever parameter
 
 fun test_reduceConcrete()
     @ok = List<Int>().reduceInt(|item1, item2| => item1 + item2)
-    @fail = List<Float>().reduceInt(|item1, item2| => item1 + item2)
+    @fail = List<Float>().reduceInt(|item1, item2| => item1 + item2) // ***
 
 // ### Can't have type arguments
 
 fun test_reduceConcrete2()
     @ok = List<Int>().reduceInt(|item1, item2| => item1 + item2)
-    @fail = List<Int>().reduceInt<Float>(|item1, item2| => item1 + item2)
+    @fail = List<Int>().reduceInt<Float>(|item1, item2| => item1 + item2) // ***
     
 // ### Ambiguous type inference on interface function
 
@@ -230,21 +234,22 @@ fun f(my AmbiguousTest, b Float) todo
 fun takeAmbiguous<T>(i AmbiguousInterface<T>) todo
 
 fun test_ambiguousInterface1()
-    takeAmbiguous<Int>(AmbiguousTest())     // Ok
-    takeAmbiguous<Float>(AmbiguousTest())   // Ok
-    takeAmbiguous(AmbiguousTest())          // Type inference is ambiguous for this interface
+    takeAmbiguous<Int>(AmbiguousTest())
+    takeAmbiguous<Float>(AmbiguousTest())
+    takeAmbiguous(AmbiguousTest()) // *** Type inference is ambiguous for this interface
 
     
 // ### Type doesn't implement the interface
 
 fun test_noImp7()
-    takeAmbiguous<Int>(AmbiguousTest())     // Ok
-    takeAmbiguous<Float>(AmbiguousTest())   // Ok
-    takeAmbiguous<Byte>(AmbiguousTest())    // Type doesn't implement the interface
+    takeAmbiguous<Int>(AmbiguousTest())
+    takeAmbiguous<Float>(AmbiguousTest())
+    takeAmbiguous<Byte>(AmbiguousTest()) // *** Type doesn't implement the interface
+
 // ###
-    @a AmbiguousInterface<Int> = AmbiguousTest()    // Ok
-    @b AmbiguousInterface<Float> = AmbiguousTest()  // Ok
-    @c AmbiguousInterface<Byte> = AmbiguousTest()   // Type doesn't implement the interface
+    @a AmbiguousInterface<Int> = AmbiguousTest()
+    @b AmbiguousInterface<Float> = AmbiguousTest()
+    @c AmbiguousInterface<Byte> = AmbiguousTest()   // *** Type doesn't implement the interface
 
 // ### Ambiguous type inference on interface function parameter
 
@@ -262,7 +267,7 @@ fun takeAmbiguousFunParam<T>(i AmbiguousInterfaceFunParam<T>) todo
 
 fun test_ambiguousInterfaceParam()
     takeAmbiguousFunParam<Int>(AmbiguousTestFunParam())     // Ok: f(Int,Int) is implemented
-    takeAmbiguousFunParam<Float>(AmbiguousTestFunParam())   // Fail: f(Float,Float) not implemented
+    takeAmbiguousFunParam<Float>(AmbiguousTestFunParam())   // *** Fail: f(Float,Float) not implemented
     takeAmbiguousFunParam(AmbiguousTestFunParam())          // Ok: f(Float,Float) not implemented
     
 
@@ -271,7 +276,7 @@ fun test_ambiguousInterfaceParam()
 fun toStr(my U16) Str todo
 
 fun test_ambiguousFunCall()
-    U16().toStr
+    U16().toStr // ***
 
 
 // ### Ambiguous implicit conversion
@@ -286,7 +291,7 @@ fun test_ambiguousImplicit()
     var b *Int = nil
     takePointerAmb(a)
     takePointerAmb(b)
-    takePointerAmb(nil)
+    takePointerAmb(nil) // ***
 
 
 // ### Test static
@@ -304,22 +309,29 @@ fun test_static()
     let a Int = StaticTest.staticField
     let b Int = StaticTest.staticFun
     let c = StaticTest.staticFun
-    let d = StaticTest.normalField // Static mismatch
+    let d = StaticTest.normalField // *** Static mismatch
+
 // ###
-    let e = StaticTest.normalFun // Wrong number of parameters
+    let e = StaticTest.normalFun // *** Wrong number of parameters
     let f = StaticTest.normalFun(StaticTest()) // Non static function call
+
 // ###
-    let g = StaticTest().staticFun // Non static function call
+    let g = StaticTest().staticFun // *** Non static function call
+
 // ###
-    let h = StaticTest().staticField // Non static function call
+    let h = StaticTest().staticField // *** Non static function call
+
 // ###
-    let i = normalFun(StaticTest()) // Undefined global function
+    let i = normalFun(StaticTest()) // *** Undefined global function
+
 // ###
-    let j = StaticTest.ambigFun(StaticTest()) // TBD FAIL: Should select the correct one
+    let j = StaticTest.ambigFun(StaticTest()) // *** TBD FAIL: Should select the correct one
     let k = ambigFun(StaticTest()) // TBD FAIL: This should be ambiguous
+
 // ###
-    let l = StaticTest().ambigFun // This is ambiguous
+    let l = StaticTest().ambigFun // *** This is ambiguous
+
 // ###
-    let m = AATestFails.ambigFun(StaticTest()) // TBD FAIL: This should work
+    let m = AATestFails.ambigFun(StaticTest()) // *** TBD FAIL: This should work
 
 // ### END OF FILE

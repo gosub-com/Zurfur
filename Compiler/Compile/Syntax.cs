@@ -15,6 +15,7 @@ record class SyntaxFile
     public List<SyntaxUsing> Using { get; init; } = new();
     public Dictionary<string, SyntaxModule> Modules { get; init; } = new();
     public List<SyntaxType> Types { get; init; } = new();
+    public List<SyntaxBind> Binds { get; init; } = new();
     public List<SyntaxFunc> Functions { get; init; }  = new();
     public List<SyntaxField> Fields { get; init; } = new();
 }
@@ -73,7 +74,7 @@ record class SyntaxModule : SyntaxScope
 }
 
 /// <summary>
-/// Includes struct, enum, interface, impl
+/// Includes struct, enum, interface, etc.
 /// </summary>
 record class SyntaxType : SyntaxScope
 {
@@ -88,6 +89,22 @@ record class SyntaxType : SyntaxScope
 }
 
 record class SyntaxConstraint(Token? TypeName, SyntaxExpr[] TypeConstraints);
+
+/// <summary>
+/// Explicit interface implementation: implement&lt;A&gt; MyInterface&lt;B&gt; for MyType&lt;C&gt; where WHERE_CLAUSE
+/// </summary>
+record class SyntaxBind : SyntaxScope
+{
+    public SyntaxBind(Token keyword, Token name)
+        : base(keyword, name)
+    {
+    }
+
+    public SyntaxExpr? GenericParams { get; init; }     // <A> - type params on implement
+    public SyntaxExpr? Type { get; init; }        // MyType<C>
+    public SyntaxExpr? Interface { get; init; }      // MyInterface<B>
+    public SyntaxConstraint[] Constraints { get; init; } = [];
+}
 
 record class SyntaxField : SyntaxScope
 {

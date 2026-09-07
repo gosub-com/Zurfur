@@ -18,6 +18,8 @@ Documentation:
 * [Multi-Threading](Doc/multi-threading.md): Why Zurfur starts single-threaded and
   how true multi-threading will be added in the future.
 * [Runtime Model](Doc/runtime-model.md): How the first version of Zurfur will manage memory.
+* [Interfaces](Doc/interfaces.md): Zurfur uses a hybrid nominal interface system that bridges the
+  gap between Go's structural flexibility and Rust/Swift's explicit safety. 
 
 
 I'm also working on [Zurfur Gui](https://github.com/gosub-com/ZurfurGui), which
@@ -70,6 +72,11 @@ review the [Ownership Model](Doc/ownership-model.md)
 | box | A `box` stores its data on the heap.  It can be used at the type declaration `type box data MyType` or at the variable declaration `List<box MyType>`.
 | ref | A `ref` type is the only type that can contain a reference.  It is restricted to being owned by the stack.
 
+### Inheritance is not Supported
+
+Modern programming languages like Go and Rust have proven that classical implementation
+inheritance is not necessary for a language to be highly expressive and successful.  
+
 
 ### Basic Types
 The ones we all know and love:
@@ -90,25 +97,6 @@ The ones we all know and love:
 
 All types have a compiler generated `ro` counterpart which can be copied very quickly since cloning
 them is just copying a reference without dynamic allocation.
-
-## Interfaces
-
-Interfaces use Golang style structural typing.  For now, interface tables are created at compile time,
-based only on the functions defined in the same module as the type.  This restriction might be removed
-in the future, allowing interfaces to be satisfied by functions defined at the call site.
-
-Interface to interface conversion is a form of reflection, and will not be supported except via reflection.
-But, in that case, the result could be different than expected since the interface might have been implemented
-in code outside the module the type was defined in.
-
-Interfaces will support default implementations.  Interfaces will not support functions with generic parameters.
-
-## Inheritance is not Supported
-
-Modules and extension methods are used to organize code. Interfaces and lambdas are used for dynamic
-dispatch.  Unions (i.e. sum types) are used for small well defined hierarchies.  Type and interface
-embedding can be used to "include" a base type in another type using composition.  Golang doesn’t need
-inheritance, and neither does Zurfur.
 
 ## Syntax 
 
@@ -246,33 +234,25 @@ with C and gives an error where not compatible:
 
 |Operators | Notes
 | :--- | :---
-|`x.y`  `f<type>(x)` `x.(type)` `a[i]` | Primary.
-|- ~ & `ref` `not` `sizeof` `typeof` `unsafe` | Unary.  The `~` operator is both xor and unary
-complement, same as `^` in Golang.
-|@| Capture the result of an expression into a variable.
-|?| Use default for `Maybe`
-|!| For `Result` and `Maybe`, generate value or return an error. This operator passes an error up
-to the caller when a `Result` has an `Error`. For example `while stream.read(buffer)!@length != 0`
-passes an error up to the caller, or captures the value returned by `read` into the new variable `length`.
-|!!!| For `Result` and `Maybe`, generate value or panic.
+|`.` `<T>` `.(T)` `[I]`  | **Primary:** Field access: `x.y`, Type argument: `f<type>(x)`, Type assertion: `x.(type)`, Index operator: `a[i]`
+|`-` `~` `&` `not` `sizeof` `typeof` `unsafe` | **Unary:** The `~` operator is both xor and unary complement, same as `^` in Golang.
+|`!`| Generate a value or short-circuit return an error for `Result` and `Maybe` when contained inside a function returning `Result` or `Maybe`. 
+|`?`| Use default for `Maybe`, similar to `??` in C#.
+|`@`| Capture the result of a sub-expression: `let a = fun1(x)@b + fun2(y)` captures the result of `fun1(x)` into `b`
+|`!!!`| For `Result` and `Maybe`, generate value or panic.
 |`is` `is not` `as` | Type conversion and comparison
-|<< >>| Bitwise shift (can't mix arithmetic and bit operators, **TBD:** always require parentheses)
-|* / % & | Multiply, divide, modulus, and bitwise *AND* (can't mix arithmetic and bit operators)
-|~| Bitwise *XOR* (can't mix with arithmetic operators)
-|+ - &#124; | Add, bitwise *OR* (can't mix arithmetic and bit operators)
-|.. ..+| Range (Low..High) and range count (Low..+Count).  Inclusive of low, exclusive of high. 
-The range operator `..` takes two `Int`s and makes a `Range` which is a `type Range {high Int; low Int}`.
-The `..+` operator also makes a range, but the second parameter is a count (`high = low + count`).
-|== != < <= > >= `in` `not in`| Operator `==` does not default to object comparison and only works
-when it is defined by the given type.  Comparisons are not associative, so `a == b == c` is illegal.
+|`<<` `>>`| Bitwise shift (can't mix arithmetic and bit operators, **TBD:** always require parentheses)
+|`*` `/` `%` `&` | Multiply, divide, modulus, and bitwise *AND* (can't mix arithmetic and bit operators)
+|`~`| Bitwise *XOR* (can't mix with arithmetic operators)
+|`+` `-` `|` | Add, bitwise *OR* (can't mix arithmetic and bit operators)
+|`..` `..+`| Range (Low..High) and range count (Low..+Count). Inclusive of low, exclusive of high. The range operator `..` takes two `Int`s and makes a `Range` which is a `type Range {high Int; low Int}`. The `..+` operator also makes a range, but the second parameter is a count (`high = low + count`).
+|`==` `!=` `<` `<=` `>` `>=` `in` `not in`| Operator `==` does not default to object comparison and only works when it is defined by the given type. Comparisons are not associative, so `a == b == c` is illegal.
 |`and`| Conditional *and*, short circuit
 |`or`| Conditional *or*, short circuit
-|`ife a : b : c`| If expression, ***TBD:** Syntax?
-|=>| Lambda
-|key:value| Key value pair, only allowed inside `()`, `[]` or where expected.
-|,| The comma is a separator and not an expression.
-|= += -= *= /= %= &= |= ~= <<= >>=| Assignment is a statement, so expressions
-`while (a = count) < 20` are illegal. In this case, `while count@a < 20`.
+|`=>`| Lambda
+|`key:value`| Key value pair, only allowed inside `()`, `[]` or where expected.
+|`,`| The comma is a separator and not an expression.
+|`=` `+=` `-=` `*=` `/=` `%=` `&=` `|=` `~=` `<<=` `>>=` | Assignment is a statement, so expressions `while (a = count) < 20` are illegal. The `@` operator can be used to capture a variable like this: `while count @ a < 20`.
 
 
 #### Operator Overloading

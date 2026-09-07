@@ -123,20 +123,20 @@ public class Assembly
     /// </summary>
     public void Print(AsTrace tracer, List<string> sb, List<int>? lineNumbers = null)
     {
-        // Print code
-        sb.Add("code:");
-        PrintCode(sb, tracer, lineNumbers);
-
-        // Print calls
+        // Print strings
         sb.Add("");
-        sb.Add("calls:");
+        sb.Add("Strings:");
         var index = 0;
-        foreach (var call in Functions)
-            sb.Add($"    {index++} {call}");
+        foreach (var str in Strings)
+            sb.Add($"    {index++} \"{JsonEncodedText.Encode(str)}\"");
+
+        sb.Add("");
+        sb.Add("Translated:");
+        sb.Add("    tbd...");
 
         // Print types
         sb.Add("");
-        sb.Add("types:");
+        sb.Add("Types:");
         index = 0;
         foreach (var type in Types)
             sb.Add($"    {index++} {type}");
@@ -144,7 +144,7 @@ public class Assembly
         // Print interfaces
         index = 0;
         sb.Add("");
-        sb.Add("interfaces:");
+        sb.Add("Interfaces:");
         foreach (var iface in Interfaces.OrderBy(s => s.Name))
         {
             sb.Add($"    {index++} {iface}");
@@ -153,16 +153,17 @@ public class Assembly
                 sb.Add($"        {j++} {func}");
         }
 
-        // Print strings
+        // Print calls
         sb.Add("");
-        sb.Add("strings:");
+        sb.Add("Calls:");
         index = 0;
-        foreach (var str in Strings)
-            sb.Add($"    {index++} \"{JsonEncodedText.Encode(str)}\"");
+        foreach (var call in Functions)
+            sb.Add($"    {index++} {call}");
 
+        // Print code
         sb.Add("");
-        sb.Add("translate:");
-        sb.Add("    tbd...");
+        sb.Add("Code:");
+        PrintCode(sb, tracer, lineNumbers);
     }
 
 

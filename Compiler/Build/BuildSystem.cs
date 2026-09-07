@@ -47,15 +47,13 @@ public class BuildSystem
     List<string> _parseQueue = new List<string>();
 
     List<TaskCompletionSource<bool>> _compileDoneTasks = new List<TaskCompletionSource<bool>>();
-    List<string> _report = new List<string>();
-    string _headerJson = "";
-    List<string> _codeJson = [];
+
+    List<string> _outputFileReport = [];
+    List<string> _outputFileCode = [];
 
 
-    public string OutputDir => Path.Combine(OutputBaseDir, OUTPUT_DIR);
     public string OutputFileReport => Path.Combine(OutputBaseDir, OUTPUT_DIR, "BuildReport.txt");
-    public string OutputFileHeader => Path.Combine(OutputBaseDir, OUTPUT_DIR, "Header.json");
-    public string OutputFileHeaderCode => Path.Combine(OutputBaseDir, OUTPUT_DIR, "Code.zil");
+    public string OutputFileCode => Path.Combine(OutputBaseDir, OUTPUT_DIR, "Code.zil");
 
 
     public BuildSystem(FileSystemInterface fileSystem)
@@ -165,17 +163,14 @@ public class BuildSystem
     public async Task GeneratePackage()
     {
         await Compile();
-        await _fileSystem.WriteAllLinesAsync(OutputFileReport, _report);
-        await _fileSystem.WriteAllLinesAsync(OutputFileHeader, [_headerJson]);
-        await _fileSystem.WriteAllLinesAsync(OutputFileHeaderCode, _codeJson);
+        await _fileSystem.WriteAllLinesAsync(OutputFileReport, _outputFileReport);
+        await _fileSystem.WriteAllLinesAsync(OutputFileCode, _outputFileCode);
 
         // TBD: This is not so good
         _packageFiles.Remove(OutputFileReport);
-        _packageFiles.Remove(OutputFileHeader);
-        _packageFiles.Remove(OutputFileHeaderCode);
+        _packageFiles.Remove(OutputFileCode);
         LoadFile(OutputFileReport);
-        LoadFile(OutputFileHeader);
-        LoadFile(OutputFileHeaderCode);
+        LoadFile(OutputFileCode);
     }
 
 
@@ -372,19 +367,19 @@ public class BuildSystem
         var timer = Stopwatch.StartNew();
 
         // Generate Header for each file (only ".zurf")
-        var zurfFiles = new Dictionary<string, SyntaxFile>();
+        var files = new Dictionary<string, SyntaxFile>();
         foreach (var fi in _packageFiles)
         {
             if (fi.Value.Extension == ".zurf" && fi.Value.Parser != null)
             {
                 // Reset all the metadata back to the post parse state (before compiling)
                 fi.Value.Parser.ResetMetadata();
-                zurfFiles[fi.Key] = fi.Value.Parser.Syntax;
+                files[fi.Key] = fi.Value.Parser.Syntax;
             }
         }
 
-        var noVerify = zurfFiles.Values.Any(f => f.Pragmas.ContainsKey("NoVerify"));
-        var noCompilerChecks = zurfFiles.Values.Any(f => f.Pragmas.ContainsKey("NoCompilerChecks"));
+        var noVerify = files.Values.Any(f => f.Pragmas.ContainsKey("NoVerify"));
+        var noCompilerChecks = files.Values.Any(f => f.Pragmas.ContainsKey("NoCompilerChecks"));
 
         var timeClearTokens = timer.ElapsedMilliseconds;
         timer.Restart();
@@ -392,9 +387,9 @@ public class BuildSystem
 
         // TBD: This needs to move to a background thread, but it can't
         // until we clone everything (Lexer, parse tree, etc.)
-        var zilHeader = CompileHeader.GenerateHeader(zurfFiles, noCompilerChecks);
+        var header = CompileHeader.GenerateHeader(files, noCompilerChecks);
         if (!noVerify)
-            VerifyHeader.Verify(zilHeader.Table);
+            VerifyHeader.Verify(header.Table);
         var timeGenHeader = timer.ElapsedMilliseconds;
 
         FileUpdate?.Invoke(this, new UpdatedEventArgs(""));
@@ -408,10 +403,10 @@ public class BuildSystem
         await ThreadingModelAwait();
 
         timer.Restart();
-        var assembly = CompileCode.GenerateCode(zurfFiles, zilHeader.Table, zilHeader.SyntaxToSymbol, zilHeader.Uses);
+        var assembly = CompileCode.GenerateCode(files, header);
 
         if (!noVerify)
-            VerifyCode.Verify(assembly, zilHeader.Table);
+            VerifyCode.Verify(assembly, header.Table);
         var timeGenCode = timer.ElapsedMilliseconds;
 
 
@@ -420,29 +415,15 @@ public class BuildSystem
         var lineNumbers = new List<int>();
         await DoCpuWork(() =>
         {
-            // Package Header
-            var package = new PackageJson();
-            package.BuildDate = DateTime.Now.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
-            package.Symbols = zilHeader.Table.Save(false);
-
-            try
-            {
-                _headerJson = JsonSerializer.Serialize(package);
-            }
-            catch
-            {
-                _headerJson = "JSON serialization not supported in the browser";
-            }
-
             // Package Code
             var codeLines = new List<string>();
-            var tracer = new AsTrace(assembly, zilHeader.Table);
+            var tracer = new AsTrace(assembly, header.Table);
             assembly.Print(tracer, codeLines, lineNumbers);
-            _codeJson = codeLines;
+            _outputFileCode = codeLines;
         });
 
         // Show verification errors in zil code
-        var codeLexer = GetLexer(OutputFileHeaderCode);
+        var codeLexer = GetLexer(OutputFileCode);
         if (codeLexer != null)
         {
             foreach (var error in assembly.Errors)
@@ -463,19 +444,19 @@ public class BuildSystem
 
         var timeGenPackage = timer.ElapsedMilliseconds;
 
-        _report.Clear();
-        _report.Add("Compile Times:");
-        _report.Add($"    DATE: {DateTime.Now.ToString("s").Replace("T", " ")}");
-        _report.Add($"    Lex and parse changed files: {_lexAndParseTime.TotalSeconds:F3} s");
-        _report.Add($"    Clear tokens: {timeClearTokens} ms");
-        _report.Add($"    Compile/verify header: {timeGenHeader} ms");
-        _report.Add($"    Compile/verify code: {timeGenCode} ms");
-        _report.Add($"    Generate header & code: {timeGenPackage} ms");
-        _report.Add($"    Total: {timerTotal.Elapsed.TotalSeconds + _lexAndParseTime.TotalSeconds:F3} s");
-        _report.Add($"    Memory: {(double)GC.GetTotalMemory(true) / 1000000:F2} Mb");
-        _report.Add("");
+        _outputFileReport.Clear();
+        _outputFileReport.Add("Compile Times:");
+        _outputFileReport.Add($"    DATE: {DateTime.Now.ToString("s").Replace("T", " ")}");
+        _outputFileReport.Add($"    Lex and parse changed files: {_lexAndParseTime.TotalSeconds:F3} s");
+        _outputFileReport.Add($"    Clear tokens: {timeClearTokens} ms");
+        _outputFileReport.Add($"    Compile/verify header: {timeGenHeader} ms");
+        _outputFileReport.Add($"    Compile/verify code: {timeGenCode} ms");
+        _outputFileReport.Add($"    Generate header & code: {timeGenPackage} ms");
+        _outputFileReport.Add($"    Total: {timerTotal.Elapsed.TotalSeconds + _lexAndParseTime.TotalSeconds:F3} s");
+        _outputFileReport.Add($"    Memory: {(double)GC.GetTotalMemory(true) / 1000000:F2} Mb");
+        _outputFileReport.Add("");
 
-        ZilReport.GenerateReport(_report, zilHeader.Table,
+        ZilReport.GenerateReport(_outputFileReport, header.Table,
             _packageFiles.Values.Select(a => a.Lexer).Where(a => a != null).ToArray());
 
         UpdateCompileStatus();

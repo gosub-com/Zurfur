@@ -68,7 +68,7 @@ class ParseZurf
 
     // Add semicolons to all lines, except for:
     static WordSet s_continuationEnd = new("[ ( ,");
-    static WordSet s_continuationNoBegin = new("} namespace mod type use pragma pub fun afun " 
+    static WordSet s_continuationNoBegin = new("} namespace mod type bind use pragma pub fun afun "
         + "get set if while for return ret break continue else");
     static WordSet s_continuationBegin = new("] ) , . + - * / % | & || && and or not "
                         + "== != : ? ?? > << <= < => -> .. :: !== ===  is in as has "
@@ -76,7 +76,7 @@ class ParseZurf
 
     static WordSet s_reservedWords = new("as has break case catch const "
         + "continue do then else elif todo extern nil true false defer use "
-        + "finally for goto go if ife in is mod app include "
+        + "finally for goto go if ife in is mod app include impl bind "
         + "new out pub public private priv readonly ro ref aref mut imut "
         + "return sizeof struct switch throw try nop implicit "
         + "typeof type unsafe static while dowhile scope loop "
@@ -614,7 +614,7 @@ class ParseZurf
                 SetTokenType(_token, TokenType.ReservedControl);
                 Accept();
                 _syntax.Using.Add(ParseUsingStatement());
-                if (_syntax.Types.Count != 0 || _syntax.Functions.Count != 0 || _syntax.Fields.Count != 0)
+                if (_syntax.Types.Count != 0 || _syntax.Binds.Count != 0 || _syntax.Functions.Count != 0 || _syntax.Fields.Count != 0)
                     RejectToken(keyword, "'use' statement must come before any types, fields, or functions are defined");
                 qualifiers.Clear();
                 break;
@@ -623,6 +623,14 @@ class ParseZurf
                 SetTokenType(_token, TokenType.ReservedControl);
                 qualifiers.Add(Accept());
                 ParseTypeScope(keyword, qualifiers);
+                qualifiers.Clear();
+                isCompound = true;
+                break;
+
+            case "bind":
+                SetTokenType(_token, TokenType.ReservedControl);
+                qualifiers.Add(Accept());
+                ParseBindScope(keyword, qualifiers);
                 qualifiers.Clear();
                 isCompound = true;
                 break;
@@ -833,7 +841,68 @@ class ParseZurf
         _scopeStack = oldScopeStack;
     }
 
-    private void ParseTypeScopeStatements(SyntaxType synType, List<Token> qualifiers2)
+    void ParseBindScope(Token keyword, List<Token> qualifiers)
+    {
+        var comments = _comments.ToString();
+        _comments.Clear();
+
+        // optional <A>
+        var genericParams = ParseTypeParameters();  
+
+        // Parse concrete type: MyType<C>
+        if (!BeginsType())
+        {
+            RejectToken(_token, "Expecting a type name");
+            return;
+        }
+        var bindType = ParseType();
+
+        // 'as' keyword
+        if (!AcceptMatchOrReject("to"))
+            return;
+
+        SetTokenType(_prevToken, TokenType.ReservedControl);
+
+        // Parse interface type: MyInterface<B>
+        if (!BeginsType())
+        {
+            RejectToken(_token, "Expecting an interface type name");
+            return;
+        }
+        var bindInterface = ParseType();
+
+
+        var constraints = ParseConstraints(keyword);
+
+        var synImpl = new SyntaxBind(keyword, bindInterface.Token)
+        {
+            Parent = _scopeStack.Count == 0 ? null : _scopeStack.Last(),
+            Comments = comments,
+            Qualifiers = qualifiers.ToArray(),
+            GenericParams = genericParams,
+            Type = bindType,
+            Interface = bindInterface,
+            Constraints = constraints
+        };
+
+        _syntax.Binds.Add(synImpl);
+
+        // One liner?
+        if (_token != "{")
+            return;
+
+        // Push new scope
+        var oldScopeStack = _scopeStack;
+        _scopeStack = [.. oldScopeStack, synImpl];
+
+        var qualifiers2 = new List<Token>();
+        ParseTypeScopeStatements(synImpl, qualifiers2);
+
+        // Restore old scope
+        _scopeStack = oldScopeStack;
+    }
+
+    private void ParseTypeScopeStatements(SyntaxScope synType, List<Token> qualifiers2)
     {
         if (ExpectStartOfScope())
         {
@@ -846,7 +915,7 @@ class ParseZurf
         }
     }
 
-    private void ParseTypeScopeStatement(SyntaxType parent, List<Token> qualifiers)
+    private void ParseTypeScopeStatement(SyntaxScope parent, List<Token> qualifiers)
     {
         // Read attributes and qualifiers
         ParseAttributes(qualifiers);
@@ -2232,7 +2301,7 @@ class ParseZurf
     {
         if (AcceptMatch(match))
         {
-            SetTokenType(_prevToken, TokenType.Reserved);
+            SetTokenType(_prevToken, TokenType.ReservedControl);
             return true;
         }
         if (!_token.Meta || _tokenName != ";")
@@ -2247,7 +2316,7 @@ class ParseZurf
         Accept();
         Accept();
         Debug.Assert(_prevToken.Name == match);
-        SetTokenType(_prevToken, TokenType.Reserved);
+        SetTokenType(_prevToken, TokenType.ReservedControl);
         return true;
     }
 

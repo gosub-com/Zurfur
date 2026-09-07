@@ -30,7 +30,7 @@ class UseSymbols
     public Dictionary<string, UseSymbolsFile> Files = new();
 }
 
-class CompilerHeaderOutput
+class CompileHeaderOutput
 {
     public UseSymbols Uses = new();
     public SymbolTable Table = new();
@@ -43,7 +43,7 @@ static class CompileHeader
     const string ZURFUR_PRELUDE = "Void Bool I8 Byte I16 U16 I32 U32 Int U64 F32 Float Str "
         + "Box Nil Maybe List Map Array Buffer Span assert _for";
     
-    static public CompilerHeaderOutput GenerateHeader(
+    static public CompileHeaderOutput GenerateHeader(
         Dictionary<string, SyntaxFile> syntaxFiles,
         bool noCompilerChecks)
     {
@@ -64,7 +64,7 @@ static class CompileHeader
         table.GenerateLookup();
 
         // Re-process use statements to retrieve functions
-        return new CompilerHeaderOutput { Uses = ProcessUseStatements(true), Table = table, SyntaxToSymbol = syntaxToSymbol};
+        return new CompileHeaderOutput { Uses = ProcessUseStatements(true), Table = table, SyntaxToSymbol = syntaxToSymbol};
 
         void AddModules()
         {

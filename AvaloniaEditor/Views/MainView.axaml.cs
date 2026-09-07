@@ -181,8 +181,7 @@ public partial class MainView : UserControl
 
         // projectTree.RefreshFiles();
         List<string> files =  [
-            _buildPackage.OutputFileHeader,
-            _buildPackage.OutputFileHeaderCode,
+            _buildPackage.OutputFileCode,
             _buildPackage.OutputFileReport,
         ];
         foreach (var name in files)

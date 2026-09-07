@@ -89,6 +89,13 @@ class ParseZurfCheck
                 m_parser.RejectToken(keyword, "Types may not be nested inside an enum");
         }
 
+        foreach (var impl in unit.Binds)
+        {
+            LastToken = impl.Keyword;
+            if (impl.Parent == null)
+                m_parser.RejectToken(impl.Keyword, "The module name must be defined before the " + impl.Keyword);
+        }
+
         // TBD: The setter must not be separated from the getter
         //      by a field or type (this only checks for methods)
         SyntaxFunc prevProp = null;
@@ -305,6 +312,13 @@ class ParseZurfCheck
         {
             if (aClass.Alias != null)
                 ShowParseTree(aClass.Alias);
+        }
+        foreach (var impl in unit.Binds)
+        {
+            if (impl.Interface != null)
+                ShowParseTree(impl.Interface);
+            if (impl.Type != null)
+                ShowParseTree(impl.Type);
         }
         foreach (var func in unit.Functions)
         {

@@ -101,9 +101,6 @@ public enum SymQualifiers
 }
 
 /// <summary>
-/// NOTE: This data structure is all internal to the compiler.
-/// The public definitions are contained in PackageDefinitions.cs.
-/// 
 /// TBD: Storing parameters and returns as children in the function is
 ///      redundant since they are are stored as named tuples.  Refactor
 ///      to remove the redundant child parameters from functions.
