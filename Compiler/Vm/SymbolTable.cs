@@ -59,6 +59,13 @@ public enum CallCompatible
 /// <summary>
 /// The master symbol table is a tree holding modules and types
 /// at the top level, and functions, and parameters at lower levels.
+/// 
+/// Root contains all symbols collected while compiling the header.
+/// After the header is compiled, the table should remain unchanged.
+/// Use GenerateTypeDefTable to create a lookup table for all modules, types, and functions.
+/// 
+/// SpecializedSymbols is the table containing all specialized types encountered while compiling
+/// the header or code.
 /// </summary>
 public class SymbolTable
 {
@@ -66,11 +73,6 @@ public class SymbolTable
 
     // TBD: Move to compiler options class, including pragmas and command line, etc.
     public bool NoCompilerChecks;
-
-    /// <summary>
-    /// Lookup table for concrete types
-    /// </summary>
-    Dictionary<string, Symbol> _lookup = new();
 
     /// <summary>
     /// Lookup table for specialized types, excluding tuples
@@ -100,6 +102,27 @@ public class SymbolTable
     /// The unresolved type '?'
     /// </summary>
     public Symbol Unresolved { get; private set; }
+
+
+    // Known symbols
+    public Symbol? SymbolRawPointer { get; private set; }
+    public Symbol? SymbolRef { get; private set; }
+    public Symbol? SymbolPointer { get; private set; }
+    public Symbol? SymbolNil { get; private set; }
+    public Symbol? SymbolMaybe { get; private set; }
+    public Symbol? SymbolResult { get; private set; }
+    public Symbol? SymbolInt { get; private set; }
+    public Symbol? SymbolU64 { get; private set; }
+    public Symbol? SymbolI32 { get; private set; }
+    public Symbol? SymbolU32 { get; private set; }
+    public Symbol? SymbolStr { get; private set; }
+    public Symbol? SymbolBool { get; private set; }
+    public Symbol? SymbolByte { get; private set; }
+    public Symbol? SymbolFloat { get; private set; }
+    public Symbol? SymbolF32 { get; private set; }
+    public Symbol? SymbolSpan { get; private set; }
+
+
     public Symbol []CreateUnresolvedArray(int count)
     {
         if (count == 0)
@@ -120,56 +143,42 @@ public class SymbolTable
         _specializedTypes["()"] = EmptyTuple;
 
         // The lambda<T> has a type of T, which is a function tuple
-        LambdaType = new Symbol(SymKind.Type, _genericTupleHolder, "", null, "$lambda");
-        LambdaType.Type = GetGenericParam(0);
-        LambdaType.GenericParamSymbols = [new Symbol(SymKind.TypeParam, LambdaType, "", null, "T")];
+        LambdaType = new Symbol(SymKind.Type, _genericTupleHolder, "", null, "$lambda")
+        {
+            Type = GetGenericParam(0),
+        };
+        AddOrReject(new Symbol(SymKind.TypeParam, LambdaType, "", null, "T"));
+        LambdaType.FinalizeFullName();
     }
 
 
     /// <summary>
-    /// Generates a lookup table, excluding specialized types,
-    /// parameters, and locals.  Must be called before using `Lookup`
+    /// Generates a TypeDef lookup table, excluding parameters, locals, and fields. 
     /// </summary>
-    public void GenerateLookup()
+    public Dictionary<string, Symbol> GenerateTypeDefTable()
     {
-        _lookup.Clear();
+        var _lookup = new Dictionary<string, Symbol>();
         foreach (var s in Root.ChildrenRecurse())
         {
-            if (s.IsTypeParam || s.IsFunParam || s.IsLocal)
-                continue;
+            // Should never end up in the global symbol table
+            Debug.Assert(!s.IsLocal); 
             Debug.Assert(!s.IsSpecialized);
+
+            // Don't need to look these up, and they should never have children
+            if (s.IsTypeParam || s.IsFunParam || s.IsLocal || s.IsField)
+            {
+                Debug.Assert(s.ChildrenCount == 0);
+                continue;
+            }
             var fullName = s.FullName;
             Debug.Assert(!_lookup.ContainsKey(fullName));
             _lookup[fullName] = s;
         }
+        return _lookup;
     }
 
-    /// <summary>
-    /// Lookup a symbol, including modules, types, specialized types,
-    /// fields, and methods.  Excluding parameters and locals.
-    /// Call `GenerateLookup` before calling this.
-    /// Returns NULL if symbol doesn't exist.
-    /// </summary>
-    public Symbol? Lookup(string name)
-    {
-        if (name == "")
-            return null;
-        if (_lookup.TryGetValue(name, out var sym))
-            return sym;
-        if (_specializedTypes.TryGetValue(name, out sym))
-            return sym;
-        return null;
-    }
-
-    /// <summary>
-    /// All symbols, excluding specialized types.
-    /// Call `GenerateLookup` before using this.
-    /// </summary>
-    public Dictionary<string, Symbol>.ValueCollection LookupSymbols
-        => _lookup.Values;
-
-    public Dictionary<string, Symbol>.ValueCollection SpecializedSymbols
-        => _specializedTypes.Values;
+    public IReadOnlyDictionary<string, Symbol> SpecializedSymbols
+        => _specializedTypes;
 
 
     /// <summary>
@@ -186,6 +195,7 @@ public class SymbolTable
         return false;
     }
 
+
     /// <summary>
     /// Add a new symbol to its parent, mark duplicates if there is a collision.
     /// Returns true if it was added (false for duplicate).
@@ -194,7 +204,28 @@ public class SymbolTable
     {
         Debug.Assert(SymbolBelongs(newSymbol));
         if (newSymbol.Parent!.SetChildInternal(newSymbol, out var remoteSymbol))
+        {
+            switch (newSymbol.FullName)
+            {
+                case SymTypes.RawPointer: SymbolRawPointer = newSymbol; break;
+                case SymTypes.Ref: SymbolRef = newSymbol; break;
+                case SymTypes.Pointer: SymbolPointer = newSymbol; break;
+                case SymTypes.Nil: SymbolNil = newSymbol; break;
+                case SymTypes.Maybe: SymbolMaybe = newSymbol; break;
+                case SymTypes.Result: SymbolResult = newSymbol; break;
+                case SymTypes.Int: SymbolInt = newSymbol; break;
+                case SymTypes.U64: SymbolU64 = newSymbol; break;
+                case SymTypes.I32: SymbolI32 = newSymbol; break;
+                case SymTypes.U32: SymbolU32 = newSymbol; break;
+                case SymTypes.Str: SymbolStr = newSymbol; break;
+                case SymTypes.Bool: SymbolBool = newSymbol; break;
+                case SymTypes.Byte: SymbolByte = newSymbol; break;
+                case SymTypes.Float: SymbolFloat = newSymbol; break;
+                case SymTypes.F32: SymbolF32 = newSymbol; break;
+                case SymTypes.Span: SymbolSpan = newSymbol; break;
+            }
             return true;
+        }
         Reject(newSymbol.Token, $"Duplicate symbol. There is already a {remoteSymbol!.KindName} in this scope with the same name.");
         Reject(remoteSymbol.Token, $"Duplicate symbol. There is already a {newSymbol.KindName} in this scope with the same name.");
         return false;
@@ -238,10 +269,9 @@ public class SymbolTable
 
     public Symbol CreateRef(Symbol type, bool rawPointer = false)
     {
-        var refTypeName = rawPointer ? SymTypes.RawPointer : SymTypes.Ref;
-        var refType = Lookup(refTypeName);
+        var refType = rawPointer ? SymbolRawPointer : SymbolRef;
         if (refType == null)
-            throw new Exception($"Compiler error: '{refTypeName}' is undefined in the base library");
+            throw new Exception($"Compiler error: '{refType}' is undefined in the base library");
         return CreateSpecializedType(refType, [type]);
     }
 
@@ -282,13 +312,14 @@ public class SymbolTable
             symSpec.Type = ReplaceGenericTypeParams(concreteType.Type, typeArgs);
         symSpec.Qualifiers = concreteType.Qualifiers | SymQualifiers.Specialized;
 
+        symSpec.FinalizeFullName();
+
         // Store only one copy of specialized symbol unless
         // it contains a tuple name which makes it unique
         // in the source code and we have to keep it separate.
         // Probably not a problem for most things like
         // parameter lists, but things like MyBigInterface<(a int, b str)>.
         // TBD: Separate the tuple symbol names from the type definition
-        symSpec.FinalizeFullName();
         if (_specializedTypes.TryGetValue(symSpec.FullName, out var dupSym))
         {
             // Use space to determine if symbol has a tuple name
@@ -299,6 +330,7 @@ public class SymbolTable
         {
             _specializedTypes[symSpec.FullName] = symSpec;
         }
+
 
         return symSpec;
     }

@@ -53,15 +53,12 @@ static class CompileHeader
 
         // Find a symbol for the type or module syntax
         AddModules();
-        table.GenerateLookup();
         AddTypes();
-        table.GenerateLookup();
         var useSymbols = ProcessUseStatements(false);
         ResolveFields();
         ResolveFunctions();
         ResolveTypeConstraints();
         AddConstructors();
-        table.GenerateLookup();
 
         // Re-process use statements to retrieve functions
         return new CompileHeaderOutput { Uses = ProcessUseStatements(true), Table = table, SyntaxToSymbol = syntaxToSymbol};
@@ -256,11 +253,10 @@ static class CompileHeader
         // Add a default constructor for each type, if it dosen't already exist
         void AddConstructors()
         {
-            foreach (var type in table.LookupSymbols)
-            {
-                if (type.Kind != SymKind.Type || type.IsInterface)
-                    continue;
+            var types = table.Root.ChildrenRecurse().Where(s => s.IsType && !s.IsInterface).ToList();
 
+            foreach (var type in types)
+            {
                 if (type.FullName == SymTypes.RawPointer
                         || type.FullName == SymTypes.Ref
                         || type.FullName == SymTypes.Pointer
@@ -281,11 +277,11 @@ static class CompileHeader
                 var constructor = new Symbol(SymKind.Fun, type.Parent, type.Path, type.Token, "new");
                 constructor.Qualifiers |= SymQualifiers.Extern;
                 var constructorType = Resolver.GetTypeWithGenericParameters(table, type);
-                //constructorType.Qualifiers |= SymQualifiers.My;
                 foreach (var genericParam in constructorType.TypeArgs)
-                    table.AddOrReject(new Symbol(SymKind.TypeParam, constructor, type.Path, type.Token, genericParam.SimpleName));
-
-                SetGenericParamSymbols(constructor);
+                {
+                    var genericParamSymbol = new Symbol(SymKind.TypeParam, constructor, type.Path, type.Token, genericParam.SimpleName);
+                    table.AddOrReject(genericParamSymbol);
+                }
 
                 constructor.Type = table.CreateTuple([ 
                     table.CreateTuple([constructorType]), table.CreateTuple([constructorType]) ]);
@@ -294,29 +290,18 @@ static class CompileHeader
             }
         }
 
-        void SetGenericParamSymbols(Symbol s)
-        {
-            s.GenericParamSymbols = s.Children.Where(s => s.Kind == SymKind.TypeParam)
-                .OrderBy(s => s.GenericParamNum()).ToArray();
-        }
-
         // Add generic type arguments to type.GenericParamSymbols (and set the symbol's parent to `type`)
         void AddTypeParams(Symbol type, SyntaxExpr ?typeArgs)
         {
             if (typeArgs == null || typeArgs.Count == 0)
                 return;
 
-            var typeParamSymbols = new List<Symbol>(type.GenericParamSymbols);
             foreach (var expr in typeArgs)
             {
                 var typeParam = new Symbol(SymKind.TypeParam, type, type.Path, expr.Token);
                 if (table.AddOrReject(typeParam))
-                {
                     expr.Token.AddInfo(typeParam);
-                    typeParamSymbols.Add(typeParam);
-                }
             }
-            type.GenericParamSymbols = typeParamSymbols.ToArray();
         }
 
         void ResolveFields()

@@ -504,8 +504,12 @@ class ZurfEditController
             return message + "\r\n\r\n";
         }
 
-        // Friendly names
+        // Comments
         var symbol = symbols[0];
+        if ((symbol.Concrete.Comments ?? "").Trim() != "")
+            message += $"// {symbol.Concrete.Comments}\r\n";
+
+        // Friendly names
         message += $"[{getQualifiers(symbol)}] {symbol.FriendlyName()}\r\n";
         if (symbol.Type != null && !symbol.IsFun && !symbol.IsLambda)
             message += $"Type: {symbol.Type.FriendlyName()}\r\n";
@@ -515,15 +519,14 @@ class ZurfEditController
         message += $"Full Name: {symbol.FullName}\r\n\r\n";
         if (symbol.IsSpecialized)
             message += $"Non-specialized: {symbol.Concrete.FullName}\r\n\r\n"; 
-        if (symbol.Type != null && !symbol.IsFun && !symbol.IsLambda)
-            message += $"Type Name: {symbol.Type.FullName}\r\n\r\n";
 
-        // Comments
-        if ((symbol.Concrete.Comments ?? "").Trim() != "")
-            message += $"// {symbol.Concrete.Comments}\r\n\r\n";
+        if (symbol.Type != null && !symbol.IsFun && !symbol.IsLambda)
+            message += $"Full Type: {symbol.Type.FullName}\r\n\r\n";
+
 
         if (symbol.IsFun)
         {
+            message += $"Signature: {symbol.Type}\r\n\r\n";
             message += "PARAMS: \r\n";
             foreach (var child in symbol.Concrete.Children)
             {

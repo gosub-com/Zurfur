@@ -159,11 +159,12 @@ static class CompileCode
     {
         var assembly = new Assembly();
         assembly.Types.AddOrFind(header.Table.EmptyTuple);
-        assembly.Types.AddOrFind(header.Table.Lookup(SymTypes.Nil)!);
-        assembly.Types.AddOrFind(header.Table.Lookup(SymTypes.Bool)!);
-        assembly.Types.AddOrFind(header.Table.Lookup(SymTypes.Int)!);
-        assembly.Types.AddOrFind(header.Table.Lookup(SymTypes.Float)!);
-        assembly.Types.AddOrFind(header.Table.Lookup(SymTypes.Str)!);
+
+        assembly.Types.AddOrFind(header.Table.SymbolNil!);
+        assembly.Types.AddOrFind(header.Table.SymbolBool!);
+        assembly.Types.AddOrFind(header.Table.SymbolInt!);
+        assembly.Types.AddOrFind(header.Table.SymbolFloat!);
+        assembly.Types.AddOrFind(header.Table.SymbolStr!);
         assembly.Types.AddOrFind(header.Table.EmptyTuple);
 
         var state = new CompilerState { 
@@ -207,17 +208,17 @@ static class CompileCode
         Symbol function)
     {
         var path = synFile.Lexer.Path;
-        var typeVoid = state.Table.Lookup(SymTypes.Void);
-        var typeNil = state.Table.Lookup(SymTypes.Nil);
-        var typeInt = state.Table.Lookup(SymTypes.Int);
-        var typeU64 = state.Table.Lookup(SymTypes.U64);
-        var typeI32 = state.Table.Lookup(SymTypes.I32);
-        var typeU32 = state.Table.Lookup(SymTypes.U32);
-        var typeStr = state.Table.Lookup(SymTypes.Str);
-        var typeBool = state.Table.Lookup(SymTypes.Bool);
-        var typeByte = state.Table.Lookup(SymTypes.Byte);
-        var typeFloat = state.Table.Lookup(SymTypes.Float);
-        var typeF32 = state.Table.Lookup(SymTypes.F32);
+        var typeVoid = state.Table.EmptyTuple;
+        var typeNil = state.Table.SymbolNil;
+        var typeInt = state.Table.SymbolInt;
+        var typeU64 = state.Table.SymbolU64;
+        var typeI32 = state.Table.SymbolI32;
+        var typeU32 = state.Table.SymbolU32;
+        var typeStr = state.Table.SymbolStr;
+        var typeBool = state.Table.SymbolBool;
+        var typeByte = state.Table.SymbolByte;
+        var typeFloat = state.Table.SymbolFloat;
+        var typeF32 = state.Table.SymbolF32;
         
         Debug.Assert(typeVoid != null 
             && typeNil != null
@@ -554,7 +555,7 @@ static class CompileCode
             // Terminals: Number, string, identifier
             if (char.IsDigit(name[0]))
                 return GenConstNumber(ex);
-            else if (name == ParseZurf.TOKEN_STR_LITERAL || name == ParseZurf.TOKEN_STR_LITERAL_MULTI_BEGIN)
+            else if (name == ParseZurf.TOKEN_STR_LITERAL || name == ParseZurf.TOKEN_STR_LITERAL_MULTI)
                 return GenStr(ex);
             else if (name == "nil")
                 return new Rval(token) { Type = typeNil };

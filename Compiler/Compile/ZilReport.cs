@@ -16,6 +16,7 @@ class ZilReport
     /// </summary>
     static public void GenerateReport(List<string> headerFile, SymbolTable symbols, Lexer []files)
     {
+        var typeDefTable = symbols.GenerateTypeDefTable();
         ShowErrors();
         ShowCounts();
         ShowOverview();
@@ -74,15 +75,13 @@ class ZilReport
         void ShowCounts()
         {
             // Count symbols
-            int count = 0;
             int types = 0;
             int typesNonGeneric = 0;
             int typesGeneric = 0;
             int methods = 0;
             int fields = 0;
-            foreach (var sym in symbols.LookupSymbols)
+            foreach (var sym in typeDefTable.Values)
             {
-                count++;
                 if (sym.IsType)
                 {
                     types++;
@@ -107,9 +106,10 @@ class ZilReport
                 metaTokenCount += lexer.MetaTokens.Count;
             }
 
-            headerFile.Add("SYMBOLS: " + count);
+            headerFile.Add("SYMBOLS: ");
+            headerFile.Add($"    TypeDef: {typeDefTable.Count}");
             headerFile.Add($"    Types: {types} ({typesNonGeneric} non-generic, {typesGeneric} generic)");
-            headerFile.Add($"    Specializations: {symbols.SpecializedSymbols.Count} (generated from generics)");
+            headerFile.Add($"    TypeSpec: {symbols.SpecializedSymbols.Count} (generated from generics)");
             headerFile.Add($"    Methods: {methods}");
             headerFile.Add($"    Fields: {fields}");
             headerFile.Add($"    Tokens: {tokenCount} ({metaTokenCount} meta tokens)");
@@ -120,7 +120,7 @@ class ZilReport
         {
             // Get modules and all symbols
             var modules = new List<string>();
-            foreach (var s in symbols.LookupSymbols)
+            foreach (var s in typeDefTable.Values)
             {
                 if (s.IsModule)
                     modules.Add(s.FullName);
@@ -145,19 +145,32 @@ class ZilReport
 
         void ShowTypes()
         {
-            headerFile.Add("SYMBOLS:");
-            var syms = new List<Symbol>(symbols.LookupSymbols);
+            int i = 0;
+            //headerFile.Add("SYMBOL TABLE:");
+            //foreach (var s in symbols.Root.ChildrenRecurse())
+            //{
+            //    headerFile.Add($"{i++,4}    {s.KindName,16}: {s.FullName}");
+            //}
+
+            headerFile.Add("TYPE DEF TABLE:");
+            var syms = new List<Symbol>(typeDefTable.Values);
             syms.Sort((a, b) => Compare(a.FullName, b.FullName));
+            i = 0;
             foreach (var s in syms)
-                headerFile.Add($"{s.KindName,16}: {s.FullName}");
+            {
+                headerFile.Add($"{i++,4} {s.KindName,16}: {s.FullName}");
+            }
 
             headerFile.Add("");
             headerFile.Add("");
             headerFile.Add("SPECIALIZED:");
-            var special = new List<Symbol>(symbols.SpecializedSymbols);
+            var special = new List<Symbol>(symbols.SpecializedSymbols.Values);
             special.Sort((a, b) => Compare(a.FullName, b.FullName));
+            i = 0;
             foreach (var s in special)
-                headerFile.Add($"    {s.FullName}");
+            {
+                headerFile.Add($"{i++,4}    {s.FullName}");
+            }
 
         }
 

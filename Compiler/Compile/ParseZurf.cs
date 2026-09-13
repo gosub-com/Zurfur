@@ -23,13 +23,14 @@ class ParseZurf
 {
     // NOTE: >=, >>, and >>= are omitted and handled at parser level.
     public const string MULTI_CHAR_TOKENS = ".* &* << <= == != && || ?? !! += -= *= /= %= &= |= ~= <<= => -> " 
-        +$"!== === :: .. ..+ ... ++ -- // {TOKEN_STR_LITERAL_MULTI_BEGIN} {TOKEN_STR_LITERAL_MULTI_END} ```";
+        +$"!== === :: .. ..+ ... ++ -- // {TOKEN_STR_LITERAL_MULTI} ```";
 
     public const string VT_TYPE_ARG = "$"; // Differentiate from '<' (must be 1 char long)
     public const string TOKEN_STR_LITERAL = "\"";
-    public const string TOKEN_STR_LITERAL_MULTI_BEGIN = "``";
-    public const string TOKEN_STR_LITERAL_MULTI_END = "``";
-    public const string TOKEN_STR_MULTI_INTERPOLATE = "%";
+    public const string TOKEN_STR_LITERAL_MULTI = "\"\"\"";
+    public const string TOKEN_STR_INTERPOLATE = "$";
+    public const string TOKEN_STR_INTERPOLATE_BEGIN = "{";
+    public const string TOKEN_STR_INTERPOLATE_END = "}";
     public const string TOKEN_COMMENT = "//";
 
     // Probably will also allow 2, but must also require the entire file to be one way or the other.
@@ -70,9 +71,9 @@ class ParseZurf
     static WordSet s_continuationEnd = new("[ ( ,");
     static WordSet s_continuationNoBegin = new("} namespace mod type bind use pragma pub fun afun "
         + "get set if while for return ret break continue else");
-    static WordSet s_continuationBegin = new("] ) , . + - * / % | & || && and or not "
+    static WordSet s_continuationBegin = new("{ ] ) , . + - * / % | & || && and or not "
                         + "== != : ? ?? > << <= < => -> .. :: !== ===  is in as has "
-                        + "= += -= *= /= %= |= &= ~= " + TOKEN_STR_LITERAL);
+                        + "= += -= *= /= %= |= &= ~=");
 
     static WordSet s_reservedWords = new("as has break case catch const "
         + "continue do then else elif todo extern nil true false defer use "
@@ -220,7 +221,6 @@ class ParseZurf
             if (tokens.Length >= 2 && tokens[0] == "pragma" && tokens[1] == "NoParse")
                 return;
             ScanScopeStructure();
-            ScanCheck();
             Accept();
             ParseTopScope();
         }
@@ -256,7 +256,7 @@ class ParseZurf
         token.Clear();
         if (token.Name.Length == 0)
             token.Type = TokenType.Normal;
-        else if (token.Name == TOKEN_STR_LITERAL || token.Name == TOKEN_STR_LITERAL_MULTI_BEGIN || token.Name == TOKEN_STR_LITERAL_MULTI_END)
+        else if (token.Name == TOKEN_STR_LITERAL || token.Name == TOKEN_STR_LITERAL_MULTI)
             token.Type = TokenType.QuoteMark;
         else if (token.Name[0] >= '0' && token.Name[0] <= '9')
             token.Type = TokenType.Number;
@@ -293,18 +293,22 @@ class ParseZurf
 
 
     /// <summary>
-    /// Scan for continuation lines, comments, quotes, and add braces and semicolons.
     /// Reset all tokens to their basic type or comment.
+    /// Scan for continuation lines, comments, string literals and interpolations.
+    /// Add braces and semicolons.
     /// </summary>
     void ScanScopeStructure()
     {
-        int scope = 0;
+        foreach (var t in _lexer)
+            ResetTokenMetadata(t);
+
+        int offsideScope = 0;
+        int explicitScope = 0;
         Token? prevNonCommentToken = null;
         Token? prevNonContinuationLineToken = null;
         Token? token;
-
-        foreach (var t in _lexer)
-            ResetTokenMetadata(t);
+        Token? checkAlignPrevToken = null;
+        var checkAlignPrevTokenHasError = false;
 
         var e = _lexer.GetEnumerator();
         while (e.MoveNext(out token))
@@ -317,19 +321,36 @@ class ParseZurf
             }
 
             if (token.Boln)
-                AddBracesAndSemicolons();
+                AddBracesAndSemicolons(explicitScope);
 
             if (token == TOKEN_STR_LITERAL)
                 ScanQuoteSingleLine();
-            else if (token == TOKEN_STR_LITERAL_MULTI_BEGIN)
+            else if (token == TOKEN_STR_LITERAL_MULTI)
                 ScanQuoteMultiLine();
+            else if (token == "{" || token == "}")
+            {
+                explicitScope = token == "{" ? explicitScope + 1 : Math.Max(0, explicitScope - 1);
+                SetTokenType(token, TokenType.ReservedControl);
+            }
             else
                 prevNonCommentToken = token;
+
+            if (token.Boln && token != "")
+            {
+                CheckOffsideAlignment();
+                CheckTabsAndSemicolons();
+            }
         }
+
+        // Ensure mete-tokens are sorted
+        for (int i = 0; i < _insertedTokens.Count - 1; i++)
+            if (_insertedTokens[i].Location > _insertedTokens[i + 1].Location)
+                throw new Exception("Additional meta-tokens must be sorted");
+
         return;
 
-        // Detect continuation lines, add braces and semicolons.
-        void AddBracesAndSemicolons()
+        // Called at beginning of each line to add braces and semicolons to the previous line.
+        void AddBracesAndSemicolons(int explicitScope)
         {
             token.Continuation = false;
             if (prevNonCommentToken == null)
@@ -340,11 +361,9 @@ class ParseZurf
             bool isContinue = (isContinueEnd || isContinueBegin)
                                     && !s_continuationNoBegin.Contains(token.Name);
 
-            // In the case where the line is continued from the previous
-            // line (e.g. `(`, `[`, `,`, etc.) and the next line is not
-            // indented, cancel the continuation.  This makes for better
-            // error messages while typing.  If continued at the start of
-            // line (e.g. `+`, `-`, etc.), it's obvious, so don't bother.
+            // In the case where this line is continued from the previous line (e.g. `(`, `[`, `,`, etc.) and
+            // the next line is not indented, cancel the continuation.  This makes for better error messages while
+            // typing.  If continued at the start of this line (e.g. `+`, `-`, etc.), it's obvious, so don't bother.
             // NOTE: This gets us the syntax error early.
             //       It doesn't change the fact that there would be
             //       a syntax error later if this didn't exist.
@@ -358,29 +377,33 @@ class ParseZurf
             if (isContinue)
             {
                 token.Continuation = true;
+
+                // This is necessary to allow "{" on its own line
+                if (token == "{")
+                    prevNonCommentToken = null; //Disable ";" on previous line
                 return;
             }
 
             // Add scope/expression separators '{', '}', or ';'
             var xIndex = EndOfCodeLine(prevNonCommentToken.Y);
-            if (token.X > scope + SCOPE_INDENT - 1)
+            if (explicitScope == 0 && token.X > offsideScope + SCOPE_INDENT - 1)
             {
                 // Add open braces '{'
                 do {
-                    scope += SCOPE_INDENT;
+                    offsideScope += SCOPE_INDENT;
                     var openBrace = AddMetaToken(new Token("{", xIndex++, prevNonCommentToken.Y));
                     _insertedTokens.Add(openBrace);
-                } while (token.X > scope + SCOPE_INDENT - 1);
+                } while (token.X > offsideScope + SCOPE_INDENT - 1);
             }
-            else if (token.X < scope - (SCOPE_INDENT - 1))
+            else if (explicitScope == 0 && token.X < offsideScope - (SCOPE_INDENT - 1))
             {
                 // Add close braces '}'
                 do {
                     // End statement before brace
-                    scope -= SCOPE_INDENT;
+                    offsideScope -= SCOPE_INDENT;
                     var closeBrace = AddMetaToken(new Token("}", xIndex++, prevNonCommentToken.Y));
                     _insertedTokens.Add(closeBrace);
-                } while (token.X < scope - (SCOPE_INDENT - 1));
+                } while (token.X < offsideScope - (SCOPE_INDENT - 1));
             }
             else
             {
@@ -422,10 +445,10 @@ class ParseZurf
         void ScanQuoteMultiLine()
         {
             // Multi line quote
-            while (e.MoveNext(out token) && token != TOKEN_STR_LITERAL_MULTI_END && token != "")
+            while (e.MoveNext(out token) && token != TOKEN_STR_LITERAL_MULTI && token != "")
                 ; // Skip until end of quote (or file)
             if (token == "")
-                RejectToken(token, $"Expecting {TOKEN_STR_LITERAL_MULTI_END} to end the multi-line string literal");
+                RejectToken(token, $"Expecting {TOKEN_STR_LITERAL_MULTI} to end the multi-line string literal");
             else
                 prevNonCommentToken = token;
         }
@@ -439,6 +462,7 @@ class ParseZurf
             // Make them all comments
             for (int i = tokenIndex;  i < tokens.Length; i++)
                 tokens[i].Type = TokenType.Comment;
+            tokens[tokenIndex].Bold = true;
 
             // Show code comments (inside backticks)
             bool isCodeComment = false;
@@ -481,69 +505,54 @@ class ParseZurf
             }
             return true;
         }
-    }
 
-    /// <summary>
-    /// Check continuation line indentation
-    /// and illegal tabs and semicolons.
-    /// </summary>
-    void ScanCheck()
-    {
-        for (int i = 0; i < _insertedTokens.Count - 1; i++)
-            if (_insertedTokens[i].Location > _insertedTokens[i + 1].Location)
-                throw new Exception("Additional meta-tokens must be sorted");
-
-        Token? prevToken = null;
-        var prevTokenHasError = false;
-        for (var lineIndex = 0;  lineIndex < _lexer.LineCount;  lineIndex++)
+        void CheckOffsideAlignment()
         {
-            var line = _lexer.GetLine(lineIndex);
-            var tokens = _lexer.GetLineTokens(lineIndex);
-            CheckTabsAndSemicolons(tokens, lineIndex, line);
+            // Don't check when inside explicit scope 
+            if (explicitScope != 0)
+                return;
 
             // Skip blank and comment lines
-            if (tokens.Length == 0)
-                continue;
-            
-            var token = tokens[0];
-            if (token.Type == TokenType.Comment)
-                continue;
+            var lineTokens = _lexer.GetLineTokens(token.Y);
+            if (lineTokens.Length == 0)
+                return;
+            var firstTokenOnLine = lineTokens[0];
+            if (firstTokenOnLine.Type == TokenType.Comment)
+                return;
 
-            CheckAlignment(token);
-        }
-        return;
-
-        void CheckAlignment(Token token)
-        {
             var hasError = false;
-            if (prevToken != null && token.Continuation && !prevToken.Continuation
-                && token.X < prevToken.X + SCOPE_INDENT)
+            if (checkAlignPrevToken != null && firstTokenOnLine.Continuation && !checkAlignPrevToken.Continuation
+                && firstTokenOnLine.X < checkAlignPrevToken.X + SCOPE_INDENT)
             {
-                RejectToken(AddMetaToken(new Token(" ", token.X - 1, token.Y)),
+                RejectToken(AddMetaToken(new Token(" ", firstTokenOnLine.X - 1, firstTokenOnLine.Y)),
                     "Continuation line must be indented one scope level past the line above it");
                 hasError = true;
             }
-            else if (token.X % SCOPE_INDENT != 0)
+            else if (firstTokenOnLine.X % SCOPE_INDENT != 0)
             {
-                RejectToken(AddMetaToken(new Token(new string(' ', token.X % SCOPE_INDENT), 
-                    token.X/SCOPE_INDENT*SCOPE_INDENT, token.Y)),
+                RejectToken(AddMetaToken(new Token(new string(' ', firstTokenOnLine.X % SCOPE_INDENT),
+                    firstTokenOnLine.X / SCOPE_INDENT * SCOPE_INDENT, firstTokenOnLine.Y)),
                     "First token be aligned on a scope level");
                 hasError = true;
             }
-            if (prevToken != null && !prevTokenHasError 
-                && !token.Continuation && prevToken.Continuation 
-                && token.X + SCOPE_INDENT > prevToken.X)
+            if (checkAlignPrevToken != null && !checkAlignPrevTokenHasError
+                && !firstTokenOnLine.Continuation && checkAlignPrevToken.Continuation
+                && firstTokenOnLine.X + SCOPE_INDENT > checkAlignPrevToken.X)
             {
-                RejectToken(AddMetaToken(new Token(" ", prevToken.X-1, prevToken.Y)),
+                RejectToken(AddMetaToken(new Token(" ", checkAlignPrevToken.X - 1, checkAlignPrevToken.Y)),
                     "Continuation line must be indented one scope level past the line below it");
             }
-            prevTokenHasError = hasError;
-            prevToken = token;
+            checkAlignPrevTokenHasError = hasError;
+            checkAlignPrevToken = firstTokenOnLine;
         }
 
         // TBD: Allow tabs in multi-line quotes
-        void CheckTabsAndSemicolons(Token []tokens, int lineIndex, string line)
+        void CheckTabsAndSemicolons()
         {
+            var lineIndex = token.Y;
+            var line = _lexer.GetLine(lineIndex);
+            var tokens = _lexer.GetLineTokens(lineIndex);
+
             // Illegal tabs
             var i = line.IndexOf('\t');
             while (i >= 0)
@@ -552,13 +561,17 @@ class ParseZurf
                 i = line.IndexOf('\t', i + 1);
             }
 
-            i = tokens.Length - 1;
-            while (i >= 0 && tokens[i].Type == TokenType.Comment)
-                i--;
-            if (i >= 0 && tokens[i].Name == ";")
-                RejectToken(AddMetaToken(new Token(" ", tokens[i].X, tokens[i].Y)),
-                    "Illegal semi-colon at end of line");
+            // Illegal semi-colon at end of line (except inside explicit scope)
+            if (explicitScope == 0)
+            {
+                i = tokens.Length - 1;
+                while (i >= 0 && tokens[i].Type == TokenType.Comment)
+                    i--;
+                if (i >= 0 && tokens[i].Name == ";")
+                    RejectToken(AddMetaToken(new Token(" ", tokens[i].X, tokens[i].Y)), "Illegal semi-colon at end of line");
+            }
         }
+
     }
 
     void ParseTopScope()
@@ -1867,14 +1880,14 @@ class ParseZurf
                 return new SyntaxUnary(numberToken, new SyntaxToken(Accept()));
             return new SyntaxToken(numberToken);
         }
-        if (_tokenName == TOKEN_STR_LITERAL || _tokenName == TOKEN_STR_LITERAL_MULTI_BEGIN)
+        if (_tokenName == TOKEN_STR_LITERAL || _tokenName == TOKEN_STR_LITERAL_MULTI)
         {
             return ParseStringLiteral(null);
         }
         if (_token.Type == TokenType.Identifier)
         {
             var identifier = Accept();
-            if (_tokenName == TOKEN_STR_LITERAL || _tokenName == TOKEN_STR_LITERAL_MULTI_BEGIN)
+            if (_tokenName == TOKEN_STR_LITERAL || _tokenName == TOKEN_STR_LITERAL_MULTI)
             {
                 SetTokenType(identifier, TokenType.Reserved);
                 return ParseStringLiteral(identifier);
@@ -1937,8 +1950,8 @@ class ParseZurf
 
         void ParseQuote(string beginQuote)
         {
-            var terminator = beginQuote == TOKEN_STR_LITERAL ? TOKEN_STR_LITERAL : TOKEN_STR_LITERAL_MULTI_END;
-            var multiLine = beginQuote == TOKEN_STR_LITERAL_MULTI_BEGIN;
+            var terminator = beginQuote == TOKEN_STR_LITERAL ? TOKEN_STR_LITERAL : TOKEN_STR_LITERAL_MULTI;
+            var multiLine = beginQuote == TOKEN_STR_LITERAL_MULTI;
 
             while (_token == beginQuote)
             {
@@ -1947,11 +1960,10 @@ class ParseZurf
                 literalTokens.Add(Accept());
                 while (_token != terminator && _token != "" && !(_token.Meta && _token == ";"))
                 {
-                    if (!multiLine && _token == "{" || multiLine && _token == TOKEN_STR_MULTI_INTERPOLATE && _enum.PeekNoSpace() == "{")
+                    if (_token == TOKEN_STR_INTERPOLATE && _enum.PeekNoSpace() == TOKEN_STR_INTERPOLATE_BEGIN)
                     {
                         EndScoop(_token);
-                        if (multiLine)
-                            SetTokenType(Accept(), TokenType.Reserved);
+                        SetTokenType(Accept(), TokenType.Reserved);
                         ParseInterpolatedExpression();
                     }
                     else
@@ -2006,7 +2018,7 @@ class ParseZurf
                 literalExpr.Add(ParseExpr());
                 literalSb.Append(STR_TEMP_REPLACE);
             }
-            if (AcceptMatchOrReject("}", "Expecting '}' to end string interpolation"))
+            if (AcceptMatchOrReject(TOKEN_STR_INTERPOLATE_END, "Expecting '}' to end string interpolation"))
                 SetTokenType(_prevToken, TokenType.ReservedControl);
 
             BeginScoop(_prevToken);
@@ -2104,11 +2116,11 @@ class ParseZurf
 
     bool BeginsType()
     {
-        return _token.Type == TokenType.Identifier
+        return (_token.Type == TokenType.Identifier
+                    && _token != "where" && _token != "require" && _token != "extern" && _token != "todo")
             || s_typeUnaryOps.Contains(_tokenName)
             || s_paramQualifiers.Contains(_tokenName)
-            || _token == "fun" || _token == "afun"
-            || _token == "(";
+            || _token == "fun" || _token == "afun" || _token == "(";
     }
 
     SyntaxExpr ParseType()

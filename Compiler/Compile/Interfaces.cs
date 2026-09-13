@@ -10,6 +10,7 @@ using static Zurfur.Compiler.CodeLib;
 
 namespace Zurfur.Compiler;
 
+
 /// <summary>
 /// Convert concrete types to interface types while inferring type args
 /// </summary>

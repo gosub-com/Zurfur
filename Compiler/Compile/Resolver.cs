@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
-using Zurfur.Vm;
+using System.Reflection;
 using Zurfur.Lex;
+using Zurfur.Vm;
 
 namespace Zurfur.Compiler;
 
@@ -166,13 +166,16 @@ static class Resolver
             }
 
             Symbol? typeParent = null;
-            if (SymTypes.UnaryTypeSymbols.TryGetValue(typeExpr[0].Token, out var unaryTypeName))
+            switch (typeExpr[0].Token)
             {
-                typeParent = table.Lookup(unaryTypeName);
-                if (typeParent == null)
-                    table.Reject(typeExpr[0].Token, $"Base library doesn't contain '{unaryTypeName}'");
+                case "*": typeParent = table.SymbolRawPointer; break;
+                case "^": typeParent = table.SymbolPointer; break;
+                case "&": typeParent = table.SymbolRef; break;
+                case "?": typeParent = table.SymbolMaybe; break;
+                case "[": typeParent = table.SymbolSpan; break;
+                case "!": typeParent = table.SymbolResult; break;
             }
-            else
+            if (typeParent == null)
             {
                 // Parameter list, eg: typeParent<T1,T2,...>
                 typeParent = Resolve(typeExpr[0], table, false, searchScope, useSymbols, true);

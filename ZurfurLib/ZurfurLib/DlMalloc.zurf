@@ -1791,11 +1791,11 @@ fun init_user_mstate(my mut DlMalloc, tbase *Byte, tsize U64)
     FreeBytes Int
 
 [pub] fun toStr(my HeapStats) Str
-    return "HeapSize={h.HeapSize}"
-            ", UB={h.UsedBytes}"
-            ", FB={h.FreeBytes}"
-            ", UC={h.UsedChunks}"
-            ", FC={h.FreeChunks}"
+    return "HeapSize=${h.HeapSize}"
+        + ", UB=${h.UsedBytes}"
+        + ", FB=${h.FreeBytes}"
+        + ", UC=${h.UsedChunks}"
+        + ", FC=${h.FreeChunks}"
 
 
 // -----------------------  Chunk representations ------------------------

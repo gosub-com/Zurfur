@@ -21,7 +21,7 @@ public static class SymTypes
     public const string Nil = "Zurfur.Nil";
     public const string Maybe = "Zurfur.Maybe`1";
     public const string Result = "Zurfur.Result`1";
-    public const string Void = "Zurfur.Void";
+    public const string Void = "()";
     public const string Int = "Zurfur.Int";
     public const string U64 = "Zurfur.U64";
     public const string I32 = "Zurfur.I32";
@@ -36,29 +36,8 @@ public static class SymTypes
     public static readonly WordMap<string> FriendlyNames = new WordMap<string>
         { { RawPointer, "*" }, { Pointer, "^" }, { Maybe, "?" }, { Ref, "&"} };
 
-    public static readonly WordMap<string> UnaryTypeSymbols = new WordMap<string>()
-    {
-        {"*", RawPointer },
-        {"^", Pointer },
-        {"&", Ref },
-        {"?", Maybe},
-        {"[", Span },
-        {"!", Result }
-    };
 }
 
-/// <summary>
-/// Fundamental types
-/// </summary>
-public enum SymTypeId
-{
-    Empty = 0,
-    Nil = 1,
-    Bool = 2,
-    Int = 3,
-    Float = 4,
-    Str = 5
-}
 
 public enum SymKind
 {
@@ -101,10 +80,6 @@ public enum SymQualifiers
 }
 
 /// <summary>
-/// TBD: Storing parameters and returns as children in the function is
-///      redundant since they are are stored as named tuples.  Refactor
-///      to remove the redundant child parameters from functions.
-/// 
 /// Symbol symbols:
 ///     .   Module, type, or function separator
 ///     `   Number of generic arguments, suffix for type name
@@ -145,6 +120,10 @@ public class Symbol
     // The symbols in this scope
     Dictionary<string, List<Symbol>>? _childrenNamed;
     int _childrenNamedCount;
+
+    // Generic type parameter symbols (child symbols cached in FinalizeFullName)
+    Symbol[] _genericParamSymbolsCache { get; set; } = Array.Empty<Symbol>();
+
 
     // Set by `SetChildInternal`.  Type parameters are always first.
     // Currently, this is only used for storing the generic parameter
@@ -189,14 +168,9 @@ public class Symbol
     public Symbol[] TupleSymbols { get; init; } = Array.Empty<Symbol>();
 
     /// <summary>
-    /// Generic type parameter symbols
-    /// </summary>
-    public Symbol[] GenericParamSymbols = Array.Empty<Symbol>();
-
-    /// <summary>
     /// Applicable to Types and Functions
     /// </summary>
-    public Dictionary<string, Symbol[]>? Constraints;
+    public Dictionary<string, Symbol[]>? Constraints { get; set; }
 
     /// <summary>
     /// Path or URL of file containing symbol
@@ -300,7 +274,7 @@ public class Symbol
         int count = 0;
         while (sym != null && !sym.IsModule)
         {
-            count += sym.GenericParamSymbols.Length;
+            count += sym._genericParamSymbolsCache.Length;
             sym = sym.Parent;
         }
         return count;
@@ -308,8 +282,8 @@ public class Symbol
 
 
     /// <summary>
-    /// Generate the symbol's full name and parameter type list. Must be
-    /// called after updating any symbol property that could change the name.
+    /// Generate the symbol's full name and parameter type list. Must be called after updating
+    /// any symbol property that could change the name or add children symbols.
     /// </summary>
     public void FinalizeFullName()
     {
@@ -318,8 +292,10 @@ public class Symbol
         // symbol until all stuff for naming is known) but that would
         // require more refactoring.
 
+        _genericParamSymbolsCache = Children.Where(s => s.Kind == SymKind.TypeParam).OrderBy(s => s.GenericParamNum()).ToArray();
+
         // Either we have generic parameters or generic args, but not both
-        Debug.Assert(GenericParamSymbols.Length == 0 || TypeArgs.Length == 0);
+        Debug.Assert(_genericParamSymbolsCache.Length == 0 || TypeArgs.Length == 0);
 
         if (IsLocal || IsFunParam || IsTypeParam || Parent == null || Parent.FullName == "")
         {
@@ -365,8 +341,8 @@ public class Symbol
 
         // Postfix types and functions (not lambda) with generic argument count
         var genericArgsCount = "";
-        if ((IsType || IsFun) && !IsLambda && GenericParamSymbols.Length != 0)
-            genericArgsCount = $"`{GenericParamSymbols.Length}";
+        if ((IsType || IsFun) && !IsLambda && _genericParamSymbolsCache.Length != 0)
+            genericArgsCount = $"`{_genericParamSymbolsCache.Length}";
 
         // Specialized functions get the parents functions parant
         var parentFullName = Concrete.Parent!.FullName;
@@ -381,8 +357,8 @@ public class Symbol
         var name = FriendlyNameInternal(false);
 
         // Replace generic arguments in function
-        for (int i = 0; i < GenericParamSymbols.Length; i++)
-            name = name.Replace($"#{i}", GenericParamSymbols[i].SimpleName);
+        for (int i = 0; i < _genericParamSymbolsCache.Length; i++)
+            name = name.Replace($"#{i}", _genericParamSymbolsCache[i].SimpleName);
 
         if (IsFun)
             return "fun " + name;
@@ -443,8 +419,8 @@ public class Symbol
         var genericArgs = "";
         if (TypeArgs.Length != 0)
             genericArgs = "<" + string.Join(",", TypeArgs.Select(s => s.FriendlyNameInternal(false))) + ">";
-        if (GenericParamSymbols.Length != 0)
-            genericArgs += "<" + string.Join(",", GenericParamSymbols.Select(s => s.SimpleName) ) + ">";
+        if (_genericParamSymbolsCache.Length != 0)
+            genericArgs += "<" + string.Join(",", _genericParamSymbolsCache.Select(s => s.SimpleName) ) + ">";
 
         // Function parameters and `my` type
         var myParam = "";
@@ -603,7 +579,8 @@ public class Symbol
     /// <summary>
     /// Source code token if it exists.  Throws an exception for
     /// modules, and other symbols that don't hava a token.
-    /// TBD: Force all symbols to have a source code token.
+    /// TBD: Force all symbols to have a source code token or make this nullable.
+    ///      This was done before I was using nullable :(
     /// </summary>
     public Token Token
     {
@@ -618,6 +595,8 @@ public class Symbol
         }
     }
 
+    public Token? TokenOrNull => _token;
+
     /// <summary>
     /// This should only be called by functions in SymbolTable.
     /// It sets the symbol Order to the number of children.
@@ -627,6 +606,7 @@ public class Symbol
     internal bool SetChildInternal(Symbol sym, out Symbol? remoteSymbol)
     {
         sym.FinalizeFullName();
+
         if (sym.IsFun)
         {
             // Good enough for compiler

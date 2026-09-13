@@ -81,4 +81,37 @@ public class TestZurfur
         Assert.True(testCases >= 10);
     }
 
+    /// <summary>
+    /// Check that AATestPass.zurf compiles with no errors
+    /// </summary>
+    [Fact]
+    public async Task TestAATestPass()
+    {
+        var exeDir = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule!.FileName)!;
+        var testProjectDir = Path.Combine(exeDir, "ZurfurLib");
+        var builder = new BuildSystem(new FileSystemOs());
+
+        var timer = Stopwatch.StartNew();
+        foreach (var file in FileSystemOs.EnumerateAllFiles(testProjectDir))
+            builder.LoadFile(file);
+        await builder.Compile().WaitAsync(COMPILE_TIMEOUT);
+        Debug.WriteLine($"Load and compile in {timer.ElapsedMilliseconds} ms");
+
+        var lexerName = Path.Combine(testProjectDir, "AATestPass.zurf");
+        var lexer = builder.GetLexer(lexerName);
+        Assert.NotNull(lexer);
+
+        var errorCount = 0;
+        for (int y = 0; y < lexer.LineCount; y++)
+            foreach (var t in lexer.GetLineTokens(y))
+                if (t.Error)
+                    errorCount++;
+
+        if (errorCount == 0)
+            Debug.WriteLine("Success! AATestPass.zurf compiled with no errors.");
+        else
+            Debug.WriteLine($"Fail! AATestPass.zurf has {errorCount} error(s).");
+        Assert.Equal(0, errorCount);
+    }
+
 }

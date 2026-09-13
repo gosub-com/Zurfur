@@ -6,7 +6,6 @@ mod AATestPass
 
 use Zurfur[Iterator, SpanIterator]
 
-
 type ImpNone {}
 
 type interface TakeConcrete

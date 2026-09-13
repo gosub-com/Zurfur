@@ -8,6 +8,19 @@ using System.Threading.Tasks;
 namespace Zurfur.Vm;
 
 /// <summary>
+/// Fundamental types
+/// </summary>
+enum SymTypeId
+{
+    Empty = 0,
+    Nil = 1,
+    Bool = 2,
+    Int = 3,
+    Float = 4,
+    Str = 5
+}
+
+/// <summary>
 /// Trace a function, keeping track of the stack, locals, and branches.
 /// Generate error for invalid instructions or type system violation.
 /// </summary>

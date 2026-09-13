@@ -6,16 +6,41 @@ pragma NoParse
 
 mod AATestFails
 
-use Zurfur[Iterator, Iterable, Log]
+use Zurfur[Iterator, Iterable, Log, Number]
 
 // Make first test case pass by adding a syntax error
 fun test_makeError()
     makeError // ***
 
+// ### Test constraints
+
+// Declare a method to multiply and add three keys on Map<K,V>.
+// Return Nan (or MinValue for integer types) if any key is missing.
+fun madd<K,V>(map Map<K,V>, mul1 K, mul2 K, add K) V
+where V Number<V>
+    if map[mul1]@mul1Val and map[mul2]@mul2Val and map[add]@addVal
+        return mul1Val * mul2Val + addVal
+    return V.NanOrMin        
+
+fun useMadd1(map Map<Str,Int>, b Int)
+    map.madd("", "", "")
+
+fun useMadd2<K,V>(map Map<K,V>, b K)
+where V Number<V>
+    map.madd(K(), K(), K())
+
+fun useMadd3<K,V>(map Map<K,V>, b K)
+    map.madd(K(), K(), K()) // *** TEST CASE FAIL *** K should be constrained!!!
+
+
+fun useMadd4(map Map<Str,Int>, b Int)
+    map.madd("", "", 1)  // *** Constraint doesn't allow
+
+
 // ###
 
 fun test_ufcs(a Str)
-    ("").Log.info // ***
+    ("").Log.info // *** Log is an undefined symbol in string
     Log.info("Hello")
     test_ufcs("hello")
     ("").test_ufcs

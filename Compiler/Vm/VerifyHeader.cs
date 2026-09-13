@@ -56,6 +56,9 @@ public static class VerifyHeader
 
     public static void Verify(SymbolTable symbols)
     {
+        var typeDef = symbols.GenerateTypeDefTable();
+        var specializedTypeDef = symbols.SpecializedSymbols;
+
         // TBD: What we really want to do is clear the lookup table
         //      and regenerate it along with SymSpecializedType's.
         //      The regeneration will have to happen when loading
@@ -130,7 +133,13 @@ public static class VerifyHeader
 
         void CheckTypeName(Token token, string typeName, bool allowModule)
         {
-            var s = symbols.Lookup(typeName);
+            Symbol? s = null;
+
+            if (typeDef.TryGetValue(typeName, out var s1))
+                s = s1;
+            else if (specializedTypeDef.TryGetValue(typeName, out var s2))
+                s = s2;
+
             if (s == null)
             {
                 if (typeName.Contains('#'))

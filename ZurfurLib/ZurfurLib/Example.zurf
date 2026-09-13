@@ -52,17 +52,22 @@ fun test_map()
 
 // Declare a method to multiply and add three keys on Map<K,V>.
 // Return Nan (or MinValue for integer types) if any key is missing.
-fun madd<K,V>(my Map<K,V>, mul1 K, mul2 K, add K) V
+fun madd<K,V>(m Map<K,V>, mul1 K, mul2 K, add K) V
 where V Number<V>
-    if my[mul1]@mul1Val and my[mul2]@mul2Val and my[add]@addVal
+    if m[mul1]@mul1Val and m[mul2]@mul2Val and m[add]@addVal
         return mul1Val * mul2Val + addVal
     return V.NanOrMin        
+
+fun useMadd(m Map<Str,Int>, b Int)
+    m.madd(Str(), Str(), Str())
+    
+
 
 [pub]
 fun countToTen()
     Log.info("Hello world.  Let's count to 10.")
     for i in 1..+10
-        Log.info("Count={i}, text={m.text}")
+        Log.info("Count=${i}, text=${m.text}")
 
 fun asIterator(my MyType) MyTypeIter todo
 
@@ -86,20 +91,19 @@ fun mapChangedEvent(my MyType) {}
 fun test_HelloWorld()
     Log.info("Hello World.  Let's count from 1 to 10.")
     for i in 1..11
-        Log.info("Count={a}")
+        Log.info("Count=${a}")
 
-    let a = "Regular string literal"       // No interpolation
-    let b = "Column 1{\t}Column 2{\n}"     // Containing a tab, ending with \n
-    let c = tr"Translated string"          // Translated at runtime
-    let d = "Hello world, a+b={a+b}{\n}"   // Interpolated with \n at the end
-    let e = tr"Hello world, X={X}!{\n}"    // Translated, interpolated, \n at end
-    let g = ``{"X":1,"Y":2}``              // Containing quote
-    let h = ``{"X":%{x},"Y":2}``           // Containing quote and interpolated
-    let markDown = ``
-This is a multi-line markdown comment that can have markdown `code` in it.
-Even 3 ``` or 4 ```` backticks if you need them (just not two backticks)
-Multi-line comments can also be interpolated: %{a}
-``
+    let a = "Regular string literal"        // No interpolation
+    let b = "Column 1${\t}Column 2${\n}"    // Containing a tab, ending with \n
+    let c = tr"Translated string"           // Translated at runtime
+    let d = "Hello world, a+b=${a+b}${\n}"  // Interpolated with \n at the end
+    let e = tr"Hello world, X=${X}!${\n}"   // Translated, interpolated, \n at end
+    let g = """{"X":1,"Y":2}"""             // Containing quote
+    let h = """{"X":${x},"Y":2}"""          // Containing quote and interpolated
+    let markDown = """
+This is a multi-line comment that can have markdown `code` in it.
+Multi-line comments can also be interpolated: ${a}
+"""
     let t1 = circle2(1, 2.0)
     let t1r1 = t1.x
     let t1r2 = t1.y
@@ -160,7 +164,7 @@ fun AcceptMatch(m Str) ?Token
 fun test_Main(args Array<Str>, stream Zurfur.Io.Reader)
 
     // This is a regular private comment
-    Log.info("Hello World, 2+2={2+2}")
+    Log.info("Hello World, 2+2=${2+2}")
 
     let v = ""
     //let myStrings = ["a", "b", "c"]
@@ -177,8 +181,8 @@ fun test_Main(args Array<Str>, stream Zurfur.Io.Reader)
     else
         v = "none"
     
-    let a = tr"Column 1{\t}Column 2{\rn}"
-    let data = "Name:{name}{\t}Occupation:{lastName}{\rn}"
+    let a = tr"Column 1${\t}Column 2${\rn}"
+    let data = "Name:${name}${\t}Occupation:${lastName}${\rn}"
     let buffer = Buffer<Byte>()
 
     let hexString = List<Byte>()
