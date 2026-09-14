@@ -213,7 +213,7 @@ static class CompileHeader
                     foreach (var child in module.Children)
                     {
                         // Add any method matching the interface
-                        if (child.IsFun && !child.IsStatic 
+                        if (child.IsFun && !child.IsStatic && child.IsMethod
                                 && child.FunParamTypes.Length != 0
                                 && child.FunParamTypes[0].IsInterface
                                 && child.FunParamTypes[0].Concrete.FullName == typeSym.FullName)
@@ -275,7 +275,7 @@ static class CompileHeader
                 //          "[static] fun Type.new() extern"
                 //      Plus, some of this code is repeated in other places
                 var constructor = new Symbol(SymKind.Fun, type.Parent, type.Path, type.Token, "new");
-                constructor.Qualifiers |= SymQualifiers.Extern;
+                constructor.Qualifiers |= SymQualifiers.Extern | SymQualifiers.Method;
                 var constructorType = Resolver.GetTypeWithGenericParameters(table, type);
                 foreach (var genericParam in constructorType.TypeArgs)
                 {
@@ -442,14 +442,19 @@ static class CompileHeader
             function.SetQualifiers(synFunc.Qualifiers);
             function.Comments = synFunc.Comments;
 
-            AddTypeParams(function, synFunc.TypeParams);
-            if ( (function.Parent?.IsInterface??false) && synFunc.TypeParams != null && synFunc.TypeParams.Count >= 1)
-                Reject(synFunc.TypeParams[0].Token, "Interface methods may not have type parameters");
+            if (synFunc.IsMethod)
+                function.Qualifiers |= SymQualifiers.Method;
 
+            AddTypeParams(function, synFunc.TypeParams);
             var selfParameter = ResolveSelfParameter(synFunc, table, useSymbolsFile, function);
             var parameters = ResolveFunParams(synFunc.FunctionSignature[0], table, function, function, useSymbolsFile);
             var returns = ResolveFunParams(synFunc.FunctionSignature[1], table, function, function, useSymbolsFile);
             var newReturn = ResolveNewReturn(function, synFunc, parameters);
+
+            // TBD: Move to verifier
+            if ((function.Parent?.IsInterface ?? false) && synFunc.TypeParams != null && synFunc.TypeParams.Count >= 1)
+                Reject(synFunc.TypeParams[0].Token, "Interface methods may not have type parameters");
+
 
             // Insert implicit and return params
             if (selfParameter != null)

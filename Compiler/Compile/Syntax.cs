@@ -131,8 +131,7 @@ record class SyntaxFunc : SyntaxScope
     }
 
     public SyntaxExpr? TypeParams { get; init; }
-
-    public Token? MutFun { get; init; }
+    public bool IsMethod { get; init; }
     public required SyntaxExpr FunctionSignature { get; init; }
     public required SyntaxConstraint[] Constraints { get; init; }
     public required SyntaxExpr []Requires;

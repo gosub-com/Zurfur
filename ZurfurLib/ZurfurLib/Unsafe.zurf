@@ -5,9 +5,9 @@ mod Zurfur.Unsafe
 use Zurfur[RawPointerMarker, Type]
 
 // Mark these types as pointers and allow castPointer
-fun getRawPointer(my Xuint) RawPointerMarker extern
-fun getRawPointer<T>(my Ref<T>) RawPointerMarker extern
-fun getRawPointer<T>(my RawPointer<T>) RawPointerMarker extern
+fun .getRawPointer(self Xuint) RawPointerMarker extern
+fun .getRawPointer<T>(self Ref<T>) RawPointerMarker extern
+fun .getRawPointer<T>(self RawPointer<T>) RawPointerMarker extern
 
 // Cast from one pointer type to another pointer type.
 [pub]
@@ -21,9 +21,9 @@ extern
 type ro Xuint
     value U32 // or U64
 
-fun new(my Xuint, value U64) 
+fun .new(self Xuint, value U64) 
     assert(value <= (0U32).MaxValue.toU64)
-    my.value = value.toU32Mask
+    self.value = value.toU32Mask
 
 // Internal representation of `ref`, a compiler generated stack only pointer.
 // The first version is a reference counting implementation, but future
@@ -35,7 +35,8 @@ type ref ro Ref<T>
     value *T
 
 
-[pub] fun new<T>(my Ref<T>, p *T) todo
+[pub]
+fun .new<T>(self Ref<T>, p *T) todo
 
 // When implemented, the compiler knows it is a pointer (32 or 64 bits)
 // and can allow `castPointer`.  `RawPointerMarker` is private, so only

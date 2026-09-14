@@ -389,6 +389,9 @@ public class SymbolTable
         return _genericArguments[argNum];
     }
 
+    /// <summary>
+    /// Create a new constructor symbol in the form: #0.new(#0,#0)
+    /// </summary>
     public Symbol GetGenericParamConstructor(int argNum)
     {
         if (argNum < _genericConstructors.Count)
@@ -399,7 +402,7 @@ public class SymbolTable
             // Create a generic constructor for generic type
             var type = GetGenericParam(i);
             var constructor = new Symbol(SymKind.Fun, type, "", null, "new");
-            constructor.Qualifiers |= SymQualifiers.Static | SymQualifiers.Extern;
+            constructor.Qualifiers |= SymQualifiers.Static | SymQualifiers.Extern | SymQualifiers.Method;
             constructor.Type = CreateTuple([
                     CreateTuple([type]),
                     CreateTuple([type]) ]);

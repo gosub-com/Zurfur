@@ -1,4 +1,4 @@
-﻿
+
 mod Zurfur
 
 use Zurfur[Copy, Iterator, Number]
@@ -16,15 +16,15 @@ where T Number<T>
 
 
 [pub]
-fun new<T>(my Range<T>, low T, high T)
+fun .new<T>(self Range<T>, low T, high T)
     // TBD: (r.low, r.high) = (low, high)
-    my.low = low
-    my.high = high
+    self.low = low
+    self.high = high
 
 [pub]
-fun get length<T>(my Range<T>) T // TBD: Use constraints from `Range`
+fun get .length<T>(self Range<T>) T // TBD: Use constraints from `Range`
 where T Number<T>
-    return my.high-my.low
+    return self.high-self.low
         
 [pub]
 type RangeIterator<T>
@@ -33,17 +33,17 @@ where T Number<T>
     high T pub init
 
 [pub]
-fun new<T>(my RangeIterator<T>, low T, high T)
-    // TBD: (my.current, my.high) = (low, high)
-    my.current = low
-    my.high = high
+fun .new<T>(self RangeIterator<T>, low T, high T)
+    // TBD: (self.current, self.high) = (low, high)
+    self.current = low
+    self.high = high
 
 [pub]
-fun next<T>(my mut RangeIterator<T>) ?T
+fun .next<T>(self mut RangeIterator<T>) ?T
 where T Number<T>
-    if my.current >= my.high
+    if self.current >= self.high
         return nil
-    @prev = my.current
-    my.current += T.One
+    @prev = self.current
+    self.current += T.One
     return Maybe<T>(prev)
         

@@ -1,4 +1,4 @@
-﻿
+
 // Basic shapes for use with 2d drawing library.
 // Point, Size, Rect.
 // TBD: Vec2, Vec3, Vec4 for 3d, is Point same as Vec2?
@@ -28,42 +28,42 @@ type struct Size<T> where T Number<T> { width T; height T }
 type struct Rect<T> where T Number<T> { location Point<T>; size Size<T> }
 
 // Identical to a field
-fun get x2<T>(my Point<T>) mut &T
-    return &my.x // TBD: Require `&`, do not allow just `my.x`
+fun get .x2<T>(self Point<T>) mut &T
+    return &self.x // TBD: Require `&`, do not allow just `self.x`
 
 // Identical to fields (not necessary when we have 'use location Point<T>' syntax)
 [pub]
-fun get x<T>(my Rect<T>) mut &T
-    return &my.location.x // TBD: Require `&`
+fun get .x<T>(self Rect<T>) mut &T
+    return &self.location.x // TBD: Require `&`
     
 [pub]
-fun get y<T>(my Rect<T>) mut &T
-    return &my.location.y // TBD: Require `&`
+fun get .y<T>(self Rect<T>) mut &T
+    return &self.location.y // TBD: Require `&`
     
 [pub]
-fun get width<T>(my Rect<T>) mut &T
-    return &my.size.height // TBD: Require `&`
+fun get .width<T>(self Rect<T>) mut &T
+    return &self.size.height // TBD: Require `&`
     
 [pub]
-fun get height<T>(my Rect<T>) mut &T
-    return &my.size.width // TBD: Require `&`
+fun get .height<T>(self Rect<T>) mut &T
+    return &self.size.width // TBD: Require `&`
     
 
 
 [pub]
-fun new<T>(my Point<T>, x T, y T)
-    // TBD: (my.x, my.y) = (x, y)
-    my.x = x
-    my.y = y
+fun .new<T>(self Point<T>, x T, y T)
+    // TBD: (self.x, self.y) = (x, y)
+    self.x = x
+    self.y = y
 
 
 [pub]
-fun toSize<T>(my Point<T>) Size<T>
-    return Size<T>(my.x, my.y)
+fun .toSize<T>(self Point<T>) Size<T>
+    return Size<T>(self.x, self.y)
 
 // TBD: Remove
-fun yf<T>(my Point<T>) T
-    return my.y
+fun .yf<T>(self Point<T>) T
+    return self.y
 
 
 [pub]
@@ -102,48 +102,48 @@ where T Number<T>
     return Point(a.x/b, a.y/b)
 
 [pub]
-fun new<T>(my Size<T>, width T, height T)
-    // TBD: (my.width, my.height) = (width, height)
-    my.width = width
-    my.height = height
+fun .new<T>(self Size<T>, width T, height T)
+    // TBD: (self.width, self.height) = (width, height)
+    self.width = width
+    self.height = height
     
 [pub]
-fun toPoint<T>(my Size<T>) Point<T>
-    return Point(my.width, my.height)
+fun .toPoint<T>(self Size<T>) Point<T>
+    return Point(self.width, self.height)
 
 
 
 [pub]
-fun new<T>(my Rect<T>, x T, y T, width T, height T)
-    my.x = x
-    my.y = y
-    my.width = width
-    my.height = height
+fun .new<T>(self Rect<T>, x T, y T, width T, height T)
+    self.x = x
+    self.y = y
+    self.width = width
+    self.height = height
     
 [pub]
-fun new<T>(my Rect<T>, location Point<T>, size Size<T>)
-    my.location = location
-    my.size = size
+fun .new<T>(self Rect<T>, location Point<T>, size Size<T>)
+    self.location = location
+    self.size = size
 
 
 // TBD: Operators (add, multiply, divide, sizes, etc.)
 
 [pub]
-fun get left<T>(my Rect<T>) T
-    return my.x
+fun get .left<T>(self Rect<T>) T
+    return self.x
     
 [pub]
-fun get right<T>(my Rect<T>) T // TBD: Use constraints from `Rect`
+fun get .right<T>(self Rect<T>) T // TBD: Use constraints from `Rect`
 where T Number<T>
-    return my.x + my.width
+    return self.x + self.width
 
 [pub]
-fun get top<T>(my Rect<T>) T
-    return my.y
+fun get .top<T>(self Rect<T>) T
+    return self.y
     
 [pub]
-fun get bottom<T>(my Rect<T>) T // TBD: Use constraints from `Rect`
+fun get .bottom<T>(self Rect<T>) T // TBD: Use constraints from `Rect`
 where T Number<T>
-    return my.y + my.height
+    return self.y + self.height
     
     

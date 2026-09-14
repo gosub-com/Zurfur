@@ -16,9 +16,9 @@ fun test_makeError()
 
 // Declare a method to multiply and add three keys on Map<K,V>.
 // Return Nan (or MinValue for integer types) if any key is missing.
-fun madd<K,V>(map Map<K,V>, mul1 K, mul2 K, add K) V
+fun .madd<K,V>(self Map<K,V>, mul1 K, mul2 K, add K) V
 where V Number<V>
-    if map[mul1]@mul1Val and map[mul2]@mul2Val and map[add]@addVal
+    if self[mul1]@mul1Val and self[mul2]@mul2Val and self[add]@addVal
         return mul1Val * mul2Val + addVal
     return V.NanOrMin        
 
@@ -37,20 +37,39 @@ fun useMadd4(map Map<Str,Int>, b Int)
     map.madd("", "", 1)  // *** Constraint doesn't allow
 
 
-// ###
+// ### UFCS not allowed (use function call)
 
-fun test_ufcs(a Str)
+fun test_ufcs1(a Str)
     ("").Log.info // *** Log is an undefined symbol in string
     Log.info("Hello")
-    test_ufcs("hello")
-    ("").test_ufcs
+
+// ### UFCS not allowed (use function call)
+
+fun test_ufcs2(a Str)
+    test_ufcs2("hello")
+    ("").test_ufcs2 // *** undefined symbol in type
+
+// ### UFCS not allowed (use method call)
+
+type Test_Ufcs3 {}
+
+fun .test_ufcs3(self Test_Ufcs3)
+    self.test_ufcs3
+    test_ufcs3(self)   // *** undefined symbol
+
+// ### Don't allow both forms
+fun test_ufcs3_1(a Test_Ufcs3) {}
+// ### Don't allow both forms
+fun .test_ufcs3_1(self Test_Ufcs3) {}
 
 // ### Interface conversion that fails
 
 type interface TakeConcrete
     fun take(a Int)
+    
 type interface TakeConcrete2
     fun take(a Int)
+    
 type interface TakeInterface
     fun take(a TakeConcrete)
     
@@ -58,11 +77,11 @@ type ImpNone {}
 
 type ImpTakeConcrete {}
 
-fun take(my ImpTakeConcrete, a Int) todo
+fun .take(self ImpTakeConcrete, a Int) todo
 
 type ImpTakeInterface {}
 
-fun take(my ImpTakeInterface, a TakeConcrete) todo
+fun .take(self ImpTakeInterface, a TakeConcrete) todo
 
 fun takeInterfaceConcrete(x TakeConcrete) todo
 
@@ -131,11 +150,11 @@ type MyCollectionNot<T> {}
 type MyCollectionNotIter<T> {}
 
 
-fun next<T>(my MyCollectionIter<T>) ?T
+fun .next<T>(self MyCollectionIter<T>) ?T
     nop
 
-fun reduceInt(my Iterable<Int>, f fun(item1 Int, item2 Int) Int) ?Int
-    return my.asIterator.reduce(f) 
+fun .reduceInt(self Iterable<Int>, f fun(item1 Int, item2 Int) Int) ?Int
+    return self.asIterator.reduce(f) 
 
 fun test_takePrintable(a Printable)
     @x = a.toStr
@@ -252,9 +271,9 @@ type interface AmbiguousInterface<T>
     
 type AmbiguousTest {}
 
-fun f(my AmbiguousTest, a Int) todo
+fun .f(self AmbiguousTest, a Int) todo
 
-fun f(my AmbiguousTest, b Float) todo
+fun .f(self AmbiguousTest, b Float) todo
 
 fun takeAmbiguous<T>(i AmbiguousInterface<T>) todo
 
@@ -283,9 +302,9 @@ type interface AmbiguousInterfaceFunParam<T>
     
 type AmbiguousTestFunParam {}
 
-fun f(my AmbiguousTestFunParam, a Int, b Int) todo
+fun .f(self AmbiguousTestFunParam, a Int, b Int) todo
 
-fun f(my AmbiguousTestFunParam, b Float, c Int) todo
+fun .f(self AmbiguousTestFunParam, b Float, c Int) todo
 
 fun takeAmbiguousFunParam<T>(i AmbiguousInterfaceFunParam<T>) todo
 
@@ -298,10 +317,10 @@ fun test_ambiguousInterfaceParam()
 
 // ### Ambiguous function call
 
-fun toStr(my U16) Str todo
+fun .toStr(self U16) Str todo
 
 fun test_ambiguousFunCall()
-    U16().toStr // ***
+    U16().toStr // *** Multiple function taking U16
 
 
 // ### Ambiguous implicit conversion
@@ -319,44 +338,28 @@ fun test_ambiguousImplicit()
     takePointerAmb(nil) // ***
 
 
-// ### Test static
+// ### Test static - TBD: REMOVE STATIC, replace with explicit
 
 type StaticTest
+    normalField Int
+
+    // This will be allowed, but the function MUST be defined in this module
+    fun get functionField() Int {} // Implementation not allowed here
+
+    // TBD: Static will be removed
     [static] staticField Int
     [static] fun staticFun() Int todo
-    normalField Int
-    fun normalFun() Int todo
-    fun ambigFun() Int todo
 
-fun ambigFun(a StaticTest) Int todo
+    // TBD: Nested functions will be illegal    
+    fun normalFunOnly() Int todo
+    fun methodAndNormalFun() Int todo
 
-fun test_static()
-    let a Int = StaticTest.staticField
-    let b Int = StaticTest.staticFun
-    let c = StaticTest.staticFun
-    let d = StaticTest.normalField // *** Static mismatch
+
+fun methodAndNormalFun(a StaticTest) Int todo
 
 // ###
-    let e = StaticTest.normalFun // *** Wrong number of parameters
-    let f = StaticTest.normalFun(StaticTest()) // Non static function call
 
-// ###
-    let g = StaticTest().staticFun // *** Non static function call
+fun .methodAndNormalFun(self StaticTest) Int todo
 
-// ###
-    let h = StaticTest().staticField // *** Non static function call
-
-// ###
-    let i = normalFun(StaticTest()) // *** Undefined global function
-
-// ###
-    let j = StaticTest.ambigFun(StaticTest()) // *** TBD FAIL: Should select the correct one
-    let k = ambigFun(StaticTest()) // TBD FAIL: This should be ambiguous
-
-// ###
-    let l = StaticTest().ambigFun // *** This is ambiguous
-
-// ###
-    let m = AATestFails.ambigFun(StaticTest()) // *** TBD FAIL: This should work
 
 // ### END OF FILE

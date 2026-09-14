@@ -32,21 +32,21 @@ static class CodeLib
                 symbols.Add(child);
     }
 
-    public static void AddFunctionsNamedInModule(string name, Symbol inModule, List<Symbol> symbols)
+    public static void AddFunctionsNamedInModule(string name, Symbol inModule, List<Symbol> symbols, bool isMethod)
     {
         foreach (var child in inModule.ChildrenNamed(name))
-            if (child.IsFun)
+            if (child.IsFun && child.IsMethod == isMethod)
                 symbols.Add(child);
     }
 
-    // Add functions with first parameter of withType
-    public static void AddFunctionsInModuleWithType(string name, Symbol inModule, Symbol withType, List<Symbol> symbols)
+    // Add methods with first parameter of withType
+    public static void AddMethodsInModuleWithType(string name, Symbol inModule, Symbol withType, List<Symbol> symbols)
     {
         // Ignore mut, etc., then just compare the non-specialized type.
         withType = withType.Concrete;
         foreach (var child in inModule.ChildrenNamed(name))
         {
-            if (!child.IsFun)
+            if (!child.IsFun || !child.IsMethod)
                 continue;
 
             // Compare the non-specialized type

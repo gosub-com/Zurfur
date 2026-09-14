@@ -19,11 +19,11 @@ type interface TakeInterface
     
 type ImpTakeConcrete {}
 
-fun take(my ImpTakeConcrete, a Int) todo
+fun .take(self ImpTakeConcrete, a Int) todo
 
 type ImpTakeInterface {}
 
-fun take(my ImpTakeInterface, a TakeConcrete) todo
+fun .take(self ImpTakeInterface, a TakeConcrete) todo
 
 
 fun takeInterfaceConcrete(x TakeConcrete) todo
@@ -93,7 +93,7 @@ type interface ImplicitI<T>
     
 type ToImplicitI<T> {}
 
-fun callme<T>(my ToImplicitI<T>, a T)T todo
+fun .callme<T>(self ToImplicitI<T>, a T)T todo
 
 type FromImplicitI<T>
     [pub, implicit] fun get toToImplicit() ToImplicitI<T> todo

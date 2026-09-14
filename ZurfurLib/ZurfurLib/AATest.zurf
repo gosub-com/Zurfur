@@ -1,4 +1,4 @@
-﻿
+
 // Misc compiler testing which gets compiled first and makes it easy to set break points.
 // TBD: Move working test cases into AATestPass
 
@@ -15,11 +15,11 @@ use Zurfur.ConvertBytes[readBytesInt64, writeBytesInt64, writeBytesHex]
 
 type ReadStuff {}
 
-fun read(my ReadStuff, buffer Span<Byte>) !Int todo
+fun .read(self ReadStuff, buffer Span<Byte>) !Int todo
 
-fun AAA_test_paramable(p AParamable)
+fun .AAA_test_paramable(self AParamable)
     let a *Int
-    let x = p.takePointer(nil)
+    let x = self.takePointer(nil)
     let b = nil == a
     let c = a == nil
 
@@ -72,20 +72,21 @@ fun test_reduce()
     @myReduceTuple1 = List<(x Int, y Int)>().reduce(|item1, item2| => item1)
     @myReduceTuple2 = List<(a Int, b Int)>().reduce(|item1, item2| => item2)
 
-[pub] type MyType
+[pub]
+type MyType
     [pub, implicit] fun get asIterator() MyTypeIter todo
 
 type MyTypeIter {}
-fun next(my MyTypeIter) ?Int
+fun .next(self MyTypeIter) ?Int
     todo
 
-fun reduceInt(my Iterator<Int>, f fun(item1 Int, item2 Int) Int) ?Int
-    return my.reduce(f)
+fun .reduceInt(self Iterator<Int>, f fun(item1 Int, item2 Int) Int) ?Int
+    return self.reduce(f)
 
 fun takeIterator1<T>(a Iterator<T>)
     return
 
-fun takeIterator2<T>(my Iterator<T>)
+fun .takeIterator2<T>(self Iterator<T>)
     return
 
 fun takeIteratorInt(my Iterator<Int>)
@@ -135,23 +136,23 @@ type interface BParamable
 
 type A1Parameter
     a Int
-fun takePointer(my A1Parameter, a *Int) Span<Int>
+fun .takePointer(self A1Parameter, a *Int) Span<Int>
     return Span<Int>()
-fun takeInt(my A1Parameter, a Int) Float
+fun .takeInt(self A1Parameter, a Int) Float
     return 0.0
 
 type A1ParameterNot1
     a Int
-fun takePointer(my A1ParameterNot1, a *Int) Int // Causes it to not be AParamable
+fun .takePointer(self A1ParameterNot1, a *Int) Int // Causes it to not be AParamable
     return 0
-fun takeInt(my A1ParameterNot1, a Int) Float
+fun .takeInt(self A1ParameterNot1, a Int) Float
     return 0.0
 
 type A1ParameterNot2
     a Int
-fun takePointer(my A1ParameterNot2, a *Int) Span<Int>
+fun .takePointer(self A1ParameterNot2, a *Int) Span<Int>
     return Span<Int>()
-fun takeInt(my A1ParameterNot2, a Int) Int // Causes it to not be AParamable
+fun .takeInt(self A1ParameterNot2, a Int) Int // Causes it to not be AParamable
     return 0
 
 
@@ -211,11 +212,11 @@ type MyCollectionNot<T> {}
 type MyCollectionNotIter<T> {}
 
 
-fun next<T>(my MyCollectionIter<T>) ?T
+fun .next<T>(self MyCollectionIter<T>) ?T
     nop
-fun asIterator<T>(my MyCollectionNot<T>) MyCollectionNotIter<T>
+fun .asIterator<T>(self MyCollectionNot<T>) MyCollectionNotIter<T>
     nop
-fun next<T>(my MyCollectionNotIter<T>) ?T
+fun .next<T>(self MyCollectionNotIter<T>) ?T
     nop
 
 
@@ -397,13 +398,13 @@ type aaa_arith_test
     c Int
     _property Int
     
-fun get property(my aaa_arith_test) Int
-    return my._property
-fun set property(my aaa_arith_test, d Int)
-    my._property = d
+fun get .property(self aaa_arith_test) Int
+    return self._property
+fun set .property(self aaa_arith_test, d Int)
+    self._property = d
 
-fun get bref(my aaa_arith_test) mut &aaa_arith_test2
-    return my.b
+fun get .bref(self aaa_arith_test) mut &aaa_arith_test2
+    return self.b
 
 type aaa_arith_test2
     d Int
@@ -424,13 +425,13 @@ fun test_forEach(args Array<Str>)
 
 
 // https://stackoverflow.com/questions/1825952/how-to-create-a-generic-extension-method
-fun alphaLengthWise<Item, L>(my Iterator<Item>, lengthProvider fun(t Item) L) Iterator<Item>
-    return my.orderBy<Item, L>(a => lengthProvider(a)).thenBy<Item, L>(a => a)
+fun .alphaLengthWise<Item, L>(self Iterator<Item>, lengthProvider fun(t Item) L) Iterator<Item>
+    return self.orderBy<Item, L>(a => lengthProvider(a)).thenBy<Item, L>(a => a)
     
-fun orderBy<Source,Key>(my Iterator<Source>, keySelector fun(i Source)Key) Iterator<Source>
+fun .orderBy<Source,Key>(self Iterator<Source>, keySelector fun(i Source)Key) Iterator<Source>
     todo
     
-fun thenBy<Source,Key>(my Iterator<Source>, keySelector fun(i Source)Key) Iterator<Source>
+fun .thenBy<Source,Key>(self Iterator<Source>, keySelector fun(i Source)Key) Iterator<Source>
     todo
 
 fun test_alphaLengthWise()
@@ -616,10 +617,10 @@ fun Test<X0,X1,X2,X3>()
 
 type OneGeneric<T> { } 
 
-fun get toSizeTest<T>(my Point<T>) Size<T>
+fun get .toSizeTest<T>(self Point<T>) Size<T>
     @a = Size<T>(T(),T())
     @b = Size<T>()
-    @c = Size(my.x, my.y)
+    @c = Size(self.x, self.y)
     @d = Size(0,0)
     return c
 
@@ -641,7 +642,7 @@ fun test(x Float)
     @f = helloVoid()
     @g = helloInt()
     Log.info("Hello world, 2+2={2+2}")
-    @h = cos(2.0+3.0*23.0).toStr
+    @h = (2.0+3.0*23.0).cos.toStr
 
 
 type AAAA<T>

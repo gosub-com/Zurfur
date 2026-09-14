@@ -52,9 +52,9 @@ fun test_map()
 
 // Declare a method to multiply and add three keys on Map<K,V>.
 // Return Nan (or MinValue for integer types) if any key is missing.
-fun madd<K,V>(m Map<K,V>, mul1 K, mul2 K, add K) V
+fun .madd<K,V>(self Map<K,V>, mul1 K, mul2 K, add K) V
 where V Number<V>
-    if m[mul1]@mul1Val and m[mul2]@mul2Val and m[add]@addVal
+    if self[mul1]@mul1Val and self[mul2]@mul2Val and self[add]@addVal
         return mul1Val * mul2Val + addVal
     return V.NanOrMin        
 
@@ -69,12 +69,12 @@ fun countToTen()
     for i in 1..+10
         Log.info("Count=${i}, text=${m.text}")
 
-fun asIterator(my MyType) MyTypeIter todo
+fun .asIterator(self MyType) MyTypeIter todo
 
 type MyTypeIter
     a Int
     
-fun next(my MyTypeIter) ?Int
+fun .next(self MyTypeIter) ?Int
     todo
 
 // Setter for list, which is already public read-only
@@ -86,7 +86,7 @@ fun set list(my MyType, v own List<Int>)
         nop
     MyType().asIterator.map<Int,Str>(s => "")
 
-fun mapChangedEvent(my MyType) {}
+fun .mapChangedEvent(self MyType) {}
 
 fun test_HelloWorld()
     Log.info("Hello World.  Let's count from 1 to 10.")
@@ -113,7 +113,7 @@ Multi-line comments can also be interpolated: ${a}
 fun circle(a Float, r Float)(x Float, y Float)
     let q = circle(1.0,2.0)
     let p = q.x
-    return (cos(a)*r, sin(a)*r)
+    return (a.cos*r, a.sin*r)
 
 fun circle2<T0, T1>(a T0, r T1)(x T0, y T1)
     return (T0(), T1())

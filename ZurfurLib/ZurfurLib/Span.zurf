@@ -1,4 +1,4 @@
-﻿
+
 
 mod Zurfur
 
@@ -23,26 +23,29 @@ type ref SpanReader
     data mut SpanIterator<Byte>
 
 // Create a span (on the stack if it can, heap if not)
-[pub] fun new<T>(my Span<T>, length Int) todo
+[pub] fun .new<T>(self Span<T>, length Int) todo
 
 [pub]
-fun get asReader(my Span<Byte>) SpanReader todo
+fun get .asReader(self Span<Byte>) SpanReader todo
 
-afun read(my SpanReader, data mut Span<Byte>) !Int todo
+afun .read(self SpanReader, data mut Span<Byte>) !Int todo
 
-[pub] fun next<T>(my SpanIterator<T>) ?&T
-    if my._data >= my._end
+[pub]
+fun .next<T>(self SpanIterator<T>) ?&T
+    if self._data >= self._end
         return nil
-    @r = my._data
-    my._data = my._data + 1
+    @r = self._data
+    self._data = self._data + 1
     return Ref(r) // TBD: Unsafe.Ref(r) should work here
        
     
-[pub] fun _opIndex<T>(s Span<T>, i Int) mut &T
+[pub]
+fun _opIndex<T>(s Span<T>, i Int) mut &T
 require i in 0..s.len
     todo // Implementation TBD
 
-[pub] fun _opIndex<T>(s Span<T>, range Range<Int>) mut Span<T>
+[pub]
+fun _opIndex<T>(s Span<T>, range Range<Int>) mut Span<T>
 require range.low in 0..s.len
 require range.high in 0..s.len
 require range.low <= range.high

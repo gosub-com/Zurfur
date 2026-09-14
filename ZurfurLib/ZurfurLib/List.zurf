@@ -1,4 +1,4 @@
-﻿
+
 mod Zurfur
 
 
@@ -33,98 +33,100 @@ type List<T>
 
 
 [pub]
-fun new<T>(my List<T>)
-    my.list = &*empty
+fun .new<T>(self List<T>)
+    self.list = &*empty
         
 
 [pub]
-fun new<T>(my List<T>, capacity Int)
-require capacity in 0..my.MaxItems
+fun .new<T>(self List<T>, capacity Int)
+require capacity in 0..self.MaxItems
     if capacity == 0
-        my.list = &*empty
+        self.list = &*empty
     else
-        my.list = castPointer<*GcHeapArray>(calloc(sizeof(T)*capacity + sizeof(GcHeapArray)))
+        self.list = castPointer<*GcHeapArray>(calloc(sizeof(T)*capacity + sizeof(GcHeapArray)))
 
 
-fun get len<T>(my List<T>) Int
-    return my._len
+fun get .len<T>(self List<T>) Int
+    return self._len
 
 // Returns true if there is a reference to any element.  When locked, the
 // list length cannot be changed.  A GC implementation might not ever lock.
 [pub]
-fun get locked<T>(my List<T>) Bool
-    return my.list.refCount != 0
+fun get .locked<T>(self List<T>) Bool
+    return self.list.refCount != 0
 
 // TBD: Only generic
 // Usage: myList.For @item => DoStuffWithItem()
 [pub]
-fun forEach<T>(my List<T>, f fun(item mut T)) {}
+fun .forEach<T>(self List<T>, f fun(item mut T)) {}
 
 // Clone items into the new list
 [pub]
-fun new<T>(my List<T>, items Span<T>)
+fun .new<T>(self List<T>, items Span<T>)
 where T Clone<T>
     todo
 
 // Clone items into the new list
 [pub]
-fun new<T>(my List<T>, items mut Iterator<T>)
+fun .new<T>(self List<T>, items mut Iterator<T>)
     todo
 
 [pub]
-fun get capacity<T>(my List<T>) Int
-    return my.list.capacity.toInt
+fun get .capacity<T>(self List<T>) Int
+    return self.list.capacity.toInt
 
 // Set the capacity, won't shrink below count.
 [pub]
-fun set capacity<T>(my List<T>, value Int)
-require not my.locked and value < my.MaxItems
+fun set .capacity<T>(self List<T>, value Int)
+require not self.locked and value < self.MaxItems
     todo
 
 
 // Return a new list with all occurences of `seqSearch`
 // replaced by `seqReplace`.
 [pub]
-fun replaceIp<T>(my mut List<T>, seqSearch Span<T>, seqReplace Span<T>)
-require not my.locked
+fun .replaceIp<T>(self mut List<T>, seqSearch Span<T>, seqReplace Span<T>)
+require not self.locked
     todo
 
 [pub]
-fun clear<T>(my mut List<T>)
-require not my.locked
+fun .clear<T>(self mut List<T>)
+require not self.locked
     todo
 
 // Push the item onto the end of the list
 [pub]
-fun push<T>(my mut List<T>, item own T)
-require not my.locked
+fun .push<T>(self mut List<T>, item own T)
+require not self.locked
     todo
 
 // Push item clones onto the end of the list
 [pub]
-fun push<T>(my mut List<T>, items Span<T>)
-require not my.locked
+fun .push<T>(self mut List<T>, items Span<T>)
+require not self.locked
     todo
 
 // Push item clones onto the end of the list
 [pub]
-fun push<T>(my mut List<T>, items mut Iterator<T>)
-require not my.locked
+fun .push<T>(self mut List<T>, items mut Iterator<T>)
+require not self.locked
     todo
 
 // Write bytes to the end of the list, expanding the list as necessary
-[pub] fun write(my mut List<Byte>, buffer Span<Byte>)! todo
+[pub]
+fun .write(self mut List<Byte>, buffer Span<Byte>)! todo
 
-[pub] fun asReader(my List<Byte>) SpanReader
-    return my.asSpan.asReader
+[pub]
+fun .asReader(self List<Byte>) SpanReader
+    return self.asSpan.asReader
 
 
 [pub]
-fun insertIp<T>(my mut List<T>, index Int, item own T)
-require not my.locked
+fun .insertIp<T>(self mut List<T>, index Int, item own T)
+require not self.locked
     todo
 
 [pub]
-fun removeIp<T>(my mut List<T>, index Int) T
-require not my.locked
+fun .removeIp<T>(self mut List<T>, index Int) T
+require not self.locked
     todo

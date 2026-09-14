@@ -1,33 +1,44 @@
-﻿
+
 
 mod Zurfur.Io
 
 
-[pub] type interface Reader
+[pub]
+type interface Reader
     // Read as much data as we can now, block if there is nothing left to read
     afun mut read(data mut Span<Byte>) !Int
 
 // Read exactly the number of bytes requested
-[pub] fun readExact(my Reader, data mut Span<Byte>)!
-    var length = my.read(data)!
+[pub]
+fun .readExact(self Reader, data mut Span<Byte>)!
+    var length = self.read(data)!
     if length == 0
         return 
     while length < data.len
-        length += my.read(data[length..data.len])!
+        length += self.read(data[length..data.len])!
     
         
 
-[pub] type interface Writer
+[pub]
+type interface Writer
     afun mut write(data Span<Byte>)!
 
-[pub] type enum SeekOrigin
+[pub]
+type enum SeekOrigin
     Begin; Current; End
 
-[pub] type interface Seeker
+[pub]
+type interface Seeker
     fun mut seek(offset Int, origin SeekOrigin) !Int
     
-[pub] fun get length(my Seeker) !Int { }
-[pub] fun get position(my Seeker) !Int { }
-[pub] fun set position(my Seeker, value Int) ! { }
+[pub]
+fun get .length(self Seeker) !Int { }
 
-[pub] type noclone FileStream { }
+[pub]
+fun get .position(self Seeker) !Int { }
+
+[pub]
+fun set .position(self Seeker, value Int) ! { }
+
+[pub]
+type noclone FileStream { }

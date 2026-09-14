@@ -1541,7 +1541,7 @@ static class CompileCode
             if (!func.IsFun)
                 return IsLambdaCompatible(call.Name, func, args);
 
-            if (call.InType != null)
+            if (func.IsMethod && call.InType != null)
             {
                 // TBD: Review if these are necessary
                 //if (call.IsStatic && !func.IsStatic)
@@ -1935,11 +1935,11 @@ static class CompileCode
         {
             // Find global symbols in this module
             var symbols = new List<Symbol>();
-            AddFunctionsNamedInModule(name, function.ParentModule, symbols);
+            AddFunctionsNamedInModule(name, function.ParentModule, symbols, false);
 
-            // Search 'use' symbols
+            // Search 'use' symbols for non-methods
             if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
-                symbols.AddRange(useSymbols);
+                symbols.AddRange(useSymbols.Where(s => !s.IsMethod));
 
             // Add global constaints
             if (function.Constraints != null)
@@ -1969,13 +1969,13 @@ static class CompileCode
                 return new List<Symbol>() { s2 };
 
             var symbols = new List<Symbol>();
-            AddFunctionsNamedInModule(name, function.ParentModule, symbols);
+            AddFunctionsNamedInModule(name, function.ParentModule, symbols, true);
             AddFunctionsNamedInType(name, inType, symbols);
-            AddFunctionsInModuleWithType(name, inType.ParentModule, inType, symbols);
+            AddMethodsInModuleWithType(name, inType.ParentModule, inType, symbols);
 
-            // Search 'use' symbols
+            // Search 'use' symbol for methods with first parameter that matches
             if (fileUses.UseSymbols.TryGetValue(name, out var useSymbols))
-                symbols.AddRange(useSymbols.Where(s => s.IsFun));
+                symbols.AddRange(useSymbols.Where(s => s.IsMethod));
 
             // Add constraints when the receiver is generic
             if (function.Constraints != null

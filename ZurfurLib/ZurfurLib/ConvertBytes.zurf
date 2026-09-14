@@ -29,24 +29,28 @@ fun Test_ConvertExample()
     
 
 
-[pub] fun writeBytesHex(my Writer, bytes Span<Byte>, capitalize Bool = false)! todo
+[pub]
+fun .writeBytesHex(self Writer, bytes Span<Byte>, capitalize Bool = false)! todo
 
 
 // Read 8 bytes from the stream, convert to an int in little endian
-[pub] fun readBytesInt64(my Reader) !Int
+[pub]
+fun .readBytesInt64(self Reader) !Int
     var bytes = Span<Byte>(8)
-    my.readExact(bytes)!
+    self.readExact(bytes)!
     return bytes.getBytesInt64(0)
 
-[pub] fun writeBytesInt64(my Writer, value Int)!
+[pub]
+fun .writeBytesInt64(self Writer, value Int)!
     var bytes = Span<Byte>(8)
     bytes.setBytesInt64(0, value)
-    my.write(bytes)!
+    self.write(bytes)!
 
 
 // Convert 4 bytes (U32) to Int (little endian)
-[pub] fun getBytesInt64(my Span<Byte>, index Int) Int
-    let s = my[index..+8]
+[pub]
+fun .getBytesInt64(self Span<Byte>, index Int) Int
+    let s = self[index..+8]
     return     s[0].toInt
             | (s[1].toInt << 8)
             | (s[2].toInt << 16)
@@ -57,8 +61,9 @@ fun Test_ConvertExample()
             | (s[7].toInt << 56)
 
 // Convert U32 to 4 bytes (little endian) 
-[pub] fun setBytesInt64(my mut Span<Byte>, index Int, value Int)
-    var s = my[index..+8]
+[pub]
+fun .setBytesInt64(self mut Span<Byte>, index Int, value Int)
+    var s = self[index..+8]
     s[0] = value // TBD: Should be error
     s[0] = value.toByteMask
     s[1] = (value<<8).toByteMask

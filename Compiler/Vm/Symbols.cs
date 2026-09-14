@@ -54,6 +54,7 @@ public enum SymKind
 public enum SymQualifiers
 {
     None = 0,
+    Method = 0x01,
     Interface = 0x2,
     Const = 0x4,
     Static = 0x8,
@@ -241,6 +242,7 @@ public class Symbol
     public bool IsTypeParam => Kind == SymKind.TypeParam;
     public bool IsFunParam => Kind == SymKind.FunParam;
     public bool IsLocal => Kind == SymKind.Local;
+    public bool IsMethod => Qualifiers.HasFlag(SymQualifiers.Method);
     public bool IsConst => Qualifiers.HasFlag(SymQualifiers.Const);
     public bool IsStatic => Qualifiers.HasFlag(SymQualifiers.Static);
     public bool IsGetter => Qualifiers.HasFlag(SymQualifiers.Get);
@@ -427,9 +429,18 @@ public class Symbol
         var funParams = "";
         if (IsFun && Type != null)
         {
-            // Non-methods show parameters only
-            funParams = FunParamTuple.FriendlyNameInternal(false) + FunReturnTuple.FriendlyNameInternal(false);
-            myParam = "";
+            if (IsMethod && FunParamTuple.TypeArgs.Length != 0)
+            {
+                // Methods use first parameter as receiver type
+                funParams = FunParamTuple.FriendlyNameInternal(true) + FunReturnTuple.FriendlyNameInternal(false);
+                myParam = FunParamTuple.TypeArgs[0].FriendlyNameInternal(false) + ".";
+            }
+            else
+            {
+                // Non-methods show parameters only
+                funParams = FunParamTuple.FriendlyNameInternal(false) + FunReturnTuple.FriendlyNameInternal(false);
+                myParam = "";
+            }
         }
 
         return myParam + SimpleName + genericArgs + funParams;
