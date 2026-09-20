@@ -11,7 +11,7 @@ where T Number<T>
     high T
 
     [pub, implicit]
-    fun get asIterator() RangeIterator<T>
+    fun get .asIterator(self) RangeIterator<T>
         return RangeIterator<T>(self.low, self.high)
 
 

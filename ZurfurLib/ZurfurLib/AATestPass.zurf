@@ -8,14 +8,14 @@ use Zurfur[Iterator, SpanIterator]
 
 type ImpNone {}
 
-type interface TakeConcrete
-    fun take(a Int)
+interface TakeConcrete
+    fun .take(self, a Int)
     
-type interface TakeConcrete2 // TBD: Interfce to interface for compatible interfaces
-    fun take(a Int)
+interface TakeConcrete2 // TBD: Interfce to interface for compatible interfaces
+    fun .take(self, a Int)
     
-type interface TakeInterface
-    fun take(a TakeConcrete)
+interface TakeInterface
+    fun .take(self, a TakeConcrete)
     
 type ImpTakeConcrete {}
 
@@ -47,10 +47,10 @@ fun test_inferIterator()
     
 // Simple implicit conversion
 type FromImplicit
-    [pub, implicit] fun get toToImplicit() ToImplicit todo
+    [pub, implicit] fun get .toToImplicit(self) ToImplicit todo
 
 type ToImplicit
-    [pub, implicit, static] fun toToImplicit(value Map<Int,Float>) ToImplicit todo
+    [pub, implicit, static] fun .toToImplicit(self, value Map<Int,Float>) ToImplicit todo
 
 fun checkImplicit1(a ToImplicit) todo
 
@@ -62,7 +62,7 @@ fun test_implicit()
 
 // Generic implcit conversion
 type FromImplicitG<T1, T2, T3>
-    [pub, implicit] fun get toToImplicit() ToImplicitG<Int,T3, T2> todo
+    [pub, implicit] fun get .toToImplicit(self) ToImplicitG<Int,T3, T2> todo
 
 type ToImplicitG<T1, T2, T3> {}
 
@@ -88,15 +88,15 @@ fun test_implicitG()
     let k (Float, U32, U64) = checkInferredG(1.0, makeImplicitFromG(1U32, Byte(), I8()), makeImplicitFromG(I16(), "", 1U64)) 
 
 // Implicit conversion to interface
-type interface ImplicitI<T>
-    fun callme(a T) T
+interface ImplicitI<T>
+    fun .callme(self, a T) T
     
 type ToImplicitI<T> {}
 
 fun .callme<T>(self ToImplicitI<T>, a T)T todo
 
 type FromImplicitI<T>
-    [pub, implicit] fun get toToImplicit() ToImplicitI<T> todo
+    [pub, implicit] fun get .toToImplicit(self) ToImplicitI<T> todo
 
 fun checkImplicitFun<T>(a ToImplicitI<T>) T todo
 
@@ -119,8 +119,8 @@ type StaticTest
     [static] staticField Int
     [static] fun staticFun(a Str) Int todo
 
-type interface StaticInterfaceTest
-    fun methodFun(a Str) Int
+interface StaticInterfaceTest
+    fun .methodFun(self, a Str) Int
     [static] fun staticFun(a Str) Int
 
 

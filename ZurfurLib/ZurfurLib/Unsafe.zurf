@@ -41,8 +41,8 @@ fun .new<T>(self Ref<T>, p *T) todo
 // When implemented, the compiler knows it is a pointer (32 or 64 bits)
 // and can allow `castPointer`.  `RawPointerMarker` is private, so only
 // pointer types can implement this.
-type interface GetRawPointer
-    fun getRawPointer() RawPointerMarker
+interface GetRawPointer
+    fun .getRawPointer(self) RawPointerMarker
 
 // A raw pointer.  The compiler translates *T to RawPointer<T>
 // and automatically dereferences when "." is used.
@@ -50,8 +50,8 @@ type interface GetRawPointer
 type ro RawPointer<T>
     value Xuint
 
-    [pub, implicit] fun get toVoid()*Void extern
-    [pub, implicit, static] fun toPointer(value Nil)*T extern
+    [pub, implicit] fun get .toVoid(self)*Void extern
+    [pub, implicit, static] fun .toPointer(self, value Nil)*T extern
 
 [pub] fun _opEq<T>(a RawPointer<T>, b RawPointer<T>) Bool extern
 [pub] fun _opCmp<T>(a RawPointer<T>, b RawPointer<T>) Int extern

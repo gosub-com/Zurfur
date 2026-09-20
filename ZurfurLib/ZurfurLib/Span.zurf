@@ -10,7 +10,7 @@ type ref Span<T>
     data ro mut &T
     len ro Int
 
-    [pub, implicit] fun get asIterator() SpanIterator<T> todo
+    [pub, implicit] fun get .asIterator(self) SpanIterator<T> todo
 
     
 [pub]

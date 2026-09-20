@@ -446,7 +446,6 @@ static class CompileHeader
                 function.Qualifiers |= SymQualifiers.Method;
 
             AddTypeParams(function, synFunc.TypeParams);
-            var selfParameter = ResolveSelfParameter(synFunc, table, useSymbolsFile, function);
             var parameters = ResolveFunParams(synFunc.FunctionSignature[0], table, function, function, useSymbolsFile);
             var returns = ResolveFunParams(synFunc.FunctionSignature[1], table, function, function, useSymbolsFile);
             var newReturn = ResolveNewReturn(function, synFunc, parameters);
@@ -455,10 +454,7 @@ static class CompileHeader
             if ((function.Parent?.IsInterface ?? false) && synFunc.TypeParams != null && synFunc.TypeParams.Count >= 1)
                 Reject(synFunc.TypeParams[0].Token, "Interface methods may not have type parameters");
 
-
-            // Insert implicit and return params
-            if (selfParameter != null)
-                parameters.Insert(0, selfParameter);
+            // Insert implicit return param
             if (newReturn != null)
                 returns.Add(newReturn);
 
@@ -481,25 +477,6 @@ static class CompileHeader
 
             Debug.Assert(!syntaxToSymbol.ContainsKey(synFunc));
             syntaxToSymbol[synFunc] = function;
-        }
-
-
-        Symbol? ResolveSelfParameter(SyntaxFunc synFunc, SymbolTable table, UseSymbolsFile useSymbolsFile, Symbol function)
-        {
-            var methodParent = function.Parent!;
-
-            if (methodParent.IsModule || function.IsStatic)
-                return null;
-
-            // Interface method
-            bool isStatic = function.IsStatic || !methodParent.IsInterface;
-            var myParam = new Symbol(SymKind.FunParam, function, function.Path, synFunc.Name, "self");
-            myParam.Type = Resolver.GetTypeWithGenericParameters(table, methodParent);
-            if (myParam.Type == null)
-                return null;
-            if (!noCompilerChecks)
-                myParam.Token.AddInfo(new VerifySuppressError());
-            return myParam;
         }
 
 
@@ -554,17 +531,34 @@ static class CompileHeader
             if (expr == null || expr is SyntaxError)
                 return null;
             Debug.Assert(expr.Count >= 3);
-
-            if (expr[0].Token == "")
-            {
-                table.Reject(expr.Token, "Expecting a type name");
+            if (function.Parent == null)
                 return null;
-            }
+
 
             // Resolve parameter type
-            var paramType = Resolver.Resolve(expr[0], table, false, searchScope, useSymbols);
-            if (paramType == null)
-                return null; // Unresolved symbol
+            Symbol? paramType;
+            bool isInTypeOrInterface = function.Parent.IsInterface || function.Parent.IsType;
+            if (isInTypeOrInterface && expr.Token == "self" && expr[0].Token == "")
+            {
+                // Resolve self parameter type for interface method
+                paramType = Resolver.GetTypeWithGenericParameters(table, function.Parent);
+            }
+            else
+            {
+                if (expr[0].Token == "")
+                {
+                    table.Reject(expr.Token, "Expecting a type name");
+                    return null;
+                }
+                // Resolve parameter type
+                paramType = Resolver.Resolve(expr[0], table, false, searchScope, useSymbols);
+                if (paramType == null)
+                    return null; // Unresolved symbol
+
+                if (isInTypeOrInterface && expr.Token == "self")
+                    table.Reject(expr.Token, "'self' cannot take a type when used inside an interface or type");
+            }
+
 
             if (!(paramType.IsAnyType || table.NoCompilerChecks))
                 Resolver.RejectTypeArgLeftDotRight(expr[0], table, $"The symbol is not a type, it is a {paramType.KindName}");

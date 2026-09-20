@@ -64,14 +64,14 @@ fun .test_ufcs3_1(self Test_Ufcs3) {}
 
 // ### Interface conversion that fails
 
-type interface TakeConcrete
-    fun take(a Int)
+interface TakeConcrete
+    fun .take(self, a Int)
     
-type interface TakeConcrete2
-    fun take(a Int)
+interface TakeConcrete2
+    fun .take(self, a Int)
     
-type interface TakeInterface
-    fun take(a TakeConcrete)
+interface TakeInterface
+    fun .take(self, a TakeConcrete)
     
 type ImpNone {}
 
@@ -133,14 +133,14 @@ fun test_noImpInfer2()
 
 // ### Convert concrete types to interface
 
-type interface Printable
-    fun toStr() Str
+interface Printable
+    fun .toStr(self) Str
     
-type interface Printable2
-    fun toStr() Str
+interface Printable2
+    fun .toStr(self) Str
     
 type MyCollection<T>
-    [implicit] fun get asIterator() MyCollectionIter<T>
+    [implicit] fun get .asIterator(self) MyCollectionIter<T>
         nop
 
 type MyCollectionIter<T> {}
@@ -183,14 +183,14 @@ where T Printable
 
 // ### Incompatible parameter types (expecting Int)
 
-type interface TestGlobal
+interface TestGlobal
     [static] fun testGlobal()
     
 fun test_Global<T>()
 where T TestGlobal
     testGlobal()
     
-type interface TestGlobal2<T>
+interface TestGlobal2<T>
     [static] fun testGlobal2(x T) T
 
 fun test_Global2<T>(t T)
@@ -266,8 +266,8 @@ fun test_reduceConcrete2()
     
 // ### Ambiguous type inference on interface function
 
-type interface AmbiguousInterface<T>
-    fun f(a T)
+interface AmbiguousInterface<T>
+    fun .f(self, a T)
     
 type AmbiguousTest {}
 
@@ -297,8 +297,8 @@ fun test_noImp7()
 
 // ### Ambiguous type inference on interface function parameter
 
-type interface AmbiguousInterfaceFunParam<T>
-    fun f(a T, b T)
+interface AmbiguousInterfaceFunParam<T>
+    fun .f(self, a T, b T)
     
 type AmbiguousTestFunParam {}
 
@@ -351,15 +351,15 @@ type StaticTest
     [static] fun staticFun() Int todo
 
     // TBD: Nested functions will be illegal    
-    fun normalFunOnly() Int todo
-    fun methodAndNormalFun() Int todo
+    fun get normalFunOnly() Int todo
+    fun get methodAndNormalFun() Int todo
 
 
-fun methodAndNormalFun(a StaticTest) Int todo
+fun get methodAndNormalFun(a StaticTest) Int todo // *** Duplicate (see below)
 
 // ###
 
-fun .methodAndNormalFun(self StaticTest) Int todo
+fun get .methodAndNormalFun(self StaticTest) Int todo // *** Duplicate (see above)
 
 
 // ### END OF FILE

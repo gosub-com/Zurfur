@@ -32,8 +32,8 @@ type Maybe<T>
     value Box<T>
     hasValue Bool
 
-    [pub, static, implicit] fun toMaybe(value T) Maybe<T> todo
-    [pub, static, implicit] fun toMaybe(value Nil) Maybe<T> todo
+    [pub, static, implicit] fun .toMaybe(self, value T) Maybe<T> todo
+    [pub, static, implicit] fun .toMaybe(self, value Nil) Maybe<T> todo
 
 [pub] fun .new<T>(self Maybe<T>, value own T)
     self.value = Box<T>(value)
@@ -47,9 +47,9 @@ fun .new<T>(self Box<T>, value own T)
     nop
 
 [pub]
-type ro interface Error
-    fun get code() ErrorCode    // Machine readable error code
-    fun get message() Str       // Human readable error code
+interface Error
+    fun get .code(self) ErrorCode    // Machine readable error code
+    fun get .selfmessage() Str       // Human readable error code
 
 
 // Result[T] - Same as !T
@@ -58,7 +58,7 @@ type union Result<T>
     ok T
     error ro Error
 
-    [pub, implicit, static] fun toResult(value T) Result<T> todo
+    [pub, implicit, static] fun .toResult(self, value T) Result<T> todo
 
 // Machine readable (Zig style?) error code, possibly a Str or U32
 [pub]
@@ -73,7 +73,7 @@ type Rune = I32
 
 // Base interface for all types
 [pub]
-type interface Object {}
+interface Object {}
 
 
 // All types have a unique `id`, but other non-essential metadata is opt-in.

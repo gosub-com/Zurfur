@@ -26,10 +26,10 @@ type List<T>
     _len Int
 
     [pub, implicit]
-    fun get asSpan() Span<T> todo
+    fun get .asSpan(self) Span<T> todo
     
     [pub, implicit]
-    fun get asIterator() SpanIterator<T> todo
+    fun get .asIterator(self) SpanIterator<T> todo
 
 
 [pub]

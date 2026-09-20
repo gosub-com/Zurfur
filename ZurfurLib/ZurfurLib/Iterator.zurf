@@ -1,12 +1,14 @@
 
 mod Zurfur
 
-[pub] type interface Iterable<T>
-    fun asIterator() Iterator<T>
+[pub]
+interface Iterable<T>
+    fun .asIterator(self) Iterator<T>
 
 // Implement this on all iterators
-[pub] type interface Iterator<T>
-    fun mut next() ?T
+[pub]
+interface Iterator<T>
+    fun mut .next(self) ?T
 
 
 // This is never called.  It is implemented by the compiler to generate a for loop.

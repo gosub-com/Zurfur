@@ -92,7 +92,7 @@ class ParseZurf
 
     static WordSet s_scopeQualifiers = new("pub public private unsafe implicit static");
     static WordSet s_fieldQualifiers = new("ro mut");
-    static WordSet s_preTypeQualifiers = new("ro ref struct noclone unsafe enum union interface");
+    static WordSet s_preTypeQualifiers = new("ro ref struct noclone unsafe enum union");
     static WordSet s_postFieldQualifiers = new("init mut ref");
     static WordSet s_paramQualifiers = new("ro own mut");
 
@@ -633,6 +633,14 @@ class ParseZurf
                 qualifiers.Clear();
                 break;
 
+            case "interface":
+                qualifiers.Add(Accept());
+                ParseTypeScope(keyword, qualifiers);
+                SetTokenType(keyword, TokenType.ReservedControl);
+                qualifiers.Clear();
+                isCompound = true;
+                break;
+
             case "type":
                 SetTokenType(_token, TokenType.ReservedControl);
                 qualifiers.Add(Accept());
@@ -811,6 +819,9 @@ class ParseZurf
     {
         var comments = _comments.ToString();
         _comments.Clear();
+
+        if (keyword == "type" &&  _token == "interface")
+            RejectToken(_token, "Interfaces must be defined with 'type interface'");
 
         ParseQualifiers(s_preTypeQualifiers, qualifiers);
 
@@ -1294,6 +1305,7 @@ class ParseZurf
             SetTokenType(name, TokenType.DefineFunParam);
         RejectUnderscoreDefinition(name);
 
+        // TBD: We should probably move this check into the verifier
         if (requireSelf && name != "self")
             RejectToken(name, "'self' must be the first parameter");
         else if (!requireSelf && name == "self")
@@ -1304,14 +1316,20 @@ class ParseZurf
         while (s_paramQualifiers.Contains(_token))
             qualifiers.Add(new SyntaxToken(Accept()));
 
-        var type = ParseType();
-        var initializer = (SyntaxExpr)EmptyExpr;
-        if (AcceptMatch("="))
+        // Parse type unless this is a 'self' parameter with no type
+        var type = (SyntaxExpr)SyntaxError;
+        var initializer = (SyntaxExpr)SyntaxError;
+        if (name != "self" || BeginsType())
         {
-            if (!allowInitializer)
-                RejectToken(_prevToken, "Initializer not allowed");
-            initializer = ParseExpr();
+            type = ParseType();
+            if (AcceptMatch("="))
+            {
+                if (!allowInitializer)
+                    RejectToken(_prevToken, "Initializer not allowed");
+                initializer = ParseExpr();
+            }
         }
+
         return new SyntaxMulti(name, type, initializer, 
             new SyntaxMulti(EmptyToken, FreeExprList(qualifiers)));
     }

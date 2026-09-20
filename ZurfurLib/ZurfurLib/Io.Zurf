@@ -4,9 +4,9 @@ mod Zurfur.Io
 
 
 [pub]
-type interface Reader
+interface Reader
     // Read as much data as we can now, block if there is nothing left to read
-    afun mut read(data mut Span<Byte>) !Int
+    afun mut .read(self, data mut Span<Byte>) !Int
 
 // Read exactly the number of bytes requested
 [pub]
@@ -20,17 +20,17 @@ fun .readExact(self Reader, data mut Span<Byte>)!
         
 
 [pub]
-type interface Writer
-    afun mut write(data Span<Byte>)!
+interface Writer
+    afun mut .write(self, data Span<Byte>)!
 
 [pub]
 type enum SeekOrigin
     Begin; Current; End
 
 [pub]
-type interface Seeker
-    fun mut seek(offset Int, origin SeekOrigin) !Int
-    
+interface Seeker
+    fun mut .seek(self, offset Int, origin SeekOrigin) !Int
+
 [pub]
 fun get .length(self Seeker) !Int { }
 

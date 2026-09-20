@@ -74,7 +74,7 @@ fun test_reduce()
 
 [pub]
 type MyType
-    [pub, implicit] fun get asIterator() MyTypeIter todo
+    [pub, implicit] fun get .asIterator(self) MyTypeIter todo
 
 type MyTypeIter {}
 fun .next(self MyTypeIter) ?Int
@@ -125,14 +125,14 @@ fun takeListOfTuples(x List<(a Int, b F32)>) F32
 @b1 AParamable = Int()
 
 
-type interface AParamable
-    fun takePointer(a *Int) Span<Int>
-    fun takeInt(a Int) Float
+interface AParamable
+    fun .takePointer(self, a *Int) Span<Int>
+    fun .takeInt(self, a Int) Float
 
-type interface BParamable
-    fun fun1(x AParamable)
-    fun fun2(y BParamable)
-    fun fun3(a AParamable, b BParamable)
+interface BParamable
+    fun .fun1(self, x AParamable)
+    fun .fun2(self, y BParamable)
+    fun .fun3(self, a AParamable, b BParamable)
 
 type A1Parameter
     a Int
@@ -157,10 +157,11 @@ fun .takeInt(self A1ParameterNot2, a Int) Int // Causes it to not be AParamable
 
 
     
-type interface Printable
-    fun toStr() Str    
-type interface Printable2
-    fun toStr() Str    
+interface Printable
+    fun .toStr(self) Str
+    
+interface Printable2
+    fun .toStr(self) Str    
 
 fun test_printableFail<T, Q>(t T, q Q)
 where T Printable
@@ -174,14 +175,14 @@ where T Printable + Printable2
     t.toStr // TBD: Should not fail
 
 
-type interface TestGlobal
+interface TestGlobal
     [static] fun testGlobal()
     
 fun test_Global<T>()
 where T TestGlobal
     testGlobal()
 
-type interface TestGlobal2<T>
+interface TestGlobal2<T>
     [static] fun testGlobal2(x T) T
 
 fun test_Global2<T>(t T)
@@ -202,7 +203,7 @@ fun test_lambdaCall()
     lambdaCall2(a => 0)
 
 type MyCollection<T>
-    [pub, implicit] fun get asIterator() MyCollectionIter<T>
+    [pub, implicit] fun get .asIterator(self) MyCollectionIter<T>
         nop
 
 type MyCollectionIter<T> {}
@@ -467,26 +468,26 @@ type MyPoint<T1,T2,T3>
     x (Int, T1, Int)
     y (a Int, b T1, c Int, d (r Int, b Int))
 
-type interface Iterable2<Item>
-    fun iterator2() Iterator<Item>
+interface Iterable2<Item>
+    fun .iterator2(self) Iterator<Item>
 
-type interface GetMap<Item1,Item2>
-    fun getMap() Map<Item1, Item2>
-    fun getMapKeys() Iterator<Item1>
-    fun getMapValues() Iterator<Item2>
+interface GetMap<Item1,Item2>
+    fun .getMap(self) Map<Item1, Item2>
+    fun .getMapKeys(self) Iterator<Item1>
+    fun .getMapValues(self) Iterator<Item2>
 
-type interface Getter
-    fun get myGet() I32
-    fun myFun() I32
+interface Getter
+    fun get .myGet(self) I32
+    fun .myFun(self) I32
 
-type interface Getter2<T>
-    fun get myGet2() T
-    fun myFun2() T
-    fun myFun2Ns() T
+interface Getter2<T>
+    fun get .myGet2(self) T
+    fun .myFun2(self) T
+    fun .myFun2Ns(self) T
     [static] fun myFun2Stat() T
 
-type interface MyAdd<T>
-    fun myAddNotStatic(a T, b T) T
+interface MyAdd<T>
+    fun .myAddNotStatic(self, a T, b T) T
     [static] fun myAddStatic(a T, b T) T
 
 fun getMapFun<K,V>() Map<V,K>
@@ -496,8 +497,8 @@ fun myFun2Interf<T>(i T) T todo
 
 fun takeFun(i fun(a Int)Int) todo
 
-type interface GetHash
-    fun getHash() U32
+interface GetHash
+    fun .getHash(self) U32
 
 fun test_tuples()
     @tuples = List<(Int, Str)>()
@@ -720,8 +721,8 @@ type AAFunc<T1,T2>
 fun af6<T,QQQ>(my AGenericTest<T,QQQ>, p fun(v Int)Bool) {}
 
 
-type interface ToStr
-    fun get toStr() Str
+interface ToStr
+    fun get .toStr(self) Str
 
 [pub]
 fun GenericTest<Q1,Q2>(a Q1, b Q2) Int

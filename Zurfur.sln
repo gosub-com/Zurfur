@@ -12,11 +12,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Doc", "Doc", "{3089177A-1B87-4E67-8D0D-E5C8922E5543}"
 	ProjectSection(SolutionItems) = preProject
+		design-rationale.md = design-rationale.md
 		Doc\interfaces.md = Doc\interfaces.md
+		module-system.md = module-system.md
 		Doc\multi-threading.md = Doc\multi-threading.md
 		Doc\ownership-model.md = Doc\ownership-model.md
 		Doc\runtime-model.md = Doc\runtime-model.md
 		Doc\syntax.md = Doc\syntax.md
+		type-system.md = type-system.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Compiler", "Compiler\Compiler.csproj", "{FE91B666-494A-4BDB-AD07-C53D9FEE1C0F}"
