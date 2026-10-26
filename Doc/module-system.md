@@ -1,129 +1,144 @@
 # Module System and Visibility
 
 
-Zurfur organizes code using a nested hierarchy: Workspace ➔ Packages ➔ Modules.
+Code is organized using a nested hierarchy: Package ➔ Module ➔ Namespace.
 
-* **Workspace:** The root of the project. It groups related packages together, manages global
-  configurations, and defines the project scope.  It similar to a C# solution (.sln).
-* **Package:** The basic unit of compilation used to generate a single executable or library.
+* **Package:** The project root and basic unit of distribution. It groups related modules,
+  manages global configuration, and defines the project scope.
+* **Module:** The basic unit of compilation, used to generate a single executable or library DLL.
   It is similar to a C# project (.csproj) or assembly.
-* **Module:** A single namespace composed of multiple files, typically all in the same direcory.
-  It acts like a single C# static class. 
+* **Namespace:** A logical scope containing source files, usually located in the same directory.
+  The top-level namespace must have the same name as the module. A namespace is not the same as a C#
+  namespace. It is more like a static class that contains types, functions, and static variables.
 
+A **package** is distributed, a **module** is compiled, and a **namespaces** organize the files inside.
 
 ```
 
-my-workspace/               # <-- The Workspace Root (C# Solution)
-├── workspace.json5         # <-- Global settings & package registry
+MyPackage/                  # <-- The project root (like a C# solution)
+├── package.json            # <-- Global settings and package dependencies, etc.
 │
-├── billing-service/        # <-- PACKAGE 1: Compiles to an Executable
-│   ├── package.json5       # <-- Optional metadata for BillingService package (C# .csproj)
-│   ├── main.zurf           #     Both `main` and `app` belong to module `BillingService`
-│   ├── app.zurf            #     they share private access across files
-│   └── billing/            # <-- Subdirectory: Module `BillingService.Billing`
-│       ├── invoice.zurf    #     Both `invoice` and `tax` belong to module `BillingService.Billing`
-│       └── tax.zurf        #     the share private access across files
+├── BillingApp/             # <-- MODULE 1: Compiles to an Executable.
+│   ├── main.zurf           #     Both `main` and `app` belong to the namespace `BillingApp`
+│   ├── app.zurf            #     and they share private access across files
+│   └── Billing/            # <-- Subdirectory: namespace `BillingApp.Billing` 
+│       ├── invoice.zurf    #     Both `invoice` and `tax` belong to namespace `BillingApp.Billing`
+│       └── tax.zurf        #     and they share private access across files
 │
-└── auth-library/           # <-- PACKAGE 2: Compiles to a Library (.dll)
-    ├── package.json5       # <-- Optional metadata for AuthLibrary package (C# .csproj)
-    ├── auth.zurf           #     Both `auth` and `tokens` belong to module `AuthLibrary`
-    ├── tokens.zurf         #     they share private access across files
-    └── crypto/             # <-- Subdirectory: Module `AuthLibrary.Crypto`
-        └── hash.zurf       # <-- Belongs to module `AuthLibrary.Crypto`
+└── AuthLibrary/            # <-- MODULE 2: Compiles to a Library (.dll)
+    ├── auth.zurf           #     Both `auth` and `tokens` belong to the namespace `AuthLibrary`
+    ├── tokens.zurf         #     and they share private access across files
+    └── crypto/             # <-- Subdirectory: namespace `AuthLibrary.Crypto`
+        └── hash.zurf       # <-- Belongs to the namespace `AuthLibrary.Crypto`
 ```
 
 
 ## Package
 
-A package is the basic unit of compilation used to generate an executable or library.  It consists
-of a directory and all of its subdirectories.
+A package is the project root and the basic unit of distribution.  The `package.json` 
+identifies the package identity, module registry, and dependencies.
 
 ## Module
 
-A module is a single namespace composed of multiple files, typically all in the same direcory.
+A module is the basic unit of compilation used to generate an executable or library. It consists
+of a directory and all its subdirectories. The types of module are:
 
-All source files must use the `mod` keyword to declare it's full module name (e.g.
-`mod BillingService.Billing`, etc.). 
+* **App:** An executable that contains a `main` function which is the program's entry point. Global mutable
+  state is allowed, but is private to the app and is not shared with any other process.
+* **Process:** A single thread of execution within an application. Its public API consists only of
+  async functions. Global mutable state is allowed, but is private to the process and is not shared
+  with other apps or processes. Processes and apps communicate only through async functions and
+  message passing. A process is similar to a web worker in JavaScript.
+* **Service:** A library that contains global mutable state. Each app or process using the service gets
+  its own copy of that state. 
+* **Lib:** A library that provides reusable code without global mutable state. **TBD:** There may be
+  exceptions. Each app or process using the library gets its own copy of the global immutable state.
 
-While it is recommended that the physical directory structure mirror the logical module
-layout, this is not a hard requirement. The final authority on a module's identity is the
-`mod` declaration at the top of the source file. 
+The purpose of differentiating libraries from services is to make it clear that using a service may
+introduce a large amount of global mutable state into an app or process, which may be undesirable.
+Services should be fairly rare, but are useful for logging, cache managers, and global settings.
 
-Modules are closed compilation units. It is a compile-time error for a package to declare a
-module name that clashes with a module in a referenced package, and no package may inject new
-symbols or child modules into an existing module belonging to a different package.
-This restriction does not apply within a package, although it should be considered bad
-practice to do so.
+Circular dependencies may exist within a module, but not between modules.
 
-## Package Scope Visibility
+## Namespace
 
-Circular dependencies may exist within a package, but may not exist between multiple packages. 
+A namespace is a logical scope containing source files, not including child namespaces. Namespaces
+are similar to C# static classes in that they may include global static data. The physical directory
+structure should mirror the logical namespace structure, but it is not authoritative; each source file's
+declaration determines its namespace.
 
-The `pub` keyword on a symbol (struct, function, etc.) makes it visible to **all other modules
-within the same package.**
+Every source file must declare its namespace using the `app`, `process`, `lib`, or `service` keyword
+and the top level namespace must have the same name as the module.  The root namespace `BillingApp` is
+an app namespace, so its files must use the declaration `app BillingApp`. 
 
-However, to be visible **outside** the package, both the symbol and its containing module path
-must be marked `pub`. Therefore, a pub symbol inside a private module behaves exactly like an
-internal declaration in C# — accessible anywhere inside the package, but hidden from external
-consumers.
+Child namespaces cannot be `app` or `process`, but may be `lib` or `service`. The child namespace 
+`BillingApp.Billing` is a library namespace, so its files must use `lib BillingApp.Billing`.
+
+A namespace can be either public or private. All files in a given namespace must have the same
+visibility. For example, declaring `[pub] lib MyLib.Utils` in one file and `lib MyLib.Utils` in
+another is illegal.
+
+## Namespace Scope Visibility
+
+All files inside a namespace are treated as part of the same scope, sharing full access to each
+other's private members. Child and parent namespaces are separate entities and do not share any
+special relationship regarding symbol visibility.
+
+A type or function declaration without the `pub` keyword is strictly local to its exact 
+namespace. It can be seen and used by any file in that same namespace, but it is invisible
+to parent, child, or sibling namespaces, or to other packages.  This is similar to `internal`
+in C#, except that it is scoped to that specific namespace instead of the entire module.
+
+    // Visible to all members in this namespace, and nowhere else.
+    type struct MyType {}
 
 ## Module Scope Visibility
 
-All files inside a module are treated as part of the same scope, sharing full access
-to each other’s private members.  It acts like a single C# static class.
-Child and parent modules are separate entites and do not share any special relationship
-regarding symbol visibility.
+The `pub` keyword on a symbol (struct, function, etc.) makes it visible to **all other files
+within the module.**
 
-A module may be private or public. Every file in a module must specify the same
-module visibility:
-
-- `mod MyModule` declares a private module.
-- `[pub] mod MyModule` declares a public module.
-
-A module may contain types, interfaces, functions, and variables at module scope.
-Each declaration may be private or public:
-
-- `type struct MyType` declares a private type.
-- `[pub] type struct MyType` declares a public type.
-
-A type or function declaration without the `pub` keyword is strictly local to its exact 
-module name. It can be seen and used by any file in that same module, but it is invisible
-to parent, child, sibling modules, and other packages.
-
+    // Visible to all files in this module.
+    // Maybe visible to external modules, but only if contained in a pub namespace.
+    [pub] type struct MyType {}
 
 ## Public Scope Visibility
 
-Visibility across package boundaries relies on an unbroken chain of public access declarations
-along the logical module path. An external package can access a symbol only if every dot-separated
-module segment in its fully qualified path explicitly declares `[pub] mod`. For example, an external
+To be visible **outside** the module, both the symbol and its containing namespace path
+must be marked `pub`. Therefore, a `pub` symbol inside a private namespace behaves exactly 
+like an `internal` declaration in C# — accessible anywhere inside the module, but hidden
+from external consumers.
+
+Visibility across module boundaries relies on an unbroken chain of public access declarations
+along the logical namespace path. An external module can access a symbol only if every dot-separated
+namespace segment in its fully qualified path explicitly declares `[pub] lib`. For example, an external
 consumer can access `AuthLibrary.Crypto.Hash` only if:
 
-* `AuthLibrary` is declared as `pub mod AuthLibrary`
-* `Crypto` is declared as `pub mod AuthLibrary.Crypto`
+* `AuthLibrary` is declared as `pub lib AuthLibrary`
+* `Crypto` is declared as `pub lib AuthLibrary.Crypto`
 * `Hash` is a `pub` symbol within that module.
 
 ```text
-[pub] module AuthLibrary
-    -> [pub] module AuthLibrary.Crypto
+[pub] lib AuthLibrary
+    -> [pub] lib AuthLibrary.Crypto
         -> [pub] struct Hash
 ```
 
-If any module segment along this path omits pub, the entire path beyond that point becomes 
-invisible to external packages.
+If any namespace segment along this path omits `pub`, the entire path beyond that point becomes
+invisible to external modules.
 
 
 ## Symbol Lookup and `use` Statements
 
-All symbols declared in a module, whether private or public, are implicitly in
-scope in every file belonging to that same module. No `use` statement is required.
+All symbols declared in a namespace, whether private or public, are implicitly in
+scope in every file belonging to that same namespace. No `use` statement is required.
 
 
-Symbols declared in any other module require an explicit `use` statement in each file
-that references them, even when both modules belong to the same package. 
+Symbols declared in any other namespace require an explicit `use` statement in each file
+that references them, even when both namespaces belong to the same module. 
 
 ## File Scope Visibility
 
-Fields within a type are public if they start with a letter.  Fields that start with an
+Fields within a type are public if they start with a letter. Fields that start with an
 underscore are private to the file in which they are declared.
 
 
@@ -133,5 +148,5 @@ type struct MyType
     publicField  Str    // Public field, visible to all scopes that have access to MyType
 ```
 
-There may be some exceptions to allow private fields to be visible across multiple files
+There may be exceptions that allow private fields to be visible across multiple files
 for code generation or other special cases.

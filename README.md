@@ -12,7 +12,7 @@ here **https://gosub.com/zurfur**
 * [Syntax](Doc/syntax.md): Auto inserted `{`, `}`, `;` and explicit curly brace scopes. 
   Keywords like `yield` and why there is no need for `await`.  Operators and operator
   precedence. Mutability and const correctness examples.  
-* [Module System](Doc/module-system.md): Packages, modules, and symbol visibility rules.
+* [Module System](Doc/module-system.md): Packages, modules, namespaces, and symbol visibility rules.
   Use of `pub` and private fields use `_` prefix for file scope.
 * [Ownership Model](Doc/ownership-model.md): How ownership, mutability, and the type
   system work together in Zurfur.
