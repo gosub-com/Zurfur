@@ -38,6 +38,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gosub.Lex", "Gosub.Lex\Gosu
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Ide", "Ide", "{E9FEF292-5CF6-4155-ABCC-D9905F86B0C2}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{46054E1A-7D5B-4436-9EF3-1AC810C9C29C}"
+	ProjectSection(SolutionItems) = preProject
+		.github\copilot-instructions.md = .github\copilot-instructions.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -81,6 +86,7 @@ Global
 		{AEC124B3-7178-4CD1-A605-02FFA44FD11A} = {E9FEF292-5CF6-4155-ABCC-D9905F86B0C2}
 		{C7D37D98-A232-4586-A624-F5FF88C9267E} = {E9FEF292-5CF6-4155-ABCC-D9905F86B0C2}
 		{36657EF9-0682-408C-B253-74A28CF18BE5} = {E9FEF292-5CF6-4155-ABCC-D9905F86B0C2}
+		{46054E1A-7D5B-4436-9EF3-1AC810C9C29C} = {3F3F1568-E989-43F4-BEDD-12246A4D4CDC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FE1CAD55-B0BB-4E39-99A2-6991D44AEE73}

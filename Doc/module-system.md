@@ -38,25 +38,29 @@ MyPackage/                  # <-- The project root (like a C# solution)
 A package is the project root and the basic unit of distribution.  The `package.json` 
 identifies the package identity, module registry, and dependencies.
 
-## Module
+## Module Types
 
 A module is the basic unit of compilation used to generate an executable or library. It consists
 of a directory and all its subdirectories. The types of module are:
 
-* **App:** An executable that contains a `main` function which is the program's entry point. Global mutable
-  state is allowed, but is private to the app and is not shared with any other process.
-* **Process:** A single thread of execution within an application. Its public API consists only of
-  async functions. Global mutable state is allowed, but is private to the process and is not shared
-  with other apps or processes. Processes and apps communicate only through async functions and
-  message passing. A process is similar to a web worker in JavaScript.
-* **Service:** A library that contains global mutable state. Each app or process using the service gets
-  its own copy of that state. 
-* **Lib:** A library that provides reusable code without global mutable state. **TBD:** There may be
-  exceptions. Each app or process using the library gets its own copy of the global immutable state.
+* **App:** The root application executable containing a `main` entry point. Global mutable state
+  is allowed, but is private to the app and is not shared with other apps or agents.
+* **Agent:** A blueprint for an isolated, concurrent unit of execution. The runtime instantiates
+  each agent into its own separate execution box.  They expose a strictly asynchronous public API
+  used to communicate with the app or other agents via message passing. Global mutable state is
+  allowed, but is private to that agent instance. An agent is similar to an operating system process
+  or a web worker in JavaScript.
+* **Service:** A stateful library containing global mutable state. Each app or agent using the service
+  gets its own copy of that state.
+* **Lib:** A stateless library containing reusable code and global immutable state. Each app or agent
+  using the library gets its own copy of the global immutable state. **Note:** There might be an
+  exception to allow mutable state for diagnostic hooks, counters, and timers, etc.
 
 The purpose of differentiating libraries from services is to make it clear that using a service may
-introduce a large amount of global mutable state into an app or process, which may be undesirable.
-Services should be fairly rare, but are useful for logging, cache managers, and global settings.
+introduce a large amount of global mutable state into an app or agent, which may be undesirable.
+A service acts as an infrastructure singleton localized to the current execution unit. While it provides
+centralized, stateful APIs (like file systems or caches), WebAssembly's sandboxed isolation ensures that
+each app and agent instantiates its own entirely private copy of the service's state.
 
 Circular dependencies may exist within a module, but not between modules.
 
@@ -67,12 +71,16 @@ are similar to C# static classes in that they may include global static data. Th
 structure should mirror the logical namespace structure, but it is not authoritative; each source file's
 declaration determines its namespace.
 
-Every source file must declare its namespace using the `app`, `process`, `lib`, or `service` keyword
+Every source file must declare its namespace using the `app`, `agent`, `lib`, or `service` keyword
 and the top level namespace must have the same name as the module.  The root namespace `BillingApp` is
-an app namespace, so its files must use the declaration `app BillingApp`. 
-
-Child namespaces cannot be `app` or `process`, but may be `lib` or `service`. The child namespace 
+an app namespace, so its files must all use the declaration `app BillingApp`. The child namespace
 `BillingApp.Billing` is a library namespace, so its files must use `lib BillingApp.Billing`.
+
+Child namespaces cannot be `app` or `agent`, therefore the entire *public* API of the *app* or
+*agent* must be defined in the top level namespace.  Child namespaces may be `lib` or `service`,
+but then they are not independent units of compilation.  Instead, they are compiled into the parent
+module, have access to the parent's members following normal scope visibility rules.  
+A `service` may contain a `lib`, but a `lib` may not contain a `service`.
 
 A namespace can be either public or private. All files in a given namespace must have the same
 visibility. For example, declaring `[pub] lib MyLib.Utils` in one file and `lib MyLib.Utils` in
